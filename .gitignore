@@ -9,6 +9,9 @@ node_modules/
 
 # Build output
 dist/
+# Scratch build output used when verifying a running API against a
+# separate process — never source, never shippable.
+.verify-dist/
 build/
 .next/
 *.tsbuildinfo
