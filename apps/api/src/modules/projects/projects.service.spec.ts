@@ -45,6 +45,21 @@ describe('ProjectsService', () => {
     });
   });
 
+  describe('findOneById', () => {
+    it('throws NotFoundError when the project does not exist', async () => {
+      prisma.project.findUnique.mockResolvedValue(null);
+
+      await expect(service.findOneById('p1')).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('returns the project with no ownership check (safe only behind an already-scoped caller, e.g. an API key)', async () => {
+      const project = { id: 'p1', ownerId: 'owner-someone-else', status: ProjectStatus.ACTIVE };
+      prisma.project.findUnique.mockResolvedValue(project);
+
+      await expect(service.findOneById('p1')).resolves.toEqual(project);
+    });
+  });
+
   describe('archive', () => {
     it('soft-deletes by setting status to ARCHIVED instead of removing the row', async () => {
       prisma.project.findUnique.mockResolvedValue({ id: 'p1', ownerId: 'owner1' });

@@ -1,0 +1,17 @@
+import type { RavenHttpClient } from '../http-client';
+import type { ErrorDetail, ErrorSummary, ListErrorsParams } from '../types';
+
+/** Classified RTC errors (Phase 9), never raw LiveKit/coturn error codes — see docs/error-codes.md. */
+export class ErrorsResource {
+  constructor(private readonly http: RavenHttpClient) {}
+
+  list(params: ListErrorsParams = {}): Promise<ErrorSummary[]> {
+    return this.http.request<ErrorSummary[]>('/v1/errors', {
+      query: { category: params.category, connectionId: params.connectionId, limit: params.limit },
+    });
+  }
+
+  get(errorId: string): Promise<ErrorDetail> {
+    return this.http.request<ErrorDetail>(`/v1/errors/${errorId}`);
+  }
+}

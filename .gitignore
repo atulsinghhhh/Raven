@@ -16,6 +16,14 @@ build/
 # Prisma client gets generated here on build, don't commit it
 apps/api/src/generated/
 
+# Python (sdks/python)
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+
 # Logs
 *.log
 npm-debug.log*

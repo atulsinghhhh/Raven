@@ -342,6 +342,62 @@ describe('Control plane (e2e)', () => {
       });
     });
 
+    describe('server SDK API-key-guarded endpoints (Phase 10)', () => {
+      it('GET /v1/project returns the API key\'s own project, with no project ID needed', async () => {
+        const res = await request(app.getHttpServer())
+          .get('/v1/project')
+          .set('Authorization', `Bearer ${apiKey}`)
+          .expect(200);
+
+        expect(res.body.id).toBe(projectId);
+        expect(res.body.name).toBe('E2E Project');
+      });
+
+      it('GET /v1/rooms/:id/participants lists live participants via the API key (no JWT needed)', async () => {
+        const res = await request(app.getHttpServer())
+          .get(`/v1/rooms/${roomId}/participants`)
+          .set('Authorization', `Bearer ${apiKey}`)
+          .expect(200);
+
+        // null (SFU unreachable) or an array — never a fabricated non-empty list.
+        expect(res.body === null || Array.isArray(res.body)).toBe(true);
+      });
+
+      it('GET /v1/connections and /v1/errors work with the API key and see the same data the dashboard sees', async () => {
+        const connections = await request(app.getHttpServer())
+          .get('/v1/connections')
+          .set('Authorization', `Bearer ${apiKey}`)
+          .expect(200);
+        expect(connections.body.some((c: { roomId: string }) => c.roomId === roomId)).toBe(true);
+
+        const errors = await request(app.getHttpServer())
+          .get('/v1/errors')
+          .set('Authorization', `Bearer ${apiKey}`)
+          .expect(200);
+        expect(errors.body.some((e: { message: string }) => e.message === 'RTC token has expired')).toBe(true);
+      });
+
+      it('GET /v1/metrics and /v1/diagnostics work with the API key', async () => {
+        const metrics = await request(app.getHttpServer())
+          .get('/v1/metrics?range=1h')
+          .set('Authorization', `Bearer ${apiKey}`)
+          .expect(200);
+        expect(metrics.body.connections).toBeGreaterThanOrEqual(1);
+
+        const diagnostics = await request(app.getHttpServer())
+          .get('/v1/diagnostics')
+          .set('Authorization', `Bearer ${apiKey}`)
+          .expect(200);
+        expect(diagnostics.body.project.id).toBe(projectId);
+      });
+
+      it('rejects every server-SDK endpoint with a developer JWT instead of an API key', async () => {
+        await request(app.getHttpServer()).get('/v1/project').set('Authorization', `Bearer ${accessToken}`).expect(401);
+        await request(app.getHttpServer()).get('/v1/connections').set('Authorization', `Bearer ${accessToken}`).expect(401);
+        await request(app.getHttpServer()).get('/v1/diagnostics').set('Authorization', `Bearer ${accessToken}`).expect(401);
+      });
+    });
+
     it('closes the room', async () => {
       await request(app.getHttpServer())
         .delete(`/v1/rooms/${roomId}`)

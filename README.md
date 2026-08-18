@@ -11,14 +11,13 @@ architecture decisions.
 
 ## Status
 
-**Phase 9 of 19** — control plane, signaling, real WebRTC media (LiveKit +
+**Phase 10 of 19** — control plane, signaling, real WebRTC media (LiveKit +
 coturn), a production-oriented TURN/NAT-traversal setup, a TypeScript
 browser SDK (`@raven/rtc`), a developer dashboard (`apps/dashboard`), a
-terminal CLI (`@raven/cli`), and a first observability/diagnostics layer
-(real connection/error events, classified errors, a dashboard
-Connections/Errors view, `raven connections`/`raven errors`/`raven
-diagnostics`) are all working end to end and verified live. No
-recording, usage metering/billing, or WebRTC-stats-level metrics yet.
+terminal CLI (`@raven/cli`), a first observability/diagnostics layer, and
+official backend SDKs for TypeScript (`@raven/server`) and Python
+(`raven-sdk`) are all working end to end and verified live. No
+recording, usage metering/billing, or a React/mobile/Go/Java/etc. SDK yet.
 
 ## Architecture at a glance
 
@@ -51,12 +50,20 @@ recording, usage metering/billing, or WebRTC-stats-level metrics yet.
   Raven-facing categories (`TOKEN_ERROR`, `ICE_ERROR`, `TURN_ERROR`, ...)
   — surfaced in the dashboard's Connections/Errors tabs and via `raven
   connections`/`raven errors`/`raven diagnostics`.
+- **Server SDKs** (`packages/server-sdk`, `sdks/python`, Phase 10):
+  `@raven/server` and `raven-sdk` — mint short-lived RTC tokens and read
+  rooms/connections/errors/metrics/diagnostics from your own backend
+  using a permanent project API key, which never reaches a browser. Same
+  Control API every other client uses, no new endpoints invented beyond
+  a couple of small API-key-guarded mirrors of existing dashboard reads.
 
 Full rationale: `docs/architecture/infrastructure-decisions.md`,
 `docs/control-plane.md`, `docs/signaling.md`, `docs/sfu.md`,
 `docs/media-flow.md`, `docs/turn.md`, `docs/nat-traversal.md`,
 `docs/sdk.md`, `docs/dashboard.md`, `docs/cli.md`, `docs/observability.md`,
-`docs/telemetry.md`, `docs/diagnostics.md`, and `docs/error-codes.md`.
+`docs/telemetry.md`, `docs/diagnostics.md`, `docs/error-codes.md`,
+`docs/sdk/server/typescript.md`, `docs/sdk/server/python.md`, and
+`docs/security/server-sdk.md`.
 
 ## Local development
 
@@ -109,6 +116,35 @@ stores permanently on disk is a session token under `~/.raven/`
 (`600`/`700` permissions). Full reference: `docs/cli.md`. Canonical
 walkthrough: `examples/cli-workflow.md`.
 
+## Backend SDKs
+
+```bash
+npm install @raven/server      # TypeScript / Node.js
+pip install raven-sdk          # Python
+```
+
+```ts
+import { Raven } from '@raven/server';
+
+const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
+const token = await raven.tokens.create({ room: roomId, identity: 'user-42' });
+// hand `token` straight to your frontend — never mint one in the browser
+```
+
+```python
+from raven import Raven, CreateTokenParams
+
+raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+token = raven.tokens.create(CreateTokenParams(room=room_id, identity="user-42"))
+```
+
+Both wrap the same Control API every other client (dashboard, CLI,
+`@raven/rtc`) uses — a permanent API key that never reaches a browser,
+short-lived RTC tokens, and read access to rooms/connections/errors/
+metrics/diagnostics. Full reference: `docs/sdk/server/typescript.md`,
+`docs/sdk/server/python.md`, security model: `docs/security/server-sdk.md`.
+Runnable examples: `examples/node-server/`, `examples/python-server/`.
+
 ## Documentation
 
 - `docs/architecture/` — Phase 0 architecture decisions (WebRTC
@@ -134,6 +170,10 @@ walkthrough: `examples/cli-workflow.md`.
 - `docs/diagnostics.md` — Phase 9 the two diagnostic surfaces (server-side
   project diagnostics vs. client-side `room.getDiagnostics()`)
 - `docs/error-codes.md` — Phase 9 error categories and their explanations
+- `docs/sdk/server/typescript.md` — Phase 10 `@raven/server` reference
+- `docs/sdk/server/python.md` — Phase 10 `raven-sdk` (Python) reference
+- `docs/security/server-sdk.md` — Phase 10 server SDK security model
+  (API key storage, authorization model, short-lived tokens)
 - `examples/signaling-demo/` — minimal two-tab browser demo of the
   signaling layer (no build step, no media)
 - `examples/media-demo/` — minimal two-tab browser demo of real
@@ -142,3 +182,7 @@ walkthrough: `examples/cli-workflow.md`.
   `@raven/rtc`'s public API (no raw WebRTC types)
 - `examples/cli-workflow.md` — the canonical `raven login` →
   `projects create` → `init` → `sdk install` → `dev` flow
+- `examples/node-server/` — Express backend minting RTC tokens with
+  `@raven/server`
+- `examples/python-server/` — FastAPI backend minting RTC tokens with
+  `raven-sdk`
