@@ -6,7 +6,7 @@
 # because this is a pnpm workspace package that needs its siblings visible
 # to resolve dependencies correctly.
 
-FROM node:22-alpine
+FROM node:26-alpine
 
 WORKDIR /app
 
