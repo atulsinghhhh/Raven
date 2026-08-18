@@ -5,5 +5,7 @@
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
-  }
+  },
+  "//": "Serial on purpose. Every e2e suite here talks to the same Postgres and the same Redis, and the API's rate limits are IP-keyed — running suites in parallel means they compete for one budget and fail each other with 429s that have nothing to do with the code under test.",
+  "maxWorkers": 1
 }

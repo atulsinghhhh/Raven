@@ -1,9 +1,10 @@
 # Raven
 
 Open-source, developer-first real-time communication infrastructure.
-Raven lets a developer add real-time video, voice, and data to their own
-application — create a project, create a room, generate a token, join,
-publish — without operating WebRTC infrastructure themselves.
+Raven lets a developer add real-time video, voice, chat, and data to their
+own application — create a project, create a room, generate a token, join,
+publish, message — without operating WebRTC or WebSocket infrastructure
+themselves.
 
 Raven is infrastructure, not a video-calling app. Category peers: LiveKit
 Cloud, Daily, Agora. See `docs/architecture/` for the technical
@@ -11,14 +12,17 @@ architecture decisions.
 
 ## Status
 
-**Phase 11 of 19** — control plane, signaling, real WebRTC media (LiveKit +
+**Phase 12 of 19** — control plane, signaling, real WebRTC media (LiveKit +
 coturn), a production-oriented TURN/NAT-traversal setup, a TypeScript
 browser SDK (`@raven/rtc`), React hooks/components on top of it
 (`@raven/react`), a developer dashboard (`apps/dashboard`), a terminal
-CLI (`@raven/cli`), a first observability/diagnostics layer, and official
-backend SDKs for TypeScript (`@raven/server`) and Python (`raven-sdk`)
-are all working end to end and verified live. No recording, usage
-metering/billing, or a mobile/Go/Java/etc. SDK yet.
+CLI (`@raven/cli`), a first observability/diagnostics layer, official
+backend SDKs for TypeScript (`@raven/server`) and Python (`raven-sdk`),
+and — new in Phase 12 — a full real-time chat service (`@raven/chat`)
+with durable messages, presence, typing, read receipts, reactions,
+threads, attachments and webhooks. All working end to end and verified
+live. No recording, live streaming, usage metering/billing, or a
+mobile/Go/Java/etc. SDK yet.
 
 ## Architecture at a glance
 
@@ -56,6 +60,22 @@ metering/billing, or a mobile/Go/Java/etc. SDK yet.
   Raven-facing categories (`TOKEN_ERROR`, `ICE_ERROR`, `TURN_ERROR`, ...)
   — surfaced in the dashboard's Connections/Errors tabs and via `raven
   connections`/`raven errors`/`raven diagnostics`.
+- **Chat** (`apps/api`, Phase 12): a messaging service that is entirely
+  separate from the RTC plane — its own WebSocket gateway at
+  `/v1/chat/ws`, its own short-lived tokens, PostgreSQL as the source of
+  truth for messages and Redis for presence/typing/fan-out. A message is
+  only acked once it is durably stored, retries are idempotent, and an
+  offline client catches up from history rather than from the socket.
+  Either plane can be used without the other, and either can fail
+  without taking the other down.
+- **Chat SDK** (`packages/chat-sdk`, Phase 12): `@raven/chat` — connect,
+  send, and listen without writing a `new WebSocket(...)`, a reconnect
+  loop, or a heartbeat. `@raven/react` gained matching hooks
+  (`useMessages`, `usePresence`, `useTyping`, `useReactions`,
+  `useReadReceipts`) alongside its existing RTC ones.
+- **Webhooks** (`apps/api`, Phase 12): project-scoped, HMAC-signed,
+  retried with exponential backoff, delivered by a worker that never sits
+  on the message path.
 - **Server SDKs** (`packages/server-sdk`, `sdks/python`, Phase 10):
   `@raven/server` and `raven-sdk` — mint short-lived RTC tokens and read
   rooms/connections/errors/metrics/diagnostics from your own backend
@@ -69,7 +89,10 @@ Full rationale: `docs/architecture/infrastructure-decisions.md`,
 `docs/sdk.md`, `docs/dashboard.md`, `docs/cli.md`, `docs/observability.md`,
 `docs/telemetry.md`, `docs/diagnostics.md`, `docs/error-codes.md`,
 `docs/sdk/server/typescript.md`, `docs/sdk/server/python.md`,
-`docs/security/server-sdk.md`, `docs/sdk/web.md`, and `docs/sdk/react.md`.
+`docs/security/server-sdk.md`, `docs/sdk/web.md`, `docs/sdk/react.md`,
+`docs/chat/` (overview, architecture, websocket, messages, presence,
+typing, read-receipts, reactions, threads, attachments, webhooks),
+`docs/sdk/chat.md`, and `docs/security/chat.md`.
 
 ## Local development
 
@@ -191,6 +214,63 @@ itself is unchanged (see `docs/sdk/web.md` for the small, additive gaps
 Phase 11 closed). Full reference: `docs/sdk/react.md`. Runnable example:
 `examples/react-video-call/`.
 
+## Chat quickstart
+
+Chat is a separate service from RTC, with its own SDK and its own
+credential. Use either alone, or both together.
+
+```bash
+npm install @raven/chat
+```
+
+Your backend mints a short-lived, per-user token (never ship a project
+API key to a browser):
+
+```js
+import { Raven } from '@raven/server';
+const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+
+const conversation = await raven.chat.createConversation({
+  name: 'support-room-42',
+  members: [{ userId: 'alice', role: 'ADMIN' }, { userId: 'bob' }],
+});
+
+const token = await raven.chat.createToken({
+  userId: 'alice',                       // from YOUR session, not the request body
+  conversations: [conversation.publicId],
+});
+```
+
+The browser gets three lines:
+
+```js
+import { createChatClient } from '@raven/chat';
+
+const chat = createChatClient({ token: token.token, apiUrl: token.apiUrl });
+await chat.connect({ room: conversation.publicId });
+
+chat.on('message', (message) => console.log(`${message.senderId}: ${message.text}`));
+await chat.sendMessage({ text: 'Hello everyone!' });
+```
+
+No `new WebSocket(...)`, no reconnect loop, no heartbeat, no ordering
+logic, no dedupe. `sendMessage()` resolves only once the message is
+durably in PostgreSQL, retries are idempotent, and a client that was
+offline catches up from history rather than from the socket.
+
+React:
+
+```jsx
+import { RavenChat, useMessages, useTyping } from '@raven/react';
+
+<RavenChat token={token.token} apiUrl={token.apiUrl} room={roomId}>
+  <ChatPanel />
+</RavenChat>
+```
+
+Full reference: `docs/sdk/chat.md`. Runnable examples: `examples/chat/`
+(chat alone) and `examples/rtc-chat/` (a video call with a chat panel).
+
 ## Documentation
 
 - `docs/architecture/` — Phase 0 architecture decisions (WebRTC
@@ -224,6 +304,23 @@ Phase 11 closed). Full reference: `docs/sdk/react.md`. Runnable example:
   Next.js usage) — see `docs/sdk.md` for the full API, unchanged
 - `docs/sdk/react.md` — Phase 11 `@raven/react` reference: hooks,
   optional components, Next.js, Strict Mode
+- `docs/chat/overview.md` — Phase 12 Raven Chat: what it guarantees, how
+  authorization works, limits, retention
+- `docs/chat/architecture.md` — Phase 12 services, PostgreSQL/Redis split,
+  fan-out across instances, Redis key conventions, and **measured** load
+  limits (with what those numbers do and don't mean)
+- `docs/chat/websocket.md` — Phase 12 wire protocol, authentication, close
+  codes, heartbeats, and the reconnection contract
+- `docs/chat/messages.md` — Phase 12 sending, idempotency, cursor
+  pagination, editing, soft deletion, delivery semantics
+- `docs/chat/presence.md` / `typing.md` / `read-receipts.md` /
+  `reactions.md` / `threads.md` — Phase 12 per-feature references
+- `docs/chat/attachments.md` — Phase 12 signed direct-to-storage uploads
+- `docs/chat/webhooks.md` — Phase 12 events, signature verification,
+  retries, and idempotency
+- `docs/sdk/chat.md` — Phase 12 `@raven/chat` reference
+- `docs/security/chat.md` — Phase 12 chat security audit, including
+  residual risks
 - `examples/signaling-demo/` — minimal two-tab browser demo of the
   signaling layer (no build step, no media)
 - `examples/media-demo/` — minimal two-tab browser demo of real
@@ -239,3 +336,11 @@ Phase 11 closed). Full reference: `docs/sdk/react.md`. Runnable example:
 - `examples/react-video-call/` — real, buildable React app (Vite) using
   `@raven/react`'s hooks and components — camera/mic/screen-share/device
   selection/participants/leave/reconnect status
+- `examples/chat/` — real chat app (Vite + Express) on `@raven/chat`:
+  history, typing, presence, read receipts, reactions, editing, deleting,
+  reconnection. No mock message arrays anywhere
+- `examples/rtc-chat/` — a video call with a chat panel: `@raven/rtc` and
+  `@raven/chat` side by side, independent connections, independent
+  failure modes
+- `scripts/chat-load-test.mjs` — the load test behind the numbers in
+  `docs/chat/architecture.md#measured-limits`

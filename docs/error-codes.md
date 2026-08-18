@@ -1,5 +1,13 @@
 # Error codes and classification
 
+This document covers two separate vocabularies: the **RTC** error categories
+(classified server-side from telemetry) and the **Chat** error codes (returned
+directly by the chat API and SDK). They are deliberately distinct — a chat
+failure and a media failure have almost nothing in common, and merging them
+would produce a category list that describes neither well.
+
+## RTC errors
+
 Every RTC error a developer sees — in the dashboard, in `raven errors`,
 or in an `@raven/rtc` `error` event — is a **Raven concept**, never a raw
 LiveKit/coturn error code. `apps/api/src/modules/observability/error-classifier.ts`
@@ -62,3 +70,66 @@ a claim of certainty a Raven server can't actually back up. Examples:
 - `raven errors list` / `raven errors inspect <errorId>` (see `docs/cli.md`)
 - Dashboard → a project's **Errors** tab and error detail page
 - `GET /v1/projects/:projectId/errors` / `/errors/:errorId` (JWT-guarded)
+
+
+---
+
+# Chat error codes
+
+Every failure from the chat API or `@raven/chat` carries one of these codes.
+They are stable, and they map one-to-one onto SDK error classes so a caller
+can branch on the class rather than string-matching a message.
+
+Raw infrastructure errors never reach a client: a Postgres constraint
+violation, a Redis timeout, or an unhandled exception is logged server-side in
+full and surfaces as `INTERNAL_ERROR`.
+
+| Code | HTTP | SDK class | Meaning |
+|---|---|---|---|
+| `INVALID_TOKEN` | 401 | `RavenChatAuthenticationError` | Missing, malformed, or wrongly-signed chat token. |
+| `TOKEN_EXPIRED` | 401 | `RavenChatAuthenticationError` | The token expired — mint a new one. |
+| `TOKEN_REVOKED` | 401 | `RavenChatAuthenticationError` | Revoked before its natural expiry. |
+| `UNAUTHORIZED` | 401 | `RavenChatAuthenticationError` | No usable credential presented. |
+| `PERMISSION_DENIED` | 403 | `RavenChatPermissionError` | Authenticated, but the scope or role doesn't allow this. |
+| `NOT_A_MEMBER` | 403 | `RavenChatPermissionError` | Not a member of that conversation. |
+| `ORIGIN_NOT_ALLOWED` | 403 | `RavenChatPermissionError` | The upgrade's `Origin` isn't in `CORS_ORIGIN`. |
+| `ROOM_NOT_FOUND` | 404 | `RavenRoomError` | No such conversation in this project. |
+| `NOT_IN_ROOM` | 400 | `RavenRoomError` | This connection isn't subscribed to that room. |
+| `TOO_MANY_SUBSCRIPTIONS` | 400 | `RavenRoomError` | Per-connection room subscription limit reached. |
+| `CONVERSATION_ARCHIVED` | 409 | `RavenRoomError` | Writes are closed; reads still work. |
+| `MESSAGE_NOT_FOUND` | 404 | `RavenMessageError` | No such message in this project. |
+| `MESSAGE_DELETED` | 409 | `RavenMessageError` | The message is soft-deleted. |
+| `MESSAGE_TOO_LARGE` | 413 | `RavenMessageError` | Text, metadata, or frame exceeded its limit. |
+| `INVALID_MESSAGE` | 400 | `RavenMessageError` | Malformed or missing a required field. |
+| `INVALID_MESSAGE_TYPE` | 400 | `RavenMessageError` | Unsupported frame or message type. |
+| `INVALID_CURSOR` | 400 | `RavenMessageError` | Pagination cursor is malformed. |
+| `RATE_LIMITED` | 429 | `RavenRateLimitError` | A limit was exceeded; carries `retryAfterSeconds`. |
+| `ATTACHMENT_NOT_FOUND` | 404 | `RavenAttachmentError` | No such attachment, or not yet uploaded. |
+| `ATTACHMENTS_NOT_CONFIGURED` | 501 | `RavenAttachmentError` | No object storage configured on this deployment. |
+| `ATTACHMENT_TOO_LARGE` | 413 | `RavenAttachmentError` | Over `STORAGE_MAX_ATTACHMENT_BYTES`. |
+| `CONNECTION_FAILED` | — | `RavenChatConnectionError` | Could not connect, or reconnects were exhausted. |
+| `CONNECTION_CLOSED` | — | `RavenChatConnectionError` | The socket closed before the server replied. |
+| `NETWORK_ERROR` | — | `RavenChatConnectionError` | The request never reached Raven. |
+| `TIMEOUT` | — | `RavenChatConnectionError` | No server response within `requestTimeoutMs`. |
+| `INTERNAL_ERROR` | 500 | `RavenChatError` | Something failed on Raven's side; logged server-side. |
+
+An unrecognised code (from a newer server) becomes a base `RavenChatError`
+with that code preserved, rather than an exception — an older client keeps
+working across a server upgrade.
+
+## WebSocket close codes
+
+| Code | Meaning | Reconnect? |
+|---|---|---|
+| `1000` | Normal closure | No |
+| `4401` | Authentication failed | **No** — retrying can't help |
+| `4403` | Origin not allowed | **No** |
+| `4429` | Connection rate limit | Yes, after backing off |
+| `4440` | Token expired | Yes, with a fresh token |
+| `4500` | Server shutting down | Yes, immediately |
+
+## Where to see this
+
+- Dashboard → a project's **Chat** section
+- `@raven/chat`'s `error` event and rejected promises
+- `docs/chat/websocket.md` for the frame-level contract
