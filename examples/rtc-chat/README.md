@@ -1,0 +1,94 @@
+# Raven — video call with a chat panel
+
+`@raven/rtc` and `@raven/chat` on the same screen, doing different jobs.
+
+```
+┌─────────────────────────────────────────┐
+│                Raven Room               │
+├──────────────────────┬──────────────────┤
+│                      │      Chat        │
+│       Video          │                  │
+│   (@raven/rtc)       │  alice: Hello    │
+│                      │  bob:   Hi       │
+│                      │                  │
+│  [camera] [mute]     │  [ message… ]    │
+└──────────────────────┴──────────────────┘
+```
+
+## Why two SDKs and not one
+
+Media and messaging have almost nothing in common at the transport layer.
+Video needs WebRTC: peer connections, ICE, SRTP, an SFU, and TURN relays for
+clients behind hostile NATs. Messages need durability, ordering, and history —
+things WebRTC data channels are actively bad at, because a data channel is
+peer-to-peer and evaporates when the peer leaves.
+
+So Raven keeps them separate:
+
+| | Video | Chat |
+| --- | --- | --- |
+| SDK | `@raven/rtc` | `@raven/chat` |
+| Transport | WebRTC via LiveKit | WebSocket |
+| Token | RTC token (LiveKit-signed) | Chat token (Raven-signed) |
+| Durability | none — media is live or gone | Postgres |
+| Provider | `<RavenRoom>` | `<RavenChat>` |
+
+The practical payoff: **either half can fail without the other noticing.** Kill
+the LiveKit container and the chat panel keeps working. Restart the Raven API
+and the video call carries on while chat reconnects. Neither token is accepted
+by the other plane — try it and you'll get a `401`.
+
+The only thing linking them is `Conversation.roomId`: creating a conversation
+with `roomId` attaches it to an RTC room, so `chat.connect()` and `client.join()`
+can be handed the same identifier.
+
+## Running it
+
+Needs the Raven stack (`pnpm infra:up` from the repo root) and a project API key.
+
+```bash
+cd examples/rtc-chat
+npm install
+
+# Terminal 1 — backend (holds RAVEN_API_KEY, mints both tokens)
+RAVEN_API_KEY=rvk_xxx.yyy npm run server
+
+# Terminal 2 — frontend
+npm run dev
+```
+
+Open <http://localhost:8903> in two tabs, join the same room with different
+identities, and allow camera/microphone access.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `RAVEN_API_KEY` | *(required)* | Project API key. Backend only. |
+| `RAVEN_API_URL` | `http://localhost:4100` | Raven Control API base URL. |
+| `PORT` | `8789` | Port for this example's backend. |
+
+## Things worth trying
+
+**Independence.** With both tabs in a call, run
+`docker compose restart livekit`. The video tiles drop and recover; the chat
+panel never flinches, and messages sent during the outage are all there.
+
+Then the reverse: `docker compose restart api`. Chat shows `reconnecting`,
+video stays connected, and once chat is back it refetches what it missed.
+
+**Cross-plane token rejection.** Paste the RTC token into a chat connection (or
+vice versa) — both are rejected. They're signed with different keys and carry
+different audiences, so a leak on one plane doesn't compromise the other.
+
+## Backend flow
+
+```js
+const [rtc, chat] = await Promise.all([
+  raven.tokens.create({ room: room.id, identity, permissions: { ... } }),
+  raven.chat.createToken({ userId: identity, conversations: [conversation.publicId] }),
+]);
+```
+
+Two calls, two credentials, one response. See `server.mjs`.
+
+More detail in [docs/chat/overview.md](../../docs/chat/overview.md) and
+[docs/sdk/chat.md](../../docs/sdk/chat.md).

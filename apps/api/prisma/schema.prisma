@@ -88,6 +88,10 @@ model Project {
   connections Connection[]
   errorEvents ErrorEvent[]
 
+  conversations    Conversation[]
+  chatConnections  ChatConnection[]
+  webhookEndpoints WebhookEndpoint[]
+
   @@index([ownerId])
   @@map("projects")
 }
@@ -122,6 +126,9 @@ model Room {
 
   participants Participant[]
   rtcTokens    RtcToken[]
+  /// The chat channel attached to this RTC room, if one was created.
+  /// Chat and RTC stay separate services — this is the only join between them.
+  conversation Conversation?
 
   // Room names only need to be unique within a project, so unrelated
   // projects can independently use the same room name (e.g. "lobby").
@@ -255,4 +262,340 @@ model ErrorEvent {
   @@index([category])
   @@index([timestamp])
   @@map("error_events")
+}
+
+// ---------------------------------------------------------------------------
+// Chat (Phase 12)
+//
+// Postgres is the source of truth for everything durable below. Presence,
+// typing, and WebSocket connection routing are deliberately absent here —
+// they live in Redis with TTLs (see docs/chat/architecture.md#redis), because
+// writing an `online`/`offline` transition to Postgres on every tab focus is
+// exactly the kind of cost this design is trying to avoid.
+// ---------------------------------------------------------------------------
+
+enum ConversationType {
+  /// Backed by an RTC `Room` — the chat side of a video call.
+  ROOM
+  /// Standalone, long-lived channel with no RTC room attached.
+  CHANNEL
+  /// Two-party conversation. Same model, just a different membership shape.
+  DIRECT
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+/// Coarse roles that expand into the `chat:*` scopes in
+/// chat-permissions.ts. Deliberately not a general RBAC system (Phase 12
+/// spec §28) — but roles are stored, not scopes, so the mapping can grow
+/// without a migration.
+enum ChatMemberRole {
+  MEMBER
+  MODERATOR
+  ADMIN
+}
+
+enum ChatMemberStatus {
+  ACTIVE
+  LEFT
+}
+
+enum MessageType {
+  TEXT
+  SYSTEM
+  EVENT
+  ATTACHMENT
+}
+
+enum AttachmentStatus {
+  /// Upload URL handed out, bytes not confirmed in object storage yet.
+  PENDING
+  UPLOADED
+  EXPIRED
+}
+
+enum WebhookEndpointStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+}
+
+/// A chat channel. `publicId` (`conv_...`) is what the SDK and dashboard
+/// show; the uuid `id` never leaves the API. A conversation may be pinned
+/// to an RTC `Room` (type ROOM), which is how a video call gets a chat
+/// panel without the developer wiring two identities together.
+model Conversation {
+  id        String             @id @default(uuid())
+  publicId  String             @unique
+  projectId String
+  project   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// Set only for type ROOM. One conversation per room, enforced below.
+  roomId    String?            @unique
+  room      Room?              @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  name      String
+  type      ConversationType   @default(CHANNEL)
+  status    ConversationStatus @default(ACTIVE)
+  /// Overrides the project/plan default. Null = keep messages indefinitely.
+  retentionDays Int?
+  metadata  Json?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  members     ChatMember[]
+  messages    Message[]
+  reactions   Reaction[]
+  readStates  ReadState[]
+  attachments Attachment[]
+  connections ChatConnection[]
+
+  // Names are unique per project so `chat.connect({ room: "support" })`
+  // can resolve without the developer having to carry a conv_ id around.
+  @@unique([projectId, name])
+  @@index([projectId, createdAt])
+  @@map("chat_conversations")
+}
+
+/// Membership + role for one identity in one conversation. `userId` is the
+/// developer's own user identity string (same concept as an RTC
+/// participant identity) — Raven never owns end-user accounts.
+model ChatMember {
+  id             String           @id @default(uuid())
+  conversationId String
+  conversation   Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  projectId      String
+  userId         String
+  role           ChatMemberRole   @default(MEMBER)
+  status         ChatMemberStatus @default(ACTIVE)
+  metadata       Json?
+  joinedAt       DateTime         @default(now())
+  leftAt         DateTime?
+
+  @@unique([conversationId, userId])
+  @@index([projectId, userId])
+  @@map("chat_members")
+}
+
+/// The durable message record. Soft-deleted only (`deletedAt`) so a
+/// `message.deleted` event can still name the row and moderation keeps an
+/// audit trail — see docs/chat/messages.md#deletion.
+model Message {
+  id             String       @id @default(uuid())
+  publicId       String       @unique
+  projectId      String
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  /// Denormalized from the conversation so RTC-room-scoped queries and
+  /// webhook payloads don't need a join. Null for CHANNEL/DIRECT.
+  roomId         String?
+  senderId       String
+  type           MessageType  @default(TEXT)
+  /// Null for messages that carry no text (a bare attachment, say).
+  content        String?
+  /// Direct parent. Threads are this same table, not a second store
+  /// (spec §26) — `threadRootId` just makes "give me the thread" one
+  /// indexed range scan instead of a recursive walk.
+  replyToMessageId String?
+  replyToMessage   Message?   @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies          Message[]  @relation("MessageReplies")
+  threadRootId     String?
+  /// Caller-supplied idempotency key. A retry after a reconnect reuses it
+  /// and gets the original message back instead of a duplicate (spec §16).
+  clientMessageId  String?
+  metadata         Json?
+  editedAt         DateTime?
+  deletedAt        DateTime?
+  deletedBy        String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  reactions   Reaction[]
+  readStates  ReadState[]
+  attachments Attachment[]
+
+  // The idempotency guarantee itself. Scoped to sender as well as
+  // conversation so two clients can't collide on a generic key like "1".
+  @@unique([conversationId, senderId, clientMessageId], map: "chat_messages_idempotency_key")
+  // Covers the only hot read path: newest-first history for one
+  // conversation, keyset-paginated on (createdAt, id).
+  @@index([conversationId, createdAt, id])
+  @@index([senderId, createdAt])
+  @@index([threadRootId, createdAt])
+  @@map("chat_messages")
+}
+
+model Reaction {
+  id             String       @id @default(uuid())
+  messageId      String
+  message        Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  projectId      String
+  userId         String
+  emoji          String
+  createdAt      DateTime     @default(now())
+
+  // One user, one emoji, one message — a double-tap is a no-op, not a
+  // second row (spec §23).
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@map("chat_reactions")
+}
+
+/// One row per (conversation, user) holding the *latest* read position,
+/// not one row per read event (spec §22). Marking 500 messages read
+/// updates a single row.
+model ReadState {
+  id                String       @id @default(uuid())
+  conversationId    String
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  projectId         String
+  userId            String
+  lastReadMessageId String?
+  lastReadMessage   Message?     @relation(fields: [lastReadMessageId], references: [id], onDelete: SetNull)
+  /// createdAt of the last-read message, copied here so "unread count"
+  /// is a single range count with no join back to messages.
+  lastReadAt        DateTime
+  updatedAt         DateTime     @updatedAt
+
+  @@unique([conversationId, userId])
+  @@index([lastReadMessageId])
+  @@map("chat_read_states")
+}
+
+/// Metadata only. The bytes live in S3-compatible object storage and are
+/// only ever reached through short-lived signed URLs (spec §30) — no blob
+/// ever passes through Postgres or the WebSocket.
+model Attachment {
+  id             String           @id @default(uuid())
+  publicId       String           @unique
+  projectId      String
+  conversationId String
+  conversation   Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  messageId      String?
+  message        Message?         @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  uploaderId     String
+  filename       String
+  mimeType       String
+  sizeBytes      Int
+  storageKey     String           @unique
+  status         AttachmentStatus @default(PENDING)
+  metadata       Json?
+  createdAt      DateTime         @default(now())
+  uploadedAt     DateTime?
+
+  @@index([conversationId])
+  @@index([messageId])
+  @@map("chat_attachments")
+}
+
+/// One WebSocket session against the chat gateway. Deliberately not one
+/// row per presence transition — this is the session, and presence
+/// itself is Redis-only. Mirrors the RTC `Connection` model so the
+/// dashboard's connection views work the same way for both planes.
+model ChatConnection {
+  id               String          @id @default(uuid())
+  publicId         String          @unique
+  projectId        String
+  project          Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  conversationId   String?
+  conversation     Conversation?   @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  userId           String
+  /// Which gateway instance owns the socket — the thing you need when a
+  /// single instance in a fleet starts misbehaving.
+  gatewayId        String
+  state            ConnectionState @default(CONNECTING)
+  disconnectReason String?
+  sdkVersion       String?
+  platform         String?
+  messagesSent     Int             @default(0)
+  connectedAt      DateTime?
+  disconnectedAt   DateTime?
+  durationMs       Int?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([projectId, createdAt])
+  @@index([userId])
+  @@map("chat_connections")
+}
+
+/// A developer-registered webhook target. Project-scoped rather than
+/// chat-scoped on purpose: RTC/recording/streaming events in later phases
+/// deliver through this same pipeline (spec §31 — no second webhook
+/// architecture).
+model WebhookEndpoint {
+  id                  String                @id @default(uuid())
+  publicId            String                @unique
+  projectId           String
+  project             Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url                 String
+  description         String?
+  /// Empty = every event type. Otherwise an allow-list of `message.created`
+  /// style names.
+  enabledEvents       String[]              @default([])
+  /// HMAC-SHA256 signing key. Has to be recoverable to sign each delivery,
+  /// so unlike an API key this is stored as-is and shown once at creation;
+  /// it is never returned again. See docs/chat/webhooks.md#signatures.
+  signingSecret       String
+  status              WebhookEndpointStatus @default(ACTIVE)
+  consecutiveFailures Int                   @default(0)
+  lastDeliveryAt      DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  deliveries WebhookDelivery[]
+
+  @@index([projectId])
+  @@map("webhook_endpoints")
+}
+
+/// The event itself, recorded once regardless of how many endpoints it
+/// fans out to. `publicId` (`evt_...`) is the idempotency key a receiver
+/// should dedupe on (spec §32).
+model WebhookEvent {
+  id        String   @id @default(uuid())
+  publicId  String   @unique
+  projectId String
+  type      String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  deliveries WebhookDelivery[]
+
+  @@index([projectId, createdAt])
+  @@map("webhook_events")
+}
+
+/// One (event, endpoint) attempt chain. The worker claims rows by
+/// `status = PENDING AND nextAttemptAt <= now()`, which is what the
+/// composite index below serves.
+model WebhookDelivery {
+  id             String                @id @default(uuid())
+  eventId        String
+  event          WebhookEvent          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  endpointId     String
+  endpoint       WebhookEndpoint       @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  status         WebhookDeliveryStatus @default(PENDING)
+  attempts       Int                   @default(0)
+  nextAttemptAt  DateTime              @default(now())
+  responseStatus Int?
+  /// Truncated, and never the response body — a failing endpoint can
+  /// echo back anything, including things we shouldn't store.
+  lastError      String?
+  deliveredAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@unique([eventId, endpointId])
+  @@index([status, nextAttemptAt])
+  @@index([endpointId, createdAt])
+  @@map("webhook_deliveries")
 }

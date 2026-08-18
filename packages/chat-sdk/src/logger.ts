@@ -1,0 +1,34 @@
+export type LogLevel = 'silent' | 'error' | 'warn' | 'info' | 'debug';
+
+const LEVELS: LogLevel[] = ['silent', 'error', 'warn', 'info', 'debug'];
+
+export interface Logger {
+  error(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+  info(...args: unknown[]): void;
+  debug(...args: unknown[]): void;
+}
+
+/**
+ * Console-backed logger, prefixed and level-gated. Nothing here redacts
+ * for you — don't pass a raw RTC token or API key into these.
+ */
+export function createLogger(level: LogLevel = 'silent'): Logger {
+  const rank = LEVELS.indexOf(level);
+  const enabled = (l: LogLevel) => LEVELS.indexOf(l) <= rank;
+
+  return {
+    error: (...args) => {
+      if (enabled('error')) console.error('[raven-chat]', ...args);
+    },
+    warn: (...args) => {
+      if (enabled('warn')) console.warn('[raven-chat]', ...args);
+    },
+    info: (...args) => {
+      if (enabled('info')) console.info('[raven-chat]', ...args);
+    },
+    debug: (...args) => {
+      if (enabled('debug')) console.debug('[raven-chat]', ...args);
+    },
+  };
+}

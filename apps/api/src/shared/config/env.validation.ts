@@ -98,6 +98,37 @@ class EnvironmentVariables {
   @IsString()
   CORS_ORIGIN?: string;
 
+  // Chat (Phase 12). All optional so a Phase 0-11 .env still boots —
+  // configuration.ts supplies the defaults. The one that genuinely
+  // matters in production (a distinct chat-token secret) is enforced in
+  // validateProductionConfig() below instead.
+  @IsOptional()
+  @IsString()
+  CHAT_TOKEN_SECRET?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(60)
+  CHAT_TOKEN_DEFAULT_TTL_SECONDS?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  CHAT_MAX_TEXT_LENGTH?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  CHAT_SEND_RATE_LIMIT?: number;
+
+  @IsOptional()
+  @IsString()
+  STORAGE_BUCKET?: string;
+
+  @IsOptional()
+  @IsString()
+  STORAGE_ENDPOINT?: string;
+
   @IsOptional()
   @IsIn(['development', 'test', 'production'])
   NODE_ENV?: string;
@@ -127,6 +158,16 @@ function validateProductionConfig(config: EnvironmentVariables): void {
   }
   if (config.LIVEKIT_URL.startsWith('ws://')) {
     problems.push('LIVEKIT_URL must use wss:// (TLS) in production, not ws://');
+  }
+  if (!config.CHAT_TOKEN_SECRET) {
+    problems.push(
+      'CHAT_TOKEN_SECRET is required in production — chat tokens must not share a signing key with dashboard session JWTs (see docs/chat/websocket.md#authentication)',
+    );
+  } else if (config.CHAT_TOKEN_SECRET === config.JWT_SECRET) {
+    problems.push('CHAT_TOKEN_SECRET must differ from JWT_SECRET — they authorize different things');
+  }
+  if (config.STORAGE_ENDPOINT?.startsWith('http://')) {
+    problems.push('STORAGE_ENDPOINT must use https:// in production — signed upload URLs would otherwise travel in cleartext');
   }
 
   if (problems.length > 0) {

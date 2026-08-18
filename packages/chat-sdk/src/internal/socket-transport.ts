@@ -1,0 +1,263 @@
+import { RavenChatConnectionError, toRavenChatError, type RavenChatError } from '../errors';
+import type { Logger } from '../logger';
+import { backoffDelayMs } from './backoff';
+
+/** Injectable so tests can drive a fake socket without a real server. */
+export type WebSocketFactory = (url: string) => WebSocketLike;
+
+/** The slice of the WebSocket API this transport actually uses. */
+export interface WebSocketLike {
+  readyState: number;
+  send(data: string): void;
+  close(code?: number, reason?: string): void;
+  onopen: ((event: unknown) => void) | null;
+  onclose: ((event: { code: number; reason: string }) => void) | null;
+  onerror: ((event: unknown) => void) | null;
+  onmessage: ((event: { data: unknown }) => void) | null;
+}
+
+export interface TransportOptions {
+  url: string;
+  token: string;
+  sdkVersion: string;
+  autoReconnect: boolean;
+  maxReconnectAttempts: number;
+  initialReconnectDelayMs: number;
+  maxReconnectDelayMs: number;
+  logger: Logger;
+  socketFactory?: WebSocketFactory;
+}
+
+export interface TransportHandlers {
+  onFrame: (frame: Record<string, unknown>) => void;
+  onOpen: () => void;
+  /**
+   * `willReconnect: false` means the transport is done trying.
+   * `terminal: true` additionally means retrying could never have helped
+   * (a rejected token, a disallowed origin) — the client reports `failed`
+   * for those and plain `disconnected` otherwise.
+   */
+  onClose: (info: { code: number; reason: string; willReconnect: boolean; terminal: boolean }) => void;
+  onReconnecting: (attempt: number, delayMs: number) => void;
+  onError: (error: RavenChatError) => void;
+}
+
+/**
+ * Close codes the gateway sends for failures that retrying cannot fix.
+ * Reconnecting on a revoked token or a rejected origin would just be a
+ * polite denial-of-service against ourselves.
+ */
+const TERMINAL_CLOSE_CODES = new Set([
+  4401, // auth failed
+  4403, // origin not allowed
+]);
+/** Token expiry is recoverable — but only if the app can supply a fresh token. */
+const TOKEN_EXPIRED_CLOSE_CODE = 4440;
+const NORMAL_CLOSURE = 1000;
+
+/**
+ * Owns the WebSocket and its reconnect policy, and nothing else. Keeping
+ * this separate from the client means the reconnect logic is testable
+ * against a fake socket, and the client never touches a raw
+ * `WebSocket` — which is the whole promise of the SDK (spec §12).
+ */
+export class SocketTransport {
+  private socket?: WebSocketLike;
+  private reconnectTimer?: ReturnType<typeof setTimeout>;
+  private attempt = 0;
+  /** Set when the caller asked to disconnect, so we don't "helpfully" reconnect. */
+  private intentionallyClosed = false;
+  private token: string;
+
+  constructor(
+    private readonly options: TransportOptions,
+    private readonly handlers: TransportHandlers,
+  ) {
+    this.token = options.token;
+  }
+
+  get isOpen(): boolean {
+    return this.socket?.readyState === 1;
+  }
+
+  /** Swaps in a refreshed token; the next (re)connect uses it. */
+  setToken(token: string): void {
+    this.token = token;
+  }
+
+  connect(): void {
+    this.intentionallyClosed = false;
+    this.open();
+  }
+
+  send(frame: Record<string, unknown>): void {
+    if (!this.socket || this.socket.readyState !== 1) {
+      throw new RavenChatConnectionError('Not connected — call connect() first', 'CONNECTION_CLOSED');
+    }
+    this.socket.send(JSON.stringify(frame));
+  }
+
+  disconnect(code = NORMAL_CLOSURE, reason = 'client disconnect'): void {
+    this.intentionallyClosed = true;
+    this.clearReconnectTimer();
+    this.attempt = 0;
+    // Detach handlers before closing: otherwise the close event fires the
+    // reconnect path we just cancelled.
+    const socket = this.socket;
+    this.socket = undefined;
+    if (socket) {
+      socket.onopen = null;
+      socket.onclose = null;
+      socket.onerror = null;
+      socket.onmessage = null;
+      try {
+        socket.close(code, reason);
+      } catch {
+        // Already closing or closed — nothing left to do.
+      }
+    }
+  }
+
+  private open(): void {
+    const factory =
+      this.options.socketFactory ??
+      ((url: string) => new WebSocket(url) as unknown as WebSocketLike);
+
+    // Token goes in the query string because the browser WebSocket API
+    // can't set headers on an upgrade. That's also why chat tokens are
+    // short-lived and revocable — a URL can end up in a proxy log.
+    const url = `${this.options.url}?token=${encodeURIComponent(this.token)}&sdkVersion=${encodeURIComponent(
+      this.options.sdkVersion,
+    )}&platform=browser`;
+
+    let socket: WebSocketLike;
+    try {
+      socket = factory(url);
+    } catch (error) {
+      this.handlers.onError(
+        new RavenChatConnectionError('Could not open a chat connection', 'CONNECTION_FAILED', error),
+      );
+      this.scheduleReconnect();
+      return;
+    }
+
+    this.socket = socket;
+
+    socket.onopen = () => {
+      this.attempt = 0;
+      this.handlers.onOpen();
+    };
+
+    socket.onmessage = (event) => {
+      let frame: Record<string, unknown>;
+      try {
+        frame = JSON.parse(String(event.data)) as Record<string, unknown>;
+      } catch {
+        this.options.logger.warn('discarded a malformed frame from the server');
+        return;
+      }
+      this.handlers.onFrame(frame);
+    };
+
+    socket.onerror = () => {
+      // Browsers deliberately give no detail here (it would be a
+      // cross-origin information leak), so there's nothing more specific
+      // to report. The close event that follows carries the real reason.
+      this.options.logger.debug('chat socket error');
+    };
+
+    socket.onclose = (event) => {
+      this.socket = undefined;
+
+      if (this.intentionallyClosed) {
+        this.handlers.onClose({
+          code: event.code,
+          reason: event.reason,
+          willReconnect: false,
+          terminal: false,
+        });
+        return;
+      }
+
+      const terminal = TERMINAL_CLOSE_CODES.has(event.code);
+      const attemptsExhausted = this.attempt >= this.options.maxReconnectAttempts;
+      const willReconnect = this.options.autoReconnect && !terminal && !attemptsExhausted;
+
+      // Close first, then error — the client uses `terminal` to decide
+      // between `failed` and `disconnected`, and an error emitted before
+      // that decision would just be overwritten by it.
+      this.handlers.onClose({
+        code: event.code,
+        reason: event.reason,
+        willReconnect,
+        terminal: terminal || (this.options.autoReconnect && attemptsExhausted),
+      });
+
+      if (terminal) {
+        this.handlers.onError(
+          toRavenChatError(event.reason || 'UNAUTHORIZED', 'The chat connection was rejected'),
+        );
+        return;
+      }
+
+      if (willReconnect) {
+        this.scheduleReconnect(event.code === TOKEN_EXPIRED_CLOSE_CODE);
+        return;
+      }
+
+      // Auto-reconnect was on and we ran out of attempts. Say so
+      // explicitly rather than going quiet — a client that silently stops
+      // retrying looks identical to one that is still trying.
+      if (this.options.autoReconnect && attemptsExhausted) {
+        this.handlers.onError(
+          new RavenChatConnectionError(
+            `Could not reconnect after ${this.options.maxReconnectAttempts} attempts`,
+            'CONNECTION_FAILED',
+          ),
+        );
+      }
+    };
+  }
+
+  private scheduleReconnect(tokenExpired = false): void {
+    if (this.intentionallyClosed || !this.options.autoReconnect) {
+      return;
+    }
+    if (this.attempt >= this.options.maxReconnectAttempts) {
+      this.handlers.onError(
+        new RavenChatConnectionError(
+          `Could not reconnect after ${this.options.maxReconnectAttempts} attempts`,
+          'CONNECTION_FAILED',
+        ),
+      );
+      return;
+    }
+
+    this.attempt += 1;
+    const delayMs = backoffDelayMs(
+      this.attempt,
+      this.options.initialReconnectDelayMs,
+      this.options.maxReconnectDelayMs,
+    );
+
+    this.options.logger.info(
+      `reconnecting in ${delayMs}ms (attempt ${this.attempt}/${this.options.maxReconnectAttempts})`,
+    );
+    this.handlers.onReconnecting(this.attempt, delayMs);
+
+    this.clearReconnectTimer();
+    this.reconnectTimer = setTimeout(() => {
+      // Reconnecting with a token we already know is expired would waste
+      // the attempt; the client refreshes it first via onTokenExpiring.
+      void tokenExpired;
+      this.open();
+    }, delayMs);
+  }
+
+  private clearReconnectTimer(): void {
+    if (this.reconnectTimer !== undefined) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
+  }
+}

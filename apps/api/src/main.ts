@@ -7,6 +7,7 @@ import 'reflect-metadata';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './shared/errors/all-exceptions.filter';
 import { SIGNALING_PATH } from './modules/signaling/signaling.constants';
+import { CHAT_PATH } from './modules/chat/chat.constants';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -63,6 +64,15 @@ async function bootstrap(): Promise<void> {
         },
         'rtcToken',
       )
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          description:
+            'A short-lived Raven Chat token minted by your backend via POST /v1/chat/tokens. Safe to hand to a browser; scoped to one user and expiring. Never a project API key.',
+        },
+        'chatToken',
+      )
       .build(),
   );
   SwaggerModule.setup('docs', app, swaggerDocument);
@@ -72,6 +82,7 @@ async function bootstrap(): Promise<void> {
   Logger.log(`Raven control plane listening on port ${port}`, 'Bootstrap');
   Logger.log(`API documentation available at /docs`, 'Bootstrap');
   Logger.log(`Signaling WebSocket available at ${SIGNALING_PATH}`, 'Bootstrap');
+  Logger.log(`Chat WebSocket available at ${CHAT_PATH}`, 'Bootstrap');
 }
 
 bootstrap();

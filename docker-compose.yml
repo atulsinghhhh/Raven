@@ -22,6 +22,8 @@ volumes:
     name: raven-postgres-data
   raven-redis-data:
     name: raven-redis-data
+  raven-minio-data:
+    name: raven-minio-data
 
 services:
   # Postgres — stores users, projects, api keys, rooms, usage records.
@@ -152,6 +154,50 @@ services:
     networks:
       - raven-network
 
+  # minio — S3-compatible object storage for chat attachments. Files never
+  # pass through the API or the WebSocket; clients PUT straight here using
+  # a short-lived signed URL. Swap for S3/R2/Spaces in production — the
+  # API only speaks SigV4, not anything MinIO-specific.
+  # See docs/chat/attachments.md.
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: raven-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY_ID:-raven-minio-access}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_ACCESS_KEY:?STORAGE_SECRET_ACCESS_KEY is required}
+    ports:
+      - "${STORAGE_PORT:-9000}:9000"      # S3 API
+      - "${STORAGE_CONSOLE_PORT:-9001}:9001"  # web console, local dev only
+    volumes:
+      - raven-minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - raven-network
+
+  # Creates the attachments bucket once and exits. Keeps `pnpm infra:up`
+  # a single command instead of "and then go click around in the console".
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    container_name: raven-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set raven http://minio:9000 ${STORAGE_ACCESS_KEY_ID:-raven-minio-access} ${STORAGE_SECRET_ACCESS_KEY} &&
+      mc mb --ignore-existing raven/${STORAGE_BUCKET:-raven-attachments} &&
+      echo 'bucket ready'
+      "
+    networks:
+      - raven-network
+
   # api — the control plane. Handles auth, projects, api keys, rooms, RTC
   # tokens. Doesn't touch media itself. See docs/control-plane.md.
   api:
@@ -166,6 +212,8 @@ services:
       redis:
         condition: service_healthy
       livekit:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     environment:
       NODE_ENV: development
@@ -207,6 +255,22 @@ services:
       TURN_INTERNAL_HOST: coturn
       TURN_TLS_PORT: ${TURN_TLS_PORT:-5349}
       TURN_SECRET: ${TURN_SECRET:?TURN_SECRET is required}
+      # Chat (Phase 12). Its own signing key, never JWT_SECRET.
+      CHAT_TOKEN_SECRET: ${CHAT_TOKEN_SECRET:?CHAT_TOKEN_SECRET is required}
+      CHAT_TOKEN_DEFAULT_TTL_SECONDS: ${CHAT_TOKEN_DEFAULT_TTL_SECONDS:-3600}
+      CHAT_MAX_TEXT_LENGTH: ${CHAT_MAX_TEXT_LENGTH:-4000}
+      CHAT_SEND_RATE_LIMIT: ${CHAT_SEND_RATE_LIMIT:-30}
+      CHAT_PRESENCE_TTL_SECONDS: ${CHAT_PRESENCE_TTL_SECONDS:-45}
+      CHAT_TYPING_TTL_SECONDS: ${CHAT_TYPING_TTL_SECONDS:-7}
+      CHAT_RETENTION_DAYS: ${CHAT_RETENTION_DAYS:-0}
+      # Container-to-container address, same story as DATABASE_URL/REDIS_URL —
+      # .env's STORAGE_ENDPOINT points at localhost for host-side runs.
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-raven-attachments}
+      STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:-raven-minio-access}
+      STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY}
+      STORAGE_FORCE_PATH_STYLE: "true"
     ports:
       - "${API_PORT:-4100}:${API_PORT:-4100}"
     healthcheck:

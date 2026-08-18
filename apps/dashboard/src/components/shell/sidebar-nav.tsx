@@ -4,18 +4,22 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { NAV_GROUPS, type NavItem } from '@/lib/nav';
 import {
+  IconChat,
   IconConnections,
+  IconConversations,
   IconDiagnostics,
   IconErrors,
   IconKeys,
   IconMetrics,
   IconOverview,
   IconParticipants,
+  IconPresence,
   IconQuickstart,
   IconRooms,
   IconSdk,
   IconSettings,
   IconUsage,
+  IconWebhooks,
 } from '@/components/ui/icons';
 
 const ICONS: Record<NavItem['icon'], (p: { className?: string }) => React.JSX.Element> = {
@@ -31,10 +35,25 @@ const ICONS: Record<NavItem['icon'], (p: { className?: string }) => React.JSX.El
   quickstart: IconQuickstart,
   usage: IconUsage,
   settings: IconSettings,
+  chat: IconChat,
+  conversations: IconConversations,
+  presence: IconPresence,
+  webhooks: IconWebhooks,
 };
 
 export function SidebarNav({ projectId, onNavigate }: { projectId: string; onNavigate?: () => void }) {
   const pathname = usePathname();
+
+  // Longest matching slug wins. Without this, "chat" and
+  // "chat/conversations" would both light up on the conversations page,
+  // since one slug is a prefix of the other.
+  const activeSlug = NAV_GROUPS.flatMap((group) => group.items)
+    .map((item) => item.slug)
+    .filter((slug) => {
+      const href = `/dashboard/projects/${projectId}/${slug}`;
+      return pathname === href || pathname.startsWith(`${href}/`);
+    })
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
     <nav aria-label="Project" className="flex flex-col gap-5">
@@ -48,9 +67,9 @@ export function SidebarNav({ projectId, onNavigate }: { projectId: string; onNav
           <ul className="flex flex-col gap-px">
             {group.items.map((item) => {
               const href = `/dashboard/projects/${projectId}/${item.slug}`;
-              // startsWith so detail routes (…/connections/conn_x) keep their
-              // parent item highlighted.
-              const active = pathname === href || pathname.startsWith(`${href}/`);
+              // Detail routes (…/connections/conn_x) keep their parent item
+              // highlighted, but only the most specific parent.
+              const active = item.slug === activeSlug;
               const Icon = ICONS[item.icon];
 
               return (

@@ -81,6 +81,80 @@ export default () => ({
     maxConnectionsPerWindow: parseInt(process.env.SIGNALING_MAX_CONNECTIONS_PER_WINDOW ?? '20', 10),
   },
 
+  chat: {
+    // Chat tokens are signed with their own secret, never JWT_SECRET.
+    // A leaked dashboard-session secret must not be able to mint a chat
+    // token, and vice versa. Falls back to JWT_SECRET only so local dev
+    // works out of the box after a `git pull` — production validation
+    // (env.validation.ts) rejects that.
+    tokenSecret: process.env.CHAT_TOKEN_SECRET ?? process.env.JWT_SECRET,
+    tokenDefaultTtlSeconds: parseInt(process.env.CHAT_TOKEN_DEFAULT_TTL_SECONDS ?? '3600', 10),
+    tokenMaxTtlSeconds: parseInt(process.env.CHAT_TOKEN_MAX_TTL_SECONDS ?? String(6 * 60 * 60), 10),
+
+    // Payload ceilings (spec §38). Enforced identically on the WebSocket
+    // and the HTTP path — a limit only one transport honours isn't a limit.
+    maxTextLength: parseInt(process.env.CHAT_MAX_TEXT_LENGTH ?? '4000', 10),
+    maxMetadataBytes: parseInt(process.env.CHAT_MAX_METADATA_BYTES ?? '4096', 10),
+    maxFrameBytes: parseInt(process.env.CHAT_MAX_FRAME_BYTES ?? '65536', 10),
+    maxReactionsPerMessage: parseInt(process.env.CHAT_MAX_REACTIONS_PER_MESSAGE ?? '200', 10),
+    maxRoomSubscriptionsPerConnection: parseInt(process.env.CHAT_MAX_ROOM_SUBSCRIPTIONS ?? '20', 10),
+    maxHistoryPageSize: parseInt(process.env.CHAT_MAX_HISTORY_PAGE_SIZE ?? '100', 10),
+
+    // Per-user sliding budgets, Redis-backed so they hold across gateway
+    // instances (unlike the RTC signaling limiter, which is per-socket).
+    sendRateLimit: parseInt(process.env.CHAT_SEND_RATE_LIMIT ?? '30', 10),
+    sendRateWindowSeconds: parseInt(process.env.CHAT_SEND_RATE_WINDOW_SECONDS ?? '10', 10),
+    reactionRateLimit: parseInt(process.env.CHAT_REACTION_RATE_LIMIT ?? '60', 10),
+    typingRateLimit: parseInt(process.env.CHAT_TYPING_RATE_LIMIT ?? '20', 10),
+    subscribeRateLimit: parseInt(process.env.CHAT_SUBSCRIBE_RATE_LIMIT ?? '60', 10),
+    connectionRateLimit: parseInt(process.env.CHAT_CONNECTION_RATE_LIMIT ?? '30', 10),
+
+    // Ephemeral-state TTLs. presenceTtl has to outlive a heartbeat cycle
+    // or a healthy connection would flap offline between pings.
+    presenceTtlSeconds: parseInt(process.env.CHAT_PRESENCE_TTL_SECONDS ?? '45', 10),
+    typingTtlSeconds: parseInt(process.env.CHAT_TYPING_TTL_SECONDS ?? '7', 10),
+
+    // Default message retention, overridable per conversation. 0 = keep
+    // forever. The sweeper only runs when this (or a conversation
+    // override) is set — see docs/chat/overview.md#retention.
+    retentionDays: parseInt(process.env.CHAT_RETENTION_DAYS ?? '0', 10),
+    retentionSweepIntervalMs: parseInt(
+      process.env.CHAT_RETENTION_SWEEP_INTERVAL_MS ?? String(6 * 60 * 60 * 1000),
+      10,
+    ),
+  },
+
+  webhooks: {
+    maxAttempts: parseInt(process.env.WEBHOOK_MAX_ATTEMPTS ?? '6', 10),
+    // Base for the exponential backoff: 10s, 20s, 40s, 80s, 160s, 320s.
+    backoffBaseMs: parseInt(process.env.WEBHOOK_BACKOFF_BASE_MS ?? '10000', 10),
+    timeoutMs: parseInt(process.env.WEBHOOK_TIMEOUT_MS ?? '5000', 10),
+    // How often the delivery worker looks for due deliveries. Off the
+    // message hot path entirely (spec §32).
+    pollIntervalMs: parseInt(process.env.WEBHOOK_POLL_INTERVAL_MS ?? '2000', 10),
+    batchSize: parseInt(process.env.WEBHOOK_BATCH_SIZE ?? '20', 10),
+    // An endpoint that fails this many deliveries in a row gets disabled
+    // so a dead URL stops burning retry budget forever.
+    disableAfterConsecutiveFailures: parseInt(process.env.WEBHOOK_DISABLE_AFTER_FAILURES ?? '50', 10),
+  },
+
+  storage: {
+    // S3-compatible object storage for chat attachments (MinIO locally,
+    // S3/R2/Spaces in production). Unset bucket = attachments disabled,
+    // and the API says so explicitly rather than half-working.
+    endpoint: process.env.STORAGE_ENDPOINT,
+    region: process.env.STORAGE_REGION ?? 'us-east-1',
+    bucket: process.env.STORAGE_BUCKET,
+    accessKeyId: process.env.STORAGE_ACCESS_KEY_ID,
+    secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY,
+    // MinIO needs path-style (http://host/bucket/key); real S3 prefers
+    // virtual-host style.
+    forcePathStyle: (process.env.STORAGE_FORCE_PATH_STYLE ?? 'true') === 'true',
+    uploadUrlTtlSeconds: parseInt(process.env.STORAGE_UPLOAD_URL_TTL_SECONDS ?? '900', 10),
+    downloadUrlTtlSeconds: parseInt(process.env.STORAGE_DOWNLOAD_URL_TTL_SECONDS ?? '900', 10),
+    maxAttachmentBytes: parseInt(process.env.STORAGE_MAX_ATTACHMENT_BYTES ?? String(25 * 1024 * 1024), 10),
+  },
+
   observability: {
     // Retention defaults, swept by RetentionService on an interval rather
     // than a cron job so we don't pull in a new scheduling dependency.

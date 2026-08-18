@@ -27,10 +27,20 @@
     "test:watch": "jest --watch"
   },
   "peerDependencies": {
+    "@raven/chat": "*",
     "@raven/rtc": "*",
     "react": "^18.0.0 || ^19.0.0"
   },
+  "peerDependenciesMeta": {
+    "@raven/chat": {
+      "optional": true
+    },
+    "@raven/rtc": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@raven/chat": "file:../chat-sdk",
     "@raven/rtc": "file:../sdk",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",

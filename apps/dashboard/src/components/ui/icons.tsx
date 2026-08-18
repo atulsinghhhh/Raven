@@ -111,6 +111,36 @@ export const IconSettings = (p: IconProps) => (
   </Svg>
 );
 
+export const IconChat = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M14 9.5a2 2 0 01-2 2H5.5L2 14V4a2 2 0 012-2h8a2 2 0 012 2z" />
+    <path d="M5.25 6.25h5.5M5.25 8.5h3.5" />
+  </Svg>
+);
+
+export const IconConversations = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M11.25 8.75a1.75 1.75 0 01-1.75 1.75H5L2.25 12.5V4a1.75 1.75 0 011.75-1.75h5.5A1.75 1.75 0 0111.25 4z" />
+    <path d="M13 6.5h.25A1.75 1.75 0 0115 8.25v6L12.5 12.5H7" />
+  </Svg>
+);
+
+export const IconWebhooks = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="4.25" cy="11.75" r="2" />
+    <circle cx="11.75" cy="11.75" r="2" />
+    <circle cx="8" cy="4.25" r="2" />
+    <path d="M6.9 5.95L5.15 9.9M9.1 5.95l1.75 3.95M6.25 11.75h3.5" />
+  </Svg>
+);
+
+export const IconPresence = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="8" cy="8" r="2.25" />
+    <path d="M4.1 11.9a5.5 5.5 0 010-7.8M11.9 4.1a5.5 5.5 0 010 7.8" />
+  </Svg>
+);
+
 export const IconSearch = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="7.25" cy="7.25" r="4.75" />

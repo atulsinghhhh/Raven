@@ -214,6 +214,113 @@ export interface HealthResponse {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Chat (Phase 12)
+//
+// Note what these types don't carry: message text. The dashboard shows
+// activity metadata — counts, timestamps, connection state — and never
+// message contents (spec §50). Adding a `lastMessageText` field here
+// would be the moment that privacy line got crossed.
+// ---------------------------------------------------------------------------
+
+export interface ChatOverview {
+  range: string;
+  conversations: number;
+  messagesStored: number;
+  activeConnections: number;
+  messagesSent: number;
+  messagesFailed: number;
+  messagesFannedOut: number;
+  connectionsOpened: number;
+  connectionsFailed: number;
+  rateLimited: number;
+  messagesPerSecond: number;
+  latency: {
+    /** null = nothing measured in this window, not "zero milliseconds". */
+    persistMs: number | null;
+    fanoutMs: number | null;
+    endToEndMs: number | null;
+  };
+  gateway: {
+    gatewayId: string;
+    activeConnections: number;
+    subscribedRooms: number;
+    subscribedChannels: number;
+  };
+}
+
+export interface ChatConversationSummary {
+  id: string;
+  name: string;
+  type: 'ROOM' | 'CHANNEL' | 'DIRECT';
+  status: 'ACTIVE' | 'ARCHIVED';
+  roomId: string | null;
+  retentionDays: number | null;
+  messageCount: number;
+  memberCount: number;
+  lastMessageAt: string | null;
+  lastMessageSenderId: string | null;
+  createdAt: string;
+}
+
+export interface ChatConnectionSummary {
+  id: string;
+  publicId: string;
+  projectId: string;
+  conversationId: string | null;
+  userId: string;
+  gatewayId: string;
+  state: ConnectionLifecycleState;
+  disconnectReason: string | null;
+  sdkVersion: string | null;
+  platform: string | null;
+  messagesSent: number;
+  connectedAt: string | null;
+  disconnectedAt: string | null;
+  durationMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PresenceEntry {
+  userId: string;
+  status: 'online' | 'away' | 'offline';
+}
+
+export interface WebhookEndpointSummary {
+  id: string;
+  publicId: string;
+  projectId: string;
+  url: string;
+  description: string | null;
+  enabledEvents: string[];
+  status: 'ACTIVE' | 'DISABLED';
+  consecutiveFailures: number;
+  lastDeliveryAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatedWebhookEndpoint extends WebhookEndpointSummary {
+  /** Returned exactly once, at creation. Same contract as an API key secret. */
+  signingSecret: string;
+  warning: string;
+}
+
+export interface WebhookDeliveryRecord {
+  id: string;
+  eventId: string;
+  endpointId: string;
+  status: 'PENDING' | 'DELIVERED' | 'FAILED';
+  attempts: number;
+  nextAttemptAt: string;
+  responseStatus: number | null;
+  lastError: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+  event: { publicId: string; type: string; createdAt: string };
+}
+
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   token?: string;
@@ -329,4 +436,45 @@ export const ravenApi = {
 
   getDiagnostics: (token: string, projectId: string) =>
     apiFetch<ProjectDiagnostics>(`/v1/projects/${projectId}/diagnostics`, { token }),
+
+  getChatOverview: (token: string, projectId: string, range?: string) =>
+    apiFetch<ChatOverview>(`/v1/projects/${projectId}/chat/overview${range ? `?range=${range}` : ''}`, { token }),
+
+  listChatConversations: (token: string, projectId: string) =>
+    apiFetch<ChatConversationSummary[]>(`/v1/projects/${projectId}/chat/conversations`, { token }),
+
+  listChatConnections: (
+    token: string,
+    projectId: string,
+    opts: { state?: ConnectionLifecycleState; limit?: number } = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (opts.state) params.set('state', opts.state);
+    // Capped at 200 server-side, same as the RTC connections endpoint.
+    if (opts.limit) params.set('limit', String(opts.limit));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiFetch<ChatConnectionSummary[]>(`/v1/projects/${projectId}/chat/connections${query}`, { token });
+  },
+
+  getChatPresence: (token: string, projectId: string, conversationId: string) =>
+    apiFetch<PresenceEntry[]>(`/v1/projects/${projectId}/chat/conversations/${conversationId}/presence`, { token }),
+
+  listWebhooks: (token: string, projectId: string) =>
+    apiFetch<WebhookEndpointSummary[]>(`/v1/projects/${projectId}/webhooks`, { token }),
+
+  createWebhook: (token: string, projectId: string, input: { url: string; description?: string; events?: string[] }) =>
+    apiFetch<CreatedWebhookEndpoint>(`/v1/projects/${projectId}/webhooks`, { method: 'POST', token, body: input }),
+
+  updateWebhook: (
+    token: string,
+    projectId: string,
+    webhookId: string,
+    input: { url?: string; events?: string[]; status?: 'ACTIVE' | 'DISABLED' },
+  ) => apiFetch<WebhookEndpointSummary>(`/v1/projects/${projectId}/webhooks/${webhookId}`, { method: 'PATCH', token, body: input }),
+
+  deleteWebhook: (token: string, projectId: string, webhookId: string) =>
+    apiFetch<void>(`/v1/projects/${projectId}/webhooks/${webhookId}`, { method: 'DELETE', token }),
+
+  listWebhookDeliveries: (token: string, projectId: string, webhookId: string) =>
+    apiFetch<WebhookDeliveryRecord[]>(`/v1/projects/${projectId}/webhooks/${webhookId}/deliveries`, { token }),
 };

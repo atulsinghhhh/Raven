@@ -1,0 +1,28 @@
+{
+  "name": "raven-example-chat",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Raven Chat example — real messages, real presence, real WebSocket. No mock data anywhere.",
+  "scripts": {
+    "server": "node server.mjs",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@raven/chat": "file:../../packages/chat-sdk",
+    "@raven/react": "file:../../packages/react-sdk",
+    "@raven/server": "file:../../packages/server-sdk",
+    "express": "^4.19.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+}

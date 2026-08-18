@@ -1,4 +1,5 @@
 import { RavenHttpClient, type RavenClientOptions } from './http-client';
+import { ChatResource } from './resources/chat';
 import { ConnectionsResource } from './resources/connections';
 import { DiagnosticsResource } from './resources/diagnostics';
 import { ErrorsResource } from './resources/errors-resource';
@@ -26,6 +27,8 @@ export class Raven {
   readonly errors: ErrorsResource;
   readonly metrics: MetricsResource;
   readonly diagnostics: DiagnosticsResource;
+  /** Raven Chat (Phase 12) — mint browser tokens, manage conversations, post server-side messages. */
+  readonly chat: ChatResource;
 
   constructor(options: RavenClientOptions) {
     const http = new RavenHttpClient(options);
@@ -36,5 +39,6 @@ export class Raven {
     this.errors = new ErrorsResource(http);
     this.metrics = new MetricsResource(http);
     this.diagnostics = new DiagnosticsResource(http);
+    this.chat = new ChatResource(http);
   }
 }

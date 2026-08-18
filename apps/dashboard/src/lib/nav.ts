@@ -3,14 +3,30 @@
  * — run RTC, debug it, integrate against it — rather than mirroring the
  * API's controller layout.
  *
- * Nothing here links to a surface the Control API can't actually back.
- * Webhooks in particular are deliberately absent: there's no webhook
- * endpoint yet, and a nav entry for a non-existent feature is a lie.
+ * Nothing here links to a surface the Control API can't actually back —
+ * a nav entry for a non-existent feature is a lie. Webhooks appear as of
+ * Phase 12, when the endpoints behind them started existing.
  */
 export interface NavItem {
   slug: string;
   label: string;
-  icon: 'overview' | 'rooms' | 'connections' | 'participants' | 'metrics' | 'errors' | 'diagnostics' | 'keys' | 'sdk' | 'quickstart' | 'usage' | 'settings';
+  icon:
+    | 'overview'
+    | 'rooms'
+    | 'connections'
+    | 'participants'
+    | 'metrics'
+    | 'errors'
+    | 'diagnostics'
+    | 'keys'
+    | 'sdk'
+    | 'quickstart'
+    | 'usage'
+    | 'settings'
+    | 'chat'
+    | 'conversations'
+    | 'presence'
+    | 'webhooks';
 }
 
 export interface NavGroup {
@@ -28,6 +44,18 @@ export const NAV_GROUPS: NavGroup[] = [
       { slug: 'rooms', label: 'Rooms', icon: 'rooms' },
       { slug: 'connections', label: 'Connections', icon: 'connections' },
       { slug: 'participants', label: 'Participants', icon: 'participants' },
+    ],
+  },
+  {
+    // Chat is its own group, not a sub-item of RTC. They're separate
+    // services with separate connections — folding one into the other in
+    // the nav would misrepresent the architecture.
+    label: 'Chat',
+    items: [
+      { slug: 'chat', label: 'Overview', icon: 'chat' },
+      { slug: 'chat/conversations', label: 'Conversations', icon: 'conversations' },
+      { slug: 'chat/connections', label: 'Connections', icon: 'connections' },
+      { slug: 'webhooks', label: 'Webhooks', icon: 'webhooks' },
     ],
   },
   {

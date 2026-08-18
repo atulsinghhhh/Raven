@@ -10,7 +10,7 @@ export default defineConfig({
   platform: 'browser',
   treeshake: true,
   minify: false,
-  external: ['react', 'react-dom', '@raven/rtc'],
+  external: ['react', 'react-dom', '@raven/rtc', '@raven/chat'],
   // esbuild strips a source-level "use client" directive once multiple
   // files are bundled together (it can't prove it still applies to the
   // concatenated output) — a `banner` has the same problem when combined

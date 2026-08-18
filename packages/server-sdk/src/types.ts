@@ -188,3 +188,120 @@ export interface ListErrorsParams {
   connectionId?: string;
   limit?: number;
 }
+
+// ---------------------------------------------------------------------------
+// Chat (Phase 12)
+// ---------------------------------------------------------------------------
+
+export type ChatScope = 'chat:read' | 'chat:send' | 'chat:moderate' | 'chat:manage';
+export type ChatMemberRole = 'MEMBER' | 'MODERATOR' | 'ADMIN';
+export type ChatConversationType = 'ROOM' | 'CHANNEL' | 'DIRECT';
+export type ChatMessageType = 'text' | 'system' | 'event' | 'attachment';
+
+export interface CreateChatTokenParams {
+  /** Your own user identity. Everything this token sends is attributed to it. */
+  userId: string;
+  /** Conversations the token may touch. Omit for every conversation the user belongs to. */
+  conversations?: string[];
+  /** Narrows the token below the user's role. Cannot grant anything the role lacks. */
+  scopes?: ChatScope[];
+  /** Lifetime in seconds. There is no non-expiring chat token. */
+  expiresIn?: number;
+}
+
+export interface IssuedChatToken {
+  /** Hand this to the browser. Never send the project API key instead. */
+  token: string;
+  tokenId: string;
+  userId: string;
+  projectId: string;
+  scopes: ChatScope[];
+  conversations: string[];
+  /** Pass to `createChatClient({ chatUrl })` — the SDK never hardcodes a host. */
+  chatUrl: string;
+  apiUrl: string;
+  expiresAt: string;
+}
+
+export interface CreateConversationParams {
+  name: string;
+  type?: ChatConversationType;
+  /** Attach to an existing RTC room, giving that call a chat panel. */
+  roomId?: string;
+  retentionDays?: number;
+  members?: Array<{ userId: string; role?: ChatMemberRole }>;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ChatConversation {
+  id: string;
+  publicId: string;
+  projectId: string;
+  roomId: string | null;
+  name: string;
+  type: ChatConversationType;
+  status: 'ACTIVE' | 'ARCHIVED';
+  retentionDays: number | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatMember {
+  id: string;
+  conversationId: string;
+  projectId: string;
+  userId: string;
+  role: ChatMemberRole;
+  status: 'ACTIVE' | 'LEFT';
+  joinedAt: string;
+  leftAt: string | null;
+}
+
+export interface SendChatMessageParams {
+  text?: string;
+  /** Required — a server-side send names the user it acts for. */
+  senderId: string;
+  type?: ChatMessageType;
+  replyTo?: string;
+  /** Idempotency key. Retrying with the same key returns the original message. */
+  clientMessageId?: string;
+  attachmentId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ChatMessage {
+  id: string;
+  roomId: string;
+  conversationId: string;
+  senderId: string;
+  type: ChatMessageType;
+  text: string | null;
+  replyTo: string | null;
+  threadRootId: string | null;
+  clientMessageId: string | null;
+  metadata: Record<string, unknown> | null;
+  reactions: Array<{ emoji: string; count: number; userIds: string[] }>;
+  edited: boolean;
+  deleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+  editedAt: string | null;
+  deletedAt: string | null;
+}
+
+export interface ListChatMessagesParams {
+  limit?: number;
+  /** Opaque cursor from a previous page's `nextCursor`. Cursor-based, never offset. */
+  before?: string;
+  after?: string;
+  senderId?: string;
+  includeDeleted?: boolean;
+}
+
+export interface ChatMessagePage {
+  data: ChatMessage[];
+  nextCursor: string | null;
+  previousCursor: string | null;
+  hasMore: boolean;
+}

@@ -114,8 +114,57 @@ describe('validateEnv — production-only checks', () => {
 
   it('reports every violated production rule at once, not just the first', () => {
     expect(() => validateEnv(baseConfig({ NODE_ENV: 'production' }))).toThrow(
-      /TURN_TLS_PORT.*CORS_ORIGIN.*TURN_HOST.*LIVEKIT_URL/s,
+      /TURN_TLS_PORT.*CORS_ORIGIN.*TURN_HOST.*LIVEKIT_URL.*CHAT_TOKEN_SECRET/s,
     );
+  });
+
+  it('rejects production config without a dedicated chat-token secret', () => {
+    // A leaked dashboard-session key must not be able to mint chat
+    // credentials, so the two keys have to be distinct in production
+    // (Phase 12 spec §10/§39).
+    expect(() =>
+      validateEnv(
+        baseConfig({
+          NODE_ENV: 'production',
+          TURN_TLS_PORT: 5349,
+          CORS_ORIGIN: 'https://app.example.com',
+          TURN_HOST: 'turn.example.com',
+          LIVEKIT_URL: 'wss://rtc.example.com',
+        }),
+      ),
+    ).toThrow(/CHAT_TOKEN_SECRET is required in production/);
+  });
+
+  it('rejects a chat-token secret that is just the JWT secret again', () => {
+    expect(() =>
+      validateEnv(
+        baseConfig({
+          NODE_ENV: 'production',
+          TURN_TLS_PORT: 5349,
+          CORS_ORIGIN: 'https://app.example.com',
+          TURN_HOST: 'turn.example.com',
+          LIVEKIT_URL: 'wss://rtc.example.com',
+          CHAT_TOKEN_SECRET: 'a-jwt-secret-at-least-this-long',
+        }),
+      ),
+    ).toThrow(/CHAT_TOKEN_SECRET must differ from JWT_SECRET/);
+  });
+
+  it('rejects an unencrypted object-storage endpoint in production', () => {
+    // Signed upload URLs would otherwise travel in cleartext.
+    expect(() =>
+      validateEnv(
+        baseConfig({
+          NODE_ENV: 'production',
+          TURN_TLS_PORT: 5349,
+          CORS_ORIGIN: 'https://app.example.com',
+          TURN_HOST: 'turn.example.com',
+          LIVEKIT_URL: 'wss://rtc.example.com',
+          CHAT_TOKEN_SECRET: 'a-distinct-chat-secret',
+          STORAGE_ENDPOINT: 'http://storage.example.com',
+        }),
+      ),
+    ).toThrow(/STORAGE_ENDPOINT must use https/);
   });
 
   it('accepts a fully-correct production configuration', () => {
@@ -127,6 +176,8 @@ describe('validateEnv — production-only checks', () => {
           CORS_ORIGIN: 'https://app.example.com',
           TURN_HOST: 'turn.example.com',
           LIVEKIT_URL: 'wss://rtc.example.com',
+          CHAT_TOKEN_SECRET: 'a-distinct-chat-token-secret',
+          STORAGE_ENDPOINT: 'https://storage.example.com',
         }),
       ),
     ).not.toThrow();

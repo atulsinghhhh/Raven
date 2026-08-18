@@ -40,3 +40,51 @@ export type {
   TrackKind,
 } from '@raven/rtc';
 export { isRTCError } from '@raven/rtc';
+
+// ---------------------------------------------------------------------------
+// Chat (Phase 12) — @raven/chat integration.
+//
+// A separate provider and a separate set of hooks, sharing this package's
+// existing store/snapshot pattern rather than introducing a second one
+// (spec §43). RTC and Chat stay independent: either can be used alone,
+// and both can be mounted together for a call with a chat panel.
+// ---------------------------------------------------------------------------
+export { RavenChat } from './chat/raven-chat';
+export type { RavenChatProps } from './chat/raven-chat';
+
+export {
+  useChat,
+  useChatClient,
+  useChatConnectionState,
+  useChatError,
+  useMessages,
+  usePresence,
+  useReactions,
+  useReadReceipts,
+  useTyping,
+} from './chat/chat-hooks';
+export type {
+  UseChatResult,
+  UseMessagesResult,
+  UseReactionsResult,
+  UseReadReceiptsResult,
+  UseTypingResult,
+} from './chat/chat-hooks';
+
+export type { RavenChatSnapshot } from './chat/chat-store';
+
+// Re-exported for convenience, same as the RTC types above — so a chat UI
+// doesn't need a direct @raven/chat import for common types.
+export type {
+  ChatAttachment,
+  ChatClientConfig,
+  ChatConnectionState,
+  ChatMessage,
+  ChatMessageType,
+  ChatReaction,
+  MessagePage,
+  PresenceStatus,
+  ReadState,
+  SendMessageOptions,
+} from '@raven/chat';
+export { isRavenChatError, RavenChatError } from '@raven/chat';
