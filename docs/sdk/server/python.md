@@ -135,6 +135,76 @@ raven.metrics.get("1h")      # '15m' | '1h' | '24h' | '7d' — real aggregates; 
 raven.diagnostics.get()      # signaling/SFU/TURN health + this project's real active-connection count
 ```
 
+### `raven.chat` — Raven Chat, server-side
+
+The important method is `create_token()`. The whole security model rests
+on it: your backend authenticates the user *its* way, then asks Raven for
+a short-lived token scoped to that one user. Only that token reaches the
+browser or the mobile app — the API key never does.
+
+```python
+from raven import CreateChatTokenParams, CreateConversationParams, ConversationMember, SendChatMessageParams
+
+conversation = raven.chat.create_conversation(
+    CreateConversationParams(
+        name="support-room-42",
+        members=[
+            ConversationMember(user_id="alice", role="ADMIN"),
+            ConversationMember(user_id="bob"),
+        ],
+    )
+)
+
+token = raven.chat.create_token(
+    CreateChatTokenParams(
+        user_id=request.user.id,          # from YOUR session, never the request body
+        conversations=[conversation["publicId"]],
+        expires_in=3600,
+    )
+)
+# Hand token["token"] to the browser. Nothing else.
+```
+
+`scopes` can only ever *narrow* what the user's role already allows —
+listing `chat:moderate` does not grant it. That makes it safe to pass a
+caller's scope list straight through without re-checking.
+
+Membership and moderation:
+
+```python
+raven.chat.add_member(room, "carol", role="MODERATOR")
+raven.chat.remove_member(room, "carol")
+raven.chat.list_members(room)
+raven.chat.list_conversations()
+raven.chat.get_conversation(room)
+```
+
+`room` accepts a `conv_…` id, the conversation's name, or the id of an
+attached RTC room — whichever you happen to be holding.
+
+Posting and reading:
+
+```python
+raven.chat.send_message(room, SendChatMessageParams(
+    sender_id="system",
+    text="Maintenance in 5 minutes",
+    type="system",           # server-only — a browser token is refused this
+))
+
+page = raven.chat.list_messages(room, ListChatMessagesParams(limit=50))
+older = raven.chat.list_messages(room, ListChatMessagesParams(before=page["nextCursor"]))
+
+raven.chat.delete_message("msg_abc")   # soft delete, keeps an audit trail
+```
+
+`system` messages are available here and nowhere else, because a browser
+must never be able to fabricate an official-looking announcement.
+
+Pass `client_message_id` to make a retried backend job idempotent — the
+same key returns the original message instead of posting a duplicate.
+
+Everything is mirrored on `AsyncRaven.chat` with the same names.
+
 ## Error model
 
 ```python
@@ -165,13 +235,22 @@ indefinitely even against an unreachable host.
 
 ## Pagination
 
-No cursor pagination — the Control API doesn't have one yet. Every
-`list()` returns a flat list, optionally capped with `limit` where the
-endpoint supports it.
+Chat message history is cursor-paginated: `list_messages()` returns
+`nextCursor` (walk back through history) and `previousCursor` (walk
+forward to catch up). Pass them back verbatim — they're opaque, and
+there is deliberately no `offset` parameter to reach for.
+
+Everything else returns a flat list, optionally capped with `limit`
+where the endpoint supports it. Those endpoints have no cursor.
 
 ## Idempotency
 
-Not supported — the Control API has no idempotency-key handling.
+Chat message sends support it: pass `client_message_id` to
+`send_message()` and a retry with the same key returns the original
+message rather than creating a second one. That's what makes a retried
+job or a redelivered queue item safe.
+
+No other endpoint has idempotency-key handling.
 
 ## Security
 
@@ -183,6 +262,12 @@ Not supported — the Control API has no idempotency-key handling.
 
 ## Known limitations
 
-Same as the TypeScript SDK — no webhooks, no participant removal, no
-idempotency keys, no cursor pagination, no usage/billing beyond
-`raven.metrics.get()`. See `docs/sdk/server/typescript.md#known-limitations`.
+Same as the TypeScript SDK — no webhook management (webhooks are
+configured from the dashboard or the JWT-guarded endpoints), no RTC
+participant removal, and no usage/billing beyond `raven.metrics.get()`.
+See `docs/sdk/server/typescript.md#known-limitations`.
+
+Chat-specific: no attachment upload helpers yet (mint the ticket through
+the API directly), and no server-side WebSocket client — this SDK is for
+provisioning and reading, while real-time delivery belongs to the browser
+and mobile SDKs.

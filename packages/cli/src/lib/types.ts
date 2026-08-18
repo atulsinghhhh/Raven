@@ -203,3 +203,77 @@ export interface ProjectDiagnostics {
   };
   connections: { active: number };
 }
+
+// ---------------------------------------------------------------------------
+// Chat (Phase 12)
+//
+// Note what these carry and what they don't: activity metadata, never
+// message text. The CLI reads the same dashboard-facing endpoints the web
+// dashboard does, and those deliberately don't return message contents
+// (docs/security/chat.md#privacy). A `raven chat` command that printed
+// customers' messages to a terminal would be the wrong tool entirely.
+// ---------------------------------------------------------------------------
+
+export interface ChatOverview {
+  range: string;
+  conversations: number;
+  messagesStored: number;
+  activeConnections: number;
+  messagesSent: number;
+  messagesFailed: number;
+  messagesFannedOut: number;
+  connectionsOpened: number;
+  connectionsFailed: number;
+  rateLimited: number;
+  messagesPerSecond: number;
+  latency: {
+    /** null = nothing measured in this window, not "zero milliseconds". */
+    persistMs: number | null;
+    fanoutMs: number | null;
+    endToEndMs: number | null;
+  };
+  gateway: {
+    gatewayId: string;
+    activeConnections: number;
+    subscribedRooms: number;
+    subscribedChannels: number;
+  };
+}
+
+export interface ChatConversationSummary {
+  id: string;
+  name: string;
+  type: 'ROOM' | 'CHANNEL' | 'DIRECT';
+  status: 'ACTIVE' | 'ARCHIVED';
+  roomId: string | null;
+  retentionDays: number | null;
+  messageCount: number;
+  memberCount: number;
+  lastMessageAt: string | null;
+  lastMessageSenderId: string | null;
+  createdAt: string;
+}
+
+export interface ChatConnectionSummary {
+  id: string;
+  publicId: string;
+  projectId: string;
+  conversationId: string | null;
+  userId: string;
+  gatewayId: string;
+  state: ConnectionLifecycleState;
+  disconnectReason: string | null;
+  sdkVersion: string | null;
+  platform: string | null;
+  messagesSent: number;
+  connectedAt: string | null;
+  disconnectedAt: string | null;
+  durationMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatPresenceEntry {
+  userId: string;
+  status: 'online' | 'away' | 'offline';
+}

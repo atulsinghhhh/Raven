@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from ._async_http import AsyncRavenHttpClient
 from ._http_shared import DEFAULT_BASE_URL, DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT_SECONDS
+from .resources.chat import AsyncChatResource
 from .resources.connections import AsyncConnectionsResource
 from .resources.diagnostics import AsyncDiagnosticsResource
 from .resources.errors import AsyncErrorsResource
@@ -36,6 +37,7 @@ class AsyncRaven:
         self.errors = AsyncErrorsResource(http)
         self.metrics = AsyncMetricsResource(http)
         self.diagnostics = AsyncDiagnosticsResource(http)
+        self.chat = AsyncChatResource(http)
 
     async def close(self) -> None:
         await self._http.aclose()

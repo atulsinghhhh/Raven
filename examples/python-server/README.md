@@ -45,3 +45,23 @@ Browser: createRTCClient({ token, endpoint, iceServers }).join(room)
 
 See `docs/sdk/server/python.md` and `docs/security/server-sdk.md` for the
 full authorization model and security notes.
+
+## Chat
+
+The same backend also mints Raven Chat tokens, because the security model
+is identical: the API key stays here, and the browser gets a short-lived
+token scoped to one user.
+
+```bash
+curl -X POST http://localhost:8000/api/chat/token \
+  -H 'content-type: application/json' \
+  -d '{"room":"support","user_id":"alice"}'
+```
+
+The conversation is created on first use and the user is added as a
+member — membership is what authorizes them inside it, not the token
+alone.
+
+RTC and chat are separate planes with separate credentials. Neither token
+works on the other, so a leak on one doesn't compromise the other. See
+[docs/chat/overview.md](../../docs/chat/overview.md).

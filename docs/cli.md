@@ -246,6 +246,50 @@ Mint a fresh RTC token — tokens are always short-lived by design.
 and `--connection <connectionId>`. Both accept `--json`. Categories are
 documented in full in `docs/error-codes.md`.
 
+## Chat
+
+Inspection only, and deliberately so.
+
+The CLI authenticates with your developer session — the same JWT the
+dashboard uses — and every command here reads a dashboard-facing
+endpoint. Sending a message or minting a chat token needs a **project API
+key**, which is a runtime credential your backend holds. The CLI doesn't
+store one, and encouraging people to paste one into a terminal would
+undo the point of having short-lived tokens at all.
+
+So there is no `raven chat send`. Use `@raven/server` or `raven-sdk` from
+your backend for that — see `docs/sdk/server/typescript.md` and
+`docs/sdk/server/python.md`.
+
+```bash
+raven chat overview                    # activity, throughput, latency
+raven chat overview --range 24h        # 15m | 1h | 24h | 7d
+raven chat conversations               # or: raven chat list
+raven chat connections                 # WebSocket sessions
+raven chat connections --state CONNECTED --limit 100
+raven chat presence conv_9WcQ4kRz1nB2xYtL
+```
+
+`chat overview` reports real counters, and says *"not measured in this
+window"* rather than printing `0 ms` for a latency nobody sampled. Its
+gateway figures describe the instance that served the request, not the
+whole fleet — which the output states, so a multi-instance deployment
+isn't misread as a cluster total.
+
+`chat conversations` shows activity metadata: name, id, type, message
+count, member count, last activity. **Never message contents.** The
+endpoint behind it doesn't return them, so no flag can change that
+(`docs/security/chat.md#privacy`).
+
+`chat connections` includes a `GATEWAY` column — the thing you actually
+need when one instance in a fleet starts misbehaving — and shows a live
+session as `live` rather than a misleading `0s`.
+
+`chat presence` reads Redis, not Postgres. An empty result is a real
+answer: presence expires ~45 seconds after a client stops responding.
+
+All four support `--json` and `-p/--project`.
+
 ## Diagnostics
 
 ```
@@ -366,3 +410,9 @@ token is never in scope to leak.
   phase.
 - No telemetry, so there's no built-in way for the Raven team to see
   aggregate CLI usage (deliberately, until an opt-in policy exists).
+- `raven chat` is read-only. Sending messages, minting chat tokens and
+  creating conversations all require a project API key, which belongs in
+  your backend rather than in a terminal — use `@raven/server` or
+  `raven-sdk`.
+- `raven chat presence` takes a conversation's `conv_…` id, not its name.
+  Same backend gap as `rooms inspect`.

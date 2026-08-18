@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from ._http import RavenHttpClient
 from ._http_shared import DEFAULT_BASE_URL, DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT_SECONDS
+from .resources.chat import ChatResource
 from .resources.connections import ConnectionsResource
 from .resources.diagnostics import DiagnosticsResource
 from .resources.errors import ErrorsResource
@@ -39,6 +40,7 @@ class Raven:
         self.errors = ErrorsResource(http)
         self.metrics = MetricsResource(http)
         self.diagnostics = DiagnosticsResource(http)
+        self.chat = ChatResource(http)
 
     def close(self) -> None:
         self._http.close()

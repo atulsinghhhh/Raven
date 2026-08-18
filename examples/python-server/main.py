@@ -1,8 +1,11 @@
-"""Minimal FastAPI backend for a frontend that joins Raven RTC rooms — the
-canonical Phase 10 flow: Browser -> your backend -> raven-sdk -> Raven ->
-a short-lived RTC token -> back to the browser -> @raven/rtc.
+"""Minimal FastAPI backend for a frontend that joins Raven rooms and chats —
+the canonical flow: Browser -> your backend -> raven-sdk -> Raven -> a
+short-lived token -> back to the browser -> @raven/rtc or @raven/chat.
 
 RAVEN_API_KEY never leaves this process. Never send it to the browser.
+
+RTC and chat are separate planes with separate credentials, so this
+mints them separately. Neither token works on the other plane.
 """
 
 from __future__ import annotations
@@ -14,7 +17,14 @@ from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from pydantic import BaseModel
 
-from raven import CreateTokenParams, Raven, RavenError, TokenPermissions
+from raven import (
+    CreateChatTokenParams,
+    CreateConversationParams,
+    CreateTokenParams,
+    Raven,
+    RavenError,
+    TokenPermissions,
+)
 
 raven = Raven(
     api_key=os.environ["RAVEN_API_KEY"],
@@ -27,6 +37,12 @@ app = FastAPI()
 class TokenRequest(BaseModel):
     room: str
     identity: str
+
+
+class ChatTokenRequest(BaseModel):
+    room: str
+    """Conversation name or conv_ id. Created on first use below."""
+    user_id: str
 
 
 @app.exception_handler(RavenError)
@@ -53,3 +69,35 @@ async def create_token(request: TokenRequest) -> dict:
         )
     )
     return token
+
+
+@app.post("/api/chat/token")
+async def create_chat_token(request: ChatTokenRequest) -> dict:
+    """Mints a browser-safe chat token, creating the conversation on first use.
+
+    Same caveat as the RTC endpoint above: `user_id` must come from your
+    own authenticated session in a real app. Whoever controls it controls
+    who Raven attributes messages to.
+    """
+    if not request.room or not request.user_id:
+        raise HTTPException(status_code=400, detail="room and user_id are required")
+
+    try:
+        conversation = raven.chat.get_conversation(request.room)
+    except RavenError as error:
+        if error.status_code != 404:
+            raise
+        conversation = raven.chat.create_conversation(CreateConversationParams(name=request.room))
+
+    # Membership is what authorizes the user inside the conversation; the
+    # token alone isn't enough (docs/chat/overview.md#authorization).
+    raven.chat.add_member(conversation["publicId"], request.user_id)
+
+    token = raven.chat.create_token(
+        CreateChatTokenParams(
+            user_id=request.user_id,
+            conversations=[conversation["publicId"]],
+            expires_in=3600,
+        )
+    )
+    return {**token, "roomId": conversation["publicId"], "roomName": conversation["name"]}

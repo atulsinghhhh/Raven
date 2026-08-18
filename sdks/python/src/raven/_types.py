@@ -29,6 +29,16 @@ ErrorCategory = Literal[
 DependencyStatus = Literal["up", "down"]
 MetricsRange = Literal["15m", "1h", "24h", "7d"]
 
+# Chat (Phase 12). Scopes are the same four the web and TypeScript SDKs
+# use — a team running a Python backend and a browser frontend should be
+# reading one vocabulary, not two.
+ChatScope = Literal["chat:read", "chat:send", "chat:moderate", "chat:manage"]
+ChatMemberRole = Literal["MEMBER", "MODERATOR", "ADMIN"]
+ChatMemberStatus = Literal["ACTIVE", "LEFT"]
+ChatConversationType = Literal["ROOM", "CHANNEL", "DIRECT"]
+ChatConversationStatus = Literal["ACTIVE", "ARCHIVED"]
+ChatMessageType = Literal["text", "system", "event", "attachment"]
+
 
 class Project(TypedDict, total=False):
     id: str
@@ -165,6 +175,83 @@ class ProjectDiagnostics(TypedDict, total=False):
     connections: dict[str, int]
 
 
+class IssuedChatToken(TypedDict, total=False):
+    """What ``chat.create_token()`` returns.
+
+    ``token`` is the only field that should reach a browser or a mobile
+    app. It is scoped to one user, expires, and can be revoked — unlike
+    the API key this SDK holds.
+    """
+
+    token: str
+    tokenId: str
+    userId: str
+    projectId: str
+    scopes: list[ChatScope]
+    conversations: list[str]
+    chatUrl: str
+    apiUrl: str
+    expiresAt: str
+
+
+class ChatConversation(TypedDict, total=False):
+    id: str
+    publicId: str
+    projectId: str
+    roomId: str | None
+    name: str
+    type: ChatConversationType
+    status: ChatConversationStatus
+    retentionDays: int | None
+    metadata: dict[str, Any] | None
+    createdAt: str
+    updatedAt: str
+
+
+class ChatMember(TypedDict, total=False):
+    id: str
+    conversationId: str
+    projectId: str
+    userId: str
+    role: ChatMemberRole
+    status: ChatMemberStatus
+    joinedAt: str
+    leftAt: str | None
+
+
+class ChatReaction(TypedDict, total=False):
+    emoji: str
+    count: int
+    userIds: list[str]
+
+
+class ChatMessage(TypedDict, total=False):
+    id: str
+    roomId: str
+    conversationId: str
+    senderId: str
+    type: ChatMessageType
+    text: str | None
+    replyTo: str | None
+    threadRootId: str | None
+    clientMessageId: str | None
+    metadata: dict[str, Any] | None
+    reactions: list[ChatReaction]
+    edited: bool
+    deleted: bool
+    createdAt: str
+    updatedAt: str
+    editedAt: str | None
+    deletedAt: str | None
+
+
+class ChatMessagePage(TypedDict, total=False):
+    data: list[ChatMessage]
+    nextCursor: str | None
+    previousCursor: str | None
+    hasMore: bool
+
+
 @dataclass
 class TokenPermissions:
     join: bool | None = None
@@ -212,7 +299,85 @@ class ListErrorsParams:
     limit: int | None = None
 
 
+@dataclass
+class CreateChatTokenParams:
+    """Parameters for minting a browser-safe chat token."""
+
+    user_id: str
+    """Your own user identity. Everything sent with this token is attributed to it.
+
+    Take it from your *own* authenticated session — never from a value the
+    client sent, or anyone can ask for a token as anyone.
+    """
+    conversations: list[str] | None = None
+    """Conversation references this token may touch. Omit for every conversation the user belongs to."""
+    scopes: list[ChatScope] | None = None
+    """Narrows the token below the user's role. Can only remove permissions, never grant them."""
+    expires_in: int | None = None
+    """Lifetime in seconds (60-21600). There is no non-expiring chat token."""
+
+
+@dataclass
+class ConversationMember:
+    user_id: str
+    role: ChatMemberRole | None = None
+
+
+@dataclass
+class CreateConversationParams:
+    name: str
+    """Unique within the project. Doubles as a handle for ``connect({ room })``."""
+    type: ChatConversationType | None = None
+    room_id: str | None = None
+    """Attach to an existing RTC room, giving that call a chat panel."""
+    retention_days: int | None = None
+    members: list[ConversationMember] | None = None
+    metadata: dict[str, Any] | None = None
+
+
+@dataclass
+class SendChatMessageParams:
+    sender_id: str
+    """Required server-side — a backend send names the user it acts for."""
+    text: str | None = None
+    type: ChatMessageType | None = None
+    reply_to: str | None = None
+    client_message_id: str | None = None
+    """Idempotency key. Retrying with the same key returns the original message."""
+    attachment_id: str | None = None
+    metadata: dict[str, Any] | None = None
+
+
+@dataclass
+class ListChatMessagesParams:
+    limit: int | None = None
+    before: str | None = None
+    """Opaque cursor from a previous page's ``nextCursor``. Cursor-based, never offset."""
+    after: str | None = None
+    """Walks forward toward newer messages — how a client catches up after a gap."""
+    sender_id: str | None = None
+    thread_root_id: str | None = None
+    include_deleted: bool | None = None
+
+
 __all__ = [
+    "SendChatMessageParams",
+    "ListChatMessagesParams",
+    "IssuedChatToken",
+    "CreateConversationParams",
+    "CreateChatTokenParams",
+    "ConversationMember",
+    "ChatScope",
+    "ChatReaction",
+    "ChatMessageType",
+    "ChatMessagePage",
+    "ChatMessage",
+    "ChatMemberStatus",
+    "ChatMemberRole",
+    "ChatMember",
+    "ChatConversationType",
+    "ChatConversationStatus",
+    "ChatConversation",
     "ConnectionDetail",
     "ConnectionEventEntry",
     "ConnectionState",

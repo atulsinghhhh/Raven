@@ -88,7 +88,9 @@ streaming, usage metering/billing, or a Go/Java/etc. SDK yet.
 - **Server SDKs** (`packages/server-sdk`, `sdks/python`, Phase 10):
   `@raven/server` and `raven-sdk` — mint short-lived RTC tokens and read
   rooms/connections/errors/metrics/diagnostics from your own backend
-  using a permanent project API key, which never reaches a browser. Same
+  using a permanent project API key, which never reaches a browser. Both
+  also mint Raven Chat tokens and provision conversations
+  (`raven.chat.*`). Same
   Control API every other client uses, no new endpoints invented beyond
   a couple of small API-key-guarded mirrors of existing dashboard reads.
 

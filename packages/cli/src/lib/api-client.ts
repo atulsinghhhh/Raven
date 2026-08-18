@@ -3,6 +3,10 @@ import { CliError } from './errors.js';
 import { debugLog } from './logger.js';
 import type {
   ApiKeySummary,
+  ChatConnectionSummary,
+  ChatConversationSummary,
+  ChatOverview,
+  ChatPresenceEntry,
   ConnectionDetail,
   ConnectionLifecycleState,
   ConnectionSummary,
@@ -139,6 +143,32 @@ export class RavenApiClient {
 
   async getDiagnostics(projectId: string): Promise<ProjectDiagnostics> {
     return this.request<ProjectDiagnostics>(`/v1/projects/${projectId}/diagnostics`);
+  }
+
+  async getChatOverview(projectId: string, range?: string): Promise<ChatOverview> {
+    const query = range ? `?range=${encodeURIComponent(range)}` : '';
+    return this.request<ChatOverview>(`/v1/projects/${projectId}/chat/overview${query}`);
+  }
+
+  async listChatConversations(projectId: string): Promise<ChatConversationSummary[]> {
+    return this.request<ChatConversationSummary[]>(`/v1/projects/${projectId}/chat/conversations`);
+  }
+
+  async listChatConnections(
+    projectId: string,
+    opts: { state?: ConnectionLifecycleState; limit?: number } = {},
+  ): Promise<ChatConnectionSummary[]> {
+    const params = new URLSearchParams();
+    if (opts.state) params.set('state', opts.state);
+    if (opts.limit) params.set('limit', String(opts.limit));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<ChatConnectionSummary[]>(`/v1/projects/${projectId}/chat/connections${query}`);
+  }
+
+  async getChatPresence(projectId: string, conversationId: string): Promise<ChatPresenceEntry[]> {
+    return this.request<ChatPresenceEntry[]>(
+      `/v1/projects/${projectId}/chat/conversations/${conversationId}/presence`,
+    );
   }
 
   async getHealth(): Promise<HealthResponse> {
