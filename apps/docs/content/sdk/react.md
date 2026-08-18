@@ -11,6 +11,10 @@ there (small, additive, non-breaking).
 
 ## Install
 
+> **Not published to npm yet.** The commands below are what installation
+> will look like once these packages are released. Until then, install
+> from a local checkout — see [Installing from source](/getting-started/installing-from-source).
+
 ```bash
 npm install @raven/rtc @raven/react
 ```

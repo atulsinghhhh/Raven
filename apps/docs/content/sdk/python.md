@@ -9,9 +9,13 @@ see [Authentication](/getting-started/authentication).
 
 ## Install
 
-```bash
-pip install raven-sdk
-```
+> **Not published to PyPI yet — and do not `pip install raven-sdk`.**
+> That name is already taken on PyPI by an unrelated project ("Async
+> Kafka and HTTP producer SDK for Raven AI logs"), so installing it
+> gets you someone else's package, not this one. Install from a local
+> checkout instead — see
+> [Installing from source](/getting-started/installing-from-source).
+> The final published name will be announced before release.
 
 ## Initialization
 

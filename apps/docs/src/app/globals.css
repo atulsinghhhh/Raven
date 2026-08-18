@@ -311,7 +311,6 @@
   margin-top: 0;
 }
 
-.prose h1,
 .prose h2,
 .prose h3,
 .prose h4 {
@@ -321,11 +320,8 @@
   scroll-margin-top: 5rem;
 }
 
-.prose h1 {
-  font-size: 1.875rem;
-  margin: 0 0 1rem;
-}
-
+/* No .prose h1 rule — the page title is rendered by the layout, outside
+   the Markdown body, so content files never contain an h1 of their own. */
 .prose h2 {
   font-size: 1.375rem;
   margin: 2.5rem 0 1rem;

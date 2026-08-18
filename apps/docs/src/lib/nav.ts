@@ -26,6 +26,8 @@ export const NAV: NavSection[] = [
       { slug: 'getting-started/introduction', title: 'Introduction' },
       { slug: 'getting-started/architecture', title: 'Architecture' },
       { slug: 'getting-started/quickstart', title: 'Quickstart' },
+      { slug: 'getting-started/installing-from-source', title: 'Installing from source' },
+      { slug: 'getting-started/build-a-video-call', title: 'Tutorial: build a video call' },
       { slug: 'getting-started/authentication', title: 'Authentication' },
     ],
   },
