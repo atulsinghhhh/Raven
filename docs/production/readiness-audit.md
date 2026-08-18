@@ -61,6 +61,11 @@ Dart test files have never been executed here. Treat Flutter as
 > **Status: resolved in Step 0.** Each item below records what was found
 > and how it was fixed. Kept rather than deleted, because the causes
 > explain why so much else went unnoticed.
+>
+> All four workflows are now green: CI (lint, typecheck, unit tests,
+> build), E2E, and Docker Publish all pass; CodeQL skips deliberately.
+> Turning the gates on immediately exposed two further defects that no
+> amount of reading would have found — see B4 and B5.
 
 ### B1. CI has never run a single check
 
@@ -162,6 +167,43 @@ sets `rootDir: ./src` for the build's output layout, so every file
 outside `src/` (tests, `prisma/seed.ts`, `prisma.config.ts`) was an
 error. A dedicated `tsconfig.typecheck.json` now covers all 188 files
 without disturbing the build config.
+
+### B4. Typecheck and tests depended on build artifacts that CI never built
+
+Surfaced the moment CI got past `prisma generate`.
+
+`@raven/react`, `@raven/react-native` and the CLI resolve their sibling
+packages through `dist/` via the package `exports` map. A fresh checkout
+has no `dist/`, so both the Typecheck and Unit test jobs failed with
+`Cannot find module '@raven/rtc'` — a build-ordering problem wearing a
+missing-dependency costume.
+
+This had always passed locally **because stale `dist/` output was lying
+around**. Deleting every `dist/` reproduces CI exactly: 36 typecheck
+errors and two failed React Native suites. Worth stating plainly, since
+it means the earlier "748 tests pass locally" was true but for a reason
+that would not survive a clean clone.
+
+**Fixed** by building the libraries before typechecking and testing.
+
+### B5. The container image shipped a CRITICAL vulnerability
+
+With the Docker workflow finally reaching its scan step, Trivy failed
+the build on **CVE-2026-59873**: `node-tar` below 7.5.19 enforces no
+upper bound on decompressed size, entry count, or compression ratio, so
+a small crafted gzip bomb can exhaust disk and CPU.
+
+The vulnerable copy was **npm's own bundled `node-tar`** inside
+`node:22-alpine` — not a Raven dependency, and not fixable from the
+lockfile.
+
+**Fixed** by removing npm in the layer that uses it. It exists in the
+image solely to install pnpm, and the runtime needs only pnpm and node.
+Verified in the built image: npm absent, `node`/`pnpm`/`prisma` all
+working, and pnpm's own bundled tar is 7.5.22 — already past the fix.
+
+That the gate caught a real vulnerability on its first genuine run is
+the clearest evidence that turning the gates on was worth doing first.
 
 ---
 
