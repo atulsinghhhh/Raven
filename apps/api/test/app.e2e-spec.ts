@@ -659,6 +659,78 @@ describe('Control plane (e2e)', () => {
     });
   });
 
+  describe('the error envelope', () => {
+    // Every error body shape a developer will actually meet, checked
+    // against the running app rather than a constructed exception.
+
+    it('carries a canonical code, a request id, and the path', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/v1/projects/does-not-exist')
+        .set('Authorization', 'Bearer not-a-real-token')
+        .expect(401);
+
+      expect(res.body).toMatchObject({
+        code: 'RAVEN_AUTH_ERROR',
+        requestId: expect.stringMatching(/^req_[0-9a-f]{24}$/),
+        path: '/v1/projects/does-not-exist',
+      });
+      expect(typeof res.body.message).toBe('string');
+    });
+
+    it('returns the same id in the body and the x-request-id header', async () => {
+      // Support asks for "the request id"; two different values would make
+      // that question ambiguous.
+      const res = await request(app.getHttpServer()).get('/v1/projects').expect(401);
+
+      expect(res.body.requestId).toBe(res.headers['x-request-id']);
+    });
+
+    it('adopts a well-formed inbound request id so both sides can correlate', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/v1/projects')
+        .set('x-request-id', 'req_from_the_caller')
+        .expect(401);
+
+      expect(res.body.requestId).toBe('req_from_the_caller');
+    });
+
+    it('discards a hostile inbound request id rather than echoing it', async () => {
+      // A newline here would forge a second line in our logs.
+      const res = await request(app.getHttpServer())
+        .get('/v1/projects')
+        .set('x-request-id', 'req_ok evil=true')
+        .expect(401);
+
+      expect(res.body.requestId).not.toContain('evil');
+      expect(res.body.requestId).toMatch(/^req_[0-9a-f]{24}$/);
+    });
+
+    it('still ships the pre-prefix code for callers mid-migration', async () => {
+      const res = await request(app.getHttpServer()).get('/v1/projects').expect(401);
+
+      expect(res.body.legacyCode).toBe('UNAUTHORIZED');
+    });
+
+    it('codes a framework-generated 404 the same way a handler would', async () => {
+      // Nest's own not-found response carries no code of its own. Without
+      // the filter deriving one, callers would see a coded body from our
+      // services and an uncoded body from the framework.
+      const res = await request(app.getHttpServer()).get('/v1/no-such-route').expect(404);
+
+      expect(res.body.code).toBe('RAVEN_NOT_FOUND');
+      expect(res.body.requestId).toMatch(/^req_/);
+    });
+
+    it('codes a validation failure from the global pipe', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send({ email: 'not-an-email' })
+        .expect(400);
+
+      expect(res.body.code).toBe('RAVEN_VALIDATION_FAILED');
+    });
+  });
+
   describe('rate limiting', () => {
     it('eventually rejects repeated login attempts from the same client with 429', async () => {
       const statuses: number[] = [];

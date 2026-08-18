@@ -483,7 +483,10 @@ describe('Chat (e2e)', () => {
         .get(`/v1/chat/conversations/${paginationRoom}/messages?before=nonsense-cursor`)
         .set('Authorization', `Bearer ${apiKey}`)
         .expect(400);
-      expect(response.body.code).toBe('INVALID_CURSOR');
+      expect(response.body.code).toBe('RAVEN_INVALID_CURSOR');
+      // The pre-prefix code ships alongside it, so a client that has not
+      // migrated yet still sees what it always saw.
+      expect(response.body.legacyCode).toBe('INVALID_CURSOR');
     });
   });
 
@@ -494,7 +497,8 @@ describe('Chat (e2e)', () => {
         .set('Authorization', `Bearer ${aliceToken}`)
         .send({ text: 'x'.repeat(50_000) })
         .expect(413);
-      expect(response.body.code).toBe('MESSAGE_TOO_LARGE');
+      expect(response.body.code).toBe('RAVEN_MESSAGE_TOO_LARGE');
+      expect(response.body.legacyCode).toBe('MESSAGE_TOO_LARGE');
     });
 
     it('refuses a system message from a browser token', async () => {

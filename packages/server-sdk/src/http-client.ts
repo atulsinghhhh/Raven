@@ -42,11 +42,11 @@ export class RavenHttpClient {
 
   constructor(options: RavenClientOptions) {
     if (!options || typeof options !== 'object') {
-      throw new RavenError('new Raven(options) requires a configuration object', { code: 'INVALID_CONFIG' });
+      throw new RavenError('new Raven(options) requires a configuration object', { code: 'RAVEN_INVALID_CONFIG' });
     }
     if (!options.apiKey || typeof options.apiKey !== 'string') {
       throw new RavenError('apiKey is required — pass your Raven project API key, e.g. apiKey: process.env.RAVEN_API_KEY', {
-        code: 'INVALID_CONFIG',
+        code: 'RAVEN_INVALID_CONFIG',
       });
     }
 
@@ -96,7 +96,7 @@ export class RavenHttpClient {
           continue;
         }
         throw new RavenError(isTimeout ? `Request timed out after ${this.timeout}ms` : 'Could not reach the Raven API', {
-          code: isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR',
+          code: isTimeout ? 'RAVEN_TIMEOUT' : 'RAVEN_NETWORK_ERROR',
           cause: error,
         });
       }
@@ -142,11 +142,14 @@ function mapErrorResponse(status: number, payload: unknown, requestId?: string):
 }
 
 function codeForStatus(status: number): string {
-  if (status === 401) return 'AUTHENTICATION_ERROR';
-  if (status === 403) return 'AUTHORIZATION_ERROR';
-  if (status === 404) return 'NOT_FOUND';
-  if (status === 429) return 'RATE_LIMITED';
-  if (status >= 500) return 'SERVER_ERROR';
+  // Deliberately the same names the API returns, so a 401 surfaces as
+  // RAVEN_AUTH_ERROR whether the code came from the body or from this
+  // fallback. The fallback only fires when a proxy ate the JSON body.
+  if (status === 401) return 'RAVEN_AUTH_ERROR';
+  if (status === 403) return 'RAVEN_PERMISSION_DENIED';
+  if (status === 404) return 'RAVEN_NOT_FOUND';
+  if (status === 429) return 'RAVEN_RATE_LIMITED';
+  if (status >= 500) return 'RAVEN_INTERNAL_ERROR';
   return 'VALIDATION_ERROR';
 }
 

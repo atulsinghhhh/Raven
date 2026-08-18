@@ -22,7 +22,7 @@ def validate_api_key(api_key: str | None) -> str:
     if not api_key or not isinstance(api_key, str):
         raise RavenError(
             "api_key is required — pass your Raven project API key, e.g. api_key=os.environ['RAVEN_API_KEY']",
-            code="INVALID_CONFIG",
+            code="RAVEN_INVALID_CONFIG",
         )
     return api_key
 
@@ -45,15 +45,15 @@ def backoff_delay_seconds(attempt: int) -> float:
 
 def code_for_status(status_code: int) -> str:
     if status_code == 401:
-        return "AUTHENTICATION_ERROR"
+        return "RAVEN_AUTH_ERROR"
     if status_code == 403:
-        return "AUTHORIZATION_ERROR"
+        return "RAVEN_PERMISSION_DENIED"
     if status_code == 404:
-        return "NOT_FOUND"
+        return "RAVEN_NOT_FOUND"
     if status_code == 429:
-        return "RATE_LIMITED"
+        return "RAVEN_RATE_LIMITED"
     if status_code >= 500:
-        return "SERVER_ERROR"
+        return "RAVEN_INTERNAL_ERROR"
     return "VALIDATION_ERROR"
 
 

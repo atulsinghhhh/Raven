@@ -1,10 +1,132 @@
 # Error codes and classification
 
-This document covers two separate vocabularies: the **RTC** error categories
-(classified server-side from telemetry) and the **Chat** error codes (returned
-directly by the chat API and SDK). They are deliberately distinct — a chat
-failure and a media failure have almost nothing in common, and merging them
-would produce a category list that describes neither well.
+Raven has three error vocabularies, and they are separate on purpose:
+
+| Vocabulary | Where you see it | Why it is its own thing |
+|---|---|---|
+| **`RAVEN_*` codes** | The `code` field of any HTTP error body | One namespace for the whole REST API, so a single `switch` handles every endpoint |
+| **RTC categories** | Dashboard, `raven errors`, telemetry | A *classification* of a failure that already happened, derived server-side from what the SDK reported — not a response code |
+| **Chat frame codes** | The chat WebSocket `error` frame | A published wire protocol with its own lifetime; see [chat/websocket.md](chat/websocket.md) |
+
+A chat failure and a media failure have almost nothing in common, and merging
+them would produce a list that describes neither well.
+
+---
+
+# The HTTP error envelope
+
+Every error the REST API returns has the same shape:
+
+```json
+{
+  "code": "RAVEN_ROOM_NOT_FOUND",
+  "legacyCode": "NOT_FOUND",
+  "message": "Room not found",
+  "requestId": "req_9f2c41ab77e0c3d5b1a4e8f2",
+  "path": "/v1/rooms/room_missing"
+}
+```
+
+| Field | Notes |
+|---|---|
+| `code` | The canonical code. Switch on this. |
+| `legacyCode` | **Deprecated** — see below. |
+| `message` | Human-readable, safe to log, never contains credentials or internals. |
+| `requestId` | Quote this in a bug report. Also returned as the `x-request-id` header, always with the same value. |
+| `path` | The route that produced the error. |
+
+Some errors add fields — a 429 carries `retryAfterSeconds`, for example.
+Unknown fields should be ignored rather than treated as an error.
+
+## Request IDs
+
+Every response carries `x-request-id`. Error bodies repeat it as `requestId`
+so a developer copying a JSON blob into an issue does not lose it.
+
+**Send your own** and Raven will adopt it, letting one call be traced across
+your logs and ours:
+
+```
+x-request-id: 7c1f9e2a-your-own-correlation-id
+```
+
+An inbound value is accepted only when it is 1–64 characters of
+`A-Za-z0-9_-`. Anything else — a newline, a control character, a megabyte of
+text — is discarded and a fresh ID generated. That value ends up in log lines
+and error bodies, so a half-sanitised identifier is worth less than an honest
+new one. Generated IDs look like `req_` followed by 24 hex characters.
+
+## Canonical codes
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `RAVEN_AUTH_ERROR` | 401 | Credentials missing, malformed, or rejected. |
+| `RAVEN_TOKEN_EXPIRED` | 401 | Distinct from the above: refresh, do not re-authenticate. |
+| `RAVEN_PERMISSION_DENIED` | 403 | Authenticated, but not allowed to do this. |
+| `RAVEN_NOT_FOUND` | 404 | Generic; used when no resource-specific code fits. |
+| `RAVEN_PROJECT_NOT_FOUND` | 404 | |
+| `RAVEN_ROOM_NOT_FOUND` | 404 | An RTC room. |
+| `RAVEN_CONVERSATION_NOT_FOUND` | 404 | A chat conversation. |
+| `RAVEN_MESSAGE_NOT_FOUND` | 404 | |
+| `RAVEN_ATTACHMENT_NOT_FOUND` | 404 | |
+| `RAVEN_CONFLICT` | 409 | Generic conflict — a name already taken, a state already reached. |
+| `RAVEN_MESSAGE_ALREADY_EXISTS` | 409 | An idempotency key was replayed. |
+| `RAVEN_CONVERSATION_ARCHIVED` | 409 | Unarchive it first. |
+| `RAVEN_VALIDATION_FAILED` | 400 | The request body or query is malformed. |
+| `RAVEN_INVALID_CURSOR` | 400 | Pagination cursor unreadable — do not fall back to page one. |
+| `RAVEN_PAYLOAD_TOO_LARGE` | 413 | Generic size limit. |
+| `RAVEN_MESSAGE_TOO_LARGE` | 413 | The message body limit specifically. |
+| `RAVEN_ATTACHMENT_TOO_LARGE` | 413 | The attachment limit, configured separately from the above. |
+| `RAVEN_RATE_LIMITED` | 429 | Carries `retryAfterSeconds`. |
+| `RAVEN_CONNECTION_FAILED` | — | A realtime connection could not be established. |
+| `RAVEN_WEBHOOK_FAILED` | — | A webhook delivery failed. |
+| `RAVEN_NOT_CONFIGURED` | 501 | The deployment has not enabled this feature. An operator fix, not a caller one. |
+| `RAVEN_INTERNAL_ERROR` | 500 | The only code an unexpected exception ever surfaces as. |
+
+Codes are grouped so that anything a caller would handle the same way shares
+one code, and anything needing a different fix gets its own. `RAVEN_MESSAGE_TOO_LARGE`
+and `RAVEN_ATTACHMENT_TOO_LARGE` are separate because the two limits are
+configured independently — "make it smaller" is not actionable until you know
+which limit you crossed.
+
+### SDK-side codes
+
+The server SDKs use the same namespace for failures that never reach the API,
+so one `switch` covers everything:
+
+`RAVEN_TIMEOUT`, `RAVEN_NETWORK_ERROR`, `RAVEN_INVALID_CONFIG`,
+`RAVEN_UNKNOWN_ERROR`.
+
+When a proxy returns an HTML error page instead of JSON, the SDK derives the
+code from the status — and derives it to the *same* name the API would have
+sent, so a 401 is `RAVEN_AUTH_ERROR` either way.
+
+## `legacyCode` and the migration
+
+Before this namespace existed, `code` held bare values: `NOT_FOUND`,
+`UNAUTHORIZED`, `VALIDATION_FAILED`, and the chat codes such as
+`INVALID_CURSOR`. Anything switching on those keeps working: every error body
+now carries **both**, with `legacyCode` holding exactly what that error used
+to emit.
+
+```js
+// Old — still works, for now
+if (error.code === 'NOT_FOUND') { ... }        // now error.legacyCode
+
+// New
+if (error.code === 'RAVEN_ROOM_NOT_FOUND') { ... }
+```
+
+`legacyCode` is deprecated and will be removed. Nothing in this repository
+reads it; it exists purely for callers we cannot see. Migrate by switching on
+`code` and deleting any reference to `legacyCode`.
+
+Note that `legacyCode` is lossy in one direction: several canonical codes map
+back to the same legacy value (`RAVEN_ROOM_NOT_FOUND` and
+`RAVEN_MESSAGE_NOT_FOUND` were both `NOT_FOUND`). That is the point — the new
+codes carry information the old ones did not.
+
+---
 
 ## RTC errors
 
@@ -75,6 +197,12 @@ a claim of certainty a Raven server can't actually back up. Examples:
 ---
 
 # Chat error codes
+
+> These are the codes on the **WebSocket `error` frame**. Over HTTP the same
+> failures arrive as `RAVEN_*` codes (with the chat code preserved in
+> `legacyCode`) — see the envelope section above. The frame keeps its own
+> vocabulary because it is a separately versioned wire protocol that
+> `@raven/chat` already maps.
 
 Every failure from the chat API or `@raven/chat` carries one of these codes.
 They are stable, and they map one-to-one onto SDK error classes so a caller

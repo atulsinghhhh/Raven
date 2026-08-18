@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Room, RoomStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { ConflictError, NotFoundError } from '../../shared/errors/app-error';
+import { RavenErrorCode } from '../../shared/errors/error-codes';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { LiveKitRoomService, LiveParticipantInfo } from './livekit-room.service';
 
@@ -46,7 +47,7 @@ export class RoomsService {
   async findOneForProject(id: string, projectId: string): Promise<Room> {
     const room = await this.prisma.room.findUnique({ where: { id } });
     if (!room || room.projectId !== projectId) {
-      throw new NotFoundError('Room');
+      throw new NotFoundError('Room', RavenErrorCode.ROOM_NOT_FOUND);
     }
     return room;
   }

@@ -1,6 +1,6 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
-import { randomUUID } from 'crypto';
+import { resolveRequestId } from './request-id.util';
 
 declare module 'express' {
   interface Request {
@@ -19,7 +19,9 @@ export class RequestLoggerMiddleware implements NestMiddleware {
   private readonly logger = new Logger('HTTP');
 
   use(req: Request, res: Response, next: NextFunction): void {
-    const requestId = randomUUID();
+    // Reuses the caller's x-request-id when it is well formed, so a
+    // developer can trace one call across their logs and ours.
+    const requestId = resolveRequestId(req.headers['x-request-id']);
     req.requestId = requestId;
     res.setHeader('x-request-id', requestId);
 

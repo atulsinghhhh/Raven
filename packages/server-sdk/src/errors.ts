@@ -23,7 +23,7 @@ export class RavenError extends Error {
   constructor(message: string, options: RavenErrorOptions = {}) {
     super(message, options.cause !== undefined ? { cause: options.cause } : undefined);
     this.name = 'RavenError';
-    this.code = options.code ?? 'UNKNOWN_ERROR';
+    this.code = options.code ?? 'RAVEN_UNKNOWN_ERROR';
     this.statusCode = options.statusCode;
     this.requestId = options.requestId;
     this.details = options.details;

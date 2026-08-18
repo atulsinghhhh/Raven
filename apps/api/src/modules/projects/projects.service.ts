@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Project, ProjectStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { NotFoundError } from '../../shared/errors/app-error';
+import { RavenErrorCode } from '../../shared/errors/error-codes';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 
@@ -32,7 +33,7 @@ export class ProjectsService {
   async findOneById(id: string): Promise<Project> {
     const project = await this.prisma.project.findUnique({ where: { id } });
     if (!project) {
-      throw new NotFoundError('Project');
+      throw new NotFoundError('Project', RavenErrorCode.PROJECT_NOT_FOUND);
     }
     return project;
   }
@@ -44,7 +45,7 @@ export class ProjectsService {
     // else — a 403 would confirm the ID is real, which leaks info about
     // another user's account.
     if (!project || project.ownerId !== ownerId) {
-      throw new NotFoundError('Project');
+      throw new NotFoundError('Project', RavenErrorCode.PROJECT_NOT_FOUND);
     }
 
     return project;

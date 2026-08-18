@@ -151,7 +151,7 @@ describe('RavenHttpClient', () => {
     );
     const client = new RavenHttpClient({ apiKey: 'k' });
 
-    await expect(client.request('/v1/rooms')).rejects.toMatchObject({ code: 'NETWORK_ERROR' });
+    await expect(client.request('/v1/rooms')).rejects.toMatchObject({ code: 'RAVEN_NETWORK_ERROR' });
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
@@ -168,8 +168,51 @@ describe('RavenHttpClient', () => {
     ) as unknown as typeof fetch;
     const client = new RavenHttpClient({ apiKey: 'k', timeout: 20, maxRetries: 0 });
 
-    await expect(client.request('/v1/rooms')).rejects.toMatchObject({ code: 'TIMEOUT' });
+    await expect(client.request('/v1/rooms')).rejects.toMatchObject({ code: 'RAVEN_TIMEOUT' });
   }, 2000);
+
+  describe('the error vocabulary', () => {
+    it('passes the API code through untouched', async () => {
+      mockFetchSequence({ status: 404, body: { code: 'RAVEN_ROOM_NOT_FOUND', message: 'Room not found' } });
+      const client = new RavenHttpClient({ apiKey: 'k' });
+
+      await expect(client.request('/v1/rooms/x', { retryable: false })).rejects.toMatchObject({
+        code: 'RAVEN_ROOM_NOT_FOUND',
+      });
+    });
+
+    // A proxy or load balancer returning an HTML error page strips the JSON
+    // body. The status is still meaningful, and the code derived from it has
+    // to come from the same vocabulary — otherwise a caller's `switch` on
+    // error.code silently stops matching exactly when things are worst.
+    it.each([
+      [401, 'RAVEN_AUTH_ERROR'],
+      [403, 'RAVEN_PERMISSION_DENIED'],
+      [404, 'RAVEN_NOT_FOUND'],
+      [429, 'RAVEN_RATE_LIMITED'],
+      [503, 'RAVEN_INTERNAL_ERROR'],
+    ])('derives %s into %s when the body carries no code', async (status, expected) => {
+      mockFetchSequence({ status, body: '<html>Gateway error</html>' });
+      const client = new RavenHttpClient({ apiKey: 'k', maxRetries: 0 });
+
+      await expect(client.request('/v1/rooms', { retryable: false })).rejects.toMatchObject({
+        code: expected,
+      });
+    });
+
+    it('surfaces the request id the API sent, so a bug report can name one', async () => {
+      mockFetchSequence({
+        status: 500,
+        body: { code: 'RAVEN_INTERNAL_ERROR', message: 'boom' },
+        headers: { 'x-request-id': 'req_abc123' },
+      });
+      const client = new RavenHttpClient({ apiKey: 'k', maxRetries: 0 });
+
+      await expect(client.request('/v1/rooms', { retryable: false })).rejects.toMatchObject({
+        requestId: 'req_abc123',
+      });
+    });
+  });
 
   describe('secret redaction', () => {
     it('toString() never includes the API key', () => {

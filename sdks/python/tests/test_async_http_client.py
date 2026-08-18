@@ -68,7 +68,7 @@ async def test_async_client_network_error_after_retries() -> None:
 
     with pytest.raises(RavenError) as exc_info:
         await client.request("/v1/rooms")
-    assert exc_info.value.code == "NETWORK_ERROR"
+    assert exc_info.value.code == "RAVEN_NETWORK_ERROR"
     await client.aclose()
 
 

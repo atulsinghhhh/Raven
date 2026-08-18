@@ -19,7 +19,7 @@ def test_network_error_maps_to_raven_error_after_exhausting_retries() -> None:
     with pytest.raises(RavenError) as exc_info:
         client.request("/v1/rooms")
 
-    assert exc_info.value.code == "NETWORK_ERROR"
+    assert exc_info.value.code == "RAVEN_NETWORK_ERROR"
     assert calls["count"] == 3  # initial + 2 retries
 
 
@@ -32,4 +32,4 @@ def test_timeout_maps_to_raven_error_and_never_hangs() -> None:
     with pytest.raises(RavenError) as exc_info:
         client.request("/v1/rooms")
 
-    assert exc_info.value.code == "TIMEOUT"
+    assert exc_info.value.code == "RAVEN_TIMEOUT"

@@ -19,7 +19,7 @@ class RavenError(Exception):
         self,
         message: str,
         *,
-        code: str = "UNKNOWN_ERROR",
+        code: str = "RAVEN_UNKNOWN_ERROR",
         status_code: int | None = None,
         request_id: str | None = None,
         details: Any = None,
