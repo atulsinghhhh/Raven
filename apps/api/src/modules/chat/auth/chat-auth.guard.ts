@@ -5,6 +5,7 @@ import { ApiKeysService } from '../../api-keys/api-keys.service';
 import { CHAT_SCOPES, ChatScope } from '../chat-permissions';
 import { ChatTokenService } from '../tokens/chat-token.service';
 import { ChatActor } from './chat-actor.interface';
+import { DEFAULT_ENVIRONMENT } from '../../../shared/environment/environment.constants';
 
 declare module 'express' {
   interface Request {
@@ -47,10 +48,11 @@ export class ChatAuthGuard implements CanActivate {
     // shape check, not a guess — no chance of feeding a chat token into
     // the API-key verifier or vice versa.
     if (credential.startsWith('rvk_')) {
-      const project = await this.apiKeysService.verify(credential);
+      const { project, environment } = await this.apiKeysService.verify(credential);
       request.chatActor = {
         kind: 'server',
         projectId: project.id,
+        environment,
         userId: null,
         scopes: [...CHAT_SCOPES],
       };
@@ -61,6 +63,9 @@ export class ChatAuthGuard implements CanActivate {
     request.chatActor = {
       kind: 'client',
       projectId: claims.pid,
+      // Tokens minted before environments existed carry no claim; they
+      // resolve to development, which is where they were being used.
+      environment: claims.env ?? DEFAULT_ENVIRONMENT,
       userId: claims.sub,
       scopes: claims.scopes as ChatScope[],
       tokenId: claims.jti,

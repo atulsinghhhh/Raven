@@ -239,7 +239,7 @@ export class MessagesService {
       this.metrics.recordLatency(actor.projectId, 'end_to_end', Date.now() - dto.clientSentAt);
     }
 
-    void this.webhooks.emit(actor.projectId, 'message.created', { message: view });
+    void this.webhooks.emit(actor, 'message.created', { message: view });
 
     return { message: view, deduplicated: false, persistLatencyMs };
   }
@@ -377,7 +377,7 @@ export class MessagesService {
       conversationId: conversation.id,
       message: view,
     });
-    void this.webhooks.emit(actor.projectId, 'message.updated', { message: view });
+    void this.webhooks.emit(actor, 'message.updated', { message: view });
 
     return view;
   }
@@ -420,7 +420,7 @@ export class MessagesService {
       deletedAt: deletedAt.toISOString(),
       deletedBy: deleterId,
     });
-    void this.webhooks.emit(actor.projectId, 'message.deleted', {
+    void this.webhooks.emit(actor, 'message.deleted', {
       messageId: updated.publicId,
       roomId: conversation.publicId,
       deletedAt: deletedAt.toISOString(),

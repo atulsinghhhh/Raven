@@ -2,6 +2,7 @@ import { ChatMemberRole } from '../../generated/prisma/client';
 import { ChatError } from './chat-error';
 import { assertScope, isChatScope, narrowScopes, scopesForRole } from './chat-permissions';
 import { canImpersonate, resolveSubjectId, type ChatActor } from './auth/chat-actor.interface';
+import { Environment } from '../../shared/environment/environment.constants';
 
 describe('scopesForRole', () => {
   it('gives a member read and send, nothing more', () => {
@@ -67,12 +68,14 @@ describe('actor identity', () => {
   const client: ChatActor = {
     kind: 'client',
     projectId: 'p1',
+    environment: Environment.DEVELOPMENT,
     userId: 'alice',
     scopes: ['chat:read', 'chat:send'],
   };
   const server: ChatActor = {
     kind: 'server',
     projectId: 'p1',
+    environment: Environment.DEVELOPMENT,
     userId: null,
     scopes: ['chat:read', 'chat:send', 'chat:moderate', 'chat:manage'],
   };

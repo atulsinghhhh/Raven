@@ -6,6 +6,7 @@ import { generateId } from '../../../shared/utils/crypto.util';
 import { RedisService } from '../../../shared/redis/redis.service';
 import { ChatError } from '../chat-error';
 import { ChatErrorCode, RedisKeys } from '../chat.constants';
+import { Environment } from '../../../shared/environment/environment.constants';
 import { ChatScope, isChatScope, narrowScopes, scopesForRole } from '../chat-permissions';
 
 /** What a minted chat token carries. Everything a gateway needs to authorize without a DB round-trip. */
@@ -16,6 +17,15 @@ export interface ChatTokenClaims {
   sub: string;
   /** Raven project id. */
   pid: string;
+  /**
+   * Environment. Signed rather than sent, because a browser holding a
+   * development token must not be able to reach production data by
+   * changing a request field — the same reason `sub` is a claim.
+   *
+   * Optional on the type so tokens minted before environments existed
+   * still verify; they resolve to development at the guard.
+   */
+  env?: Environment;
   /** Conversations this token may touch. Empty = every conversation the user is a member of. */
   cvs: string[];
   scopes: ChatScope[];
@@ -31,6 +41,7 @@ export interface IssuedChatToken {
   tokenId: string;
   userId: string;
   projectId: string;
+  environment: Environment;
   scopes: ChatScope[];
   conversations: string[];
   expiresAt: Date;
@@ -66,6 +77,7 @@ export class ChatTokenService {
    */
   issue(input: {
     projectId: string;
+    environment: Environment;
     userId: string;
     conversations: string[];
     role: ChatMemberRole;
@@ -84,6 +96,7 @@ export class ChatTokenService {
       jti: generateId('ctk'),
       sub: input.userId,
       pid: input.projectId,
+      env: input.environment,
       cvs: input.conversations,
       scopes,
       iat: issuedAt,
@@ -97,6 +110,7 @@ export class ChatTokenService {
       tokenId: claims.jti,
       userId: claims.sub,
       projectId: claims.pid,
+      environment: input.environment,
       scopes,
       conversations: claims.cvs,
       expiresAt: new Date(claims.exp * 1000),

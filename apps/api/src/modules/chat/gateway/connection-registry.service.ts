@@ -5,6 +5,7 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { RedisService } from '../../../shared/redis/redis.service';
 import { randomBytes } from 'crypto';
 import { RedisKeys } from '../chat.constants';
+import { Environment } from '../../../shared/environment/environment.constants';
 
 /**
  * Tracks live chat sockets in two places, for two different reasons.
@@ -46,6 +47,7 @@ export class ConnectionRegistryService {
   async register(input: {
     connectionId: string;
     projectId: string;
+    environment: Environment;
     userId: string;
     sdkVersion?: string;
     platform?: string;
@@ -57,6 +59,7 @@ export class ConnectionRegistryService {
         data: {
           publicId: input.connectionId,
           projectId: input.projectId,
+          environment: input.environment,
           userId: input.userId,
           gatewayId: this.gatewayId,
           state: ConnectionState.CONNECTED,

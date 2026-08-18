@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiConflictResponse, ApiNotFoundResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -6,6 +6,8 @@ import { AuthenticatedUser } from '../auth/jwt-payload.interface';
 import { ProjectsService } from '../projects/projects.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { RoomsService } from './rooms.service';
+import { DEFAULT_ENVIRONMENT } from '../../shared/environment/environment.constants';
+import { EnvironmentQueryDto } from '../../shared/environment/environment-query.dto';
 
 /**
  * Dashboard/CLI-facing view of a project's rooms — guarded by developer
@@ -36,9 +38,10 @@ export class DashboardRoomsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body() dto: CreateRoomDto,
+    @Query() { environment = DEFAULT_ENVIRONMENT }: EnvironmentQueryDto,
   ) {
     await this.projectsService.findOneForOwner(projectId, user.id);
-    return this.roomsService.create(projectId, dto);
+    return this.roomsService.create({ projectId, environment }, dto);
   }
 
   @Get()
@@ -48,9 +51,10 @@ export class DashboardRoomsController {
   async findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Query() { environment = DEFAULT_ENVIRONMENT }: EnvironmentQueryDto,
   ) {
     await this.projectsService.findOneForOwner(projectId, user.id);
-    return this.roomsService.findAllForProjectWithLiveState(projectId);
+    return this.roomsService.findAllForProjectWithLiveState({ projectId, environment });
   }
 
   @Get(':roomId')
@@ -61,8 +65,9 @@ export class DashboardRoomsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('roomId', ParseUUIDPipe) roomId: string,
+    @Query() { environment = DEFAULT_ENVIRONMENT }: EnvironmentQueryDto,
   ) {
     await this.projectsService.findOneForOwner(projectId, user.id);
-    return this.roomsService.findOneForProjectWithLiveState(roomId, projectId);
+    return this.roomsService.findOneForProjectWithLiveState(roomId, { projectId, environment });
   }
 }

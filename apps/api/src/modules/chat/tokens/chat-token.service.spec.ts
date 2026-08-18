@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { ChatMemberRole } from '../../../generated/prisma/client';
 import { RedisService } from '../../../shared/redis/redis.service';
 import { ChatTokenService } from './chat-token.service';
+import { Environment } from '../../../shared/environment/environment.constants';
 
 const CONFIG: Record<string, unknown> = {
   'chat.tokenSecret': 'test-chat-secret-that-is-long-enough',
@@ -23,11 +24,11 @@ function makeService(redisOverrides: Partial<{ exists: jest.Mock; set: jest.Mock
 describe('issue', () => {
   it('derives scopes from the member role', () => {
     const { service } = makeService();
-    expect(service.issue({ projectId: 'p1', userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER }).scopes).toEqual([
+    expect(service.issue({ projectId: 'p1', environment: Environment.DEVELOPMENT, userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER }).scopes).toEqual([
       'chat:read',
       'chat:send',
     ]);
-    expect(service.issue({ projectId: 'p1', userId: 'alice', conversations: [], role: ChatMemberRole.ADMIN }).scopes).toEqual([
+    expect(service.issue({ projectId: 'p1', environment: Environment.DEVELOPMENT, userId: 'alice', conversations: [], role: ChatMemberRole.ADMIN }).scopes).toEqual([
       'chat:read',
       'chat:send',
       'chat:moderate',
@@ -40,6 +41,7 @@ describe('issue', () => {
 
     const narrowed = service.issue({
       projectId: 'p1',
+      environment: Environment.DEVELOPMENT,
       userId: 'alice',
       conversations: [],
       role: ChatMemberRole.MEMBER,
@@ -52,6 +54,7 @@ describe('issue', () => {
     // through without re-validating it.
     const escalated = service.issue({
       projectId: 'p1',
+      environment: Environment.DEVELOPMENT,
       userId: 'alice',
       conversations: [],
       role: ChatMemberRole.MEMBER,
@@ -64,6 +67,7 @@ describe('issue', () => {
     const { service } = makeService();
     const issued = service.issue({
       projectId: 'p1',
+      environment: Environment.DEVELOPMENT,
       userId: 'alice',
       conversations: [],
       role: ChatMemberRole.ADMIN,
@@ -76,6 +80,7 @@ describe('issue', () => {
     const { service } = makeService();
     const issued = service.issue({
       projectId: 'p1',
+      environment: Environment.DEVELOPMENT,
       userId: 'alice',
       conversations: [],
       role: ChatMemberRole.MEMBER,
@@ -87,14 +92,14 @@ describe('issue', () => {
 
   it('derives a wss:// chat URL from the API URL, so only one address is configured', () => {
     const { service } = makeService();
-    const issued = service.issue({ projectId: 'p1', userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
+    const issued = service.issue({ projectId: 'p1', environment: Environment.DEVELOPMENT, userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
     expect(issued.chatUrl).toBe('wss://api.example.com/v1/chat/ws');
   });
 
   it('gives every token a distinct id, so one can be revoked without touching the rest', () => {
     const { service } = makeService();
-    const a = service.issue({ projectId: 'p1', userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
-    const b = service.issue({ projectId: 'p1', userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
+    const a = service.issue({ projectId: 'p1', environment: Environment.DEVELOPMENT, userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
+    const b = service.issue({ projectId: 'p1', environment: Environment.DEVELOPMENT, userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
     expect(a.tokenId).not.toBe(b.tokenId);
     expect(a.tokenId).toMatch(/^ctk_/);
   });
@@ -105,6 +110,7 @@ describe('verify', () => {
     const { service } = makeService();
     const issued = service.issue({
       projectId: 'p1',
+      environment: Environment.DEVELOPMENT,
       userId: 'alice',
       conversations: ['conv_1'],
       role: ChatMemberRole.MODERATOR,
@@ -119,7 +125,7 @@ describe('verify', () => {
 
   it('rejects a token signed with a different key', async () => {
     const { service } = makeService();
-    const issued = service.issue({ projectId: 'p1', userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
+    const issued = service.issue({ projectId: 'p1', environment: Environment.DEVELOPMENT, userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
 
     const other = new ChatTokenService(
       { get: (key: string) => (key === 'chat.tokenSecret' ? 'a-completely-different-secret' : CONFIG[key]) } as unknown as ConfigService,
@@ -131,7 +137,7 @@ describe('verify', () => {
 
   it('rejects a token whose payload was tampered with', async () => {
     const { service } = makeService();
-    const issued = service.issue({ projectId: 'p1', userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
+    const issued = service.issue({ projectId: 'p1', environment: Environment.DEVELOPMENT, userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
 
     // Swap the subject for someone else's and keep the original signature.
     const [header, , signature] = issued.token.split('.');
@@ -189,7 +195,7 @@ describe('verify', () => {
 
   it('rejects a revoked token', async () => {
     const { service } = makeService({ exists: jest.fn().mockResolvedValue(1) });
-    const issued = service.issue({ projectId: 'p1', userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
+    const issued = service.issue({ projectId: 'p1', environment: Environment.DEVELOPMENT, userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
     await expect(service.verify(issued.token)).rejects.toMatchObject({ chatCode: 'TOKEN_REVOKED' });
   });
 
@@ -197,7 +203,7 @@ describe('verify', () => {
     // Revocation is delayed rather than chat being unusable — a Redis
     // outage must not lock every user out (spec §52).
     const { service } = makeService({ exists: jest.fn().mockRejectedValue(new Error('redis down')) });
-    const issued = service.issue({ projectId: 'p1', userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
+    const issued = service.issue({ projectId: 'p1', environment: Environment.DEVELOPMENT, userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
     await expect(service.verify(issued.token)).resolves.toMatchObject({ sub: 'alice' });
   });
 });

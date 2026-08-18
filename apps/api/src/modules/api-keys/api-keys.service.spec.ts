@@ -5,6 +5,7 @@ import { PrismaService } from '../../shared/database/prisma.service';
 import { UnauthorizedError } from '../../shared/errors/app-error';
 import { pepper } from '../../shared/utils/crypto.util';
 import { ApiKeysService } from './api-keys.service';
+import { Environment } from '../../shared/environment/environment.constants';
 
 const TEST_PEPPER = 'test-pepper-value';
 
@@ -103,17 +104,39 @@ describe('ApiKeysService', () => {
       await expect(service.verify('rvk_x.wrongsecret')).rejects.toBeInstanceOf(UnauthorizedError);
     });
 
-    it('resolves to the owning project on a valid, active key', async () => {
+    it('resolves to the owning project and its environment on a valid, active key', async () => {
       const secretHash = await hashSecret('correctsecret');
       prisma.apiKey.findUnique.mockResolvedValue({
         id: 'key1',
         status: ApiKeyStatus.ACTIVE,
+        environment: Environment.PRODUCTION,
         secretHash,
         project: { id: 'project1', name: 'Test' },
       });
 
-      const project = await service.verify('rvk_x.correctsecret');
-      expect(project).toEqual({ id: 'project1', name: 'Test' });
+      const verified = await service.verify('rvk_x.correctsecret');
+      expect(verified).toEqual({
+        project: { id: 'project1', name: 'Test' },
+        environment: Environment.PRODUCTION,
+      });
+    });
+
+    it('takes the environment from the key row, never from the caller', async () => {
+      // The whole isolation guarantee rests on this: a request cannot ask
+      // to act in production, it can only present a production key.
+      const secretHash = await hashSecret('correctsecret');
+      prisma.apiKey.findUnique.mockResolvedValue({
+        id: 'key1',
+        status: ApiKeyStatus.ACTIVE,
+        environment: Environment.DEVELOPMENT,
+        secretHash,
+        project: { id: 'project1', name: 'Test' },
+      });
+
+      const verified = await service.verify('rvk_prod_x.correctsecret');
+
+      // The public id says "prod"; the row says development, and the row wins.
+      expect(verified.environment).toBe(Environment.DEVELOPMENT);
     });
   });
 });

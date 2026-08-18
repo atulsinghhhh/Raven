@@ -29,8 +29,9 @@ describe('raven keys / rooms / status / whoami (integration)', () => {
         body: {
           id: 'key-1',
           name: 'ci-key',
-          publicId: 'rvk_abc',
-          key: 'rvk_abc.supersecretvalue',
+          publicId: 'rvk_dev_abc',
+          environment: 'DEVELOPMENT',
+          key: 'rvk_dev_abc.supersecretvalue',
           createdAt: '2026-01-01T00:00:00.000Z',
           warning: 'This is the only time the full key is shown. Store it securely — it cannot be retrieved again.',
         },
@@ -40,7 +41,7 @@ describe('raven keys / rooms / status / whoami (integration)', () => {
     const result = await runCli(['keys', 'create', '--name', 'ci-key']);
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('rvk_abc.supersecretvalue');
+    expect(result.stdout).toContain('rvk_dev_abc.supersecretvalue');
     expect(result.stdout).toContain('not be shown again');
   });
 
@@ -48,7 +49,7 @@ describe('raven keys / rooms / status / whoami (integration)', () => {
     mockApi({
       'GET /v1/projects/proj-1/api-keys': async () => ({
         status: 200,
-        body: [{ id: 'key-1', projectId: 'proj-1', publicId: 'rvk_abc', name: 'ci-key', status: 'ACTIVE', lastUsedAt: null, createdAt: '2026-01-01T00:00:00.000Z', revokedAt: null }],
+        body: [{ id: 'key-1', projectId: 'proj-1', publicId: 'rvk_abc', name: 'ci-key', environment: 'PRODUCTION', status: 'ACTIVE', lastUsedAt: null, createdAt: '2026-01-01T00:00:00.000Z', revokedAt: null }],
       }),
     });
 
@@ -57,7 +58,83 @@ describe('raven keys / rooms / status / whoami (integration)', () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('rvk_abc');
     expect(result.stdout).toContain('ci-key');
+    // Which environment a key belongs to is the column that stops someone
+    // revoking the wrong one.
+    expect(result.stdout).toContain('production');
     expect(result.stdout).not.toContain('supersecretvalue');
+  });
+
+  describe('keys create --environment', () => {
+    function mockCreate(capture: { body?: unknown }) {
+      mockApi({
+        'POST /v1/projects/proj-1/api-keys': async (_url, init) => {
+          capture.body = init?.body ? JSON.parse(String(init.body)) : undefined;
+          return {
+            status: 201,
+            body: {
+              id: 'key-1',
+              name: null,
+              publicId: 'rvk_prod_abc',
+              environment: 'PRODUCTION',
+              key: 'rvk_prod_abc.secret',
+              createdAt: '2026-01-01T00:00:00.000Z',
+              warning: 'once only',
+            },
+          };
+        },
+      });
+    }
+
+    it.each([
+      ['production', 'PRODUCTION'],
+      ['PRODUCTION', 'PRODUCTION'],
+      ['prod', 'PRODUCTION'],
+      ['staging', 'STAGING'],
+      ['stg', 'STAGING'],
+      ['dev', 'DEVELOPMENT'],
+    ])('accepts %s and sends %s', async (input, expected) => {
+      // Requiring an exact enum spelling from a terminal is a papercut.
+      const capture: { body?: unknown } = {};
+      mockCreate(capture);
+
+      const result = await runCli(['keys', 'create', '--environment', input]);
+
+      expect(result.exitCode).toBe(0);
+      expect(capture.body).toMatchObject({ environment: expected });
+    });
+
+    it('refuses an unrecognised environment rather than defaulting', async () => {
+      const capture: { body?: unknown } = {};
+      mockCreate(capture);
+
+      const result = await runCli(['keys', 'create', '--environment', 'prd']);
+
+      // Silently issuing a development key to someone who typed `prd` and
+      // meant production is the worst available outcome.
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain('Unknown environment');
+      expect(capture.body).toBeUndefined();
+    });
+
+    it('warns that a production key belongs server-side', async () => {
+      mockCreate({});
+
+      const result = await runCli(['keys', 'create', '--environment', 'production']);
+
+      expect(result.stdout).toContain('production environment');
+      expect(result.stdout).toContain('never in an app bundle');
+    });
+
+    it('omits the field entirely when no environment is given', async () => {
+      // Sending environment: undefined would be the same on the wire, but
+      // building the body explicitly keeps the server's default authoritative.
+      const capture: { body?: unknown } = {};
+      mockCreate(capture);
+
+      await runCli(['keys', 'create']);
+
+      expect(capture.body).not.toHaveProperty('environment');
+    });
   });
 
   it('keys revoke --yes calls the revoke endpoint and exits 0', async () => {

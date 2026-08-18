@@ -21,6 +21,16 @@ enum ProjectStatus {
   ARCHIVED
 }
 
+/// Three fixed environments per project. Not a table: they are not
+/// user-created, there are always exactly these three, and a row per
+/// project per environment would buy nothing until there is
+/// per-environment configuration to store in it.
+enum Environment {
+  DEVELOPMENT
+  STAGING
+  PRODUCTION
+}
+
 enum ApiKeyStatus {
   ACTIVE
   REVOKED
@@ -100,29 +110,34 @@ model Project {
 /// fast, non-secret lookup key used to find the row before verifying the
 /// secret against `secretHash`. See docs/control-plane.md#api-keys.
 model ApiKey {
-  id         String       @id @default(uuid())
-  projectId  String
-  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  publicId   String       @unique
-  secretHash String
-  name       String?
-  status     ApiKeyStatus @default(ACTIVE)
-  lastUsedAt DateTime?
-  createdAt  DateTime     @default(now())
-  revokedAt  DateTime?
+  id          String       @id @default(uuid())
+  projectId   String
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// Which environment this key grants access to. The single source of
+  /// truth for an API-key-authenticated request — a caller never gets to
+  /// name the environment it is operating in.
+  environment Environment  @default(DEVELOPMENT)
+  publicId    String       @unique
+  secretHash  String
+  name        String?
+  status      ApiKeyStatus @default(ACTIVE)
+  lastUsedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  revokedAt   DateTime?
 
   @@index([projectId])
   @@map("api_keys")
 }
 
 model Room {
-  id        String     @id @default(uuid())
-  projectId String
-  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  name      String
-  status    RoomStatus @default(ACTIVE)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id          String      @id @default(uuid())
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment Environment @default(DEVELOPMENT)
+  name        String
+  status      RoomStatus  @default(ACTIVE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   participants Participant[]
   rtcTokens    RtcToken[]
@@ -130,9 +145,10 @@ model Room {
   /// Chat and RTC stay separate services — this is the only join between them.
   conversation Conversation?
 
-  // Room names only need to be unique within a project, so unrelated
-  // projects can independently use the same room name (e.g. "lobby").
-  @@unique([projectId, name])
+  // Room names are unique within one environment of one project. Staging
+  // and production must both be able to hold a "lobby" — that is most of
+  // what environment isolation means in practice.
+  @@unique([projectId, environment, name])
   @@index([projectId])
   @@map("rooms")
 }
@@ -189,6 +205,7 @@ model Connection {
   publicId            String          @unique
   projectId           String
   project             Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment         Environment     @default(DEVELOPMENT)
   roomId              String?
   roomName            String
   participantId       String?
@@ -241,21 +258,22 @@ model ConnectionEvent {
 /// see `error-classifier.ts` for the mapping and docs/error-codes.md for
 /// the full reference.
 model ErrorEvent {
-  id            String        @id @default(uuid())
-  publicId      String        @unique
-  projectId     String
-  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  connectionId  String?
-  connection    Connection?   @relation(fields: [connectionId], references: [id], onDelete: SetNull)
-  roomId        String?
-  participantId String?
-  category      ErrorCategory
-  message       String
-  likelyCause   String?
+  id              String        @id @default(uuid())
+  publicId        String        @unique
+  projectId       String
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment     Environment   @default(DEVELOPMENT)
+  connectionId    String?
+  connection      Connection?   @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  roomId          String?
+  participantId   String?
+  category        ErrorCategory
+  message         String
+  likelyCause     String?
   suggestedAction String?
-  sdkVersion    String?
-  platform      String?
-  timestamp     DateTime      @default(now())
+  sdkVersion      String?
+  platform        String?
+  timestamp       DateTime      @default(now())
 
   @@index([projectId])
   @@index([connectionId])
@@ -333,21 +351,22 @@ enum WebhookDeliveryStatus {
 /// to an RTC `Room` (type ROOM), which is how a video call gets a chat
 /// panel without the developer wiring two identities together.
 model Conversation {
-  id        String             @id @default(uuid())
-  publicId  String             @unique
-  projectId String
-  project   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id            String             @id @default(uuid())
+  publicId      String             @unique
+  projectId     String
+  project       Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment   Environment        @default(DEVELOPMENT)
   /// Set only for type ROOM. One conversation per room, enforced below.
-  roomId    String?            @unique
-  room      Room?              @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  name      String
-  type      ConversationType   @default(CHANNEL)
-  status    ConversationStatus @default(ACTIVE)
+  roomId        String?            @unique
+  room          Room?              @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  name          String
+  type          ConversationType   @default(CHANNEL)
+  status        ConversationStatus @default(ACTIVE)
   /// Overrides the project/plan default. Null = keep messages indefinitely.
   retentionDays Int?
-  metadata  Json?
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  metadata      Json?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 
   members     ChatMember[]
   messages    Message[]
@@ -358,7 +377,7 @@ model Conversation {
 
   // Names are unique per project so `chat.connect({ room: "support" })`
   // can resolve without the developer having to carry a conv_ id around.
-  @@unique([projectId, name])
+  @@unique([projectId, environment, name])
   @@index([projectId, createdAt])
   @@map("chat_conversations")
 }
@@ -387,24 +406,24 @@ model ChatMember {
 /// `message.deleted` event can still name the row and moderation keeps an
 /// audit trail — see docs/chat/messages.md#deletion.
 model Message {
-  id             String       @id @default(uuid())
-  publicId       String       @unique
-  projectId      String
-  conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  id               String       @id @default(uuid())
+  publicId         String       @unique
+  projectId        String
+  conversationId   String
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   /// Denormalized from the conversation so RTC-room-scoped queries and
   /// webhook payloads don't need a join. Null for CHANNEL/DIRECT.
-  roomId         String?
-  senderId       String
-  type           MessageType  @default(TEXT)
+  roomId           String?
+  senderId         String
+  type             MessageType  @default(TEXT)
   /// Null for messages that carry no text (a bare attachment, say).
-  content        String?
+  content          String?
   /// Direct parent. Threads are this same table, not a second store
   /// (spec §26) — `threadRootId` just makes "give me the thread" one
   /// indexed range scan instead of a recursive walk.
   replyToMessageId String?
-  replyToMessage   Message?   @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
-  replies          Message[]  @relation("MessageReplies")
+  replyToMessage   Message?     @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies          Message[]    @relation("MessageReplies")
   threadRootId     String?
   /// Caller-supplied idempotency key. A retry after a reconnect reuses it
   /// and gets the original message back instead of a duplicate (spec §16).
@@ -413,8 +432,8 @@ model Message {
   editedAt         DateTime?
   deletedAt        DateTime?
   deletedBy        String?
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   reactions   Reaction[]
   readStates  ReadState[]
@@ -505,6 +524,7 @@ model ChatConnection {
   publicId         String          @unique
   projectId        String
   project          Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment      Environment     @default(DEVELOPMENT)
   conversationId   String?
   conversation     Conversation?   @relation(fields: [conversationId], references: [id], onDelete: SetNull)
   userId           String
@@ -536,6 +556,7 @@ model WebhookEndpoint {
   publicId            String                @unique
   projectId           String
   project             Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment         Environment           @default(DEVELOPMENT)
   url                 String
   description         String?
   /// Empty = every event type. Otherwise an allow-list of `message.created`
@@ -561,12 +582,15 @@ model WebhookEndpoint {
 /// fans out to. `publicId` (`evt_...`) is the idempotency key a receiver
 /// should dedupe on (spec §32).
 model WebhookEvent {
-  id        String   @id @default(uuid())
-  publicId  String   @unique
-  projectId String
-  type      String
-  payload   Json
-  createdAt DateTime @default(now())
+  id          String      @id @default(uuid())
+  publicId    String      @unique
+  projectId   String
+  /// Part of the delivered envelope, and what stops a staging event from
+  /// reaching a production endpoint.
+  environment Environment @default(DEVELOPMENT)
+  type        String
+  payload     Json
+  createdAt   DateTime    @default(now())
 
   deliveries WebhookDelivery[]
 

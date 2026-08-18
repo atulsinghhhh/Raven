@@ -11,6 +11,7 @@ import type {
   ConnectionLifecycleState,
   ConnectionSummary,
   CreatedApiKey,
+  Environment,
   ErrorCategory,
   ErrorDetail,
   ErrorSummary,
@@ -77,7 +78,10 @@ export class RavenApiClient {
     return this.request<ApiKeySummary[]>(`/v1/projects/${projectId}/api-keys`);
   }
 
-  async createApiKey(projectId: string, input: { name?: string }): Promise<CreatedApiKey> {
+  async createApiKey(
+    projectId: string,
+    input: { name?: string; environment?: Environment },
+  ): Promise<CreatedApiKey> {
     return this.request<CreatedApiKey>(`/v1/projects/${projectId}/api-keys`, { method: 'POST', body: input });
   }
 

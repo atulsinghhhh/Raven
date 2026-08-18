@@ -39,6 +39,7 @@ import { TypingService } from '../typing/typing.service';
 import { ChatSession, RoomSubscription } from './chat-session.interface';
 import { ConnectionRegistryService } from './connection-registry.service';
 import { ParsedFrame, optionalString, parseClientFrame, requireString } from './chat-frame.validator';
+import { DEFAULT_ENVIRONMENT } from '../../../shared/environment/environment.constants';
 
 /**
  * The Raven Chat WebSocket gateway.
@@ -164,6 +165,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       scopes: claims.scopes as ChatScope[],
       tokenId: claims.jti,
       tokenExpiresAt: claims.exp * 1000,
+      environment: claims.env ?? DEFAULT_ENVIRONMENT,
       conversationScope: claims.cvs ?? [],
       socket,
       rooms: new Map(),
@@ -175,6 +177,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     session.connectionRowId = await this.registry.register({
       connectionId,
       projectId: session.projectId,
+      environment: session.environment,
       userId: session.userId,
       sdkVersion: extractQueryParam(request, 'sdkVersion'),
       platform: extractQueryParam(request, 'platform'),
@@ -625,6 +628,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     return {
       kind: 'client',
       projectId: session.projectId,
+      environment: session.environment,
       userId: session.userId,
       scopes: session.scopes,
       tokenId: session.tokenId,

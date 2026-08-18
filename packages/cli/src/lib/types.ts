@@ -12,11 +12,16 @@ export interface Project {
 
 export type ApiKeyStatus = 'ACTIVE' | 'REVOKED';
 
+/** Environments isolate credentials and data within one project. */
+export type Environment = 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION';
+
 export interface ApiKeySummary {
   id: string;
   projectId: string;
   publicId: string;
   name: string | null;
+  /** Optional because a CLI may be newer than the API it is talking to. */
+  environment?: Environment;
   status: ApiKeyStatus;
   lastUsedAt: string | null;
   createdAt: string;
@@ -27,6 +32,8 @@ export interface CreatedApiKey {
   id: string;
   name: string | null;
   publicId: string;
+  /** Optional because a CLI may be newer than the API it is talking to. */
+  environment?: Environment;
   /** Only time the raw secret is visible — not persisted, not logged, never shown again after this. */
   key: string;
   createdAt: string;

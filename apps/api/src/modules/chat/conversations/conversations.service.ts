@@ -18,6 +18,7 @@ import { ChatScope, scopesForRole } from '../chat-permissions';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { AddMemberDto } from './dto/add-member.dto';
+import { ProjectScope } from '../../../shared/environment/environment.constants';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -33,19 +34,24 @@ export interface AuthorizedConversation {
 export class ConversationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(projectId: string, dto: CreateConversationDto): Promise<Conversation> {
+  async create(scope: ProjectScope, dto: CreateConversationDto): Promise<Conversation> {
+    const { projectId, environment } = scope;
     const existing = await this.prisma.conversation.findUnique({
-      where: { projectId_name: { projectId, name: dto.name } },
+      where: { projectId_environment_name: { projectId, environment, name: dto.name } },
     });
     if (existing) {
-      throw new ConflictError(`A conversation named "${dto.name}" already exists in this project`);
+      throw new ConflictError(
+        `A conversation named "${dto.name}" already exists in this project's ${environment} environment`,
+      );
     }
 
     if (dto.roomId) {
       // Same cross-project check as everywhere else: holding a room id
       // from another project must not be enough to attach chat to it.
       const room = await this.prisma.room.findUnique({ where: { id: dto.roomId } });
-      if (!room || room.projectId !== projectId) {
+      // Environment matters as much as project here: attaching a chat
+      // channel to a room from another environment would join the two.
+      if (!room || room.projectId !== projectId || room.environment !== environment) {
         throw new ChatError(ChatErrorCode.ROOM_NOT_FOUND, 'RTC room not found in this project');
       }
       const alreadyLinked = await this.prisma.conversation.findUnique({ where: { roomId: dto.roomId } });
@@ -58,6 +64,7 @@ export class ConversationsService {
       data: {
         publicId: generateId('conv'),
         projectId,
+        environment,
         name: dto.name,
         type: dto.roomId ? ConversationType.ROOM : (dto.type ?? ConversationType.CHANNEL),
         roomId: dto.roomId,
@@ -76,16 +83,20 @@ export class ConversationsService {
     });
   }
 
-  listForProject(projectId: string, includeArchived = false): Promise<Conversation[]> {
+  listForProject(scope: ProjectScope, includeArchived = false): Promise<Conversation[]> {
     return this.prisma.conversation.findMany({
-      where: { projectId, ...(includeArchived ? {} : { status: ConversationStatus.ACTIVE }) },
+      where: {
+        projectId: scope.projectId,
+        environment: scope.environment,
+        ...(includeArchived ? {} : { status: ConversationStatus.ACTIVE }),
+      },
       orderBy: { createdAt: 'desc' },
       take: 200,
     });
   }
 
-  async update(projectId: string, reference: string, dto: UpdateConversationDto): Promise<Conversation> {
-    const conversation = await this.resolve(projectId, reference);
+  async update(scope: ProjectScope, reference: string, dto: UpdateConversationDto): Promise<Conversation> {
+    const conversation = await this.resolve(scope, reference);
     return this.prisma.conversation.update({
       where: { id: conversation.id },
       data: {
@@ -104,7 +115,8 @@ export class ConversationsService {
    * `chat.connect({ room: "conv_ab12..." })` both work — the SDK doesn't
    * have to know which one it was handed.
    */
-  async resolve(projectId: string, reference: string): Promise<Conversation> {
+  async resolve(scope: ProjectScope, reference: string): Promise<Conversation> {
+    const { projectId, environment } = scope;
     if (!reference || typeof reference !== 'string') {
       throw new ChatError(ChatErrorCode.ROOM_NOT_FOUND, 'A room/conversation reference is required');
     }
@@ -119,13 +131,14 @@ export class ConversationsService {
         (await this.prisma.conversation.findUnique({ where: { roomId: reference } }));
     } else {
       conversation = await this.prisma.conversation.findUnique({
-        where: { projectId_name: { projectId, name: reference } },
+        where: { projectId_environment_name: { projectId, environment, name: reference } },
       });
     }
 
-    // Cross-project lookups get the same "not found" as a genuinely
-    // missing row — never a 403 that confirms the id exists elsewhere.
-    if (!conversation || conversation.projectId !== projectId) {
+    // Cross-project and cross-environment lookups both get the same
+    // "not found" as a genuinely missing row — never a 403 that confirms
+    // the id exists somewhere the caller cannot reach.
+    if (!conversation || conversation.projectId !== projectId || conversation.environment !== environment) {
       throw new ChatError(ChatErrorCode.ROOM_NOT_FOUND, `Conversation "${reference}" not found`);
     }
     return conversation;
@@ -138,7 +151,7 @@ export class ConversationsService {
    * for. Services call this instead of trusting a request body.
    */
   async authorize(actor: ChatActor, reference: string): Promise<AuthorizedConversation> {
-    const conversation = await this.resolve(actor.projectId, reference);
+    const conversation = await this.resolve(actor, reference);
 
     // A client token pinned to specific conversations can't wander into
     // others, even ones the user is legitimately a member of.
@@ -187,13 +200,13 @@ export class ConversationsService {
     }
   }
 
-  async addMember(projectId: string, reference: string, dto: AddMemberDto): Promise<ChatMember> {
-    const conversation = await this.resolve(projectId, reference);
+  async addMember(scope: ProjectScope, reference: string, dto: AddMemberDto): Promise<ChatMember> {
+    const conversation = await this.resolve(scope, reference);
     return this.prisma.chatMember.upsert({
       where: { conversationId_userId: { conversationId: conversation.id, userId: dto.userId } },
       create: {
         conversationId: conversation.id,
-        projectId,
+        projectId: scope.projectId,
         userId: dto.userId,
         role: dto.role ?? ChatMemberRole.MEMBER,
         metadata: toJsonInput(dto.metadata),
@@ -209,8 +222,8 @@ export class ConversationsService {
     });
   }
 
-  async removeMember(projectId: string, reference: string, userId: string): Promise<void> {
-    const conversation = await this.resolve(projectId, reference);
+  async removeMember(scope: ProjectScope, reference: string, userId: string): Promise<void> {
+    const conversation = await this.resolve(scope, reference);
     const member = await this.prisma.chatMember.findUnique({
       where: { conversationId_userId: { conversationId: conversation.id, userId } },
     });

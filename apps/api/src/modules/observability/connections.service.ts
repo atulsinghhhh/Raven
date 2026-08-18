@@ -130,6 +130,7 @@ export class ConnectionsService {
       data: {
         publicId,
         projectId: ctx.projectId,
+        environment: ctx.environment,
         roomId: ctx.roomId,
         roomName: ctx.roomName,
         participantIdentity: ctx.participantId,
@@ -157,6 +158,7 @@ export class ConnectionsService {
       data: {
         publicId: generateId('err'),
         projectId: ctx.projectId,
+        environment: ctx.environment,
         connectionId: connectionRowId,
         roomId: ctx.roomId,
         participantId: ctx.participantId,

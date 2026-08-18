@@ -1,11 +1,13 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Request } from 'express';
 import { UnauthorizedError } from '../../../shared/errors/app-error';
+import { Environment } from '../../../shared/environment/environment.constants';
 import { ApiKeysService } from '../api-keys.service';
 
 declare module 'express' {
   interface Request {
     apiProjectId?: string;
+    apiEnvironment?: Environment;
   }
 }
 
@@ -24,8 +26,11 @@ export class ApiKeyAuthGuard implements CanActivate {
       throw new UnauthorizedError('Missing API key');
     }
 
-    const project = await this.apiKeysService.verify(header.slice('Bearer '.length));
+    const { project, environment } = await this.apiKeysService.verify(
+      header.slice('Bearer '.length),
+    );
     request.apiProjectId = project.id;
+    request.apiEnvironment = environment;
     return true;
   }
 }

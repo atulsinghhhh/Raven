@@ -1,3 +1,4 @@
+import { Environment } from '../../../shared/environment/environment.constants';
 import { ChatScope } from '../chat-permissions';
 
 /**
@@ -16,6 +17,13 @@ import { ChatScope } from '../chat-permissions';
 export interface ChatActor {
   kind: 'server' | 'client';
   projectId: string;
+  /**
+   * Which environment this actor may touch. For a server actor it comes
+   * from the API key; for a client actor it is a signed claim in the chat
+   * token, put there by the server that minted it. Never from the request,
+   * for the same reason `userId` never is.
+   */
+  environment: Environment;
   /** Null only for a server actor that hasn't named a user to act as. */
   userId: string | null;
   scopes: ChatScope[];

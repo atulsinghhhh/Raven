@@ -11,7 +11,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiConflictResponse, ApiNotFoundResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CurrentProjectId } from '../api-keys/decorators/current-project-id.decorator';
+import { CurrentScope } from '../api-keys/decorators/current-scope.decorator';
+import { ProjectScope } from '../../shared/environment/environment.constants';
 import { ApiKeyAuthGuard } from '../api-keys/guards/api-key-auth.guard';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { RoomsService } from './rooms.service';
@@ -30,31 +31,31 @@ export class RoomsController {
   @ApiOperation({ summary: 'Create a room in the API key\'s project' })
   @ApiResponse({ status: 201, description: 'Room created' })
   @ApiConflictResponse({ description: 'A room with this name already exists in this project' })
-  create(@CurrentProjectId() projectId: string, @Body() dto: CreateRoomDto) {
-    return this.roomsService.create(projectId, dto);
+  create(@CurrentScope() scope: ProjectScope, @Body() dto: CreateRoomDto) {
+    return this.roomsService.create(scope, dto);
   }
 
   @Get()
   @ApiOperation({ summary: "List the API key's project's active rooms" })
   @ApiResponse({ status: 200, description: 'Active rooms' })
-  findAll(@CurrentProjectId() projectId: string) {
-    return this.roomsService.findAllForProject(projectId);
+  findAll(@CurrentScope() scope: ProjectScope) {
+    return this.roomsService.findAllForProject(scope);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a single room' })
   @ApiResponse({ status: 200, description: 'Room found' })
   @ApiNotFoundResponse({ description: "Room doesn't exist, or belongs to a different project" })
-  findOne(@CurrentProjectId() projectId: string, @Param('id', ParseUUIDPipe) id: string) {
-    return this.roomsService.findOneForProject(id, projectId);
+  findOne(@CurrentScope() scope: ProjectScope, @Param('id', ParseUUIDPipe) id: string) {
+    return this.roomsService.findOneForProject(id, scope);
   }
 
   @Get(':id/participants')
   @ApiOperation({ summary: 'List live participants in a room, from the SFU (Phase 10 server SDK)' })
   @ApiResponse({ status: 200, description: 'Live participants (null if the SFU could not be reached — never a fabricated empty list)' })
   @ApiNotFoundResponse({ description: "Room doesn't exist, or belongs to a different project" })
-  async findParticipants(@CurrentProjectId() projectId: string, @Param('id', ParseUUIDPipe) id: string) {
-    const room = await this.roomsService.findOneForProjectWithLiveState(id, projectId);
+  async findParticipants(@CurrentScope() scope: ProjectScope, @Param('id', ParseUUIDPipe) id: string) {
+    const room = await this.roomsService.findOneForProjectWithLiveState(id, scope);
     return room.liveParticipants;
   }
 
@@ -64,9 +65,9 @@ export class RoomsController {
   @ApiResponse({ status: 204, description: 'Room closed' })
   @ApiNotFoundResponse({ description: "Room doesn't exist, or belongs to a different project" })
   async remove(
-    @CurrentProjectId() projectId: string,
+    @CurrentScope() scope: ProjectScope,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
-    await this.roomsService.close(id, projectId);
+    await this.roomsService.close(id, scope);
   }
 }

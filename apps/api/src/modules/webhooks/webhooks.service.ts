@@ -11,6 +11,7 @@ import { NotFoundError, ValidationFailedError } from '../../shared/errors/app-er
 import { generateId } from '../../shared/utils/crypto.util';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { UpdateWebhookDto } from './dto/update-webhook.dto';
+import { DEFAULT_ENVIRONMENT } from '../../shared/environment/environment.constants';
 
 /** The endpoint as a developer sees it — signingSecret is never included. */
 export type WebhookEndpointSummary = Omit<WebhookEndpoint, 'signingSecret'>;
@@ -29,23 +30,29 @@ export class WebhooksService {
   ) {}
 
   /**
+   * The *deployment's* NODE_ENV — how this server was started — which is a
+   * different thing from a project's Environment. Only the SSRF guard uses
+   * it: loopback URLs are fine on a developer's laptop and never in a real
+   * deployment, whichever project environment the endpoint belongs to.
+   *
    * Resolved through ConfigService rather than read from `process.env`
    * directly — configuration.ts is where the default lives, and a bare
    * `process.env.NODE_ENV` is undefined in a normal local run, which
    * would silently put dev into the strictest branch.
    */
-  private get environment(): string {
+  private get deploymentEnv(): string {
     return this.configService.get<string>('env') ?? 'development';
   }
 
   async create(projectId: string, dto: CreateWebhookDto): Promise<CreatedWebhookEndpoint> {
-    assertDeliverableUrl(dto.url, this.environment);
+    assertDeliverableUrl(dto.url, this.deploymentEnv);
 
     const signingSecret = `whsec_${randomBytes(32).toString('base64url')}`;
     const endpoint = await this.prisma.webhookEndpoint.create({
       data: {
         publicId: generateId('whe'),
         projectId,
+        environment: dto.environment ?? DEFAULT_ENVIRONMENT,
         url: dto.url,
         description: dto.description,
         enabledEvents: dto.events ?? [],
@@ -71,7 +78,7 @@ export class WebhooksService {
   async update(projectId: string, publicId: string, dto: UpdateWebhookDto): Promise<WebhookEndpointSummary> {
     const endpoint = await this.findOne(projectId, publicId);
     if (dto.url) {
-      assertDeliverableUrl(dto.url, this.environment);
+      assertDeliverableUrl(dto.url, this.deploymentEnv);
     }
     const updated = await this.prisma.webhookEndpoint.update({
       where: { id: endpoint.id },
@@ -130,7 +137,7 @@ function strip(endpoint: WebhookEndpoint): WebhookEndpointSummary {
  * should also egress-filter the worker; noted in
  * docs/chat/webhooks.md#known-limitations rather than left implied.
  */
-function assertDeliverableUrl(rawUrl: string, environment: string): void {
+function assertDeliverableUrl(rawUrl: string, deploymentEnv: string): void {
   let url: URL;
   try {
     url = new URL(rawUrl);
@@ -141,7 +148,7 @@ function assertDeliverableUrl(rawUrl: string, environment: string): void {
   if (url.protocol !== 'https:' && url.protocol !== 'http:') {
     throw new ValidationFailedError('url must use http:// or https://');
   }
-  if (environment === 'production' && url.protocol !== 'https:') {
+  if (deploymentEnv === 'production' && url.protocol !== 'https:') {
     throw new ValidationFailedError('Webhook URLs must use https:// in production');
   }
 
@@ -161,7 +168,7 @@ function assertDeliverableUrl(rawUrl: string, environment: string): void {
 
   // Local dev genuinely needs to point a webhook at 127.0.0.1, so this is
   // only enforced outside development.
-  if (blocked && environment !== 'development' && environment !== 'test') {
+  if (blocked && deploymentEnv !== 'development' && deploymentEnv !== 'test') {
     throw new ValidationFailedError('url may not point at a loopback or private-network address');
   }
 }

@@ -9,7 +9,8 @@ import {
 } from '@nestjs/swagger';
 import { RateLimit } from '../../shared/rate-limit/rate-limit.decorator';
 import { RateLimitGuard } from '../../shared/rate-limit/rate-limit.guard';
-import { CurrentProjectId } from '../api-keys/decorators/current-project-id.decorator';
+import { CurrentScope } from '../api-keys/decorators/current-scope.decorator';
+import { ProjectScope } from '../../shared/environment/environment.constants';
 import { ApiKeyAuthGuard } from '../api-keys/guards/api-key-auth.guard';
 import { CreateRtcTokenDto } from './dto/create-rtc-token.dto';
 import { RtcTokensService } from './rtc-tokens.service';
@@ -65,10 +66,10 @@ export class RtcTokensController {
   @ApiNotFoundResponse({ description: "Room doesn't exist, or belongs to a different project" })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
   create(
-    @CurrentProjectId() projectId: string,
+    @CurrentScope() scope: ProjectScope,
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() dto: CreateRtcTokenDto,
   ) {
-    return this.rtcTokensService.create(projectId, roomId, dto);
+    return this.rtcTokensService.create(scope, roomId, dto);
   }
 }

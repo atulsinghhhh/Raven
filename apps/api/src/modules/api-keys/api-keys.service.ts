@@ -9,6 +9,7 @@ import {
   generateApiKeySecret,
   pepper as applyPepper,
 } from '../../shared/utils/crypto.util';
+import { DEFAULT_ENVIRONMENT, Environment } from '../../shared/environment/environment.constants';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
 
 const SECRET_SALT_ROUNDS = 10;
@@ -17,9 +18,19 @@ export interface CreatedApiKey {
   id: string;
   name: string | null;
   publicId: string;
+  environment: Environment;
   /** The only time the raw secret is ever available. Not recoverable afterwards. */
   key: string;
   createdAt: Date;
+}
+
+/**
+ * What a verified key authorises: a project, and exactly one environment
+ * within it.
+ */
+export interface VerifiedApiKey {
+  project: Project;
+  environment: Environment;
 }
 
 @Injectable()
@@ -34,18 +45,20 @@ export class ApiKeysService {
   }
 
   async create(projectId: string, dto: CreateApiKeyDto): Promise<CreatedApiKey> {
-    const publicId = generateApiKeyPublicId();
+    const environment = dto.environment ?? DEFAULT_ENVIRONMENT;
+    const publicId = generateApiKeyPublicId(environment);
     const secret = generateApiKeySecret();
     const secretHash = await bcrypt.hash(this.pepperedSecret(secret), SECRET_SALT_ROUNDS);
 
     const apiKey = await this.prisma.apiKey.create({
-      data: { projectId, publicId, secretHash, name: dto.name },
+      data: { projectId, publicId, secretHash, name: dto.name, environment },
     });
 
     return {
       id: apiKey.id,
       name: apiKey.name,
       publicId: apiKey.publicId,
+      environment: apiKey.environment,
       key: `${publicId}.${secret}`,
       createdAt: apiKey.createdAt,
     };
@@ -60,6 +73,7 @@ export class ApiKeysService {
         projectId: true,
         publicId: true,
         name: true,
+        environment: true,
         status: true,
         lastUsedAt: true,
         createdAt: true,
@@ -85,7 +99,7 @@ export class ApiKeysService {
    * header and returns its project. ApiKeyAuthGuard uses this to scope
    * Room and RTC Token requests to one project.
    */
-  async verify(rawKey: string): Promise<Project> {
+  async verify(rawKey: string): Promise<VerifiedApiKey> {
     const [publicId, secret] = rawKey.split('.', 2);
     if (!publicId || !secret) {
       throw new UnauthorizedError('Malformed API key');
@@ -110,6 +124,9 @@ export class ApiKeysService {
       .update({ where: { id: apiKey.id }, data: { lastUsedAt: new Date() } })
       .catch(() => undefined);
 
-    return apiKey.project;
+    // The environment travels with the key, never with the request. A
+    // caller cannot ask to act in production; it either holds a production
+    // key or it does not.
+    return { project: apiKey.project, environment: apiKey.environment };
   }
 }

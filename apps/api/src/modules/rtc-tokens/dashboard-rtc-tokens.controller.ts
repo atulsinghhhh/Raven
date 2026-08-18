@@ -1,4 +1,4 @@
-import { Body, Controller, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiNotFoundResponse, ApiOperation, ApiResponse, ApiTags, ApiTooManyRequestsResponse } from '@nestjs/swagger';
 import { RateLimit } from '../../shared/rate-limit/rate-limit.decorator';
 import { RateLimitGuard } from '../../shared/rate-limit/rate-limit.guard';
@@ -8,6 +8,8 @@ import { AuthenticatedUser } from '../auth/jwt-payload.interface';
 import { ProjectsService } from '../projects/projects.service';
 import { CreateTestTokenDto } from './dto/create-test-token.dto';
 import { RtcTokensService } from './rtc-tokens.service';
+import { DEFAULT_ENVIRONMENT } from '../../shared/environment/environment.constants';
+import { EnvironmentQueryDto } from '../../shared/environment/environment-query.dto';
 
 const TEST_TOKEN_TTL_SECONDS = 600; // 10 min — fixed, short, not developer-configurable
 const DEFAULT_TEST_IDENTITY = 'dashboard-test-user';
@@ -51,10 +53,11 @@ export class DashboardRtcTokensController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() dto: CreateTestTokenDto,
+    @Query() { environment = DEFAULT_ENVIRONMENT }: EnvironmentQueryDto,
   ) {
     await this.projectsService.findOneForOwner(projectId, user.id);
 
-    return this.rtcTokensService.create(projectId, roomId, {
+    return this.rtcTokensService.create({ projectId, environment }, roomId, {
       participantIdentity: dto.participantIdentity || DEFAULT_TEST_IDENTITY,
       permissions: {
         join: true,

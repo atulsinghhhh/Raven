@@ -5,10 +5,12 @@ import { fromLiveKitGrant } from '../../rtc-tokens/rtc-token-grant.mapper';
 import { RtcTokenPermissionsDto } from '../../rtc-tokens/dto/rtc-token-permissions.dto';
 import { SignalingError } from '../signaling-error';
 import { SignalingErrorCode } from '../signaling.constants';
+import { DEFAULT_ENVIRONMENT, Environment, isEnvironment } from '../../../shared/environment/environment.constants';
 
 export interface VerifiedRtcToken {
   participantId: string;
   projectId: string;
+  environment: Environment;
   roomId: string;
   roomName: string;
   permissions: RtcTokenPermissionsDto;
@@ -61,6 +63,10 @@ export class RtcTokenVerifierService {
     const roomName = claims.video?.room;
     const projectId = claims.attributes?.ravenProjectId;
     const roomId = claims.attributes?.ravenRoomId;
+    // Tokens minted before environments existed carry no attribute; they
+    // were development traffic, and reporting them as such beats dropping
+    // the telemetry entirely.
+    const environment = claims.attributes?.ravenEnvironment;
 
     if (!participantId || !roomName || !projectId || !roomId) {
       throw new SignalingError(
@@ -72,6 +78,7 @@ export class RtcTokenVerifierService {
     return {
       participantId,
       projectId,
+      environment: isEnvironment(environment) ? environment : DEFAULT_ENVIRONMENT,
       roomId,
       roomName,
       permissions: fromLiveKitGrant(claims.video ?? {}),

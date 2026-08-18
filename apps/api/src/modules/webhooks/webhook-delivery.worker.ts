@@ -6,6 +6,7 @@ import {
 } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { RedisService } from '../../shared/redis/redis.service';
+import { Environment } from '../../shared/environment/environment.constants';
 import { RedisKeys } from '../chat/chat.constants';
 import {
   WEBHOOK_EVENT_ID_HEADER,
@@ -21,7 +22,14 @@ const MAX_ERROR_LENGTH = 500;
 interface DueDelivery {
   id: string;
   attempts: number;
-  event: { publicId: string; type: string; payload: unknown; createdAt: Date; projectId: string };
+  event: {
+    publicId: string;
+    type: string;
+    payload: unknown;
+    createdAt: Date;
+    projectId: string;
+    environment: Environment;
+  };
   endpoint: { id: string; url: string; signingSecret: string; consecutiveFailures: number };
 }
 
@@ -158,6 +166,9 @@ export class WebhookDeliveryWorker implements OnModuleInit, OnModuleDestroy {
       id: delivery.event.publicId,
       type: delivery.event.type,
       projectId: delivery.event.projectId,
+      // In the envelope so a receiver handling several environments can
+      // route on it without keeping a map of which endpoint is which.
+      environment: delivery.event.environment,
       createdAt: delivery.event.createdAt.toISOString(),
       data: delivery.event.payload,
     });

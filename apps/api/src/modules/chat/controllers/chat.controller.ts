@@ -102,7 +102,7 @@ export class ChatController {
 
     const conversationIds = await Promise.all(
       (dto.conversations ?? []).map(async (reference) => {
-        const conversation = await this.conversations.resolve(actor.projectId, reference);
+        const conversation = await this.conversations.resolve(actor, reference);
         return conversation.id;
       }),
     );
@@ -111,6 +111,9 @@ export class ChatController {
 
     return this.chatTokens.issue({
       projectId: actor.projectId,
+      // Inherited from the API key that minted it. A backend holding a
+      // development key cannot hand a browser a production token.
+      environment: actor.environment,
       userId: dto.userId,
       conversations: conversationIds,
       role: role ?? ChatMemberRole.MEMBER,
@@ -127,7 +130,7 @@ export class ChatController {
   @ApiOperation({ summary: 'Create a conversation, optionally attached to an RTC room' })
   async createConversation(@CurrentChatActor() actor: ChatActor, @Body() dto: CreateConversationDto) {
     assertServerActor(actor, 'Creating a conversation');
-    return this.conversations.create(actor.projectId, dto);
+    return this.conversations.create(actor, dto);
   }
 
   @Get('conversations')
@@ -137,7 +140,7 @@ export class ChatController {
     @Query('includeArchived') includeArchived?: string,
   ) {
     assertServerActor(actor, 'Listing every conversation in a project');
-    return this.conversations.listForProject(actor.projectId, includeArchived === 'true');
+    return this.conversations.listForProject(actor, includeArchived === 'true');
   }
 
   @Get('conversations/:room')
@@ -156,7 +159,7 @@ export class ChatController {
     @Body() dto: UpdateConversationDto,
   ) {
     assertServerActor(actor, 'Updating a conversation');
-    return this.conversations.update(actor.projectId, room, dto);
+    return this.conversations.update(actor, room, dto);
   }
 
   @Post('conversations/:room/members')
@@ -167,7 +170,7 @@ export class ChatController {
     @Body() dto: AddMemberDto,
   ) {
     assertServerActor(actor, 'Adding a member');
-    return this.conversations.addMember(actor.projectId, room, dto);
+    return this.conversations.addMember(actor, room, dto);
   }
 
   @Get('conversations/:room/members')
@@ -186,7 +189,7 @@ export class ChatController {
     @Param('userId') userId: string,
   ) {
     assertServerActor(actor, 'Removing a member');
-    await this.conversations.removeMember(actor.projectId, room, userId);
+    await this.conversations.removeMember(actor, room, userId);
   }
 
   // ---------------------------------------------------------------------

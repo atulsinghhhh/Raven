@@ -93,7 +93,7 @@ export class ReactionsService {
       emoji,
       at,
     });
-    void this.webhooks.emit(actor.projectId, 'reaction.added', {
+    void this.webhooks.emit(actor, 'reaction.added', {
       messageId: message.publicId,
       roomId: conversation.publicId,
       userId,
@@ -130,7 +130,7 @@ export class ReactionsService {
       emoji,
       at,
     });
-    void this.webhooks.emit(actor.projectId, 'reaction.removed', {
+    void this.webhooks.emit(actor, 'reaction.removed', {
       messageId: message.publicId,
       roomId: conversation.publicId,
       userId,

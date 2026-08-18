@@ -29,6 +29,7 @@ export function registerKeysListCommand(keys: Command): void {
         printTable(list, [
           { header: 'NAME', value: (k) => k.name ?? '(unnamed)' },
           { header: 'PUBLIC ID', value: (k) => k.publicId },
+          { header: 'ENVIRONMENT', value: (k) => (k.environment ?? 'DEVELOPMENT').toLowerCase() },
           { header: 'STATUS', value: (k) => k.status },
           { header: 'LAST USED', value: (k) => (k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleDateString() : 'never') },
         ]);

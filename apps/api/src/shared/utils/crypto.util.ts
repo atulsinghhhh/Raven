@@ -1,14 +1,25 @@
 import { createHmac, randomBytes } from 'crypto';
 import { customAlphabet } from 'nanoid';
+import { ENVIRONMENT_KEY_SEGMENT, Environment } from '../environment/environment.constants';
 
 // No 0/O/1/l in this alphabet — these ids get read back by humans from
 // logs or a dashboard often enough that ambiguous chars are annoying.
 const alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const nanoid = customAlphabet(alphabet, 12);
 
-/** Public, non-secret identifier for an API key row — safe to log, index, and display. */
-export function generateApiKeyPublicId(): string {
-  return `rvk_${nanoid()}`;
+/**
+ * Public, non-secret identifier for an API key row — safe to log, index, and
+ * display.
+ *
+ * The environment segment (`rvk_prod_...`) is there so a developer can tell
+ * at a glance which environment a key belongs to. It is decoration for
+ * humans, not a claim: authentication reads the environment from the key's
+ * row, so editing the prefix changes nothing. Keys minted before this
+ * existed have no segment and keep working.
+ */
+export function generateApiKeyPublicId(environment?: Environment): string {
+  const segment = environment ? `${ENVIRONMENT_KEY_SEGMENT[environment]}_` : '';
+  return `rvk_${segment}${nanoid()}`;
 }
 
 /** High-entropy secret shown to the developer exactly once. Never stored raw. */

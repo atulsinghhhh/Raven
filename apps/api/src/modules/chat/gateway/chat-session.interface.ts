@@ -1,5 +1,6 @@
 import { WebSocket } from 'ws';
 import { ChatScope } from '../chat-permissions';
+import { Environment } from '../../../shared/environment/environment.constants';
 
 /** One conversation this socket is subscribed to, plus how to stop listening. */
 export interface RoomSubscription {
@@ -21,6 +22,8 @@ export interface ChatSession {
   /** Database row id for the ChatConnection record, so disconnect can close it out. */
   connectionRowId?: string;
   projectId: string;
+  /** From the token's signed `env` claim — a socket cannot change environment. */
+  environment: Environment;
   userId: string;
   scopes: ChatScope[];
   tokenId: string;

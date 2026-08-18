@@ -659,7 +659,119 @@ describe('Control plane (e2e)', () => {
     });
   });
 
+  describe('environment isolation', () => {
+    // The guarantee under test: two keys in the same project, different
+    // environments, cannot see each other's data at all.
+    const email = `env-${uniqueSuffix}@raven.local`;
+    const password = 'correct-horse-battery-staple';
+    let devKey: string;
+    let prodKey: string;
+    let prodRoomId: string;
+
+    beforeAll(async () => {
+      const registered = await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send({ email, password, name: 'Env Tester' })
+        .expect(201);
+      const token = registered.body.accessToken;
+
+      const project = await request(app.getHttpServer())
+        .post('/v1/projects')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: `env-project-${uniqueSuffix}` })
+        .expect(201);
+
+      const dev = await request(app.getHttpServer())
+        .post(`/v1/projects/${project.body.id}/api-keys`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'dev-key', environment: 'DEVELOPMENT' })
+        .expect(201);
+      devKey = dev.body.key;
+
+      const prod = await request(app.getHttpServer())
+        .post(`/v1/projects/${project.body.id}/api-keys`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'prod-key', environment: 'PRODUCTION' })
+        .expect(201);
+      prodKey = prod.body.key;
+    });
+
+    it('marks the environment in the key itself, so a production key is recognisable', () => {
+      expect(devKey).toMatch(/^rvk_dev_/);
+      expect(prodKey).toMatch(/^rvk_prod_/);
+    });
+
+    it('lets the same room name exist in two environments', async () => {
+      await request(app.getHttpServer())
+        .post('/v1/rooms')
+        .set('Authorization', `Bearer ${devKey}`)
+        .send({ name: 'lobby' })
+        .expect(201);
+
+      // Without environment in the uniqueness constraint this would 409.
+      const prodRoom = await request(app.getHttpServer())
+        .post('/v1/rooms')
+        .set('Authorization', `Bearer ${prodKey}`)
+        .send({ name: 'lobby' })
+        .expect(201);
+
+      prodRoomId = prodRoom.body.id;
+    });
+
+    it('hides a production room from a development key holding its id', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/v1/rooms/${prodRoomId}`)
+        .set('Authorization', `Bearer ${devKey}`)
+        .expect(404);
+
+      // Not-found rather than forbidden: a 403 would confirm the id is real.
+      expect(res.body.code).toBe('RAVEN_ROOM_NOT_FOUND');
+    });
+
+    it('refuses to mint an RTC token for another environment’s room', async () => {
+      await request(app.getHttpServer())
+        .post(`/v1/rooms/${prodRoomId}/rtc-tokens`)
+        .set('Authorization', `Bearer ${devKey}`)
+        .send({ participantIdentity: 'mallory' })
+        .expect(404);
+    });
+
+    it('lists only the calling environment’s rooms', async () => {
+      const dev = await request(app.getHttpServer())
+        .get('/v1/rooms')
+        .set('Authorization', `Bearer ${devKey}`)
+        .expect(200);
+
+      expect(dev.body.every((room: { id: string }) => room.id !== prodRoomId)).toBe(true);
+    });
+
+    it('refuses to close a room in another environment', async () => {
+      await request(app.getHttpServer())
+        .delete(`/v1/rooms/${prodRoomId}`)
+        .set('Authorization', `Bearer ${devKey}`)
+        .expect(404);
+
+      // Still reachable by the key that owns it — the room was not closed.
+      await request(app.getHttpServer())
+        .get(`/v1/rooms/${prodRoomId}`)
+        .set('Authorization', `Bearer ${prodKey}`)
+        .expect(200);
+    });
+  });
+
   describe('the error envelope', () => {
+    // The limiter is keyed on IP alone, so every suite above shares one
+    // budget with this one and the register route can already be spent by
+    // the time these run. Clearing it here keeps the assertions about
+    // *error shape* from failing over an unrelated 429.
+    beforeAll(async () => {
+      const redis = app.get(RedisService);
+      const keys = await redis.client.keys('ratelimit:*');
+      if (keys.length > 0) {
+        await redis.client.del(...keys);
+      }
+    });
+
     // Every error body shape a developer will actually meet, checked
     // against the running app rather than a constructed exception.
 

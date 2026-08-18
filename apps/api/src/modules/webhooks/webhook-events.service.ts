@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { WebhookEndpointStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { generateId } from '../../shared/utils/crypto.util';
+import { ProjectScope } from '../../shared/environment/environment.constants';
 
 /**
  * Event names Raven emits. Chat owns all of these today; the pipeline is
@@ -37,10 +38,19 @@ export class WebhookEventsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async emit(projectId: string, type: WebhookEventType, payload: Record<string, unknown>): Promise<void> {
+  async emit(
+    scope: ProjectScope,
+    type: WebhookEventType,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    const { projectId, environment } = scope;
     try {
+      // Endpoints are environment-scoped, so a production endpoint never
+      // sees staging traffic. Getting this wrong is worse than a missing
+      // delivery: it sends real customer data to whatever URL someone
+      // pointed at their laptop while testing.
       const endpoints = await this.prisma.webhookEndpoint.findMany({
-        where: { projectId, status: WebhookEndpointStatus.ACTIVE },
+        where: { projectId, environment, status: WebhookEndpointStatus.ACTIVE },
         select: { id: true, enabledEvents: true },
       });
 
@@ -56,6 +66,7 @@ export class WebhookEventsService {
         data: {
           publicId: generateId('evt'),
           projectId,
+          environment,
           type,
           payload: payload as object,
           deliveries: {

@@ -5,6 +5,7 @@ import { ConflictError, NotFoundError } from '../../shared/errors/app-error';
 import { RavenErrorCode } from '../../shared/errors/error-codes';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { LiveKitRoomService, LiveParticipantInfo } from './livekit-room.service';
+import { ProjectScope } from '../../shared/environment/environment.constants';
 
 export interface RoomWithLiveState extends Room {
   /** Participants actually connected in LiveKit right now. `null` means LiveKit could not be reached — distinct from a genuinely idle 0. */
@@ -22,38 +23,43 @@ export class RoomsService {
     private readonly liveKitRoomService: LiveKitRoomService,
   ) {}
 
-  async create(projectId: string, dto: CreateRoomDto): Promise<Room> {
+  async create(scope: ProjectScope, dto: CreateRoomDto): Promise<Room> {
+    const { projectId, environment } = scope;
     const existing = await this.prisma.room.findUnique({
-      where: { projectId_name: { projectId, name: dto.name } },
+      where: { projectId_environment_name: { projectId, environment, name: dto.name } },
     });
 
     if (existing) {
-      throw new ConflictError(`A room named "${dto.name}" already exists in this project`);
+      throw new ConflictError(
+        `A room named "${dto.name}" already exists in this project's ${environment} environment`,
+      );
     }
 
-    return this.prisma.room.create({ data: { projectId, name: dto.name } });
+    return this.prisma.room.create({ data: { projectId, environment, name: dto.name } });
   }
 
-  findAllForProject(projectId: string): Promise<Room[]> {
+  findAllForProject(scope: ProjectScope): Promise<Room[]> {
     return this.prisma.room.findMany({
-      where: { projectId, status: RoomStatus.ACTIVE },
+      where: { projectId: scope.projectId, environment: scope.environment, status: RoomStatus.ACTIVE },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  // Scoping to projectId (not just id) is what stops one project's API
-  // key from reading or closing another project's room, even if it
-  // somehow got hold of the room ID.
-  async findOneForProject(id: string, projectId: string): Promise<Room> {
+  // Scoping to project *and* environment (not just id) is what stops one
+  // project's API key from reading or closing another project's room, and
+  // a development key from touching production, even if it somehow got
+  // hold of the room ID. A miss is reported as "not found" rather than
+  // "forbidden", so the response never confirms the room exists elsewhere.
+  async findOneForProject(id: string, scope: ProjectScope): Promise<Room> {
     const room = await this.prisma.room.findUnique({ where: { id } });
-    if (!room || room.projectId !== projectId) {
+    if (!room || room.projectId !== scope.projectId || room.environment !== scope.environment) {
       throw new NotFoundError('Room', RavenErrorCode.ROOM_NOT_FOUND);
     }
     return room;
   }
 
-  async close(id: string, projectId: string): Promise<void> {
-    await this.findOneForProject(id, projectId);
+  async close(id: string, scope: ProjectScope): Promise<void> {
+    await this.findOneForProject(id, scope);
     await this.prisma.room.update({
       where: { id },
       data: { status: RoomStatus.CLOSED },
@@ -61,8 +67,8 @@ export class RoomsService {
   }
 
   /** Dashboard-facing: control-plane rooms enriched with live LiveKit participant counts. */
-  async findAllForProjectWithLiveState(projectId: string): Promise<RoomWithLiveState[]> {
-    const rooms = await this.findAllForProject(projectId);
+  async findAllForProjectWithLiveState(scope: ProjectScope): Promise<RoomWithLiveState[]> {
+    const rooms = await this.findAllForProject(scope);
     const liveCounts = await this.liveKitRoomService.listLiveParticipantCounts(rooms.map((r) => r.name));
 
     return rooms.map((room) => ({
@@ -72,8 +78,8 @@ export class RoomsService {
   }
 
   /** Dashboard-facing: one room's control-plane record plus its live participants/tracks. */
-  async findOneForProjectWithLiveState(id: string, projectId: string): Promise<RoomDetailWithLiveState> {
-    const room = await this.findOneForProject(id, projectId);
+  async findOneForProjectWithLiveState(id: string, scope: ProjectScope): Promise<RoomDetailWithLiveState> {
+    const room = await this.findOneForProject(id, scope);
     const liveParticipants = await this.liveKitRoomService.listLiveParticipants(room.name);
 
     return {

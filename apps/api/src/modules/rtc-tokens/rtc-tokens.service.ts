@@ -6,6 +6,7 @@ import { RoomsService } from '../rooms/rooms.service';
 import { CreateRtcTokenDto } from './dto/create-rtc-token.dto';
 import { toLiveKitGrant } from './rtc-token-grant.mapper';
 import { buildIceServers, IceServer } from './turn-credential.util';
+import { ProjectScope } from '../../shared/environment/environment.constants';
 
 export interface IssuedRtcToken {
   id: string;
@@ -37,13 +38,13 @@ export class RtcTokensService {
   ) {}
 
   async create(
-    projectId: string,
+    scope: ProjectScope,
     roomId: string,
     dto: CreateRtcTokenDto,
   ): Promise<IssuedRtcToken> {
-    // Confirms the room exists and belongs to this project — same
-    // cross-project check we use everywhere else here.
-    const room = await this.roomsService.findOneForProject(roomId, projectId);
+    // Confirms the room exists and belongs to this project *and*
+    // environment — the same check we use everywhere else here.
+    const room = await this.roomsService.findOneForProject(roomId, scope);
 
     const ttlSeconds =
       dto.ttlSeconds ?? this.configService.get<number>('rtcToken.defaultTtlSeconds')!;
@@ -57,7 +58,7 @@ export class RtcTokensService {
 
     const rtcToken = await this.prisma.rtcToken.create({
       data: {
-        projectId,
+        projectId: scope.projectId,
         roomId,
         participantId: participant.id,
         permissions: dto.permissions as unknown as object,
@@ -76,7 +77,14 @@ export class RtcTokensService {
         // signaling layer bind a connection to one project/room without
         // another DB round-trip on every WebSocket connect. LiveKit just
         // ignores attributes it doesn't know about.
-        attributes: { ravenProjectId: projectId, ravenRoomId: room.id },
+        // The environment travels into the media plane too, so signaling
+        // can bind a connection without another round-trip and telemetry
+        // lands in the right environment.
+        attributes: {
+          ravenProjectId: scope.projectId,
+          ravenRoomId: room.id,
+          ravenEnvironment: scope.environment,
+        },
       },
     );
     accessToken.addGrant(toLiveKitGrant(room.name, dto.permissions));
