@@ -1,0 +1,13 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
+/** Checks the local package.json's dependencies/devDependencies — not node_modules, which may be stale or gitignored-but-uninstalled. */
+export async function isSdkInPackageJson(cwd: string = process.cwd(), packageName = '@raven/rtc'): Promise<boolean> {
+  try {
+    const raw = await readFile(join(cwd, 'package.json'), 'utf8');
+    const pkg = JSON.parse(raw) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+    return Boolean(pkg.dependencies?.[packageName] || pkg.devDependencies?.[packageName]);
+  } catch {
+    return false;
+  }
+}

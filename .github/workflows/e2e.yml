@@ -1,0 +1,62 @@
+name: E2E
+
+# Boots the real Phase 1 infrastructure stack (Postgres, Redis, LiveKit,
+# coturn — see docker-compose.yml and docs/local-development.md) and runs
+# apps/api's e2e suite against it, the same way a developer would locally.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  e2e:
+    name: API e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @raven/api run prisma:generate
+
+      - name: Prepare local infra env
+        run: |
+          cp .env.example .env
+          bash scripts/generate-turn-cert.sh
+
+      - name: Start infra (postgres, redis, livekit, coturn)
+        run: docker compose up -d --wait postgres redis livekit coturn
+
+      - name: Apply database migrations
+        run: pnpm --filter @raven/api run prisma:migrate:deploy
+        env:
+          DATABASE_URL: postgresql://raven:change-me-local-postgres-password@localhost:5433/raven
+
+      - name: Run e2e tests
+        run: pnpm --filter @raven/api run test:e2e
+
+      - name: Dump infra logs on failure
+        if: failure()
+        run: docker compose logs --tail=200
+
+      - name: Tear down infra
+        if: always()
+        run: docker compose down -v

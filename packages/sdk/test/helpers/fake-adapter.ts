@@ -1,0 +1,97 @@
+import { TypedEventEmitter } from '../../src/events';
+import type {
+  DeviceInfo,
+  DeviceKind,
+  SFUAdapter,
+  SFUAdapterEventMap,
+  SdkConnectionState,
+} from '../../src/internal/sfu/types';
+import { LocalParticipant, RemoteParticipant } from '../../src/participant';
+import type { LocalTrack, RemoteTrack } from '../../src/track';
+
+/** In-memory SFUAdapter double — lets Room/Client tests run without a real browser/WebRTC stack. */
+export class FakeAdapter extends TypedEventEmitter<SFUAdapterEventMap> implements SFUAdapter {
+  connectionState: SdkConnectionState = 'disconnected';
+  readonly localParticipant = new LocalParticipant('local-identity');
+  readonly remoteParticipants = new Map<string, RemoteParticipant>();
+
+  readonly connectCalls: Array<{ endpoint: string; token: string; iceServers?: RTCIceServer[] }> = [];
+  disconnectCalls = 0;
+  readonly enableCameraCalls: boolean[] = [];
+  readonly enableMicrophoneCalls: boolean[] = [];
+  readonly enableScreenShareCalls: boolean[] = [];
+  readonly publishCalls: LocalTrack[] = [];
+  readonly unpublishCalls: LocalTrack[] = [];
+  readonly sendDataCalls: Uint8Array[] = [];
+  readonly setDeviceCalls: Array<{ kind: string; deviceId: string }> = [];
+
+  async connect(endpoint: string, token: string, iceServers?: RTCIceServer[]): Promise<void> {
+    this.connectCalls.push({ endpoint, token, iceServers });
+    this.setState('connected');
+  }
+
+  async disconnect(): Promise<void> {
+    this.disconnectCalls++;
+    this.setState('disconnected');
+  }
+
+  /** Test-only helper to drive connectionStateChanged transitions directly. */
+  setState(state: SdkConnectionState): void {
+    this.connectionState = state;
+    this.emit('connectionStateChanged', state);
+  }
+
+  /** Test-only helper to simulate a remote participant joining. */
+  addRemoteParticipant(identity: string, metadata?: string): RemoteParticipant {
+    const participant = new RemoteParticipant(identity, metadata);
+    this.remoteParticipants.set(identity, participant);
+    this.emit('participantJoined', participant);
+    return participant;
+  }
+
+  /** Test-only helper to simulate a remote participant leaving. */
+  removeRemoteParticipant(participant: RemoteParticipant): void {
+    this.remoteParticipants.delete(participant.identity);
+    this.emit('participantLeft', participant);
+  }
+
+  /** Test-only helper to simulate a track subscription. */
+  emitTrackSubscribed(track: RemoteTrack, participant: RemoteParticipant): void {
+    this.emit('trackSubscribed', track, participant);
+  }
+
+  async enableCamera(enabled: boolean): Promise<LocalTrack | undefined> {
+    this.enableCameraCalls.push(enabled);
+    return undefined;
+  }
+
+  async enableMicrophone(enabled: boolean): Promise<LocalTrack | undefined> {
+    this.enableMicrophoneCalls.push(enabled);
+    return undefined;
+  }
+
+  async enableScreenShare(enabled: boolean): Promise<LocalTrack | undefined> {
+    this.enableScreenShareCalls.push(enabled);
+    return undefined;
+  }
+
+  async publish(track: LocalTrack): Promise<void> {
+    this.publishCalls.push(track);
+  }
+
+  async unpublish(track: LocalTrack): Promise<void> {
+    this.unpublishCalls.push(track);
+  }
+
+  async sendData(payload: Uint8Array): Promise<void> {
+    this.sendDataCalls.push(payload);
+  }
+
+  async getDevices(_kind?: DeviceKind): Promise<DeviceInfo[]> {
+    return [];
+  }
+
+  async setDevice(kind: 'videoinput' | 'audioinput', deviceId: string): Promise<void> {
+    this.setDeviceCalls.push({ kind, deviceId });
+  }
+}

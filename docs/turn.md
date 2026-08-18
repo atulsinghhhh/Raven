@@ -1,0 +1,228 @@
+# TURN (coturn) — Operations Reference
+
+This is the operational reference for Raven's TURN/STUN deployment: exact
+configuration, authentication mechanism, ports, TLS, abuse protection,
+metrics, and a production checklist. For *why* TURN exists at all and how
+it fits alongside the LiveKit SFU at a design level, see
+[docs/architecture/turn.md](architecture/turn.md). For the end-to-end
+NAT-traversal flow (STUN → ICE → TURN → SFU) and connection-type
+observability, see [docs/nat-traversal.md](nat-traversal.md).
+
+## Architecture
+
+coturn is deployed as an independent Docker Compose service
+(`infrastructure/docker/coturn/`), separate from the LiveKit SFU. LiveKit
+has no built-in TURN server — it is handed coturn's address and
+credentials like any other WebRTC client would be. Raven's own control
+plane (not LiveKit) owns TURN credential issuance, minting a fresh
+time-limited credential per RTC token (Phase 4/5) so credential lifetime is
+tied to the same access-control surface as everything else in the token.
+
+```
+turnserver.conf (non-secret, static config)
+        +
+CLI flags in docker-compose.yml (secrets + values needing .env interpolation)
+        |
+        v
+     coturn container (raven-network)
+        ^
+        |
+  iceServers in a minted RTC token (turn-credential.util.ts)
+        |
+        v
+      browser client
+```
+
+**Why config is split between the conf file and CLI flags:** the conf file
+is mounted as a static, read-only volume — coturn reads it literally, with
+no `${VAR}` shell expansion. Any value that needs to come from `.env` (the
+shared secret, quotas, Prometheus port) is passed as a `command:` CLI flag
+in `docker-compose.yml` instead, since Compose *does* interpolate `${VAR}`
+in the `command:` array. This was learned the hard way in Phase 1 and
+re-confirmed while adding Phase 5's quota/metrics flags.
+
+## Authentication
+
+coturn's `use-auth-secret` (REST API / time-limited credential) mechanism,
+**not** `lt-cred-mech`'s static long-term username/password database — the
+two are mutually exclusive auth backends, and coturn logs an explicit
+startup warning if both are configured ("shared secret overrides").
+
+Credential scheme (implemented in
+`apps/api/src/modules/rtc-tokens/turn-credential.util.ts`):
+
+- `username = "<unix-expiry-timestamp>:<participant-identity>"`
+- `credential = base64(HMAC-SHA1(TURN_SECRET, username))`
+
+coturn independently recomputes this HMAC when a client attempts to
+allocate, and rejects allocation once `unix-expiry` has passed. There is no
+separate credential store to manage — anyone who knows `TURN_SECRET` can
+mint a valid credential, so that secret is treated with the same care as
+`JWT_SECRET` (env-var only, never committed, rotated independently of any
+live session).
+
+Credential TTL is tied to the RTC token's own `ttlSeconds` (same value,
+same expiry) — a TURN credential never outlives the access token it was
+issued alongside.
+
+## Ports
+
+| Port | Protocol | Purpose |
+|---|---|---|
+| `TURN_PORT` (default 3478) | UDP + TCP | STUN/TURN control channel (allocate, refresh, permissions) |
+| `TURN_TLS_PORT` (default 5349) | TCP | TURNS — TURN control channel over TLS |
+| `TURN_TLS_PORT` (default 5349) | UDP | TURN control channel over DTLS (requires coturn's `--dtls` flag in addition to a configured cert — TURNS-over-TCP alone does not enable it) |
+| `TURN_MIN_PORT`–`TURN_MAX_PORT` (default 49160–49200) | UDP | Relayed media — one port per active allocation |
+| `TURN_PROMETHEUS_PORT` (default 9641) | TCP | `/metrics` — **local dev convenience only, never expose in production** |
+
+The relay port range is deliberately small and bounded (41 ports) for local
+dev, matching the ports actually published in `docker-compose.yml`. A
+production deployment sizes this range to expected concurrent-relayed-session
+count (each active relayed participant holds one port for the session
+duration) and opens it in the firewall — see
+[Production checklist](#production-checklist).
+
+## TLS (TURNS / DTLS)
+
+- **Local dev:** `scripts/generate-turn-cert.sh` generates a self-signed
+  RSA-2048 cert (`CN=localhost`, `SAN=DNS:localhost,IP:127.0.0.1`, 365-day
+  validity) into `infrastructure/docker/coturn/certs/` (gitignored, never
+  committed). This proves the TLS/DTLS *server-side* configuration is
+  correct — verified directly with `turnutils_uclient -S` (TLS) and
+  `turnutils_uclient -S -y` (DTLS over UDP), both showing real
+  TLSv1.3/DTLSv1.2 handshakes — but browsers reject self-signed certs for
+  `turns:` by default, so it does **not** prove an end-to-end browser TLS
+  relay (see [Known limitations](#known-limitations)).
+- **Production:** requires a real CA-issued certificate for the TURN
+  server's actual public hostname (e.g. via Let's Encrypt/ACME), renewed
+  before the cert's expiry (a cron/systemd-timer running `certbot renew`
+  or equivalent — coturn does not renew certs itself and must be restarted
+  or sent a config-reload after renewal). No explicit minimum-version flag
+  is set — coturn 4.17.2 has no `no-tlsv1`/`no-tlsv1_1` directive (its
+  `--tlsv1`/`--tlsv1_1` flags only *lower* the floor below the default, and
+  are never passed here), and its default minimum is already TLS 1.2.
+- coturn only exposes **one** `turns:` URL scheme:
+  `turns:<host>:<port>?transport=tcp` (RFC 7065 does not define a
+  `transport=udp` variant of `turns:`, even though DTLS-over-UDP is a real,
+  separately-reachable coturn capability on the same `tls-listening-port`).
+
+## Abuse protection
+
+| Flag | Local dev default | Purpose |
+|---|---|---|
+| `--user-quota` | 10 | Max concurrent allocations per user (per TURN username) |
+| `--total-quota` | 400 | Max concurrent allocations server-wide |
+| `--max-bps` | 1,000,000 | Bandwidth cap per allocation (bytes/sec) |
+| `no-multicast-peers` (conf file) | on | Refuse relaying to broadcast/multicast peer addresses |
+| Time-limited credentials | — | No credential is valid beyond its `ttlSeconds` — bounds the blast radius of a leaked credential |
+| `--allow-loopback-peers` | on | See [Known limitations](#known-limitations) — required for this Docker Compose topology, **do not carry into production** (coturn itself logs a warning: "opens a possible security vulnerability, do not use in production") |
+
+There is no open relay: every allocation requires a valid, unexpired,
+correctly-HMAC'd credential. Credential issuance is rate-limited upstream at
+the RTC token endpoint (`RateLimit(60)` — 60 requests/window/IP), not inside
+coturn itself.
+
+## TURN usage metrics
+
+coturn's built-in Prometheus exporter (`--prometheus`,
+`--prometheus-port`) is enabled, exposing `/metrics` on
+`TURN_PROMETHEUS_PORT` (default 9641). This gives allocation counts, active
+sessions, traffic volume, and error counters as real counters (verified by
+generating test traffic with `turnutils_uclient` and observing the counters
+increment) — it is not a billing system, just the raw usage signal a
+billing/observability layer would consume later.
+
+**Never publish the Prometheus port outside the local dev/internal
+network** — it has no authentication of its own.
+
+## Testing
+
+Automated tests (see `apps/api/src/modules/rtc-tokens/*.spec.ts` and
+`apps/api/src/shared/config/env.validation.spec.ts`):
+
+- TURN credential generation, expiry, and HMAC correctness.
+- `iceServers` array correctness (right STUN/TURN/TURNS entries, matching
+  credentials, never an internal Docker hostname).
+- Unauthorized clients cannot obtain a valid TURN credential (API-key auth
+  guard on the token endpoint).
+- Invalid/missing production config fails startup (`validateEnv` /
+  `validateProductionConfig`).
+
+Manual verification (coturn's own documented test client, not a
+custom-built harness):
+
+```bash
+# Control-channel handshake, TCP+TLS:
+docker exec raven-coturn turnutils_uclient -t -S -W "$TURN_SECRET" -u "<expiry>:<label>" 127.0.0.1
+
+# Real relayed-data path, TCP (client-to-client loopback mode):
+docker exec raven-coturn turnutils_uclient -t -y -W "$TURN_SECRET" -u "<expiry>:<label>" 127.0.0.1
+
+# Real relayed-data path, UDP (client-to-client loopback mode):
+docker exec raven-coturn turnutils_uclient -y -W "$TURN_SECRET" -u "<expiry>:<label>" 127.0.0.1
+```
+
+The `-y` (client-to-client) runs verified 20/20 messages delivered (2000/2000
+bytes), 0% loss, on both TCP and UDP transports — proof that coturn's
+relay *data path* itself (not just the control channel) is functioning
+correctly.
+
+## Known limitations
+
+**Forced-TURN-relay end-to-end browser test cannot be completed against
+this local Docker Compose stack on Docker Desktop (macOS/Windows).**
+
+Root cause: LiveKit is started with `--node-ip=127.0.0.1` so a browser
+running on the host machine can reach it directly for host-candidate
+connections (this is what makes the direct/STUN test work). When a client
+is forced to relay-only (`iceTransportPolicy: 'relay'`), LiveKit's SFU-side
+ICE agent must reach the browser's TURN-relayed candidate on coturn — this
+part works (confirmed via `ICE candidate pair stats` logs showing 8
+requests sent from LiveKit to coturn's relay address). The return path
+fails: the browser only knows LiveKit's candidate as `127.0.0.1`, so it
+asks coturn to install a TURN permission for peer `127.0.0.1`, but
+LiveKit's actual outbound packets arrive at coturn from its real container
+IP (confirmed via `netstat` inside the container) — a different address.
+Per the TURN spec, coturn silently discards data from a peer address with
+no matching permission, so no response is ever relayed back — this
+reproduced identically before and after adding `--allow-loopback-peers`,
+which rules out a permission-*policy* problem and confirms an
+address-*identity* mismatch instead. A direct payload test further
+confirmed Docker Desktop for Mac does not route the container's real
+bridge-network IP to the host at all — so no single address exists that is
+simultaneously valid for "browser on host reaches LiveKit directly" and
+"coturn (a peer container) correctly identifies LiveKit's traffic."
+
+This is a Docker Desktop host/container networking limitation, not a defect
+in Raven's TURN integration or credential/config logic — coturn's relay
+engine itself is proven correct by the `turnutils_uclient` real-data tests
+above, and the identical topology on a native Linux Docker host (where the
+bridge network *is* directly routable from the host) would not hit this
+address-identity conflict. **It also does not reflect a limitation of any
+real deployment target**, where every party (client, TURN server, SFU) sees
+one single, consistent, publicly routable address for the SFU — the
+loopback/container split this bug depends on simply does not exist there.
+
+## Production checklist
+
+- [ ] Real CA-issued TLS certificate for the TURN server's public hostname,
+      with an automated renewal job (coturn does not self-renew).
+- [ ] `TURN_HOST` set to a real, publicly resolvable hostname — never
+      `localhost` or an internal Docker service name (enforced at startup
+      by `validateProductionConfig` when `NODE_ENV=production`).
+- [ ] `TURN_TLS_PORT` set (enforced by `validateProductionConfig`).
+- [ ] `--allow-loopback-peers` **removed** — it exists solely for this
+      local dev topology and coturn itself flags it as a security risk.
+- [ ] Relay port range sized to expected concurrent-session count and
+      opened in the firewall/security group.
+- [ ] `TURN_PROMETHEUS_PORT` **not** publicly exposed — scrape it from an
+      internal network only.
+- [ ] `TURN_SECRET` provisioned via real secret storage, rotated on a
+      schedule independent of any deployment.
+- [ ] Quotas (`TURN_USER_QUOTA`, `TURN_TOTAL_QUOTA`, `TURN_MAX_BPS`)
+      re-tuned for production traffic, not left at local-dev-sized
+      defaults.
+- [ ] A real, end-to-end forced-relay browser test run against the actual
+      production TURN hostname (not local Docker) to confirm what
+      [Known limitations](#known-limitations) above could not prove
+      locally.

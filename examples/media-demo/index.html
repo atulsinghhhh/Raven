@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Raven Media Demo (Phase 4/5)</title>
+<script src="./livekit-client.umd.js"></script>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.3rem; }
+  p.hint { color: #666; font-size: 0.9rem; }
+  fieldset { margin-bottom: 1rem; border-radius: 8px; }
+  label { display: block; font-size: 0.85rem; font-weight: 600; margin-top: 0.5rem; }
+  textarea, input { width: 100%; box-sizing: border-box; padding: 0.4rem; font-family: monospace; font-size: 0.8rem; }
+  textarea { height: 90px; }
+  button { margin-top: 0.6rem; margin-right: 0.4rem; padding: 0.4rem 0.8rem; cursor: pointer; }
+  button:disabled { cursor: not-allowed; opacity: 0.5; }
+  #status { font-weight: 600; }
+  #status.connected { color: #16794a; }
+  #status.disconnected, #status.failed { color: #a11; }
+  #status.connecting, #status.reconnecting { color: #b8860b; }
+  #participants li { font-family: monospace; }
+  .video-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .tile { width: 260px; }
+  .tile video { width: 100%; background: #000; border-radius: 6px; aspect-ratio: 4/3; object-fit: cover; }
+  .tile .label { font-size: 0.75rem; text-align: center; margin-top: 0.2rem; }
+  #log { height: 160px; overflow-y: auto; background: #111; color: #ddd; font-family: monospace; font-size: 0.75rem; padding: 0.6rem; border-radius: 6px; margin-top: 0.6rem; }
+</style>
+</head>
+<body>
+  <h1>Raven Media Demo (Phase 4/5)</h1>
+  <p class="hint">
+    Real WebRTC media through LiveKit (our selected SFU) — not a mock.
+    Get an RTC token via <code>POST /v1/rooms/:roomId/rtc-tokens</code>
+    (Swagger UI at <code>/docs</code>, or <code>pnpm db:seed</code>), paste
+    the full JSON response below, and click Join. Open this page in
+    multiple tabs with different <code>participantIdentity</code> values
+    (same room) to test a group call. Check "Force TURN relay" to prove
+    NAT-traversal fallback works even when a direct path is available —
+    see <code>docs/turn.md</code>.
+  </p>
+
+  <fieldset>
+    <legend>RTC token response</legend>
+    <label>Paste the full JSON body returned by POST /v1/rooms/:roomId/rtc-tokens</label>
+    <textarea id="tokenJson" placeholder='{"token":"...","livekitUrl":"ws://localhost:7880","roomName":"...","participantIdentity":"...","iceServers":[...]}'></textarea>
+    <label style="display:flex; align-items:center; gap:0.4rem; font-weight:normal;">
+      <input type="checkbox" id="forceTurnCheckbox" style="width:auto;" />
+      Force TURN relay only (iceTransportPolicy: "relay" — direct/STUN candidates are ignored)
+    </label>
+    <button id="joinBtn">Join Room</button>
+    <button id="leaveBtn" disabled>Leave Room</button>
+    <div>Status: <span id="status" class="disconnected">disconnected</span></div>
+    <div>Room: <span id="roomLabel">—</span> &nbsp; User: <span id="userLabel">—</span></div>
+    <div>Connection type: <span id="connectionType">—</span>
+      <span class="hint" style="display:inline">(local candidate type of the active/nominated candidate pair — "host" = direct, "srflx" = STUN-assisted, "relay" = TURN. Authoritative source: chrome://webrtc-internals)</span>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Controls</legend>
+    <button id="micBtn" disabled>Mic: off</button>
+    <button id="camBtn" disabled>Camera: off</button>
+  </fieldset>
+
+  <fieldset>
+    <legend>Local</legend>
+    <div class="video-grid">
+      <div class="tile">
+        <video id="localVideo" autoplay playsinline muted></video>
+        <div class="label" id="localLabel">(not joined)</div>
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Remote participants</legend>
+    <ul id="participants"></ul>
+    <div class="video-grid" id="remoteGrid"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Log</legend>
+    <div id="log"></div>
+  </fieldset>
+
+<script>
+  const { Room, RoomEvent, Track, ConnectionState } = LivekitClient;
+
+  let room = null;
+  let micOn = false;
+  let camOn = false;
+
+  const statusEl = document.getElementById('status');
+  const roomLabelEl = document.getElementById('roomLabel');
+  const userLabelEl = document.getElementById('userLabel');
+  const localLabelEl = document.getElementById('localLabel');
+  const localVideoEl = document.getElementById('localVideo');
+  const participantsEl = document.getElementById('participants');
+  const remoteGridEl = document.getElementById('remoteGrid');
+  const logEl = document.getElementById('log');
+
+  const joinBtn = document.getElementById('joinBtn');
+  const leaveBtn = document.getElementById('leaveBtn');
+  const micBtn = document.getElementById('micBtn');
+  const camBtn = document.getElementById('camBtn');
+  const forceTurnCheckbox = document.getElementById('forceTurnCheckbox');
+  const connectionTypeEl = document.getElementById('connectionType');
+  let connectionTypeTimer = null;
+
+  function log(msg) {
+    const line = document.createElement('div');
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setStatus(state) {
+    statusEl.textContent = state;
+    statusEl.className = state;
+  }
+
+  function renderParticipants() {
+    participantsEl.innerHTML = '';
+    if (!room) return;
+    for (const p of room.remoteParticipants.values()) {
+      const li = document.createElement('li');
+      li.textContent = p.identity;
+      participantsEl.appendChild(li);
+    }
+  }
+
+  /**
+   * Best-effort connection-type observability (Phase 5 §16): reads the
+   * nominated ICE candidate pair's local candidate type directly from the
+   * underlying RTCPeerConnection via LiveKit's internal `engine.pcManager`.
+   * This reaches into an undocumented, non-public part of livekit-client
+   * (there is no stable public API for this in v2.x) — it's diagnostic
+   * only, wrapped defensively, and never assumed authoritative. The
+   * authoritative source for real verification is always
+   * chrome://webrtc-internals, which is what Phase 5's actual forced-TURN
+   * test result was confirmed against, not this UI field.
+   */
+  async function pollConnectionType() {
+    if (!room) return;
+    try {
+      const pc = room.engine?.pcManager?.subscriber?.pc ?? room.engine?.subscriber?.pc;
+      if (!pc) {
+        connectionTypeEl.textContent = 'unknown (internals unavailable — check chrome://webrtc-internals)';
+        return;
+      }
+      const stats = await pc.getStats();
+      let found = 'unknown';
+      stats.forEach((report) => {
+        if (report.type === 'candidate-pair' && report.state === 'succeeded' && (report.nominated ?? true)) {
+          const local = stats.get(report.localCandidateId);
+          if (local?.candidateType) found = local.candidateType;
+        }
+      });
+      connectionTypeEl.textContent = found;
+    } catch (err) {
+      connectionTypeEl.textContent = `error reading stats: ${err.message}`;
+    }
+  }
+
+  function tileIdFor(participantIdentity, source) {
+    return `tile-${participantIdentity}-${source}`;
+  }
+
+  function attachRemoteTrack(track, publication, participant) {
+    const id = tileIdFor(participant.identity, track.source);
+    let tile = document.getElementById(id);
+    if (!tile) {
+      tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.id = id;
+      remoteGridEl.appendChild(tile);
+
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = `${participant.identity} (${track.source})`;
+      tile.appendChild(label);
+    }
+    const el = track.attach();
+    tile.prepend(el);
+  }
+
+  function detachRemoteTrack(track, participant) {
+    track.detach().forEach((el) => el.remove());
+    const id = tileIdFor(participant.identity, track.source);
+    const tile = document.getElementById(id);
+    if (tile && !tile.querySelector('video, audio')) {
+      tile.remove();
+    }
+  }
+
+  joinBtn.onclick = async () => {
+    let parsed;
+    try {
+      parsed = JSON.parse(document.getElementById('tokenJson').value);
+    } catch {
+      alert('Paste the full JSON response from POST /v1/rooms/:roomId/rtc-tokens first.');
+      return;
+    }
+
+    room = new Room({ adaptiveStream: true, dynacast: true });
+
+    room.on(RoomEvent.ConnectionStateChanged, (state) => {
+      log(`connection state: ${state}`);
+      setStatus(state);
+    });
+    room.on(RoomEvent.ParticipantConnected, (p) => { log(`participant joined: ${p.identity}`); renderParticipants(); });
+    room.on(RoomEvent.ParticipantDisconnected, (p) => { log(`participant left: ${p.identity}`); renderParticipants(); });
+    room.on(RoomEvent.TrackSubscribed, (track, pub, participant) => {
+      log(`subscribed to ${track.source} from ${participant.identity}`);
+      attachRemoteTrack(track, pub, participant);
+    });
+    room.on(RoomEvent.TrackUnsubscribed, (track, pub, participant) => {
+      log(`unsubscribed from ${track.source} of ${participant.identity}`);
+      detachRemoteTrack(track, participant);
+    });
+    room.on(RoomEvent.Disconnected, (reason) => {
+      log(`disconnected: ${reason ?? 'unknown reason'}`);
+      setStatus('disconnected');
+      resetUi();
+    });
+
+    const forceTurn = forceTurnCheckbox.checked;
+    const rtcConfig = parsed.iceServers ? { iceServers: parsed.iceServers } : {};
+    if (forceTurn) {
+      rtcConfig.iceTransportPolicy = 'relay';
+      log('iceTransportPolicy=relay — direct/STUN candidates will be ignored, TURN is mandatory');
+    }
+
+    try {
+      setStatus('connecting');
+      await room.connect(parsed.livekitUrl, parsed.token, { rtcConfig });
+      log(`connected to room "${parsed.roomName}" as "${parsed.participantIdentity}"`);
+      roomLabelEl.textContent = parsed.roomName ?? room.name;
+      userLabelEl.textContent = parsed.participantIdentity ?? room.localParticipant.identity;
+      localLabelEl.textContent = parsed.participantIdentity ?? room.localParticipant.identity;
+      joinBtn.disabled = true;
+      leaveBtn.disabled = false;
+      micBtn.disabled = false;
+      camBtn.disabled = false;
+      renderParticipants();
+      connectionTypeTimer = setInterval(pollConnectionType, 2000);
+      pollConnectionType();
+    } catch (err) {
+      log(`join failed: ${err.message}`);
+      setStatus('failed');
+    }
+  };
+
+  leaveBtn.onclick = async () => {
+    if (room) await room.disconnect();
+  };
+
+  micBtn.onclick = async () => {
+    if (!room) return;
+    const next = !micOn;
+    try {
+      await room.localParticipant.setMicrophoneEnabled(next);
+      micOn = next;
+      micBtn.textContent = `Mic: ${micOn ? 'on' : 'off'}`;
+      log(`microphone ${micOn ? 'enabled' : 'disabled'}`);
+    } catch (err) {
+      // e.g. permission denied, or no microphone device present.
+      log(`microphone error: ${err.message}`);
+      alert(`Could not enable microphone: ${err.message}`);
+    }
+  };
+
+  camBtn.onclick = async () => {
+    if (!room) return;
+    const next = !camOn;
+    try {
+      await room.localParticipant.setCameraEnabled(next);
+      camOn = next;
+      camBtn.textContent = `Camera: ${camOn ? 'on' : 'off'}`;
+      log(`camera ${camOn ? 'enabled' : 'disabled'}`);
+
+      if (camOn) {
+        const pub = Array.from(room.localParticipant.videoTrackPublications.values())[0];
+        if (pub?.track) pub.track.attach(localVideoEl);
+      } else {
+        localVideoEl.srcObject = null;
+      }
+    } catch (err) {
+      // e.g. permission denied, or no camera device present.
+      log(`camera error: ${err.message}`);
+      alert(`Could not enable camera: ${err.message}`);
+    }
+  };
+
+  function resetUi() {
+    joinBtn.disabled = false;
+    leaveBtn.disabled = true;
+    micBtn.disabled = true;
+    camBtn.disabled = true;
+    micBtn.textContent = 'Mic: off';
+    camBtn.textContent = 'Camera: off';
+    micOn = false;
+    camOn = false;
+    localVideoEl.srcObject = null;
+    roomLabelEl.textContent = '—';
+    userLabelEl.textContent = '—';
+    localLabelEl.textContent = '(not joined)';
+    participantsEl.innerHTML = '';
+    remoteGridEl.innerHTML = '';
+    connectionTypeEl.textContent = '—';
+    if (connectionTypeTimer) {
+      clearInterval(connectionTypeTimer);
+      connectionTypeTimer = null;
+    }
+  }
+</script>
+</body>
+</html>

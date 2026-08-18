@@ -1,0 +1,25 @@
+# Raven — local development LiveKit configuration.
+#
+# API keys, Redis connection, and the advertised node IP are intentionally
+# NOT set here — they are passed as CLI flags in docker-compose.yml so
+# they can come from .env instead of being hardcoded in a committed file.
+# See docs/architecture/sfu-comparison.md and infrastructure-decisions.md
+# for why LiveKit was chosen as the SFU/signaling foundation.
+
+port: 7880
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 50019
+  # We are not behind a cloud load balancer locally; advertise the node IP
+  # passed via --node-ip instead of trying to auto-detect one.
+  use_external_ip: false
+
+# Local dev only: keep logs readable while iterating.
+log_level: info
+
+# TURN is deliberately NOT configured here. Per docs/architecture/turn.md,
+# Raven uses an external, independently-run coturn deployment rather than
+# LiveKit's built-in TURN relay, so that TURN credential issuance stays
+# owned by our own Token Service (Phase 5) instead of LiveKit.

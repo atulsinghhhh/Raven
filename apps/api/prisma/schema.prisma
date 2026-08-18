@@ -1,0 +1,141 @@
+// Raven control plane schema.
+// See docs/architecture/infrastructure-decisions.md for why Prisma/Postgres.
+// See docs/control-plane.md for the full data-model rationale.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ApiKeyStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum RoomStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum ParticipantStatus {
+  PENDING
+  JOINED
+  LEFT
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  projects Project[]
+
+  @@map("users")
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  ownerId     String
+  owner       User          @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  apiKeys ApiKey[]
+  rooms   Room[]
+
+  @@index([ownerId])
+  @@map("projects")
+}
+
+/// The raw secret is never stored — only a hash of it. `publicId` is the
+/// fast, non-secret lookup key used to find the row before verifying the
+/// secret against `secretHash`. See docs/control-plane.md#api-keys.
+model ApiKey {
+  id         String       @id @default(uuid())
+  projectId  String
+  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  publicId   String       @unique
+  secretHash String
+  name       String?
+  status     ApiKeyStatus @default(ACTIVE)
+  lastUsedAt DateTime?
+  createdAt  DateTime     @default(now())
+  revokedAt  DateTime?
+
+  @@index([projectId])
+  @@map("api_keys")
+}
+
+model Room {
+  id        String     @id @default(uuid())
+  projectId String
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  status    RoomStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  participants Participant[]
+  rtcTokens    RtcToken[]
+
+  // Room names only need to be unique within a project, so unrelated
+  // projects can independently use the same room name (e.g. "lobby").
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@map("rooms")
+}
+
+/// A logical identity within a room's control-plane record. Real join/leave
+/// state (from LiveKit webhooks) is wired up in a later phase; for now this
+/// row exists so RTC tokens have something durable to reference and so a
+/// consistent identity is enforced per room.
+model Participant {
+  id        String            @id @default(uuid())
+  roomId    String
+  room      Room              @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  identity  String
+  status    ParticipantStatus @default(PENDING)
+  metadata  Json?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  rtcTokens RtcToken[]
+
+  @@unique([roomId, identity])
+  @@map("participants")
+}
+
+/// A control-plane record of a granted RTC token. The actual bearer
+/// credential is a signed LiveKit JWT returned once at creation time and
+/// never persisted — this row is the audit/metadata trail, not the secret
+/// itself. See docs/control-plane.md#rtc-tokens.
+model RtcToken {
+  id            String      @id @default(uuid())
+  projectId     String
+  roomId        String
+  room          Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  permissions   Json
+  expiresAt     DateTime
+  createdAt     DateTime    @default(now())
+
+  @@index([projectId])
+  @@index([roomId])
+  @@map("rtc_tokens")
+}

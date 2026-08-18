@@ -1,0 +1,24 @@
+{
+  "name": "raven",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Raven — open-source, developer-first real-time communication infrastructure (control plane + RTC plane).",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "infra:logs": "docker compose logs -f",
+    "infra:reset": "docker compose down -v && docker compose up -d",
+    "infra:ps": "docker compose ps",
+    "infra:verify": "bash scripts/verify-infra.sh",
+    "dev": "pnpm --filter @raven/api start:dev",
+    "dashboard:dev": "pnpm --filter @raven/dashboard dev",
+    "test": "pnpm --filter @raven/api test",
+    "test:e2e": "pnpm --filter @raven/api test:e2e",
+    "db:migrate": "pnpm --filter @raven/api prisma:migrate:dev",
+    "db:seed": "pnpm --filter @raven/api prisma:seed"
+  }
+}
