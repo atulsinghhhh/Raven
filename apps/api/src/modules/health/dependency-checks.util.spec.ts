@@ -33,9 +33,8 @@ describe('checkLiveKitHttp', () => {
 
   it('converts a ws:// URL to http:// before requesting', async () => {
     server = createServer((req, res) => {
-      // http.Server has no notion of the original scheme; reaching this
-      // handler at all proves the ws:// URL was translated to a real
-      // HTTP request rather than left as an unconnectable ws:// fetch.
+      // http.Server doesn't know about the original scheme — just reaching
+      // this handler proves the ws:// URL got translated to a real request.
       res.writeHead(200).end('ok');
     });
     await new Promise<void>((resolve) => server.listen(0, resolve));
@@ -61,8 +60,8 @@ describe('checkStunBinding', () => {
     const sock = createSocket('udp4');
     socket = sock;
     sock.on('message', (msg, rinfo) => {
-      // Echo back a minimal, valid STUN success response reusing the
-      // request's magic cookie + transaction ID, exactly as coturn would.
+      // Echo a minimal valid STUN success response, reusing the request's
+      // magic cookie + transaction ID like coturn would.
       const response = Buffer.alloc(20);
       response.writeUInt16BE(0x0101, 0); // Binding Success Response
       response.writeUInt16BE(0, 2);
@@ -84,7 +83,7 @@ describe('checkStunBinding', () => {
       response.writeUInt16BE(0x0101, 0);
       response.writeUInt16BE(0, 2);
       response.writeUInt32BE(0x2112a442, 4);
-      // transaction ID left as zeros — deliberately does not match the request
+      // transaction ID left as zeros so it won't match the request
       sock.send(response, rinfo.port, rinfo.address);
     });
     const port = await new Promise<number>((resolve) => {

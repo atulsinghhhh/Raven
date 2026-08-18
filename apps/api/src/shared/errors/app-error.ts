@@ -1,11 +1,8 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-/**
- * Base class for expected, domain-level errors. Distinguishing these from
- * unexpected exceptions lets the global filter return safe, specific
- * messages for the former and a generic message for the latter, so we
- * never leak internals (stack traces, DB errors) to API consumers.
- */
+// Base for expected, domain-level errors. The global filter treats these
+// differently from unexpected exceptions — specific message here, generic
+// 500 for everything else — so we don't leak internals to callers.
 export class AppError extends HttpException {
   constructor(message: string, status: HttpStatus, code: string) {
     super({ message, code }, status);

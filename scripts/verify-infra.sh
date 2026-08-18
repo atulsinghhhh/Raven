@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-# Raven — Phase 1 infrastructure verification.
-#
-# Confirms every local infrastructure service is actually reachable and
-# healthy, not just "container running." Run after `pnpm infra:up`:
+# Checks that every local infra service is actually reachable and healthy,
+# not just "container running." Run after `pnpm infra:up`:
 #
 #   pnpm infra:verify
 #

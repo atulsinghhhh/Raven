@@ -24,12 +24,9 @@ interface HealthResponse {
   };
 }
 
-/**
- * Intentionally reports only up/down per dependency — no connection
- * strings, hostnames, versions, or error messages. This endpoint is
- * commonly unauthenticated (used by orchestrators/load balancers), so it
- * must never become a source of infrastructure reconnaissance.
- */
+// Only reports up/down per dependency — no connection strings, hostnames,
+// versions, or error messages. This is usually unauthenticated (load
+// balancers/orchestrators hit it), so it can't leak infra details.
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {
@@ -65,8 +62,8 @@ export class HealthController {
       this.checkDependency(() => this.prisma.ping()),
       this.checkDependency(() => this.redis.ping()),
       this.checkDependency(async () => {
-        // internalUrl, not url — see configuration.ts: this check runs
-        // inside the Docker network, not from a real client's vantage point.
+        // internalUrl, not url — this check runs inside the Docker
+        // network, not from a real client's vantage point.
         const ok = await checkLiveKitHttp(this.configService.get<string>('livekit.internalUrl')!);
         if (!ok) throw new Error('unreachable');
       }),
@@ -82,8 +79,8 @@ export class HealthController {
     const status: HealthResponse['status'] =
       database === 'up' && redis === 'up' && livekit === 'up' && turn === 'up' ? 'ok' : 'degraded';
 
-    // Aggregate counts only — never room/participant IDs — this endpoint
-    // is commonly unauthenticated (see class-level note above).
+    // Aggregate counts only, never room/participant IDs — same reasoning
+    // as the class-level comment above.
     res.status(status === 'ok' ? 200 : 503).json({
       status,
       dependencies: { database, redis, livekit, turn },

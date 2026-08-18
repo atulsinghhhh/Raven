@@ -1,8 +1,5 @@
-/**
- * Wire protocol constants for the signaling layer. See
- * docs/signaling-protocol.md for the full documented contract — this file
- * is the single source of truth it's generated/checked against by hand.
- */
+// Wire protocol constants for the signaling layer. Full contract is in
+// docs/signaling-protocol.md — this file is the source of truth for it.
 
 export enum ClientMessageType {
   ROOM_JOIN = 'room.join',
@@ -39,10 +36,10 @@ export enum SignalingErrorCode {
   RATE_LIMITED = 'RATE_LIMITED',
 }
 
-/** Not user-configurable via .env — these are wire-protocol/operational
- * constants, not deployment-environment concerns. Limits that genuinely
- * vary per deployment (max participants, message rate) live in
- * shared/config/configuration.ts under the `signaling` key instead. */
+// Not in .env on purpose — these are wire-protocol/operational constants,
+// not per-deployment config. Stuff that actually varies by deployment
+// (max participants, message rate) lives under `signaling` in
+// configuration.ts instead.
 export const SIGNALING_PATH = '/v1/rtc';
 export const HEARTBEAT_INTERVAL_MS = 30_000;
 export const HEARTBEAT_TIMEOUT_MS = 60_000; // one missed cycle before termination

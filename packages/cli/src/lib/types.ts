@@ -39,7 +39,7 @@ export interface CreatedApiKey {
   id: string;
   name: string | null;
   publicId: string;
-  /** The only time the raw secret is ever available. Never persisted, never logged, never printed a second time. */
+  /** Only time the raw secret is visible — not persisted, not logged, never shown again after this. */
   key: string;
   createdAt: string;
   warning: string;
@@ -67,7 +67,7 @@ export interface RoomWithLiveState {
   status: RoomStatus;
   createdAt: string;
   updatedAt: string;
-  /** null means LiveKit could not be reached — distinct from a genuinely idle 0. */
+  /** null = couldn't reach LiveKit, not the same thing as a genuinely idle room. */
   liveParticipantCount: number | null;
 }
 

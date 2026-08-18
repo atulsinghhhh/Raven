@@ -34,12 +34,11 @@ const CLOSE_REPLACED = 4002;
 const CLOSE_RATE_LIMITED = 4029;
 
 /**
- * The wire format here (`{"type": "..."}`, flat fields) doesn't match
- * what Nest's `@SubscribeMessage`/WsAdapter message binding expects
- * (`{"event": "...", "data": {...}}`), so this gateway deliberately
- * bypasses that binding layer and parses/dispatches raw `message` events
- * itself. `handleConnection`/`handleDisconnect` (Nest's gateway lifecycle
- * hooks) are still used normally. See docs/signaling.md#implementation-notes.
+ * Our wire format (`{"type": "..."}`, flat fields) doesn't match what
+ * Nest's @SubscribeMessage/WsAdapter binding expects (`{"event": "...",
+ * "data": {...}}`), so this gateway skips that binding layer and parses/
+ * dispatches raw `message` events itself. handleConnection/handleDisconnect
+ * still use Nest's normal gateway lifecycle hooks though.
  */
 @WebSocketGateway({ path: SIGNALING_PATH })
 export class SignalingGateway
@@ -73,13 +72,12 @@ export class SignalingGateway
   }
 
   async handleConnection(client: WebSocket, request: IncomingMessage): Promise<void> {
-    // Auth below is async (Redis + JWT verification). Without pausing,
-    // a client that sends its first message (e.g. room.join) immediately
-    // on 'open' can have that frame delivered before the 'message'
-    // listener further down is even attached — EventEmitter does not
-    // buffer events for late listeners, so it would be silently dropped.
-    // pause()/resume() make the socket hold incoming frames until we're
-    // ready.
+    // Auth below is async (Redis + JWT). Without pausing, a client that
+    // fires off room.join right on 'open' could have that frame delivered
+    // before our 'message' listener is even attached further down —
+    // EventEmitter doesn't buffer for late listeners, so it'd just get
+    // dropped silently. pause()/resume() holds incoming frames until
+    // we're ready for them.
     client.pause();
 
     const clientIp = this.extractClientIp(request);
@@ -234,7 +232,7 @@ export class SignalingGateway
     return request.socket.remoteAddress ?? 'unknown';
   }
 
-  /** For observability (Phase 3 §21) — not exposed over the wire protocol. */
+  /** For observability — not exposed over the wire protocol. */
   getMetrics() {
     return {
       activeConnections: this.sessions.size,

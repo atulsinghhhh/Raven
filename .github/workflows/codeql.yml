@@ -6,8 +6,8 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    # Mondays 06:00 UTC — catches newly disclosed advisories even when
-    # there's no code churn to trigger the push/pull_request events.
+    # Mondays 06:00 UTC — so we catch newly disclosed advisories even
+    # when there's no code churn to trigger a push/pull_request.
     - cron: "0 6 * * 1"
 
 permissions:

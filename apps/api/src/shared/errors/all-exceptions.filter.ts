@@ -9,11 +9,11 @@ import {
 import { Request, Response } from 'express';
 
 /**
- * Every error leaving the API goes through here. Known HttpExceptions
- * (including our AppError subclasses) return their own status/message.
- * Anything else is an unexpected bug — it is logged in full server-side
- * but returned to the client as a generic 500 with no internal detail
- * (no stack trace, no DB driver message, no file paths).
+ * Every error leaving the API passes through here. Known HttpExceptions
+ * (our AppError subclasses included) keep their own status/message.
+ * Anything else counts as an unexpected bug: gets logged in full on the
+ * server, but the client only ever sees a generic 500 — no stack trace,
+ * no DB error text, no file paths.
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {

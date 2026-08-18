@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-# Raven — generates a self-signed TLS certificate for coturn's local
-# development TURNS/DTLS listener.
+# Generates a self-signed TLS cert for coturn's local TURNS/DTLS listener.
 #
-# This is explicitly NOT for production use — see docs/turn.md#tls for
-# why (browsers reject self-signed certs for TURNS by default; production
-# needs a real CA-issued certificate, e.g. via Let's Encrypt, for the
-# public TURN hostname). This script only exists so the TLS *server-side*
-# configuration can be exercised locally.
+# Not for production — browsers reject self-signed certs for TURNS by
+# default, and production needs a real CA-issued cert (e.g. Let's Encrypt)
+# for the public TURN hostname. This just lets us exercise the TLS
+# server-side config locally. See docs/turn.md#tls.
 #
 # Usage: bash scripts/generate-turn-cert.sh
 set -euo pipefail

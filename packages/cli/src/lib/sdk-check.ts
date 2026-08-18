@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-/** Checks the local package.json's dependencies/devDependencies — not node_modules, which may be stale or gitignored-but-uninstalled. */
+/** Checks package.json deps/devDeps directly — not node_modules, which can be stale or gitignored but never installed. */
 export async function isSdkInPackageJson(cwd: string = process.cwd(), packageName = '@raven/rtc'): Promise<boolean> {
   try {
     const raw = await readFile(join(cwd, 'package.json'), 'utf8');

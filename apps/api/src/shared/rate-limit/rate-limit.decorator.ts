@@ -3,10 +3,8 @@ import { SetMetadata } from '@nestjs/common';
 export const RATE_LIMIT_KEY = 'rateLimit';
 
 /**
- * Caps a route to `limit` requests per rate-limit window (see
- * RATE_LIMIT_WINDOW_SECONDS) per client IP. Deliberately simple — a
- * single global window, IP-keyed — per the instruction not to build a
- * distributed rate-limiting platform for Phase 2. See
- * docs/control-plane.md#rate-limiting.
+ * Caps a route to `limit` requests per window (RATE_LIMIT_WINDOW_SECONDS),
+ * keyed by client IP. Kept intentionally simple — one global window, no
+ * per-user tiers — we're not building a distributed rate-limiting platform.
  */
 export const RateLimit = (limit: number) => SetMetadata(RATE_LIMIT_KEY, limit);

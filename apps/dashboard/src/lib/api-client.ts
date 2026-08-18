@@ -1,10 +1,6 @@
-/**
- * Every call here goes server-side (Server Components, Route Handlers) to
- * Raven's own Control API — the browser never talks to it directly, and
- * never sees the session JWT (see session.ts). This is the ONLY file that
- * knows the Control API's base URL and shapes; nothing else in the app
- * constructs a fetch to it directly.
- */
+// Everything here runs server-side and talks to the Control API — the
+// browser never hits it directly, never sees the JWT. This is the only file
+// that knows the API's base URL and response shapes; don't fetch it elsewhere.
 const API_BASE_URL = process.env.RAVEN_API_URL ?? 'http://localhost:4100';
 
 export class ApiError extends Error {
@@ -67,7 +63,7 @@ export interface RoomWithLiveState {
   status: string;
   createdAt: string;
   updatedAt: string;
-  /** null means LiveKit could not be reached — distinct from a genuinely idle 0. */
+  /** null = LiveKit unreachable, not the same as an idle room with 0 participants. */
   liveParticipantCount: number | null;
 }
 

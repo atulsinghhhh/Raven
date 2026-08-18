@@ -1,8 +1,8 @@
 import { createHmac, randomBytes } from 'crypto';
 import { customAlphabet } from 'nanoid';
 
-// Unambiguous alphabet (no 0/O/1/l) for identifiers that humans may need
-// to read back, e.g. from logs or a dashboard, without confusion.
+// No 0/O/1/l in this alphabet — these ids get read back by humans from
+// logs or a dashboard often enough that ambiguous chars are annoying.
 const alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const nanoid = customAlphabet(alphabet, 12);
 
@@ -22,10 +22,10 @@ export function generateId(prefix: string): string {
 }
 
 /**
- * Applies an HMAC pepper before bcrypt hashing. Fixes the output at 32
- * bytes regardless of secret/pepper length, so it's safe from bcrypt's
- * 72-byte input truncation — string-concatenating a long pepper directly
- * would risk silently truncating the actual secret's contribution.
+ * HMAC pepper applied before bcrypt hashing. Output is a fixed 32 bytes
+ * no matter how long the secret/pepper are, which keeps us clear of
+ * bcrypt's 72-byte truncation — just concatenating a long pepper onto the
+ * secret could silently chop off part of the actual secret.
  */
 export function pepper(secret: string, pepperKey: string): string {
   return createHmac('sha256', pepperKey).update(secret).digest('base64url');

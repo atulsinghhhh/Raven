@@ -13,6 +13,9 @@ build/
 .next/
 *.tsbuildinfo
 
+# Prisma client gets generated here on build, don't commit it
+apps/api/src/generated/
+
 # Logs
 *.log
 npm-debug.log*

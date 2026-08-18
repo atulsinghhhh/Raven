@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { ApiKeyStatus } from '@prisma/client';
+import { ApiKeyStatus } from '../../generated/prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { UnauthorizedError } from '../../shared/errors/app-error';
@@ -55,9 +55,8 @@ describe('ApiKeysService', () => {
       const rawSecret = result.key.split('.')[1];
 
       expect(persistedData.secretHash).not.toBe(rawSecret);
-      // Hashing the raw secret directly (no pepper) must NOT match — this
-      // is what proves the pepper is actually part of the stored hash and
-      // not just decorative.
+      // Hashing the raw secret with no pepper must NOT match — proves the
+      // pepper actually factors into the stored hash, isn't just decorative.
       expect(await bcrypt.compare(rawSecret, persistedData.secretHash)).toBe(false);
       expect(
         await bcrypt.compare(pepper(rawSecret, TEST_PEPPER), persistedData.secretHash),

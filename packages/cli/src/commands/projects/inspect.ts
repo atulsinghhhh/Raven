@@ -21,9 +21,8 @@ export function registerProjectsInspectCommand(projects: Command): void {
         printField('Name', project.name);
         printField('ID', project.id);
         printField('Environment', 'development');
-        // No per-project RTC endpoint exists yet — every project currently
-        // shares one Control API / LiveKit deployment. Run `raven init`
-        // for the real per-project token-mint flow instead of a fabricated URL.
+        // no per-project RTC endpoint yet — everything shares one Control
+        // API / LiveKit deployment. `raven init` has the real token-mint flow.
         printField('RTC endpoint', 'See `raven init` for SDK setup');
         printField('Status', project.status);
         printField('Created', new Date(project.createdAt).toLocaleString());

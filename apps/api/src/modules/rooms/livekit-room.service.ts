@@ -21,16 +21,15 @@ export interface LiveRoomInfo {
 }
 
 /**
- * Wraps livekit-server-sdk's RoomServiceClient to answer "what's actually
- * happening in the SFU right now" — Raven's own Room row in Postgres is
- * just a control-plane record (Phase 2); it has no idea whether anyone is
- * actually connected. This is the one place that gap gets closed for the
- * dashboard (Phase 7 spec §6/§12/§13 — no fake metrics).
+ * Wraps RoomServiceClient to answer "what's actually happening in the SFU
+ * right now" — our Room row in Postgres is just a control-plane record,
+ * it has no clue whether anyone's actually connected. This is where that
+ * gap gets closed for the dashboard.
  *
- * LiveKit's `listRooms([name])` returns nothing for a room with zero
- * current participants (rooms disappear once empty), which is exactly
- * the "0 live, idle" case the dashboard needs to distinguish from "SFU
- * unreachable" — the two are handled differently by callers.
+ * Gotcha: LiveKit's listRooms([name]) returns nothing for a room with
+ * zero participants — rooms just disappear once empty. That's the "idle"
+ * case, and callers need to tell it apart from "SFU unreachable", so
+ * both are handled separately below.
  */
 @Injectable()
 export class LiveKitRoomService {
@@ -38,9 +37,8 @@ export class LiveKitRoomService {
   private readonly client: RoomServiceClient;
 
   constructor(private readonly configService: ConfigService) {
-    // internalUrl, not url: this runs server-side, inside the same Docker
-    // network as LiveKit itself — see configuration.ts's comment on
-    // livekit.internalUrl for why these two must stay distinct.
+    // internalUrl, not url — runs server-side, inside the same Docker
+    // network as LiveKit (see the internalUrl comment in configuration.ts).
     this.client = new RoomServiceClient(
       this.configService.get<string>('livekit.internalUrl')!,
       this.configService.get<string>('livekit.apiKey'),
@@ -49,12 +47,11 @@ export class LiveKitRoomService {
   }
 
   /**
-   * Live participant counts for a set of room names, keyed by name.
-   * A name absent from the returned map means either the room is
-   * currently empty or does not exist in LiveKit — both render as
-   * "0 participants" to the caller, which is correct either way.
-   * Returns `undefined` (not a partial map) if LiveKit itself could not
-   * be reached, so callers can distinguish "idle" from "unknown".
+   * Live participant counts per room name. A name missing from the map
+   * means the room's empty or doesn't exist in LiveKit — both render as
+   * "0 participants", which is fine either way. Returns undefined (not a
+   * partial map) if LiveKit itself couldn't be reached, so callers can
+   * tell "idle" apart from "unknown".
    */
   async listLiveParticipantCounts(roomNames: string[]): Promise<Map<string, number> | undefined> {
     if (roomNames.length === 0) return new Map();
@@ -93,7 +90,7 @@ export class LiveKitRoomService {
 }
 
 function trackKind(type: number): 'audio' | 'video' | 'unknown' {
-  // TrackType enum from @livekit/protocol: AUDIO = 0, VIDEO = 1, DATA = 2.
+  // @livekit/protocol's TrackType enum: AUDIO = 0, VIDEO = 1, DATA = 2.
   if (type === 0) return 'audio';
   if (type === 1) return 'video';
   return 'unknown';

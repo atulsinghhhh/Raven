@@ -13,20 +13,17 @@ const TEST_TOKEN_TTL_SECONDS = 600; // 10 min — fixed, short, not developer-co
 const DEFAULT_TEST_IDENTITY = 'dashboard-test-user';
 
 /**
- * Mints a short-lived RTC token from the dashboard itself, authenticated
- * by developer session JWT rather than a project API key. This exists
- * only so a developer can smoke-test their own room from the dashboard
- * (Phase 7 spec §33's E2E flow) — it is deliberately NOT how a real
- * end-user app should get tokens (see docs/sdk.md#authentication and
- * docs/dashboard.md#rtc-tokens): those come from the developer's own
- * backend via the API-key-guarded endpoint in rtc-tokens.controller.ts.
+ * Mints a short-lived RTC token straight from the dashboard, using the
+ * developer's session JWT instead of a project API key. Only exists so a
+ * developer can smoke-test their own room from the dashboard — it's NOT
+ * how a real end-user app should get tokens. Those come from the
+ * developer's own backend, through the API-key-guarded endpoint in
+ * rtc-tokens.controller.ts.
  *
- * A dashboard test token can't reuse a stored API-key secret to call that
- * endpoint the normal way — only a bcrypt hash of the secret is ever
- * stored (never the raw key, even internally), so there is nothing to
- * "look up." Reusing RtcTokensService directly, under project-ownership
- * authorization instead of an API key, is what makes this endpoint
- * possible at all.
+ * Can't just call that endpoint normally either: we only ever store a
+ * bcrypt hash of the API key secret, never the raw key, so there's no
+ * secret to look up here. Instead we call RtcTokensService directly and
+ * authorize by project ownership instead of an API key.
  */
 @ApiTags('Dashboard — RTC Tokens')
 @ApiBearerAuth('jwt')

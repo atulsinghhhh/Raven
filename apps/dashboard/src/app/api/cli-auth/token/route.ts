@@ -2,14 +2,10 @@ import { NextResponse } from 'next/server';
 import { getSessionToken } from '@/lib/session';
 import { decodeSessionEmail } from '@/lib/decode-session';
 
-/**
- * Hands the browser back its OWN existing session (from the httpOnly
- * cookie it can't read directly) so cli-auth-confirm.tsx can relay it to
- * a local CLI process. This is a same-origin, cookie-authenticated
- * response — it doesn't mint a new credential, it returns what the
- * cookie already grants. Only ever called from /cli-auth after explicit
- * user approval — see docs/cli.md#authentication.
- */
+// Hands the browser its own session token back (pulled from the httpOnly
+// cookie it can't read directly) so cli-auth-confirm.tsx can forward it to the
+// local CLI. Not minting anything new, just exposing what the cookie already
+// grants. Only called from /cli-auth, after the user approves.
 export async function POST() {
   const token = await getSessionToken();
   if (!token) {

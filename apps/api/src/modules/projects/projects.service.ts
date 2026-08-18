@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Project, ProjectStatus } from '@prisma/client';
+import { Project, ProjectStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { NotFoundError } from '../../shared/errors/app-error';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -25,9 +25,9 @@ export class ProjectsService {
   async findOneForOwner(id: string, ownerId: string): Promise<Project> {
     const project = await this.prisma.project.findUnique({ where: { id } });
 
-    // Same NotFoundError whether the project doesn't exist or belongs to
-    // someone else — a 403 there would confirm the project ID is real,
-    // leaking information about another user's account.
+    // Same NotFoundError whether it doesn't exist or belongs to someone
+    // else — a 403 would confirm the ID is real, which leaks info about
+    // another user's account.
     if (!project || project.ownerId !== ownerId) {
       throw new NotFoundError('Project');
     }
@@ -42,8 +42,8 @@ export class ProjectsService {
 
   async archive(id: string, ownerId: string): Promise<void> {
     await this.findOneForOwner(id, ownerId);
-    // Soft delete: projects own api keys, rooms, and usage history that
-    // stay valuable for audit/billing purposes even after "deletion".
+    // Soft delete — projects own api keys, rooms, and usage history that
+    // are still worth keeping around for audit/billing even after this.
     await this.prisma.project.update({
       where: { id },
       data: { status: ProjectStatus.ARCHIVED },

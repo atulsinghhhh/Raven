@@ -8,9 +8,8 @@ export async function POST() {
   const token = store.get(SESSION_COOKIE_NAME)?.value;
 
   if (token) {
-    // Best-effort — the session cookie is cleared either way. A failed
-    // server-side blocklist call must never trap the user in a logged-in
-    // state from their own browser's perspective.
+    // Best-effort — cookie gets cleared regardless. If the blocklist call
+    // fails, we still don't want the user stuck looking logged in.
     await ravenApi.logout(token).catch(() => undefined);
   }
 

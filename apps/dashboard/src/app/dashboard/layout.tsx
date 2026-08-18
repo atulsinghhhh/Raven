@@ -5,9 +5,8 @@ import { SignOutButton } from './sign-out-button';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const token = await getSessionToken();
-  // Belt-and-suspenders: middleware already redirects when the cookie is
-  // absent, but a Server Component must never assume a request reached it
-  // only via middleware (direct server-side navigations, tests, etc.).
+  // Belt and suspenders — middleware already redirects without a cookie, but
+  // we can't assume every request actually went through middleware first.
   if (!token) redirect('/login');
 
   const email = decodeSessionEmail(token);

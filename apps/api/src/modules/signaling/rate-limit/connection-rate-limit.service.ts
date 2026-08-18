@@ -4,12 +4,11 @@ import { RedisService } from '../../../shared/redis/redis.service';
 
 /**
  * Protects the WebSocket upgrade/connect step, keyed by client IP. Same
- * fixed-window INCR+EXPIRE approach as the HTTP API's RateLimitGuard
- * (shared/rate-limit/) — reusing Redis here (rather than in-memory) is
- * deliberate: an attacker flooding connections could otherwise just
- * reconnect to reset an in-memory counter tied to a specific process,
- * and this is the one signaling limit that genuinely needs to survive
- * across reconnect attempts, not just across messages on one connection.
+ * fixed-window INCR+EXPIRE approach as the HTTP API's RateLimitGuard.
+ * Uses Redis on purpose rather than in-memory — an attacker flooding
+ * connections could just reconnect to reset an in-memory counter, and
+ * this is the one signaling limit that actually needs to survive across
+ * reconnects, not just across messages on one connection.
  */
 @Injectable()
 export class ConnectionRateLimitService {

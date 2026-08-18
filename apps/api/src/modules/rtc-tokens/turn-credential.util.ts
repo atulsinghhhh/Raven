@@ -7,12 +7,10 @@ export interface IceServer {
 }
 
 /**
- * coturn's "REST API" time-limited credential scheme (the same mechanism
- * docs/architecture/turn.md described and turnserver.conf has been
- * configured for — `use-auth-secret` — since Phase 1).
- * username = "<unix-expiry>:<label>", credential = base64(HMAC-SHA1(secret, username)).
- * coturn derives the same value on its side to authenticate the ALLOCATE
- * request; nobody holds a permanent TURN login.
+ * coturn's time-limited REST credential scheme (`use-auth-secret` in
+ * turnserver.conf). username = "<unix-expiry>:<label>", credential =
+ * base64(HMAC-SHA1(secret, username)) — coturn recomputes the same hash
+ * to authenticate the ALLOCATE request, so nobody needs a permanent login.
  */
 export function generateTurnCredential(
   secret: string,
@@ -26,18 +24,15 @@ export function generateTurnCredential(
 }
 
 /**
- * Builds the full ICE server list a WebRTC client needs: our external
- * coturn deployment for STUN (candidate discovery) and TURN (relay
- * fallback) over every transport coturn is configured for — see
- * docs/architecture/turn.md and docs/sfu.md#turn-integration. Deliberately
- * does NOT include LiveKit's own embedded TURN (unused, per the Phase 0
- * decision to run coturn externally instead).
+ * Builds the ICE server list a WebRTC client needs: our own coturn
+ * deployment, for both STUN and TURN, over whatever transports coturn's
+ * configured for. Doesn't include LiveKit's embedded TURN — we run coturn
+ * externally instead.
  *
- * Preference order clients should try (not enforced here — this is what
- * the browser's own ICE agent already does): direct/UDP, STUN-assisted,
- * TURN/UDP, TURN/TCP, TURN/TLS(+DTLS) — see docs/nat-traversal.md. `turns:`
- * is only included when `turnTlsPort` is provided, since a plain TURN
- * deployment (no cert configured) has no TLS listener to point at.
+ * The browser's ICE agent already picks the right order to try these in
+ * (direct, STUN, TURN/UDP, TURN/TCP, TURN/TLS), so we don't enforce one
+ * here. `turns:` only shows up when turnTlsPort is set — no cert on
+ * coturn means no TLS listener to point at.
  */
 export function buildIceServers(opts: {
   turnHost: string;
@@ -61,11 +56,10 @@ export function buildIceServers(opts: {
   ];
 
   if (opts.turnTlsPort) {
-    // TURNS over TCP (TLS). coturn's `--dtls` flag also serves TURN-over-UDP
-    // with DTLS on this same port, but there is no `?transport=` value for
-    // that in the turns: URI scheme (RFC 7065) — TLS-over-TCP is the
-    // interoperable, universally-supported option, so that's what's
-    // advertised. See docs/turn.md#tls for the local self-signed-cert caveat.
+    // TURNS over TCP (TLS). coturn's --dtls flag also serves TURN-over-UDP
+    // with DTLS on the same port, but the turns: URI scheme has no
+    // `?transport=` value for that, so TLS-over-TCP is what we advertise —
+    // it's the option every client actually supports.
     servers.push({
       urls: `turns:${opts.turnHost}:${opts.turnTlsPort}?transport=tcp`,
       username,

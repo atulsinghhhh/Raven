@@ -1,9 +1,9 @@
 name: Docker Publish (api)
 
-# Builds apps/api's production image (see apps/api/Dockerfile) and, once
-# it passes a vulnerability scan, publishes it to GHCR. Only ever
-# publishes from main or a version tag — pull requests build and scan
-# but never push, so a fork/PR can't land an image under this repo's name.
+# Builds apps/api's production image and pushes it to GHCR once it passes
+# a vulnerability scan. Only publishes from main or a version tag — PRs
+# build and scan but never push, so a fork/PR can't land an image under
+# this repo's name.
 
 on:
   push:

@@ -5,20 +5,19 @@ import { SignalingError } from '../signaling-error';
 import { SignalingErrorCode } from '../signaling.constants';
 
 export interface JoinResult {
-  /** A previous session for the same participantId, if one existed — the
-   * caller is responsible for closing its socket (see docs/signaling.md
-   * #reconnection: identity comes from the token, not the connection). */
+  // Previous session for the same participantId, if any — caller has to
+  // close its socket. Identity comes from the token, not the connection.
   replaced: ParticipantSession | null;
   /** Participants already in the room before this join, for room.joined. */
   existingParticipants: ParticipantSession[];
 }
 
 /**
- * Ephemeral, in-memory room/participant state for a SINGLE signaling
- * instance. Deliberately not persisted to Postgres (this is exactly the
- * transient state Phase 3 says not to duplicate there) and deliberately
- * not Redis-backed yet either — see docs/signaling.md#multi-instance for
- * the documented extension path once there's more than one instance.
+ * Ephemeral, in-memory room/participant state for a single signaling
+ * instance. Not persisted to Postgres — this is transient state that
+ * shouldn't live there — and not Redis-backed either yet. See
+ * docs/signaling.md#multi-instance for how that'd change once we run
+ * more than one instance.
  */
 @Injectable()
 export class RoomRegistryService {
@@ -88,7 +87,7 @@ export class RoomRegistryService {
     return Array.from(room.values()).filter((p) => p.participantId !== excludingParticipantId);
   }
 
-  /** For observability (Phase 3 §21) — not exposed over the wire protocol. */
+  /** For observability — not exposed over the wire protocol. */
   getMetrics(): { activeRooms: number; activeParticipants: number } {
     let activeParticipants = 0;
     for (const room of this.rooms.values()) {

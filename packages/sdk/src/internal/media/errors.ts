@@ -3,9 +3,9 @@ import { RTCError } from '../../errors';
 import type { TrackKind } from '../../track';
 
 /**
- * Maps a raw getUserMedia/getDisplayMedia failure to one of the SDK's typed
- * error codes, using livekit-client's own DOMException classifier rather
- * than re-deriving `error.name` checks ourselves (Phase 6 spec §18).
+ * Maps a raw getUserMedia/getDisplayMedia failure to one of our typed
+ * error codes — reuses livekit-client's own DOMException classifier
+ * instead of re-deriving `error.name` checks ourselves.
  */
 export function toMediaError(error: unknown, kind: TrackKind): RTCError {
   const failure = MediaDeviceFailure.getFailure(error);

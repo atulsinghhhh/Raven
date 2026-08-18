@@ -13,11 +13,9 @@ import { ClientMessageType, ServerMessageType, SignalingErrorCode } from '../sig
 import { SignalingActionResult } from './signaling-action.interface';
 
 /**
- * Pure message-routing logic, deliberately kept separate from the
- * gateway's WebSocket/transport concerns (framing, heartbeat, rate
- * limiting) — this is what "keep the signaling layer as a message
- * router" (Phase 3 §9) means in code: this class never modifies SDP
- * content, it only validates authorization and forwards.
+ * Pure message-routing logic, kept separate from the gateway's transport
+ * concerns (framing, heartbeat, rate limiting). Never touches SDP
+ * content — just checks authorization and forwards.
  */
 @Injectable()
 export class MessageRouterService {
@@ -45,8 +43,8 @@ export class MessageRouterService {
       throw new SignalingError(SignalingErrorCode.PERMISSION_DENIED, 'join permission required');
     }
 
-    // The RTC token is the source of authorization — if the client
-    // asserts a roomId, it must agree with the token, never override it.
+    // The RTC token is what actually authorizes the room — if the client
+    // sends a roomId too, it has to match the token, not override it.
     if (message.roomId && message.roomId !== session.roomId) {
       throw new SignalingError(
         SignalingErrorCode.UNAUTHORIZED,
@@ -153,9 +151,9 @@ export class MessageRouterService {
     };
   }
 
-  /** Same-room membership is enforced implicitly: the lookup is scoped to
-   * `session.roomId`, so a target in a different room simply isn't found —
-   * there is no code path that can leak a candidate/SDP across rooms. */
+  // Same-room membership is implicit here — lookup is scoped to
+  // session.roomId, so a target in another room just isn't found. No
+  // path exists that could leak a candidate/SDP across rooms.
   private resolveTarget(session: ParticipantSession, targetParticipantId: string): ParticipantSession {
     this.requireInRoom(session);
 

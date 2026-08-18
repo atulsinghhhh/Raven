@@ -3,20 +3,18 @@ import { dirname } from 'node:path';
 import { credentialsFilePath, ravenHomeDir } from './paths.js';
 
 export interface StoredCredentials {
-  /** The Control API's own session JWT — the CLI reuses the existing auth system verbatim, never a separate one. */
+  /** Session JWT from the Control API — the CLI just reuses the existing auth, doesn't invent a second one. */
   token: string;
   email: string;
-  /** Which API this token is valid for — keeps a credential from one endpoint being silently reused against another. */
+  /** Which API this token is valid for, so a credential from one endpoint can't silently get reused against another. */
   apiUrl: string;
   createdAt: string;
 }
 
 /**
- * File-based credential storage under ~/.raven/, chmod 600 (owner
- * read/write only) immediately on write, directory chmod 700 — the same
- * fallback most CLIs use when not integrating with an OS keychain (no
- * native keychain dependency here, see docs/cli.md#known-limitations).
- * Never logged, never printed, never included in --json output.
+ * File-based creds under ~/.raven/ — chmod 600 on the file, 700 on the
+ * dir. Same fallback most CLIs use instead of pulling in an OS keychain
+ * dependency. Never logged, never printed, never in --json output.
  */
 export async function readCredentials(): Promise<StoredCredentials | undefined> {
   try {
@@ -32,8 +30,8 @@ export async function writeCredentials(credentials: StoredCredentials): Promise<
   const dir = dirname(credentialsFilePath());
   await mkdir(dir, { recursive: true, mode: 0o700 });
   await writeFile(credentialsFilePath(), JSON.stringify(credentials, null, 2), { mode: 0o600 });
-  // mkdir's `mode` is only honored on creation — force it in case the
-  // directory already existed with looser permissions from an older run.
+  // mkdir's mode only applies on creation, so force chmod here in case the
+  // dir already existed with looser perms from an older run.
   await chmod(dir, 0o700);
   await chmod(credentialsFilePath(), 0o600);
 }

@@ -14,7 +14,7 @@ export function registerWhoamiCommand(program: Command): void {
         const credentials = await requireCredentials();
         const client = new RavenApiClient(credentials.apiUrl, credentials.token);
 
-        // Project count is real, fetched live — never a cached/guessed number.
+        // fetched live, not cached or guessed
         const projects = await client.listProjects();
 
         if (opts.json) {
@@ -24,9 +24,8 @@ export function registerWhoamiCommand(program: Command): void {
 
         printField('Logged in as', credentials.email);
         printField('Projects', String(projects.length));
-        // Raven's control plane does not yet distinguish environments per
-        // project (see docs/dashboard.md) — this reflects that honestly
-        // rather than inventing a per-account value.
+        // control plane doesn't distinguish environments per project yet —
+        // this is the honest value, not an invented one
         printField('Environment', 'development');
       }),
     );

@@ -22,9 +22,8 @@ export function registerProjectsCreateCommand(projects: Command): void {
         process.stdout.write('\n');
         printField('Project', project.name);
         printField('Project ID', project.id);
-        // See docs/dashboard.md#environments — Raven's control plane
-        // doesn't yet issue distinct per-environment credentials, so this
-        // is a fixed label, not a fabricated per-project value.
+        // control plane doesn't issue per-environment credentials yet, so
+        // this is just a fixed label, not a made-up per-project value
         printField('Environment', 'development');
       }),
     );

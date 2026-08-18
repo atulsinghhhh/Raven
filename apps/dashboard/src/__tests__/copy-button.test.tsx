@@ -2,13 +2,9 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CopyButton } from '@/components/ui/copy-button';
 
-/**
- * jsdom's own `navigator.clipboard` is a read-only accessor, AND something
- * in React's render path re-derives `window.navigator` on mount — a
- * defineProperty override set before `render()` gets silently discarded.
- * Applying it after render (but before interacting) is what actually
- * sticks, confirmed by direct inspection during test authoring.
- */
+// jsdom's navigator.clipboard is read-only, and React seems to re-derive
+// window.navigator on mount, so a defineProperty override set before render()
+// just gets thrown away. Has to be applied after render, before interacting.
 function stubClipboard() {
   const writeText = jest.fn().mockResolvedValue(undefined);
   Object.defineProperty(window, 'navigator', {

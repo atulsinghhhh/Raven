@@ -9,15 +9,13 @@ import { RoomsService } from './rooms.service';
 
 /**
  * Dashboard/CLI-facing view of a project's rooms — guarded by developer
- * session JWT (not ApiKeyAuthGuard, which apps/api's own `RoomsController`
- * uses for a developer's *backend* to call). GET routes enrich each room
- * with live LiveKit participant state, since the Postgres Room row alone
- * can't say whether anyone is actually connected right now (Phase 7 spec
- * §6/§12 — no fake metrics). The POST route (added in Phase 8, for
- * `raven rooms create`) reuses the exact same RoomsService.create() the
- * API-key-guarded controller calls — one creation path, two auth
- * entrypoints for the two different callers (a human via JWT, a
- * developer's backend via API key), not two separate implementations.
+ * session JWT, not the ApiKeyAuthGuard that RoomsController uses for a
+ * developer's backend. GET routes enrich each room with live LiveKit
+ * participant state, since the Postgres row alone can't say whether
+ * anyone's actually connected. The POST route (for `raven rooms create`)
+ * reuses the same RoomsService.create() as the API-key-guarded
+ * controller — one creation path, two auth entrypoints (human via JWT,
+ * backend via API key), not two separate implementations.
  */
 @ApiTags('Dashboard — Rooms')
 @ApiBearerAuth('jwt')

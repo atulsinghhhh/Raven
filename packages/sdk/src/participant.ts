@@ -17,9 +17,9 @@ export abstract class Participant {
   }
 
   /**
-   * @internal Only the SFU adapter calls this, once, right after connect()
-   * resolves — the local participant's identity isn't known until the
-   * server confirms it, but the constructor runs before that.
+   * @internal Called once by the SFU adapter right after connect()
+   * resolves — the constructor runs before the server confirms identity,
+   * so this patches it in afterward.
    */
   _setIdentity(identity: string): void {
     this._identity = identity;

@@ -16,14 +16,13 @@ export interface VerifiedRtcToken {
 }
 
 /**
- * Verifies the same LiveKit-format JWT minted by Phase 2's RTC Token
- * endpoint (docs/control-plane.md#rtc-tokens) — no separate signaling
- * token format. `ravenProjectId`/`ravenRoomId` are custom attributes
- * added specifically so the signaling layer can bind a connection to
- * exactly one project/room without a database round trip on every
- * connect (see rtc-tokens.service.ts). The signed token is the sole
- * source of authorization — nothing the client asserts independently
- * (e.g. a room ID query param) is trusted over what's in the token.
+ * Verifies the same LiveKit-format JWT the RTC Token endpoint mints —
+ * there's no separate signaling token format. ravenProjectId/ravenRoomId
+ * are custom attributes added so the signaling layer can bind a
+ * connection to one project/room without a DB round trip on every
+ * connect (see rtc-tokens.service.ts). The signed token is the only
+ * source of authorization — anything the client asserts on its own (a
+ * room ID query param, say) is never trusted over what's in the token.
  */
 @Injectable()
 export class RtcTokenVerifierService {
@@ -46,8 +45,8 @@ export class RtcTokenVerifierService {
     try {
       claims = await this.verifier.verify(rawToken);
     } catch (err) {
-      // Never log the token itself, and never forward jose's internal
-      // error message (may echo back parts of the malformed input).
+      // Never log the token itself, and never forward jose's raw error
+      // message — it can echo back parts of the malformed input.
       const code = this.classifyVerificationError(err);
       this.logger.warn(`RTC token rejected: ${code}`);
       throw new SignalingError(

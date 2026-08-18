@@ -3,14 +3,12 @@ import { ParticipantSession } from '../interfaces/participant-session.interface'
 import { SignalingGateway } from './signaling.gateway';
 
 /**
- * The heartbeat sweep runs on a real `setInterval` in production
- * (HEARTBEAT_INTERVAL_MS = 30s), which is too slow for a fast test suite.
- * Here we invoke the sweep logic directly (it's a private method, reached
- * via a cast — a common, pragmatic pattern for testing timer-driven
- * logic without waiting on real timers) against mocked sockets, proving
- * the ping/terminate bookkeeping itself is correct. The wire-level
- * connect/join/message behavior is covered by test/signaling.e2e-spec.ts
- * against real sockets.
+ * The heartbeat sweep runs on a real setInterval in production
+ * (HEARTBEAT_INTERVAL_MS = 30s) — too slow to wait on in a test suite. So
+ * here we call the sweep logic directly (private method, reached via a
+ * cast) against mocked sockets, just to prove the ping/terminate
+ * bookkeeping is correct. Wire-level connect/join/message behavior is
+ * covered separately in test/signaling.e2e-spec.ts against real sockets.
  */
 describe('SignalingGateway heartbeat', () => {
   function makeGateway(): { gateway: SignalingGateway; sessions: Map<unknown, ParticipantSession> } {
@@ -23,7 +21,7 @@ describe('SignalingGateway heartbeat', () => {
       {} as never,
       configService,
     );
-    // Reach into the private sessions map — see class doc comment above.
+    // Reach into the private sessions map — see the comment above.
     const sessions = (gateway as unknown as { sessions: Map<unknown, ParticipantSession> }).sessions;
     return { gateway, sessions };
   }

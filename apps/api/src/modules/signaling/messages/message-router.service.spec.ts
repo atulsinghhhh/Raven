@@ -202,8 +202,8 @@ describe('MessageRouterService', () => {
       registry.join(aliceRoom1);
       registry.join(bobRoom2);
 
-      // bob only exists in room-2 — alice (room-1) targeting "bob" must
-      // resolve nothing, since the lookup is scoped to alice's own room.
+      // bob only exists in room-2, so alice (room-1) targeting "bob"
+      // should resolve nothing — lookup is scoped to alice's own room.
       expect(() =>
         router.route(aliceRoom1, {
           type: ClientMessageType.ICE_CANDIDATE,

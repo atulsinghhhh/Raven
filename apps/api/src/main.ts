@@ -12,11 +12,10 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  // Signaling (Phase 3) is a raw WebSocket gateway sharing this same HTTP
-  // server/port — see docs/signaling.md. Socket.IO's platform-socket.io
-  // adapter was deliberately not used: it adds its own framing protocol,
-  // which would require a socket.io client instead of a browser's native
-  // WebSocket API.
+  // Signaling shares this same HTTP server/port as a raw WebSocket gateway.
+  // Not using the platform-socket.io adapter here on purpose — it wraps
+  // its own framing protocol, so clients would need a socket.io client
+  // instead of just the browser's native WebSocket API.
   app.useWebSocketAdapter(new WsAdapter(app));
 
   app.useGlobalPipes(

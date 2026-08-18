@@ -6,7 +6,7 @@ export const DEFAULT_API_URL = 'http://localhost:4100';
 
 export interface CliConfig {
   apiUrl: string;
-  /** Set via `raven projects use <project>` — a global fallback, overridden by a directory's raven.json and by an explicit --project flag. */
+  /** Set via `raven projects use <project>` — global fallback, overridden by a dir's raven.json or an explicit --project flag. */
   currentProject?: string;
 }
 

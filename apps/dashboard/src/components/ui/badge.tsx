@@ -7,10 +7,7 @@ const TONE_CLASSES: Record<BadgeTone, string> = {
   yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
 };
 
-/**
- * Status is always conveyed by an icon + text label, never color alone
- * (Phase 7 spec §31 — accessibility).
- */
+// Status is always icon + text, never color alone (accessibility).
 export function Badge({ tone, children }: { tone: BadgeTone; children: React.ReactNode }) {
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${TONE_CLASSES[tone]}`}>

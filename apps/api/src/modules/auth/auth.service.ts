@@ -59,10 +59,9 @@ export class AuthService {
   }
 
   /**
-   * JWTs are stateless by design, so "logout" can't delete them. Instead we
-   * blocklist this specific token's jti in Redis until it would have
-   * expired naturally — cheap, bounded, and doesn't require a DB write on
-   * every request the way a full session store would.
+   * JWTs are stateless, so there's nothing to delete on logout. We just
+   * blocklist this token's jti in Redis until its natural expiry — cheap,
+   * bounded, no DB write per request like a real session store would need.
    */
   async logout(user: AuthenticatedUser): Promise<void> {
     const ttlSeconds = Math.max(user.exp - Math.floor(Date.now() / 1000), 1);

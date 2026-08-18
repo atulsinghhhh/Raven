@@ -1,6 +1,6 @@
 /**
- * Exit codes are part of the CLI's contract with scripts/CI — documented
- * in docs/cli.md#exit-codes. Never renumber these once shipped.
+ * These are a contract with scripts/CI (docs/cli.md#exit-codes) — don't
+ * renumber once shipped.
  */
 export const ExitCode = {
   Success: 0,
@@ -32,10 +32,9 @@ const EXIT_CODE_BY_KIND: Record<CliErrorKind, ExitCodeValue> = {
 };
 
 /**
- * The one error type every command throws. `suggestion` becomes a
- * "Suggestion: ..." line in the printed error — this is what keeps error
- * output developer-friendly instead of a raw exception dump (Phase 8
- * spec §27). `cause` is only ever surfaced under --debug.
+ * The one error type every command throws. `suggestion` prints as a
+ * "Suggestion: ..." line instead of a raw stack dump. `cause` only shows
+ * up under --debug.
  */
 export class CliError extends Error {
   readonly kind: CliErrorKind;

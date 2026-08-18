@@ -12,10 +12,9 @@ const LOCKFILE_BY_MANAGER: Array<{ file: string; manager: PackageManager }> = [
 ];
 
 /**
- * Detects the package manager from lockfiles in `cwd`, falling back to
- * npm's `user-agent` env var (set when the CLI is invoked via `npm exec`/
- * `pnpm dlx`/etc.), then npm itself — never assumes npm outright when a
- * lockfile says otherwise (Phase 8 spec §17).
+ * Detects the package manager from lockfiles in `cwd` first, then falls
+ * back to the npm_config_user_agent env var (set by `npm exec`/`pnpm
+ * dlx`/etc.), and only defaults to npm if nothing else matches.
  */
 export async function detectPackageManager(cwd: string = process.cwd()): Promise<PackageManager> {
   for (const { file, manager } of LOCKFILE_BY_MANAGER) {

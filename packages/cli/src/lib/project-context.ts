@@ -3,9 +3,9 @@ import { readCliConfig } from './cli-config.js';
 import { readProjectConfig } from './project-config.js';
 
 /**
- * Precedence, highest first: an explicit --project flag, then this
- * directory's raven.json (from `raven init`), then the global fallback
- * set by `raven projects use` — see docs/cli.md#project-context.
+ * Resolution order: explicit --project flag wins, then this dir's
+ * raven.json (from `raven init`), then the global default from
+ * `raven projects use`.
  */
 export async function resolveProjectId(explicitProjectId?: string): Promise<string> {
   if (explicitProjectId) return explicitProjectId;

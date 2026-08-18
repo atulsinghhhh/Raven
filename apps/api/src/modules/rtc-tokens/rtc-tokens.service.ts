@@ -16,10 +16,9 @@ export interface IssuedRtcToken {
   participantIdentity: string;
   permissions: CreateRtcTokenDto['permissions'];
   /**
-   * STUN + TURN servers the client should pass into its WebRTC
-   * RTCConfiguration (LiveKit client: `rtcConfig.iceServers`) alongside
-   * this token. TURN credentials are minted fresh per token, valid for
-   * the same lifetime — see docs/sfu.md#turn-integration.
+   * STUN + TURN servers for the client's WebRTC RTCConfiguration
+   * (`rtcConfig.iceServers` on the LiveKit client). TURN creds are minted
+   * fresh per token and share its lifetime.
    */
   iceServers: IceServer[];
   expiresAt: Date;
@@ -39,8 +38,8 @@ export class RtcTokensService {
     roomId: string,
     dto: CreateRtcTokenDto,
   ): Promise<IssuedRtcToken> {
-    // Ensures the room exists AND belongs to this project — the same
-    // cross-project guard used everywhere else in the control plane.
+    // Confirms the room exists and belongs to this project — same
+    // cross-project check we use everywhere else here.
     const room = await this.roomsService.findOneForProject(roomId, projectId);
 
     const ttlSeconds =
@@ -70,11 +69,10 @@ export class RtcTokensService {
         identity: dto.participantIdentity,
         ttl: ttlSeconds,
         metadata: dto.metadata,
-        // Carried as custom attributes (not part of LiveKit's own grant)
-        // purely so Raven's own signaling layer (Phase 3) can bind a
-        // connection to exactly one project/room without a second
-        // database round-trip on every WebSocket connect. LiveKit itself
-        // ignores attributes it doesn't recognize.
+        // Custom attributes, not part of LiveKit's own grant — lets our
+        // signaling layer bind a connection to one project/room without
+        // another DB round-trip on every WebSocket connect. LiveKit just
+        // ignores attributes it doesn't know about.
         attributes: { ravenProjectId: projectId, ravenRoomId: room.id },
       },
     );

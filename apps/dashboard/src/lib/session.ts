@@ -1,12 +1,8 @@
 import { cookies } from 'next/headers';
 
-/**
- * The developer's session JWT lives only in an httpOnly cookie — never in
- * client-readable storage (localStorage, a non-httpOnly cookie, etc.), so
- * an XSS bug in this app can't exfiltrate it. Every read here is
- * server-only (Server Components, Route Handlers, middleware); no client
- * component ever sees the raw token.
- */
+// Session JWT lives only in an httpOnly cookie, never in localStorage or
+// anything client-readable — an XSS bug here can't steal it. Everything that
+// reads this cookie is server-only; no client component ever sees the token.
 export const SESSION_COOKIE_NAME = 'raven_session';
 
 export async function getSessionToken(): Promise<string | undefined> {
@@ -20,9 +16,8 @@ export function sessionCookieOptions() {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax' as const,
     path: '/',
-    // Matches the Control API's own JWT_EXPIRES_IN default (12h) closely
-    // enough for a session cookie — the API's own token expiry is the
-    // real enforcement point regardless of this value.
+    // Roughly matches the API's JWT_EXPIRES_IN (12h) — doesn't need to be
+    // exact since the API's own token expiry is what actually enforces this.
     maxAge: 60 * 60 * 12,
   };
 }

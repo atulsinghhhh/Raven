@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Room, RoomStatus } from '@prisma/client';
+import { Room, RoomStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { ConflictError, NotFoundError } from '../../shared/errors/app-error';
 import { CreateRoomDto } from './dto/create-room.dto';
@@ -40,11 +40,9 @@ export class RoomsService {
     });
   }
 
-  /**
-   * Scoping every lookup to `projectId` (not just `id`) is what prevents
-   * one project's API key from ever reading or closing another project's
-   * room, even if it somehow knew the room's ID.
-   */
+  // Scoping to projectId (not just id) is what stops one project's API
+  // key from reading or closing another project's room, even if it
+  // somehow got hold of the room ID.
   async findOneForProject(id: string, projectId: string): Promise<Room> {
     const room = await this.prisma.room.findUnique({ where: { id } });
     if (!room || room.projectId !== projectId) {

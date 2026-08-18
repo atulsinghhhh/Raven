@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE_NAME } from './lib/session';
 
-/**
- * A UX redirect only — NOT the authorization boundary. Every dashboard
- * page still calls the Control API with this session's JWT, and the API
- * itself re-checks authentication (JwtAuthGuard) and per-resource
- * ownership on every request (see docs/dashboard.md#authorization).
- * Someone bypassing this middleware entirely would just get a 401/404
- * from the API, never someone else's data.
- */
+// Just a UX redirect, not the real auth check. Every dashboard page hits the
+// Control API with the session JWT, and the API re-checks auth + ownership on
+// every request. Skip this middleware entirely and you just get a 401/404,
+// not someone else's data.
 export function proxy(request: NextRequest) {
   const hasSession = request.cookies.has(SESSION_COOKIE_NAME);
 

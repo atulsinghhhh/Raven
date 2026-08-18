@@ -7,9 +7,8 @@ export interface ProjectConfig {
 }
 
 /**
- * raven.json in the current working directory — links a local app
- * directory to a Raven project ID. Deliberately contains nothing but the
- * project ID: no secrets, safe to commit to git (Phase 8 spec §16).
+ * raven.json links this directory to a Raven project ID. Nothing but
+ * the ID lives here — no secrets, safe to commit.
  */
 export async function readProjectConfig(cwd: string = process.cwd()): Promise<ProjectConfig | undefined> {
   try {

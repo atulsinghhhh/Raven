@@ -3,9 +3,9 @@ import { CliError, ExitCode } from './errors.js';
 import { isDebugEnabled } from './logger.js';
 
 /**
- * Wraps every command action — the single place that turns a thrown error
- * into the right exit code and a developer-friendly message, never a raw
- * stack trace unless --debug is set (Phase 8 spec §27/§28).
+ * Wraps every command action — the one place that turns a thrown error
+ * into the right exit code plus a readable message instead of a raw
+ * stack trace, unless --debug is set.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic pass-through wrapper for commander's variadic action callbacks
 export function withErrorHandling(action: (...args: any[]) => Promise<void>) {

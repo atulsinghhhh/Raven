@@ -1,4 +1,4 @@
-import { ProjectStatus } from '@prisma/client';
+import { ProjectStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { NotFoundError } from '../../shared/errors/app-error';
 import { ProjectsService } from './projects.service';
@@ -30,8 +30,8 @@ describe('ProjectsService', () => {
     });
 
     it('throws the same NotFoundError when the project belongs to someone else', async () => {
-      // Critical: this must be indistinguishable from "doesn't exist" —
-      // a different error here would leak that the project ID is real.
+      // Must stay indistinguishable from "doesn't exist" — a different
+      // error here would leak that this project ID is real.
       prisma.project.findUnique.mockResolvedValue({ id: 'p1', ownerId: 'owner2' });
 
       await expect(service.findOneForOwner('p1', 'owner1')).rejects.toBeInstanceOf(NotFoundError);

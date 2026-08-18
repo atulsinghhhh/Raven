@@ -1,8 +1,8 @@
 name: E2E
 
-# Boots the real Phase 1 infrastructure stack (Postgres, Redis, LiveKit,
-# coturn — see docker-compose.yml and docs/local-development.md) and runs
-# apps/api's e2e suite against it, the same way a developer would locally.
+# Boots the real infra stack (Postgres, Redis, LiveKit, coturn — see
+# docker-compose.yml) and runs apps/api's e2e suite against it, same as a
+# developer would locally.
 
 on:
   push:

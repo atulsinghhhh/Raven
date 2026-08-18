@@ -9,7 +9,7 @@ export async function getPublicApiClient(): Promise<RavenApiClient> {
   return new RavenApiClient(config.apiUrl);
 }
 
-/** Throws notLoggedInError() if no credentials are stored — every command that needs a user throws through this, never duplicating the check. */
+/** Throws notLoggedInError() if nothing's stored. Every command that needs a user goes through this instead of duplicating the check. */
 export async function requireCredentials(): Promise<StoredCredentials> {
   const credentials = await readCredentials();
   if (!credentials) throw notLoggedInError();

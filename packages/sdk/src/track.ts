@@ -1,19 +1,18 @@
 export type TrackKind = 'camera' | 'microphone' | 'screenShare' | 'unknown';
 
 /**
- * Structural interface, not a livekit-client import — satisfied directly by
- * livekit-client's own Track class (attach/detach/mediaStreamTrack/mediaStream
- * already match this shape), and trivially fakeable in tests.
+ * Structural interface, not a livekit-client import — livekit-client's
+ * own Track class already matches this shape, and it's easy to fake in
+ * tests.
  */
 export interface TrackDelegate {
   readonly mediaStreamTrack: MediaStreamTrack;
   readonly mediaStream?: MediaStream;
   readonly isMuted: boolean;
   attach(element?: HTMLMediaElement): HTMLMediaElement;
-  // livekit-client's own detach() overloads return a single element when
-  // called with one, and an array when called with none — typed loosely
-  // here to structurally match both; Track.detach() below always
-  // normalizes to an array for a stable public API.
+  // livekit-client's detach() returns one element or an array depending on
+  // whether you pass an argument — typed loosely to match both. Track.detach()
+  // below always normalizes to an array for a stable public API.
   detach(element?: HTMLMediaElement): HTMLMediaElement | HTMLMediaElement[];
 }
 
@@ -53,8 +52,8 @@ export abstract class Track {
 }
 
 export interface LocalTrackDelegate extends TrackDelegate {
-  // Livekit-client's mute()/unmute() resolve to `this`; typed as `unknown`
-  // here so both that and a plain Promise<void> fake satisfy the interface.
+  // livekit-client's mute()/unmute() resolve to `this` — typed as `unknown`
+  // so that and a plain Promise<void> fake both satisfy the interface
   mute(): Promise<unknown>;
   unmute(): Promise<unknown>;
 }

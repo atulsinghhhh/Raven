@@ -16,12 +16,9 @@ import { ApiKeyAuthGuard } from '../api-keys/guards/api-key-auth.guard';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { RoomsService } from './rooms.service';
 
-/**
- * Room resources are control-plane records only at this phase — creating
- * a room does not start any WebRTC signaling (that begins in Phase 3/4).
- * Authenticated with a project API key, not a developer JWT: this is the
- * endpoint a developer's own backend calls at runtime.
- */
+// Rooms are control-plane records only for now — creating one doesn't
+// start any WebRTC signaling. Authenticated with a project API key, not a
+// developer JWT: this is the endpoint a developer's own backend calls.
 @ApiTags('Rooms')
 @ApiBearerAuth('apiKey')
 @Controller('v1/rooms')

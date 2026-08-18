@@ -25,9 +25,9 @@ export class RTCClient {
   private currentRoom?: Room;
 
   /**
-   * @internal use `createRTCClient(config)` instead. The second parameter
-   * exists only so unit tests can inject a fake SFUAdapter without a real
-   * browser/WebRTC stack — never part of the public config shape.
+   * @internal use `createRTCClient(config)` instead. Second param only
+   * exists so tests can inject a fake SFUAdapter without a real
+   * browser/WebRTC stack — not part of the public config.
    */
   constructor(config: ResolvedRTCClientConfig, adapterFactory: AdapterFactory = defaultAdapterFactory) {
     this.config = config;
@@ -96,10 +96,10 @@ export class RTCClient {
 }
 
 /**
- * Creates an RTC client from a token minted by your backend. See
- * docs/sdk.md#authentication — `token` and `endpoint` are the `token` and
- * `livekitUrl` fields from that same token-mint response; never construct
- * either by hand, and never mint a token in the browser.
+ * Creates an RTC client from a token minted by your backend. `token` and
+ * `endpoint` are the `token` and `livekitUrl` fields from that same
+ * mint response — don't construct them by hand, and don't mint a token
+ * in the browser.
  */
 export function createRTCClient(config: RTCClientConfig): RTCClient {
   const resolved = validateConfig(config);

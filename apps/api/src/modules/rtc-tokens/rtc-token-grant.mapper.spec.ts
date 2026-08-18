@@ -18,8 +18,8 @@ describe('toLiveKitGrant', () => {
   });
 
   it('never leaves roomJoin/canSubscribe/canPublish undefined, even when false', () => {
-    // LiveKit treats an *unset* canPublish/canSubscribe as "both granted" —
-    // this test guards against ever regressing to that over-permissive default.
+    // LiveKit treats unset canPublish/canSubscribe as "both granted" —
+    // guarding against regressing back to that over-permissive default.
     const grant = toLiveKitGrant('room-1', permissions({ join: false, subscribe: false, publish: false }));
 
     expect(grant.roomJoin).toBe(false);

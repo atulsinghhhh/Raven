@@ -1,7 +1,6 @@
-// class-transformer's `enableImplicitConversion` reads design-time type
-// metadata via `Reflect.getMetadata`, which only exists once this
-// polyfill has been imported — main.ts imports it for the real app, but
-// a spec file calling validateEnv() in isolation needs its own import.
+// enableImplicitConversion needs Reflect.getMetadata, which only exists
+// once this polyfill's loaded. main.ts imports it for the real app, but
+// this spec calls validateEnv() standalone so it needs its own copy.
 import 'reflect-metadata';
 import { validateEnv } from './env.validation';
 
@@ -47,10 +46,10 @@ describe('validateEnv — always-required fields', () => {
   });
 });
 
-describe('validateEnv — production-only checks (Phase 5 §26)', () => {
+describe('validateEnv — production-only checks', () => {
   it('does not enforce production checks when NODE_ENV is unset (local dev)', () => {
-    // No TURN_TLS_PORT, CORS_ORIGIN="*" implicitly, TURN_HOST=localhost —
-    // all invalid for production, all fine for local dev.
+    // No TURN_TLS_PORT, CORS_ORIGIN defaults to "*", TURN_HOST=localhost —
+    // all of that's invalid in prod but fine here.
     expect(() => validateEnv(baseConfig())).not.toThrow();
   });
 

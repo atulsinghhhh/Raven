@@ -26,9 +26,9 @@ export interface RoomEventMap {
 }
 
 /**
- * A joined room. Returned by `client.join(roomId)` — never constructed
- * directly. Owns participant/track state and all room-scoped actions; the
- * developer never touches SDP, ICE candidates, or RTCPeerConnection here.
+ * A joined room, returned by `client.join(roomId)` — don't construct it
+ * yourself. Owns participant/track state and all room-scoped actions; no
+ * SDP, ICE candidates, or RTCPeerConnection leak into this API.
  */
 export class Room extends TypedEventEmitter<RoomEventMap> {
   readonly roomId: string;
@@ -111,7 +111,7 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
     await this.adapter.enableMicrophone(false);
   }
 
-  /** Captures and publishes a screen share in one call (see docs/sdk.md#screen-sharing). */
+  /** Captures and publishes a screen share in one call. */
   async enableScreenShare(): Promise<LocalTrack | undefined> {
     return this.adapter.enableScreenShare(true);
   }
@@ -140,15 +140,13 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
   }
 
   /**
-   * Sends a small application payload to all (or, per the underlying SFU's
-   * own targeting, specific) participants. Requires the token's
-   * `publishData` grant — throws PERMISSION_DENIED otherwise. See
-   * docs/sdk.md#data (Phase 6 spec §21 — kept intentionally minimal).
+   * Sends a small payload to all participants (or specific ones, if the
+   * underlying SFU adapter supports targeting). Needs the token's
+   * `publishData` grant — throws PERMISSION_DENIED otherwise.
    */
   async sendData(payload: string | Uint8Array): Promise<void> {
-    // Re-wrapped into a fresh, plain-ArrayBuffer-backed Uint8Array — the
-    // public `payload` type stays loose so callers never need to think
-    // about ArrayBuffer vs. SharedArrayBuffer generics.
+    // rewrap into a plain ArrayBuffer-backed Uint8Array so callers don't
+    // have to think about ArrayBuffer vs SharedArrayBuffer generics
     const bytes = typeof payload === 'string' ? new TextEncoder().encode(payload) : new Uint8Array(payload);
     await this.adapter.sendData(bytes);
   }

@@ -22,7 +22,7 @@ describe('proxy (dashboard auth guard)', () => {
     });
     const response = proxy(request);
 
-    // NextResponse.next() sets this internal header; absence of a redirect is the real assertion.
+    // NextResponse.next() doesn't set a location header — the real check is just "no redirect".
     expect(response.headers.get('location')).toBeNull();
     expect(response.status).not.toBe(307);
   });
@@ -36,9 +36,8 @@ describe('proxy (dashboard auth guard)', () => {
   });
 
   it('this is a UX redirect only — it does not know or check WHICH project the cookie can access', () => {
-    // Any non-empty session cookie passes, even a garbage/expired one — real
-    // authorization happens API-side (JwtAuthGuard + project ownership),
-    // never here. See docs/dashboard.md#authorization.
+    // Any non-empty cookie passes here, even garbage or expired ones — real
+    // auth (JwtAuthGuard + ownership) happens API-side, not in this proxy.
     const request = new NextRequest('http://localhost:3000/dashboard/projects/someone-elses-project', {
       headers: { cookie: `${SESSION_COOKIE_NAME}=garbage-not-a-real-jwt` },
     });

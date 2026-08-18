@@ -27,12 +27,10 @@ import { ProjectsService } from '../projects/projects.service';
 import { ApiKeysService } from './api-keys.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
 
-/**
- * Management endpoints for a project's API keys. Guarded by JwtAuthGuard
- * (the developer must be logged in and own the project) — this is
- * distinct from ApiKeyAuthGuard, which authenticates *with* one of these
- * keys elsewhere (Rooms, RTC Tokens).
- */
+// Management endpoints for a project's API keys — guarded by
+// JwtAuthGuard, so the developer has to be logged in and own the project.
+// Not to be confused with ApiKeyAuthGuard, which authenticates *with* one
+// of these keys over on Rooms/RTC Tokens.
 @ApiTags('API Keys')
 @ApiBearerAuth('jwt')
 @Controller('v1/projects/:projectId/api-keys')

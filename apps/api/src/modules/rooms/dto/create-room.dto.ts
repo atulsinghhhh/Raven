@@ -1,9 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Matches, MaxLength, MinLength } from 'class-validator';
 
-// Conservative charset: alphanumeric, dash, underscore, dot. Avoids
-// characters that are awkward or unsafe in URLs, logs, or as a LiveKit
-// room name (which this value becomes verbatim in a later phase).
+// Alphanumeric + dash/underscore/dot only — keeps this safe to use
+// verbatim as a LiveKit room name, in URLs, and in logs.
 const ROOM_NAME_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 
 export class CreateRoomDto {

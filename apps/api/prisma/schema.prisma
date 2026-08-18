@@ -3,12 +3,17 @@
 // See docs/control-plane.md for the full data-model rationale.
 
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+  runtime      = "nodejs"
 }
 
+// Prisma 7 dropped `url` here — it lives in prisma.config.ts for the CLI now,
+// and PrismaClient gets it via the driver adapter (prisma.service.ts).
+// https://pris.ly/d/config-datasource
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum ProjectStatus {

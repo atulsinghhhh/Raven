@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiKey, ApiKeyStatus, Project } from '@prisma/client';
+import { ApiKey, ApiKeyStatus, Project } from '../../generated/prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { NotFoundError, UnauthorizedError } from '../../shared/errors/app-error';
@@ -81,9 +81,9 @@ export class ApiKeysService {
   }
 
   /**
-   * Authenticates a raw `publicId.secret` key (as sent in an Authorization
-   * header) and returns the project it belongs to. Used by ApiKeyAuthGuard
-   * to scope Room and RTC Token requests to exactly one project.
+   * Authenticates a raw `publicId.secret` key from the Authorization
+   * header and returns its project. ApiKeyAuthGuard uses this to scope
+   * Room and RTC Token requests to one project.
    */
   async verify(rawKey: string): Promise<Project> {
     const [publicId, secret] = rawKey.split('.', 2);
@@ -105,7 +105,7 @@ export class ApiKeysService {
       throw new UnauthorizedError('Invalid API key');
     }
 
-    // Best-effort — a failure here must never block the actual request.
+    // Best-effort — must never block the actual request if this fails.
     this.prisma.apiKey
       .update({ where: { id: apiKey.id }, data: { lastUsedAt: new Date() } })
       .catch(() => undefined);

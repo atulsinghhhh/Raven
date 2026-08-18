@@ -27,12 +27,12 @@ export interface SFUAdapterEventMap {
 }
 
 /**
- * The boundary between the public Room API and whatever SFU client library
- * actually implements the connection (currently livekit-client — see
+ * Boundary between the public Room API and whatever SFU library actually
+ * implements the connection (livekit-client right now — see
  * internal/sfu/livekit-adapter.ts). Room never imports livekit-client
- * directly, so the public API stays stable if the underlying SFU changes
- * (Phase 6 spec §24). Also what lets unit tests exercise Room/Client logic
- * with a fake adapter instead of a real browser + WebRTC stack.
+ * directly, so the public API survives an SFU swap. Also lets tests
+ * exercise Room/Client logic with a fake adapter instead of a real
+ * browser + WebRTC stack.
  */
 export interface SFUAdapter {
   readonly connectionState: SdkConnectionState;

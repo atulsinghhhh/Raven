@@ -7,12 +7,11 @@ import { RedisService } from '../redis/redis.service';
 import { RATE_LIMIT_KEY } from './rate-limit.decorator';
 
 /**
- * Fixed-window counter in Redis: INCR + EXPIRE-on-first-hit. Keyed by
- * client IP, not by authenticated identity — this guard also protects
- * pre-auth routes (login, register) where no identity exists yet.
- * Good enough to blunt credential-stuffing/brute-force/spam-signup abuse;
- * not a distributed, per-tenant rate-limiting platform (see Phase 14+
- * for anything beyond this).
+ * Fixed-window counter in Redis: INCR, then EXPIRE on the first hit.
+ * Keyed by IP rather than identity since this also has to cover pre-auth
+ * routes like login/register where there's no identity yet. Enough to
+ * blunt credential stuffing and spam signups — not a real multi-tenant
+ * rate-limiting system.
  */
 @Injectable()
 export class RateLimitGuard implements CanActivate {

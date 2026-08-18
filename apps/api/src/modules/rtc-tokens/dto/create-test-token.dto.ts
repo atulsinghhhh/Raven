@@ -3,13 +3,10 @@ import { IsOptional, Matches, MaxLength, MinLength } from 'class-validator';
 
 const IDENTITY_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 
-/**
- * Intentionally has no `permissions`/`ttlSeconds` fields — a dashboard test
- * token always gets a fixed, short-lived, full-publish grant (see
- * dashboard-rtc-tokens.controller.ts). Real participant tokens for a
- * developer's own app are minted by their backend via the API-key-guarded
- * endpoint (rtc-tokens.controller.ts), not this one.
- */
+// No permissions/ttlSeconds fields on purpose — a dashboard test token
+// always gets the same fixed, short-lived, full-publish grant (see
+// dashboard-rtc-tokens.controller.ts). Real tokens for a developer's app
+// go through the API-key-guarded endpoint instead.
 export class CreateTestTokenDto {
   @ApiPropertyOptional({
     example: 'test-user',

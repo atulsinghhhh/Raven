@@ -1,10 +1,6 @@
-/**
- * Decodes (never verifies) the session JWT's payload for display purposes
- * only (e.g. showing the signed-in email in the nav) — the same
- * decode-only pattern established in the SDK (packages/sdk/src/config.ts).
- * The Control API is the only thing that ever actually verifies this
- * token; every real data request is authorized there, not here.
- */
+// Decodes the JWT payload for display only (e.g. showing the email in the
+// nav) — doesn't verify the signature. The Control API is what actually
+// verifies this token; nothing here should be trusted for authorization.
 export function decodeSessionEmail(token: string): string | undefined {
   try {
     const [, payloadB64] = token.split('.');

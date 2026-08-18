@@ -2,19 +2,16 @@ import { TrackSource, VideoGrant } from 'livekit-server-sdk';
 import { RtcTokenPermissionsDto } from './dto/rtc-token-permissions.dto';
 
 /**
- * Translates Raven's own permission vocabulary (join/publish/subscribe/
- * publishAudio/publishVideo/publishData) into a LiveKit VideoGrant.
- *
- * This indirection is deliberate: it's what lets docs/architecture/
- * sfu-comparison.md's documented fallback (swapping LiveKit for mediasoup
- * later) happen without changing the public RTC Token API contract.
+ * Translates Raven's permission vocabulary (join/publish/subscribe/
+ * publishAudio/publishVideo/publishData) into a LiveKit VideoGrant. The
+ * indirection means we could swap LiveKit for another SFU later without
+ * touching the public RTC Token API contract.
  */
 export function toLiveKitGrant(roomName: string, permissions: RtcTokenPermissionsDto): VideoGrant {
   const grant: VideoGrant = {
     room: roomName,
-    // Always set explicitly: LiveKit treats *both* canPublish and
-    // canSubscribe as granted if neither is set, which would silently
-    // over-grant relative to what the caller asked for.
+    // Set explicitly on purpose — LiveKit grants both canPublish and
+    // canSubscribe if neither is set, which would silently over-grant.
     roomJoin: permissions.join ?? false,
     canSubscribe: permissions.subscribe ?? false,
     canPublish: permissions.publish ?? false,
@@ -26,9 +23,9 @@ export function toLiveKitGrant(roomName: string, permissions: RtcTokenPermission
     if (permissions.publishAudio) sources.push(TrackSource.MICROPHONE);
     if (permissions.publishVideo) sources.push(TrackSource.CAMERA);
 
-    // Only restrict to a subset when the caller asked for one. If publish
-    // is granted but neither sub-flag was set, canPublishSources stays
-    // unset and LiveKit's default (all sources) applies.
+    // Only restrict to a subset if the caller actually asked for one —
+    // otherwise leave canPublishSources unset so LiveKit's default (all
+    // sources) applies.
     if (sources.length > 0) {
       grant.canPublishSources = sources;
     }
@@ -38,11 +35,10 @@ export function toLiveKitGrant(roomName: string, permissions: RtcTokenPermission
 }
 
 /**
- * The inverse of toLiveKitGrant — used by the signaling layer (Phase 3)
- * to recover Raven's permission vocabulary from a verified LiveKit JWT's
- * claims, so authorization decisions (e.g. "does this participant have
- * join?") stay expressed in our own vocabulary rather than leaking
- * LiveKit's grant shape into the signaling gateway.
+ * Inverse of toLiveKitGrant. The signaling layer uses this to recover our
+ * permission vocabulary from a verified LiveKit JWT's claims, so it can
+ * ask "does this participant have join?" without leaking LiveKit's grant
+ * shape into the gateway.
  */
 export function fromLiveKitGrant(grant: VideoGrant): RtcTokenPermissionsDto {
   const permissions = new RtcTokenPermissionsDto();
@@ -52,8 +48,8 @@ export function fromLiveKitGrant(grant: VideoGrant): RtcTokenPermissionsDto {
   permissions.publishData = grant.canPublishData ?? false;
 
   const sources = grant.canPublishSources ?? [];
-  // No explicit sources with publish=true means "all sources" (see
-  // toLiveKitGrant) — treat that as both audio and video allowed.
+  // publish=true with no explicit sources means "all sources" (see
+  // toLiveKitGrant above) — treat that as audio and video both allowed.
   const allSourcesAllowed = permissions.publish && sources.length === 0;
   permissions.publishAudio = allSourcesAllowed || sources.includes(TrackSource.MICROPHONE);
   permissions.publishVideo = allSourcesAllowed || sources.includes(TrackSource.CAMERA);

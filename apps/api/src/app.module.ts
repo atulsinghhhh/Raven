@@ -21,9 +21,8 @@ import { UsersModule } from './modules/users/users.module';
       isGlobal: true,
       load: [configuration],
       validate: validateEnv,
-      // The API is a workspace package (apps/api); .env lives at the repo
-      // root so every service (Docker Compose, this app, Prisma CLI)
-      // shares one source of truth. See docs/local-development.md.
+      // .env lives at the repo root, not in apps/api — that way Docker
+      // Compose, this app, and the Prisma CLI all read the same file.
       envFilePath: ['../../.env', '.env'],
     }),
     PrismaModule,

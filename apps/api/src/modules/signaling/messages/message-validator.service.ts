@@ -17,11 +17,9 @@ function isNonEmptyString(value: unknown): value is string {
 }
 
 /**
- * Every message a client sends passes through here before any handler
- * sees it. Nothing is forwarded blindly — unknown types, missing fields,
- * wrong field types, and oversized payloads are all rejected here, not
- * downstream. See docs/signaling-protocol.md for the authoritative shape
- * of each message type.
+ * Every client message passes through here before any handler sees it.
+ * Nothing gets forwarded blindly — unknown types, missing fields, wrong
+ * field types, oversized payloads all get rejected here, not downstream.
  */
 @Injectable()
 export class MessageValidatorService {

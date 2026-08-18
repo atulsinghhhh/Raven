@@ -16,9 +16,8 @@ export function registerLogoutCommand(program: Command): void {
           return;
         }
 
-        // Best-effort server-side blocklist — the local credential is
-        // removed either way, so the user's browser-visible state (logged
-        // out on this machine) is never blocked on the network.
+        // best-effort server-side blocklist — local creds get cleared
+        // regardless, so "logged out" here never waits on the network
         await new RavenApiClient(credentials.apiUrl, credentials.token).logout().catch(() => undefined);
 
         await clearCredentials();

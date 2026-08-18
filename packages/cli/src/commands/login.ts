@@ -52,10 +52,9 @@ export function registerLoginCommand(program: Command): void {
 }
 
 /**
- * The dashboard's own origin, derived from the Control API's URL — in
- * local dev the API is on :4100 and the dashboard on :3000; in a real
- * deployment RAVEN_DASHBOARD_URL should be set explicitly since the two
- * need not share a host at all. See docs/cli.md#authentication.
+ * Dashboard origin derived from the Control API URL. Local dev: API on
+ * :4100, dashboard on :3000. In a real deployment, set
+ * RAVEN_DASHBOARD_URL explicitly — the two hosts won't necessarily match.
  */
 function dashboardUrlFor(apiUrl: string): string {
   if (process.env.RAVEN_DASHBOARD_URL) return process.env.RAVEN_DASHBOARD_URL;

@@ -19,11 +19,8 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsService } from './projects.service';
 
-/**
- * Dashboard-style management, authenticated by developer session JWT.
- * Every lookup here is scoped to the authenticated user's own projects —
- * see docs/control-plane.md#cross-tenant-isolation.
- */
+// Dashboard-style management, authenticated by developer session JWT.
+// Every lookup here is scoped to the caller's own projects.
 @ApiTags('Projects')
 @ApiBearerAuth('jwt')
 @Controller('v1/projects')

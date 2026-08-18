@@ -85,9 +85,9 @@ class EnvironmentVariables {
   @IsNotEmpty()
   TURN_SECRET!: string;
 
-  // Optional: unset means "don't advertise turns: to clients" (no TLS
-  // listener configured on coturn) — valid for local dev, invalid for
-  // production, enforced below in validateProductionConfig().
+  // Optional — unset just means we don't advertise turns: to clients
+  // (no TLS listener on coturn). Fine for local dev, not for production;
+  // validateProductionConfig() below catches that case.
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -104,11 +104,8 @@ class EnvironmentVariables {
 }
 
 /**
- * Fail-fast checks that only make sense once NODE_ENV=production —
- * distinct from the always-required fields above. A misconfigured local
- * dev environment should never crash on these; a misconfigured
- * production deployment should never start. See Phase 5 §26 and
- * docs/turn.md's production checklist.
+ * Extra checks that only apply once NODE_ENV=production. Local dev should
+ * never crash on these; a misconfigured prod deploy should never start.
  */
 function validateProductionConfig(config: EnvironmentVariables): void {
   if (config.NODE_ENV !== 'production') {
@@ -137,10 +134,8 @@ function validateProductionConfig(config: EnvironmentVariables): void {
   }
 }
 
-/**
- * Fails fast at boot if required configuration is missing or malformed,
- * instead of surfacing confusing runtime errors on the first request.
- */
+// Fails fast at boot if config is missing/malformed, instead of blowing
+// up confusingly on the first request that touches it.
 export function validateEnv(config: Record<string, unknown>) {
   const validated = plainToInstance(EnvironmentVariables, config, {
     enableImplicitConversion: true,

@@ -3,13 +3,9 @@ import { getSessionToken } from '@/lib/session';
 import { decodeSessionEmail } from '@/lib/decode-session';
 import { CliAuthConfirm } from './cli-auth-confirm';
 
-/**
- * The browser side of `raven login` (packages/cli/src/commands/login.ts).
- * Reuses the dashboard's own existing session JWT verbatim — this page
- * does not mint a new kind of credential or run a separate auth system,
- * it only relays the *existing* session to a CLI process listening on
- * localhost after the user explicitly approves. See docs/cli.md#authentication.
- */
+// Browser side of `raven login`. No new credential type here, no separate
+// auth system — just relays your existing dashboard session to the CLI
+// process waiting on localhost, once you approve it.
 export default async function CliAuthPage({
   searchParams,
 }: {

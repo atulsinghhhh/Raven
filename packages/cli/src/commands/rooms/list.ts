@@ -28,7 +28,7 @@ export function registerRoomsListCommand(rooms: Command): void {
 
         printTable(list, [
           { header: 'ROOM', value: (r) => r.name },
-          // null means the SFU couldn't be reached — "unknown", never a fabricated 0.
+          // null = SFU unreachable, shown as "unknown" rather than faking a 0
           { header: 'PARTICIPANTS', value: (r) => (r.liveParticipantCount === null ? 'unknown' : String(r.liveParticipantCount)) },
           { header: 'STATUS', value: (r) => roomStatusLabel(r.liveParticipantCount) },
           { header: 'CREATED', value: (r) => new Date(r.createdAt).toLocaleString() },

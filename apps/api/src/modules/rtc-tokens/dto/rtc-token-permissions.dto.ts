@@ -1,13 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsOptional } from 'class-validator';
 
-/**
- * Raven's own permission vocabulary. The RTC Tokens service translates
- * this into a LiveKit VideoGrant — see rtc-tokens.service.ts. Keeping our
- * own names here (rather than exposing LiveKit's grant shape directly)
- * is what lets us swap the underlying SFU later without changing the
- * public API contract (docs/architecture/sfu-comparison.md).
- */
+// Raven's own permission vocabulary — rtc-tokens.service.ts translates
+// this into a LiveKit VideoGrant. Keeping our own names here instead of
+// exposing LiveKit's grant shape means we could swap SFUs later without
+// breaking the public API.
 export class RtcTokenPermissionsDto {
   @ApiPropertyOptional({ default: true, description: 'Allowed to join the room at all' })
   @IsOptional()

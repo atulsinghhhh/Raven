@@ -27,12 +27,10 @@ export function buildCli(): Command {
     .hook('preAction', (thisCommand) => {
       setDebugEnabled(Boolean(thisCommand.opts().debug));
     })
-    // Commander's own default exit codes don't match docs/cli.md's
-    // documented table (0/1/2/3/4/5/6) — this normalizes parse-time
-    // failures (missing argument, unknown option, unknown command) to our
-    // exit code 2 (invalid usage), while leaving --help/--version at 0.
-    // Runtime failures (thrown inside an action) are handled separately
-    // by withErrorHandling and never reach this path.
+    // Commander's default exit codes don't match our documented table, so
+    // map parse failures (bad args, unknown option/command) to 2. --help
+    // and --version still exit 0. Runtime errors thrown inside an action
+    // go through withErrorHandling instead — they never hit this.
     .exitOverride((err) => {
       if (err.code === 'commander.helpDisplayed' || err.code === 'commander.version') {
         process.exit(ExitCode.Success);

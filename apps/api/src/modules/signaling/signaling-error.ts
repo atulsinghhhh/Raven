@@ -1,10 +1,8 @@
 import { ServerMessageType, SignalingErrorCode } from './signaling.constants';
 import { ErrorMessage } from './interfaces/signaling-message.interface';
 
-/**
- * Thrown by message handlers to short-circuit with a specific, safe error
- * sent back to the client — never a raw exception message or stack trace.
- */
+// Thrown by message handlers to bail out with a specific, safe error for
+// the client — never a raw exception message or stack trace.
 export class SignalingError extends Error {
   constructor(
     public readonly code: SignalingErrorCode,

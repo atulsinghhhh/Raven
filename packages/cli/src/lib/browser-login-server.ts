@@ -10,17 +10,13 @@ export interface BrowserLoginResult {
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes to complete the browser step
 
 /**
- * Starts a one-shot local HTTP server bound to 127.0.0.1 only (never
- * 0.0.0.0 — this must not be reachable from the network) that waits for
- * the dashboard's /cli-auth bridge page to relay the user's *existing*
- * session token here, after they approve the CLI login in their browser.
- * See docs/cli.md#authentication for the full flow and
- * apps/dashboard/src/app/cli-auth for the browser side.
+ * One-shot local server for the browser login handshake. Binds to
+ * 127.0.0.1 only, never 0.0.0.0 — this must not be reachable from the
+ * network. Waits for the dashboard's /cli-auth page to relay the user's
+ * existing session token back here once they approve the login.
  *
- * This reuses the Control API's existing JWT session auth verbatim — it
- * is not a second authentication system. The local server's only job is
- * to receive that token over localhost and hand it back to the CLI
- * process that's waiting for it.
+ * Not a second auth system, just a relay: reuses the Control API's JWT
+ * session auth and hands the token to the CLI process waiting for it.
  */
 export function startBrowserLoginServer(): {
   port: Promise<number>;
@@ -52,10 +48,8 @@ export function startBrowserLoginServer(): {
 
     portPromise.then(() => {
       server.on('request', (req, res) => {
-        // CORS: the dashboard origin (which may be a real remote host, not
-        // localhost) needs to be allowed to POST here from the browser —
-        // this server is single-use, ephemeral, and closes immediately
-        // after the one exchange it exists for.
+        // dashboard origin might be a real remote host, not localhost, so CORS
+        // has to allow it — fine, this server dies right after the one exchange
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');

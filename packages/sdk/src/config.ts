@@ -5,15 +5,15 @@ export interface RTCClientConfig {
   /** The RTC token minted by your backend via Raven's Control API. Never mint this in the browser. */
   token: string;
   /**
-   * The RTC infrastructure URL to connect to — the `livekitUrl` field from
-   * the same token-mint response as `token`. Forward both through your own
-   * backend/frontend as-is; never hand-construct this.
+   * RTC infrastructure URL to connect to — the `livekitUrl` field from
+   * the same mint response as `token`. Forward both through as-is, don't
+   * hand-construct this.
    */
   endpoint: string;
   /**
-   * The `iceServers` array from the same token-mint response. Optional only
-   * so tests/advanced setups can omit it — in normal use, always forward it;
-   * never hand-configure STUN/TURN yourself (Phase 6 spec §25).
+   * `iceServers` array from the same mint response. Optional so tests
+   * and advanced setups can skip it, but normally just forward it —
+   * don't hand-configure STUN/TURN yourself.
    */
   iceServers?: RTCIceServer[];
   logLevel?: LogLevel;
@@ -35,7 +35,7 @@ interface DecodedTokenPayload {
   sub?: string;
 }
 
-/** Decodes (never verifies — the server is the source of truth) the JWT payload. */
+/** Decodes the JWT payload — doesn't verify it, the server's the source of truth. */
 export function decodeTokenPayload(token: string): DecodedTokenPayload {
   const parts = token.split('.');
   if (parts.length !== 3) {
@@ -83,9 +83,9 @@ export function validateConfig(config: RTCClientConfig): ResolvedRTCClientConfig
 }
 
 /**
- * Fails fast, client-side, before ever attempting a connection, if the
- * token was minted for a different room than the one being joined — a
- * much clearer error than a live connection failure.
+ * Fails fast client-side, before attempting any connection, if the
+ * token was minted for a different room than the one being joined —
+ * clearer than letting the connection itself fail.
  */
 export function assertTokenMatchesRoom(token: string, roomId: string): void {
   const { room } = decodeTokenPayload(token);

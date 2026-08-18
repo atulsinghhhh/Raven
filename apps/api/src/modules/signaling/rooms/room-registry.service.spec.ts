@@ -74,8 +74,8 @@ describe('RoomRegistryService', () => {
     registry.join(makeSession({ participantId: 'b' }));
     registry.join(makeSession({ participantId: 'c' }));
 
-    // Room is "full" at 3, but 'a' rejoining must still succeed — it
-    // replaces its own slot rather than requesting a new one.
+    // Room's "full" at 3, but 'a' rejoining should still succeed since it
+    // replaces its own slot instead of requesting a new one.
     expect(() => registry.join(makeSession({ participantId: 'a', connectionId: 'conn-2' }))).not.toThrow();
   });
 

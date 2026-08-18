@@ -21,11 +21,9 @@ const STUN_MAGIC_COOKIE = 0x2112a442;
 const STUN_BINDING_REQUEST = 0x0001;
 
 /**
- * A real STUN Binding Request/Response (RFC 5389) over UDP — not a
- * fake/simulated "ping". Used instead of shelling out to a CLI tool
- * (scripts/verify-infra.sh's approach, which needs docker exec) since the
- * API process should reach coturn directly over the network, the same way
- * a real client would.
+ * A real STUN Binding Request/Response over UDP (RFC 5389), not a fake
+ * ping. We do this instead of shelling out to a CLI tool so the API
+ * process reaches coturn directly over the network, same as a real client.
  */
 export function checkStunBinding(host: string, port: number, timeoutMs = 2000): Promise<boolean> {
   return new Promise((resolve) => {
@@ -51,7 +49,7 @@ export function checkStunBinding(host: string, port: number, timeoutMs = 2000): 
     socket.once('message', (msg) => {
       const validResponse =
         msg.length >= 20 &&
-        (msg.readUInt16BE(0) & 0x0110) !== 0 && // STUN response class (success or error)
+        (msg.readUInt16BE(0) & 0x0110) !== 0 && // response class: success or error
         msg.readUInt32BE(4) === STUN_MAGIC_COOKIE &&
         msg.subarray(8, 20).equals(transactionId);
       finish(validResponse);

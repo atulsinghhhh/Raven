@@ -9,12 +9,9 @@ declare module 'express' {
   }
 }
 
-/**
- * Authenticates machine-to-machine requests (Rooms, RTC Tokens) using a
- * project-scoped API key, as opposed to JwtAuthGuard which authenticates a
- * logged-in developer for dashboard-style management (Projects, API Keys).
- * See docs/control-plane.md#authentication-model.
- */
+// Authenticates machine-to-machine requests (Rooms, RTC Tokens) with a
+// project-scoped API key — JwtAuthGuard is the other one, for a logged-in
+// developer doing dashboard-style management (Projects, API Keys).
 @Injectable()
 export class ApiKeyAuthGuard implements CanActivate {
   constructor(private readonly apiKeysService: ApiKeysService) {}

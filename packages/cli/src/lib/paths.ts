@@ -1,10 +1,7 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-/**
- * ~/.raven/ (or $RAVEN_CONFIG_DIR, for tests/CI that need isolation) — the
- * one place the CLI persists anything. See docs/cli.md#configuration.
- */
+/** ~/.raven/ (or $RAVEN_CONFIG_DIR for isolated tests/CI) — the only place the CLI writes anything. */
 export function ravenHomeDir(): string {
   return process.env.RAVEN_CONFIG_DIR ?? join(homedir(), '.raven');
 }

@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 
-/** Prints exactly one JSON value to stdout — nothing else, ever, so it's always safe to pipe (Phase 8 spec §25). */
+/** Prints exactly one JSON value to stdout, nothing else — safe to pipe. */
 export function printJson(value: unknown): void {
   process.stdout.write(JSON.stringify(value, null, 2) + '\n');
 }
@@ -13,7 +13,7 @@ export function printInfo(message: string): void {
   process.stdout.write(`${message}\n`);
 }
 
-/** A "Label:\nvalue" block, e.g. the `whoami`/`projects inspect` output style from the spec. */
+/** "Label:\nvalue" block — the style `whoami`/`projects inspect` use. */
 export function printField(label: string, value: string): void {
   process.stdout.write(`${chalk.dim(label + ':')}\n${value}\n`);
 }
@@ -23,7 +23,7 @@ export interface TableColumn<T> {
   value: (row: T) => string;
 }
 
-/** A minimal, dependency-free table — column widths derived from content, like `docker ps`/`kubectl get`. */
+/** Dependency-free table, widths sized from content — think `docker ps`/`kubectl get` output. */
 export function printTable<T>(rows: T[], columns: TableColumn<T>[]): void {
   const widths = columns.map((col) =>
     Math.max(col.header.length, ...rows.map((row) => col.value(row).length)),

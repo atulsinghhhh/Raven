@@ -46,8 +46,8 @@ export default async function QuickstartPage({ params }: { params: Promise<{ pro
           language="typescript"
           code={`import { createRTCClient } from '@raven/rtc';
 
-// token, endpoint (livekitUrl), and iceServers come from your backend's
-// token-mint response above — never construct them yourself.
+// token, endpoint, and iceServers all come from the backend response above —
+// don't build these yourself.
 const client = createRTCClient({
   token,
   endpoint,

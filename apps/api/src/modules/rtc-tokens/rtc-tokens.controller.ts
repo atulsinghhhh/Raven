@@ -14,12 +14,9 @@ import { ApiKeyAuthGuard } from '../api-keys/guards/api-key-auth.guard';
 import { CreateRtcTokenDto } from './dto/create-rtc-token.dto';
 import { RtcTokensService } from './rtc-tokens.service';
 
-/**
- * Issues short-lived RTC access tokens for a room. This does not itself
- * establish a WebRTC session — the returned token is what a client SDK
- * later presents to LiveKit's signaling endpoint (Phase 3+). See
- * docs/architecture/signaling.md.
- */
+// Issues short-lived RTC access tokens for a room. Doesn't establish a
+// WebRTC session itself — the token comes back and the client SDK
+// presents it to LiveKit's signaling endpoint later.
 @ApiTags('RTC Tokens')
 @ApiBearerAuth('apiKey')
 @Controller('v1/rooms/:roomId/rtc-tokens')

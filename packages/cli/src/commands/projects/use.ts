@@ -11,9 +11,8 @@ export function registerProjectsUseCommand(projects: Command): void {
     .action(
       withErrorHandling(async (projectId: string) => {
         const { client } = await getAuthenticatedApiClient();
-        // Confirms the ID is real and owned by the caller before saving it
-        // — never point the "current project" context at something that
-        // will just 404 on the next command.
+        // confirm the ID is real and owned by the caller before saving it —
+        // don't want "current project" pointing at something that 404s next time
         const project = await client.getProject(projectId);
 
         await updateCliConfig({ currentProject: project.id });

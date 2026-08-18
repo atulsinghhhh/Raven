@@ -72,9 +72,9 @@ function mapConnectError(error: unknown): RTCError {
 }
 
 /**
- * Adapts livekit-client's Room to the SDK's own SFUAdapter surface (Phase 6
- * spec §24). This is the only file that imports livekit-client's Room type
- * directly — Room.ts and Client.ts only ever see SFUAdapter.
+ * Adapts livekit-client's Room to our own SFUAdapter surface. Only file
+ * that imports livekit-client's Room type directly — Room.ts and
+ * Client.ts only ever see SFUAdapter.
  */
 export class LiveKitAdapter extends TypedEventEmitter<SFUAdapterEventMap> implements SFUAdapter {
   private readonly lkRoom: LKRoom;
@@ -116,9 +116,9 @@ export class LiveKitAdapter extends TypedEventEmitter<SFUAdapterEventMap> implem
     room.on(RoomEvent.ConnectionStateChanged, (state) => {
       const mapped = mapConnectionState(state);
       if (mapped === 'reconnecting') this.wasReconnecting = true;
-      // 'disconnected' is handled by the Disconnected listener below, which
-      // has the extra context (intentional vs. reconnect-exhausted) needed
-      // to decide between our 'disconnected' and 'failed' states.
+      // 'disconnected' gets handled by the listener below instead — it has
+      // the extra context (intentional vs reconnect-exhausted) needed to
+      // pick between our 'disconnected' and 'failed' states
       if (mapped !== 'disconnected') this.setConnectionState(mapped);
     });
 
@@ -171,9 +171,9 @@ export class LiveKitAdapter extends TypedEventEmitter<SFUAdapterEventMap> implem
     });
 
     room.on(RoomEvent.LocalTrackPublished, (publication) => {
-      // enableCamera()/enableMicrophone()/enableScreenShare() may have
-      // already wrapped this publication (trackFromPublication) before this
-      // event fires — reuse that wrapper rather than creating a duplicate.
+      // enableCamera()/enableMicrophone()/enableScreenShare() may have already
+      // wrapped this via trackFromPublication before this event fires — reuse
+      // it instead of making a duplicate
       const track = this.localTrackWrappers.get(publication) ?? new LocalTrack(assertLocalTrack(publication), trackKindFromSource(publication.source));
       this.localTrackWrappers.set(publication, track);
       if (!this.localParticipant.tracks.includes(track)) this.localParticipant.tracks.push(track);
@@ -200,12 +200,11 @@ export class LiveKitAdapter extends TypedEventEmitter<SFUAdapterEventMap> implem
   }
 
   /**
-   * RoomEvent.ParticipantConnected/TrackSubscribed only fire for
-   * participants/tracks that arrive *after* our listeners are attached —
-   * livekit-client has already populated room.remoteParticipants (and each
-   * participant's already-subscribed tracks) by the time connect() resolves
-   * for anyone who joined before us. Without this, a participant who joined
-   * first would never appear on a participant who joins second.
+   * ParticipantConnected/TrackSubscribed only fire for stuff that arrives
+   * *after* our listeners attach. livekit-client's already populated
+   * room.remoteParticipants by the time connect() resolves, so anyone who
+   * joined earlier has to be picked up here manually — otherwise they'd
+   * never show up for whoever joins second.
    */
   private bootstrapExistingParticipants(): void {
     for (const lkParticipant of this.lkRoom.remoteParticipants.values()) {
@@ -271,8 +270,8 @@ export class LiveKitAdapter extends TypedEventEmitter<SFUAdapterEventMap> implem
   private trackFromPublication(publication: LKLocalTrackPublication): LocalTrack {
     const existing = this.localTrackWrappers.get(publication);
     if (existing) return existing;
-    // RoomEvent.LocalTrackPublished usually wraps first, but guard for the
-    // rare case this resolves before that listener has run.
+    // LocalTrackPublished usually wraps this first, but guard for the rare
+    // case this resolves before that listener runs
     const track = new LocalTrack(publication.track!, trackKindFromSource(publication.source));
     this.localTrackWrappers.set(publication, track);
     return track;

@@ -4,13 +4,9 @@ import { ApiError, ravenApi } from '@/lib/api-client';
 import { Card, CardHeader, StatCard } from '@/components/ui/card';
 import { ErrorState, NoDataYet } from '@/components/ui/states';
 
-/**
- * Raven has no usage-metering or billing system yet (that's Phase 8/17,
- * per INFRASTRUCTURE_PHASES.md) — this page shows only what's actually
- * computable today (room counts, current live participants) and is
- * explicit that everything else is not yet available, rather than
- * inventing numbers (Phase 7 spec §14).
- */
+// No usage metering or billing yet (that's a later phase), so this page only
+// shows what we can actually compute right now — room counts, live
+// participants — and says so plainly for everything else instead of faking numbers.
 export default async function UsagePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const token = await getSessionToken();

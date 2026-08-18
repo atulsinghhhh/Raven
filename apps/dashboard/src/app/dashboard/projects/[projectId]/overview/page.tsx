@@ -26,14 +26,13 @@ export default async function OverviewPage({ params }: { params: Promise<{ proje
   const rooms = roomsResult.status === 'fulfilled' ? roomsResult.value : undefined;
   const health = healthResult.status === 'fulfilled' ? healthResult.value : undefined;
 
-  // A single unreachable LiveKit counts as "unknown", not "0" — see
-  // RoomsService.findAllForProjectWithLiveState's liveParticipantCount contract.
+  // Unreachable LiveKit means "unknown", not "0" — don't conflate the two.
   const liveDataAvailable = rooms !== undefined && rooms.every((r) => r.liveParticipantCount !== null);
   const activeRoomCount = rooms?.filter((r) => (r.liveParticipantCount ?? 0) > 0).length;
   const totalParticipants = rooms?.reduce((sum, r) => sum + (r.liveParticipantCount ?? 0), 0);
 
-  // Development is the only environment this control plane actually
-  // issues distinct credentials for today — see docs/dashboard.md#environments.
+  // Only "Development" exists for now — the control plane doesn't issue
+  // credentials for other environments yet.
   const environment = 'Development';
 
   return (

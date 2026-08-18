@@ -1,4 +1,4 @@
-import { RoomStatus } from '@prisma/client';
+import { RoomStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { ConflictError, NotFoundError } from '../../shared/errors/app-error';
 import { LiveKitRoomService } from './livekit-room.service';

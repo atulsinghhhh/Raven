@@ -1,19 +1,14 @@
-# Raven — local development infrastructure.
+# Raven local dev stack: Postgres, Redis, LiveKit (SFU + signaling),
+# coturn (TURN/STUN), and the api control plane.
 #
-# Brings up every piece of infrastructure decided in Phase 0
-# (docs/architecture/infrastructure-decisions.md) plus the Phase 2
-# control plane API:
-#   PostgreSQL, Redis, LiveKit (SFU + signaling), coturn (TURN/STUN), api.
-#
-# Deliberately NOT included yet (see docs/architecture/signaling.md):
-#   - A separate "signaling" service: LiveKit provides signaling itself,
-#     so a standalone signaling container would be redundant.
+# No separate "signaling" service here — LiveKit does that itself, so a
+# standalone container would just be redundant. See docs/architecture/signaling.md.
 #
 # Usage:
 #   cp .env.example .env   # then edit the generated secrets
 #   pnpm infra:up
 #
-# See docs/local-development.md for full instructions.
+# Full instructions: docs/local-development.md
 
 name: raven
 
@@ -29,10 +24,8 @@ volumes:
     name: raven-redis-data
 
 services:
-  # ---------------------------------------------------------------------
-  # PostgreSQL — system of record for users, projects, API keys, rooms
-  # (metadata), usage records. See infrastructure-decisions.md.
-  # ---------------------------------------------------------------------
+  # Postgres — stores users, projects, api keys, rooms, usage records.
+  # See infrastructure-decisions.md if you want the reasoning.
   postgres:
     image: postgres:16-alpine
     container_name: raven-postgres
@@ -55,10 +48,8 @@ services:
     networks:
       - raven-network
 
-  # ---------------------------------------------------------------------
-  # Redis — ephemeral state: presence, rate limiting, room-state cache,
-  # short-lived token bookkeeping, and LiveKit's own coordination store.
-  # ---------------------------------------------------------------------
+  # Redis — ephemeral stuff: presence, rate limiting, room-state cache,
+  # token bookkeeping, and LiveKit's own coordination store.
   redis:
     image: redis:7-alpine
     container_name: raven-redis
@@ -82,10 +73,8 @@ services:
     networks:
       - raven-network
 
-  # ---------------------------------------------------------------------
-  # LiveKit — SFU + signaling (Phase 0 decision, see sfu-comparison.md
-  # and signaling.md). Depends on Redis for internal coordination.
-  # ---------------------------------------------------------------------
+  # LiveKit — our SFU + signaling (see sfu-comparison.md / signaling.md
+  # for why). Needs Redis for internal coordination.
   livekit:
     image: livekit/livekit-server:v1.13.5
     container_name: raven-livekit
@@ -114,10 +103,8 @@ services:
     networks:
       - raven-network
 
-  # ---------------------------------------------------------------------
-  # coturn — TURN/STUN relay for clients behind restrictive NATs/
-  # firewalls. See docs/architecture/turn.md.
-  # ---------------------------------------------------------------------
+  # coturn — TURN/STUN relay for clients stuck behind restrictive NATs
+  # or firewalls. See docs/architecture/turn.md.
   coturn:
     image: coturn/coturn:4.17.2
     container_name: raven-coturn
@@ -127,30 +114,26 @@ services:
       - "/etc/turnserver.conf"
       - "--static-auth-secret=${TURN_SECRET:?TURN_SECRET is required}"
       - "--realm=${TURN_REALM:-raven.local}"
-      # Per-user/global allocation quotas and bandwidth cap — non-secret,
-      # but still CLI flags rather than turnserver.conf lines, since the
-      # conf file has no ${VAR} expansion. See docs/turn.md#abuse-protection.
+      # Quotas/bandwidth cap aren't secret, but they're still CLI flags
+      # rather than turnserver.conf lines — that file can't expand ${VARS}.
       - "--user-quota=${TURN_USER_QUOTA:-10}"
       - "--total-quota=${TURN_TOTAL_QUOTA:-400}"
       - "--max-bps=${TURN_MAX_BPS:-1000000}"
-      # Prometheus metrics — see docs/turn.md#turn-usage-metrics.
+      # Prometheus metrics endpoint.
       - "--prometheus"
       - "--prometheus-port=${TURN_PROMETHEUS_PORT:-9641}"
-      # DTLS (TURN-over-UDP-with-TLS) is opt-in in coturn even when a
-      # cert is configured — TURNS (TLS-over-TCP) alone does not imply it.
+      # DTLS is opt-in even with a cert configured — TURNS (TLS over TCP)
+      # alone doesn't switch it on too.
       - "--dtls"
-      # Local-dev-only: coturn refuses by default to relay to loopback peer
-      # addresses (anti-SSRF protection). LiveKit here is started with
-      # --node-ip=127.0.0.1 so the host-machine browser can reach it
-      # directly (Test A). That same 127.0.0.1 candidate is also what a
-      # forced-TURN-relay client (Test B) must relay *to*, so the relay
-      # peer restriction must be lifted in this compose file. Real
-      # deployments never need this flag — see docs/turn.md#local-dev-only-flags.
+      # coturn blocks relaying to loopback addresses by default (anti-SSRF).
+      # LiveKit runs with --node-ip=127.0.0.1 so the host browser can reach
+      # it directly, and that same 127.0.0.1 candidate is what a
+      # forced-TURN-relay client has to relay *to* — so we need this flag
+      # here. Real deployments should never need it. See docs/turn.md#local-dev-only-flags.
       - "--allow-loopback-peers"
     volumes:
       - ./infrastructure/docker/coturn/turnserver.conf:/etc/turnserver.conf:ro
-      # Self-signed, local-dev-only TLS cert — see scripts/generate-turn-cert.sh
-      # and docs/turn.md#tls. Never committed (.gitignore).
+      # Self-signed local-dev cert (scripts/generate-turn-cert.sh). Gitignored, never committed.
       - ./infrastructure/docker/coturn/certs:/etc/coturn/certs:ro
     ports:
       - "${TURN_PORT:-3478}:3478/udp"                # STUN/TURN control, UDP
@@ -158,8 +141,7 @@ services:
       - "${TURN_TLS_PORT:-5349}:5349/tcp"            # TURNS (TLS) control
       - "${TURN_TLS_PORT:-5349}:5349/udp"            # TURN/DTLS control
       - "${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49200}:49160-49200/udp" # relayed media
-      # Prometheus metrics — local dev convenience only. Never publish
-      # this port in production (see docs/turn.md's production checklist).
+      # Metrics port, handy for local dev — don't expose this in production.
       - "${TURN_PROMETHEUS_PORT:-9641}:9641/tcp"
     healthcheck:
       test: ["CMD", "turnutils_stunclient", "-p", "3478", "127.0.0.1"]
@@ -170,11 +152,8 @@ services:
     networks:
       - raven-network
 
-  # ---------------------------------------------------------------------
-  # api — the control plane (Phase 2). Manages auth, projects, api keys,
-  # rooms, and RTC tokens. Never carries media itself — see
-  # docs/control-plane.md.
-  # ---------------------------------------------------------------------
+  # api — the control plane. Handles auth, projects, api keys, rooms, RTC
+  # tokens. Doesn't touch media itself. See docs/control-plane.md.
   api:
     build:
       context: .
@@ -191,26 +170,24 @@ services:
     environment:
       NODE_ENV: development
       API_PORT: ${API_PORT:-4100}
-      # Container-to-container addresses — deliberately NOT the host-facing
-      # DATABASE_URL/REDIS_URL in .env (those use localhost + the
-      # host-mapped ports for Prisma CLI / `pnpm start:dev` running
-      # directly on the host). See docs/local-development.md.
+      # These are container-to-container addresses, not the host-facing
+      # DATABASE_URL/REDIS_URL from .env (those point at localhost + the
+      # mapped ports, for Prisma CLI / `pnpm start:dev` on the host).
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
-      # Host-facing URL, on purpose: this value is returned to clients
-      # (browsers, mobile apps) so THEY know where to connect — it must
-      # never be the container-internal "livekit:7880" address.
+      # Host-facing on purpose — this gets handed back to browsers/mobile
+      # clients so they know where to connect. Can't be the internal
+      # "livekit:7880" address.
       LIVEKIT_URL: ${LIVEKIT_URL:-ws://localhost:7880}
-      # Hardcoded to the Docker service name, like DATABASE_URL/REDIS_URL
-      # above — deliberately NOT interpolated from .env's own
-      # LIVEKIT_INTERNAL_URL, which instead defaults to a host-reachable
-      # address for `pnpm start:dev`/e2e tests run directly on the host.
-      # Used by the api process itself (RoomServiceClient, /health), which
-      # runs inside this same Docker network. See docs/dashboard.md#health.
+      # Hardcoded to the Docker service name, same as DATABASE_URL/REDIS_URL
+      # above. Not pulled from .env's LIVEKIT_INTERNAL_URL, which defaults
+      # to a host-reachable address for `pnpm start:dev`/e2e runs on the
+      # host. This one's what the api process itself uses (RoomServiceClient,
+      # /health) since it's on the same Docker network. See docs/dashboard.md#health.
       LIVEKIT_INTERNAL_URL: http://livekit:7880
       RTC_TOKEN_DEFAULT_TTL_SECONDS: ${RTC_TOKEN_DEFAULT_TTL_SECONDS:-600}
       API_KEY_HASH_SECRET: ${API_KEY_HASH_SECRET:?API_KEY_HASH_SECRET is required}
@@ -221,12 +198,12 @@ services:
       SIGNALING_MAX_MESSAGES_PER_WINDOW: ${SIGNALING_MAX_MESSAGES_PER_WINDOW:-100}
       SIGNALING_MESSAGE_WINDOW_SECONDS: ${SIGNALING_MESSAGE_WINDOW_SECONDS:-10}
       SIGNALING_MAX_CONNECTIONS_PER_WINDOW: ${SIGNALING_MAX_CONNECTIONS_PER_WINDOW:-20}
-      # Host-facing, on purpose — returned to real clients for ICE
-      # servers, same reasoning as LIVEKIT_URL above.
+      # Host-facing on purpose, same reasoning as LIVEKIT_URL — this goes
+      # to real clients as an ICE server address.
       TURN_HOST: ${TURN_HOST:-localhost}
       TURN_PORT: ${TURN_PORT:-3478}
-      # Hardcoded to the Docker service name, like LIVEKIT_INTERNAL_URL
-      # above — used only by the api process's own /health STUN check.
+      # Hardcoded like LIVEKIT_INTERNAL_URL — only used by api's own
+      # /health STUN check.
       TURN_INTERNAL_HOST: coturn
       TURN_TLS_PORT: ${TURN_TLS_PORT:-5349}
       TURN_SECRET: ${TURN_SECRET:?TURN_SECRET is required}

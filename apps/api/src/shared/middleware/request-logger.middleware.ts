@@ -9,10 +9,10 @@ declare module 'express' {
 }
 
 /**
- * Structured, one-line-per-request logging with a correlation ID.
- * Never logs headers or bodies — those routinely carry API keys, JWTs, and
- * passwords, and this line is the one thing guaranteed to run for every
- * request regardless of which handler (or none) processes it.
+ * One JSON line per request, tagged with a correlation ID.
+ * Deliberately skips headers/bodies — those can carry API keys, JWTs,
+ * passwords. This is the one log line guaranteed to fire for every
+ * request no matter which handler (if any) ends up processing it.
  */
 @Injectable()
 export class RequestLoggerMiddleware implements NestMiddleware {
