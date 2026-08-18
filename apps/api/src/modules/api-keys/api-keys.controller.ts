@@ -27,6 +27,9 @@ import { ProjectsService } from '../projects/projects.service';
 import { ApiKeysService } from './api-keys.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
 import { Capability } from '../projects/project-permissions';
+import { AuditRequestContext, type AuditContext } from '../audit/audit-context.decorator';
+import { AuditAction, AuditResource } from '../audit/audit.constants';
+import { AuditService } from '../audit/audit.service';
 
 // Management endpoints for a project's API keys — guarded by
 // JwtAuthGuard, so the developer has to be logged in and own the project.
@@ -38,6 +41,7 @@ import { Capability } from '../projects/project-permissions';
 @UseGuards(JwtAuthGuard)
 export class ApiKeysController {
   constructor(
+    private readonly audit: AuditService,
     private readonly apiKeysService: ApiKeysService,
     private readonly projectsService: ProjectsService,
   ) {}
@@ -70,9 +74,23 @@ export class ApiKeysController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body() dto: CreateApiKeyDto,
+    @AuditRequestContext() context: AuditContext,
   ) {
     await this.projectsService.authorize(projectId, user.id, Capability.KeysManage);
     const created = await this.apiKeysService.create(projectId, dto);
+
+    await this.audit.record({
+      projectId,
+      actor: { id: user.id, email: user.email },
+      action: AuditAction.ApiKeyCreated,
+      resourceType: AuditResource.ApiKey,
+      resourceId: created.publicId,
+      environment: created.environment,
+      // Deliberately the public half only. The secret is not in the audit
+      // trail for the same reason it is not in the database.
+      metadata: { name: created.name },
+      context,
+    });
 
     return {
       ...created,
@@ -108,8 +126,20 @@ export class ApiKeysController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('keyId', ParseUUIDPipe) keyId: string,
+    @AuditRequestContext() context: AuditContext,
   ): Promise<void> {
     await this.projectsService.authorize(projectId, user.id, Capability.KeysManage);
-    await this.apiKeysService.revoke(projectId, keyId);
+    const revoked = await this.apiKeysService.revoke(projectId, keyId);
+
+    await this.audit.record({
+      projectId,
+      actor: { id: user.id, email: user.email },
+      action: AuditAction.ApiKeyRevoked,
+      resourceType: AuditResource.ApiKey,
+      resourceId: revoked.publicId,
+      environment: revoked.environment,
+      metadata: { name: revoked.name },
+      context,
+    });
   }
 }

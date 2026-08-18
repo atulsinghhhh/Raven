@@ -18,6 +18,9 @@ import { AuthenticatedUser } from '../auth/jwt-payload.interface';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsService } from './projects.service';
+import { AuditRequestContext, type AuditContext } from '../audit/audit-context.decorator';
+import { AuditAction, AuditResource } from '../audit/audit.constants';
+import { AuditService } from '../audit/audit.service';
 
 // Dashboard-style management, authenticated by developer session JWT.
 // Every lookup here is scoped to the caller's own projects.
@@ -26,13 +29,32 @@ import { ProjectsService } from './projects.service';
 @Controller('v1/projects')
 @UseGuards(JwtAuthGuard)
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly audit: AuditService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a project' })
   @ApiResponse({ status: 201, description: 'Project created' })
-  create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateProjectDto) {
-    return this.projectsService.create(user.id, dto);
+  async create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateProjectDto,
+    @AuditRequestContext() context: AuditContext,
+  ) {
+    const project = await this.projectsService.create(user.id, dto);
+
+    await this.audit.record({
+      projectId: project.id,
+      actor: { id: user.id, email: user.email },
+      action: AuditAction.ProjectCreated,
+      resourceType: AuditResource.Project,
+      resourceId: project.id,
+      metadata: { name: project.name },
+      context,
+    });
+
+    return project;
   }
 
   @Get()
@@ -57,12 +79,28 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Update a project' })
   @ApiResponse({ status: 200, description: 'Project updated' })
   @ApiNotFoundResponse({ description: 'Not found, or not owned by the caller' })
-  update(
+  async update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateProjectDto,
+    @AuditRequestContext() context: AuditContext,
   ) {
-    return this.projectsService.update(id, user.id, dto);
+    const project = await this.projectsService.update(id, user.id, dto);
+
+    await this.audit.record({
+      projectId: id,
+      actor: { id: user.id, email: user.email },
+      action: AuditAction.ProjectUpdated,
+      resourceType: AuditResource.Project,
+      resourceId: id,
+      // The field names, not the values: a project description is the
+      // developer's own text and belongs in the project, not duplicated
+      // into a permanent log.
+      metadata: { changed: Object.keys(dto) },
+      context,
+    });
+
+    return project;
   }
 
   @Delete(':id')
@@ -76,7 +114,17 @@ export class ProjectsController {
   async remove(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) id: string,
+    @AuditRequestContext() context: AuditContext,
   ): Promise<void> {
     await this.projectsService.archive(id, user.id);
+
+    await this.audit.record({
+      projectId: id,
+      actor: { id: user.id, email: user.email },
+      action: AuditAction.ProjectArchived,
+      resourceType: AuditResource.Project,
+      resourceId: id,
+      context,
+    });
   }
 }

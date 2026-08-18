@@ -7,6 +7,7 @@ import { RequestLoggerMiddleware } from './shared/middleware/request-logger.midd
 import { RedisModule } from './shared/redis/redis.module';
 
 import { ApiKeysModule } from './modules/api-keys/api-keys.module';
+import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { HealthModule } from './modules/health/health.module';
@@ -34,6 +35,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
     HealthModule,
     UsersModule,
     AuthModule,
+    AuditModule,
     ProjectsModule,
     ApiKeysModule,
     RoomsModule,

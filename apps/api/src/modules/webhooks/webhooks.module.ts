@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { WebhookDeliveryWorker } from './webhook-delivery.worker';
 import { WebhookEventsService } from './webhook-events.service';
@@ -12,7 +13,7 @@ import { WebhooksService } from './webhooks.service';
  * (spec §31).
  */
 @Module({
-  imports: [ProjectsModule],
+  imports: [AuditModule, ProjectsModule],
   controllers: [WebhooksController],
   providers: [WebhooksService, WebhookEventsService, WebhookDeliveryWorker],
   exports: [WebhookEventsService, WebhooksService],

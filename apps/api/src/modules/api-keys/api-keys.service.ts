@@ -82,13 +82,14 @@ export class ApiKeysService {
     });
   }
 
-  async revoke(projectId: string, keyId: string): Promise<void> {
+  /** Returns the revoked key so the caller can describe it in an audit entry. */
+  async revoke(projectId: string, keyId: string): Promise<ApiKey> {
     const apiKey = await this.prisma.apiKey.findUnique({ where: { id: keyId } });
     if (!apiKey || apiKey.projectId !== projectId) {
       throw new NotFoundError('API key');
     }
 
-    await this.prisma.apiKey.update({
+    return this.prisma.apiKey.update({
       where: { id: keyId },
       data: { status: ApiKeyStatus.REVOKED, revokedAt: new Date() },
     });

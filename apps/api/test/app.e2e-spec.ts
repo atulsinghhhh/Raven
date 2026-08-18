@@ -927,6 +927,169 @@ describe('Control plane (e2e)', () => {
     });
   });
 
+  describe('audit log', () => {
+    const email = `audit-${uniqueSuffix}@raven.local`;
+    const password = 'correct-horse-battery-staple';
+    let token: string;
+    let projectId: string;
+    let keyPublicId: string;
+    let keyId: string;
+    let rawKey: string;
+
+    beforeAll(async () => {
+      const redis = app.get(RedisService);
+      const keys = await redis.client.keys('ratelimit:*');
+      if (keys.length > 0) {
+        await redis.client.del(...keys);
+      }
+
+      const registered = await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send({ email, password, name: 'Auditor' })
+        .expect(201);
+      token = registered.body.accessToken;
+
+      const project = await request(app.getHttpServer())
+        .post('/v1/projects')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: `audit-project-${uniqueSuffix}` })
+        .expect(201);
+      projectId = project.body.id;
+
+      const key = await request(app.getHttpServer())
+        .post(`/v1/projects/${projectId}/api-keys`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'audited-key', environment: 'PRODUCTION' })
+        .expect(201);
+      keyPublicId = key.body.publicId;
+      keyId = key.body.id;
+      rawKey = key.body.key;
+    });
+
+    it('records project creation and key creation, newest first', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/v1/projects/${projectId}/audit-logs`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body.map((e: { action: string }) => e.action)).toEqual([
+        'api_key.created',
+        'project.created',
+      ]);
+    });
+
+    it('names the actor, the resource, and the request that caused it', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/v1/projects/${projectId}/audit-logs?action=api_key.created`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body[0]).toMatchObject({
+        action: 'api_key.created',
+        actorEmail: email,
+        resourceType: 'api_key',
+        resourceId: keyPublicId,
+        environment: 'PRODUCTION',
+      });
+      expect(res.body[0].requestId).toMatch(/^req_/);
+      expect(res.body[0].publicId).toMatch(/^aud_/);
+    });
+
+    it('never records the secret half of a credential', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/v1/projects/${projectId}/audit-logs`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      // The secret is not in the audit trail for the same reason it is not
+      // in the database: it was shown once and never stored. The public
+      // half is expected here — it is what makes the entry useful.
+      const serialised = JSON.stringify(res.body);
+      const secretHalf = rawKey.split('.')[1];
+
+      expect(serialised).not.toContain(rawKey);
+      expect(serialised).not.toContain(secretHalf);
+      expect(serialised).toContain(keyPublicId);
+    });
+
+    it('records a revocation against the same resource id', async () => {
+      await request(app.getHttpServer())
+        .delete(`/v1/projects/${projectId}/api-keys/${keyId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(204);
+
+      const res = await request(app.getHttpServer())
+        .get(`/v1/projects/${projectId}/audit-logs?resourceId=${keyPublicId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      // Both halves of the key's life, queryable by the id a developer has.
+      expect(res.body.map((e: { action: string }) => e.action)).toEqual([
+        'api_key.revoked',
+        'api_key.created',
+      ]);
+    });
+
+    it('offers no way to change or delete an entry', async () => {
+      const entry = await request(app.getHttpServer())
+        .get(`/v1/projects/${projectId}/audit-logs`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      // An audit log an administrator can edit is not an audit log.
+      await request(app.getHttpServer())
+        .delete(`/v1/projects/${projectId}/audit-logs/${entry.body[0].publicId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(404);
+
+      await request(app.getHttpServer())
+        .patch(`/v1/projects/${projectId}/audit-logs/${entry.body[0].publicId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ action: 'nothing.happened' })
+        .expect(404);
+    });
+
+    it('rejects an unknown action filter rather than silently returning everything', async () => {
+      await request(app.getHttpServer())
+        .get(`/v1/projects/${projectId}/audit-logs?action=made.up`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(400);
+    });
+
+    it('is hidden from a member without audit:read', async () => {
+      const viewerEmail = `auditviewer-${uniqueSuffix}@raven.local`;
+      const viewer = await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send({ email: viewerEmail, password, name: 'Viewer' })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .post(`/v1/projects/${projectId}/members`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ email: viewerEmail, role: 'DEVELOPER' })
+        .expect(201);
+
+      // A developer can create keys but cannot read who else has been
+      // creating them.
+      const res = await request(app.getHttpServer())
+        .get(`/v1/projects/${projectId}/audit-logs`)
+        .set('Authorization', `Bearer ${viewer.body.accessToken}`)
+        .expect(403);
+
+      expect(res.body.code).toBe('RAVEN_PERMISSION_DENIED');
+    });
+
+    it('records the membership change that just happened', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/v1/projects/${projectId}/audit-logs?action=member.added`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body[0]).toMatchObject({ action: 'member.added', actorEmail: email });
+      expect(res.body[0].metadata).toMatchObject({ role: 'DEVELOPER' });
+    });
+  });
+
   describe('the error envelope', () => {
     // The limiter is keyed on IP alone, so every suite above shares one
     // budget with this one and the register route can already be spent by

@@ -109,6 +109,7 @@ model Project {
   updatedAt   DateTime      @updatedAt
 
   members     ProjectMember[]
+  auditLogs   AuditLog[]
   apiKeys     ApiKey[]
   rooms       Room[]
   connections Connection[]
@@ -145,6 +146,42 @@ model ProjectMember {
   @@index([projectId])
   @@index([userId])
   @@map("project_members")
+}
+
+/// An administrative action, recorded permanently.
+///
+/// Append-only by construction: nothing in the codebase updates or deletes
+/// a row here, and there is no endpoint that could. `actorEmail` is
+/// denormalised on purpose — the record has to stay readable after the
+/// account that performed the action is gone, which is exactly when an
+/// audit trail matters most.
+model AuditLog {
+  id           String       @id @default(uuid())
+  publicId     String       @unique
+  projectId    String
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// Null for project-level actions that no single environment owns.
+  environment  Environment?
+  /// Null when Raven itself acted rather than a person.
+  actorId      String?
+  actorEmail   String
+  /// Dotted noun.verb, e.g. `api_key.revoked`. See audit.constants.ts.
+  action       String
+  resourceType String
+  /// The public id of the thing acted on, where it has one.
+  resourceId   String?
+  /// Extra context — never credentials, never message bodies.
+  metadata     Json?
+  /// Correlates the entry with the request that caused it.
+  requestId    String?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime     @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([projectId, action])
+  @@index([actorId])
+  @@map("audit_logs")
 }
 
 model ApiKey {
