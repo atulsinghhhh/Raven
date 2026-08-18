@@ -10,10 +10,17 @@ import type { RavenAppState } from './internal/lifecycle';
  * token-mint response, and none of them should be hand-constructed.
  */
 export interface RavenConfig {
-  /** RTC token from your backend. Never mint this in the app (spec §15). */
-  token: string;
-  /** The `livekitUrl` field from the same mint response. */
-  endpoint: string;
+  /**
+   * RTC token from your backend. Never mint this in the app (spec §15).
+   *
+   * Optional together with `endpoint`: omit both for a messaging-only
+   * app, and `raven.chat` works without an RTC connection ever being
+   * created. `join()` then throws a clear error rather than a confusing
+   * null reference.
+   */
+  token?: string;
+  /** The `livekitUrl` field from the same mint response. Required whenever `token` is set. */
+  endpoint?: string;
   /** The `iceServers` array from the same response — forward it as-is. */
   iceServers?: RTCIceServer[];
   /** The `telemetryUrl` from the same response. Doubles as the chat REST base if `chatApiUrl` is omitted. */
@@ -26,7 +33,8 @@ export interface RavenConfig {
 
   /**
    * Chat token from your backend's `POST /v1/chat/tokens`. Omit for an
-   * RTC-only app — `raven.chat` is simply absent then.
+   * RTC-only app — `raven.chat` is simply absent then. Supply it *without*
+   * `token`/`endpoint` for a messaging-only app.
    *
    * This is a *separate* credential from `token` above, by design: the
    * two planes are independent, and neither token works on the other

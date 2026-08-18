@@ -47,6 +47,31 @@ jest.mock('@raven/rtc', () => ({
   },
 }));
 
+/**
+ * A syntactically valid chat token.
+ *
+ * @raven/chat decodes the payload on construction to learn the user id and
+ * expiry, so a placeholder string is rejected — which is itself proof that
+ * the chat handle builds a real client rather than a stub.
+ */
+function fakeChatToken(): string {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const payload = Buffer.from(
+    JSON.stringify({
+      jti: 'ctk_test',
+      sub: 'alice',
+      pid: 'project_1',
+      cvs: [],
+      scopes: ['chat:read', 'chat:send'],
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      aud: 'raven-chat',
+      iss: 'raven',
+    }),
+  ).toString('base64url');
+  return `${header}.${payload}.signature`;
+}
+
 function makeRaven(overrides: Record<string, unknown> = {}) {
   return new Raven({
     token: 'rtc-token',
@@ -207,5 +232,62 @@ describe('network recovery', () => {
     rtcState.connectionState = 'failed';
     handle.handleNetworkRegained();
     expect(reconnects).toHaveLength(1);
+  });
+});
+
+describe('messaging-only', () => {
+  it('constructs with a chat token and no RTC credentials', () => {
+    // The whole point: a messaging app should not have to mint a
+    // meaningless RTC token just to build this object.
+    expect(() => makeRaven({ token: undefined, endpoint: undefined, chatToken: fakeChatToken(), chatApiUrl: 'https://api.test' })).not.toThrow();
+  });
+
+  it('reports hasRtc: false so a UI can hide call controls', () => {
+    const raven = makeRaven({ token: undefined, endpoint: undefined, chatToken: fakeChatToken(), chatApiUrl: 'https://api.test' });
+    expect(raven.hasRtc).toBe(false);
+  });
+
+  it('reports hasRtc: true when RTC credentials are present', () => {
+    expect(makeRaven().hasRtc).toBe(true);
+  });
+
+  it('refuses join() with an error that says what to do', async () => {
+    const raven = makeRaven({ token: undefined, endpoint: undefined, chatToken: fakeChatToken(), chatApiUrl: 'https://api.test' });
+
+    await expect(raven.join('room_123')).rejects.toThrow(/no RTC credentials/);
+  });
+
+  it('does not prompt for permissions on the way to that error', async () => {
+    const raven = makeRaven({ token: undefined, endpoint: undefined, chatToken: fakeChatToken(), chatApiUrl: 'https://api.test' });
+
+    await raven.join('room_123').catch(() => undefined);
+
+    // A messaging-only app showing a camera dialog before failing would
+    // be worse than the failure itself.
+    expect(PermissionsAndroid.requestMultiple).not.toHaveBeenCalled();
+    expect(__calls.startAudioSession).toBe(0);
+  });
+
+  it('leaves and disposes cleanly without an RTC client', async () => {
+    const raven = makeRaven({ token: undefined, endpoint: undefined, chatToken: fakeChatToken(), chatApiUrl: 'https://api.test' });
+
+    await expect(raven.leave()).resolves.toBeUndefined();
+    await expect(raven.dispose()).resolves.toBeUndefined();
+  });
+});
+
+describe('credential validation', () => {
+  it('rejects a token without an endpoint', () => {
+    // Failing here is far kinder than failing at join() with a
+    // connection error that points at the network.
+    expect(() => makeRaven({ endpoint: undefined })).toThrow(/both `token` and `endpoint`/);
+  });
+
+  it('rejects an endpoint without a token', () => {
+    expect(() => makeRaven({ token: undefined })).toThrow(/both `token` and `endpoint`/);
+  });
+
+  it('rejects an instance with no credentials at all', () => {
+    expect(() => makeRaven({ token: undefined, endpoint: undefined })).toThrow(/at least one credential/);
   });
 });

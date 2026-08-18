@@ -1,4 +1,4 @@
-import { createRTCClient, type RTCClient, type Room } from '@raven/rtc';
+import { RTCError, createRTCClient, type RTCClient, type Room } from '@raven/rtc';
 import { audio } from './audio';
 import { bootstrapRavenNative } from './internal/bootstrap';
 import { LifecycleWatcher, NetworkWatcher, type RavenAppState } from './internal/lifecycle';
@@ -29,6 +29,15 @@ import { createChatHandle } from './internal/chat-handle';
  * needs and a browser doesn't: WebRTC globals, an audio session around
  * the call, app-lifecycle awareness, and connectivity-triggered
  * reconnects.
+ *
+ * RTC is optional. A messaging-only app supplies just a chat token and
+ * never creates an RTC connection at all:
+ *
+ * ```ts
+ * const raven = new Raven({ chatToken, chatApiUrl });
+ * await raven.chat!.connect('room_123');
+ * await raven.chat!.send('Hello');
+ * ```
  */
 export class Raven {
   /**
@@ -44,7 +53,8 @@ export class Raven {
   /** Call audio routing — speakerphone, headsets, Bluetooth. */
   readonly audio = audio;
 
-  private readonly client: RTCClient;
+  /** Absent for a messaging-only app — see the constructor. */
+  private readonly client?: RTCClient;
   private readonly config: RavenConfig;
   private readonly lifecycle: LifecycleWatcher;
   private readonly network: NetworkWatcher;
@@ -59,15 +69,36 @@ export class Raven {
     bootstrapRavenNative();
 
     this.config = config;
-    this.client = createRTCClient({
-      token: config.token,
-      endpoint: config.endpoint,
-      iceServers: config.iceServers,
-      telemetryUrl: config.telemetryUrl,
-      telemetry: config.telemetry,
-      logLevel: config.logLevel,
-      autoReconnect: config.autoReconnect ?? true,
-    });
+
+    // Only build an RTC client when there are RTC credentials to build it
+    // with. A messaging-only app shouldn't have to mint a meaningless RTC
+    // token just to construct this class — the two planes are independent
+    // everywhere else in Raven, and this is where that has to hold too.
+    if (config.token && config.endpoint) {
+      this.client = createRTCClient({
+        token: config.token,
+        endpoint: config.endpoint,
+        iceServers: config.iceServers,
+        telemetryUrl: config.telemetryUrl,
+        telemetry: config.telemetry,
+        logLevel: config.logLevel,
+        autoReconnect: config.autoReconnect ?? true,
+      });
+    } else if (config.token || config.endpoint) {
+      // One without the other is always a mistake, and failing here is far
+      // kinder than failing at join() with a connection error.
+      throw new RTCError(
+        'INVALID_TOKEN',
+        'Raven needs both `token` and `endpoint` for RTC, or neither for a messaging-only app. Both come from the same token-mint response.',
+      );
+    }
+
+    if (!config.token && !config.chatToken) {
+      throw new RTCError(
+        'INVALID_TOKEN',
+        'Raven needs at least one credential: `token` + `endpoint` for calls, `chatToken` for messaging, or both.',
+      );
+    }
 
     if (config.chatToken) {
       this.chat = createChatHandle({
@@ -92,6 +123,14 @@ export class Raven {
     return this.currentRoom;
   }
 
+  /**
+   * True when this instance was given RTC credentials. False for a
+   * messaging-only app, where `join()` will throw.
+   */
+  get hasRtc(): boolean {
+    return this.client !== undefined;
+  }
+
   /** Foreground/background state, as the OS last reported it. */
   get appState(): RavenAppState {
     return this.lifecycle.state;
@@ -112,6 +151,17 @@ export class Raven {
    * enable the device that was refused.
    */
   async join(roomId: string, options: { requestPermissions?: boolean } = {}): Promise<Room> {
+    const client = this.client;
+    if (!client) {
+      // Checked before prompting or starting an audio session — a
+      // messaging-only app must not see a camera permission dialog on its
+      // way to an error.
+      throw new RTCError(
+        'INVALID_TOKEN',
+        'This Raven instance has no RTC credentials, so it cannot join a room. Pass `token` and `endpoint` to enable calls, or use `raven.chat` for messaging.',
+      );
+    }
+
     if (options.requestPermissions !== false) {
       // Non-throwing on purpose — a user who declined the camera can
       // still legitimately join to listen.
@@ -124,7 +174,7 @@ export class Raven {
     await this.startAudioSession();
 
     try {
-      const room = await this.client.join(roomId);
+      const room = await client.join(roomId);
       this.currentRoom = room;
 
       this.lifecycle.start();

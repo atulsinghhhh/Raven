@@ -97,9 +97,30 @@ never from a value the app sent. See
 
 ## Initialising
 
+RTC and chat are independent, and so are their credentials. Supply
+whichever planes your app actually uses:
+
+```ts
+// A video call, with or without chat
+new Raven({ token, endpoint });
+new Raven({ token, endpoint, chatToken, chatApiUrl });
+
+// Messaging only — no RTC connection is ever created
+new Raven({ chatToken, chatApiUrl });
+```
+
+`raven.hasRtc` tells you which you got, which is what a shared component
+needs to decide whether to render call controls. Calling `join()` on a
+messaging-only instance throws immediately with an error that says so,
+rather than failing later as a connection problem.
+
+Passing `token` without `endpoint` (or vice versa) throws at construction
+— that combination is always a mistake, and catching it here beats
+catching it as a network error at join time.
+
 ```ts
 const raven = new Raven({
-  token,                   // RTC token from your backend
+  token,                   // RTC token from your backend — omit for chat-only
   endpoint,                // livekitUrl from the same response
   iceServers,              // forward as-is
   telemetryUrl,
@@ -208,7 +229,17 @@ work by asking for the device.
 
 ## Chat
 
-Present as `raven.chat` when you passed a `chatToken`:
+Present as `raven.chat` when you passed a `chatToken`. A messaging-only
+app needs nothing else:
+
+```ts
+const raven = new Raven({ chatToken: session.token, chatApiUrl: session.apiUrl });
+
+await raven.chat!.connect('room_123');
+await raven.chat!.send('Hello everyone!');
+```
+
+Alongside a call, it's the same object on the same instance:
 
 ```ts
 await raven.chat.connect('room_123');
