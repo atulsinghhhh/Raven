@@ -35,7 +35,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      security-events: write
     steps:
       - uses: actions/checkout@v4
 
@@ -79,7 +78,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan image for vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.image.outputs.ref }}:${{ steps.meta.outputs.version }}
           format: sarif
@@ -87,14 +86,20 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: "0"
 
-      - name: Upload scan results to code scanning
-        uses: github/codeql-action/upload-sarif@v3
+      # Code scanning ingest requires GitHub Advanced Security, which this
+      # repository does not have while it is private. The findings are still
+      # worth keeping, so they ship as a build artifact. Swap this back to
+      # github/codeql-action/upload-sarif once Advanced Security is enabled.
+      - name: Upload scan results
+        uses: actions/upload-artifact@v4
         if: always()
         with:
-          sarif_file: trivy-results.sarif
+          name: trivy-results
+          path: trivy-results.sarif
+          if-no-files-found: warn
 
       - name: Fail build on critical vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.image.outputs.ref }}:${{ steps.meta.outputs.version }}
           format: table

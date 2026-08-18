@@ -663,7 +663,8 @@ describe('Control plane (e2e)', () => {
     it('eventually rejects repeated login attempts from the same client with 429', async () => {
       const statuses: number[] = [];
       for (let i = 0; i < 15; i += 1) {
-        // eslint-disable-next-line no-await-in-loop
+        // Sequential on purpose: the limiter counts requests in order,
+        // and firing these in parallel would race its counter.
         const res = await request(app.getHttpServer())
           .post('/v1/auth/login')
           .send({ email: 'nonexistent@raven.local', password: 'wrong' });

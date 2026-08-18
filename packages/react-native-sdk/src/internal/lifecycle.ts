@@ -136,7 +136,7 @@ function loadNetInfo(): NetInfoLike | undefined {
   try {
     // Resolved at runtime on purpose: a static import would make an
     // optional peer dependency mandatory at bundle time.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require('@react-native-community/netinfo');
     const candidate = (mod?.default ?? mod) as NetInfoLike | undefined;
     return typeof candidate?.addEventListener === 'function' ? candidate : undefined;

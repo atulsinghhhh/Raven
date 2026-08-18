@@ -17,6 +17,18 @@ jobs:
   analyze:
     name: Analyze (javascript-typescript)
     runs-on: ubuntu-latest
+
+    # CodeQL writes its results to code scanning, which needs GitHub Advanced
+    # Security. Private repositories do not have it, and requesting the
+    # `security-events` scope without it yields a token that cannot read the
+    # repository at all — every run so far has failed at checkout with
+    # "Repository not found", not at analysis.
+    #
+    # Skipping is honest; a job that can never pass trains people to ignore a
+    # red X. This starts running by itself the moment the repo goes public or
+    # Advanced Security is enabled.
+    if: github.event.repository.visibility == 'public'
+
     permissions:
       security-events: write
 

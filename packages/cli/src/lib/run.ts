@@ -7,7 +7,11 @@ import { isDebugEnabled } from './logger.js';
  * into the right exit code plus a readable message instead of a raw
  * stack trace, unless --debug is set.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic pass-through wrapper for commander's variadic action callbacks
+/* eslint-disable @typescript-eslint/no-explicit-any --
+ * Commander's action callbacks are variadic and differently shaped per
+ * command. `unknown[]` reads better but makes every concrete callback
+ * unassignable under strictFunctionTypes, so the pass-through genuinely
+ * needs `any` at both ends. */
 export function withErrorHandling(action: (...args: any[]) => Promise<void>) {
   return async (...args: any[]) => {
     try {
@@ -18,6 +22,7 @@ export function withErrorHandling(action: (...args: any[]) => Promise<void>) {
     }
   };
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 function printError(error: unknown): void {
   if (error instanceof CliError) {

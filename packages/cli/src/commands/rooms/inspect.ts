@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { getAuthenticatedApiClient } from '../../lib/context.js';
 import { resolveProjectId } from '../../lib/project-context.js';
-import { printEmpty, printField, printJson } from '../../lib/output.js';
+import { printEmpty, printJson } from '../../lib/output.js';
 import { withErrorHandling } from '../../lib/run.js';
 
 export function registerRoomsInspectCommand(rooms: Command): void {

@@ -1,7 +1,7 @@
 {
   "name": "@raven/react-native",
   "version": "0.1.0",
-  "description": "Raven SDK for React Native \u2014 real-time video, voice, and messaging on iOS and Android with the same API as Raven Web.",
+  "description": "Raven SDK for React Native — real-time video, voice, and messaging on iOS and Android with the same API as Raven Web.",
   "license": "MIT",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -34,7 +34,6 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "test": "jest",
     "test:watch": "jest --watch"
   },

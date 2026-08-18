@@ -1,0 +1,15 @@
+{
+  // tsconfig.json sets `rootDir: ./src` because that is what the build's
+  // output layout needs. Typechecking wants the opposite: everything, tests
+  // and prisma scripts included. Reusing the build config here fails with
+  // TS6059 for every file outside src/, which is why apps/api had no
+  // typecheck script at all and CI was silently skipping it.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "incremental": false
+  },
+  "include": ["src", "test", "prisma", "prisma.config.ts", "jest.config.ts"],
+  "exclude": ["node_modules", "dist", ".verify-dist", "src/generated"]
+}

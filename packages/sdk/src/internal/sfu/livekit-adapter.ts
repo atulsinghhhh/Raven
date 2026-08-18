@@ -5,11 +5,8 @@ import {
   Room as LKRoom,
   RoomEvent,
   Track as LKTrack,
-  type LocalParticipant as LKLocalParticipant,
   type LocalTrackPublication as LKLocalTrackPublication,
-  type RemoteParticipant as LKRemoteParticipant,
   type RemoteTrack as LKRemoteTrack,
-  type RemoteTrackPublication as LKRemoteTrackPublication,
   type ReconnectPolicy,
 } from 'livekit-client';
 import { RTCError } from '../../errors';

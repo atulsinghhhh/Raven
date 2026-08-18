@@ -16,9 +16,18 @@
     "infra:verify": "bash scripts/verify-infra.sh",
     "dev": "pnpm --filter @raven/api start:dev",
     "dashboard:dev": "pnpm --filter @raven/dashboard dev",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
     "test": "pnpm --filter @raven/api test",
     "test:e2e": "pnpm --filter @raven/api test:e2e",
     "db:migrate": "pnpm --filter @raven/api prisma:migrate:dev",
     "db:seed": "pnpm --filter @raven/api prisma:seed"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^15.15.0",
+    "typescript-eslint": "^8.67.0"
   }
 }

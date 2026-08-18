@@ -64,7 +64,11 @@ class FakeLKRoom extends TypedEventEmitter<Record<string, (...args: never[]) => 
    * class, so the protected call is legal) lets a test trigger a raw
    * RoomEvent as if livekit-client itself had fired it. */
   triggerEvent<A extends unknown[]>(event: string, ...args: A): void {
-    this.emit(event, ...(args as never[]));
+    // Two-step cast on purpose: `event` is a plain string here, so the
+    // emitter's typed overload narrows its rest args to `never[]`, which
+    // nothing is directly assignable to. Going via `unknown` is the
+    // documented way to say "this is deliberate".
+    this.emit(event, ...(args as unknown as never[]));
   }
 }
 

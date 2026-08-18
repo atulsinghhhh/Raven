@@ -71,7 +71,9 @@ interface ChatModule {
 
 function loadChatModule(): ChatModule | undefined {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // Resolved at runtime on purpose: @raven/chat is an optional peer, and
+    // a static import would make an RTC-only app pay for it.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require('@raven/chat');
     return typeof mod?.createChatClient === 'function' ? (mod as ChatModule) : undefined;
   } catch {

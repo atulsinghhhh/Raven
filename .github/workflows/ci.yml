@@ -15,6 +15,12 @@ permissions:
 
 env:
   NODE_VERSION: "22"
+  # `prisma generate` reads prisma.config.ts, which resolves this eagerly —
+  # so it has to be set even though generating a client never opens a
+  # connection. A deliberately unreachable value: if a step ever does try
+  # to reach a database with it, we want a loud connection error rather
+  # than a silent write to something real.
+  DATABASE_URL: "postgresql://ci:ci@127.0.0.1:1/raven_generate_only"
 
 jobs:
   lint:
@@ -29,6 +35,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @raven/api run prisma:generate
+      # Two commands, one config each: the root flat config covers apps/api
+      # and every package, while apps/dashboard keeps eslint-config-next and
+      # so is reached recursively.
+      - run: pnpm run lint
       - run: pnpm -r --if-present run lint
 
   typecheck:

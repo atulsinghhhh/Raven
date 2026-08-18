@@ -35,12 +35,17 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @raven/api run prisma:generate
 
+      # Must come before prisma:generate: prisma.config.ts resolves
+      # DATABASE_URL from the root .env, so generating a client without one
+      # fails outright. Injecting a placeholder here would be worse — it
+      # would shadow the real value for the migrate and test steps below.
       - name: Prepare local infra env
         run: |
           cp .env.example .env
           bash scripts/generate-turn-cert.sh
+
+      - run: pnpm --filter @raven/api run prisma:generate
 
       - name: Start infra (postgres, redis, livekit, coturn)
         run: docker compose up -d --wait postgres redis livekit coturn
