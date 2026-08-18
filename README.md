@@ -12,7 +12,7 @@ architecture decisions.
 
 ## Status
 
-**Phase 12 of 19** — control plane, signaling, real WebRTC media (LiveKit +
+**Phase 13 of 19** — control plane, signaling, real WebRTC media (LiveKit +
 coturn), a production-oriented TURN/NAT-traversal setup, a TypeScript
 browser SDK (`@raven/rtc`), React hooks/components on top of it
 (`@raven/react`), a developer dashboard (`apps/dashboard`), a terminal
@@ -21,8 +21,10 @@ backend SDKs for TypeScript (`@raven/server`) and Python (`raven-sdk`),
 and — new in Phase 12 — a full real-time chat service (`@raven/chat`)
 with durable messages, presence, typing, read receipts, reactions,
 threads, attachments and webhooks. All working end to end and verified
-live. No recording, live streaming, usage metering/billing, or a
-mobile/Go/Java/etc. SDK yet.
+live, plus — new in Phase 13 — official mobile SDKs for React Native
+(`@raven/react-native`) and Flutter (`raven_rtc` + `raven_chat`),
+covering RTC and messaging on iOS and Android. No recording, live
+streaming, usage metering/billing, or a Go/Java/etc. SDK yet.
 
 ## Architecture at a glance
 
@@ -76,6 +78,13 @@ mobile/Go/Java/etc. SDK yet.
 - **Webhooks** (`apps/api`, Phase 12): project-scoped, HMAC-signed,
   retried with exponential backoff, delivered by a worker that never sits
   on the message path.
+- **Mobile SDKs** (`packages/react-native-sdk`, `sdks/flutter`, Phase 13):
+  `@raven/react-native` reuses `@raven/rtc` and `@raven/chat`
+  *unmodified* — React Native gets the WebRTC globals it lacks, and only
+  rendering, permissions, app lifecycle and audio routing are
+  platform-specific. `raven_rtc` and `raven_chat` are idiomatic Dart
+  packages with the same concepts. A developer who knows Raven Web knows
+  both.
 - **Server SDKs** (`packages/server-sdk`, `sdks/python`, Phase 10):
   `@raven/server` and `raven-sdk` — mint short-lived RTC tokens and read
   rooms/connections/errors/metrics/diagnostics from your own backend
@@ -92,7 +101,8 @@ Full rationale: `docs/architecture/infrastructure-decisions.md`,
 `docs/security/server-sdk.md`, `docs/sdk/web.md`, `docs/sdk/react.md`,
 `docs/chat/` (overview, architecture, websocket, messages, presence,
 typing, read-receipts, reactions, threads, attachments, webhooks),
-`docs/sdk/chat.md`, and `docs/security/chat.md`.
+`docs/sdk/chat.md`, `docs/security/chat.md`, `docs/sdk/react-native.md`,
+and `docs/sdk/flutter.md`.
 
 ## Local development
 
@@ -321,6 +331,11 @@ Full reference: `docs/sdk/chat.md`. Runnable examples: `examples/chat/`
 - `docs/sdk/chat.md` — Phase 12 `@raven/chat` reference
 - `docs/security/chat.md` — Phase 12 chat security audit, including
   residual risks
+- `docs/sdk/react-native.md` — Phase 13 `@raven/react-native` reference:
+  quickstart, permissions, video rendering, lifecycle, audio routing,
+  troubleshooting
+- `docs/sdk/flutter.md` — Phase 13 `raven_rtc`/`raven_chat` reference,
+  including where the Dart API deliberately diverges and why
 - `examples/signaling-demo/` — minimal two-tab browser demo of the
   signaling layer (no build step, no media)
 - `examples/media-demo/` — minimal two-tab browser demo of real
@@ -342,5 +357,8 @@ Full reference: `docs/sdk/chat.md`. Runnable examples: `examples/chat/`
 - `examples/rtc-chat/` — a video call with a chat panel: `@raven/rtc` and
   `@raven/chat` side by side, independent connections, independent
   failure modes
+- `examples/mobile-rtc-chat/` — React Native app: a video call with a
+  chat panel, on a phone
+- `examples/flutter-rtc-chat/` — the same thing in Flutter
 - `scripts/chat-load-test.mjs` — the load test behind the numbers in
   `docs/chat/architecture.md#measured-limits`

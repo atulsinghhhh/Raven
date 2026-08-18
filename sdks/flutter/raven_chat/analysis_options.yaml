@@ -1,0 +1,17 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-raw-types: true
+  errors:
+    # A public SDK's docs are part of its API surface, so a missing one on
+    # an exported member is an error here rather than a suggestion.
+    public_member_api_docs: ignore
+
+linter:
+  rules:
+    - always_declare_return_types
+    - avoid_print
+    - prefer_final_locals
+    - unawaited_futures

@@ -1,0 +1,30 @@
+{
+  "name": "raven-example-mobile-rtc-chat",
+  "private": true,
+  "version": "0.1.0",
+  "description": "React Native: a Raven video call with a chat panel. Real RTC, real messaging, no mocks.",
+  "scripts": {
+    "server": "node server.mjs",
+    "typecheck": "tsc --noEmit",
+    "ios": "react-native run-ios",
+    "android": "react-native run-android",
+    "start": "react-native start"
+  },
+  "dependencies": {
+    "@livekit/react-native": "^2.12.0",
+    "@livekit/react-native-webrtc": "^144.1.2",
+    "@raven/chat": "file:../../packages/chat-sdk",
+    "@raven/react-native": "file:../../packages/react-native-sdk",
+    "@raven/rtc": "file:../../packages/sdk",
+    "@react-native-community/netinfo": "^11.4.1",
+    "livekit-client": "^2.22.0",
+    "react": "^18.3.1",
+    "react-native": "^0.76.5"
+  },
+  "devDependencies": {
+    "@raven/server": "file:../../packages/server-sdk",
+    "@types/react": "^18.3.12",
+    "express": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
