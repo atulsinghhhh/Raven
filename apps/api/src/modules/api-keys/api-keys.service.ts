@@ -31,6 +31,9 @@ export interface CreatedApiKey {
 export interface VerifiedApiKey {
   project: Project;
   environment: Environment;
+  /** The key's own public id — distinct from `project.id`, so two keys on
+   *  the same project can be rate-limited (and revoked) independently. */
+  publicId: string;
 }
 
 @Injectable()
@@ -128,6 +131,6 @@ export class ApiKeysService {
     // The environment travels with the key, never with the request. A
     // caller cannot ask to act in production; it either holds a production
     // key or it does not.
-    return { project: apiKey.project, environment: apiKey.environment };
+    return { project: apiKey.project, environment: apiKey.environment, publicId: apiKey.publicId };
   }
 }

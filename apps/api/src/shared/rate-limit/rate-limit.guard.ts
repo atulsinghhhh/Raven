@@ -8,10 +8,29 @@ import { RATE_LIMIT_KEY } from './rate-limit.decorator';
 
 /**
  * Fixed-window counter in Redis: INCR, then EXPIRE on the first hit.
- * Keyed by IP rather than identity since this also has to cover pre-auth
- * routes like login/register where there's no identity yet. Enough to
- * blunt credential stuffing and spam signups — not a real multi-tenant
- * rate-limiting system.
+ *
+ * Keyed by the most specific identity the request actually carries, in
+ * this order:
+ *
+ *   1. API key public id (`ApiKeyAuthGuard` sets `apiProjectId` —
+ *      a key belongs to exactly one project and environment, so this is
+ *      already scoped as tightly as an IP address never could be)
+ *   2. JWT user id (`JwtAuthGuard`/passport sets `request.user`)
+ *   3. Client IP — the only signal available pre-auth (login, register),
+ *      and the reason this guard cannot key on identity alone: a route
+ *      with no identity yet still needs a limiter.
+ *
+ * IP-only keying has two concrete failure modes, both real rather than
+ * hypothetical: every legitimate user behind one corporate NAT shares a
+ * single bucket, and a single authenticated actor can evade any limit
+ * meant to cap them just by rotating IPs. Keying on identity when one
+ * exists fixes both, since it follows the actor rather than their network
+ * path.
+ *
+ * Not composed with IP even when an identity is present — an
+ * authenticated abuser rotating IPs is still one identity and should
+ * still be capped as one; adding IP back in would only reopen the second
+ * failure mode above for exactly the requests where identity is known.
  */
 @Injectable()
 export class RateLimitGuard implements CanActivate {
@@ -30,7 +49,7 @@ export class RateLimitGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const windowSeconds = this.configService.get<number>('rateLimit.windowSeconds')!;
     const routeKey = `${context.getClass().name}.${context.getHandler().name}`;
-    const redisKey = `ratelimit:${routeKey}:${request.ip ?? 'unknown'}`;
+    const redisKey = `ratelimit:${routeKey}:${subjectFor(request)}`;
 
     const count = await this.redisService.client.incr(redisKey);
     if (count === 1) {
@@ -38,9 +57,30 @@ export class RateLimitGuard implements CanActivate {
     }
 
     if (count > limit) {
-      throw new TooManyRequestsError();
+      const ttl = await this.redisService.client.ttl(redisKey).catch(() => windowSeconds);
+      throw new TooManyRequestsError(undefined, { retryAfterSeconds: ttl > 0 ? ttl : windowSeconds });
     }
 
     return true;
   }
+}
+
+/**
+ * `apiKeyPublicId` is set here rather than reusing `apiProjectId` because
+ * two different production keys for the same project must not share a
+ * budget — a compromised or noisy key should not be able to spend the
+ * project's other keys' headroom, and each key was issued to be revocable
+ * independently for exactly this kind of isolation.
+ */
+function subjectFor(request: Request): string {
+  if (request.apiKeyPublicId) {
+    return `apikey:${request.apiKeyPublicId}`;
+  }
+
+  const user = request.user as { id?: string } | undefined;
+  if (user?.id) {
+    return `user:${user.id}`;
+  }
+
+  return `ip:${request.ip ?? 'unknown'}`;
 }

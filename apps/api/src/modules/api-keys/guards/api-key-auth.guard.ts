@@ -8,6 +8,9 @@ declare module 'express' {
   interface Request {
     apiProjectId?: string;
     apiEnvironment?: Environment;
+    /** The authenticating key's own public id — see RateLimitGuard for why
+     *  this, and not apiProjectId, is what rate limiting keys on. */
+    apiKeyPublicId?: string;
   }
 }
 
@@ -26,11 +29,12 @@ export class ApiKeyAuthGuard implements CanActivate {
       throw new UnauthorizedError('Missing API key');
     }
 
-    const { project, environment } = await this.apiKeysService.verify(
+    const { project, environment, publicId } = await this.apiKeysService.verify(
       header.slice('Bearer '.length),
     );
     request.apiProjectId = project.id;
     request.apiEnvironment = environment;
+    request.apiKeyPublicId = publicId;
     return true;
   }
 }

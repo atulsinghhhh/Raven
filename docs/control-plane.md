@@ -170,22 +170,55 @@ there's nothing new to apply.
 
 ## Rate limiting
 
-`RateLimitGuard` (`shared/rate-limit/`) is a small fixed-window counter in
-Redis (`INCR` + `EXPIRE`-on-first-hit), applied via a `@RateLimit(n)`
-decorator to the four endpoints explicitly called out for abuse potential:
-registration (5/window), login (10/window), API key creation (20/window),
-and RTC token creation (60/window) — window size is
-`RATE_LIMIT_WINDOW_SECONDS` (default 60s), shared globally rather than
-per-route. It keys by client IP rather than by authenticated identity,
-which is what lets it also protect the pre-auth routes (login, register)
-where no identity exists yet. Exceeding the limit returns `429` with a
-generic `RATE_LIMITED` body — no indication of the limit's exact value or
+`RateLimitGuard` (`shared/rate-limit/`) is a fixed-window counter in Redis
+(`INCR` + `EXPIRE`-on-first-hit), applied via a `@RateLimit(n)` decorator
+to five endpoints: registration (5/window), login (10/window), API key
+creation (20/window), RTC token creation (60/window), and telemetry
+ingest (600/window). Window size is `RATE_LIMIT_WINDOW_SECONDS` (default
+60s), shared globally rather than per-route.
+
+The budget is keyed by the most specific identity a request actually
+carries, checked in this order:
+
+1. **API key public id**, when `ApiKeyAuthGuard` authenticated the
+   request. Keyed on the key itself rather than its project, so two keys
+   on one project don't share a budget — a noisy or compromised key
+   cannot spend its sibling's headroom, and each key is independently
+   revocable for exactly this kind of isolation.
+2. **JWT user id**, when `JwtAuthGuard`/passport set `request.user`.
+3. **Client IP**, only when neither exists — the pre-auth routes
+   (login, register) have no identity to key on yet.
+
+IP-only keying (the previous design) has two concrete failure modes:
+every legitimate user behind one corporate NAT shares a single bucket,
+and an authenticated abuser can evade any limit meant to cap them just by
+rotating IPs. Keying on identity when one is available fixes both, since
+the budget follows the actor rather than their network path. Identity is
+never combined with IP — an authenticated abuser rotating IPs is still
+one identity and should stay capped as one.
+
+A refusal returns `429` with `RAVEN_RATE_LIMITED` and `retryAfterSeconds`
+read from the key's actual Redis TTL, so a client knows when to retry
+rather than merely being told to stop. See docs/error-codes.md. The
+message stays generic — no indication of the limit's exact value or
 remaining budget, which would help an attacker tune around it.
 
 This is deliberately not a distributed, per-tenant rate-limiting platform
 (no sliding windows, no burst/leaky-bucket, no per-user-plan tiers) — it's
-enough to blunt credential stuffing, brute force, and spam signups. Revisit
-if Phase 14 (Autoscaling) or real abuse patterns demand more.
+enough to blunt credential stuffing, brute force, and spam signups. It
+does not yet compose multiple dimensions (e.g. project *and* user) or
+offer per-role tiers; revisit if real abuse patterns demand more.
+
+Chat's `ChatRateLimitService` and signaling's `ConnectionRateLimitService`
+are separate, purpose-built limiters and are not affected by any of the
+above:
+
+- Chat is already keyed per-subject (`projectId` + `userId`/`tokenId`) —
+  it never had the IP-only problem, since a chat token always carries an
+  identity by the time a rate-limited action happens.
+- Signaling's WebSocket-upgrade limiter is IP-only by necessity: it
+  guards the connection attempt itself, before any token is verified, the
+  same situation as login and register above.
 
 ## CORS
 

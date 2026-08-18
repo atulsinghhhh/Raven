@@ -1188,5 +1188,122 @@ describe('Control plane (e2e)', () => {
 
       expect(statuses).toContain(429);
     });
+
+    it('reports retryAfterSeconds on the 429 so a client knows when to try again', async () => {
+      const statuses: Array<{ status: number; body: Record<string, unknown> }> = [];
+      for (let i = 0; i < 15; i += 1) {
+        const res = await request(app.getHttpServer())
+          .post('/v1/auth/login')
+          .send({ email: 'still-nonexistent@raven.local', password: 'wrong' });
+        statuses.push({ status: res.status, body: res.body });
+      }
+
+      const limited = statuses.find((s) => s.status === 429);
+      expect(limited?.body).toMatchObject({
+        code: 'RAVEN_RATE_LIMITED',
+        retryAfterSeconds: expect.any(Number),
+      });
+    });
+
+    it('gives two authenticated users independent budgets on the same rate-limited route', async () => {
+      // Every request in this test comes from the same test process, so
+      // it is effectively the NAT scenario: one IP, two identities. Before
+      // this rework the guard keyed on IP alone, so userB below would have
+      // inherited whatever budget userA had already spent.
+      const password = 'correct-horse-battery-staple';
+
+      const userA = await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send({ email: `ratelimit-a-${uniqueSuffix}@raven.local`, password, name: 'A' })
+        .expect(201);
+      const projectA = await request(app.getHttpServer())
+        .post('/v1/projects')
+        .set('Authorization', `Bearer ${userA.body.accessToken}`)
+        .send({ name: `ratelimit-project-a-${uniqueSuffix}` })
+        .expect(201);
+
+      const userB = await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send({ email: `ratelimit-b-${uniqueSuffix}@raven.local`, password, name: 'B' })
+        .expect(201);
+      const projectB = await request(app.getHttpServer())
+        .post('/v1/projects')
+        .set('Authorization', `Bearer ${userB.body.accessToken}`)
+        .send({ name: `ratelimit-project-b-${uniqueSuffix}` })
+        .expect(201);
+
+      // api-keys create is capped at 20/window (see api-keys.controller.ts).
+      // Spend user A's budget past the cap.
+      const statusesA: number[] = [];
+      for (let i = 0; i < 22; i += 1) {
+        const res = await request(app.getHttpServer())
+          .post(`/v1/projects/${projectA.body.id}/api-keys`)
+          .set('Authorization', `Bearer ${userA.body.accessToken}`)
+          .send({ name: `key-${i}` });
+        statusesA.push(res.status);
+      }
+      expect(statusesA).toContain(429);
+
+      // User B, same window, same effective IP, untouched budget.
+      await request(app.getHttpServer())
+        .post(`/v1/projects/${projectB.body.id}/api-keys`)
+        .set('Authorization', `Bearer ${userB.body.accessToken}`)
+        .send({ name: 'first-key' })
+        .expect(201);
+    });
+
+    it('gives two API keys on the same project independent budgets', async () => {
+      // 62 sequential round-trips comfortably exceeds Jest's 5s default.
+      // Isolation one level finer than the test above: even the same
+      // project's two keys must not share a limiter, so a noisy or
+      // compromised key cannot spend its sibling's headroom.
+      const password = 'correct-horse-battery-staple';
+
+      const user = await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send({ email: `ratelimit-c-${uniqueSuffix}@raven.local`, password, name: 'C' })
+        .expect(201);
+      const project = await request(app.getHttpServer())
+        .post('/v1/projects')
+        .set('Authorization', `Bearer ${user.body.accessToken}`)
+        .send({ name: `ratelimit-project-c-${uniqueSuffix}` })
+        .expect(201);
+
+      const keyOne = await request(app.getHttpServer())
+        .post(`/v1/projects/${project.body.id}/api-keys`)
+        .set('Authorization', `Bearer ${user.body.accessToken}`)
+        .send({ name: 'key-one' })
+        .expect(201);
+      const keyTwo = await request(app.getHttpServer())
+        .post(`/v1/projects/${project.body.id}/api-keys`)
+        .set('Authorization', `Bearer ${user.body.accessToken}`)
+        .send({ name: 'key-two' })
+        .expect(201);
+
+      // rtc-tokens create is capped at 60/window and is API-key-authed.
+      // Room creation itself is not rate-limited, so this needs only one.
+      const room = await request(app.getHttpServer())
+        .post('/v1/rooms')
+        .set('Authorization', `Bearer ${keyOne.body.key}`)
+        .send({ name: `ratelimit-room-${uniqueSuffix}` })
+        .expect(201);
+
+      const statusesKeyOne: number[] = [];
+      for (let i = 0; i < 62; i += 1) {
+        const res = await request(app.getHttpServer())
+          .post(`/v1/rooms/${room.body.id}/rtc-tokens`)
+          .set('Authorization', `Bearer ${keyOne.body.key}`)
+          .send({ participantIdentity: `p-${i}` });
+        statusesKeyOne.push(res.status);
+      }
+      expect(statusesKeyOne).toContain(429);
+
+      // keyTwo belongs to the same project, but has spent nothing.
+      await request(app.getHttpServer())
+        .post(`/v1/rooms/${room.body.id}/rtc-tokens`)
+        .set('Authorization', `Bearer ${keyTwo.body.key}`)
+        .send({ participantIdentity: 'still-fine' })
+        .expect(201);
+    }, 20_000);
   });
 });

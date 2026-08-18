@@ -104,21 +104,41 @@ describe('ApiKeysService', () => {
       await expect(service.verify('rvk_x.wrongsecret')).rejects.toBeInstanceOf(UnauthorizedError);
     });
 
-    it('resolves to the owning project and its environment on a valid, active key', async () => {
+    it('resolves to the owning project, its environment, and the key’s own public id', async () => {
       const secretHash = await hashSecret('correctsecret');
       prisma.apiKey.findUnique.mockResolvedValue({
         id: 'key1',
+        publicId: 'rvk_prod_abc',
         status: ApiKeyStatus.ACTIVE,
         environment: Environment.PRODUCTION,
         secretHash,
         project: { id: 'project1', name: 'Test' },
       });
 
-      const verified = await service.verify('rvk_x.correctsecret');
+      const verified = await service.verify('rvk_prod_abc.correctsecret');
       expect(verified).toEqual({
         project: { id: 'project1', name: 'Test' },
         environment: Environment.PRODUCTION,
+        publicId: 'rvk_prod_abc',
       });
+    });
+
+    it('reports the key’s own id, not the project id, as the rate-limit subject', async () => {
+      // Two keys on one project must not share a budget — that isolation
+      // depends on this field surviving all the way to RateLimitGuard.
+      const secretHash = await hashSecret('correctsecret');
+      prisma.apiKey.findUnique.mockResolvedValue({
+        id: 'key1',
+        publicId: 'rvk_prod_key_one',
+        status: ApiKeyStatus.ACTIVE,
+        environment: Environment.PRODUCTION,
+        secretHash,
+        project: { id: 'project1', name: 'Test' },
+      });
+
+      const verified = await service.verify('rvk_prod_key_one.correctsecret');
+      expect(verified.publicId).toBe('rvk_prod_key_one');
+      expect(verified.publicId).not.toBe(verified.project.id);
     });
 
     it('takes the environment from the key row, never from the caller', async () => {
