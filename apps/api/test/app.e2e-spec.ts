@@ -759,6 +759,174 @@ describe('Control plane (e2e)', () => {
     });
   });
 
+  describe('project roles', () => {
+    // Two real accounts and one project, exercising the boundary that the
+    // capability table is supposed to enforce.
+    // Distinct prefixes: the cross-tenant suite above already claims
+    // `owner-${uniqueSuffix}`, and both run against the same database.
+    const ownerEmail = `roleowner-${uniqueSuffix}@raven.local`;
+    const viewerEmail = `roleviewer-${uniqueSuffix}@raven.local`;
+    const password = 'correct-horse-battery-staple';
+    let ownerToken: string;
+    let viewerToken: string;
+    let viewerUserId: string;
+    let ownerUserId: string;
+    let projectId: string;
+
+    beforeAll(async () => {
+      const redis = app.get(RedisService);
+      const keys = await redis.client.keys('ratelimit:*');
+      if (keys.length > 0) {
+        await redis.client.del(...keys);
+      }
+
+      const owner = await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send({ email: ownerEmail, password, name: 'Owner' })
+        .expect(201);
+      ownerToken = owner.body.accessToken;
+
+      const viewer = await request(app.getHttpServer())
+        .post('/v1/auth/register')
+        .send({ email: viewerEmail, password, name: 'Viewer' })
+        .expect(201);
+      viewerToken = viewer.body.accessToken;
+      viewerUserId = viewer.body.user.id;
+
+      const project = await request(app.getHttpServer())
+        .post('/v1/projects')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ name: `roles-project-${uniqueSuffix}` })
+        .expect(201);
+      projectId = project.body.id;
+      ownerUserId = owner.body.user.id;
+    });
+
+    it('makes the creator an owner automatically', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/v1/projects/${projectId}/members`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(200);
+
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0]).toMatchObject({ email: ownerEmail, role: 'OWNER' });
+    });
+
+    it('hides the project entirely from a non-member', async () => {
+      // 404, not 403 — a 403 would confirm the id is real.
+      const res = await request(app.getHttpServer())
+        .get(`/v1/projects/${projectId}`)
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .expect(404);
+
+      expect(res.body.code).toBe('RAVEN_PROJECT_NOT_FOUND');
+    });
+
+    it('adds a member with an explicit role', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/v1/projects/${projectId}/members`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ email: viewerEmail, role: 'VIEWER' })
+        .expect(201);
+
+      expect(res.body).toMatchObject({ role: 'VIEWER' });
+      // The capability list travels with the member so a dashboard need
+      // not keep its own copy of the matrix.
+      expect(res.body.capabilities).toContain('project:read');
+      expect(res.body.capabilities).not.toContain('keys:manage');
+    });
+
+    it('lets that viewer read the project now', async () => {
+      await request(app.getHttpServer())
+        .get(`/v1/projects/${projectId}`)
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .expect(200);
+    });
+
+    it('refuses the viewer an API key with 403, not 404', async () => {
+      // They can see the project, so hiding it would only send them
+      // hunting for a bug instead of asking for access.
+      const res = await request(app.getHttpServer())
+        .post(`/v1/projects/${projectId}/api-keys`)
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .send({ name: 'sneaky' })
+        .expect(403);
+
+      expect(res.body.code).toBe('RAVEN_PERMISSION_DENIED');
+      expect(res.body.message).toMatch(/viewer/i);
+    });
+
+    it('refuses the viewer a webhook, a room, and the members list changes', async () => {
+      await request(app.getHttpServer())
+        .post(`/v1/projects/${projectId}/webhooks`)
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .send({ url: 'https://example.com/hook' })
+        .expect(403);
+
+      await request(app.getHttpServer())
+        .post(`/v1/projects/${projectId}/rooms`)
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .send({ name: 'viewer-room' })
+        .expect(403);
+
+      await request(app.getHttpServer())
+        .post(`/v1/projects/${projectId}/members`)
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .send({ email: ownerEmail, role: 'VIEWER' })
+        .expect(403);
+    });
+
+    it('still lets the viewer read what a viewer should read', async () => {
+      await request(app.getHttpServer())
+        .get(`/v1/projects/${projectId}/api-keys`)
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .get(`/v1/projects/${projectId}/members`)
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .expect(200);
+    });
+
+    it('promotes the viewer to developer and the refusals turn into successes', async () => {
+      await request(app.getHttpServer())
+        .patch(`/v1/projects/${projectId}/members/${viewerUserId}`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ role: 'DEVELOPER' })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .post(`/v1/projects/${projectId}/api-keys`)
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .send({ name: 'now-allowed' })
+        .expect(201);
+    });
+
+    it('still refuses a developer the owner-only actions', async () => {
+      await request(app.getHttpServer())
+        .delete(`/v1/projects/${projectId}`)
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .expect(403);
+
+      await request(app.getHttpServer())
+        .patch(`/v1/projects/${projectId}/members/${viewerUserId}`)
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .send({ role: 'OWNER' })
+        .expect(403);
+    });
+
+    it('refuses to leave the project with no owner', async () => {
+      const res = await request(app.getHttpServer())
+        .delete(`/v1/projects/${projectId}/members/${ownerUserId}`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+
+      // A project with no owner cannot be administered by anyone — not
+      // even to appoint a replacement — so the last one is not removable.
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('RAVEN_VALIDATION_FAILED');
+    });
+  });
+
   describe('the error envelope', () => {
     // The limiter is keyed on IP alone, so every suite above shares one
     // budget with this one and the register route can already be spent by
