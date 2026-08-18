@@ -91,7 +91,7 @@ jobs:
       # worth keeping, so they ship as a build artifact. Swap this back to
       # github/codeql-action/upload-sarif once Advanced Security is enabled.
       - name: Upload scan results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: trivy-results
