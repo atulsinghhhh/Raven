@@ -32,6 +32,8 @@ export function LoginForm() {
         return;
       }
 
+      // `next` carries the page the user was trying to reach — including
+      // the CLI authorisation hand-off — so it has to survive the round trip.
       router.push(searchParams.get('next') ?? '/dashboard/projects');
       router.refresh();
     } catch {
@@ -43,18 +45,26 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {/* ErrorState carries role="alert", so a failed sign-in is announced
+          without moving focus away from the field being corrected. */}
       {error && <ErrorState title="Could not sign in" description={error} />}
+
       <Field
         id="email"
+        name="email"
         label="Email"
         type="email"
+        inputMode="email"
         autoComplete="email"
+        autoFocus
+        placeholder="you@example.com"
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
       <Field
         id="password"
+        name="password"
         label="Password"
         type="password"
         autoComplete="current-password"
@@ -62,7 +72,8 @@ export function LoginForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <Button type="submit" disabled={submitting}>
+
+      <Button type="submit" loading={submitting} className="mt-1 w-full">
         {submitting ? 'Signing in…' : 'Sign in'}
       </Button>
     </form>

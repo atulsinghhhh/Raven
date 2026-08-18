@@ -60,6 +60,39 @@ describe('RTCClient.join', () => {
   });
 });
 
+describe('RTCClient.onDeviceChange (Phase 11)', () => {
+  // jsdom doesn't implement navigator.mediaDevices at all — polyfill just
+  // enough of it for this one test, matching every real browser's shape.
+  const originalMediaDevices = (navigator as { mediaDevices?: unknown }).mediaDevices;
+  const addEventListener = jest.fn();
+  const removeEventListener = jest.fn();
+
+  beforeEach(() => {
+    addEventListener.mockClear();
+    removeEventListener.mockClear();
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { addEventListener, removeEventListener },
+      configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(navigator, 'mediaDevices', { value: originalMediaDevices, configurable: true });
+  });
+
+  it('subscribes to the browser devicechange event and returns a working unsubscribe', () => {
+    const token = makeToken({ video: { room: 'room-1' } });
+    const client = createRTCClient({ token, endpoint: 'wss://rtc.example.com', telemetry: false });
+    const callback = jest.fn();
+
+    const unsubscribe = client.onDeviceChange(callback);
+    expect(addEventListener).toHaveBeenCalledWith('devicechange', callback);
+
+    unsubscribe();
+    expect(removeEventListener).toHaveBeenCalledWith('devicechange', callback);
+  });
+});
+
 describe('RTCClient.leave', () => {
   it('leaves the most recently joined room', async () => {
     const token = makeToken({ video: { room: 'room-1' } });

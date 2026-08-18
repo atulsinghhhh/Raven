@@ -97,6 +97,22 @@ describe('Room — participants and tracks', () => {
     expect(room.remoteParticipants).toEqual([]);
   });
 
+  it('forwards trackMuted/trackUnmuted from the adapter (Phase 11)', () => {
+    const adapter = new FakeAdapter();
+    const room = new Room(adapter, 'room-1', logger);
+    const muted = jest.fn();
+    const unmuted = jest.fn();
+    room.on('trackMuted', muted);
+    room.on('trackUnmuted', unmuted);
+    const participant = adapter.addRemoteParticipant('bob');
+
+    adapter.emitTrackMuted('camera', participant);
+    adapter.emitTrackUnmuted('camera', participant);
+
+    expect(muted).toHaveBeenCalledWith('camera', participant);
+    expect(unmuted).toHaveBeenCalledWith('camera', participant);
+  });
+
   it('remoteParticipants reflects the adapter map live', () => {
     const adapter = new FakeAdapter();
     const room = new Room(adapter, 'room-1', logger);
@@ -161,6 +177,30 @@ describe('Room — actions delegate to the adapter', () => {
       { kind: 'videoinput', deviceId: 'camera-42' },
       { kind: 'audioinput', deviceId: 'mic-7' },
     ]);
+  });
+
+  describe('setSpeakerDevice() (Phase 11)', () => {
+    afterEach(() => {
+      delete (HTMLMediaElement.prototype as { setSinkId?: unknown }).setSinkId;
+    });
+
+    it('throws DEVICE_NOT_FOUND when the browser has no setSinkId support (e.g. Safari, or jsdom by default)', async () => {
+      const adapter = new FakeAdapter();
+      const room = new Room(adapter, 'room-1', logger);
+
+      await expect(room.setSpeakerDevice('speaker-1')).rejects.toMatchObject({ code: 'DEVICE_NOT_FOUND' });
+      expect(adapter.setDeviceCalls).toEqual([]);
+    });
+
+    it('delegates to the adapter with kind "audiooutput" when setSinkId is supported', async () => {
+      (HTMLMediaElement.prototype as unknown as { setSinkId: () => void }).setSinkId = jest.fn();
+      const adapter = new FakeAdapter();
+      const room = new Room(adapter, 'room-1', logger);
+
+      await room.setSpeakerDevice('speaker-1');
+
+      expect(adapter.setDeviceCalls).toEqual([{ kind: 'audiooutput', deviceId: 'speaker-1' }]);
+    });
   });
 
   it('sendData() encodes a string payload to bytes before handing it to the adapter', async () => {

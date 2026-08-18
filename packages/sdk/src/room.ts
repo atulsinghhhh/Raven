@@ -38,6 +38,9 @@ export interface RoomEventMap {
   trackUnpublished: (kind: TrackKind, participant: RemoteParticipant) => void;
   trackSubscribed: (track: RemoteTrack, participant: RemoteParticipant) => void;
   trackUnsubscribed: (track: RemoteTrack, participant: RemoteParticipant) => void;
+  /** Phase 11 addition — a remote participant muted/unmuted a track they already published. */
+  trackMuted: (kind: TrackKind, participant: RemoteParticipant) => void;
+  trackUnmuted: (kind: TrackKind, participant: RemoteParticipant) => void;
   localTrackPublished: (track: LocalTrack) => void;
   localTrackUnpublished: (track: LocalTrack) => void;
   dataReceived: (payload: Uint8Array, participant?: RemoteParticipant) => void;
@@ -127,6 +130,8 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
     this.adapter.on('trackUnpublished', (kind, participant) => this.emit('trackUnpublished', kind, participant));
     this.adapter.on('trackSubscribed', (track, participant) => this.emit('trackSubscribed', track, participant));
     this.adapter.on('trackUnsubscribed', (track, participant) => this.emit('trackUnsubscribed', track, participant));
+    this.adapter.on('trackMuted', (kind, participant) => this.emit('trackMuted', kind, participant));
+    this.adapter.on('trackUnmuted', (kind, participant) => this.emit('trackUnmuted', kind, participant));
     this.adapter.on('localTrackPublished', (track) => {
       this.telemetry.send('track_published', { kind: track.kind });
       this.emit('localTrackPublished', track);
@@ -208,6 +213,22 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
   /** Switches the active microphone without republishing. */
   async setMicrophoneDevice(deviceId: string): Promise<void> {
     await this.adapter.setDevice('audioinput', deviceId);
+  }
+
+  /**
+   * Switches the audio output ("speaker") device for this room's remote
+   * audio elements — Phase 11 addition. Not universally supported (Safari
+   * lacks `HTMLMediaElement.setSinkId`); throws `DEVICE_NOT_FOUND` on
+   * browsers that don't implement it, rather than silently no-op-ing.
+   */
+  async setSpeakerDevice(deviceId: string): Promise<void> {
+    if (typeof document !== 'undefined') {
+      const probe = document.createElement('audio') as HTMLAudioElement & { setSinkId?: unknown };
+      if (typeof probe.setSinkId !== 'function') {
+        throw new RTCError('DEVICE_NOT_FOUND', "This browser doesn't support selecting an audio output device (no setSinkId)");
+      }
+    }
+    await this.adapter.setDevice('audiooutput', deviceId);
   }
 
   /**

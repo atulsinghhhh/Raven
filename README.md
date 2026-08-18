@@ -11,13 +11,14 @@ architecture decisions.
 
 ## Status
 
-**Phase 10 of 19** — control plane, signaling, real WebRTC media (LiveKit +
+**Phase 11 of 19** — control plane, signaling, real WebRTC media (LiveKit +
 coturn), a production-oriented TURN/NAT-traversal setup, a TypeScript
-browser SDK (`@raven/rtc`), a developer dashboard (`apps/dashboard`), a
-terminal CLI (`@raven/cli`), a first observability/diagnostics layer, and
-official backend SDKs for TypeScript (`@raven/server`) and Python
-(`raven-sdk`) are all working end to end and verified live. No
-recording, usage metering/billing, or a React/mobile/Go/Java/etc. SDK yet.
+browser SDK (`@raven/rtc`), React hooks/components on top of it
+(`@raven/react`), a developer dashboard (`apps/dashboard`), a terminal
+CLI (`@raven/cli`), a first observability/diagnostics layer, and official
+backend SDKs for TypeScript (`@raven/server`) and Python (`raven-sdk`)
+are all working end to end and verified live. No recording, usage
+metering/billing, or a mobile/Go/Java/etc. SDK yet.
 
 ## Architecture at a glance
 
@@ -35,6 +36,11 @@ recording, usage metering/billing, or a React/mobile/Go/Java/etc. SDK yet.
 - **Browser SDK** (`packages/sdk`, Phase 6): `@raven/rtc` — join a room,
   publish camera/microphone, subscribe to remote media, without ever
   touching SDP, ICE, or `RTCPeerConnection` directly.
+- **React SDK** (`packages/react-sdk`, Phase 11): `@raven/react` — hooks
+  (`useRaven`, `useConnectionState`, `useParticipants`, `useCamera`, ...)
+  and optional components (`RavenRoom`, `ParticipantView`, ...) on top of
+  `@raven/rtc`, which itself was not changed to build this — headless by
+  default, no UI lock-in.
 - **Dashboard** (`apps/dashboard`, Phase 7): create an account, manage
   projects and API keys, inspect rooms and their live LiveKit participant
   state, and read SDK integration instructions — a thin, server-rendered
@@ -62,8 +68,8 @@ Full rationale: `docs/architecture/infrastructure-decisions.md`,
 `docs/media-flow.md`, `docs/turn.md`, `docs/nat-traversal.md`,
 `docs/sdk.md`, `docs/dashboard.md`, `docs/cli.md`, `docs/observability.md`,
 `docs/telemetry.md`, `docs/diagnostics.md`, `docs/error-codes.md`,
-`docs/sdk/server/typescript.md`, `docs/sdk/server/python.md`, and
-`docs/security/server-sdk.md`.
+`docs/sdk/server/typescript.md`, `docs/sdk/server/python.md`,
+`docs/security/server-sdk.md`, `docs/sdk/web.md`, and `docs/sdk/react.md`.
 
 ## Local development
 
@@ -145,6 +151,46 @@ metrics/diagnostics. Full reference: `docs/sdk/server/typescript.md`,
 `docs/sdk/server/python.md`, security model: `docs/security/server-sdk.md`.
 Runnable examples: `examples/node-server/`, `examples/python-server/`.
 
+## React SDK
+
+```bash
+npm install @raven/rtc @raven/react
+```
+
+```tsx
+'use client';
+import { RavenRoom, useConnectionState, useCamera, ParticipantView, useLocalParticipant } from '@raven/react';
+
+function CallPage({ token, endpoint, room }) {
+  return (
+    <RavenRoom token={token} endpoint={endpoint} room={room} fallback={<p>Connecting…</p>}>
+      <Call />
+    </RavenRoom>
+  );
+}
+
+function Call() {
+  const state = useConnectionState();
+  const camera = useCamera();
+  const local = useLocalParticipant();
+  return (
+    <>
+      <p>Status: {state}</p>
+      <button onClick={() => (camera.enabled ? camera.disable() : camera.enable())}>Toggle camera</button>
+      {local && <ParticipantView participant={local} />}
+    </>
+  );
+}
+```
+
+Headless hooks (`useRaven`, `useConnectionState`, `useParticipants`,
+`useCamera`, `useMicrophone`, ...) plus optional components
+(`RavenRoom`, `ParticipantView`, `RavenVideo`, `RavenAudio`) — nothing
+required beyond the hooks if you'd rather build your own UI. `@raven/rtc`
+itself is unchanged (see `docs/sdk/web.md` for the small, additive gaps
+Phase 11 closed). Full reference: `docs/sdk/react.md`. Runnable example:
+`examples/react-video-call/`.
+
 ## Documentation
 
 - `docs/architecture/` — Phase 0 architecture decisions (WebRTC
@@ -174,6 +220,10 @@ Runnable examples: `examples/node-server/`, `examples/python-server/`.
 - `docs/sdk/server/python.md` — Phase 10 `raven-sdk` (Python) reference
 - `docs/security/server-sdk.md` — Phase 10 server SDK security model
   (API key storage, authorization model, short-lived tokens)
+- `docs/sdk/web.md` — Phase 11 `@raven/rtc` additions (browser support,
+  Next.js usage) — see `docs/sdk.md` for the full API, unchanged
+- `docs/sdk/react.md` — Phase 11 `@raven/react` reference: hooks,
+  optional components, Next.js, Strict Mode
 - `examples/signaling-demo/` — minimal two-tab browser demo of the
   signaling layer (no build step, no media)
 - `examples/media-demo/` — minimal two-tab browser demo of real
@@ -186,3 +236,6 @@ Runnable examples: `examples/node-server/`, `examples/python-server/`.
   `@raven/server`
 - `examples/python-server/` — FastAPI backend minting RTC tokens with
   `raven-sdk`
+- `examples/react-video-call/` — real, buildable React app (Vite) using
+  `@raven/react`'s hooks and components — camera/mic/screen-share/device
+  selection/participants/leave/reconnect status

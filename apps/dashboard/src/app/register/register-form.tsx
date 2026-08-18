@@ -42,27 +42,39 @@ export function RegisterForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {/* role="alert" lives on ErrorState, so a rejected registration is
+          announced rather than only appearing above the fold. */}
       {error && <ErrorState title="Could not create account" description={error} />}
+
       <Field
         id="email"
+        name="email"
         label="Email"
         type="email"
+        inputMode="email"
         autoComplete="email"
+        autoFocus
+        placeholder="you@example.com"
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
+      {/* The minimum is stated up front rather than only on rejection —
+          the hint is wired to the input through aria-describedby by Field. */}
       <Field
         id="password"
+        name="password"
         label="Password"
         type="password"
         autoComplete="new-password"
         minLength={8}
         required
+        hint="At least 8 characters."
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <Button type="submit" disabled={submitting}>
+
+      <Button type="submit" loading={submitting} className="mt-1 w-full">
         {submitting ? 'Creating account…' : 'Create account'}
       </Button>
     </form>

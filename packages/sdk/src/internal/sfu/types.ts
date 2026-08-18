@@ -20,6 +20,9 @@ export interface SFUAdapterEventMap {
   trackUnpublished: (kind: TrackKind, participant: RemoteParticipant) => void;
   trackSubscribed: (track: RemoteTrack, participant: RemoteParticipant) => void;
   trackUnsubscribed: (track: RemoteTrack, participant: RemoteParticipant) => void;
+  /** Phase 11 addition — lets a UI show a muted indicator without polling `track.isMuted`. */
+  trackMuted: (kind: TrackKind, participant: RemoteParticipant) => void;
+  trackUnmuted: (kind: TrackKind, participant: RemoteParticipant) => void;
   localTrackPublished: (track: LocalTrack) => void;
   localTrackUnpublished: (track: LocalTrack) => void;
   dataReceived: (payload: Uint8Array, participant?: RemoteParticipant) => void;
@@ -54,5 +57,11 @@ export interface SFUAdapter {
   sendData(payload: Uint8Array<ArrayBuffer>): Promise<void>;
 
   getDevices(kind?: DeviceKind): Promise<DeviceInfo[]>;
-  setDevice(kind: 'videoinput' | 'audioinput', deviceId: string): Promise<void>;
+  /**
+   * Phase 11 widened this from `'videoinput' | 'audioinput'` to the full
+   * `DeviceKind` — a purely additive change (every existing caller passing
+   * one of the original two values is unaffected) that lets `'audiooutput'`
+   * (speaker selection) through, where the browser supports `setSinkId`.
+   */
+  setDevice(kind: DeviceKind, deviceId: string): Promise<void>;
 }

@@ -13,6 +13,8 @@ const RoomEvent = {
   TrackUnpublished: 'trackUnpublished',
   TrackSubscribed: 'trackSubscribed',
   TrackUnsubscribed: 'trackUnsubscribed',
+  TrackMuted: 'trackMuted',
+  TrackUnmuted: 'trackUnmuted',
   LocalTrackPublished: 'localTrackPublished',
   LocalTrackUnpublished: 'localTrackUnpublished',
   DataReceived: 'dataReceived',
@@ -56,6 +58,14 @@ class FakeLKRoom extends TypedEventEmitter<Record<string, (...args: never[]) => 
   static getLocalDevices = jest.fn().mockResolvedValue([]);
 
   switchActiveDevice = jest.fn();
+
+  /** Test-only: TypedEventEmitter.emit() is protected, so tests can't call
+   * `roomInstances[0].emit(...)` directly — this thin public wrapper (same
+   * class, so the protected call is legal) lets a test trigger a raw
+   * RoomEvent as if livekit-client itself had fired it. */
+  triggerEvent<A extends unknown[]>(event: string, ...args: A): void {
+    this.emit(event, ...(args as never[]));
+  }
 }
 
 let roomInstances: FakeLKRoom[] = [];
@@ -173,5 +183,64 @@ describe('LiveKitAdapter — bootstrapping participants already in the room', ()
 
     expect(subscribed).not.toHaveBeenCalled();
     expect(adapter.remoteParticipants.get('bob')?.tracks).toHaveLength(0);
+  });
+});
+
+describe('LiveKitAdapter — mute/unmute forwarding (Phase 11)', () => {
+  beforeEach(() => {
+    roomInstances = [];
+    nextPreExisting = new Map([['bob', fakeRemoteParticipant('bob', [])]]);
+  });
+
+  it('forwards a remote TrackMuted as trackMuted, with the participant resolved', async () => {
+    const adapter = new LiveKitAdapter(createLogger('silent'), true);
+    const muted = jest.fn();
+    adapter.on('trackMuted', muted);
+    await adapter.connect('wss://rtc.example.com', 'token');
+
+    roomInstances[0].triggerEvent(RoomEvent.TrackMuted, { source: 'camera' }, { identity: 'bob', isLocal: false });
+
+    expect(muted).toHaveBeenCalledTimes(1);
+    expect(muted.mock.calls[0][0]).toBe('camera');
+    expect(muted.mock.calls[0][1].identity).toBe('bob');
+  });
+
+  it('forwards a remote TrackUnmuted as trackUnmuted', async () => {
+    const adapter = new LiveKitAdapter(createLogger('silent'), true);
+    const unmuted = jest.fn();
+    adapter.on('trackUnmuted', unmuted);
+    await adapter.connect('wss://rtc.example.com', 'token');
+
+    roomInstances[0].triggerEvent(RoomEvent.TrackUnmuted, { source: 'microphone' }, { identity: 'bob', isLocal: false });
+
+    expect(unmuted).toHaveBeenCalledTimes(1);
+    expect(unmuted.mock.calls[0][0]).toBe('microphone');
+  });
+
+  it('ignores a local participant muting their own track — never surfaced as a remote event', async () => {
+    const adapter = new LiveKitAdapter(createLogger('silent'), true);
+    const muted = jest.fn();
+    adapter.on('trackMuted', muted);
+    await adapter.connect('wss://rtc.example.com', 'token');
+
+    roomInstances[0].triggerEvent(RoomEvent.TrackMuted, { source: 'camera' }, { identity: 'local-user', isLocal: true });
+
+    expect(muted).not.toHaveBeenCalled();
+  });
+});
+
+describe('LiveKitAdapter — setDevice (Phase 11: widened to accept audiooutput)', () => {
+  beforeEach(() => {
+    roomInstances = [];
+    nextPreExisting = new Map();
+  });
+
+  it('passes an audiooutput device switch straight through to switchActiveDevice', async () => {
+    const adapter = new LiveKitAdapter(createLogger('silent'), true);
+    await adapter.connect('wss://rtc.example.com', 'token');
+
+    await adapter.setDevice('audiooutput', 'speaker-1');
+
+    expect(roomInstances[0].switchActiveDevice).toHaveBeenCalledWith('audiooutput', 'speaker-1');
   });
 });

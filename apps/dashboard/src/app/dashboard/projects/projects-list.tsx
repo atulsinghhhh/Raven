@@ -6,12 +6,23 @@ import type { Project } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
+import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState, ErrorState } from '@/components/ui/states';
+import { MonoId } from '@/components/ui/mono';
+import { IconChevronRight, IconFolder, IconPlus } from '@/components/ui/icons';
+import { formatDate } from '@/lib/format';
+import { Badge } from '@/components/ui/badge';
 
-export function ProjectsList({ initialProjects }: { initialProjects: Project[] }) {
+export function ProjectsList({
+  initialProjects,
+  autoOpenCreate = false,
+}: {
+  initialProjects: Project[];
+  autoOpenCreate?: boolean;
+}) {
   const router = useRouter();
-  const projects = initialProjects; // creating a project navigates away — no local list mutation needed
-  const [creating, setCreating] = useState(false);
+  const projects = initialProjects; // creating navigates away, so the list never mutates in place
+  const [creating, setCreating] = useState(autoOpenCreate);
   const [name, setName] = useState('');
   const [error, setError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
@@ -44,47 +55,97 @@ export function ProjectsList({ initialProjects }: { initialProjects: Project[] }
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Projects</h1>
-        {!creating && <Button onClick={() => setCreating(true)}>New project</Button>}
-      </div>
+      <PageHeader
+        title="Projects"
+        description="Each project has its own API keys, rooms, and observability data."
+        actions={
+          !creating && (
+            <Button onClick={() => setCreating(true)}>
+              <IconPlus className="size-3.5" />
+              New project
+            </Button>
+          )
+        }
+      />
 
       {creating && (
         <Card>
-          <form onSubmit={handleCreate} className="flex items-end gap-3">
-            <div className="flex-1">
-              <Field id="project-name" label="Project name" placeholder="My Video App" required value={name} onChange={(e) => setName(e.target.value)} />
+          <form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <Field
+              id="project-name"
+              label="Project name"
+              placeholder="my-video-app"
+              required
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="flex-1"
+              hint="Used across the dashboard, CLI, and SDK quickstarts."
+            />
+            <div className="flex gap-2">
+              <Button type="submit" loading={submitting}>
+                Create project
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setCreating(false);
+                  setError(undefined);
+                }}
+              >
+                Cancel
+              </Button>
             </div>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? 'Creating…' : 'Create'}
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => setCreating(false)}>
-              Cancel
-            </Button>
           </form>
-          {error && <div className="mt-3"><ErrorState description={error} /></div>}
+          {error && (
+            <div className="mt-4">
+              <ErrorState title="Could not create project" description={error} />
+            </div>
+          )}
         </Card>
       )}
 
-      {projects.length === 0 ? (
+      {projects.length === 0 && !creating ? (
         <EmptyState
+          icon={<IconFolder className="size-7" />}
           title="No projects yet"
-          description="Create your first project to get started."
-          action={!creating && <Button onClick={() => setCreating(true)}>New project</Button>}
+          description="A project groups your API keys, rooms, and connection telemetry. Create one to get your first RTC token."
+          action={
+            <Button onClick={() => setCreating(true)}>
+              <IconPlus className="size-3.5" />
+              Create your first project
+            </Button>
+          }
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {projects.map((project) => (
-            <a
-              key={project.id}
-              href={`/dashboard/projects/${project.id}/overview`}
-              className="block rounded-lg border border-neutral-200 dark:border-neutral-800 p-4 hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors"
-            >
-              <div className="font-medium text-neutral-900 dark:text-neutral-100">{project.name}</div>
-              <div className="text-xs text-neutral-500 mt-1 font-mono">{project.id}</div>
-            </a>
+            <li key={project.id}>
+              <a
+                href={`/dashboard/projects/${project.id}/overview`}
+                className="group flex h-full flex-col rounded-lg border border-line bg-surface p-4 transition-colors hover:border-line-strong hover:bg-surface-raised"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="min-w-0 truncate text-sm font-medium text-fg">{project.name}</span>
+                  <IconChevronRight className="size-4 shrink-0 text-subtle transition-transform group-hover:translate-x-0.5" />
+                </div>
+                {project.description && (
+                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{project.description}</p>
+                )}
+                <div className="mt-3 flex items-center gap-2">
+                  <MonoId value={project.id} />
+                </div>
+                <div className="mt-3 flex items-center gap-2 border-t border-line pt-3 text-xs text-subtle">
+                  <Badge tone={project.status === 'ACTIVE' ? 'success' : 'neutral'}>
+                    {project.status === 'ACTIVE' ? 'Active' : 'Archived'}
+                  </Badge>
+                  <span className="ml-auto">Created {formatDate(project.createdAt)}</span>
+                </div>
+              </a>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

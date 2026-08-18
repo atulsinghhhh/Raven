@@ -290,10 +290,16 @@ export const ravenApi = {
 
   getHealth: () => apiFetch<HealthResponse>('/health'),
 
-  listConnections: (token: string, projectId: string, opts: { roomId?: string; state?: ConnectionLifecycleState } = {}) => {
+  listConnections: (
+    token: string,
+    projectId: string,
+    opts: { roomId?: string; state?: ConnectionLifecycleState; limit?: number } = {},
+  ) => {
     const params = new URLSearchParams();
     if (opts.roomId) params.set('roomId', opts.roomId);
     if (opts.state) params.set('state', opts.state);
+    // The API caps this at 200 and defaults to 50 (QueryConnectionsDto).
+    if (opts.limit) params.set('limit', String(opts.limit));
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiFetch<ConnectionSummary[]>(`/v1/projects/${projectId}/connections${query}`, { token });
   },
@@ -301,10 +307,16 @@ export const ravenApi = {
   getConnection: (token: string, projectId: string, connectionId: string) =>
     apiFetch<ConnectionDetail>(`/v1/projects/${projectId}/connections/${connectionId}`, { token }),
 
-  listErrors: (token: string, projectId: string, opts: { category?: ErrorCategory; connectionId?: string } = {}) => {
+  listErrors: (
+    token: string,
+    projectId: string,
+    opts: { category?: ErrorCategory; connectionId?: string; limit?: number } = {},
+  ) => {
     const params = new URLSearchParams();
     if (opts.category) params.set('category', opts.category);
     if (opts.connectionId) params.set('connectionId', opts.connectionId);
+    // Capped at 200 server-side (QueryErrorsDto).
+    if (opts.limit) params.set('limit', String(opts.limit));
     const query = params.toString() ? `?${params.toString()}` : '';
     return apiFetch<ErrorSummary[]>(`/v1/projects/${projectId}/errors${query}`, { token });
   },

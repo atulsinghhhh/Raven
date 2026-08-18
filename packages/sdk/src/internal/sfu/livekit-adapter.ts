@@ -151,6 +151,20 @@ export class LiveKitAdapter extends TypedEventEmitter<SFUAdapterEventMap> implem
       if (participant) this.emit('trackUnpublished', trackKindFromSource(publication.source), participant);
     });
 
+    room.on(RoomEvent.TrackMuted, (publication, lkParticipant) => {
+      // Only remote participants — a local mute is already visible via
+      // LocalTrack.isMuted, and the developer caused it themselves.
+      if (lkParticipant.isLocal) return;
+      const participant = this.remoteParticipants.get(lkParticipant.identity);
+      if (participant) this.emit('trackMuted', trackKindFromSource(publication.source), participant);
+    });
+
+    room.on(RoomEvent.TrackUnmuted, (publication, lkParticipant) => {
+      if (lkParticipant.isLocal) return;
+      const participant = this.remoteParticipants.get(lkParticipant.identity);
+      if (participant) this.emit('trackUnmuted', trackKindFromSource(publication.source), participant);
+    });
+
     room.on(RoomEvent.TrackSubscribed, (lkTrack, publication, lkParticipant) => {
       const participant = this.remoteParticipants.get(lkParticipant.identity);
       if (!participant) return;
@@ -302,7 +316,7 @@ export class LiveKitAdapter extends TypedEventEmitter<SFUAdapterEventMap> implem
     return infos.map((info) => ({ deviceId: info.deviceId, label: info.label, kind: info.kind as DeviceKind }));
   }
 
-  async setDevice(kind: 'videoinput' | 'audioinput', deviceId: string): Promise<void> {
+  async setDevice(kind: DeviceKind, deviceId: string): Promise<void> {
     await this.lkRoom.switchActiveDevice(kind, deviceId);
   }
 }

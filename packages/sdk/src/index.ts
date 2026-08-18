@@ -15,3 +15,6 @@ export type { RTCErrorCode } from './errors';
 export type { LogLevel } from './logger';
 
 export type { DeviceInfo, DeviceKind } from './internal/sfu/types';
+
+export { getBrowserSupportDetails, isBrowserSupported } from './browser-support';
+export type { BrowserSupportDetails } from './browser-support';

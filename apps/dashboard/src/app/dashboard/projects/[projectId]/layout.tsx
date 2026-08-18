@@ -1,8 +1,12 @@
 import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
+import { decodeSessionEmail } from '@/lib/decode-session';
 import { ApiError, ravenApi } from '@/lib/api-client';
-import { ErrorState } from '@/components/ui/states';
-import { ProjectNav } from './project-nav';
+import { AppShell } from '@/components/shell/app-shell';
+import { AccountShell } from '@/components/shell/account-shell';
+import { deriveSystemStatus } from '@/components/ui/badge';
+import { ButtonLink } from '@/components/ui/button';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 
 export default async function ProjectLayout({
   children,
@@ -15,26 +19,51 @@ export default async function ProjectLayout({
   const token = await getSessionToken();
   if (!token) redirect('/login');
 
-  try {
-    const project = await ravenApi.getProject(token, projectId);
+  const email = decodeSessionEmail(token);
+
+  // The switcher needs every project and the header needs live health, but
+  // neither should be able to take the page down — only the project itself
+  // is load-bearing, so the other two are allowed to fail.
+  const [projectResult, projectsResult, healthResult] = await Promise.allSettled([
+    ravenApi.getProject(token, projectId),
+    ravenApi.listProjects(token),
+    ravenApi.getHealth(),
+  ]);
+
+  if (projectResult.status === 'rejected') {
+    const reason = projectResult.reason;
+    if (reason instanceof ApiError && reason.status === 401) redirect('/login');
+
+    const systemStatus =
+      healthResult.status === 'fulfilled' ? deriveSystemStatus(healthResult.value.dependencies) : 'unknown';
 
     return (
-      <div className="flex flex-col gap-6">
-        <div>
-          <a href="/dashboard/projects" className="text-xs text-neutral-500 hover:underline">
-            ← All projects
-          </a>
-          <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 mt-1">{project.name}</h1>
-        </div>
-        <ProjectNav projectId={projectId} />
-        {children}
-      </div>
+      <AccountShell email={email} systemStatus={systemStatus}>
+        {reason instanceof ApiError && reason.status === 404 ? (
+          <EmptyState
+            title="Project not found"
+            description="It may have been archived, or it belongs to a different account."
+            action={<ButtonLink href="/dashboard/projects" variant="primary">Back to projects</ButtonLink>}
+          />
+        ) : (
+          <ErrorState
+            title="Could not load this project"
+            description="The Control API is unreachable right now. Your data is unaffected — retry in a moment."
+            retryHref={`/dashboard/projects/${projectId}/overview`}
+          />
+        )}
+      </AccountShell>
     );
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 401) redirect('/login');
-    if (error instanceof ApiError && error.status === 404) {
-      return <ErrorState title="Project not found" description="It may have been deleted, or it doesn't belong to your account." />;
-    }
-    return <ErrorState title="Could not load project" description="The Control API is unreachable right now. Try again shortly." />;
   }
+
+  const project = projectResult.value;
+  const projects = projectsResult.status === 'fulfilled' ? projectsResult.value : [project];
+  const systemStatus =
+    healthResult.status === 'fulfilled' ? deriveSystemStatus(healthResult.value.dependencies) : 'unknown';
+
+  return (
+    <AppShell projects={projects} currentProject={project} email={email} systemStatus={systemStatus}>
+      {children}
+    </AppShell>
+  );
 }

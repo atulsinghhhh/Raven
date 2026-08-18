@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
 import { ApiError, ravenApi } from '@/lib/api-client';
+import { ButtonLink } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { ErrorState } from '@/components/ui/states';
 import { ApiKeysManager } from './api-keys-manager';
 
@@ -17,5 +19,18 @@ export default async function ApiKeysPage({ params }: { params: Promise<{ projec
     return <ErrorState title="Could not load API keys" description="The Control API is unreachable right now." />;
   }
 
-  return <ApiKeysManager projectId={projectId} initialKeys={keys} />;
+  return (
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        title="API keys"
+        description="Server-side credentials for this project. A key mints RTC tokens and reads project data through the Control API — it is never used from a browser."
+        actions={
+          <ButtonLink href={`/dashboard/projects/${projectId}/quickstart`} variant="secondary">
+            Quickstart
+          </ButtonLink>
+        }
+      />
+      <ApiKeysManager projectId={projectId} initialKeys={keys} />
+    </div>
+  );
 }

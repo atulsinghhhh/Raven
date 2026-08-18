@@ -196,6 +196,8 @@ room.on('trackPublished', (kind, participant) => { ... });   // a remote partici
 room.on('trackUnpublished', (kind, participant) => { ... });
 room.on('trackSubscribed', (track, participant) => { ... }); // media is now actually flowing
 room.on('trackUnsubscribed', (track, participant) => { ... });
+room.on('trackMuted', (kind, participant) => { ... });        // Phase 11 — a remote participant muted a track they already published
+room.on('trackUnmuted', (kind, participant) => { ... });
 
 room.on('localTrackPublished', (track) => { ... });
 room.on('localTrackUnpublished', (track) => { ... });
@@ -254,6 +256,9 @@ const devices = await client.getDevices(); // { deviceId, label, kind }[]
 
 await client.setCamera(deviceId);      // switches the active camera on the joined room
 await client.setMicrophone(deviceId);  // switches the active microphone
+await room.setSpeakerDevice(deviceId); // Phase 11 — switches audio output where the browser supports setSinkId (not Safari); throws DEVICE_NOT_FOUND otherwise
+
+const unsubscribe = client.onDeviceChange(() => { /* re-enumerate — a camera/mic was connected or disconnected */ }); // Phase 11
 ```
 
 ## Screen sharing
@@ -309,6 +314,17 @@ the SDK does not duplicate or reimplement that logic (Phase 6 spec §23);
 it adapts livekit-client's surface to Raven's own stable public API.
 
 ## Browser compatibility
+
+```js
+import { isBrowserSupported, getBrowserSupportDetails } from '@raven/rtc';
+
+if (!isBrowserSupported()) {
+  const { missing } = getBrowserSupportDetails(); // e.g. ['RTCPeerConnection']
+}
+```
+
+Feature-detected (Phase 11), not a hardcoded user-agent allowlist — see
+`docs/sdk/web.md#browser-support`.
 
 Tested (see [Files created/changed](#files) for the real two-browser-tab
 test performed): **Chrome**. Firefox, Safari, and Edge were not exercised

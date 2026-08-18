@@ -1,30 +1,17 @@
 import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
-import { decodeSessionEmail } from '@/lib/decode-session';
-import { SignOutButton } from './sign-out-button';
 
+/**
+ * Auth gate only. The visual shell lives one level down, because the two
+ * authenticated areas need different chrome: the project list has no
+ * project to scope a sidebar to, everything under a project does.
+ *
+ * Belt and braces — proxy.ts already redirects when the cookie is
+ * missing, but we can't assume every request went through it.
+ */
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const token = await getSessionToken();
-  // Belt and suspenders — middleware already redirects without a cookie, but
-  // we can't assume every request actually went through middleware first.
   if (!token) redirect('/login');
 
-  const email = decodeSessionEmail(token);
-
-  return (
-    <div className="min-h-screen">
-      <header className="border-b border-neutral-200 dark:border-neutral-800">
-        <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
-          <a href="/dashboard/projects" className="font-semibold text-neutral-900 dark:text-neutral-100">
-            Raven
-          </a>
-          <div className="flex items-center gap-4">
-            {email && <span className="text-sm text-neutral-500">{email}</span>}
-            <SignOutButton />
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
-    </div>
-  );
+  return <>{children}</>;
 }

@@ -98,6 +98,21 @@ export class RTCClient {
     return listDevices(kind);
   }
 
+  /**
+   * Subscribes to device connect/disconnect (Phase 11 addition) — e.g. a
+   * USB webcam being plugged in or unplugged. Returns an unsubscribe
+   * function. A no-op (immediately-callable unsubscribe) in environments
+   * without `navigator.mediaDevices` rather than throwing, since this is
+   * an optional convenience, not a required capability.
+   */
+  onDeviceChange(callback: () => void): () => void {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
+      return () => {};
+    }
+    navigator.mediaDevices.addEventListener('devicechange', callback);
+    return () => navigator.mediaDevices.removeEventListener('devicechange', callback);
+  }
+
   /** Switches the active camera on the currently joined room. */
   async setCamera(deviceId: string): Promise<void> {
     if (!this.currentRoom) {

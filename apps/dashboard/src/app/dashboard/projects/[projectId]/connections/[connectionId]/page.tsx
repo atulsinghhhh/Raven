@@ -1,17 +1,15 @@
 import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
 import { ApiError, ravenApi } from '@/lib/api-client';
-import { Badge } from '@/components/ui/badge';
+import { ConnectionStateBadge, ErrorCategoryBadge } from '@/components/ui/badge';
 import { Card, CardHeader } from '@/components/ui/card';
-import { ErrorState } from '@/components/ui/states';
-
-const STATE_TONE: Record<string, 'green' | 'red' | 'gray' | 'yellow'> = {
-  CONNECTED: 'green',
-  CONNECTING: 'yellow',
-  RECONNECTING: 'yellow',
-  DISCONNECTED: 'gray',
-  FAILED: 'red',
-};
+import { PageHeader } from '@/components/ui/page-header';
+import { Timeline } from '@/components/ui/timeline';
+import { KeyValue, KeyValueGrid, MonoId } from '@/components/ui/mono';
+import { Dash, EmptyState, ErrorState, NoDataYet } from '@/components/ui/states';
+import { ButtonLink } from '@/components/ui/button';
+import { CopyButton } from '@/components/ui/copy-button';
+import { formatDateTime, formatDuration, formatRelative } from '@/lib/format';
 
 export default async function ConnectionDetailPage({
   params,
@@ -22,93 +20,216 @@ export default async function ConnectionDetailPage({
   const token = await getSessionToken();
   if (!token) redirect('/login');
 
+  const base = `/dashboard/projects/${projectId}`;
+
   let connection;
   try {
     connection = await ravenApi.getConnection(token, projectId, connectionId);
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) redirect('/login');
     if (error instanceof ApiError && error.status === 404) {
-      return <ErrorState title="Connection not found" description="It may have aged out under this project's retention policy." />;
+      return (
+        <EmptyState
+          title="Connection not found"
+          description="This connection either never existed under this project, or it has aged out of the retention window."
+          action={
+            <ButtonLink href={`${base}/connections`} variant="primary">
+              All connections
+            </ButtonLink>
+          }
+        />
+      );
     }
-    return <ErrorState title="Could not load this connection" description="The Control API is unreachable right now." />;
+    return (
+      <ErrorState
+        title="Unable to load this connection"
+        description="The Control API is unreachable right now."
+        requestId={error instanceof ApiError ? error.code : undefined}
+        retryHref={`${base}/connections/${connectionId}`}
+      />
+    );
   }
+
+  const c = connection;
+  // A connection that never reached CONNECTED has no meaningful "live"
+  // duration — showing 0s would read as "connected instantly then died".
+  const everConnected = Boolean(c.connectedAt);
+  const isLive = c.state === 'CONNECTED' || c.state === 'RECONNECTING';
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <a href={`/dashboard/projects/${projectId}/connections`} className="text-xs text-neutral-500 hover:underline">
-          ← All connections
-        </a>
-        <div className="flex items-center gap-3 mt-1">
-          <h2 className="text-lg font-semibold font-mono text-neutral-900 dark:text-neutral-100">{connection.publicId}</h2>
-          <Badge tone={STATE_TONE[connection.state] ?? 'gray'}>{connection.state}</Badge>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={{ label: 'All connections', href: `${base}/connections` }}
+        title={<span className="font-mono text-lg">{c.publicId}</span>}
+        meta={
+          <>
+            <ConnectionStateBadge state={c.state} />
+            <CopyButton value={c.publicId} label="Copy ID" />
+          </>
+        }
+        description={
+          <>
+            {c.participantIdentity} in{' '}
+            {c.roomId ? (
+              <a href={`${base}/rooms/${c.roomId}`} className="text-accent-text hover:underline">
+                {c.roomName}
+              </a>
+            ) : (
+              c.roomName
+            )}
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <Field label="Room" value={connection.roomName} />
-        <Field label="Participant" value={connection.participantIdentity} />
-        <Field label="Reconnect count" value={String(connection.reconnectCount)} />
-        <Field label="SDK version" value={connection.sdkVersion ?? '—'} />
-        <Field label="Platform" value={[connection.platform, connection.browser].filter(Boolean).join(' / ') || '—'} />
-        <Field label="Region" value={connection.region ?? '—'} />
-        <Field label="Started" value={new Date(connection.startedAt).toLocaleString()} />
-        <Field label="Connected" value={connection.connectedAt ? new Date(connection.connectedAt).toLocaleString() : '—'} />
-        <Field label="Disconnected" value={connection.disconnectedAt ? new Date(connection.disconnectedAt).toLocaleString() : '—'} />
-        <Field label="Duration" value={formatDuration(connection.durationMs)} />
-      </div>
-
-      {connection.errors.length > 0 && (
-        <Card>
-          <CardHeader title="Errors on this connection" />
-          <ul className="flex flex-col gap-3">
-            {connection.errors.map((error) => (
-              <li key={error.publicId} className="rounded-md border border-red-200 dark:border-red-900/50 p-3">
-                <div className="flex items-center gap-2">
-                  <Badge tone="red">{error.category}</Badge>
-                  <a
-                    href={`/dashboard/projects/${projectId}/errors/${error.publicId}`}
-                    className="text-xs font-mono text-neutral-500 hover:underline"
-                  >
-                    {error.publicId}
-                  </a>
-                </div>
-                <p className="text-sm text-neutral-700 dark:text-neutral-300 mt-1">{error.message}</p>
-                {error.suggestedAction && <p className="text-xs text-neutral-500 mt-1">Suggestion: {error.suggestedAction}</p>}
-              </li>
-            ))}
-          </ul>
-        </Card>
+      {c.state === 'FAILED' && (
+        <ErrorState
+          title="This connection failed"
+          description={
+            c.disconnectReason
+              ? `Reported reason: ${c.disconnectReason}`
+              : 'No disconnect reason was reported. The timeline and any errors below are the best available evidence.'
+          }
+        />
       )}
 
       <Card>
-        <CardHeader title="Timeline" subtitle="Every lifecycle event this connection reported, in order." />
-        <ol className="flex flex-col gap-2">
-          {connection.events.map((event) => (
-            <li key={event.id} className="flex gap-3 text-sm">
-              <span className="text-neutral-400 tabular-nums shrink-0">{new Date(event.timestamp).toLocaleTimeString()}</span>
-              <span className="text-neutral-700 dark:text-neutral-300">{event.type}</span>
-            </li>
-          ))}
-        </ol>
+        <CardHeader title="Overview" />
+        <KeyValueGrid>
+          <KeyValue label="Room">
+            {c.roomId ? (
+              <a href={`${base}/rooms/${c.roomId}`} className="text-accent-text hover:underline">
+                {c.roomName}
+              </a>
+            ) : (
+              c.roomName
+            )}
+          </KeyValue>
+          <KeyValue label="Participant">
+            <a
+              href={`${base}/participants?q=${encodeURIComponent(c.participantIdentity)}`}
+              className="text-accent-text hover:underline"
+            >
+              {c.participantIdentity}
+            </a>
+          </KeyValue>
+          <KeyValue label="Started">
+            <span title={c.startedAt}>{formatDateTime(c.startedAt)}</span>
+          </KeyValue>
+          <KeyValue label="Connected">
+            {c.connectedAt ? <span title={c.connectedAt}>{formatDateTime(c.connectedAt)}</span> : <Dash />}
+          </KeyValue>
+          <KeyValue label="Disconnected">
+            {c.disconnectedAt ? (
+              <span title={c.disconnectedAt}>{formatDateTime(c.disconnectedAt)}</span>
+            ) : isLive ? (
+              <span className="text-success-text">Still connected</span>
+            ) : (
+              <Dash />
+            )}
+          </KeyValue>
+          <KeyValue label="Duration">
+            {c.durationMs !== null ? (
+              formatDuration(c.durationMs)
+            ) : isLive ? (
+              <span className="text-muted">Open · started {formatRelative(c.startedAt)}</span>
+            ) : (
+              <Dash />
+            )}
+          </KeyValue>
+          <KeyValue label="Region">{c.region ?? <Dash />}</KeyValue>
+          <KeyValue label="SDK version" mono>
+            {c.sdkVersion ?? <Dash />}
+          </KeyValue>
+          <KeyValue label="Platform">{c.platform ?? <Dash />}</KeyValue>
+          <KeyValue label="Browser">{c.browser ?? <Dash />}</KeyValue>
+          <KeyValue label="Network type">{c.networkType ?? <Dash />}</KeyValue>
+          <KeyValue label="Disconnect reason">{c.disconnectReason ?? <Dash />}</KeyValue>
+        </KeyValueGrid>
       </Card>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
+        <Card>
+          <CardHeader
+            title="Timeline"
+            subtitle="Every lifecycle event this connection reported, oldest first. Telemetry is best-effort, so gaps are possible."
+          />
+          {c.events.length === 0 ? (
+            <NoDataYet label="No events were recorded for this connection" />
+          ) : (
+            <Timeline events={c.events} />
+          )}
+        </Card>
+
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardHeader title="Network" subtitle="Last reported transport state." />
+            <dl className="flex flex-col gap-3.5">
+              <NetworkRow label="ICE connection state" value={c.iceConnectionState} />
+              <NetworkRow label="Signaling state" value={c.signalingState} />
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-xs font-medium text-muted">Reconnect count</dt>
+                <dd
+                  className={`tabular text-sm font-medium ${
+                    c.reconnectCount > 0 ? 'text-warning-text' : 'text-fg'
+                  }`}
+                >
+                  {c.reconnectCount}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-xs font-medium text-muted">Reached connected</dt>
+                <dd className={`text-sm font-medium ${everConnected ? 'text-success-text' : 'text-danger-text'}`}>
+                  {everConnected ? 'Yes' : 'No'}
+                </dd>
+              </div>
+            </dl>
+            {!c.iceConnectionState && !c.signalingState && (
+              <p className="mt-4 border-t border-line pt-3 text-xs text-subtle">
+                ICE and signaling state are only recorded when the SDK reports them; the current browser SDK does not
+                yet emit these, so they are usually empty.
+              </p>
+            )}
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="Errors"
+              subtitle={c.errors.length > 0 ? `${c.errors.length} recorded on this connection.` : undefined}
+            />
+            {c.errors.length === 0 ? (
+              <p className="text-sm text-muted">No connection errors detected.</p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {c.errors.map((error) => (
+                  <li key={error.publicId} className="rounded-md border border-line bg-surface-sunken p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <ErrorCategoryBadge category={error.category} />
+                      <MonoId value={error.publicId} href={`${base}/errors/${error.publicId}`} />
+                      <span className="tabular ml-auto text-xs text-subtle">{formatRelative(error.timestamp)}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-fg">{error.message}</p>
+                    {error.suggestedAction && (
+                      <p className="mt-1.5 text-xs leading-relaxed text-muted">
+                        <span className="font-medium text-fg">Try: </span>
+                        {error.suggestedAction}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function NetworkRow({ label, value }: { label: string; value: string | null }) {
   return (
-    <div>
-      <div className="text-xs text-neutral-500 uppercase tracking-wide">{label}</div>
-      <div className="text-sm text-neutral-900 dark:text-neutral-100 mt-0.5">{value}</div>
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-xs font-medium text-muted">{label}</dt>
+      <dd className="truncate font-mono text-xs text-fg">{value ?? <Dash />}</dd>
     </div>
   );
-}
-
-function formatDuration(durationMs: number | null): string {
-  if (durationMs === null) return '—';
-  const totalSeconds = Math.round(durationMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 }

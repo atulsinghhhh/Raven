@@ -4,9 +4,14 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
-import { Field } from '@/components/ui/field';
+import { Field, TextareaField } from '@/components/ui/field';
 import { ErrorState } from '@/components/ui/states';
 
+/**
+ * Name and description are the only two mutable fields the Control API
+ * exposes (PATCH /v1/projects/:id). The save confirmation is text, not a
+ * colour change, so it still reads without colour perception.
+ */
 export function ProjectSettingsForm({
   projectId,
   initialName,
@@ -22,6 +27,8 @@ export function ProjectSettingsForm({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string>();
+
+  const dirty = name !== initialName || description !== initialDescription;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,21 +60,40 @@ export function ProjectSettingsForm({
 
   return (
     <Card>
-      <CardHeader title="Project" />
+      <CardHeader title="General" subtitle="How this project is labelled across the dashboard, CLI, and SDK examples." />
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {error && <ErrorState description={error} />}
-        <Field id="settings-name" label="Project name" required value={name} onChange={(e) => setName(e.target.value)} />
+        {error && <ErrorState title="Could not save changes" description={error} />}
+
         <Field
+          id="settings-name"
+          label="Project name"
+          required
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            setSaved(false);
+          }}
+          hint="Shown in the project switcher and page headers. Renaming never changes the project ID or invalidates API keys."
+        />
+
+        <TextareaField
           id="settings-description"
           label="Description (optional)"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => {
+            setDescription(e.target.value);
+            setSaved(false);
+          }}
+          hint="A line of context for whoever opens this project next."
         />
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={saving}>
-            {saving ? 'Saving…' : 'Save changes'}
+
+        <div className="flex items-center gap-3 border-t border-line pt-4">
+          <Button type="submit" loading={saving} disabled={!dirty}>
+            Save changes
           </Button>
-          {saved && <span className="text-sm text-green-700 dark:text-green-400">Saved</span>}
+          <span aria-live="polite" className="text-sm text-muted">
+            {saved ? 'Saved' : dirty ? 'Unsaved changes' : ''}
+          </span>
         </div>
       </form>
     </Card>

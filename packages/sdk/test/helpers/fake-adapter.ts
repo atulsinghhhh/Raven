@@ -6,6 +6,7 @@ import type {
   SFUAdapterEventMap,
   SdkConnectionState,
 } from '../../src/internal/sfu/types';
+import type { TrackKind } from '../../src/track';
 import { LocalParticipant, RemoteParticipant } from '../../src/participant';
 import type { LocalTrack, RemoteTrack } from '../../src/track';
 
@@ -60,6 +61,15 @@ export class FakeAdapter extends TypedEventEmitter<SFUAdapterEventMap> implement
     this.emit('trackSubscribed', track, participant);
   }
 
+  /** Test-only helper to simulate a remote participant muting/unmuting a track. */
+  emitTrackMuted(kind: TrackKind, participant: RemoteParticipant): void {
+    this.emit('trackMuted', kind, participant);
+  }
+
+  emitTrackUnmuted(kind: TrackKind, participant: RemoteParticipant): void {
+    this.emit('trackUnmuted', kind, participant);
+  }
+
   async enableCamera(enabled: boolean): Promise<LocalTrack | undefined> {
     this.enableCameraCalls.push(enabled);
     return undefined;
@@ -91,7 +101,7 @@ export class FakeAdapter extends TypedEventEmitter<SFUAdapterEventMap> implement
     return [];
   }
 
-  async setDevice(kind: 'videoinput' | 'audioinput', deviceId: string): Promise<void> {
+  async setDevice(kind: DeviceKind, deviceId: string): Promise<void> {
     this.setDeviceCalls.push({ kind, deviceId });
   }
 }
