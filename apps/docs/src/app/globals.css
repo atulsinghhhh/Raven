@@ -1,0 +1,466 @@
+@import 'tailwindcss';
+
+/*
+ * Raven design system.
+ *
+ * Two layers here:
+ *   1. Raw palette + semantic tokens as CSS vars, redefined per theme.
+ *   2. An @theme block mapping those into Tailwind utilities, so
+ *      `bg-surface`, `text-muted`, `border-line` etc. all work and all
+ *      re-theme automatically.
+ *
+ * Dark mode is driven by data-theme on <html>, not prefers-color-scheme
+ * directly — that's what lets the toggle override the OS. The inline
+ * script in layout.tsx resolves stored-choice-or-system before paint, so
+ * data-theme is always set by the time anything renders.
+ */
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* Surfaces, back to front */
+  --canvas: oklch(0.985 0.002 265);
+  --surface: oklch(1 0 0);
+  --surface-raised: oklch(0.985 0.002 265);
+  --surface-sunken: oklch(0.968 0.003 265);
+  --overlay: oklch(1 0 0);
+  --scrim: oklch(0.2 0.01 265 / 0.4);
+
+  /* Text */
+  --fg: oklch(0.22 0.012 265);
+  --fg-muted: oklch(0.49 0.012 265);
+  --fg-subtle: oklch(0.62 0.012 265);
+  --fg-inverse: oklch(0.99 0 0);
+
+  /* Lines */
+  --line: oklch(0.918 0.004 265);
+  --line-strong: oklch(0.86 0.006 265);
+
+  /* Accent — Raven's signal violet */
+  --accent: oklch(0.53 0.208 279);
+  --accent-hover: oklch(0.47 0.21 279);
+  --accent-fg: oklch(0.99 0 0);
+  --accent-subtle: oklch(0.955 0.025 279);
+  --accent-line: oklch(0.86 0.07 279);
+  --accent-text: oklch(0.47 0.2 279);
+
+  /* Semantic states */
+  --success: oklch(0.6 0.145 155);
+  --success-subtle: oklch(0.96 0.035 155);
+  --success-line: oklch(0.86 0.08 155);
+  --success-text: oklch(0.46 0.12 155);
+
+  --warning: oklch(0.75 0.16 75);
+  --warning-subtle: oklch(0.965 0.045 85);
+  --warning-line: oklch(0.87 0.09 80);
+  --warning-text: oklch(0.52 0.12 65);
+
+  --danger: oklch(0.58 0.21 22);
+  --danger-subtle: oklch(0.96 0.03 22);
+  --danger-line: oklch(0.87 0.075 22);
+  --danger-text: oklch(0.51 0.19 22);
+
+  --info: oklch(0.6 0.14 245);
+  --info-subtle: oklch(0.96 0.03 245);
+  --info-line: oklch(0.86 0.07 245);
+  --info-text: oklch(0.47 0.14 245);
+
+  --shadow-sm: 0 1px 2px oklch(0.2 0.01 265 / 0.05);
+  --shadow-md: 0 1px 3px oklch(0.2 0.01 265 / 0.08), 0 4px 12px oklch(0.2 0.01 265 / 0.06);
+  --shadow-lg: 0 8px 32px oklch(0.2 0.01 265 / 0.12), 0 2px 8px oklch(0.2 0.01 265 / 0.06);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Deliberately blue-black, not pure #000 — pure black makes borders and
+     elevation impossible to read on OLED and looks cheap next to real
+     infrastructure consoles. */
+  --canvas: oklch(0.165 0.008 265);
+  --surface: oklch(0.199 0.009 265);
+  --surface-raised: oklch(0.232 0.01 265);
+  --surface-sunken: oklch(0.145 0.008 265);
+  --overlay: oklch(0.232 0.01 265);
+  --scrim: oklch(0.1 0.01 265 / 0.6);
+
+  --fg: oklch(0.965 0.003 265);
+  --fg-muted: oklch(0.735 0.012 265);
+  --fg-subtle: oklch(0.6 0.012 265);
+  --fg-inverse: oklch(0.18 0.008 265);
+
+  --line: oklch(0.285 0.012 265);
+  --line-strong: oklch(0.37 0.014 265);
+
+  --accent: oklch(0.68 0.175 279);
+  --accent-hover: oklch(0.74 0.17 279);
+  --accent-fg: oklch(0.16 0.01 279);
+  --accent-subtle: oklch(0.28 0.06 279);
+  --accent-line: oklch(0.42 0.11 279);
+  --accent-text: oklch(0.79 0.13 279);
+
+  --success: oklch(0.7 0.15 155);
+  --success-subtle: oklch(0.27 0.05 155);
+  --success-line: oklch(0.4 0.08 155);
+  --success-text: oklch(0.8 0.13 155);
+
+  --warning: oklch(0.79 0.15 78);
+  --warning-subtle: oklch(0.3 0.05 70);
+  --warning-line: oklch(0.43 0.08 72);
+  --warning-text: oklch(0.85 0.13 82);
+
+  --danger: oklch(0.65 0.19 22);
+  --danger-subtle: oklch(0.29 0.07 22);
+  --danger-line: oklch(0.42 0.11 22);
+  --danger-text: oklch(0.79 0.14 22);
+
+  --info: oklch(0.7 0.13 245);
+  --info-subtle: oklch(0.28 0.05 245);
+  --info-line: oklch(0.41 0.08 245);
+  --info-text: oklch(0.81 0.11 245);
+
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-md: 0 1px 3px oklch(0 0 0 / 0.4), 0 4px 12px oklch(0 0 0 / 0.3);
+  --shadow-lg: 0 8px 32px oklch(0 0 0 / 0.5), 0 2px 8px oklch(0 0 0 / 0.3);
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-overlay: var(--overlay);
+  --color-scrim: var(--scrim);
+
+  --color-fg: var(--fg);
+  --color-muted: var(--fg-muted);
+  --color-subtle: var(--fg-subtle);
+  --color-inverse: var(--fg-inverse);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-line: var(--accent-line);
+  --color-accent-text: var(--accent-text);
+
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-line: var(--success-line);
+  --color-success-text: var(--success-text);
+
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-line: var(--warning-line);
+  --color-warning-text: var(--warning-text);
+
+  --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-line: var(--danger-line);
+  --color-danger-text: var(--danger-text);
+
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-line: var(--info-line);
+  --color-info-text: var(--info-text);
+
+  --font-sans:
+    'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-mono:
+    ui-monospace, 'SF Mono', 'SFMono-Regular', 'JetBrains Mono', 'Menlo', 'Consolas', 'Liberation Mono', monospace;
+
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  --shadow-raven-sm: var(--shadow-sm);
+  --shadow-raven-md: var(--shadow-md);
+  --shadow-raven-lg: var(--shadow-lg);
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  body {
+    background: var(--canvas);
+    color: var(--fg);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Tabular figures everywhere a number is compared against another number
+     — metric tiles, table cells, timestamps. Proportional digits make
+     columns of numbers jitter. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background: var(--accent-subtle);
+    color: var(--accent-text);
+  }
+
+  /* One focus treatment for the whole app. Never remove it — see the
+     accessibility notes in docs/dashboard.md. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: 999px;
+    border: 2px solid var(--canvas);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--fg-subtle);
+  }
+}
+
+@layer utilities {
+  /* Shared entry motion. Kept short — an infrastructure console should
+     feel instant, and anything above ~200ms starts to feel like lag. */
+  @keyframes raven-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(2px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes raven-scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes raven-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  .animate-fade-in {
+    animation: raven-fade-in 0.16s ease-out;
+  }
+  .animate-scale-in {
+    animation: raven-scale-in 0.13s ease-out;
+  }
+  .animate-pulse-dot {
+    animation: raven-pulse 2s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Doc content typography.
+ *
+ * Hand-written rather than @tailwindcss/typography — one page's worth of
+ * rules, scoped to `.prose`, covers everything Markdown actually produces.
+ * Pulling in a whole plugin for that would be the wrong trade, and this
+ * codebase has consistently preferred lean, dependency-light
+ * implementations over libraries for something this contained.
+ */
+.prose {
+  color: var(--fg);
+  line-height: 1.75;
+  max-width: 72ch;
+}
+
+.prose > :first-child {
+  margin-top: 0;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  font-weight: 600;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  scroll-margin-top: 5rem;
+}
+
+.prose h1 {
+  font-size: 1.875rem;
+  margin: 0 0 1rem;
+}
+
+.prose h2 {
+  font-size: 1.375rem;
+  margin: 2.5rem 0 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.prose h3 {
+  font-size: 1.125rem;
+  margin: 2rem 0 0.75rem;
+}
+
+.prose h2 a,
+.prose h3 a,
+.prose h4 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.prose p,
+.prose ul,
+.prose ol {
+  margin: 1rem 0;
+  color: var(--fg-muted);
+}
+
+.prose strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.prose ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+
+.prose ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+}
+
+.prose li {
+  margin: 0.35rem 0;
+}
+
+.prose a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose a:hover {
+  color: var(--accent-hover);
+}
+
+.prose blockquote {
+  margin: 1.25rem 0;
+  padding: 0.25rem 0 0.25rem 1rem;
+  border-left: 3px solid var(--accent-line);
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+.prose :not(pre) > code {
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  padding: 0.1rem 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--accent-text);
+}
+
+.prose pre {
+  margin: 1.25rem 0;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.prose pre code {
+  font-family: var(--font-mono);
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/*
+ * rehype-pretty-code's dual-theme output is one <pre>/<code> per block,
+ * with each token span carrying both colors as CSS custom properties
+ * (--shiki-light / --shiki-dark) rather than emitting two separate
+ * <pre> elements. Nothing paints until something actually reads one of
+ * those variables into `color` — this is that wiring, keyed off the same
+ * data-theme attribute the rest of the site's dark mode uses.
+ */
+.prose pre span {
+  color: var(--shiki-light);
+}
+
+:root[data-theme='dark'] .prose pre span {
+  color: var(--shiki-dark);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .prose pre span {
+    color: var(--shiki-dark);
+  }
+}
+
+.prose table {
+  width: 100%;
+  margin: 1.25rem 0;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid var(--line);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.prose th {
+  background: var(--surface-sunken);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.prose hr {
+  margin: 2rem 0;
+  border: none;
+  border-top: 1px solid var(--line);
+}
