@@ -2,6 +2,11 @@ export default () => ({
   env: process.env.NODE_ENV ?? 'development',
   port: parseInt(process.env.API_PORT ?? '4000', 10),
 
+  // Host-facing URL of this API, handed to RTC clients as `telemetryUrl`
+  // alongside token/livekitUrl/iceServers — lets @raven/rtc POST telemetry
+  // events without hardcoding an address in the SDK.
+  publicUrl: process.env.API_PUBLIC_URL ?? `http://localhost:${parseInt(process.env.API_PORT ?? '4000', 10)}`,
+
   database: {
     url: process.env.DATABASE_URL,
   },
@@ -74,5 +79,16 @@ export default () => ({
     // the HTTP API's limiter) since it's guarding the upgrade handshake,
     // not throughput on an already-established connection.
     maxConnectionsPerWindow: parseInt(process.env.SIGNALING_MAX_CONNECTIONS_PER_WINDOW ?? '20', 10),
+  },
+
+  observability: {
+    // Retention defaults, swept by RetentionService on an interval rather
+    // than a cron job so we don't pull in a new scheduling dependency.
+    connectionRetentionDays: parseInt(process.env.OBSERVABILITY_CONNECTION_RETENTION_DAYS ?? '30', 10),
+    errorRetentionDays: parseInt(process.env.OBSERVABILITY_ERROR_RETENTION_DAYS ?? '30', 10),
+    retentionSweepIntervalMs: parseInt(
+      process.env.OBSERVABILITY_RETENTION_SWEEP_INTERVAL_MS ?? String(60 * 60 * 1000),
+      10,
+    ),
   },
 });

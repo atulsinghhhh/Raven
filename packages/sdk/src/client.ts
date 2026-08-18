@@ -7,8 +7,10 @@ import { createMicrophoneTrack } from './internal/media/microphone';
 import { createScreenShareTrack } from './internal/media/screen-share';
 import { LiveKitAdapter } from './internal/sfu/livekit-adapter';
 import type { DeviceInfo, DeviceKind, SFUAdapter } from './internal/sfu/types';
-import { Room } from './room';
+import { createTelemetryClient } from './internal/telemetry/telemetry-client';
+import { Room, type ConnectionDiagnostics } from './room';
 import { LocalTrack } from './track';
+import { SDK_VERSION } from './version';
 
 type AdapterFactory = (logger: Logger, autoReconnect: boolean) => SFUAdapter;
 
@@ -44,9 +46,27 @@ export class RTCClient {
     assertTokenMatchesRoom(this.config.token, roomId);
     this.logger.info('joining room', roomId);
 
+    const telemetry = createTelemetryClient({
+      enabled: this.config.telemetry,
+      telemetryUrl: this.config.telemetryUrl,
+      token: this.config.token,
+      sdkVersion: SDK_VERSION,
+      logger: this.logger,
+    });
+    telemetry.send('connection_started');
+
     const adapter = this.adapterFactory(this.logger, this.config.autoReconnect);
-    const room = new Room(adapter, roomId, this.logger);
-    await adapter.connect(this.config.endpoint, this.config.token, this.config.iceServers);
+    const room = new Room(adapter, roomId, this.logger, telemetry);
+
+    try {
+      await adapter.connect(this.config.endpoint, this.config.token, this.config.iceServers);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const code = error instanceof RTCError ? error.code : 'CONNECTION_FAILED';
+      telemetry.send('error', { code, message });
+      telemetry.send('connection_failed');
+      throw error;
+    }
 
     this.currentRoom = room;
     return room;
@@ -92,6 +112,14 @@ export class RTCClient {
       throw new RTCError('CONNECTION_FAILED', 'setMicrophone() requires an active room — call join() first');
     }
     await this.currentRoom.setMicrophoneDevice(deviceId);
+  }
+
+  /** Safe diagnostic snapshot of the currently joined room — see `Room.getDiagnostics()`. */
+  getDiagnostics(): ConnectionDiagnostics {
+    if (!this.currentRoom) {
+      throw new RTCError('CONNECTION_FAILED', 'getDiagnostics() requires an active room — call join() first');
+    }
+    return this.currentRoom.getDiagnostics();
   }
 }
 

@@ -29,6 +29,7 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+.claude/
 
 # Docker
 infrastructure/docker/**/*.local.*

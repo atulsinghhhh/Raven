@@ -229,6 +229,119 @@ describe('Control plane (e2e)', () => {
         .expect(404);
     });
 
+    describe('observability — telemetry ingest and developer-facing queries (Phase 9)', () => {
+      let rtcToken: string;
+      let connectionPublicId: string;
+
+      it('mints a fresh RTC token to use as the telemetry bearer', async () => {
+        const res = await request(app.getHttpServer())
+          .post(`/v1/rooms/${roomId}/rtc-tokens`)
+          .set('Authorization', `Bearer ${apiKey}`)
+          .send({ participantIdentity: 'observability-participant' })
+          .expect(201);
+
+        rtcToken = res.body.token;
+        expect(res.body.telemetryUrl).toBeDefined();
+      });
+
+      it('rejects telemetry ingestion without a valid RTC token', async () => {
+        await request(app.getHttpServer())
+          .post('/v1/telemetry/events')
+          .send({ connectionId: 'conn_unauthenticated', type: 'connection_started' })
+          .expect(401);
+      });
+
+      it('records a real connection lifecycle from ingested events, visible to the project owner', async () => {
+        connectionPublicId = `conn_e2e${Date.now().toString(36)}`;
+
+        await request(app.getHttpServer())
+          .post('/v1/telemetry/events')
+          .set('Authorization', `Bearer ${rtcToken}`)
+          .send({
+            connectionId: connectionPublicId,
+            type: 'connection_started',
+            data: { sdkVersion: '0.1.0', platform: 'web', browser: 'chrome' },
+          })
+          .expect(204);
+
+        await request(app.getHttpServer())
+          .post('/v1/telemetry/events')
+          .set('Authorization', `Bearer ${rtcToken}`)
+          .send({ connectionId: connectionPublicId, type: 'connected' })
+          .expect(204);
+
+        const list = await request(app.getHttpServer())
+          .get(`/v1/projects/${projectId}/connections`)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(200);
+        const found = list.body.find((c: { publicId: string }) => c.publicId === connectionPublicId);
+        expect(found).toBeDefined();
+        expect(found.state).toBe('CONNECTED');
+        expect(found.roomId).toBe(roomId);
+        expect(found.sdkVersion).toBe('0.1.0');
+
+        const detail = await request(app.getHttpServer())
+          .get(`/v1/projects/${projectId}/connections/${connectionPublicId}`)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(200);
+        expect(detail.body.events).toHaveLength(2);
+        expect(detail.body.events[0].type).toBe('connection_started');
+      });
+
+      it('classifies an ingested error into a Raven-facing category — never the raw SDK code as-is', async () => {
+        await request(app.getHttpServer())
+          .post('/v1/telemetry/events')
+          .set('Authorization', `Bearer ${rtcToken}`)
+          .send({
+            connectionId: connectionPublicId,
+            type: 'error',
+            data: { code: 'TOKEN_EXPIRED', message: 'RTC token has expired' },
+          })
+          .expect(204);
+
+        const errors = await request(app.getHttpServer())
+          .get(`/v1/projects/${projectId}/errors`)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(200);
+        const found = errors.body.find((e: { message: string }) => e.message === 'RTC token has expired');
+        expect(found).toBeDefined();
+        expect(found.category).toBe('TOKEN_ERROR');
+        expect(found.likelyCause).toBeTruthy();
+        expect(found.suggestedAction).toBeTruthy();
+        // Every ID a developer sees must be the public conn_... one, never
+        // the internal database uuid FK.
+        expect(found.connectionId).toBe(connectionPublicId);
+
+        const detail = await request(app.getHttpServer())
+          .get(`/v1/projects/${projectId}/errors/${found.publicId}`)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(200);
+        expect(detail.body.connection.publicId).toBe(connectionPublicId);
+      });
+
+      it('reports real, non-fabricated metrics for the project', async () => {
+        const metrics = await request(app.getHttpServer())
+          .get(`/v1/projects/${projectId}/metrics?range=1h`)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(200);
+
+        expect(metrics.body.connections).toBeGreaterThanOrEqual(1);
+        expect(typeof metrics.body.errors).toBe('number');
+      });
+
+      it('reports real per-dependency diagnostics for the project', async () => {
+        const diagnostics = await request(app.getHttpServer())
+          .get(`/v1/projects/${projectId}/diagnostics`)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(200);
+
+        expect(diagnostics.body.api).toBe('up');
+        expect(diagnostics.body.dependencies.sfu).toBe('up');
+        expect(diagnostics.body.dependencies.turn).toBe('up');
+        expect(diagnostics.body.project.id).toBe(projectId);
+      });
+    });
+
     it('closes the room', async () => {
       await request(app.getHttpServer())
         .delete(`/v1/rooms/${roomId}`)
@@ -464,6 +577,28 @@ describe('Control plane (e2e)', () => {
         .post(`/v1/projects/${ownerProjectId}/rooms`)
         .set('Authorization', `Bearer ${intruderToken}`)
         .send({ name: 'intruder-room' })
+        .expect(404);
+    });
+
+    it('an intruder cannot read the owner\'s connections, errors, metrics, or diagnostics', async () => {
+      await request(app.getHttpServer())
+        .get(`/v1/projects/${ownerProjectId}/connections`)
+        .set('Authorization', `Bearer ${intruderToken}`)
+        .expect(404);
+
+      await request(app.getHttpServer())
+        .get(`/v1/projects/${ownerProjectId}/errors`)
+        .set('Authorization', `Bearer ${intruderToken}`)
+        .expect(404);
+
+      await request(app.getHttpServer())
+        .get(`/v1/projects/${ownerProjectId}/metrics`)
+        .set('Authorization', `Bearer ${intruderToken}`)
+        .expect(404);
+
+      await request(app.getHttpServer())
+        .get(`/v1/projects/${ownerProjectId}/diagnostics`)
+        .set('Authorization', `Bearer ${intruderToken}`)
         .expect(404);
     });
   });

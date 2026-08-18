@@ -49,6 +49,15 @@ export class RoomsController {
     return this.roomsService.findOneForProject(id, projectId);
   }
 
+  @Get(':id/participants')
+  @ApiOperation({ summary: 'List live participants in a room, from the SFU (Phase 10 server SDK)' })
+  @ApiResponse({ status: 200, description: 'Live participants (null if the SFU could not be reached — never a fabricated empty list)' })
+  @ApiNotFoundResponse({ description: "Room doesn't exist, or belongs to a different project" })
+  async findParticipants(@CurrentProjectId() projectId: string, @Param('id', ParseUUIDPipe) id: string) {
+    const room = await this.roomsService.findOneForProjectWithLiveState(id, projectId);
+    return room.liveParticipants;
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Close a room', description: 'Soft close — sets status to CLOSED.' })

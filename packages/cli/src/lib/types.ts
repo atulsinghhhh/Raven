@@ -1,15 +1,3 @@
-export interface AuthenticatedUserProfile {
-  id: string;
-  email: string;
-  name: string | null;
-}
-
-export interface AuthResult {
-  accessToken: string;
-  expiresIn: string;
-  user: AuthenticatedUserProfile;
-}
-
 export type ProjectStatus = 'ACTIVE' | 'ARCHIVED';
 
 export interface Project {
@@ -99,6 +87,7 @@ export interface IssuedRtcToken {
   participantIdentity: string;
   permissions: RtcTokenPermissions;
   iceServers: IceServer[];
+  telemetryUrl: string;
   expiresAt: string;
   createdAt: string;
 }
@@ -118,4 +107,99 @@ export interface HealthResponse {
     activeRooms: number;
     activeParticipants: number;
   };
+}
+
+export type ConnectionLifecycleState = 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'DISCONNECTED' | 'FAILED';
+
+export interface ConnectionSummary {
+  id: string;
+  publicId: string;
+  projectId: string;
+  roomId: string | null;
+  roomName: string;
+  participantId: string | null;
+  participantIdentity: string;
+  state: ConnectionLifecycleState;
+  disconnectReason: string | null;
+  region: string | null;
+  sdkVersion: string | null;
+  platform: string | null;
+  browser: string | null;
+  networkType: string | null;
+  iceConnectionState: string | null;
+  signalingState: string | null;
+  reconnectCount: number;
+  startedAt: string;
+  connectedAt: string | null;
+  disconnectedAt: string | null;
+  durationMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConnectionEventEntry {
+  id: string;
+  type: string;
+  data: Record<string, unknown> | null;
+  timestamp: string;
+}
+
+export interface ConnectionDetail extends ConnectionSummary {
+  events: ConnectionEventEntry[];
+  errors: ErrorSummary[];
+}
+
+export type ErrorCategory =
+  | 'AUTHENTICATION_ERROR'
+  | 'AUTHORIZATION_ERROR'
+  | 'TOKEN_ERROR'
+  | 'SIGNALING_ERROR'
+  | 'ICE_ERROR'
+  | 'TURN_ERROR'
+  | 'SFU_ERROR'
+  | 'NETWORK_ERROR'
+  | 'CLIENT_ERROR'
+  | 'UNKNOWN_ERROR';
+
+export interface ErrorSummary {
+  id: string;
+  publicId: string;
+  projectId: string;
+  connectionId: string | null;
+  roomId: string | null;
+  participantId: string | null;
+  category: ErrorCategory;
+  message: string;
+  likelyCause: string | null;
+  suggestedAction: string | null;
+  sdkVersion: string | null;
+  platform: string | null;
+  timestamp: string;
+}
+
+export interface ErrorDetail extends ErrorSummary {
+  connection: ConnectionSummary | null;
+}
+
+export interface ObservabilityOverview {
+  range: string;
+  activeRooms: number;
+  activeParticipants: number;
+  connections: number;
+  connectionSuccessRate: number | null;
+  reconnectionRate: number | null;
+  averageConnectionDurationMs: number | null;
+  errors: number;
+}
+
+export interface ProjectDiagnostics {
+  project: { id: string; name: string };
+  api: 'up';
+  authentication: 'ok';
+  dependencies: {
+    signaling: DependencyStatus;
+    sfu: DependencyStatus;
+    turn: DependencyStatus;
+  };
+  connections: { active: number };
 }

@@ -53,7 +53,9 @@ function validateConfig(config) {
     endpoint: config.endpoint,
     iceServers: config.iceServers,
     logLevel: config.logLevel ?? "silent",
-    autoReconnect: config.autoReconnect ?? true
+    autoReconnect: config.autoReconnect ?? true,
+    telemetryUrl: config.telemetryUrl,
+    telemetry: config.telemetry ?? true
   };
 }
 function assertTokenMatchesRoom(token, roomId) {
@@ -193,9 +195,9 @@ var Participant = class {
     return this._identity;
   }
   /**
-   * @internal Only the SFU adapter calls this, once, right after connect()
-   * resolves — the local participant's identity isn't known until the
-   * server confirms it, but the constructor runs before that.
+   * @internal Called once by the SFU adapter right after connect()
+   * resolves — the constructor runs before the server confirms identity,
+   * so this patches it in afterward.
    */
   _setIdentity(identity) {
     this._identity = identity;
@@ -400,12 +402,11 @@ var LiveKitAdapter = class extends TypedEventEmitter {
     });
   }
   /**
-   * RoomEvent.ParticipantConnected/TrackSubscribed only fire for
-   * participants/tracks that arrive *after* our listeners are attached —
-   * livekit-client has already populated room.remoteParticipants (and each
-   * participant's already-subscribed tracks) by the time connect() resolves
-   * for anyone who joined before us. Without this, a participant who joined
-   * first would never appear on a participant who joins second.
+   * ParticipantConnected/TrackSubscribed only fire for stuff that arrives
+   * *after* our listeners attach. livekit-client's already populated
+   * room.remoteParticipants by the time connect() resolves, so anyone who
+   * joined earlier has to be picked up here manually — otherwise they'd
+   * never show up for whoever joins second.
    */
   bootstrapExistingParticipants() {
     for (const lkParticipant of this.lkRoom.remoteParticipants.values()) {
@@ -500,13 +501,90 @@ function assertLocalTrack(publication) {
   return publication.track;
 }
 
+// src/internal/telemetry/connection-id.ts
+function generateConnectionId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `conn_${crypto.randomUUID().replace(/-/g, "")}`;
+  }
+  let id = "";
+  for (let i = 0; i < 32; i++) {
+    id += Math.floor(Math.random() * 16).toString(16);
+  }
+  return `conn_${id}`;
+}
+
+// src/internal/telemetry/platform.ts
+function detectPlatform() {
+  if (typeof navigator === "undefined") {
+    return { platform: "unknown", browser: "unknown" };
+  }
+  const ua = navigator.userAgent ?? "";
+  let browser = "unknown";
+  if (/edg\//i.test(ua)) browser = "edge";
+  else if (/firefox|fxios/i.test(ua)) browser = "firefox";
+  else if (/chrome|crios/i.test(ua)) browser = "chrome";
+  else if (/safari/i.test(ua)) browser = "safari";
+  let platform = "web";
+  if (/android/i.test(ua)) platform = "android";
+  else if (/iphone|ipad|ipod/i.test(ua)) platform = "ios";
+  const connection = navigator.connection;
+  const networkType = typeof connection?.effectiveType === "string" ? connection.effectiveType : void 0;
+  return { platform, browser, networkType };
+}
+
+// src/internal/telemetry/telemetry-client.ts
+function createTelemetryClient(options) {
+  const connectionId = generateConnectionId();
+  if (!options.enabled || !options.telemetryUrl) {
+    return { connectionId, send: () => {
+    } };
+  }
+  return new HttpTelemetryClient(connectionId, options);
+}
+var HttpTelemetryClient = class {
+  constructor(connectionId, options) {
+    this.connectionId = connectionId;
+    this.options = options;
+  }
+  send(type, data = {}) {
+    const body = {
+      connectionId: this.connectionId,
+      type,
+      data: { sdkVersion: this.options.sdkVersion, ...detectPlatform(), ...data }
+    };
+    try {
+      fetch(`${this.options.telemetryUrl}/v1/telemetry/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.options.token}` },
+        body: JSON.stringify(body),
+        keepalive: true
+      }).then((res) => {
+        if (!res.ok) {
+          this.options.logger.debug("telemetry event rejected", type, res.status);
+        }
+      }).catch((error) => {
+        this.options.logger.debug("telemetry event failed", type, error.message);
+      });
+    } catch (error) {
+      this.options.logger.debug("telemetry send threw synchronously", type, error.message);
+    }
+  }
+};
+
+// src/version.ts
+var SDK_VERSION = "0.1.0";
+
 // src/room.ts
 var Room2 = class extends TypedEventEmitter {
-  constructor(adapter, roomId, logger) {
+  /** @internal use `client.join(roomId)` — the telemetry client defaults to a no-op so tests/advanced setups can construct a Room directly without wiring one up. */
+  constructor(adapter, roomId, logger, telemetry = createTelemetryClient({ enabled: false, token: "", sdkVersion: SDK_VERSION, logger })) {
     super();
+    this.reconnectCount = 0;
     this.adapter = adapter;
     this.roomId = roomId;
     this.logger = logger;
+    this.telemetry = telemetry;
+    this.connectionId = telemetry.connectionId;
     this.localParticipant = adapter.localParticipant;
     this.wireAdapterEvents();
   }
@@ -521,33 +599,72 @@ var Room2 = class extends TypedEventEmitter {
     this.adapter.on("connectionStateChanged", (state) => {
       this.emit("connectionStateChanged", state);
       if (state === "connected") {
-        this.emit(prevState === "reconnecting" ? "reconnected" : "connected");
+        if (prevState === "reconnecting") {
+          this.reconnectCount++;
+          this.telemetry.send("reconnected");
+          this.emit("reconnected");
+        } else {
+          this.telemetry.send("connected");
+          this.emit("connected");
+        }
       } else if (state === "reconnecting" && prevState !== "reconnecting") {
+        this.telemetry.send("reconnecting");
         this.emit("reconnecting");
       } else if (state === "disconnected" || state === "failed") {
+        this.telemetry.send(state === "failed" ? "connection_failed" : "disconnected");
         this.emit("disconnected");
         if (state === "failed") {
-          this.emit(
-            "error",
-            new RTCError("CONNECTION_FAILED", "Connection failed after exhausting reconnect attempts")
-          );
+          const error = new RTCError("CONNECTION_FAILED", "Connection failed after exhausting reconnect attempts");
+          this.telemetry.send("error", { code: error.code, message: error.message });
+          this.emit("error", error);
         }
       }
       prevState = state;
     });
-    this.adapter.on("participantJoined", (participant) => this.emit("participantJoined", participant));
-    this.adapter.on("participantLeft", (participant) => this.emit("participantLeft", participant));
+    this.adapter.on("participantJoined", (participant) => {
+      this.telemetry.send("participant_joined", { participantIdentity: participant.identity });
+      this.emit("participantJoined", participant);
+    });
+    this.adapter.on("participantLeft", (participant) => {
+      this.telemetry.send("participant_left", { participantIdentity: participant.identity });
+      this.emit("participantLeft", participant);
+    });
     this.adapter.on("trackPublished", (kind, participant) => this.emit("trackPublished", kind, participant));
     this.adapter.on("trackUnpublished", (kind, participant) => this.emit("trackUnpublished", kind, participant));
     this.adapter.on("trackSubscribed", (track, participant) => this.emit("trackSubscribed", track, participant));
     this.adapter.on("trackUnsubscribed", (track, participant) => this.emit("trackUnsubscribed", track, participant));
-    this.adapter.on("localTrackPublished", (track) => this.emit("localTrackPublished", track));
-    this.adapter.on("localTrackUnpublished", (track) => this.emit("localTrackUnpublished", track));
+    this.adapter.on("localTrackPublished", (track) => {
+      this.telemetry.send("track_published", { kind: track.kind });
+      this.emit("localTrackPublished", track);
+    });
+    this.adapter.on("localTrackUnpublished", (track) => {
+      this.telemetry.send("track_unpublished", { kind: track.kind });
+      this.emit("localTrackUnpublished", track);
+    });
     this.adapter.on("dataReceived", (payload, participant) => this.emit("dataReceived", payload, participant));
     this.adapter.on("mediaError", (error) => {
       this.logger.warn("media device error", error.message);
-      this.emit("error", new RTCError("MEDIA_ERROR", error.message, error));
+      const rtcError = new RTCError("MEDIA_ERROR", error.message, error);
+      this.telemetry.send("error", { code: rtcError.code, message: rtcError.message });
+      this.emit("error", rtcError);
     });
+  }
+  /**
+   * A safe, non-secret diagnostic snapshot for support/debugging (Phase 9
+   * spec §12) — never a token, never a secret, safe to print or attach to
+   * a bug report as-is.
+   */
+  getDiagnostics() {
+    const { platform, browser } = detectPlatform();
+    return {
+      connectionState: this.connectionState,
+      iceConnectionState: void 0,
+      signalingState: void 0,
+      reconnectCount: this.reconnectCount,
+      sdkVersion: SDK_VERSION,
+      platform,
+      browser
+    };
   }
   /** Captures and publishes the camera in one call. Resolves to the published track. */
   async enableCamera() {
@@ -565,7 +682,7 @@ var Room2 = class extends TypedEventEmitter {
   async disableMicrophone() {
     await this.adapter.enableMicrophone(false);
   }
-  /** Captures and publishes a screen share in one call (see docs/sdk.md#screen-sharing). */
+  /** Captures and publishes a screen share in one call. */
   async enableScreenShare() {
     return this.adapter.enableScreenShare(true);
   }
@@ -588,10 +705,9 @@ var Room2 = class extends TypedEventEmitter {
     await this.adapter.setDevice("audioinput", deviceId);
   }
   /**
-   * Sends a small application payload to all (or, per the underlying SFU's
-   * own targeting, specific) participants. Requires the token's
-   * `publishData` grant — throws PERMISSION_DENIED otherwise. See
-   * docs/sdk.md#data (Phase 6 spec §21 — kept intentionally minimal).
+   * Sends a small payload to all participants (or specific ones, if the
+   * underlying SFU adapter supports targeting). Needs the token's
+   * `publishData` grant — throws PERMISSION_DENIED otherwise.
    */
   async sendData(payload) {
     const bytes = typeof payload === "string" ? new TextEncoder().encode(payload) : new Uint8Array(payload);
@@ -607,9 +723,9 @@ var Room2 = class extends TypedEventEmitter {
 var defaultAdapterFactory = (logger, autoReconnect) => new LiveKitAdapter(logger, autoReconnect);
 var RTCClient = class {
   /**
-   * @internal use `createRTCClient(config)` instead. The second parameter
-   * exists only so unit tests can inject a fake SFUAdapter without a real
-   * browser/WebRTC stack — never part of the public config shape.
+   * @internal use `createRTCClient(config)` instead. Second param only
+   * exists so tests can inject a fake SFUAdapter without a real
+   * browser/WebRTC stack — not part of the public config.
    */
   constructor(config, adapterFactory = defaultAdapterFactory) {
     this.config = config;
@@ -624,9 +740,25 @@ var RTCClient = class {
   async join(roomId) {
     assertTokenMatchesRoom(this.config.token, roomId);
     this.logger.info("joining room", roomId);
+    const telemetry = createTelemetryClient({
+      enabled: this.config.telemetry,
+      telemetryUrl: this.config.telemetryUrl,
+      token: this.config.token,
+      sdkVersion: SDK_VERSION,
+      logger: this.logger
+    });
+    telemetry.send("connection_started");
     const adapter = this.adapterFactory(this.logger, this.config.autoReconnect);
-    const room = new Room2(adapter, roomId, this.logger);
-    await adapter.connect(this.config.endpoint, this.config.token, this.config.iceServers);
+    const room = new Room2(adapter, roomId, this.logger, telemetry);
+    try {
+      await adapter.connect(this.config.endpoint, this.config.token, this.config.iceServers);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const code = error instanceof RTCError ? error.code : "CONNECTION_FAILED";
+      telemetry.send("error", { code, message });
+      telemetry.send("connection_failed");
+      throw error;
+    }
     this.currentRoom = room;
     return room;
   }
@@ -664,6 +796,13 @@ var RTCClient = class {
       throw new RTCError("CONNECTION_FAILED", "setMicrophone() requires an active room \u2014 call join() first");
     }
     await this.currentRoom.setMicrophoneDevice(deviceId);
+  }
+  /** Safe diagnostic snapshot of the currently joined room — see `Room.getDiagnostics()`. */
+  getDiagnostics() {
+    if (!this.currentRoom) {
+      throw new RTCError("CONNECTION_FAILED", "getDiagnostics() requires an active room \u2014 call join() first");
+    }
+    return this.currentRoom.getDiagnostics();
   }
 };
 function createRTCClient(config) {

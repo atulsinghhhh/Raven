@@ -22,6 +22,21 @@ export class ProjectsService {
     });
   }
 
+  /**
+   * No ownership check — safe only when the caller's authorization
+   * already scopes them to exactly this project (e.g. `ApiKeyAuthGuard`,
+   * which resolves `projectId` from the key itself, so there is no other
+   * project this could ever resolve to). Never expose this to a route
+   * that accepts an arbitrary caller-supplied project ID.
+   */
+  async findOneById(id: string): Promise<Project> {
+    const project = await this.prisma.project.findUnique({ where: { id } });
+    if (!project) {
+      throw new NotFoundError('Project');
+    }
+    return project;
+  }
+
   async findOneForOwner(id: string, ownerId: string): Promise<Project> {
     const project = await this.prisma.project.findUnique({ where: { id } });
 

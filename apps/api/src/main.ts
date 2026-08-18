@@ -54,6 +54,15 @@ async function bootstrap(): Promise<void> {
         },
         'apiKey',
       )
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          description:
+            'The same RTC (LiveKit) token minted for this connection — used only by @raven/rtc to authenticate its own best-effort telemetry, never a separate credential.',
+        },
+        'rtcToken',
+      )
       .build(),
   );
   SwaggerModule.setup('docs', app, swaggerDocument);

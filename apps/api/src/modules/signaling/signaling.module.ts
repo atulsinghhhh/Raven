@@ -15,6 +15,6 @@ import { RoomRegistryService } from './rooms/room-registry.service';
     MessageRouterService,
     ConnectionRateLimitService,
   ],
-  exports: [RoomRegistryService, SignalingGateway],
+  exports: [RoomRegistryService, SignalingGateway, RtcTokenVerifierService],
 })
 export class SignalingModule {}

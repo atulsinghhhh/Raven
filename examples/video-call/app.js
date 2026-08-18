@@ -44,12 +44,16 @@ joinButton.addEventListener('click', async () => {
   }
 
   // This is the entire authentication flow the developer needs to think
-  // about: forward token/endpoint/iceServers from your backend's RTC token
-  // response — never mint that token in the browser (docs/sdk.md#authentication).
+  // about: forward token/endpoint/iceServers/telemetryUrl from your
+  // backend's RTC token response — never mint that token in the browser
+  // (docs/sdk.md#authentication). telemetryUrl enables best-effort
+  // connection telemetry (docs/telemetry.md); omit it, or pass
+  // `telemetry: false`, to disable telemetry entirely.
   client = createRTCClient({
     token: parsed.token,
     endpoint: parsed.livekitUrl,
     iceServers: parsed.iceServers,
+    telemetryUrl: parsed.telemetryUrl,
     logLevel: 'warn',
   });
 
@@ -67,7 +71,7 @@ joinButton.addEventListener('click', async () => {
   micButton.disabled = false;
   cameraButton.disabled = false;
   setStatus(room.connectionState);
-  log(`joined room "${room.roomId}" as "${room.localParticipant.identity}"`);
+  log(`joined room "${room.roomId}" as "${room.localParticipant.identity}" (${room.connectionId})`);
 
   room.on('connectionStateChanged', (state) => setStatus(state));
   room.on('reconnecting', () => log('reconnecting...'));

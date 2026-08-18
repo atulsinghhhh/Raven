@@ -2,7 +2,7 @@ export { createRTCClient, RTCClient } from './client';
 export type { RTCClientConfig } from './config';
 
 export { Room } from './room';
-export type { ConnectionState, RoomEventMap } from './room';
+export type { ConnectionDiagnostics, ConnectionState, RoomEventMap } from './room';
 
 export { Participant, LocalParticipant, RemoteParticipant } from './participant';
 

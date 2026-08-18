@@ -19,6 +19,16 @@ export interface RTCClientConfig {
   logLevel?: LogLevel;
   /** Defaults to true. Set false to disable automatic reconnect on network loss. */
   autoReconnect?: boolean;
+  /**
+   * Base URL for best-effort connection telemetry — the `telemetryUrl`
+   * field from the same token-mint response as `token`/`endpoint`. Never
+   * hand-construct this. Omit it (or set `telemetry: false`) to disable
+   * telemetry entirely; RTC itself never depends on it either way. See
+   * docs/telemetry.md.
+   */
+  telemetryUrl?: string;
+  /** Defaults to true. Set false to disable telemetry — never required for RTC to work (Phase 9 spec §31). */
+  telemetry?: boolean;
 }
 
 export interface ResolvedRTCClientConfig {
@@ -27,6 +37,8 @@ export interface ResolvedRTCClientConfig {
   iceServers?: RTCIceServer[];
   logLevel: LogLevel;
   autoReconnect: boolean;
+  telemetryUrl?: string;
+  telemetry: boolean;
 }
 
 interface DecodedTokenPayload {
@@ -79,6 +91,8 @@ export function validateConfig(config: RTCClientConfig): ResolvedRTCClientConfig
     iceServers: config.iceServers,
     logLevel: config.logLevel ?? 'silent',
     autoReconnect: config.autoReconnect ?? true,
+    telemetryUrl: config.telemetryUrl,
+    telemetry: config.telemetry ?? true,
   };
 }
 

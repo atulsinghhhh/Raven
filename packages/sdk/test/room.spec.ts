@@ -182,3 +182,122 @@ describe('Room — actions delegate to the adapter', () => {
     expect(adapter.disconnectCalls).toBe(1);
   });
 });
+
+describe('Room — telemetry (best-effort, Phase 9)', () => {
+  function fakeTelemetry() {
+    return { connectionId: 'conn_test123', send: jest.fn() };
+  }
+
+  it('exposes the telemetry client\'s connectionId as its own public connectionId', () => {
+    const adapter = new FakeAdapter();
+    const telemetry = fakeTelemetry();
+    const room = new Room(adapter, 'room-1', logger, telemetry);
+
+    expect(room.connectionId).toBe('conn_test123');
+  });
+
+  it('sends "connected" (not "reconnected") on the first successful connection', () => {
+    const adapter = new FakeAdapter();
+    const telemetry = fakeTelemetry();
+    const room = new Room(adapter, 'room-1', logger, telemetry);
+
+    adapter.setState('connected');
+
+    expect(telemetry.send).toHaveBeenCalledWith('connected');
+    expect(telemetry.send).not.toHaveBeenCalledWith('reconnected');
+    void room;
+  });
+
+  it('sends "reconnecting" then "reconnected" (not a second "connected") when recovering', () => {
+    const adapter = new FakeAdapter();
+    adapter.setState('connected');
+    const telemetry = fakeTelemetry();
+    new Room(adapter, 'room-1', logger, telemetry);
+    telemetry.send.mockClear();
+
+    adapter.setState('reconnecting');
+    adapter.setState('connected');
+
+    expect(telemetry.send).toHaveBeenCalledWith('reconnecting');
+    expect(telemetry.send).toHaveBeenCalledWith('reconnected');
+    expect(telemetry.send).not.toHaveBeenCalledWith('connected');
+  });
+
+  it('increments reconnectCount (visible via getDiagnostics) only on an actual reconnect', () => {
+    const adapter = new FakeAdapter();
+    adapter.setState('connected');
+    const room = new Room(adapter, 'room-1', logger, fakeTelemetry());
+
+    adapter.setState('reconnecting');
+    adapter.setState('connected');
+    adapter.setState('reconnecting');
+    adapter.setState('connected');
+
+    expect(room.getDiagnostics().reconnectCount).toBe(2);
+  });
+
+  it('sends "connection_failed" and an "error" event when the adapter reports failed', () => {
+    const adapter = new FakeAdapter();
+    adapter.setState('connected');
+    const telemetry = fakeTelemetry();
+    new Room(adapter, 'room-1', logger, telemetry);
+    telemetry.send.mockClear();
+
+    adapter.setState('failed');
+
+    expect(telemetry.send).toHaveBeenCalledWith('connection_failed');
+    expect(telemetry.send).toHaveBeenCalledWith('error', expect.objectContaining({ code: 'CONNECTION_FAILED' }));
+  });
+
+  it('sends "disconnected" (not "connection_failed") on a clean disconnect', () => {
+    const adapter = new FakeAdapter();
+    adapter.setState('connected');
+    const telemetry = fakeTelemetry();
+    new Room(adapter, 'room-1', logger, telemetry);
+    telemetry.send.mockClear();
+
+    adapter.setState('disconnected');
+
+    expect(telemetry.send).toHaveBeenCalledWith('disconnected');
+    expect(telemetry.send).not.toHaveBeenCalledWith('connection_failed');
+  });
+
+  it('sends participant_joined/participant_left with the participant identity', () => {
+    const adapter = new FakeAdapter();
+    const telemetry = fakeTelemetry();
+    new Room(adapter, 'room-1', logger, telemetry);
+
+    const participant = adapter.addRemoteParticipant('bob');
+    adapter.removeRemoteParticipant(participant);
+
+    expect(telemetry.send).toHaveBeenCalledWith('participant_joined', { participantIdentity: 'bob' });
+    expect(telemetry.send).toHaveBeenCalledWith('participant_left', { participantIdentity: 'bob' });
+  });
+
+  it('getDiagnostics() never includes a token or any secret-shaped field', () => {
+    const adapter = new FakeAdapter();
+    adapter.setState('connected');
+    const room = new Room(adapter, 'room-1', logger, fakeTelemetry());
+
+    const diagnostics = room.getDiagnostics();
+
+    expect(diagnostics).toEqual({
+      connectionState: 'connected',
+      iceConnectionState: undefined,
+      signalingState: undefined,
+      reconnectCount: 0,
+      sdkVersion: expect.any(String),
+      platform: expect.any(String),
+      browser: expect.any(String),
+    });
+    expect(JSON.stringify(diagnostics)).not.toMatch(/token|secret|credential/i);
+  });
+
+  it('defaults to a working no-op telemetry client when none is provided, without throwing', () => {
+    const adapter = new FakeAdapter();
+    const room = new Room(adapter, 'room-1', logger);
+
+    expect(() => adapter.setState('connected')).not.toThrow();
+    expect(room.connectionId).toMatch(/^conn_/);
+  });
+});

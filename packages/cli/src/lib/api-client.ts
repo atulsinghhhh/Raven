@@ -3,11 +3,18 @@ import { CliError } from './errors.js';
 import { debugLog } from './logger.js';
 import type {
   ApiKeySummary,
-  AuthResult,
+  ConnectionDetail,
+  ConnectionLifecycleState,
+  ConnectionSummary,
   CreatedApiKey,
+  ErrorCategory,
+  ErrorDetail,
+  ErrorSummary,
   HealthResponse,
   IssuedRtcToken,
+  ObservabilityOverview,
   Project,
+  ProjectDiagnostics,
   RoomDetailWithLiveState,
   RoomWithLiveState,
 } from './types.js';
@@ -41,14 +48,6 @@ export class RavenApiClient {
     private readonly apiUrl: string,
     private readonly token?: string,
   ) {}
-
-  async register(email: string, password: string): Promise<AuthResult> {
-    return this.request<AuthResult>('/v1/auth/register', { method: 'POST', body: { email, password } });
-  }
-
-  async login(email: string, password: string): Promise<AuthResult> {
-    return this.request<AuthResult>('/v1/auth/login', { method: 'POST', body: { email, password } });
-  }
 
   async logout(): Promise<void> {
     await this.request<void>('/v1/auth/logout', { method: 'POST' });
@@ -99,6 +98,47 @@ export class RavenApiClient {
       method: 'POST',
       body: { participantIdentity },
     });
+  }
+
+  async listConnections(
+    projectId: string,
+    opts: { state?: ConnectionLifecycleState; roomId?: string; limit?: number } = {},
+  ): Promise<ConnectionSummary[]> {
+    const params = new URLSearchParams();
+    if (opts.state) params.set('state', opts.state);
+    if (opts.roomId) params.set('roomId', opts.roomId);
+    if (opts.limit) params.set('limit', String(opts.limit));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<ConnectionSummary[]>(`/v1/projects/${projectId}/connections${query}`);
+  }
+
+  async getConnection(projectId: string, connectionId: string): Promise<ConnectionDetail> {
+    return this.request<ConnectionDetail>(`/v1/projects/${projectId}/connections/${connectionId}`);
+  }
+
+  async listErrors(
+    projectId: string,
+    opts: { category?: ErrorCategory; connectionId?: string; limit?: number } = {},
+  ): Promise<ErrorSummary[]> {
+    const params = new URLSearchParams();
+    if (opts.category) params.set('category', opts.category);
+    if (opts.connectionId) params.set('connectionId', opts.connectionId);
+    if (opts.limit) params.set('limit', String(opts.limit));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<ErrorSummary[]>(`/v1/projects/${projectId}/errors${query}`);
+  }
+
+  async getError(projectId: string, errorId: string): Promise<ErrorDetail> {
+    return this.request<ErrorDetail>(`/v1/projects/${projectId}/errors/${errorId}`);
+  }
+
+  async getMetrics(projectId: string, range?: string): Promise<ObservabilityOverview> {
+    const query = range ? `?range=${encodeURIComponent(range)}` : '';
+    return this.request<ObservabilityOverview>(`/v1/projects/${projectId}/metrics${query}`);
+  }
+
+  async getDiagnostics(projectId: string): Promise<ProjectDiagnostics> {
+    return this.request<ProjectDiagnostics>(`/v1/projects/${projectId}/diagnostics`);
   }
 
   async getHealth(): Promise<HealthResponse> {

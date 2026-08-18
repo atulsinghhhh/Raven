@@ -21,6 +21,9 @@ export interface IssuedRtcToken {
    * fresh per token and share its lifetime.
    */
   iceServers: IceServer[];
+  // Base URL for @raven/rtc's telemetry — the SDK never hardcodes this,
+  // it just rides along in the same response as livekitUrl/iceServers.
+  telemetryUrl: string;
   expiresAt: Date;
   createdAt: Date;
 }
@@ -96,6 +99,7 @@ export class RtcTokensService {
       participantIdentity: dto.participantIdentity,
       permissions: dto.permissions,
       iceServers,
+      telemetryUrl: this.configService.get<string>('publicUrl')!,
       expiresAt,
       createdAt: rtcToken.createdAt,
     };

@@ -22,7 +22,7 @@ describe('RTCClient.join', () => {
     let capturedAdapter: FakeAdapter | undefined;
 
     const client = new RTCClient(
-      { token, endpoint: 'wss://rtc.example.com', iceServers, logLevel: 'silent', autoReconnect: true },
+      { token, endpoint: 'wss://rtc.example.com', iceServers, logLevel: 'silent', autoReconnect: true, telemetry: false },
       () => {
         capturedAdapter = new FakeAdapter();
         return capturedAdapter;
@@ -39,7 +39,7 @@ describe('RTCClient.join', () => {
     const token = makeToken({ video: { room: 'room-1' } });
     let capturedAdapter: FakeAdapter | undefined;
 
-    const client = new RTCClient({ token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true }, () => {
+    const client = new RTCClient({ token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false }, () => {
       capturedAdapter = new FakeAdapter();
       return capturedAdapter;
     });
@@ -50,7 +50,7 @@ describe('RTCClient.join', () => {
 
   it('propagates a connection failure from the adapter as a rejected promise', async () => {
     const token = makeToken({ video: { room: 'room-1' } });
-    const client = new RTCClient({ token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true }, () => {
+    const client = new RTCClient({ token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false }, () => {
       const adapter = new FakeAdapter();
       adapter.connect = jest.fn().mockRejectedValue(new RTCError('NETWORK_ERROR', 'unreachable'));
       return adapter;
@@ -64,7 +64,7 @@ describe('RTCClient.leave', () => {
   it('leaves the most recently joined room', async () => {
     const token = makeToken({ video: { room: 'room-1' } });
     let capturedAdapter: FakeAdapter | undefined;
-    const client = new RTCClient({ token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true }, () => {
+    const client = new RTCClient({ token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false }, () => {
       capturedAdapter = new FakeAdapter();
       return capturedAdapter;
     });
@@ -94,7 +94,7 @@ describe('RTCClient.setCamera / setMicrophone', () => {
   it('delegates to the joined room once one exists', async () => {
     const token = makeToken({ video: { room: 'room-1' } });
     let capturedAdapter: FakeAdapter | undefined;
-    const client = new RTCClient({ token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true }, () => {
+    const client = new RTCClient({ token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false }, () => {
       capturedAdapter = new FakeAdapter();
       return capturedAdapter;
     });
@@ -107,5 +107,117 @@ describe('RTCClient.setCamera / setMicrophone', () => {
       { kind: 'videoinput', deviceId: 'device-1' },
       { kind: 'audioinput', deviceId: 'device-2' },
     ]);
+  });
+});
+
+describe('RTCClient.join — telemetry (Phase 9, best-effort, never blocking)', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('the RTC connection succeeds even when the telemetry endpoint is completely unreachable', async () => {
+    // This is the load-bearing guarantee from Phase 9 spec §11 — a
+    // telemetry outage must never surface as an RTC failure.
+    global.fetch = jest.fn().mockRejectedValue(new Error('ECONNREFUSED')) as unknown as typeof fetch;
+
+    const token = makeToken({ video: { room: 'room-1' } });
+    const client = new RTCClient(
+      {
+        token,
+        endpoint: 'wss://rtc.example.com',
+        logLevel: 'silent',
+        autoReconnect: true,
+        telemetry: true,
+        telemetryUrl: 'http://telemetry.example.com',
+      },
+      () => new FakeAdapter(),
+    );
+
+    const room = await client.join('room-1');
+
+    expect(room.roomId).toBe('room-1');
+    expect(room.connectionState).toBe('connected');
+  });
+
+  it('sends a "connection_started" telemetry event before the adapter connects', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({ ok: true, status: 204 });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const token = makeToken({ video: { room: 'room-1' } });
+    const client = new RTCClient(
+      {
+        token,
+        endpoint: 'wss://rtc.example.com',
+        logLevel: 'silent',
+        autoReconnect: true,
+        telemetry: true,
+        telemetryUrl: 'http://telemetry.example.com',
+      },
+      () => new FakeAdapter(),
+    );
+
+    await client.join('room-1');
+
+    const types = fetchMock.mock.calls.map(([, options]) => JSON.parse(options.body).type);
+    expect(types).toContain('connection_started');
+  });
+
+  it('sends "connection_failed" and an error event, then still rejects, when the adapter fails to connect', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({ ok: true, status: 204 });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const token = makeToken({ video: { room: 'room-1' } });
+    const client = new RTCClient(
+      {
+        token,
+        endpoint: 'wss://rtc.example.com',
+        logLevel: 'silent',
+        autoReconnect: true,
+        telemetry: true,
+        telemetryUrl: 'http://telemetry.example.com',
+      },
+      () => {
+        const adapter = new FakeAdapter();
+        adapter.connect = jest.fn().mockRejectedValue(new RTCError('NETWORK_ERROR', 'unreachable'));
+        return adapter;
+      },
+    );
+
+    await expect(client.join('room-1')).rejects.toMatchObject({ code: 'NETWORK_ERROR' });
+
+    const events = fetchMock.mock.calls.map(([, options]) => JSON.parse(options.body));
+    expect(events.some((e) => e.type === 'connection_failed')).toBe(true);
+    expect(events.some((e) => e.type === 'error' && e.data.code === 'NETWORK_ERROR')).toBe(true);
+  });
+
+  it('never calls fetch at all when telemetry is disabled', async () => {
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const token = makeToken({ video: { room: 'room-1' } });
+    const client = new RTCClient(
+      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      () => new FakeAdapter(),
+    );
+
+    await client.join('room-1');
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('getDiagnostics() throws before join(), and delegates to the room after', async () => {
+    const token = makeToken({ video: { room: 'room-1' } });
+    const client = new RTCClient(
+      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      () => new FakeAdapter(),
+    );
+
+    expect(() => client.getDiagnostics()).toThrow(RTCError);
+
+    await client.join('room-1');
+
+    expect(client.getDiagnostics().connectionState).toBe('connected');
   });
 });

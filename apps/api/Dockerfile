@@ -22,6 +22,13 @@ RUN pnpm install --frozen-lockfile
 
 COPY apps/api apps/api
 
+# `prisma generate` only reads the schema (it never connects), but
+# prisma.config.ts resolves DATABASE_URL eagerly just to build the config
+# object — this placeholder satisfies that at build time only; the real
+# value comes from docker-compose.yml's `environment:` at container run
+# time and is what the app actually connects with.
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
+
 RUN pnpm --filter @raven/api run prisma:generate \
   && pnpm --filter @raven/api run build
 

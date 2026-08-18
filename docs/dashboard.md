@@ -153,6 +153,31 @@ participant count — and explicitly lists what is **not yet available**
 (participant-minutes, TURN bandwidth, historical aggregation) rather than
 inventing numbers, per the phase spec's explicit instruction.
 
+## Observability (Phase 9)
+
+Three new tabs, `apps/dashboard/src/app/dashboard/projects/[projectId]/{connections,errors}/`,
+backed entirely by the new `GET /v1/projects/:projectId/{connections,errors,metrics,diagnostics}`
+endpoints (JWT-guarded, ownership-checked like every other dashboard
+route) — full data model and architecture in `docs/observability.md`.
+
+- **Connections** — overview stat cards (active rooms/participants,
+  connection success rate, reconnection rate, average duration, errors)
+  with a 15-minute/1-hour/24-hour/7-day range selector, plus a table of
+  real connections. Clicking one opens its detail page: full metadata,
+  any errors, and the complete event timeline.
+- **Errors** — a table of classified errors (`TOKEN_ERROR`, `ICE_ERROR`,
+  etc. — see `docs/error-codes.md`), each linking back to its connection.
+  The detail page shows the message plus a hedged "likely cause"/
+  "suggested action" explanation, never stated as certain.
+
+Every number on these pages comes from the `Connection`/`ErrorEvent`
+tables — a project with no real connections shows `0`/`—`, never a
+placeholder percentage (same "no fake metrics" rule as the Usage page
+above). There is no client-side ICE/browser diagnostic view here — that
+data only exists inside a running `@raven/rtc` client
+(`room.getDiagnostics()`, `docs/diagnostics.md`), and the dashboard
+never fabricates it.
+
 ## Infrastructure health
 
 `GET /health` (unauthenticated, used by orchestrators) was extended this

@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 const TABS = [
   { slug: 'overview', label: 'Overview' },
   { slug: 'rooms', label: 'Rooms' },
+  { slug: 'connections', label: 'Connections' },
+  { slug: 'errors', label: 'Errors' },
   { slug: 'usage', label: 'Usage' },
   { slug: 'api-keys', label: 'API Keys' },
   { slug: 'quickstart', label: 'Quickstart' },

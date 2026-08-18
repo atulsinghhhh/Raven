@@ -9,9 +9,11 @@ import { RedisModule } from './shared/redis/redis.module';
 import { ApiKeysModule } from './modules/api-keys/api-keys.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
+import { ObservabilityModule } from './modules/observability/observability.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
 import { RtcTokensModule } from './modules/rtc-tokens/rtc-tokens.module';
+import { ServerApiModule } from './modules/server-api/server-api.module';
 import { SignalingModule } from './modules/signaling/signaling.module';
 import { UsersModule } from './modules/users/users.module';
 
@@ -35,6 +37,8 @@ import { UsersModule } from './modules/users/users.module';
     RoomsModule,
     RtcTokensModule,
     SignalingModule,
+    ObservabilityModule,
+    ServerApiModule,
   ],
 })
 export class AppModule implements NestModule {

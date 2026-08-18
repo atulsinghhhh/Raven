@@ -28,7 +28,7 @@ describe('RavenApiClient', () => {
 
     await client.listProjects();
 
-    const [, options] = fetchMock.mock.calls[0];
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit & { headers: Record<string, string> }];
     expect(options.headers.Authorization).toBe('Bearer my-token');
   });
 
@@ -38,12 +38,18 @@ describe('RavenApiClient', () => {
 
     await client.getHealth();
 
-    const [, options] = fetchMock.mock.calls[0];
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit & { headers: Record<string, string> }];
     expect(options.headers.Authorization).toBeUndefined();
   });
 
   it('returns undefined for a 204 response without attempting to parse a body', async () => {
-    const fetchMock = jest.fn().mockResolvedValue({ ok: true, status: 204, json: async () => { throw new Error('must not be called'); } });
+    const fetchMock = jest.fn(async () => ({
+      ok: true,
+      status: 204,
+      json: async () => {
+        throw new Error('must not be called');
+      },
+    }));
     global.fetch = fetchMock as unknown as typeof fetch;
     const client = new RavenApiClient('http://api.test', 'token');
 

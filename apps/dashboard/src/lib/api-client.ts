@@ -99,8 +99,104 @@ export interface IssuedRtcToken {
   participantIdentity: string;
   permissions: Record<string, boolean>;
   iceServers: IceServer[];
+  telemetryUrl: string;
   expiresAt: string;
   createdAt: string;
+}
+
+export type ConnectionLifecycleState = 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'DISCONNECTED' | 'FAILED';
+
+export interface ConnectionSummary {
+  id: string;
+  publicId: string;
+  projectId: string;
+  roomId: string | null;
+  roomName: string;
+  participantId: string | null;
+  participantIdentity: string;
+  state: ConnectionLifecycleState;
+  disconnectReason: string | null;
+  region: string | null;
+  sdkVersion: string | null;
+  platform: string | null;
+  browser: string | null;
+  networkType: string | null;
+  iceConnectionState: string | null;
+  signalingState: string | null;
+  reconnectCount: number;
+  startedAt: string;
+  connectedAt: string | null;
+  disconnectedAt: string | null;
+  durationMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConnectionEventEntry {
+  id: string;
+  type: string;
+  data: Record<string, unknown> | null;
+  timestamp: string;
+}
+
+export interface ConnectionDetail extends ConnectionSummary {
+  events: ConnectionEventEntry[];
+  errors: ErrorSummary[];
+}
+
+export type ErrorCategory =
+  | 'AUTHENTICATION_ERROR'
+  | 'AUTHORIZATION_ERROR'
+  | 'TOKEN_ERROR'
+  | 'SIGNALING_ERROR'
+  | 'ICE_ERROR'
+  | 'TURN_ERROR'
+  | 'SFU_ERROR'
+  | 'NETWORK_ERROR'
+  | 'CLIENT_ERROR'
+  | 'UNKNOWN_ERROR';
+
+export interface ErrorSummary {
+  id: string;
+  publicId: string;
+  projectId: string;
+  connectionId: string | null;
+  roomId: string | null;
+  participantId: string | null;
+  category: ErrorCategory;
+  message: string;
+  likelyCause: string | null;
+  suggestedAction: string | null;
+  sdkVersion: string | null;
+  platform: string | null;
+  timestamp: string;
+}
+
+export interface ErrorDetail extends ErrorSummary {
+  connection: ConnectionSummary | null;
+}
+
+export interface ObservabilityOverview {
+  range: string;
+  activeRooms: number;
+  activeParticipants: number;
+  connections: number;
+  connectionSuccessRate: number | null;
+  reconnectionRate: number | null;
+  averageConnectionDurationMs: number | null;
+  errors: number;
+}
+
+export interface ProjectDiagnostics {
+  project: { id: string; name: string };
+  api: 'up';
+  authentication: 'ok';
+  dependencies: {
+    signaling: 'up' | 'down';
+    sfu: 'up' | 'down';
+    turn: 'up' | 'down';
+  };
+  connections: { active: number };
 }
 
 export interface HealthResponse {
@@ -193,4 +289,32 @@ export const ravenApi = {
     }),
 
   getHealth: () => apiFetch<HealthResponse>('/health'),
+
+  listConnections: (token: string, projectId: string, opts: { roomId?: string; state?: ConnectionLifecycleState } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.roomId) params.set('roomId', opts.roomId);
+    if (opts.state) params.set('state', opts.state);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiFetch<ConnectionSummary[]>(`/v1/projects/${projectId}/connections${query}`, { token });
+  },
+
+  getConnection: (token: string, projectId: string, connectionId: string) =>
+    apiFetch<ConnectionDetail>(`/v1/projects/${projectId}/connections/${connectionId}`, { token }),
+
+  listErrors: (token: string, projectId: string, opts: { category?: ErrorCategory; connectionId?: string } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.category) params.set('category', opts.category);
+    if (opts.connectionId) params.set('connectionId', opts.connectionId);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiFetch<ErrorSummary[]>(`/v1/projects/${projectId}/errors${query}`, { token });
+  },
+
+  getError: (token: string, projectId: string, errorId: string) =>
+    apiFetch<ErrorDetail>(`/v1/projects/${projectId}/errors/${errorId}`, { token }),
+
+  getMetrics: (token: string, projectId: string, range?: string) =>
+    apiFetch<ObservabilityOverview>(`/v1/projects/${projectId}/metrics${range ? `?range=${range}` : ''}`, { token }),
+
+  getDiagnostics: (token: string, projectId: string) =>
+    apiFetch<ProjectDiagnostics>(`/v1/projects/${projectId}/diagnostics`, { token }),
 };

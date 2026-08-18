@@ -11,11 +11,14 @@ architecture decisions.
 
 ## Status
 
-**Phase 7 of 19** — control plane, signaling, real WebRTC media (LiveKit +
+**Phase 9 of 19** — control plane, signaling, real WebRTC media (LiveKit +
 coturn), a production-oriented TURN/NAT-traversal setup, a TypeScript
-browser SDK (`@raven/rtc`), and a developer dashboard (`apps/dashboard`)
-are all working end to end and verified live in a real browser. No
-recording, usage metering/billing, or observability dashboard yet.
+browser SDK (`@raven/rtc`), a developer dashboard (`apps/dashboard`), a
+terminal CLI (`@raven/cli`), and a first observability/diagnostics layer
+(real connection/error events, classified errors, a dashboard
+Connections/Errors view, `raven connections`/`raven errors`/`raven
+diagnostics`) are all working end to end and verified live. No
+recording, usage metering/billing, or WebRTC-stats-level metrics yet.
 
 ## Architecture at a glance
 
@@ -37,11 +40,23 @@ recording, usage metering/billing, or observability dashboard yet.
   projects and API keys, inspect rooms and their live LiveKit participant
   state, and read SDK integration instructions — a thin, server-rendered
   UI over the same Control API, never a second source of truth.
+- **CLI** (`packages/cli`, Phase 8): `@raven/cli` — `raven login`,
+  `raven projects create`, `raven init`, `raven dev` — a terminal
+  workflow tool over the same Control API, with browser-based auth (no
+  password paste) and no direct access to the database, Redis, LiveKit,
+  or coturn.
+- **Observability** (`apps/api`, Phase 9): best-effort telemetry from
+  `@raven/rtc` (never blocking, never able to break an RTC connection)
+  event-sources a real `Connection`/`ErrorEvent` history, classified into
+  Raven-facing categories (`TOKEN_ERROR`, `ICE_ERROR`, `TURN_ERROR`, ...)
+  — surfaced in the dashboard's Connections/Errors tabs and via `raven
+  connections`/`raven errors`/`raven diagnostics`.
 
 Full rationale: `docs/architecture/infrastructure-decisions.md`,
 `docs/control-plane.md`, `docs/signaling.md`, `docs/sfu.md`,
 `docs/media-flow.md`, `docs/turn.md`, `docs/nat-traversal.md`,
-`docs/sdk.md`, and `docs/dashboard.md`.
+`docs/sdk.md`, `docs/dashboard.md`, `docs/cli.md`, `docs/observability.md`,
+`docs/telemetry.md`, `docs/diagnostics.md`, and `docs/error-codes.md`.
 
 ## Local development
 
@@ -77,6 +92,23 @@ The intended developer path through this repo:
 See `docs/dashboard.md` for the dashboard's own architecture,
 authentication/authorization model, and security notes.
 
+## Raven CLI
+
+```bash
+raven login                       # browser-based auth, no password paste
+raven projects create my-video-app
+raven init                        # link this directory (writes raven.json)
+raven sdk install                 # installs @raven/rtc via your package manager
+raven dev                         # confirms this directory is ready for RTC development
+```
+
+`raven` talks only to the Control API (never the database, Redis,
+LiveKit, or coturn directly) and mirrors the dashboard's own security
+model — API key secrets are shown exactly once, and the only thing it
+stores permanently on disk is a session token under `~/.raven/`
+(`600`/`700` permissions). Full reference: `docs/cli.md`. Canonical
+walkthrough: `examples/cli-workflow.md`.
+
 ## Documentation
 
 - `docs/architecture/` — Phase 0 architecture decisions (WebRTC
@@ -93,9 +125,20 @@ authentication/authorization model, and security notes.
 - `docs/sdk.md` — Phase 6 browser SDK (`@raven/rtc`) API reference
 - `docs/dashboard.md` — Phase 7 dashboard architecture, auth/authorization,
   and security audit notes
+- `docs/cli.md` — Phase 8 CLI reference: authentication, config storage,
+  commands, JSON output, exit codes, and security notes
+- `docs/observability.md` — Phase 9 architecture, data model, metrics,
+  retention, and privacy
+- `docs/telemetry.md` — Phase 9 what `@raven/rtc` reports and how
+  (best-effort, never blocking RTC)
+- `docs/diagnostics.md` — Phase 9 the two diagnostic surfaces (server-side
+  project diagnostics vs. client-side `room.getDiagnostics()`)
+- `docs/error-codes.md` — Phase 9 error categories and their explanations
 - `examples/signaling-demo/` — minimal two-tab browser demo of the
   signaling layer (no build step, no media)
 - `examples/media-demo/` — minimal two-tab browser demo of real
   camera/microphone media through LiveKit (no build step)
 - `examples/video-call/` — minimal two-tab browser demo built entirely on
   `@raven/rtc`'s public API (no raw WebRTC types)
+- `examples/cli-workflow.md` — the canonical `raven login` →
+  `projects create` → `init` → `sdk install` → `dev` flow

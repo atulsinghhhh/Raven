@@ -37,6 +37,29 @@ enum ParticipantStatus {
   LEFT
 }
 
+enum ConnectionState {
+  CONNECTING
+  CONNECTED
+  RECONNECTING
+  DISCONNECTED
+  FAILED
+}
+
+/// Raven-facing error categories (Phase 9 spec §18) — never the raw
+/// LiveKit/coturn error a developer would have to reverse-engineer.
+enum ErrorCategory {
+  AUTHENTICATION_ERROR
+  AUTHORIZATION_ERROR
+  TOKEN_ERROR
+  SIGNALING_ERROR
+  ICE_ERROR
+  TURN_ERROR
+  SFU_ERROR
+  NETWORK_ERROR
+  CLIENT_ERROR
+  UNKNOWN_ERROR
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -60,8 +83,10 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  apiKeys ApiKey[]
-  rooms   Room[]
+  apiKeys     ApiKey[]
+  rooms       Room[]
+  connections Connection[]
+  errorEvents ErrorEvent[]
 
   @@index([ownerId])
   @@map("projects")
@@ -143,4 +168,91 @@ model RtcToken {
   @@index([projectId])
   @@index([roomId])
   @@map("rtc_tokens")
+}
+
+/// A real RTC connection, event-sourced from best-effort SDK telemetry
+/// (Phase 9) — distinct from `RtcToken` (a grant) and from LiveKit's own
+/// internal session bookkeeping. `publicId` (`conn_...`) is generated
+/// client-side by `@raven/rtc` at `join()` time and is the ID surfaced in
+/// the dashboard, the CLI, and any error report, so a developer can
+/// correlate all three without ever touching LiveKit/coturn directly. See
+/// docs/observability.md#connection-lifecycle.
+model Connection {
+  id                  String          @id @default(uuid())
+  publicId            String          @unique
+  projectId           String
+  project             Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  roomId              String?
+  roomName            String
+  participantId       String?
+  participantIdentity String
+  state               ConnectionState @default(CONNECTING)
+  disconnectReason    String?
+  region              String?
+  sdkVersion          String?
+  platform            String?
+  browser             String?
+  networkType         String?
+  iceConnectionState  String?
+  signalingState      String?
+  reconnectCount      Int             @default(0)
+  startedAt           DateTime        @default(now())
+  connectedAt         DateTime?
+  disconnectedAt      DateTime?
+  durationMs          Int?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  events ConnectionEvent[]
+  errors ErrorEvent[]
+
+  @@index([projectId])
+  @@index([roomId])
+  @@index([participantId])
+  @@index([createdAt])
+  @@map("connections")
+}
+
+/// The append-only timeline behind a Connection's detail view (Phase 9
+/// spec §17) — every lifecycle transition and metadata update, never
+/// mutated after being written.
+model ConnectionEvent {
+  id           String     @id @default(uuid())
+  connectionId String
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  type         String
+  data         Json?
+  timestamp    DateTime   @default(now())
+
+  @@index([connectionId])
+  @@index([timestamp])
+  @@map("connection_events")
+}
+
+/// A classified, developer-facing error (Phase 9 spec §18-20). `category`
+/// is always a Raven concept (never a raw LiveKit/coturn error code) —
+/// see `error-classifier.ts` for the mapping and docs/error-codes.md for
+/// the full reference.
+model ErrorEvent {
+  id            String        @id @default(uuid())
+  publicId      String        @unique
+  projectId     String
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  connectionId  String?
+  connection    Connection?   @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  roomId        String?
+  participantId String?
+  category      ErrorCategory
+  message       String
+  likelyCause   String?
+  suggestedAction String?
+  sdkVersion    String?
+  platform      String?
+  timestamp     DateTime      @default(now())
+
+  @@index([projectId])
+  @@index([connectionId])
+  @@index([category])
+  @@index([timestamp])
+  @@map("error_events")
 }

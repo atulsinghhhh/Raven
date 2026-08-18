@@ -15,6 +15,9 @@ import { registerKeysCommand } from './commands/keys/index.js';
 import { registerRoomsCommand } from './commands/rooms/index.js';
 import { registerConfigCommand } from './commands/config/index.js';
 import { registerSdkCommand } from './commands/sdk/index.js';
+import { registerConnectionsCommand } from './commands/connections/index.js';
+import { registerErrorsCommand } from './commands/errors/index.js';
+import { registerDiagnosticsCommand } from './commands/diagnostics.js';
 
 export function buildCli(): Command {
   const program = new Command();
@@ -51,6 +54,9 @@ export function buildCli(): Command {
   registerRoomsCommand(program);
   registerConfigCommand(program);
   registerSdkCommand(program);
+  registerConnectionsCommand(program);
+  registerErrorsCommand(program);
+  registerDiagnosticsCommand(program);
 
   return program;
 }
