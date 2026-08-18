@@ -9,7 +9,9 @@ import tseslint from 'typescript-eslint';
  * One config for apps/api and every package under packages/. The dashboard
  * is deliberately excluded: Next.js needs eslint-config-next's own rules
  * (server components, image usage, core web vitals), so it keeps
- * apps/dashboard/eslint.config.mjs and its own `lint` script.
+ * apps/dashboard/eslint.config.mjs and its own `lint` script. Same for
+ * apps/www and apps/docs — every Next.js app in the monorepo keeps its
+ * own Next-flavoured config rather than sharing this one.
  *
  * Rules here are the non-type-aware set. Type-aware linting catches more —
  * floating promises above all — but needs a project graph across eight
@@ -31,6 +33,8 @@ export default tseslint.config(
       '**/.verify-dist/**',
       'apps/api/src/generated/**',
       'apps/dashboard/**',
+      'apps/www/**',
+      'apps/docs/**',
       'sdks/**',
       'examples/**',
     ],
