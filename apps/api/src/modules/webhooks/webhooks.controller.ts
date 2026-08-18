@@ -7,6 +7,7 @@ import { ProjectsService } from '../projects/projects.service';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { UpdateWebhookDto } from './dto/update-webhook.dto';
 import { WebhooksService } from './webhooks.service';
+import { Capability } from '../projects/project-permissions';
 
 /**
  * Webhook management, dashboard/CLI-facing — same JWT + ownership-check
@@ -36,14 +37,14 @@ export class WebhooksController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body() dto: CreateWebhookDto,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.WebhooksManage);
     return this.webhooksService.create(projectId, dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'List webhook endpoints (signing secrets are never returned)' })
   async list(@CurrentUser() user: AuthenticatedUser, @Param('projectId', ParseUUIDPipe) projectId: string) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.WebhooksRead);
     return this.webhooksService.list(projectId);
   }
 
@@ -56,7 +57,7 @@ export class WebhooksController {
     @Param('webhookId') webhookId: string,
     @Query('limit') limit?: string,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.WebhooksRead);
     return this.webhooksService.listDeliveries(projectId, webhookId, limit ? Number(limit) : undefined);
   }
 
@@ -69,7 +70,7 @@ export class WebhooksController {
     @Param('webhookId') webhookId: string,
     @Body() dto: UpdateWebhookDto,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.WebhooksManage);
     return this.webhooksService.update(projectId, webhookId, dto);
   }
 
@@ -82,7 +83,7 @@ export class WebhooksController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('webhookId') webhookId: string,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.WebhooksManage);
     await this.webhooksService.remove(projectId, webhookId);
   }
 }

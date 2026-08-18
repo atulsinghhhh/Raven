@@ -39,7 +39,7 @@ export class ProjectsController {
   @ApiOperation({ summary: "List the authenticated developer's projects" })
   @ApiResponse({ status: 200, description: 'Active projects owned by the caller' })
   findAll(@CurrentUser() user: AuthenticatedUser) {
-    return this.projectsService.findAllForOwner(user.id);
+    return this.projectsService.findAllForUser(user.id);
   }
 
   @Get(':id')
@@ -50,7 +50,7 @@ export class ProjectsController {
       "Project doesn't exist, OR belongs to a different developer — deliberately indistinguishable, to avoid confirming another account's project ID is real.",
   })
   findOne(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
-    return this.projectsService.findOneForOwner(id, user.id);
+    return this.projectsService.findOneForUser(id, user.id);
   }
 
   @Patch(':id')

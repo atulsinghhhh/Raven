@@ -8,6 +8,7 @@ import { CreateRoomDto } from './dto/create-room.dto';
 import { RoomsService } from './rooms.service';
 import { DEFAULT_ENVIRONMENT } from '../../shared/environment/environment.constants';
 import { EnvironmentQueryDto } from '../../shared/environment/environment-query.dto';
+import { Capability } from '../projects/project-permissions';
 
 /**
  * Dashboard/CLI-facing view of a project's rooms — guarded by developer
@@ -40,7 +41,7 @@ export class DashboardRoomsController {
     @Body() dto: CreateRoomDto,
     @Query() { environment = DEFAULT_ENVIRONMENT }: EnvironmentQueryDto,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.RoomsWrite);
     return this.roomsService.create({ projectId, environment }, dto);
   }
 
@@ -53,7 +54,7 @@ export class DashboardRoomsController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Query() { environment = DEFAULT_ENVIRONMENT }: EnvironmentQueryDto,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.ProjectRead);
     return this.roomsService.findAllForProjectWithLiveState({ projectId, environment });
   }
 
@@ -67,7 +68,7 @@ export class DashboardRoomsController {
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Query() { environment = DEFAULT_ENVIRONMENT }: EnvironmentQueryDto,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.ProjectRead);
     return this.roomsService.findOneForProjectWithLiveState(roomId, { projectId, environment });
   }
 }

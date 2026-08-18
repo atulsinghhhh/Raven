@@ -10,6 +10,7 @@ import { CreateTestTokenDto } from './dto/create-test-token.dto';
 import { RtcTokensService } from './rtc-tokens.service';
 import { DEFAULT_ENVIRONMENT } from '../../shared/environment/environment.constants';
 import { EnvironmentQueryDto } from '../../shared/environment/environment-query.dto';
+import { Capability } from '../projects/project-permissions';
 
 const TEST_TOKEN_TTL_SECONDS = 600; // 10 min — fixed, short, not developer-configurable
 const DEFAULT_TEST_IDENTITY = 'dashboard-test-user';
@@ -55,7 +56,7 @@ export class DashboardRtcTokensController {
     @Body() dto: CreateTestTokenDto,
     @Query() { environment = DEFAULT_ENVIRONMENT }: EnvironmentQueryDto,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.RoomsWrite);
 
     return this.rtcTokensService.create({ projectId, environment }, roomId, {
       participantIdentity: dto.participantIdentity || DEFAULT_TEST_IDENTITY,

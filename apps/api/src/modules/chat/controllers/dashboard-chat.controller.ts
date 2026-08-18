@@ -9,6 +9,7 @@ import { ProjectsService } from '../../projects/projects.service';
 import { ChatGateway } from '../gateway/chat.gateway';
 import { ChatMetricsService } from '../metrics/chat-metrics.service';
 import { PresenceService } from '../presence/presence.service';
+import { Capability } from '../../projects/project-permissions';
 
 const RANGE_MINUTES: Record<string, number> = { '15m': 15, '1h': 60, '24h': 1440 };
 
@@ -45,7 +46,7 @@ export class DashboardChatController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Query('range') range = '1h',
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.ChatRead);
     const minutes = RANGE_MINUTES[range] ?? RANGE_MINUTES['1h'];
 
     const [
@@ -109,7 +110,7 @@ export class DashboardChatController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', ParseUUIDPipe) projectId: string,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.ChatRead);
 
     const conversations = await this.prisma.conversation.findMany({
       where: { projectId },
@@ -150,7 +151,7 @@ export class DashboardChatController {
     @Query('state') state?: string,
     @Query('limit') limit?: string,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.ChatRead);
     return this.prisma.chatConnection.findMany({
       where: {
         projectId,
@@ -168,7 +169,7 @@ export class DashboardChatController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('conversationId') conversationPublicId: string,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.ChatRead);
     const conversation = await this.prisma.conversation.findUnique({
       where: { publicId: conversationPublicId },
       select: { id: true, projectId: true },

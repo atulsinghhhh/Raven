@@ -31,6 +31,20 @@ enum Environment {
   PRODUCTION
 }
 
+/// Who may do what within a project. Deliberately a small fixed set:
+/// a general permission system would be more flexible and much harder to
+/// reason about, and "who can rotate the production key" needs to be
+/// answerable at a glance. The capability each role carries lives in
+/// project-permissions.ts, not here, so the mapping can change without a
+/// migration.
+enum ProjectRole {
+  OWNER
+  ADMIN
+  DEVELOPER
+  VIEWER
+  BILLING
+}
+
 enum ApiKeyStatus {
   ACTIVE
   REVOKED
@@ -78,7 +92,8 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  projects Project[]
+  projects    Project[]
+  memberships ProjectMember[]
 
   @@map("users")
 }
@@ -93,6 +108,7 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  members     ProjectMember[]
   apiKeys     ApiKey[]
   rooms       Room[]
   connections Connection[]
@@ -109,6 +125,28 @@ model Project {
 /// The raw secret is never stored — only a hash of it. `publicId` is the
 /// fast, non-secret lookup key used to find the row before verifying the
 /// secret against `secretHash`. See docs/control-plane.md#api-keys.
+/// A user's membership of a project. `Project.ownerId` still records who
+/// created it, but authorization reads this table — an owner is simply a
+/// member holding the OWNER role, and every project has at least one.
+model ProjectMember {
+  id          String      @id @default(uuid())
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        ProjectRole @default(DEVELOPER)
+  /// Who added them. Null for the backfilled memberships of projects that
+  /// predate this table, where there is no honest answer.
+  invitedById String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_members")
+}
+
 model ApiKey {
   id          String       @id @default(uuid())
   projectId   String

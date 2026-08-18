@@ -10,6 +10,7 @@ import { QueryConnectionsDto } from './dto/query-connections.dto';
 import { QueryErrorsDto } from './dto/query-errors.dto';
 import { ErrorsService } from './errors.service';
 import { MetricsService } from './metrics.service';
+import { Capability } from '../projects/project-permissions';
 
 /**
  * Developer-facing observability — connections, errors, metrics,
@@ -39,7 +40,7 @@ export class DashboardObservabilityController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Query() query: QueryConnectionsDto,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.ProjectRead);
     return this.connectionsService.listForProject(projectId, query);
   }
 
@@ -51,7 +52,7 @@ export class DashboardObservabilityController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('connectionId') connectionId: string,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.ProjectRead);
     return this.connectionsService.getDetail(projectId, connectionId);
   }
 
@@ -63,7 +64,7 @@ export class DashboardObservabilityController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Query() query: QueryErrorsDto,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.ProjectRead);
     return this.errorsService.listForProject(projectId, query);
   }
 
@@ -75,7 +76,7 @@ export class DashboardObservabilityController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('errorId') errorId: string,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.ProjectRead);
     return this.errorsService.getDetail(projectId, errorId);
   }
 
@@ -88,7 +89,7 @@ export class DashboardObservabilityController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Query('range') range?: string,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.ProjectRead);
     return this.metricsService.getOverview(projectId, range);
   }
 
@@ -97,7 +98,11 @@ export class DashboardObservabilityController {
   @ApiResponse({ status: 200, description: 'API/auth/signaling/SFU/TURN status plus active connection count' })
   @ApiNotFoundResponse({ description: 'Project not found, or not owned by the caller' })
   async getDiagnostics(@CurrentUser() user: AuthenticatedUser, @Param('projectId', ParseUUIDPipe) projectId: string) {
-    const project = await this.projectsService.findOneForOwner(projectId, user.id);
+    const { project } = await this.projectsService.authorize(
+      projectId,
+      user.id,
+      Capability.ProjectRead,
+    );
     return this.diagnosticsService.getDiagnostics(project);
   }
 }

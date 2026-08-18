@@ -26,6 +26,7 @@ import { AuthenticatedUser } from '../auth/jwt-payload.interface';
 import { ProjectsService } from '../projects/projects.service';
 import { ApiKeysService } from './api-keys.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
+import { Capability } from '../projects/project-permissions';
 
 // Management endpoints for a project's API keys — guarded by
 // JwtAuthGuard, so the developer has to be logged in and own the project.
@@ -70,7 +71,7 @@ export class ApiKeysController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body() dto: CreateApiKeyDto,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.KeysManage);
     const created = await this.apiKeysService.create(projectId, dto);
 
     return {
@@ -91,7 +92,7 @@ export class ApiKeysController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', ParseUUIDPipe) projectId: string,
   ) {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.KeysRead);
     return this.apiKeysService.findAllForProject(projectId);
   }
 
@@ -108,7 +109,7 @@ export class ApiKeysController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('keyId', ParseUUIDPipe) keyId: string,
   ): Promise<void> {
-    await this.projectsService.findOneForOwner(projectId, user.id);
+    await this.projectsService.authorize(projectId, user.id, Capability.KeysManage);
     await this.apiKeysService.revoke(projectId, keyId);
   }
 }
