@@ -13,6 +13,10 @@ export default () => ({
 
   redis: {
     url: process.env.REDIS_URL,
+    // Upper bound on a single Redis command. Exists so a hung Redis
+    // (partition, paused container) surfaces as an error the callers can
+    // fail open on, rather than an unbounded wait — see redis.service.ts.
+    commandTimeoutMs: parseInt(process.env.REDIS_COMMAND_TIMEOUT_MS ?? '2000', 10),
   },
 
   jwt: {

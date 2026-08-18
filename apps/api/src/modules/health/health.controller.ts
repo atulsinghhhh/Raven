@@ -9,6 +9,13 @@ import { checkLiveKitHttp, checkStunBinding } from './dependency-checks.util';
 
 type DependencyStatus = 'up' | 'down';
 
+/**
+ * Upper bound on any single dependency probe. Matches the LiveKit/STUN
+ * checks' own timeouts so every probe is bounded the same way and the
+ * endpoint's worst-case response time is predictable.
+ */
+const DEPENDENCY_CHECK_TIMEOUT_MS = 2000;
+
 interface HealthResponse {
   status: 'ok' | 'degraded';
   dependencies: {
@@ -88,12 +95,36 @@ export class HealthController {
     } satisfies HealthResponse);
   }
 
+  /**
+   * Runs one probe and maps any failure — including taking too long — to
+   * `down`.
+   *
+   * The timeout is the important part. A dependency that is *hung* rather
+   * than *down* (a network partition, a paused container, a server too
+   * busy to answer) accepts the connection and then never replies, and a
+   * probe without a bound waits forever. A health endpoint that hangs is
+   * strictly worse than one reporting a fault: an orchestrator can act on
+   * "down", but a request that never returns just looks like the whole
+   * API is wedged.
+   *
+   * The LiveKit and STUN probes already bound themselves; this covers the
+   * database and Redis ones too, so the endpoint answers within a known
+   * time no matter which dependency is misbehaving.
+   */
   private async checkDependency(fn: () => Promise<void>): Promise<DependencyStatus> {
+    let timer: NodeJS.Timeout | undefined;
     try {
-      await fn();
+      await Promise.race([
+        fn(),
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(() => reject(new Error('timeout')), DEPENDENCY_CHECK_TIMEOUT_MS);
+        }),
+      ]);
       return 'up';
     } catch {
       return 'down';
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   }
 }
