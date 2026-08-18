@@ -84,6 +84,78 @@ describe('raven connections / errors / diagnostics (integration)', () => {
     expect(result.stdout).toContain('connected');
   });
 
+  it('connections inspect shows a Quality section when stats have arrived', async () => {
+    mockApi({
+      'GET /v1/projects/proj-1/connections/conn_abc': async () => ({
+        status: 200,
+        body: {
+          publicId: 'conn_abc', roomName: 'demo-room', participantIdentity: 'alice', state: 'CONNECTED',
+          reconnectCount: 0, sdkVersion: '0.1.0', platform: 'web', browser: 'chrome', region: null,
+          startedAt: '2026-01-01T00:00:00.000Z', connectedAt: '2026-01-01T00:00:01.000Z',
+          disconnectedAt: null, durationMs: null, disconnectReason: null,
+          connectionQuality: 'good', rttMs: 84, jitterMs: 12, packetLossPercent: 1.5,
+          bitrateBps: 850_000, codec: 'video/VP8',
+          events: [], errors: [],
+        },
+      }),
+    });
+
+    const result = await runCli(['connections', 'inspect', 'conn_abc']);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('Quality:');
+    expect(result.stdout).toContain('good');
+    expect(result.stdout).toContain('84 ms');
+    expect(result.stdout).toContain('1.5%');
+    expect(result.stdout).toContain('850 kbps');
+    expect(result.stdout).toContain('video/VP8');
+  });
+
+  it('connections inspect omits the Quality section when stats have not arrived yet', async () => {
+    mockApi({
+      'GET /v1/projects/proj-1/connections/conn_fresh': async () => ({
+        status: 200,
+        body: {
+          publicId: 'conn_fresh', roomName: 'demo-room', participantIdentity: 'alice', state: 'CONNECTING',
+          reconnectCount: 0, sdkVersion: '0.1.0', platform: 'web', browser: 'chrome', region: null,
+          startedAt: '2026-01-01T00:00:00.000Z', connectedAt: null,
+          disconnectedAt: null, durationMs: null, disconnectReason: null,
+          connectionQuality: null, rttMs: null, jitterMs: null, packetLossPercent: null,
+          bitrateBps: null, codec: null,
+          events: [], errors: [],
+        },
+      }),
+    });
+
+    const result = await runCli(['connections', 'inspect', 'conn_fresh']);
+
+    // A brand-new connection genuinely has nothing here yet — showing an
+    // empty "Quality:" heading would read as a bug, not as "too soon".
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).not.toContain('Quality:');
+  });
+
+  it('connections list shows a QUALITY column', async () => {
+    mockApi({
+      'GET /v1/projects/proj-1/connections': async () => ({
+        status: 200,
+        body: [
+          {
+            publicId: 'conn_abc', roomName: 'demo-room', participantIdentity: 'alice', state: 'CONNECTED',
+            reconnectCount: 0, durationMs: null, startedAt: '2026-01-01T00:00:00.000Z',
+            connectionQuality: 'excellent',
+          },
+        ],
+      }),
+    });
+
+    const result = await runCli(['connections', 'list']);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('QUALITY');
+    expect(result.stdout).toContain('excellent');
+  });
+
   it('errors list shows the Raven-facing category, never a raw internal code', async () => {
     mockApi({
       'GET /v1/projects/proj-1/errors': async () => ({

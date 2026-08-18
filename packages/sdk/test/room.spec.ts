@@ -1,5 +1,6 @@
 import { createLogger } from '../src/logger';
-import { RemoteTrack } from '../src/track';
+import { LocalTrack, RemoteTrack } from '../src/track';
+import type { LocalTrackDelegate, RemoteTrackDelegate } from '../src/track';
 import { Room } from '../src/room';
 import { FakeAdapter } from './helpers/fake-adapter';
 
@@ -339,5 +340,176 @@ describe('Room — telemetry (best-effort, Phase 9)', () => {
 
     expect(() => adapter.setState('connected')).not.toThrow();
     expect(room.connectionId).toMatch(/^conn_/);
+  });
+});
+
+describe('Room — getConnectionStats()', () => {
+  function fakeLocalDelegate(getSenderStats: LocalTrackDelegate['getSenderStats']): LocalTrackDelegate {
+    return {
+      mediaStreamTrack: { id: 'local', stop: jest.fn() } as unknown as MediaStreamTrack,
+      mediaStream: undefined,
+      isMuted: false,
+      attach: jest.fn(() => document.createElement('audio')),
+      detach: jest.fn(() => []),
+      mute: jest.fn(),
+      unmute: jest.fn(),
+      getSenderStats,
+    };
+  }
+
+  function fakeRemoteDelegate(getReceiverStats: RemoteTrackDelegate['getReceiverStats']): RemoteTrackDelegate {
+    return {
+      mediaStreamTrack: { id: 'remote', stop: jest.fn() } as unknown as MediaStreamTrack,
+      mediaStream: undefined,
+      isMuted: false,
+      attach: jest.fn(() => document.createElement('video')),
+      detach: jest.fn(() => []),
+      getReceiverStats,
+    };
+  }
+
+  it('reports empty local/remote arrays before anything is published or subscribed', async () => {
+    const adapter = new FakeAdapter();
+    const room = new Room(adapter, 'room-1', logger);
+
+    const stats = await room.getConnectionStats();
+
+    expect(stats.local).toEqual([]);
+    expect(stats.remote).toEqual([]);
+  });
+
+  it('collects stats for every locally published track', async () => {
+    const adapter = new FakeAdapter();
+    const room = new Room(adapter, 'room-1', logger);
+    adapter.localParticipant.tracks.push(
+      new LocalTrack(fakeLocalDelegate(jest.fn().mockResolvedValue({ timestamp: 1, jitter: 0.01 })), 'microphone'),
+      new LocalTrack(fakeLocalDelegate(jest.fn().mockResolvedValue({ timestamp: 1, frameWidth: 640 })), 'camera'),
+    );
+
+    const stats = await room.getConnectionStats();
+
+    expect(stats.local).toHaveLength(2);
+    expect(stats.local.map((s) => s.kind).sort()).toEqual(['camera', 'microphone']);
+  });
+
+  it('collects stats across every remote participant, not just the first', async () => {
+    const adapter = new FakeAdapter();
+    const room = new Room(adapter, 'room-1', logger);
+    const alice = adapter.addRemoteParticipant('alice');
+    const bob = adapter.addRemoteParticipant('bob');
+    alice.tracks.push(new RemoteTrack(fakeRemoteDelegate(jest.fn().mockResolvedValue({ timestamp: 1 })), 'microphone'));
+    bob.tracks.push(new RemoteTrack(fakeRemoteDelegate(jest.fn().mockResolvedValue({ timestamp: 1 })), 'camera'));
+
+    const stats = await room.getConnectionStats();
+
+    expect(stats.remote).toHaveLength(2);
+  });
+
+  it('drops a track that had nothing to report rather than a hole in the array', async () => {
+    const adapter = new FakeAdapter();
+    const room = new Room(adapter, 'room-1', logger);
+    adapter.localParticipant.tracks.push(
+      new LocalTrack(fakeLocalDelegate(jest.fn().mockResolvedValue(undefined)), 'microphone'),
+      new LocalTrack(fakeLocalDelegate(jest.fn().mockResolvedValue({ timestamp: 1 })), 'camera'),
+    );
+
+    const stats = await room.getConnectionStats();
+
+    expect(stats.local).toHaveLength(1);
+    expect(stats.local[0].kind).toBe('camera');
+  });
+
+  it('reports the adapter’s connection quality and current connection state', async () => {
+    const adapter = new FakeAdapter();
+    adapter.connectionQuality = 'poor';
+    const room = new Room(adapter, 'room-1', logger);
+    adapter.setState('connected');
+
+    const stats = await room.getConnectionStats();
+
+    expect(stats).toMatchObject({ connectionState: 'connected', connectionQuality: 'poor' });
+  });
+});
+
+describe('Room — periodic stats monitor', () => {
+  function fakeTelemetryWithSend() {
+    return { connectionId: 'conn_test123', send: jest.fn() };
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('does not report stats before the room has ever connected', () => {
+    const adapter = new FakeAdapter();
+    const telemetry = fakeTelemetryWithSend();
+    new Room(adapter, 'room-1', logger, telemetry);
+
+    jest.advanceTimersByTime(30_000);
+
+    expect(telemetry.send).not.toHaveBeenCalledWith('stats', expect.anything());
+  });
+
+  it('reports stats on an interval once connected', async () => {
+    const adapter = new FakeAdapter();
+    const telemetry = fakeTelemetryWithSend();
+    new Room(adapter, 'room-1', logger, telemetry);
+
+    adapter.setState('connected');
+    await jest.advanceTimersByTimeAsync(5_000);
+
+    expect(telemetry.send).toHaveBeenCalledWith('stats', expect.objectContaining({ connectionState: 'connected' }));
+  });
+
+  it('stops reporting once the room disconnects', async () => {
+    const adapter = new FakeAdapter();
+    const telemetry = fakeTelemetryWithSend();
+    new Room(adapter, 'room-1', logger, telemetry);
+    adapter.setState('connected');
+    await jest.advanceTimersByTimeAsync(5_000);
+    telemetry.send.mockClear();
+
+    adapter.setState('disconnected');
+    await jest.advanceTimersByTimeAsync(30_000);
+
+    expect(telemetry.send).not.toHaveBeenCalledWith('stats', expect.anything());
+  });
+
+  it('stops reporting once leave() is called, even without a disconnect event', async () => {
+    // leave() is what most apps call directly; waiting on the adapter to
+    // separately emit "disconnected" would leave the timer running in
+    // between for however long that takes.
+    const adapter = new FakeAdapter();
+    const telemetry = fakeTelemetryWithSend();
+    const room = new Room(adapter, 'room-1', logger, telemetry);
+    adapter.setState('connected');
+    await jest.advanceTimersByTimeAsync(5_000);
+    telemetry.send.mockClear();
+
+    await room.leave();
+    await jest.advanceTimersByTimeAsync(30_000);
+
+    expect(telemetry.send).not.toHaveBeenCalledWith('stats', expect.anything());
+  });
+
+  it('does not start a second timer on a reconnect, doubling the report rate', async () => {
+    const adapter = new FakeAdapter();
+    const telemetry = fakeTelemetryWithSend();
+    new Room(adapter, 'room-1', logger, telemetry);
+    adapter.setState('connected');
+    adapter.setState('reconnecting');
+    adapter.setState('connected');
+    telemetry.send.mockClear();
+
+    await jest.advanceTimersByTimeAsync(5_000);
+
+    // Exactly one 'stats' call in one interval tick — two live timers
+    // would report twice per tick instead.
+    const statsCalls = telemetry.send.mock.calls.filter(([type]) => type === 'stats');
+    expect(statsCalls).toHaveLength(1);
   });
 });

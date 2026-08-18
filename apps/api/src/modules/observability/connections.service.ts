@@ -22,7 +22,86 @@ type ConnectionPatch = Partial<{
   region: string;
   iceConnectionState: string;
   signalingState: string;
+  connectionQuality: string;
+  rttMs: number;
+  jitterMs: number;
+  packetLossPercent: number;
+  bitrateBps: number;
+  codec: string;
 }>;
+
+/**
+ * Turns one 'stats' telemetry event — `Room.getConnectionStats()` on the
+ * wire (see @raven/rtc) — into the subset of `ConnectionPatch` it fills
+ * in. Every other event type's `data` object simply lacks this shape, so
+ * merging this in unconditionally (see the call site) is safe: there is
+ * nothing here to extract, and this returns an empty patch.
+ *
+ * Multiple tracks collapse into one connection-level number per field,
+ * since Connection is one row per participant, not per track:
+ *
+ * - `rttMs`: the first send-direction reading. WebRTC never reports a
+ *   receiver's own round-trip time, so this is the only direction it can
+ *   honestly come from.
+ * - `jitterMs` / `packetLossPercent`: the worst (max) across every track —
+ *   for a support engineer skimming a connection list, "how bad does this
+ *   get" is more actionable than an average that hides one struggling track.
+ * - `bitrateBps`: the sum across every track — total throughput over the
+ *   connection, both directions.
+ * - `codec`: from a remote (receive-direction) track. `mimeType` is a
+ *   receive-direction-video-only WebRTC stat, so a local/send entry never
+ *   carries one — see `track-stats.ts` on the SDK side.
+ */
+function extractStatsPatch(data: Record<string, unknown>): Partial<ConnectionPatch> {
+  const asTrackList = (value: unknown): Record<string, unknown>[] =>
+    Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+  const local = asTrackList(data.local);
+  const remote = asTrackList(data.remote);
+  const allTracks = [...local, ...remote];
+  const num = (value: unknown): number | undefined =>
+    typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+
+  const patch: Partial<ConnectionPatch> = {};
+
+  if (typeof data.connectionQuality === 'string') {
+    patch.connectionQuality = data.connectionQuality;
+  }
+
+  const rtt = local.map((track) => num(track.roundTripTimeMs)).find((value) => value !== undefined);
+  if (rtt !== undefined) {
+    patch.rttMs = Math.round(rtt);
+  }
+
+  const jitterValues = allTracks
+    .map((track) => num(track.jitterMs))
+    .filter((value): value is number => value !== undefined);
+  if (jitterValues.length > 0) {
+    patch.jitterMs = Math.round(Math.max(...jitterValues));
+  }
+
+  const lossValues = allTracks
+    .map((track) => num(track.packetLossPercent))
+    .filter((value): value is number => value !== undefined);
+  if (lossValues.length > 0) {
+    patch.packetLossPercent = Math.max(...lossValues);
+  }
+
+  const bitrateValues = allTracks
+    .map((track) => num(track.bitrateBps))
+    .filter((value): value is number => value !== undefined);
+  if (bitrateValues.length > 0) {
+    patch.bitrateBps = Math.round(bitrateValues.reduce((sum, value) => sum + value, 0));
+  }
+
+  const codec = remote
+    .map((track) => (typeof track.codec === 'string' ? track.codec : undefined))
+    .find((value) => value !== undefined);
+  if (codec !== undefined) {
+    patch.codec = codec;
+  }
+
+  return patch;
+}
 
 /**
  * Event-sources the `Connection`/`ConnectionEvent`/`ErrorEvent` tables from
@@ -76,6 +155,11 @@ export class ConnectionsService {
     patch.region = str('region');
     patch.iceConnectionState = str('iceConnectionState');
     patch.signalingState = str('signalingState');
+
+    // Only ever populated by a 'stats' event — every other event type's
+    // `data` simply lacks these keys, so this merges in cleanly alongside
+    // the unconditional metadata fields above without a check on `type`.
+    Object.assign(patch, extractStatsPatch(data));
 
     let reconnectDelta = 0;
 

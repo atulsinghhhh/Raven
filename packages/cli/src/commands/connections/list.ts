@@ -35,6 +35,7 @@ export function registerConnectionsListCommand(connections: Command): void {
             { header: 'ROOM', value: (c) => c.roomName },
             { header: 'PARTICIPANT', value: (c) => c.participantIdentity },
             { header: 'STATE', value: (c) => c.state },
+            { header: 'QUALITY', value: (c) => c.connectionQuality ?? '—' },
             { header: 'RECONNECTS', value: (c) => String(c.reconnectCount) },
             { header: 'DURATION', value: (c) => formatDuration(c.durationMs) },
             { header: 'STARTED', value: (c) => new Date(c.startedAt).toLocaleString() },

@@ -4,8 +4,8 @@ import { createTelemetryClient, type TelemetryClient } from './internal/telemetr
 import { detectPlatform } from './internal/telemetry/platform';
 import type { Logger } from './logger';
 import { LocalParticipant, RemoteParticipant } from './participant';
-import type { SFUAdapter, SdkConnectionState } from './internal/sfu/types';
-import { LocalTrack, RemoteTrack, type TrackKind } from './track';
+import type { ConnectionQuality, SFUAdapter, SdkConnectionState } from './internal/sfu/types';
+import { LocalTrack, RemoteTrack, type TrackKind, type TrackStats } from './track';
 import { SDK_VERSION } from './version';
 
 export type ConnectionState = SdkConnectionState;
@@ -24,6 +24,25 @@ export interface ConnectionDiagnostics {
   sdkVersion: string;
   platform: string;
   browser: string;
+}
+
+/**
+ * Live media-quality stats — deliberately a separate, `async` method from
+ * `getDiagnostics()` rather than a field added to it. `getDiagnostics()`
+ * is synchronous and cheap by design (safe to call from anywhere, any
+ * time); collecting real WebRTC stats is neither — it needs at least one
+ * round trip through the browser's stats API per track, and per-track
+ * numbers don't collapse into one flat object without losing the thing
+ * that made them useful in a multi-participant room.
+ */
+export interface ConnectionStats {
+  connectionState: ConnectionState;
+  /** The SFU's own read on connection health — see `ConnectionQuality`. */
+  connectionQuality: ConnectionQuality;
+  /** One entry per track this side has published. */
+  local: TrackStats[];
+  /** One entry per track this side has subscribed to, across every remote participant. */
+  remote: TrackStats[];
 }
 
 export interface RoomEventMap {
@@ -61,6 +80,15 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
   private readonly logger: Logger;
   private readonly telemetry: TelemetryClient;
   private reconnectCount = 0;
+  private statsTimer?: ReturnType<typeof setInterval>;
+
+  /**
+   * How often the stats monitor samples and reports. Frequent enough that
+   * a dashboard viewing "now" isn't looking at stale numbers; infrequent
+   * enough that it isn't a meaningful load on the telemetry endpoint
+   * across a call with dozens of participants each doing this.
+   */
+  private static readonly STATS_INTERVAL_MS = 5_000;
 
   /** @internal use `client.join(roomId)` — the telemetry client defaults to a no-op so tests/advanced setups can construct a Room directly without wiring one up. */
   constructor(
@@ -102,10 +130,12 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
           this.telemetry.send('connected');
           this.emit('connected');
         }
+        this.startStatsMonitor();
       } else if (state === 'reconnecting' && prevState !== 'reconnecting') {
         this.telemetry.send('reconnecting');
         this.emit('reconnecting');
       } else if (state === 'disconnected' || state === 'failed') {
+        this.stopStatsMonitor();
         this.telemetry.send(state === 'failed' ? 'connection_failed' : 'disconnected');
         this.emit('disconnected');
         if (state === 'failed') {
@@ -165,6 +195,61 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
       platform,
       browser,
     };
+  }
+
+  /**
+   * Live media-quality stats for every published and subscribed track —
+   * RTT, jitter, packet loss, bitrate, codec, resolution/fps, plus the
+   * SFU's own connection-quality read. See `ConnectionStats` for why this
+   * is separate from `getDiagnostics()`.
+   *
+   * Safe to call at any time, including before anything has been
+   * published or subscribed — `local`/`remote` are simply empty then, not
+   * an error.
+   */
+  async getConnectionStats(): Promise<ConnectionStats> {
+    const localTracks = this.localParticipant.tracks;
+    const remoteTracks = this.remoteParticipants.flatMap((participant) => participant.tracks);
+
+    const [local, remote] = await Promise.all([
+      Promise.all(localTracks.map((track) => track.getStats())),
+      Promise.all(remoteTracks.map((track) => track.getStats())),
+    ]);
+
+    return {
+      connectionState: this.connectionState,
+      connectionQuality: this.adapter.getConnectionQuality(),
+      local: local.filter((stats): stats is TrackStats => stats !== undefined),
+      remote: remote.filter((stats): stats is TrackStats => stats !== undefined),
+    };
+  }
+
+  /**
+   * Polls `getConnectionStats()` on an interval and reports it as
+   * telemetry, so the dashboard's RTC view (spec §23) has numbers to show
+   * without every developer wiring this up themselves. Best-effort like
+   * every other telemetry event here: a failure is swallowed rather than
+   * surfaced, since a stats-collection hiccup is not a reason to disrupt
+   * the call it's describing.
+   */
+  private startStatsMonitor(): void {
+    if (this.statsTimer) {
+      return;
+    }
+    this.statsTimer = setInterval(() => {
+      this.getConnectionStats()
+        .then((stats) => this.telemetry.send('stats', stats as unknown as Record<string, unknown>))
+        .catch(() => {
+          // Deliberately silent — see the method doc.
+        });
+    }, Room.STATS_INTERVAL_MS);
+  }
+
+  private stopStatsMonitor(): void {
+    if (this.statsTimer) {
+      clearInterval(this.statsTimer);
+      this.statsTimer = undefined;
+    }
   }
 
   /** Captures and publishes the camera in one call. Resolves to the published track. */
@@ -245,6 +330,7 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
 
   /** Leaves the room, stops local tracks, and closes the underlying connection. */
   async leave(): Promise<void> {
+    this.stopStatsMonitor();
     await this.adapter.disconnect();
   }
 }

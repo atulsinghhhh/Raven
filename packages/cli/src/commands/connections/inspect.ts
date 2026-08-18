@@ -36,6 +36,18 @@ export function registerConnectionsInspectCommand(connections: Command): void {
         if (connection.durationMs !== null) printField('Duration', formatDuration(connection.durationMs));
         if (connection.disconnectReason) printField('Disconnect reason', connection.disconnectReason);
 
+        if (hasQualityStats(connection)) {
+          process.stdout.write(`\n${chalk.bold('Quality:')}\n\n`);
+          if (connection.connectionQuality) printField('Connection quality', connection.connectionQuality);
+          if (connection.rttMs != null) printField('RTT', `${connection.rttMs} ms`);
+          if (connection.jitterMs != null) printField('Jitter', `${connection.jitterMs} ms`);
+          if (connection.packetLossPercent != null) {
+            printField('Packet loss', `${connection.packetLossPercent.toFixed(1)}%`);
+          }
+          if (connection.bitrateBps != null) printField('Bitrate', formatBitrate(connection.bitrateBps));
+          if (connection.codec) printField('Codec', connection.codec);
+        }
+
         if (connection.errors.length > 0) {
           process.stdout.write(`\n${chalk.bold('Errors:')}\n\n`);
           for (const error of connection.errors) {
@@ -57,4 +69,37 @@ function formatDuration(durationMs: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+}
+
+/**
+ * Present only once a connection has been up long enough for the SDK's
+ * periodic stats monitor to have reported at least once — a fresh
+ * connection genuinely has nothing here yet, which is different from a
+ * connection whose stats never arrived.
+ */
+function hasQualityStats(connection: {
+  connectionQuality: string | null;
+  rttMs: number | null;
+  jitterMs: number | null;
+  packetLossPercent: number | null;
+  bitrateBps: number | null;
+  codec: string | null;
+}): boolean {
+  // Loose equality is deliberate: a field an older/mocked API response
+  // omits entirely (`undefined`) means exactly the same "nothing here yet"
+  // as one the current API sends back as an explicit `null`.
+  return (
+    connection.connectionQuality != null ||
+    connection.rttMs != null ||
+    connection.jitterMs != null ||
+    connection.packetLossPercent != null ||
+    connection.bitrateBps != null ||
+    connection.codec != null
+  );
+}
+
+function formatBitrate(bps: number): string {
+  if (bps >= 1_000_000) return `${(bps / 1_000_000).toFixed(2)} Mbps`;
+  if (bps >= 1_000) return `${(bps / 1_000).toFixed(0)} kbps`;
+  return `${bps} bps`;
 }

@@ -1,5 +1,6 @@
 import { TypedEventEmitter } from '../../src/events';
 import type {
+  ConnectionQuality,
   DeviceInfo,
   DeviceKind,
   SFUAdapter,
@@ -15,6 +16,8 @@ export class FakeAdapter extends TypedEventEmitter<SFUAdapterEventMap> implement
   connectionState: SdkConnectionState = 'disconnected';
   readonly localParticipant = new LocalParticipant('local-identity');
   readonly remoteParticipants = new Map<string, RemoteParticipant>();
+  /** Test-only knob — set directly to drive `getConnectionQuality()`. */
+  connectionQuality: ConnectionQuality = 'unknown';
 
   readonly connectCalls: Array<{ endpoint: string; token: string; iceServers?: RTCIceServer[] }> = [];
   disconnectCalls = 0;
@@ -103,5 +106,9 @@ export class FakeAdapter extends TypedEventEmitter<SFUAdapterEventMap> implement
 
   async setDevice(kind: DeviceKind, deviceId: string): Promise<void> {
     this.setDeviceCalls.push({ kind, deviceId });
+  }
+
+  getConnectionQuality(): ConnectionQuality {
+    return this.connectionQuality;
   }
 }

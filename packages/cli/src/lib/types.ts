@@ -135,6 +135,14 @@ export interface ConnectionSummary {
   networkType: string | null;
   iceConnectionState: string | null;
   signalingState: string | null;
+  /** The SFU's own quality read: 'excellent' | 'good' | 'poor' | 'lost' | 'unknown'. */
+  connectionQuality: string | null;
+  rttMs: number | null;
+  jitterMs: number | null;
+  /** 0-100 — an approximation, not an RFC 3550 figure. */
+  packetLossPercent: number | null;
+  bitrateBps: number | null;
+  codec: string | null;
   reconnectCount: number;
   startedAt: string;
   connectedAt: string | null;

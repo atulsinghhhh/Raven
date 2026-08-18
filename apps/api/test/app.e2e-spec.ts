@@ -288,6 +288,50 @@ describe('Control plane (e2e)', () => {
         expect(detail.body.events[0].type).toBe('connection_started');
       });
 
+      it('records connection-quality stats from a stats event, in the shape Room.getConnectionStats() actually sends', async () => {
+        // Mirrors what @raven/rtc's periodic stats monitor posts — see
+        // ConnectionStats in packages/sdk/src/room.ts.
+        await request(app.getHttpServer())
+          .post('/v1/telemetry/events')
+          .set('Authorization', `Bearer ${rtcToken}`)
+          .send({
+            connectionId: connectionPublicId,
+            type: 'stats',
+            data: {
+              connectionState: 'connected',
+              connectionQuality: 'good',
+              local: [
+                { kind: 'microphone', direction: 'send', roundTripTimeMs: 84, jitterMs: 5, bitrateBps: 32_000 },
+              ],
+              remote: [
+                {
+                  kind: 'camera',
+                  direction: 'receive',
+                  jitterMs: 18,
+                  packetLossPercent: 2.5,
+                  bitrateBps: 850_000,
+                  codec: 'video/VP8',
+                },
+              ],
+            },
+          })
+          .expect(204);
+
+        const detail = await request(app.getHttpServer())
+          .get(`/v1/projects/${projectId}/connections/${connectionPublicId}`)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(200);
+
+        expect(detail.body).toMatchObject({
+          connectionQuality: 'good',
+          rttMs: 84, // from the local (send-direction) track — the only direction WebRTC reports it for
+          jitterMs: 18, // the worse of the two reported values, not the first or an average
+          packetLossPercent: 2.5,
+          bitrateBps: 882_000, // summed across both tracks
+          codec: 'video/VP8', // from the remote track — mimeType is receive-direction-only
+        });
+      });
+
       it('classifies an ingested error into a Raven-facing category — never the raw SDK code as-is', async () => {
         await request(app.getHttpServer())
           .post('/v1/telemetry/events')

@@ -294,6 +294,17 @@ model Connection {
   networkType         String?
   iceConnectionState  String?
   signalingState      String?
+  /// The SFU's own connection-quality read ('excellent'|'good'|'poor'|
+  /// 'lost'|'unknown') — plain string, not a Postgres enum, since the
+  /// vocabulary belongs to whichever SFU adapter reported it, not to Raven.
+  connectionQuality   String?
+  rttMs               Int?
+  jitterMs            Int?
+  /// 0-100. An approximation, not an RFC 3550 figure — see
+  /// track-stats.ts on the SDK side for how it's derived.
+  packetLossPercent   Float?
+  bitrateBps          Int?
+  codec               String?
   reconnectCount      Int             @default(0)
   startedAt           DateTime        @default(now())
   connectedAt         DateTime?

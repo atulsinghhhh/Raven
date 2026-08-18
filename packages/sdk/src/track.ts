@@ -1,3 +1,6 @@
+import { normalizeTrackStats, pickBestLayer, type RawTrackStats, type TrackStats } from './internal/telemetry/track-stats';
+
+export type { TrackStats } from './internal/telemetry/track-stats';
 export type TrackKind = 'camera' | 'microphone' | 'screenShare' | 'unknown';
 
 /**
@@ -56,11 +59,25 @@ export interface LocalTrackDelegate extends TrackDelegate {
   // so that and a plain Promise<void> fake both satisfy the interface
   mute(): Promise<unknown>;
   unmute(): Promise<unknown>;
+  /**
+   * Optional so a delegate that predates stats support (or a test double
+   * that doesn't need them) still satisfies this interface unchanged — a
+   * purely additive capability, never a required one. An array covers
+   * livekit-client's video path, which reports one entry per simulcast
+   * encoding layer rather than a single stream.
+   */
+  getSenderStats?(): Promise<RawTrackStats | RawTrackStats[] | undefined>;
+}
+
+export interface RemoteTrackDelegate extends TrackDelegate {
+  /** Optional for the same reason as `LocalTrackDelegate.getSenderStats`. */
+  getReceiverStats?(): Promise<RawTrackStats | undefined>;
 }
 
 /** A track captured locally (camera/microphone/screen share) — published or not yet published. */
 export class LocalTrack extends Track {
   private readonly localDelegate: LocalTrackDelegate;
+  private lastSample?: RawTrackStats;
 
   constructor(delegate: LocalTrackDelegate, kind: TrackKind) {
     super(delegate, kind);
@@ -79,7 +96,54 @@ export class LocalTrack extends Track {
   stop(): void {
     this.mediaStreamTrack.stop();
   }
+
+  /**
+   * Live send-side stats for this track — bitrate, packet loss, jitter,
+   * RTT (audio only), resolution/fps (video only). `undefined` when the
+   * adapter can't supply them (no `getSenderStats` on the delegate, or the
+   * underlying call itself resolved to nothing) rather than a
+   * zeroed-out object — see the module doc on why that distinction matters.
+   *
+   * Call this periodically (`Room.getConnectionStats()` does, every few
+   * seconds) rather than once: bitrate needs two samples to compute, so
+   * the very first call after a track starts always omits it.
+   */
+  async getStats(): Promise<TrackStats | undefined> {
+    const raw = await this.localDelegate.getSenderStats?.();
+    if (!raw) {
+      return undefined;
+    }
+
+    const sample = Array.isArray(raw) ? pickBestLayer(raw) : raw;
+    if (!sample) {
+      return undefined;
+    }
+
+    const stats = normalizeTrackStats(sample, this.lastSample, this.kind, 'send');
+    this.lastSample = sample;
+    return stats;
+  }
 }
 
 /** A track received from a remote participant via the SFU. */
-export class RemoteTrack extends Track {}
+export class RemoteTrack extends Track {
+  private readonly remoteDelegate: RemoteTrackDelegate;
+  private lastSample?: RawTrackStats;
+
+  constructor(delegate: RemoteTrackDelegate, kind: TrackKind) {
+    super(delegate, kind);
+    this.remoteDelegate = delegate;
+  }
+
+  /** Live receive-side stats for this track. See `LocalTrack.getStats()` for the shape and its caveats. */
+  async getStats(): Promise<TrackStats | undefined> {
+    const raw = await this.remoteDelegate.getReceiverStats?.();
+    if (!raw) {
+      return undefined;
+    }
+
+    const stats = normalizeTrackStats(raw, this.lastSample, this.kind, 'receive');
+    this.lastSample = raw;
+    return stats;
+  }
+}

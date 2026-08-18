@@ -4,6 +4,16 @@ import type { RemoteTrack } from '../../track';
 
 export type SdkConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'failed';
 
+/**
+ * A coarse, SFU-reported quality signal — not derived from raw stats by
+ * Raven, but read from whatever the SFU itself already computes (it has a
+ * much better vantage point: it sees loss/jitter from every leg of the
+ * connection, not just this client's). `'unknown'` covers both "not
+ * connected yet" and "the adapter has nothing to report", which is the
+ * honest answer in both cases.
+ */
+export type ConnectionQuality = 'excellent' | 'good' | 'poor' | 'lost' | 'unknown';
+
 export type DeviceKind = 'videoinput' | 'audioinput' | 'audiooutput';
 
 export interface DeviceInfo {
@@ -41,6 +51,9 @@ export interface SFUAdapter {
   readonly connectionState: SdkConnectionState;
   readonly localParticipant: LocalParticipant;
   readonly remoteParticipants: Map<string, RemoteParticipant>;
+
+  /** The SFU's own read on this connection's health right now. */
+  getConnectionQuality(): ConnectionQuality;
 
   connect(endpoint: string, token: string, iceServers?: RTCIceServer[]): Promise<void>;
   disconnect(): Promise<void>;

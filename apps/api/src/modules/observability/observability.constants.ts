@@ -21,6 +21,8 @@ export const CONNECTION_EVENT_TYPES = [
   'track_published',
   'track_unpublished',
   'error',
+  /** Periodic media-quality snapshot — see Room.getConnectionStats() in @raven/rtc. */
+  'stats',
 ] as const;
 
 export type ConnectionEventType = (typeof CONNECTION_EVENT_TYPES)[number];

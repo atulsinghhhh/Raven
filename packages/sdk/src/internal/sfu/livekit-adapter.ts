@@ -15,7 +15,14 @@ import { LocalParticipant, RemoteParticipant } from '../../participant';
 import { LocalTrack, RemoteTrack, type TrackKind } from '../../track';
 import { toMediaError } from '../media/errors';
 import { TypedEventEmitter } from '../../events';
-import type { DeviceInfo, DeviceKind, SFUAdapter, SFUAdapterEventMap, SdkConnectionState } from './types';
+import type {
+  ConnectionQuality,
+  DeviceInfo,
+  DeviceKind,
+  SFUAdapter,
+  SFUAdapterEventMap,
+  SdkConnectionState,
+} from './types';
 
 /** Stops retrying immediately — used when the developer sets `autoReconnect: false`. */
 const noRetryPolicy: ReconnectPolicy = { nextRetryDelayInMs: () => null };
@@ -32,6 +39,12 @@ function trackKindFromSource(source: LKTrack.Source): TrackKind {
     default:
       return 'unknown';
   }
+}
+
+const CONNECTION_QUALITIES = ['excellent', 'good', 'poor', 'lost', 'unknown'] as const;
+
+function isConnectionQuality(value: string): value is ConnectionQuality {
+  return (CONNECTION_QUALITIES as readonly string[]).includes(value);
 }
 
 function mapConnectionState(state: LKConnectionState): SdkConnectionState {
@@ -99,6 +112,17 @@ export class LiveKitAdapter extends TypedEventEmitter<SFUAdapterEventMap> implem
 
   get connectionState(): SdkConnectionState {
     return this._connectionState;
+  }
+
+  getConnectionQuality(): ConnectionQuality {
+    // livekit-client's own enum values are already exactly this string
+    // union at runtime ('excellent' | 'good' | 'poor' | 'lost' | 'unknown'),
+    // so this is a validated cast rather than a translation table — and
+    // validated on purpose: if a future livekit-client version ever
+    // changes that vocabulary, this reports 'unknown' instead of silently
+    // handing callers a value Raven's own public API never promised.
+    const quality = this.lkRoom.localParticipant.connectionQuality as string;
+    return isConnectionQuality(quality) ? quality : 'unknown';
   }
 
   private setConnectionState(state: SdkConnectionState): void {

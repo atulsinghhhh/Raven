@@ -124,6 +124,105 @@ describe('ConnectionsService', () => {
     });
   });
 
+  describe('recordEvent — stats', () => {
+    function statsEvent(data: Record<string, unknown>) {
+      return service.recordEvent(ctx, { connectionId: 'conn_abc', type: 'stats', data });
+    }
+
+    beforeEach(() => {
+      prisma.connection.findUnique.mockResolvedValue({ id: 'row-1', reconnectCount: 0 });
+      prisma.connection.update.mockResolvedValue({ id: 'row-1' });
+    });
+
+    it('stores the connection quality reported alongside the tracks', async () => {
+      await statsEvent({ connectionQuality: 'poor', local: [], remote: [] });
+
+      expect(prisma.connection.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ connectionQuality: 'poor' }) }),
+      );
+    });
+
+    it('takes RTT from a send-direction track — the only direction WebRTC ever reports it for', async () => {
+      await statsEvent({
+        local: [{ direction: 'send', roundTripTimeMs: 84.4 }],
+        remote: [{ direction: 'receive', roundTripTimeMs: 999 }],
+      });
+
+      const { data } = prisma.connection.update.mock.calls[0][0];
+      expect(data.rttMs).toBe(84); // rounded, and from local — not the bogus remote value
+    });
+
+    it('takes the worst jitter across every track, not the first or the average', async () => {
+      await statsEvent({
+        local: [{ jitterMs: 5 }],
+        remote: [{ jitterMs: 40 }, { jitterMs: 12 }],
+      });
+
+      const { data } = prisma.connection.update.mock.calls[0][0];
+      // A support engineer skimming a connection list needs "how bad does
+      // this get", not a figure a struggling track can hide inside an average.
+      expect(data.jitterMs).toBe(40);
+    });
+
+    it('takes the worst packet loss across every track', async () => {
+      await statsEvent({ local: [{ packetLossPercent: 1.2 }], remote: [{ packetLossPercent: 8.7 }] });
+
+      const { data } = prisma.connection.update.mock.calls[0][0];
+      expect(data.packetLossPercent).toBe(8.7);
+    });
+
+    it('sums bitrate across every track, both directions', async () => {
+      await statsEvent({
+        local: [{ bitrateBps: 32_000 }],
+        remote: [{ bitrateBps: 800_000 }, { bitrateBps: 50_000 }],
+      });
+
+      const { data } = prisma.connection.update.mock.calls[0][0];
+      expect(data.bitrateBps).toBe(882_000);
+    });
+
+    it('takes codec from a remote track — mimeType is a receive-direction-only WebRTC stat', async () => {
+      await statsEvent({
+        local: [{ codec: 'should-never-appear' }],
+        remote: [{ codec: 'video/VP8' }],
+      });
+
+      const { data } = prisma.connection.update.mock.calls[0][0];
+      expect(data.codec).toBe('video/VP8');
+    });
+
+    it('omits every stats field rather than writing nulls when local/remote are both empty', async () => {
+      await statsEvent({ local: [], remote: [] });
+
+      const { data } = prisma.connection.update.mock.calls[0][0];
+      expect('rttMs' in data).toBe(false);
+      expect('jitterMs' in data).toBe(false);
+      expect('bitrateBps' in data).toBe(false);
+      expect('codec' in data).toBe(false);
+    });
+
+    it('tolerates a malformed payload rather than throwing', async () => {
+      // Telemetry is best-effort and the wire payload is caller-supplied —
+      // a shape that doesn't match must degrade to "nothing extracted",
+      // not crash the ingest endpoint for every other event in flight.
+      await expect(
+        statsEvent({ local: 'not-an-array', remote: null, connectionQuality: 42 }),
+      ).resolves.toBeUndefined();
+
+      const { data } = prisma.connection.update.mock.calls[0][0];
+      expect('connectionQuality' in data).toBe(false);
+    });
+
+    it('never lets a stats event drive the connection lifecycle state', async () => {
+      // 'stats' is metadata-only, same as ice_state_changed above — it
+      // must not appear in the state-transition switch.
+      await statsEvent({ local: [], remote: [] });
+
+      const { data } = prisma.connection.update.mock.calls[0][0];
+      expect('state' in data).toBe(false);
+    });
+  });
+
   describe('getDetail', () => {
     it('throws NotFoundError when the connection belongs to a different project', async () => {
       const findMock = jest.fn().mockResolvedValue({ publicId: 'conn_abc', projectId: 'other-project' });
