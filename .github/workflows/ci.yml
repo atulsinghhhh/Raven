@@ -53,6 +53,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @raven/api run prisma:generate
+      # @raven/react, @raven/react-native and the CLI resolve their sibling
+      # packages through dist/, which a fresh checkout does not have. Without
+      # this the failures look like missing dependencies ("Cannot find module
+      # '@raven/rtc'") rather than what they are: build ordering. Libraries
+      # only — apps/api and the dashboard are built by the Build job.
+      - run: pnpm --filter "./packages/*" run build
       - run: pnpm -r --if-present run typecheck
 
   unit-test:
@@ -67,6 +73,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @raven/api run prisma:generate
+      # @raven/react, @raven/react-native and the CLI resolve their sibling
+      # packages through dist/, which a fresh checkout does not have. Without
+      # this the failures look like missing dependencies ("Cannot find module
+      # '@raven/rtc'") rather than what they are: build ordering. Libraries
+      # only — apps/api and the dashboard are built by the Build job.
+      - run: pnpm --filter "./packages/*" run build
       - run: pnpm -r --if-present run test
 
   build:

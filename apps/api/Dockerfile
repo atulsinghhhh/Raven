@@ -13,7 +13,14 @@ WORKDIR /app
 # guesses the OpenSSL version and prints a startup warning.
 RUN apk add --no-cache openssl
 
-RUN npm install -g pnpm@11.22.0
+# npm exists in the base image solely to install pnpm, so it is removed
+# immediately afterwards. That drops npm's bundled copy of node-tar, which
+# carries CVE-2026-59873 (a gzip bomb can exhaust disk and CPU; fixed in
+# tar 7.5.19). Nothing in Raven imports it, but an unused vulnerable file
+# in a production image is still a vulnerable file — and the runtime only
+# ever needs pnpm and node.
+RUN npm install -g pnpm@11.22.0 \
+  && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/api/package.json apps/api/package.json
