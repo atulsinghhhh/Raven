@@ -348,7 +348,15 @@ moderation, and no members/roles management in settings.
 
 ## MISSING — platform primitives that do not exist
 
-### M1. Environments (§6, §29)
+### M1. Environments (§6, §29) — RESOLVED
+
+`Environment` (development/staging/production) now isolates API keys,
+chat tokens, rooms, conversations, webhook endpoints and telemetry.
+Never named by the request — an API key carries one, a chat token
+inherits it as a signed claim. Cross-environment reads return 404, not
+403. See docs/environments.md.
+
+### M1-original (kept for context)
 
 `Project` has no environment concept. There is no
 development/staging/production isolation of keys, configuration,
@@ -358,7 +366,16 @@ the event envelope (§12), the dashboard (§21), and the CLI (§20).
 Everything downstream depends on it, which makes it the first thing to
 build after CI.
 
-### M2. Roles, members, and RBAC (§27)
+### M2. Roles, members, and RBAC (§27) — RESOLVED
+
+`ProjectMember` with five roles (Owner/Admin/Developer/Viewer/Billing),
+expressed as capabilities rather than role comparisons scattered through
+controllers. Twenty-six ownership checks across seven controllers became
+capability checks. §24's "apply project permissions before showing chat
+data" is now implementable — chat routes require `chat:read`, which
+Billing does not hold. See docs/roles.md.
+
+### M2-original (kept for context)
 
 `Project` has a single `ownerId`. There is no `ProjectMember`, no role
 enum (`Owner`, `Admin`, `Developer`, `Viewer`, `Billing`), and no
@@ -366,19 +383,42 @@ authorization beyond "are you the owner". §24 requires project
 permissions to gate access to message content in the dashboard — not
 currently possible.
 
-### M3. Audit logs (§30)
+### M3. Audit logs (§30) — RESOLVED
+
+Eleven administrative actions recorded append-only: actor, action,
+resource, timestamp, request id, IP, user agent. No update or delete
+exists anywhere in the path. See docs/audit-logs.md.
+
+### M3-original (kept for context)
 
 No model, no service, no endpoint, no UI. Key creation, revocation and
 rotation, member and role changes, webhook changes, and settings changes
 are all unrecorded.
 
-### M4. Request IDs (§13, §14)
+### M4. Request IDs (§13, §14) — RESOLVED
+
+Every response carries `x-request-id`; error bodies repeat it as
+`requestId`. A well-formed inbound header is adopted so a developer can
+trace one call across their logs and ours; anything else — newlines,
+control characters, oversized values — is discarded rather than
+sanitised, since a half-cleaned identifier lands in log lines.
+
+### M4-original (kept for context)
 
 No request-ID middleware exists, and no `request_id` appears in any
 error response. The canonical error shape in §14 requires it, and every
 support workflow depends on it.
 
-### M5. Canonical `RAVEN_*` error namespace (§14)
+### M5. Canonical `RAVEN_*` error namespace (§14) — RESOLVED
+
+Implemented in `shared/errors/error-codes.ts`. Every error body now
+carries `code` (canonical, `RAVEN_`-prefixed) and `legacyCode` (what it
+used to emit) for one deprecation window. Six SDKs migrated: the two
+server SDKs use the same namespace for their own local failures, and both
+status-derived fallbacks now return the same names the API would. See
+docs/error-codes.md.
+
+### M5-original (kept for context)
 
 Current codes are bare: `NOT_FOUND`, `FORBIDDEN`, `CONFLICT`,
 `UNAUTHORIZED`, `VALIDATION_FAILED`, `RATE_LIMITED`.
@@ -528,3 +568,29 @@ account change. Both are reversible and both are your call:
    root cause. The security-meaningful part is unaffected: the build
    still fails on a CRITICAL, fixable vulnerability. Only the reporting
    destination changed.
+
+
+---
+
+## Step 1 — closed
+
+All four platform primitives are implemented, tested, and merged to
+`main` with CI green on every commit:
+
+| Piece | Commit | apps/api tests | e2e tests |
+|---|---|---:|---:|
+| Error codes + request IDs | `9db247f` | 244 → 297 | 92 → 92 |
+| Environments | `20e22f2` | 297 → 310 | 92 → 98 |
+| Roles + RBAC | `aaa0b12` | 310 → 343 | 98 → 108 |
+| Audit logs | `53dd9ba` | 343 → 356 | 108 → 116 |
+
+Two defects were caught only by running the real app rather than by
+typecheck: `apps/api` had no `typecheck` script at all until Step 0 added
+one (§B4 in this document), and `WebhooksModule` was missing an import
+that only NestJS's runtime dependency graph — exercised by the e2e
+suite — could catch. Both are reminders that a green typecheck is
+necessary, not sufficient; the e2e suite earns its cost.
+
+Ready for Step 2: rate limiting rework (project/user/API-key keying, not
+just IP), RTC connection statistics, and the expanded event catalogue —
+all three now have request IDs, environments and roles to build on.
