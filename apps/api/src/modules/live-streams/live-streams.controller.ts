@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiConflictResponse,
@@ -11,6 +11,8 @@ import {
 } from '@nestjs/swagger';
 import { LiveStreamStatus } from '../../generated/prisma/client';
 import { ProjectScope } from '../../shared/environment/environment.constants';
+import { Idempotent } from '../../shared/idempotency/idempotent.decorator';
+import { IdempotencyInterceptor } from '../../shared/idempotency/idempotency.interceptor';
 import { RateLimit } from '../../shared/rate-limit/rate-limit.decorator';
 import { RateLimitGuard } from '../../shared/rate-limit/rate-limit.guard';
 import { CurrentScope } from '../api-keys/decorators/current-scope.decorator';
@@ -39,7 +41,12 @@ export class LiveStreamsController {
   @Post()
   @UseGuards(RateLimitGuard)
   @RateLimit(30)
-  @ApiOperation({ summary: 'Create a live stream — a dedicated RTC room plus an attached chat conversation' })
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent()
+  @ApiOperation({
+    summary: 'Create a live stream — a dedicated RTC room plus an attached chat conversation',
+    description: 'Safe to retry: send the same Idempotency-Key header on a retry to replay the original response instead of creating a duplicate stream.',
+  })
   @ApiResponse({ status: 201, description: 'Stream created, status CREATED' })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
   create(@CurrentScope() scope: ProjectScope, @Body() dto: CreateLiveStreamDto) {

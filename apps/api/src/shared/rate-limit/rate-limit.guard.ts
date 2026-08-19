@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { TooManyRequestsError } from '../errors/app-error';
+import { actorFor } from '../http/request-actor.util';
 import { RedisService } from '../redis/redis.service';
 import { RATE_LIMIT_KEY } from './rate-limit.decorator';
 
@@ -49,7 +50,7 @@ export class RateLimitGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const windowSeconds = this.configService.get<number>('rateLimit.windowSeconds')!;
     const routeKey = `${context.getClass().name}.${context.getHandler().name}`;
-    const redisKey = `ratelimit:${routeKey}:${subjectFor(request)}`;
+    const redisKey = `ratelimit:${routeKey}:${actorFor(request)}`;
 
     const count = await this.redisService.client.incr(redisKey);
     if (count === 1) {
@@ -63,24 +64,4 @@ export class RateLimitGuard implements CanActivate {
 
     return true;
   }
-}
-
-/**
- * `apiKeyPublicId` is set here rather than reusing `apiProjectId` because
- * two different production keys for the same project must not share a
- * budget — a compromised or noisy key should not be able to spend the
- * project's other keys' headroom, and each key was issued to be revocable
- * independently for exactly this kind of isolation.
- */
-function subjectFor(request: Request): string {
-  if (request.apiKeyPublicId) {
-    return `apikey:${request.apiKeyPublicId}`;
-  }
-
-  const user = request.user as { id?: string } | undefined;
-  if (user?.id) {
-    return `user:${user.id}`;
-  }
-
-  return `ip:${request.ip ?? 'unknown'}`;
 }

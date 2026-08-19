@@ -3,7 +3,7 @@ import { IsIn, IsISO8601, IsObject, IsOptional, IsString, Matches, MaxLength } f
 import { CONNECTION_EVENT_TYPES } from '../observability.constants';
 
 /**
- * The one shape every `@raven/rtc` telemetry event takes — a flat
+ * The one shape every `@corvidhq/rtc` telemetry event takes — a flat
  * `type` plus a small free-form `data` bag, rather than one DTO per
  * event kind. `data` is intentionally loose (Phase 9 spec §4/§10): the
  * SDK attaches whatever developer-safe metadata is relevant to that

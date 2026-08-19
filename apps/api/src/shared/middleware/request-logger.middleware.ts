@@ -29,15 +29,13 @@ export class RequestLoggerMiddleware implements NestMiddleware {
 
     res.on('finish', () => {
       const durationMs = Date.now() - start;
-      this.logger.log(
-        JSON.stringify({
-          requestId,
-          method: req.method,
-          path: req.originalUrl,
-          status: res.statusCode,
-          durationMs,
-        }),
-      );
+      this.logger.log({
+        requestId,
+        method: req.method,
+        path: req.originalUrl,
+        status: res.statusCode,
+        durationMs,
+      });
     });
 
     next();

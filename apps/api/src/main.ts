@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { NativeLogger } from 'nestjs-pino';
 import 'reflect-metadata';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './shared/errors/all-exceptions.filter';
@@ -10,8 +11,27 @@ import { SIGNALING_PATH } from './modules/signaling/signaling.constants';
 import { CHAT_PATH } from './modules/chat/chat.constants';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  // bufferLogs holds any log calls made before app.useLogger() runs below
+  // (module construction, etc.) instead of dropping them or letting them
+  // fall through to the default ConsoleLogger.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(NativeLogger));
   const configService = app.get(ConfigService);
+
+  // Without this, Nest never calls onModuleDestroy on SIGTERM — the
+  // hooks that already exist to drain connections gracefully
+  // (ChatGateway/SignalingGateway close every socket with a distinct
+  // code instead of an unannounced drop; WebhookDeliveryWorker stops its
+  // poll timer; PrismaService/RedisService disconnect cleanly) would
+  // otherwise sit unused until Kubernetes's SIGKILL just cuts the
+  // process, which is exactly the "hard kill mid-deploy drops every
+  // socket on that pod simultaneously" problem a rolling update needs
+  // to avoid. Pairing this with a k8s preStop delay (see
+  // infrastructure/k8s) gives clients a window to notice the pod
+  // leaving the Service's endpoints and start reconnecting elsewhere
+  // before this actually runs.
+  app.enableShutdownHooks();
+
 
   // Signaling shares this same HTTP server/port as a raw WebSocket gateway.
   // Not using the platform-socket.io adapter here on purpose — it wraps
@@ -60,7 +80,7 @@ async function bootstrap(): Promise<void> {
           type: 'http',
           scheme: 'bearer',
           description:
-            'The same RTC (LiveKit) token minted for this connection — used only by @raven/rtc to authenticate its own best-effort telemetry, never a separate credential.',
+            'The same RTC (LiveKit) token minted for this connection — used only by @corvidhq/rtc to authenticate its own best-effort telemetry, never a separate credential.',
         },
         'rtcToken',
       )

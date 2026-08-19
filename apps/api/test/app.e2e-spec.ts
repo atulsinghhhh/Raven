@@ -65,6 +65,22 @@ describe('Control plane (e2e)', () => {
     expect(ready.body).toEqual(alias.body);
   });
 
+  it('GET /metrics exposes Prometheus text with route-templated labels, not raw request paths', async () => {
+    // Hit a parameterized route first so its /metrics label is proven to
+    // be the route pattern, not this specific 404 id.
+    await request(app.getHttpServer()).get('/v1/rooms/route-label-check').expect((res) => {
+      expect([401, 404]).toContain(res.status);
+    });
+
+    const res = await request(app.getHttpServer()).get('/metrics').expect(200);
+    expect(res.headers['content-type']).toContain('text/plain');
+    expect(res.text).toContain('raven_http_requests_total');
+    expect(res.text).toContain('raven_chat_connections_active');
+    expect(res.text).toContain('raven_signaling_rooms_active');
+    expect(res.text).toContain('raven_webhook_deliveries_pending');
+    expect(res.text).not.toContain('route-label-check');
+  });
+
   describe('the full golden path', () => {
     const email = `e2e-${uniqueSuffix}@raven.local`;
     const password = 'correct-horse-battery-staple';
@@ -149,6 +165,51 @@ describe('Control plane (e2e)', () => {
 
       roomId = res.body.id;
       expect(res.body.projectId).toBe(projectId);
+    });
+
+    it('replays the original room instead of creating a duplicate when the same Idempotency-Key is retried', async () => {
+      const idempotencyKey = `idem-${uniqueSuffix}`;
+
+      const first = await request(app.getHttpServer())
+        .post('/v1/rooms')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .set('Idempotency-Key', idempotencyKey)
+        .send({ name: `e2e-idempotent-room-${uniqueSuffix}` })
+        .expect(201);
+
+      const second = await request(app.getHttpServer())
+        .post('/v1/rooms')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .set('Idempotency-Key', idempotencyKey)
+        .send({ name: `e2e-idempotent-room-${uniqueSuffix}` })
+        .expect(201);
+
+      expect(second.body).toEqual(first.body);
+
+      const list = await request(app.getHttpServer())
+        .get('/v1/rooms')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .expect(200);
+      expect(list.body.filter((r: { id: string }) => r.id === first.body.id)).toHaveLength(1);
+    });
+
+    it('rejects a reused Idempotency-Key sent with a different room name', async () => {
+      const idempotencyKey = `idem-conflict-${uniqueSuffix}`;
+
+      await request(app.getHttpServer())
+        .post('/v1/rooms')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .set('Idempotency-Key', idempotencyKey)
+        .send({ name: `e2e-idempotent-conflict-a-${uniqueSuffix}` })
+        .expect(201);
+
+      const conflict = await request(app.getHttpServer())
+        .post('/v1/rooms')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .set('Idempotency-Key', idempotencyKey)
+        .send({ name: `e2e-idempotent-conflict-b-${uniqueSuffix}` })
+        .expect(409);
+      expect(conflict.body.code).toBe('RAVEN_CONFLICT');
     });
 
     it('refuses room creation with a developer JWT instead of an API key', async () => {
@@ -302,7 +363,7 @@ describe('Control plane (e2e)', () => {
       });
 
       it('records connection-quality stats from a stats event, in the shape Room.getConnectionStats() actually sends', async () => {
-        // Mirrors what @raven/rtc's periodic stats monitor posts — see
+        // Mirrors what @corvidhq/rtc's periodic stats monitor posts — see
         // ConnectionStats in packages/sdk/src/room.ts.
         await request(app.getHttpServer())
           .post('/v1/telemetry/events')

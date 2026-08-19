@@ -23,7 +23,7 @@ export interface IssuedRtcToken {
    * fresh per token and share its lifetime.
    */
   iceServers: IceServer[];
-  // Base URL for @raven/rtc's telemetry — the SDK never hardcodes this,
+  // Base URL for @corvidhq/rtc's telemetry — the SDK never hardcodes this,
   // it just rides along in the same response as endpoint/iceServers.
   telemetryUrl: string;
   expiresAt: Date;

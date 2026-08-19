@@ -32,7 +32,7 @@ type ConnectionPatch = Partial<{
 
 /**
  * Turns one 'stats' telemetry event — `Room.getConnectionStats()` on the
- * wire (see @raven/rtc) — into the subset of `ConnectionPatch` it fills
+ * wire (see @corvidhq/rtc) — into the subset of `ConnectionPatch` it fills
  * in. Every other event type's `data` object simply lacks this shape, so
  * merging this in unconditionally (see the call site) is safe: there is
  * nothing here to extract, and this returns an empty patch.
@@ -105,7 +105,7 @@ function extractStatsPatch(data: Record<string, unknown>): Partial<ConnectionPat
 
 /**
  * Event-sources the `Connection`/`ConnectionEvent`/`ErrorEvent` tables from
- * best-effort telemetry POSTed by `@raven/rtc` (Phase 9). One connection
+ * best-effort telemetry POSTed by `@corvidhq/rtc` (Phase 9). One connection
  * row per `conn_...` ID, upserted as its events arrive — there is no
  * guarantee of delivery or ordering (telemetry is fire-and-forget by
  * design, see docs/telemetry.md#reliability), so every branch here is

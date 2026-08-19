@@ -3,12 +3,28 @@ export default () => ({
   port: parseInt(process.env.API_PORT ?? '4000', 10),
 
   // Host-facing URL of this API, handed to RTC clients as `telemetryUrl`
-  // alongside token/livekitUrl/iceServers — lets @raven/rtc POST telemetry
+  // alongside token/livekitUrl/iceServers — lets @corvidhq/rtc POST telemetry
   // events without hardcoding an address in the SDK.
   publicUrl: process.env.API_PUBLIC_URL ?? `http://localhost:${parseInt(process.env.API_PORT ?? '4000', 10)}`,
 
   database: {
     url: process.env.DATABASE_URL,
+    // pg.Pool sizing (read directly from env in prisma.service.ts, same
+    // as `url` above — see that file's comment on why this one config
+    // key bypasses ConfigService). Documented here anyway, for the same
+    // reason `url` is: one place listing every env-driven knob.
+    //
+    // Every pod's pool competes for the same Postgres max_connections —
+    // this is the real ceiling on horizontal API scaling. N pods × this
+    // value must stay comfortably under Postgres's max_connections minus
+    // headroom for migrations/admin connections; see
+    // docs/production/capacity-report.md for the measured sizing. A
+    // PgBouncer (transaction mode) in front of Postgres is the
+    // recommended production topology once pod count makes N × poolMax
+    // approach that ceiling — see infrastructure/k8s.
+    poolMax: parseInt(process.env.DATABASE_POOL_MAX ?? '10', 10),
+    poolIdleTimeoutMs: parseInt(process.env.DATABASE_POOL_IDLE_TIMEOUT_MS ?? '30000', 10),
+    poolConnectionTimeoutMs: parseInt(process.env.DATABASE_POOL_CONNECTION_TIMEOUT_MS ?? '5000', 10),
   },
 
   redis: {
@@ -157,6 +173,14 @@ export default () => ({
     uploadUrlTtlSeconds: parseInt(process.env.STORAGE_UPLOAD_URL_TTL_SECONDS ?? '900', 10),
     downloadUrlTtlSeconds: parseInt(process.env.STORAGE_DOWNLOAD_URL_TTL_SECONDS ?? '900', 10),
     maxAttachmentBytes: parseInt(process.env.STORAGE_MAX_ATTACHMENT_BYTES ?? String(25 * 1024 * 1024), 10),
+  },
+
+  logging: {
+    // pino level name (trace/debug/info/warn/error/fatal), not a Nest
+    // ConsoleLogger level — see shared/redis/redis.service.ts's comment
+    // style: this is the one knob that varies by deployment; the JSON
+    // shape/fields themselves are fixed (main.ts, nativeLoggerOptions).
+    level: process.env.LOG_LEVEL ?? 'info',
   },
 
   observability: {

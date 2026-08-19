@@ -1,4 +1,4 @@
-import { Body, Controller, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Param, ParseUUIDPipe, Post, UseGuards, UseInterceptors } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiNotFoundResponse,
@@ -12,8 +12,19 @@ import { RateLimitGuard } from '../../shared/rate-limit/rate-limit.guard';
 import { CurrentScope } from '../api-keys/decorators/current-scope.decorator';
 import { ProjectScope } from '../../shared/environment/environment.constants';
 import { ApiKeyAuthGuard } from '../api-keys/guards/api-key-auth.guard';
+import { Idempotent } from '../../shared/idempotency/idempotent.decorator';
+import { IdempotencyInterceptor } from '../../shared/idempotency/idempotency.interceptor';
 import { CreateRtcTokenDto } from './dto/create-rtc-token.dto';
 import { RtcTokensService } from './rtc-tokens.service';
+
+/**
+ * Shorter than IdempotencyInterceptor's default (24h): a replayed
+ * response here hands back an already-minted token, and this endpoint's
+ * own tokens can expire in as little as 10 minutes
+ * (rtcToken.defaultTtlSeconds). Caching a replay past that point would
+ * silently hand a client a dead token instead of minting a fresh one.
+ */
+const RTC_TOKEN_IDEMPOTENCY_TTL_SECONDS = 5 * 60;
 
 // Issues short-lived RTC access tokens for a room. Doesn't establish a
 // WebRTC session itself — the token comes back and the client SDK
@@ -28,10 +39,12 @@ export class RtcTokensController {
   @Post()
   @UseGuards(RateLimitGuard)
   @RateLimit(60)
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent(RTC_TOKEN_IDEMPOTENCY_TTL_SECONDS)
   @ApiOperation({
     summary: 'Mint a short-lived RTC access token for a participant to join this room',
     description:
-      'Every token expires (ttlSeconds, max 6 hours) — there is no way to request a permanent token. Permissions are translated into a LiveKit access token grant; see docs/control-plane.md#rtc-tokens-ravens-permissions--livekits-grant. Rate limited to 60 requests/window/IP.',
+      'Every token expires (ttlSeconds, max 6 hours) — there is no way to request a permanent token. Permissions are translated into a LiveKit access token grant; see docs/control-plane.md#rtc-tokens-ravens-permissions--livekits-grant. Rate limited to 60 requests/window/IP. Safe to retry with the same Idempotency-Key header within 5 minutes to replay the original token instead of minting a new one.',
   })
   @ApiResponse({
     status: 201,

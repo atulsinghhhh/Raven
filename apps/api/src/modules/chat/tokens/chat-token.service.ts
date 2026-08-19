@@ -45,7 +45,7 @@ export interface IssuedChatToken {
   scopes: ChatScope[];
   conversations: string[];
   expiresAt: Date;
-  /** Where the browser should point `@raven/chat` — the SDK never hardcodes a host. */
+  /** Where the browser should point `@corvidhq/chat` — the SDK never hardcodes a host. */
   chatUrl: string;
   /** REST base for history/attachment calls made with this same token. */
   apiUrl: string;

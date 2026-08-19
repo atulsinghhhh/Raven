@@ -9,11 +9,14 @@ import {
   ParseUUIDPipe,
   Post,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiConflictResponse, ApiNotFoundResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentScope } from '../api-keys/decorators/current-scope.decorator';
 import { ProjectScope } from '../../shared/environment/environment.constants';
 import { ApiKeyAuthGuard } from '../api-keys/guards/api-key-auth.guard';
+import { Idempotent } from '../../shared/idempotency/idempotent.decorator';
+import { IdempotencyInterceptor } from '../../shared/idempotency/idempotency.interceptor';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { RoomsService } from './rooms.service';
 
@@ -28,7 +31,12 @@ export class RoomsController {
   constructor(private readonly roomsService: RoomsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a room in the API key\'s project' })
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent()
+  @ApiOperation({
+    summary: 'Create a room in the API key\'s project',
+    description: 'Safe to retry: send the same Idempotency-Key header on a retry to replay the original response instead of creating a duplicate.',
+  })
   @ApiResponse({ status: 201, description: 'Room created' })
   @ApiConflictResponse({ description: 'A room with this name already exists in this project' })
   create(@CurrentScope() scope: ProjectScope, @Body() dto: CreateRoomDto) {
