@@ -21,7 +21,7 @@ flutter run --dart-define=RAVEN_BACKEND_URL=http://<your-lan-ip>:8791
 ```
 
 **On a real device, `localhost` means the phone.** Pass your machine's
-LAN IP via `--dart-define`, and make sure the returned `livekitUrl` is
+LAN IP via `--dart-define`, and make sure the returned `endpoint` is
 reachable from the device too.
 
 Android needs `minSdkVersion 23`; iOS needs deployment target 13.0+ and

@@ -43,7 +43,7 @@
   <fieldset>
     <legend>RTC token response</legend>
     <label>Paste the full JSON body returned by POST /v1/rooms/:roomId/rtc-tokens</label>
-    <textarea id="tokenJson" placeholder='{"token":"...","livekitUrl":"ws://localhost:7880","roomName":"...","participantIdentity":"...","iceServers":[...]}'></textarea>
+    <textarea id="tokenJson" placeholder='{"token":"...","endpoint":"ws://localhost:7880","roomName":"...","participantIdentity":"...","iceServers":[...]}'></textarea>
     <label style="display:flex; align-items:center; gap:0.4rem; font-weight:normal;">
       <input type="checkbox" id="forceTurnCheckbox" style="width:auto;" />
       Force TURN relay only (iceTransportPolicy: "relay" — direct/STUN candidates are ignored)
@@ -234,7 +234,7 @@
 
     try {
       setStatus('connecting');
-      await room.connect(parsed.livekitUrl, parsed.token, { rtcConfig });
+      await room.connect(parsed.endpoint, parsed.token, { rtcConfig });
       log(`connected to room "${parsed.roomName}" as "${parsed.participantIdentity}"`);
       roomLabelEl.textContent = parsed.roomName ?? room.name;
       userLabelEl.textContent = parsed.participantIdentity ?? room.localParticipant.identity;

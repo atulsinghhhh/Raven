@@ -44,7 +44,7 @@ describe('Control plane (e2e)', () => {
   it('GET /health reports ok with every dependency up', async () => {
     const res = await request(app.getHttpServer()).get('/health').expect(200);
     expect(res.body.status).toBe('ok');
-    expect(res.body.dependencies).toEqual({ database: 'up', redis: 'up', livekit: 'up', turn: 'up' });
+    expect(res.body.dependencies).toEqual({ database: 'up', redis: 'up', sfu: 'up', turn: 'up' });
     expect(res.body.signaling).toEqual({
       activeConnections: expect.any(Number),
       activeRooms: expect.any(Number),

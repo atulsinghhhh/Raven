@@ -32,6 +32,12 @@ npm install @raven/react-native @raven/rtc @raven/chat \
 cd ios && pod install   # iOS only
 ```
 
+The two `@livekit/*` packages are required native modules, not a
+separate SDK to integrate with — React Native's autolinking needs them
+installed directly in your app for the native WebRTC implementation to
+build for iOS/Android. You never import or call them; everything you
+write is `@raven/react-native`'s API.
+
 **Permissions** — the SDK can't add these for you.
 
 `ios/YourApp/Info.plist`:

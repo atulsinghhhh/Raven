@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Raven — Open-source real-time infrastructure',
+  title: 'Raven — Real-time infrastructure for developers',
   description:
-    'Audio, video, and chat infrastructure you can self-host. Token-based auth, real diagnostics, and SDKs for web, mobile, and server.',
+    'Audio, video, and chat infrastructure, managed for you. Token-based auth, real diagnostics, and SDKs for web, mobile, and server.',
 };
 
 /**

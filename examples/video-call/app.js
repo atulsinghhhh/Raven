@@ -51,7 +51,7 @@ joinButton.addEventListener('click', async () => {
   // `telemetry: false`, to disable telemetry entirely.
   client = createRTCClient({
     token: parsed.token,
-    endpoint: parsed.livekitUrl,
+    endpoint: parsed.endpoint,
     iceServers: parsed.iceServers,
     telemetryUrl: parsed.telemetryUrl,
     logLevel: 'warn',

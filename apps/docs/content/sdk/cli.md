@@ -4,7 +4,7 @@ description: Install, authenticate (browser or headless CI), manage projects and
 ---
 
 `@raven/cli` is a terminal workflow tool over the same control plane
-every SDK uses — no direct database, Redis, LiveKit, or coturn access.
+every SDK uses — no direct database, Redis, media server, or TURN access.
 
 ## Install
 

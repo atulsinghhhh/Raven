@@ -46,7 +46,7 @@ import { createRaven } from '@raven/client';
 // Never mint a token in the browser.
 const raven = createRaven({
   token: rtc.token,           // POST /v1/rtc/tokens
-  endpoint: rtc.livekitUrl,
+  endpoint: rtc.endpoint,
   iceServers: rtc.iceServers,
   chatToken: chat.token,      // POST /v1/chat/tokens
   chatApiUrl: chat.apiUrl,
@@ -117,9 +117,8 @@ if (!isBrowserSupported()) {
 ```
 
 In practice, this means any current release of Chrome, Firefox, Safari,
-or Edge — the same set LiveKit's browser client supports underneath.
-Internet Explorer and very old mobile WebViews aren't supported (no
-`RTCPeerConnection`).
+or Edge. Internet Explorer and very old mobile WebViews aren't
+supported (no `RTCPeerConnection`).
 
 ## Next.js
 
@@ -156,6 +155,6 @@ Measured from a real build:
 | `dist/index.js` (ESM) | 25.0 KB | 5.9 KB |
 | `dist/index.cjs` (CJS) | 25.6 KB | 5.9 KB |
 
-`livekit-client` (the underlying SFU client) is a peer dependency, not
-bundled into these numbers — it resolves separately, around 274 KB
-gzipped on its own.
+The underlying WebRTC client isn't bundled into these numbers — it's a
+regular dependency that `npm install` pulls in automatically (nothing
+extra for you to add), around 274 KB gzipped on its own.

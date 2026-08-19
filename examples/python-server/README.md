@@ -28,7 +28,7 @@ curl -X POST http://localhost:8787/api/rtc/token \
 ```
 
 Returns the same shape `POST /v1/rooms/:roomId/rtc-tokens` does —
-`{token, livekitUrl, iceServers, telemetryUrl, expiresAt, ...}` — pass
+`{token, endpoint, iceServers, telemetryUrl, expiresAt, ...}` — pass
 that straight into `createRTCClient()` from `@raven/rtc` on the frontend
 (see `examples/video-call`).
 

@@ -3,7 +3,7 @@ title: Reconnection & Network Quality
 description: What happens when the network drops, and how much control you have over it.
 ---
 
-The SDK surfaces LiveKit's own reconnect policy — exponential backoff
+The SDK surfaces Raven's own reconnect policy — exponential backoff
 with a capped retry delay, then a clean `failed` state — rather than
 reimplementing reconnect logic on top of it.
 

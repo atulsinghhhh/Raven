@@ -14,8 +14,8 @@ the other at runtime.
         │                             │
      RTC plane                    Chat plane
         │                             │
-   LiveKit (SFU)              Postgres + Redis
-   coturn (TURN/STUN)         WebSocket gateway
+   Managed SFU                 Postgres + Redis
+   TURN/STUN relay             WebSocket gateway
 ```
 
 **The control plane** (`apps/api`) is a NestJS service backed by
@@ -24,13 +24,14 @@ short-lived tokens, roles, webhooks, and the audit log. Every other
 piece — the RTC plane, the chat plane, every SDK — is a client of this
 one control plane, not a second source of truth.
 
-**The RTC plane** uses [LiveKit](https://livekit.io) as the SFU and
-[coturn](https://github.com/coturn/coturn) for TURN/STUN. Raven doesn't
-reimplement WebRTC media routing — that's a solved, hard problem, and
-duplicating it would only make Raven worse at the part it doesn't need
-to own. What Raven owns here is the token that authorizes a client to
-join, and everything upstream of the SFU (project scoping, room
-identity, environment isolation).
+**The RTC plane** runs on a managed SFU for media routing and a TURN
+relay for NAT traversal. Raven doesn't reimplement WebRTC media
+routing — that's a solved, hard problem, and duplicating it would only
+make Raven worse at the part it doesn't need to own. What Raven owns
+here is the token that authorizes a client to join, and everything
+upstream of the SFU (project scoping, room identity, environment
+isolation) — and that boundary is what lets the media layer underneath
+change without changing what your app talks to.
 
 **The chat plane** is entirely separate infrastructure: its own
 WebSocket gateway at `/v1/chat/ws`, PostgreSQL as the durable source of
@@ -60,23 +61,6 @@ Your API key never leaves your backend. See
 [Authentication](/getting-started/authentication) for the full model,
 and [Environments](/production/environments) for how development,
 staging, and production stay isolated from each other.
-
-## Repository layout
-
-```
-apps/api          Control plane — NestJS, Prisma/PostgreSQL, Redis
-apps/dashboard    Developer console (Next.js)
-apps/www          This site's neighbor — the marketing site
-apps/docs         What you're reading now
-packages/sdk      @raven/rtc — browser RTC SDK
-packages/chat-sdk @raven/chat — browser chat SDK
-packages/react-sdk        @raven/react — hooks/components over both
-packages/react-native-sdk @raven/react-native
-packages/server-sdk       @raven/server — server-side TypeScript
-packages/cli      @raven/cli — the `raven` command
-sdks/python       raven-sdk — server-side Python
-sdks/flutter      raven_rtc, raven_chat
-```
 
 ## Why this split
 

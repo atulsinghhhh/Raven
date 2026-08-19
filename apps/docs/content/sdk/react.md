@@ -30,9 +30,9 @@ import {
   useRemoteParticipants, useCamera, ParticipantView,
 } from '@raven/react';
 
-function CallPage({ token, livekitUrl, roomName }) {
+function CallPage({ token, endpoint, roomName }) {
   return (
-    <RavenRoom token={token} endpoint={livekitUrl} room={roomName} fallback={<p>Connecting…</p>}>
+    <RavenRoom token={token} endpoint={endpoint} room={roomName} fallback={<p>Connecting…</p>}>
       <Call />
     </RavenRoom>
   );
@@ -65,7 +65,7 @@ The provider every hook needs, and the RTC lifecycle owner — one
 ```tsx
 <RavenRoom
   token={token}
-  endpoint={livekitUrl}
+  endpoint={endpoint}
   room={roomName}
   iceServers={iceServers}       // optional, from the same token-mint response
   telemetryUrl={telemetryUrl}   // optional, enables telemetry

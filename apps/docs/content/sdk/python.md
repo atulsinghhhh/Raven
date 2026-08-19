@@ -60,7 +60,7 @@ token = raven.tokens.create(
         expires_in=3600,
     )
 )
-# {"token": ..., "livekitUrl": ..., "iceServers": [...], "expiresAt": ...}
+# {"token": ..., "endpoint": ..., "iceServers": [...], "expiresAt": ...}
 ```
 
 ## Chat

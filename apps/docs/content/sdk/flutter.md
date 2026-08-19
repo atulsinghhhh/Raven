@@ -173,7 +173,10 @@ attempts rather than looping forever. A rejected token is never retried
 
 ## Production
 
-- **Screen share on iOS** needs the Broadcast Upload Extension target —
-  see [LiveKit's iOS screen-share guide](https://docs.livekit.io/home/client/tracks/screenshare/).
+- **Screen share on iOS** needs a Broadcast Upload Extension target in
+  Xcode — a platform requirement, not something a package can add for
+  you. A written walkthrough isn't published yet; ask on
+  [Discord](https://discord.com/invite/HSWd9qMC7) if you get stuck
+  wiring it up.
 - **`minSdkVersion 23`** and **iOS 13+** are hard floors, not
   suggestions — WebRTC won't build below them.

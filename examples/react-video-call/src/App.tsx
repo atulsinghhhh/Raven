@@ -21,7 +21,7 @@ import './index.css';
 // anywhere in this file (Phase 11 spec §27).
 interface ParsedToken {
   token: string;
-  livekitUrl: string;
+  endpoint: string;
   roomName: string;
   iceServers?: RTCIceServer[];
   telemetryUrl?: string;
@@ -37,7 +37,7 @@ export function App() {
   return (
     <RavenRoom
       token={parsed.token}
-      endpoint={parsed.livekitUrl}
+      endpoint={parsed.endpoint}
       room={parsed.roomName}
       iceServers={parsed.iceServers}
       telemetryUrl={parsed.telemetryUrl}
@@ -59,8 +59,8 @@ function JoinForm({ onParsed }: { onParsed: (token: ParsedToken) => void }) {
   function handleJoin() {
     try {
       const json = JSON.parse(raw) as Partial<ParsedToken>;
-      if (!json.token || !json.livekitUrl || !json.roomName) {
-        throw new Error('Expected a JSON body with token, livekitUrl, and roomName fields');
+      if (!json.token || !json.endpoint || !json.roomName) {
+        throw new Error('Expected a JSON body with token, endpoint, and roomName fields');
       }
       setError(null);
       onParsed(json as ParsedToken);

@@ -20,7 +20,7 @@ const token = await raven.tokens.create({
   permissions: { join: true, subscribe: true, publish: true, publishAudio: true, publishVideo: true },
   expiresIn: 3600, // seconds, capped at 6 hours
 });
-// { token, livekitUrl, iceServers, expiresAt, ... }
+// { token, endpoint, iceServers, expiresAt, ... }
 ```
 
 Raven's own permission vocabulary — `join`, `subscribe`, `publish`,

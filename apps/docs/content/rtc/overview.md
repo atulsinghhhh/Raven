@@ -3,8 +3,8 @@ title: RTC Overview
 description: Rooms, participants, and tracks — the shape of a Raven call.
 ---
 
-Raven's RTC plane is built on [LiveKit](https://livekit.io). You never
-touch SDP, ICE candidates, or `RTCPeerConnection` directly — the SDK's
+Raven's RTC plane runs on a managed SFU. You never touch SDP, ICE
+candidates, or `RTCPeerConnection` directly — the SDK's
 job is to make those disappear.
 
 ## The shapes
@@ -30,7 +30,7 @@ import { createRTCClient } from '@raven/rtc';
 
 const client = createRTCClient({
   token: resp.token,
-  endpoint: resp.livekitUrl,
+  endpoint: resp.endpoint,
   iceServers: resp.iceServers,
 });
 

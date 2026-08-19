@@ -110,7 +110,7 @@ The SDKs need a Raven control plane to talk to. To run one locally:
 
 ```bash
 cp .env.example .env
-pnpm infra:up       # Postgres, Redis, LiveKit, coturn, the API
+pnpm infra:up       # Postgres, Redis, the media server, TURN, the API
 pnpm infra:verify   # confirms everything is healthy
 pnpm db:seed        # optional: a demo developer, project, key, and room
 ```

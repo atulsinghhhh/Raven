@@ -22,7 +22,7 @@ product:
 |---|---|---|
 | Carries | audio, video, screen share | messages |
 | SDK | `@raven/rtc` | `@raven/chat` |
-| Transport | WebRTC via LiveKit | WebSocket |
+| Transport | WebRTC | WebSocket |
 | Credential | RTC token | chat token |
 | Storage | none — media is live or gone | PostgreSQL |
 

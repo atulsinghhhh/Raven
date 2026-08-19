@@ -4,7 +4,7 @@ description: Real connection history, real diagnostics — never fabricated, nev
 ---
 
 Every error and connection Raven shows you is a **Raven concept** — never
-a raw LiveKit, coturn, or Postgres error surfaced directly. That
+a raw SFU, TURN, or database error surfaced directly. That
 translation happens in one place server-side (see
 [Error Codes](/reference/errors)), so a developer never has to learn a
 dependency's error vocabulary to understand their own application.

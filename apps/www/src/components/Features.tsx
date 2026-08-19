@@ -3,7 +3,7 @@ import { Reveal } from './Reveal';
 const FEATURES = [
   {
     title: 'Audio & video calling',
-    body: 'Rooms, participants, screen share, and device switching, on top of WebRTC via LiveKit. Reconnects with backoff instead of dropping the call on a network blip.',
+    body: 'Rooms, participants, screen share, and device switching, on managed WebRTC infrastructure. Reconnects with backoff instead of dropping the call on a network blip.',
   },
   {
     title: 'Chat, built in',
@@ -22,8 +22,8 @@ const FEATURES = [
     body: 'TypeScript, React, React Native, Flutter, and Python, all speaking the same wire protocol — plus a server SDK and CLI for everything you’d otherwise script by hand.',
   },
   {
-    title: 'Self-hosted, honestly',
-    body: 'Docker Compose brings up Postgres, Redis, LiveKit, and coturn locally. The same control plane runs in your infrastructure — nothing calls home.',
+    title: 'Token-based security',
+    body: 'Your API key never leaves your backend. Clients only ever hold short-lived, scoped tokens — one room or conversation, one identity, an explicit set of permissions.',
   },
 ];
 

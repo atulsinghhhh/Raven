@@ -81,7 +81,7 @@ class IceServer(TypedDict, total=False):
 class IssuedToken(TypedDict, total=False):
     id: str
     token: str
-    livekitUrl: str
+    endpoint: str
     roomId: str
     roomName: str
     participantIdentity: str

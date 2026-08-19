@@ -46,7 +46,7 @@ app.post('/join-room', async (req, res) => {
     identity: req.user.id,
     permissions: { join: true, publish: true, subscribe: true },
   });
-  res.json(token); // { token, livekitUrl, iceServers, ... }
+  res.json(token); // { token, endpoint, iceServers, ... }
 });
 ```
 
@@ -62,7 +62,7 @@ const resp = await fetch('/join-room', { method: 'POST' }).then((r) => r.json())
 
 const client = createRTCClient({
   token: resp.token,
-  endpoint: resp.livekitUrl,
+  endpoint: resp.endpoint,
   iceServers: resp.iceServers,
 });
 
@@ -81,7 +81,7 @@ instance:
 
 ```bash
 cp .env.example .env
-pnpm infra:up       # Postgres, Redis, LiveKit, coturn, the API
+pnpm infra:up       # Postgres, Redis, the media server, TURN, the API
 pnpm infra:verify   # confirms everything is healthy
 pnpm db:seed        # optional: a demo developer + project + key + room
 ```

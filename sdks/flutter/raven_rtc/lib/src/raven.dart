@@ -32,7 +32,7 @@ class Raven {
   /// The RTC token your backend minted. Never mint this in the app.
   final String token;
 
-  /// The `livekitUrl` from the same mint response.
+  /// The `endpoint` field from the same mint response.
   final String endpoint;
 
   /// The `iceServers` array from the same response — forward it as-is.

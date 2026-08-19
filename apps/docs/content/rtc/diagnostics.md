@@ -20,10 +20,11 @@ Safe to call anywhere, any time — attach it to a bug report as-is. It
 never contains a token or a secret.
 
 `iceConnectionState`/`signalingState` are honestly `undefined` today:
-LiveKit's browser SDK doesn't expose either publicly, and Raven doesn't
-reach into its unsupported internals to fake them — that surface could
-change on any minor version bump. If a future LiveKit release exposes
-them, this will start reporting real values without a breaking change.
+the underlying media client doesn't expose either publicly, and Raven
+doesn't reach into its unsupported internals to fake them — that
+surface could change on any minor version bump. If a future release
+exposes them, this will start reporting real values without a breaking
+change.
 
 ## `getConnectionStats()` — real media-quality numbers
 

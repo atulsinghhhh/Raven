@@ -37,7 +37,7 @@ class Session {
   const Session({
     required this.identity,
     required this.rtcToken,
-    required this.livekitUrl,
+    required this.endpoint,
     required this.roomName,
     required this.chatToken,
     required this.chatApiUrl,
@@ -52,7 +52,7 @@ class Session {
     return Session(
       identity: identity,
       rtcToken: rtc['token'] as String,
-      livekitUrl: rtc['livekitUrl'] as String,
+      endpoint: rtc['endpoint'] as String,
       roomName: rtc['roomName'] as String,
       chatToken: chat['token'] as String,
       chatApiUrl: chat['apiUrl'] as String,
@@ -66,7 +66,7 @@ class Session {
 
   final String identity;
   final String rtcToken;
-  final String livekitUrl;
+  final String endpoint;
   final String roomName;
   final String chatToken;
   final String chatApiUrl;
@@ -217,7 +217,7 @@ class _CallScreenState extends State<CallScreen> {
 
       final raven = Raven(
         token: session.rtcToken,
-        endpoint: session.livekitUrl,
+        endpoint: session.endpoint,
         iceServers: session.iceServers,
       );
       final room = await raven.join(session.roomName);

@@ -39,7 +39,7 @@ const BACKEND_URL = 'http://localhost:8790';
 interface Session {
   identity: string;
   room: string;
-  rtc: { token: string; livekitUrl: string; roomName: string; iceServers?: RTCIceServer[]; telemetryUrl?: string };
+  rtc: { token: string; endpoint: string; roomName: string; iceServers?: RTCIceServer[]; telemetryUrl?: string };
   chat: { token: string; apiUrl: string; roomId: string };
 }
 
@@ -112,7 +112,7 @@ function CallScreen({ session, onLeave }: { session: Session; onLeave: () => voi
     // registers the WebRTC globals; nothing else has to.
     const instance = new Raven({
       token: session.rtc.token,
-      endpoint: session.rtc.livekitUrl,
+      endpoint: session.rtc.endpoint,
       iceServers: session.rtc.iceServers,
       telemetryUrl: session.rtc.telemetryUrl,
       chatToken: session.chat.token,

@@ -23,7 +23,7 @@ npm run ios      # or: npm run android
 
 **On a real device, `localhost` means the phone.** Point `BACKEND_URL` in
 `src/App.tsx` at your machine's LAN IP, and make sure `RAVEN_API_URL`
-and the returned `livekitUrl` are reachable from the device too — the
+and the returned `endpoint` are reachable from the device too — the
 defaults point at `localhost` and will fail on hardware.
 
 ## What it demonstrates

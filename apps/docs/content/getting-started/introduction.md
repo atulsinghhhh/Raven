@@ -3,8 +3,8 @@ title: Introduction
 description: What Raven is, what it isn't, and where to go next.
 ---
 
-Raven is open-source, developer-first real-time infrastructure. It gives
-your product audio and video calling, and real-time chat, without you
+Raven is developer-first real-time infrastructure. It gives your
+product audio and video calling, and real-time chat, without you
 operating WebRTC signaling, media servers, or a message broker yourself.
 
 Concretely, Raven owns:
@@ -13,8 +13,8 @@ Concretely, Raven owns:
   other piece is scoped by.
 - **Short-lived tokens** — what your backend hands a client so it can
   join a call or a conversation, without ever exposing your API key.
-- **Rooms and calls** — audio/video sessions, built on
-  [LiveKit](https://livekit.io) as the underlying SFU.
+- **Rooms and calls** — audio/video sessions, run on Raven's managed
+  RTC infrastructure.
 - **Chat** — conversations, messages, presence, typing, receipts,
   reactions, and threads, as a first-class service, not a bolt-on.
 - **Webhooks and events** — so your backend can react to what happens
@@ -44,9 +44,9 @@ for how the pieces fit together.
 - Running this yourself? [Production → Security](/production/security)
   and [Production → Environments](/production/environments).
 
-## Self-hosting
+## Local development
 
-Raven is designed to run on your own infrastructure. `docker compose up`
-brings up Postgres, Redis, LiveKit, and coturn locally — the same control
-plane that runs in production. There's no license server and nothing
-calls home.
+`docker compose up` brings up everything Raven's control plane needs —
+datastores, the RTC media server, and TURN — for working against a local
+copy while you build. See
+[Installing from source](/getting-started/installing-from-source).

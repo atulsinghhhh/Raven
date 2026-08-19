@@ -107,7 +107,7 @@ app.post('/api/token', async (req, res) => {
     expiresIn: 3600,
   });
 
-  // Forward the whole response — token, livekitUrl, and iceServers are
+  // Forward the whole response — token, endpoint, and iceServers are
   // all needed by the browser, and iceServers especially must never be
   // hand-constructed.
   res.json(token);
@@ -185,7 +185,7 @@ document.getElementById('join').onclick = async () => {
   // 2. Build a client from exactly what the server returned.
   client = createRTCClient({
     token: auth.token,
-    endpoint: auth.livekitUrl,
+    endpoint: auth.endpoint,
     iceServers: auth.iceServers,
   });
 

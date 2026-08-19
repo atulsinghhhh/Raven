@@ -29,7 +29,7 @@ import './index.css';
  */
 interface Session {
   identity: string;
-  rtc: { token: string; livekitUrl: string; roomName: string; iceServers?: RTCIceServer[]; telemetryUrl?: string };
+  rtc: { token: string; endpoint: string; roomName: string; iceServers?: RTCIceServer[]; telemetryUrl?: string };
   chat: { token: string; apiUrl: string; chatUrl: string; roomId: string };
 }
 
@@ -43,7 +43,7 @@ export function App() {
   return (
     <RavenRoom
       token={session.rtc.token}
-      endpoint={session.rtc.livekitUrl}
+      endpoint={session.rtc.endpoint}
       room={session.rtc.roomName}
       iceServers={session.rtc.iceServers}
       telemetryUrl={session.rtc.telemetryUrl}

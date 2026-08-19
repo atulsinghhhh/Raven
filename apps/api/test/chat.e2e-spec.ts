@@ -617,7 +617,7 @@ describe('Chat (e2e)', () => {
         .expect(201);
 
       expect(token.body.token).toBeDefined();
-      expect(token.body.livekitUrl).toBeDefined();
+      expect(token.body.endpoint).toBeDefined();
       expect(token.body.iceServers.length).toBeGreaterThan(0);
     });
   });
