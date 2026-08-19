@@ -105,6 +105,30 @@ await room.publish(track);
 `room.unpublish(track)` stops publishing without touching the
 enable/disable toggle state `enableCamera()`/`disableCamera()` manage.
 
+## Filters & Effects
+
+A published camera track can run through a
+[Raven Effects](/effects) pipeline before anyone downstream sees it —
+brightness, contrast, saturation, and presets like `cinematic`/`vivid`,
+without touching SDP, WebGL, or a canvas directly:
+
+```ts
+import { effects } from '@corvidhq/effects';
+
+const camera = await room.enableCamera();
+const pipeline = effects.createPipeline();
+pipeline.applyPreset(effects.presets.cinematic);
+
+await camera.attachEffects(pipeline);
+```
+
+`attachEffects()` swaps the published track in place via the SFU
+adapter's `replaceTrack()` — the room stays connected, audio is
+untouched, and remote participants receive the processed video through
+the ordinary `trackSubscribed` event. See [Effects → RTC Integration](/effects/rtc-integration)
+for the full API, and [Effects → React Native](/effects/react-native) /
+[Effects → Flutter](/effects/flutter) for current mobile status.
+
 ## Errors
 
 Camera and microphone failures raise a typed error, never a raw

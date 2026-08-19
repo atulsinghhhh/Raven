@@ -109,6 +109,24 @@ export const NAV: NavSection[] = [
     ],
   },
   {
+    title: 'Effects',
+    items: [
+      { slug: 'effects', title: 'Overview' },
+      { slug: 'effects/quickstart', title: 'Quickstart' },
+      { slug: 'effects/filters', title: 'Filters' },
+      { slug: 'effects/presets', title: 'Presets' },
+      { slug: 'effects/pipeline', title: 'Pipeline' },
+      { slug: 'effects/rtc-integration', title: 'RTC Integration' },
+      { slug: 'effects/live-streaming', title: 'Live Streaming Integration' },
+      { slug: 'effects/react', title: 'React' },
+      { slug: 'effects/react-native', title: 'React Native' },
+      { slug: 'effects/flutter', title: 'Flutter' },
+      { slug: 'effects/performance', title: 'Performance' },
+      { slug: 'effects/troubleshooting', title: 'Troubleshooting' },
+      { slug: 'effects/api-reference', title: 'API Reference' },
+    ],
+  },
+  {
     title: 'SDKs',
     items: [
       { slug: 'sdk/web', title: 'TypeScript / Web' },
