@@ -313,6 +313,41 @@ export interface ChatConversationSummary {
   createdAt: string;
 }
 
+/** ChatConversationSummary plus the fields only worth fetching for one conversation at a time. */
+export interface ChatConversationDetail extends ChatConversationSummary {
+  metadata: Record<string, unknown> | null;
+  updatedAt: string;
+}
+
+export type ChatMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER';
+
+export interface ChatConversationMember {
+  userId: string;
+  role: ChatMemberRole;
+  status: 'ACTIVE' | 'LEFT';
+  joinedAt: string;
+  leftAt: string | null;
+}
+
+/**
+ * Message metadata — never content. The API's `select` clause is what
+ * actually enforces that (spec §50); this type just can't name a field
+ * that was never in the response.
+ */
+export interface ChatMessageSummary {
+  id: string;
+  senderId: string;
+  type: 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM';
+  status: 'sent' | 'edited' | 'deleted';
+  replyToMessageId: string | null;
+  threadRootId: string | null;
+  reactionCount: number;
+  attachmentCount: number;
+  createdAt: string;
+  editedAt: string | null;
+  deletedAt: string | null;
+}
+
 export interface ChatConnectionSummary {
   id: string;
   publicId: string;
@@ -523,6 +558,32 @@ export const ravenApi = {
 
   listChatConversations: (token: string, projectId: string) =>
     apiFetch<ChatConversationSummary[]>(`/v1/projects/${projectId}/chat/conversations`, { token }),
+
+  getChatConversation: (token: string, projectId: string, conversationId: string) =>
+    apiFetch<ChatConversationDetail>(`/v1/projects/${projectId}/chat/conversations/${conversationId}`, { token }),
+
+  listChatConversationMembers: (token: string, projectId: string, conversationId: string) =>
+    apiFetch<ChatConversationMember[]>(`/v1/projects/${projectId}/chat/conversations/${conversationId}/members`, {
+      token,
+    }),
+
+  listChatConversationMessages: (
+    token: string,
+    projectId: string,
+    conversationId: string,
+    opts: { senderId?: string; before?: string; after?: string; limit?: number } = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (opts.senderId) params.set('senderId', opts.senderId);
+    if (opts.before) params.set('before', opts.before);
+    if (opts.after) params.set('after', opts.after);
+    if (opts.limit) params.set('limit', String(opts.limit));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiFetch<ChatMessageSummary[]>(
+      `/v1/projects/${projectId}/chat/conversations/${conversationId}/messages${query}`,
+      { token },
+    );
+  },
 
   listChatConnections: (
     token: string,

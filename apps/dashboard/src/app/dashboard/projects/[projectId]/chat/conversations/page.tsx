@@ -78,11 +78,15 @@ export default async function ChatConversationsPage({ params }: { params: Promis
           </THead>
           <TBody>
             {conversations.map((conversation) => (
-              <TR key={conversation.id}>
+              <TR key={conversation.id} interactive>
                 <TD className="max-w-[16rem]">
-                  <span className="block truncate text-sm text-fg" title={conversation.name}>
+                  <a
+                    href={`${base}/chat/conversations/${conversation.id}`}
+                    className="block truncate text-sm font-medium text-fg hover:text-accent-text hover:underline"
+                    title={conversation.name}
+                  >
                     {conversation.name}
-                  </span>
+                  </a>
                   <span className="block truncate font-mono text-[0.6875rem] text-subtle">{conversation.id}</span>
                 </TD>
                 <TD>
@@ -122,7 +126,7 @@ export default async function ChatConversationsPage({ params }: { params: Promis
       <div className="sm:hidden">
         <MobileList>
           {conversations.map((conversation) => (
-            <MobileRow key={conversation.id}>
+            <MobileRow key={conversation.id} href={`${base}/chat/conversations/${conversation.id}`}>
               <div className="flex items-start justify-between gap-3">
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-fg">{conversation.name}</span>

@@ -211,14 +211,19 @@ export default async function ChatOverviewPage({
                 .sort((a, b) => b.messageCount - a.messageCount)
                 .slice(0, 5)
                 .map((conversation) => (
-                  <li key={conversation.id} className="flex items-center justify-between gap-4 px-5 py-3">
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm text-fg">{conversation.name}</span>
-                      <span className="block truncate font-mono text-[0.6875rem] text-subtle">{conversation.id}</span>
-                    </span>
-                    <span className="shrink-0 tabular text-sm text-muted">
-                      {formatCount(conversation.messageCount)} messages
-                    </span>
+                  <li key={conversation.id}>
+                    <a
+                      href={`${base}/chat/conversations/${conversation.id}`}
+                      className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-surface-raised"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm text-fg">{conversation.name}</span>
+                        <span className="block truncate font-mono text-[0.6875rem] text-subtle">{conversation.id}</span>
+                      </span>
+                      <span className="shrink-0 tabular text-sm text-muted">
+                        {formatCount(conversation.messageCount)} messages
+                      </span>
+                    </a>
                   </li>
                 ))}
             </ul>
