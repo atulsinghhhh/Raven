@@ -17,6 +17,9 @@ import type {
   ErrorSummary,
   HealthResponse,
   IssuedRtcToken,
+  LiveStreamStatus,
+  LiveStreamSummary,
+  LiveStreamVisibility,
   ObservabilityOverview,
   Project,
   ProjectDiagnostics,
@@ -173,6 +176,59 @@ export class RavenApiClient {
     return this.request<ChatPresenceEntry[]>(
       `/v1/projects/${projectId}/chat/conversations/${conversationId}/presence`,
     );
+  }
+
+  async listStreams(projectId: string, status?: LiveStreamStatus): Promise<LiveStreamSummary[]> {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    return this.request<LiveStreamSummary[]>(`/v1/projects/${projectId}/live-streams${query}`);
+  }
+
+  async getStream(projectId: string, streamId: string): Promise<LiveStreamSummary> {
+    return this.request<LiveStreamSummary>(`/v1/projects/${projectId}/live-streams/${streamId}`);
+  }
+
+  async createStream(
+    projectId: string,
+    input: {
+      title: string;
+      hostIdentity: string;
+      description?: string;
+      thumbnailUrl?: string;
+      category?: string;
+      tags?: string[];
+      language?: string;
+      visibility?: LiveStreamVisibility;
+    },
+  ): Promise<LiveStreamSummary> {
+    return this.request<LiveStreamSummary>(`/v1/projects/${projectId}/live-streams`, {
+      method: 'POST',
+      body: input,
+    });
+  }
+
+  async updateStream(
+    projectId: string,
+    streamId: string,
+    input: {
+      title?: string;
+      description?: string;
+      thumbnailUrl?: string;
+      category?: string;
+      tags?: string[];
+      language?: string;
+      visibility?: LiveStreamVisibility;
+    },
+  ): Promise<LiveStreamSummary> {
+    return this.request<LiveStreamSummary>(`/v1/projects/${projectId}/live-streams/${streamId}`, {
+      method: 'PATCH',
+      body: input,
+    });
+  }
+
+  async endStream(projectId: string, streamId: string): Promise<LiveStreamSummary> {
+    return this.request<LiveStreamSummary>(`/v1/projects/${projectId}/live-streams/${streamId}/end`, {
+      method: 'POST',
+    });
   }
 
   async getHealth(): Promise<HealthResponse> {

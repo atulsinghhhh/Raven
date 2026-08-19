@@ -292,3 +292,45 @@ export interface ChatPresenceEntry {
   userId: string;
   status: 'online' | 'away' | 'offline';
 }
+
+// ---------------------------------------------------------------------------
+// Live Streaming (Phase 14)
+//
+// Inspection + non-privileged lifecycle only — same rule as chat above.
+// Minting host/viewer credentials is deliberately absent from the CLI; see
+// commands/streams/index.ts.
+// ---------------------------------------------------------------------------
+
+export type LiveStreamStatus = 'CREATED' | 'STARTING' | 'LIVE' | 'ENDING' | 'ENDED';
+export type LiveStreamVisibility = 'PUBLIC' | 'PRIVATE' | 'AUTHENTICATED';
+export type LiveStreamHostRole = 'HOST' | 'CO_HOST';
+
+export interface LiveStreamHostView {
+  identity: string;
+  role: LiveStreamHostRole;
+  invitedAt: string;
+}
+
+export interface LiveStreamSummary {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  category: string | null;
+  tags: string[];
+  language: string | null;
+  visibility: LiveStreamVisibility;
+  metadata: Record<string, unknown> | null;
+  status: LiveStreamStatus;
+  hosts: LiveStreamHostView[];
+  /** null = SFU unreachable, distinct from a genuinely empty stream. */
+  viewerCount: number | null;
+  peakViewerCount: number;
+  conversationId: string | null;
+  chatRootMessageId: string | null;
+  scheduledAt: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
