@@ -5,11 +5,11 @@ import { useState } from 'react';
 import type { Project } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Field } from '@/components/ui/field';
+import { Field, Input } from '@/components/ui/field';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { MonoId } from '@/components/ui/mono';
-import { IconChevronRight, IconFolder, IconPlus } from '@/components/ui/icons';
+import { IconChevronRight, IconFolder, IconPlus, IconSearch } from '@/components/ui/icons';
 import { formatDate } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
 
@@ -26,6 +26,12 @@ export function ProjectsList({
   const [name, setName] = useState('');
   const [error, setError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const trimmedQuery = query.trim().toLowerCase();
+  const filteredProjects = trimmedQuery
+    ? projects.filter((p) => p.name.toLowerCase().includes(trimmedQuery))
+    : projects;
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -119,33 +125,57 @@ export function ProjectsList({
           }
         />
       ) : (
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {projects.map((project) => (
-            <li key={project.id}>
-              <a
-                href={`/dashboard/projects/${project.id}/overview`}
-                className="group flex h-full flex-col rounded-lg border border-line bg-surface p-4 transition-colors hover:border-line-strong hover:bg-surface-raised"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <span className="min-w-0 truncate text-sm font-medium text-fg">{project.name}</span>
-                  <IconChevronRight className="size-4 shrink-0 text-subtle transition-transform group-hover:translate-x-0.5" />
-                </div>
-                {project.description && (
-                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{project.description}</p>
-                )}
-                <div className="mt-3 flex items-center gap-2">
-                  <MonoId value={project.id} />
-                </div>
-                <div className="mt-3 flex items-center gap-2 border-t border-line pt-3 text-xs text-subtle">
-                  <Badge tone={project.status === 'ACTIVE' ? 'success' : 'neutral'}>
-                    {project.status === 'ACTIVE' ? 'Active' : 'Archived'}
-                  </Badge>
-                  <span className="ml-auto">Created {formatDate(project.createdAt)}</span>
-                </div>
-              </a>
-            </li>
-          ))}
-        </ul>
+        <>
+          {projects.length > 6 && (
+            <div className="relative max-w-sm">
+              <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-subtle" />
+              <Input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Find a project by name…"
+                aria-label="Find a project by name"
+                className="pl-8"
+              />
+            </div>
+          )}
+
+          {filteredProjects.length === 0 ? (
+            <EmptyState
+              icon={<IconSearch className="size-7" />}
+              title="No projects match"
+              description={`Nothing found for "${query.trim()}". Try a different name.`}
+            />
+          ) : (
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {filteredProjects.map((project) => (
+                <li key={project.id}>
+                  <a
+                    href={`/dashboard/projects/${project.id}/overview`}
+                    className="group flex h-full flex-col rounded-lg border border-line bg-surface p-4 transition-colors hover:border-line-strong hover:bg-surface-raised"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="min-w-0 truncate text-sm font-medium text-fg">{project.name}</span>
+                      <IconChevronRight className="size-4 shrink-0 text-subtle transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                    {project.description && (
+                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{project.description}</p>
+                    )}
+                    <div className="mt-3 flex items-center gap-2">
+                      <MonoId value={project.id} />
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 border-t border-line pt-3 text-xs text-subtle">
+                      <Badge tone={project.status === 'ACTIVE' ? 'success' : 'neutral'}>
+                        {project.status === 'ACTIVE' ? 'Active' : 'Archived'}
+                      </Badge>
+                      <span className="ml-auto">Created {formatDate(project.createdAt)}</span>
+                    </div>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </div>
   );

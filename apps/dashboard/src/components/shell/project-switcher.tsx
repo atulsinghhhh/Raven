@@ -1,9 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { Project } from '@/lib/api-client';
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from '@/components/ui/menu';
-import { IconChevronDown, IconFolder, IconPlus, IconSettings } from '@/components/ui/icons';
+import { IconChevronDown, IconFolder, IconPlus, IconSearch, IconSettings } from '@/components/ui/icons';
 
 /**
  * Switching projects keeps you on the same section where that makes
@@ -48,16 +49,11 @@ export function ProjectSwitcher({
         </span>
       )}
     >
-      <MenuLabel>Projects</MenuLabel>
-      {projects.map((p) => (
-        <MenuItem
-          key={p.id}
-          selected={p.id === current.id}
-          onClick={() => router.push(targetPath(pathname, current.id, p.id))}
-        >
-          {p.name}
-        </MenuItem>
-      ))}
+      <ProjectSearchList
+        projects={projects}
+        current={current}
+        onSelect={(id) => router.push(targetPath(pathname, current.id, id))}
+      />
       <MenuSeparator />
       <MenuItem href="/dashboard/projects" icon={<IconFolder className="size-3.5" />}>
         All projects
@@ -72,5 +68,57 @@ export function ProjectSwitcher({
         Project settings
       </MenuItem>
     </Menu>
+  );
+}
+
+/**
+ * Split out so its `query` state remounts (and so resets) every time the
+ * menu opens — the parent Menu only renders its children while open, so
+ * this component's lifetime is exactly one open/close cycle.
+ */
+function ProjectSearchList({
+  projects,
+  current,
+  onSelect,
+}: {
+  projects: Project[];
+  current: Project;
+  onSelect: (id: string) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const trimmed = query.trim().toLowerCase();
+  const filtered = trimmed ? projects.filter((p) => p.name.toLowerCase().includes(trimmed)) : projects;
+
+  return (
+    <>
+      {projects.length > 6 && (
+        // Stops the click from bubbling to the menu's own "close on click
+        // inside" handler — otherwise focusing the input closes the menu.
+        <div className="relative px-1 pb-1" onClick={(e) => e.stopPropagation()}>
+          <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-3 -translate-y-1/2 text-subtle" />
+          <input
+            type="text"
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Find a project…"
+            aria-label="Find a project"
+            className="w-full rounded-sm border border-line bg-surface py-1.5 pl-7 pr-2 text-sm text-fg placeholder:text-subtle focus:outline-none focus:ring-1 focus:ring-accent"
+          />
+        </div>
+      )}
+      <MenuLabel>Projects</MenuLabel>
+      <div className="max-h-64 overflow-y-auto">
+        {filtered.length === 0 ? (
+          <p className="px-2.5 py-3 text-center text-xs text-subtle">No projects match “{query.trim()}”.</p>
+        ) : (
+          filtered.map((p) => (
+            <MenuItem key={p.id} selected={p.id === current.id} onClick={() => onSelect(p.id)}>
+              {p.name}
+            </MenuItem>
+          ))
+        )}
+      </div>
+    </>
   );
 }

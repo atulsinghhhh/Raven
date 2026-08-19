@@ -261,13 +261,13 @@ export default async function DashboardHomePage({ searchParams }: { searchParams
               {snapshots.map((s) => (
                 <li key={s.project.id}>
                   <a
-                    href={`/dashboard/projects/${s.project.id}/overview`}
+                    href={`/dashboard/projects/${s.project.id}/metrics`}
                     className="flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-surface-raised"
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm text-fg">{s.project.name}</span>
                       <span className="block truncate text-xs text-muted">
-                        {s.liveRoomCount !== undefined ? `${formatCount(s.liveRoomCount)} live rooms` : 'Room data unavailable'}
+                        {s.liveRoomCount !== undefined ? `${formatCount(s.liveRoomCount)} live rooms — view metrics` : 'Room data unavailable'}
                       </span>
                     </span>
                     <span className="tabular shrink-0 text-xs text-subtle">{formatRelative(s.project.updatedAt)}</span>
