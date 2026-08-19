@@ -1,21 +1,21 @@
 /**
  * `LiveStream.join()` calls the real `createRTCClient`/`createChatClient`
- * factories from `@raven/rtc`/`@raven/chat` — those packages have their
+ * factories from `@corvidhq/rtc`/`@corvidhq/chat` — those packages have their
  * own suites for what a real join/connect actually does over the
  * network. What's under test here is purely LiveStream's own composition
  * logic: which credentials go where, what `isHost` reports, and that
  * `react()`/`leave()` call through to the right underlying method. Both
  * packages are mocked so no test here waits on a real WebRTC connection.
  */
-import { createChatClient } from '@raven/chat';
-import { createRTCClient } from '@raven/rtc';
+import { createChatClient } from '@corvidhq/chat';
+import { createRTCClient } from '@corvidhq/rtc';
 import { LiveStream, joinLiveStream } from '../src/live/live-stream';
 import type { LiveStreamCredentials } from '../src/live/types';
 
-jest.mock('@raven/rtc', () => ({
+jest.mock('@corvidhq/rtc', () => ({
   createRTCClient: jest.fn(),
 }));
-jest.mock('@raven/chat', () => ({
+jest.mock('@corvidhq/chat', () => ({
   createChatClient: jest.fn(),
 }));
 

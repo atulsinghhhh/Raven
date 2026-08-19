@@ -44,5 +44,5 @@ export type { LogLevel } from './logger';
 export { CHAT_SDK_VERSION } from './version';
 
 // Deliberately not exported: SocketTransport, RestClient, the frame
-// vocabulary, and every other internal. A developer using @raven/chat
+// vocabulary, and every other internal. A developer using @corvidhq/chat
 // should never need to know a WebSocket is involved (spec §57).

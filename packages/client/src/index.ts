@@ -1,5 +1,5 @@
-import { createRTCClient, type RTCClient, type RTCClientConfig, type Room } from '@raven/rtc';
-import { createChatClient, type ChatClient, type ChatClientConfig } from '@raven/chat';
+import { createRTCClient, type RTCClient, type RTCClientConfig, type Room } from '@corvidhq/rtc';
+import { createChatClient, type ChatClient, type ChatClientConfig } from '@corvidhq/chat';
 import { LiveStream } from './live/live-stream';
 import type { LiveStreamCredentials } from './live/types';
 
@@ -46,7 +46,7 @@ export interface RavenConfig {
    * REST base for chat — the `apiUrl` field from the chat-token response.
    * Falls back to `telemetryUrl`, which is the same host in a standard
    * deployment. Required in practice whenever `chatToken` is set: without
-   * it (or `chatUrl`) there is nowhere to connect, and `@raven/chat`
+   * it (or `chatUrl`) there is nowhere to connect, and `@corvidhq/chat`
    * says so at construction rather than failing later.
    */
   chatApiUrl?: string;
@@ -65,8 +65,8 @@ export interface RavenConfig {
  * Raven for the browser, with RTC and chat behind one object.
  *
  * This is a facade, not a third implementation: `raven.rtc` is a real
- * `RTCClient` from `@raven/rtc` and `raven.chat` is a real `ChatClient`
- * from `@raven/chat`. Every method, event, and type documented for those
+ * `RTCClient` from `@corvidhq/rtc` and `raven.chat` is a real `ChatClient`
+ * from `@corvidhq/chat`. Every method, event, and type documented for those
  * packages applies here unchanged, because they *are* those objects.
  *
  * ```ts
@@ -79,10 +79,10 @@ export interface RavenConfig {
  * await raven.chat!.sendMessage({ text: 'Hello' });
  * ```
  *
- * **Use `@raven/rtc` directly if you only want calls** — it's ~6 KB
+ * **Use `@corvidhq/rtc` directly if you only want calls** — it's ~6 KB
  * gzipped and pulls in no messaging code. This package exists for apps
  * that want both without wiring two clients themselves, and it mirrors
- * the shape `@raven/react-native` already gives mobile, so the same
+ * the shape `@corvidhq/react-native` already gives mobile, so the same
  * mental model works on both.
  */
 export class Raven {
@@ -203,10 +203,10 @@ export function createRaven(config: RavenConfig): Raven {
 
 // Re-exported so an app using this facade doesn't need direct imports
 // from the underlying packages for common types.
-export type { Room, RTCClient, RTCClientConfig } from '@raven/rtc';
-export { RTCError, isRTCError } from '@raven/rtc';
-export type { ChatClient, ChatMessage, ChatConnectionState } from '@raven/chat';
-export { isRavenChatError } from '@raven/chat';
+export type { Room, RTCClient, RTCClientConfig } from '@corvidhq/rtc';
+export { RTCError, isRTCError } from '@corvidhq/rtc';
+export type { ChatClient, ChatMessage, ChatConnectionState } from '@corvidhq/chat';
+export { isRavenChatError } from '@corvidhq/chat';
 
 export { LiveStream, joinLiveStream } from './live/live-stream';
 export type { LiveStreamCredentials, LiveStreamRole } from './live/types';

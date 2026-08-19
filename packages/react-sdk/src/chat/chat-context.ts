@@ -8,7 +8,7 @@ export const RavenChatStoreContext = createContext<RavenChatStore | null>(null);
 export function useRavenChatStore(): RavenChatStore {
   const store = useContext(RavenChatStoreContext);
   if (!store) {
-    throw new Error('@raven/react chat hooks must be used inside a <RavenChat> — see docs/sdk/chat.md#react.');
+    throw new Error('@corvidhq/react chat hooks must be used inside a <RavenChat> — see docs/sdk/chat.md#react.');
   }
   return store;
 }

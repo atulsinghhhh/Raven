@@ -1,7 +1,7 @@
 /**
  * Minimal typed pub/sub — no external dependency, keeps the bundle small.
  *
- * Differs from `@raven/rtc`'s emitter in one deliberate way: `on()`
+ * Differs from `@corvidhq/rtc`'s emitter in one deliberate way: `on()`
  * returns an **unsubscribe function** rather than `this`. Chat handlers
  * are overwhelmingly registered inside component effects, where the
  * cleanup path is the common case and a mismatched `off(event, handler)`

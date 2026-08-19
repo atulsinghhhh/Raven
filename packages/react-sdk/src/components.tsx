@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { LocalParticipant, RemoteParticipant, Track } from '@raven/rtc';
+import type { LocalParticipant, RemoteParticipant, Track } from '@corvidhq/rtc';
 import { useLocalParticipant } from './hooks';
 
 /**

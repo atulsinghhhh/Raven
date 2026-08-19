@@ -5,7 +5,7 @@ import { runCommand } from '../../lib/exec.js';
 import { printInfo, printSuccess } from '../../lib/output.js';
 import { withErrorHandling } from '../../lib/run.js';
 
-const SDK_PACKAGE_NAME = '@raven/rtc';
+const SDK_PACKAGE_NAME = '@corvidhq/rtc';
 
 export function registerSdkInstallCommand(sdk: Command): void {
   sdk

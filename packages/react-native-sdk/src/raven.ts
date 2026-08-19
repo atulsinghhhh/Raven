@@ -1,4 +1,4 @@
-import { RTCError, createRTCClient, type RTCClient, type Room } from '@raven/rtc';
+import { RTCError, createRTCClient, type RTCClient, type Room } from '@corvidhq/rtc';
 import { audio } from './audio';
 import { bootstrapRavenNative } from './internal/bootstrap';
 import { LifecycleWatcher, NetworkWatcher, type RavenAppState } from './internal/lifecycle';
@@ -21,7 +21,7 @@ import { createChatHandle } from './internal/chat-handle';
  * ```
  *
  * The `Room` it returns is the *same class* the web SDK returns, from
- * `@raven/rtc` — not a mobile re-implementation. Everything a developer
+ * `@corvidhq/rtc` — not a mobile re-implementation. Everything a developer
  * learned about rooms, participants, tracks and events on web is true
  * here, and any fix to that logic lands on both platforms at once.
  *
@@ -41,7 +41,7 @@ import { createChatHandle } from './internal/chat-handle';
  */
 export class Raven {
   /**
-   * Messaging. Present only when `@raven/chat` is installed and a
+   * Messaging. Present only when `@corvidhq/chat` is installed and a
    * `chatToken` was supplied — chat is optional, and an RTC-only app
    * shouldn't have to install it.
    */

@@ -26,7 +26,7 @@ export function registerConnectionsListCommand(connections: Command): void {
           }
 
           if (list.length === 0) {
-            printEmpty('No connections yet.', 'They appear here once a real client joins a room via @raven/rtc.');
+            printEmpty('No connections yet.', 'They appear here once a real client joins a room via @corvidhq/rtc.');
             return;
           }
 

@@ -1,5 +1,5 @@
-import { createChatClient, type ChatClient } from '@raven/chat';
-import { createRTCClient, type Room, type RTCClient } from '@raven/rtc';
+import { createChatClient, type ChatClient } from '@corvidhq/chat';
+import { createRTCClient, type Room, type RTCClient } from '@corvidhq/rtc';
 import type { LiveStreamCredentials, LiveStreamRole } from './types';
 
 /**
@@ -7,10 +7,10 @@ import type { LiveStreamCredentials, LiveStreamRole } from './types';
  *
  * Not a third real-time system: `LiveStream.join()` takes the credentials
  * your backend minted (`POST /v1/live-streams/:id/hosts` or
- * `.../viewer-tokens`) and produces a real `@raven/rtc` `Room` plus, when
- * the credentials include one, a real `@raven/chat` `ChatClient` — the
+ * `.../viewer-tokens`) and produces a real `@corvidhq/rtc` `Room` plus, when
+ * the credentials include one, a real `@corvidhq/chat` `ChatClient` — the
  * exact same classes those packages already document, not wrappers
- * around them. `LiveStream.room` **is** an `@raven/rtc` `Room`; every
+ * around them. `LiveStream.room` **is** an `@corvidhq/rtc` `Room`; every
  * method and event on it works exactly as documented there.
  *
  * A live stream's "host publishes, viewers subscribe" behavior is
@@ -38,9 +38,9 @@ import type { LiveStreamCredentials, LiveStreamRole } from './types';
 export class LiveStream {
   readonly streamId: string;
   readonly role: LiveStreamRole;
-  /** The underlying `@raven/rtc` client — use this directly for anything not exposed on `LiveStream` itself. */
+  /** The underlying `@corvidhq/rtc` client — use this directly for anything not exposed on `LiveStream` itself. */
   readonly rtc: RTCClient;
-  /** The joined room. Camera, microphone, screen share, participants, connection stats — everything `@raven/rtc`'s Room documents. */
+  /** The joined room. Camera, microphone, screen share, participants, connection stats — everything `@corvidhq/rtc`'s Room documents. */
   readonly room: Room;
   /** Present only when the credentials included a chat token. `undefined` for an RTC-only integration. */
   readonly chat?: ChatClient;
@@ -97,7 +97,7 @@ export class LiveStream {
 
   /**
    * The TikTok-style heart-tap. Reactions ride on the stream's own root
-   * chat message through `@raven/chat`'s existing, already-aggregated
+   * chat message through `@corvidhq/chat`'s existing, already-aggregated
    * reaction model (`chat.messages.addReaction`) — not a second
    * real-time primitive invented for this. Every viewer's tap on the
    * same emoji collapses into one count, the same as reacting to any

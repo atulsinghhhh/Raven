@@ -1,4 +1,4 @@
-import { RTCError, type RTCErrorCode } from '@raven/rtc';
+import { RTCError, type RTCErrorCode } from '@corvidhq/rtc';
 
 /**
  * Mobile adds exactly one failure mode the web SDK doesn't have: an
@@ -6,7 +6,7 @@ import { RTCError, type RTCErrorCode } from '@raven/rtc';
  * permanently, with no way for the app to ask again.
  *
  * Everything else — expired tokens, failed connections, missing rooms,
- * unavailable devices — already has a code in `@raven/rtc`, and reusing
+ * unavailable devices — already has a code in `@corvidhq/rtc`, and reusing
  * those is the point. A developer moving from web to mobile should be
  * catching the same `RTCError` with the same `code`, not learning a
  * parallel error vocabulary (Phase 13 spec §14).
@@ -94,6 +94,6 @@ export function toPermissionError(
 }
 
 // Re-exported so a mobile app can catch everything Raven throws without
-// also importing @raven/rtc directly.
-export { RTCError, isRTCError } from '@raven/rtc';
+// also importing @corvidhq/rtc directly.
+export { RTCError, isRTCError } from '@corvidhq/rtc';
 export type { RTCErrorCode };

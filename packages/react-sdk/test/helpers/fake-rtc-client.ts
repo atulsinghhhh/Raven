@@ -1,8 +1,8 @@
 /**
- * A hand-rolled fake of @raven/rtc's public surface — mirrors how
+ * A hand-rolled fake of @corvidhq/rtc's public surface — mirrors how
  * packages/sdk's own tests fake livekit-client, one layer up. Every
- * @raven/react test mocks the whole `@raven/rtc` module with this file
- * (`jest.mock('@raven/rtc', () => require('./helpers/fake-rtc-client'))`)
+ * @corvidhq/react test mocks the whole `@corvidhq/rtc` module with this file
+ * (`jest.mock('@corvidhq/rtc', () => require('./helpers/fake-rtc-client'))`)
  * so store/hook/component logic can be tested without any real
  * WebRTC/LiveKit stack.
  */
@@ -27,7 +27,7 @@ export class FakeEmitter {
     return this;
   }
 
-  /** Test-only — real @raven/rtc keeps emit() protected; this fake needs it public to drive scenarios. */
+  /** Test-only — real @corvidhq/rtc keeps emit() protected; this fake needs it public to drive scenarios. */
   emit(event: string, ...args: unknown[]): void {
     for (const handler of Array.from(this.listeners.get(event) ?? [])) handler(...args);
   }

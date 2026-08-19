@@ -5,7 +5,7 @@ import { join } from 'node:path';
 const distDir = join(import.meta.dirname, '..', 'dist');
 const files = ['index.js', 'index.cjs'];
 
-console.log('@raven/rtc bundle size (own code only — livekit-client stays an external peer dependency, not bundled):\n');
+console.log('@corvidhq/rtc bundle size (own code only — livekit-client stays an external peer dependency, not bundled):\n');
 
 for (const file of files) {
   const path = join(distDir, file);

@@ -33,13 +33,13 @@ export function registerDiagnosticsCommand(program: Command): void {
         printField('Active connections', String(diagnostics.connections.active));
 
         process.stdout.write('\n');
-        printField('SDK (@raven/rtc) installed in this directory', sdkInstalled ? 'yes' : 'no — run `raven sdk install`');
+        printField('SDK (@corvidhq/rtc) installed in this directory', sdkInstalled ? 'yes' : 'no — run `raven sdk install`');
 
         // Connection-level diagnostics (ICE/signaling state, browser) only
         // exist for an active browser connection — see Room.getDiagnostics()
-        // in @raven/rtc. This CLI process never fabricates that data.
+        // in @corvidhq/rtc. This CLI process never fabricates that data.
         process.stdout.write(
-          `\nFor live connection diagnostics (ICE state, browser, reconnect count), call room.getDiagnostics() from @raven/rtc in your running app — see docs/telemetry.md#client-side-diagnostics.\n`,
+          `\nFor live connection diagnostics (ICE state, browser, reconnect count), call room.getDiagnostics() from @corvidhq/rtc in your running app — see docs/telemetry.md#client-side-diagnostics.\n`,
         );
       }),
     );

@@ -1,8 +1,17 @@
 {
-  "name": "@raven/server",
+  "name": "@corvidhq/server",
   "version": "0.1.0",
   "description": "Raven server SDK — mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Never for use in a browser.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atulsinghhhh/Raven.git",
+    "directory": "packages/server-sdk"
+  },
+  "homepage": "https://github.com/atulsinghhhh/Raven/tree/main/packages/server-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/atulsinghhhh/Raven/issues"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -20,6 +29,9 @@
   "sideEffects": false,
   "engines": {
     "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsup",

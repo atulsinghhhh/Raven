@@ -19,7 +19,7 @@ export default defineConfig({
     '@livekit/react-native',
     '@livekit/react-native-webrtc',
     '@react-native-community/netinfo',
-    '@raven/rtc',
-    '@raven/chat',
+    '@corvidhq/rtc',
+    '@corvidhq/chat',
   ],
 });

@@ -7,7 +7,7 @@ import {
   type RTCClient,
   type RTCClientConfig,
   type RTCError,
-} from '@raven/rtc';
+} from '@corvidhq/rtc';
 
 /** `'idle'` = `join()` hasn't been called yet — distinct from `'disconnected'`, which means a real connection ended. */
 export type RavenConnectionState = ConnectionState | 'idle';
@@ -36,7 +36,7 @@ const INITIAL_SNAPSHOT: RavenSnapshot = {
  * needs so a change to (say) `remoteParticipants` never re-renders a
  * component that only reads `connectionState`.
  *
- * All the actual RTC logic still lives in `@raven/rtc` — this class only
+ * All the actual RTC logic still lives in `@corvidhq/rtc` — this class only
  * translates its event stream into React-friendly, referentially-stable
  * snapshots. It never touches LiveKit.
  */

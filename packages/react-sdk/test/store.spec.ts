@@ -1,4 +1,4 @@
-jest.mock('@raven/rtc', () => require('./helpers/fake-rtc-client'));
+jest.mock('@corvidhq/rtc', () => require('./helpers/fake-rtc-client'));
 
 import { FakeParticipant, FakeRoom, lastClient, resetFakeRtc } from './helpers/fake-rtc-client';
 import { RavenStore } from '../src/store';

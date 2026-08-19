@@ -3,9 +3,9 @@ import { __calls, __resetCalls } from './mocks/livekit-react-native';
 import { __appState, __emitAppState, PermissionsAndroid, __setPlatform } from './mocks/react-native';
 
 /**
- * Drives `Raven` against a fake `@raven/rtc` client.
+ * Drives `Raven` against a fake `@corvidhq/rtc` client.
  *
- * The point is not to re-test RTC — that's covered by `@raven/rtc`'s own
+ * The point is not to re-test RTC — that's covered by `@corvidhq/rtc`'s own
  * 102 tests, and re-testing it here would just assert that the mock
  * works. What matters is the mobile-only behaviour layered on top:
  * audio-session lifecycle, permission prompting, OS listener cleanup, and
@@ -18,7 +18,7 @@ const rtcState = {
   connectionState: 'connected' as string,
 };
 
-jest.mock('@raven/rtc', () => ({
+jest.mock('@corvidhq/rtc', () => ({
   createRTCClient: () => ({
     join: async (roomId: string) => {
       rtcState.joins.push(roomId);
@@ -50,7 +50,7 @@ jest.mock('@raven/rtc', () => ({
 /**
  * A syntactically valid chat token.
  *
- * @raven/chat decodes the payload on construction to learn the user id and
+ * @corvidhq/chat decodes the payload on construction to learn the user id and
  * expiry, so a placeholder string is rejected — which is itself proof that
  * the chat handle builds a real client rather than a stub.
  */

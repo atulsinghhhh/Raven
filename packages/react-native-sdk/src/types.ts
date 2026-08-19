@@ -1,5 +1,5 @@
-import type { LogLevel } from '@raven/rtc';
-import type { ChatClient } from '@raven/chat';
+import type { LogLevel } from '@corvidhq/rtc';
+import type { ChatClient } from '@corvidhq/chat';
 import type { RavenAppState } from './internal/lifecycle';
 
 /**
@@ -71,7 +71,7 @@ export interface RavenConfig {
 /**
  * The chat surface hanging off `raven.chat`.
  *
- * Structurally this is `@raven/chat`'s `ChatClient` with a mobile-shaped
+ * Structurally this is `@corvidhq/chat`'s `ChatClient` with a mobile-shaped
  * `connect(room)` in front of it: on web you construct a client and
  * connect it, whereas here the client already exists and joining a room
  * is the only step left. Everything else — `sendMessage`, `on`,

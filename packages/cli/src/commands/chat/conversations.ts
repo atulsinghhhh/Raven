@@ -25,7 +25,7 @@ export function registerChatConversationsCommand(chat: Command): void {
         if (conversations.length === 0) {
           printEmpty(
             'No conversations yet.',
-            'Conversations are created from your backend — a browser chat token cannot create them. Use raven.chat.createConversation() from @raven/server or raven-sdk.',
+            'Conversations are created from your backend — a browser chat token cannot create them. Use raven.chat.createConversation() from @corvidhq/server or raven-sdk.',
           );
           return;
         }

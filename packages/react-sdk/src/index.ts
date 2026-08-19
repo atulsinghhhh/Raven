@@ -20,8 +20,8 @@ export type { ParticipantViewProps, RavenAudioProps, RavenVideoProps } from './c
 
 export type { RavenConnectionState, RavenSnapshot } from './store';
 
-// Re-exported for convenience so a developer building with @raven/react
-// doesn't also need a direct @raven/rtc import for common types —
+// Re-exported for convenience so a developer building with @corvidhq/react
+// doesn't also need a direct @corvidhq/rtc import for common types —
 // LiveKit itself is still never re-exported (Phase 11 spec §27).
 export type {
   ConnectionState,
@@ -38,11 +38,11 @@ export type {
   RTCErrorCode,
   Track,
   TrackKind,
-} from '@raven/rtc';
-export { isRTCError } from '@raven/rtc';
+} from '@corvidhq/rtc';
+export { isRTCError } from '@corvidhq/rtc';
 
 // ---------------------------------------------------------------------------
-// Chat (Phase 12) — @raven/chat integration.
+// Chat (Phase 12) — @corvidhq/chat integration.
 //
 // A separate provider and a separate set of hooks, sharing this package's
 // existing store/snapshot pattern rather than introducing a second one
@@ -74,7 +74,7 @@ export type {
 export type { RavenChatSnapshot } from './chat/chat-store';
 
 // Re-exported for convenience, same as the RTC types above — so a chat UI
-// doesn't need a direct @raven/chat import for common types.
+// doesn't need a direct @corvidhq/chat import for common types.
 export type {
   ChatAttachment,
   ChatClientConfig,
@@ -86,5 +86,5 @@ export type {
   PresenceStatus,
   ReadState,
   SendMessageOptions,
-} from '@raven/chat';
-export { isRavenChatError, RavenChatError } from '@raven/chat';
+} from '@corvidhq/chat';
+export { isRavenChatError, RavenChatError } from '@corvidhq/chat';

@@ -5,12 +5,12 @@ let registered = false;
 /**
  * Installs the WebRTC globals React Native doesn't ship with.
  *
- * This is the single reason `@raven/rtc` — a package written for browsers —
+ * This is the single reason `@corvidhq/rtc` — a package written for browsers —
  * runs unmodified on a phone. `registerGlobals()` puts
  * `RTCPeerConnection`, `navigator.mediaDevices`, `MediaStream` and friends
  * on the global object, backed by the native iOS/Android WebRTC
  * implementation in `@livekit/react-native-webrtc`. From that point on,
- * the code in `@raven/rtc` cannot tell it isn't in a browser.
+ * the code in `@corvidhq/rtc` cannot tell it isn't in a browser.
  *
  * That's the whole architecture of this package: Raven's RTC and chat
  * logic is shared with web, and only the parts that genuinely differ —
@@ -37,7 +37,7 @@ export function __resetBootstrapForTests(): void {
 }
 
 /**
- * `@raven/chat` decodes its token payload with `atob` to learn the user
+ * `@corvidhq/chat` decodes its token payload with `atob` to learn the user
  * id and expiry without a round-trip. Hermes has shipped `atob`/`btoa`
  * since React Native 0.74; older runtimes and some JSC configurations
  * haven't. Rather than declare a floor we don't otherwise need, fill the

@@ -1,8 +1,17 @@
 {
-  "name": "@raven/react-native",
+  "name": "@corvidhq/react-native",
   "version": "0.1.0",
   "description": "Raven SDK for React Native — real-time video, voice, and messaging on iOS and Android with the same API as Raven Web.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atulsinghhhh/Raven.git",
+    "directory": "packages/react-native-sdk"
+  },
+  "homepage": "https://github.com/atulsinghhhh/Raven/tree/main/packages/react-native-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/atulsinghhhh/Raven/issues"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -30,6 +39,9 @@
     "ios",
     "android"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -40,19 +52,19 @@
   "peerDependencies": {
     "@livekit/react-native": ">=2.7.0",
     "@livekit/react-native-webrtc": ">=125.0.0",
-    "@raven/chat": "*",
-    "@raven/rtc": "*",
+    "@corvidhq/chat": "*",
+    "@corvidhq/rtc": "*",
     "react": ">=18.0.0",
     "react-native": ">=0.73.0"
   },
   "peerDependenciesMeta": {
-    "@raven/chat": {
+    "@corvidhq/chat": {
       "optional": true
     }
   },
   "devDependencies": {
-    "@raven/chat": "file:../chat-sdk",
-    "@raven/rtc": "file:../sdk",
+    "@corvidhq/chat": "file:../chat-sdk",
+    "@corvidhq/rtc": "file:../sdk",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",

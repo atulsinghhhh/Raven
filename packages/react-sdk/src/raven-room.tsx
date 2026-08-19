@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
-import type { RTCClientConfig, RTCError } from '@raven/rtc';
+import type { RTCClientConfig, RTCError } from '@corvidhq/rtc';
 import { RavenStoreContext } from './context';
 import { RavenStore } from './store';
 
@@ -21,7 +21,7 @@ export interface RavenRoomProps extends RTCClientConfig {
 }
 
 /**
- * The provider every `@raven/react` hook and component needs — also
+ * The provider every `@corvidhq/react` hook and component needs — also
  * usable directly as the "RavenRoom" primitive from the Phase 11 spec.
  * Owns exactly one `RTCClient`/`Room` for its lifetime; unmounting it
  * always calls `leave()`, so a video call UI can be torn down just by
@@ -41,7 +41,7 @@ export function RavenRoom({ room: roomId, autoConnect = true, fallback, onError,
 
   // `room`/token/etc. are read once at mount and intentionally not
   // re-applied on change — an RTC token is minted for exactly one join,
-  // the same one-shot model @raven/rtc itself uses. Swap the token by
+  // the same one-shot model @corvidhq/rtc itself uses. Swap the token by
   // remounting <RavenRoom key={token}> with a fresh one.
   useEffect(() => {
     if (!autoConnect) return undefined;

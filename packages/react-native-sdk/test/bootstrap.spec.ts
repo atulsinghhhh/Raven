@@ -56,7 +56,7 @@ describe('base64 polyfill', () => {
     expect(typeof globalRef.btoa).toBe('function');
   });
 
-  it('round-trips, so @raven/chat can decode a token payload', () => {
+  it('round-trips, so @corvidhq/chat can decode a token payload', () => {
     delete globalRef.atob;
     delete globalRef.btoa;
     bootstrapRavenNative();

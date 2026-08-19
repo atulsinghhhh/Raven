@@ -1,4 +1,4 @@
-import type { LogLevel } from '@raven/rtc';
+import type { LogLevel } from '@corvidhq/rtc';
 import type { RavenChatHandle } from '../types';
 
 interface ChatHandleOptions {
@@ -10,11 +10,11 @@ interface ChatHandleOptions {
 }
 
 /**
- * Builds `raven.chat` on top of `@raven/chat`'s real client.
+ * Builds `raven.chat` on top of `@corvidhq/chat`'s real client.
  *
  * Two things are worth calling out about this file.
  *
- * First, `@raven/chat` is **resolved at runtime**, not imported
+ * First, `@corvidhq/chat` is **resolved at runtime**, not imported
  * statically. It's an optional peer dependency: an app that only wants
  * video shouldn't be forced to bundle a messaging client, and a static
  * import would make it mandatory at bundle time regardless of whether
@@ -34,8 +34,8 @@ export function createChatHandle(options: ChatHandleOptions): RavenChatHandle | 
     // clearly, rather than throwing from a constructor the developer
     // may not associate with chat at all.
     console.warn(
-      '[raven] chatToken was provided but @raven/chat is not installed. ' +
-        'Run: npm install @raven/chat — raven.chat will be undefined until then.',
+      '[raven] chatToken was provided but @corvidhq/chat is not installed. ' +
+        'Run: npm install @corvidhq/chat — raven.chat will be undefined until then.',
     );
     return undefined;
   }
@@ -71,10 +71,10 @@ interface ChatModule {
 
 function loadChatModule(): ChatModule | undefined {
   try {
-    // Resolved at runtime on purpose: @raven/chat is an optional peer, and
+    // Resolved at runtime on purpose: @corvidhq/chat is an optional peer, and
     // a static import would make an RTC-only app pay for it.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require('@raven/chat');
+    const mod = require('@corvidhq/chat');
     return typeof mod?.createChatClient === 'function' ? (mod as ChatModule) : undefined;
   } catch {
     return undefined;

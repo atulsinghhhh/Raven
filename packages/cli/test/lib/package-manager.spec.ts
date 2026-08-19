@@ -53,9 +53,9 @@ describe('detectPackageManager', () => {
 
 describe('installCommand', () => {
   it('produces the correct install invocation per package manager', () => {
-    expect(installCommand('pnpm', '@raven/rtc')).toBe('pnpm add @raven/rtc');
-    expect(installCommand('yarn', '@raven/rtc')).toBe('yarn add @raven/rtc');
-    expect(installCommand('bun', '@raven/rtc')).toBe('bun add @raven/rtc');
-    expect(installCommand('npm', '@raven/rtc')).toBe('npm install @raven/rtc');
+    expect(installCommand('pnpm', '@corvidhq/rtc')).toBe('pnpm add @corvidhq/rtc');
+    expect(installCommand('yarn', '@corvidhq/rtc')).toBe('yarn add @corvidhq/rtc');
+    expect(installCommand('bun', '@corvidhq/rtc')).toBe('bun add @corvidhq/rtc');
+    expect(installCommand('npm', '@corvidhq/rtc')).toBe('npm install @corvidhq/rtc');
   });
 });

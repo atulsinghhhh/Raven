@@ -36,7 +36,7 @@ export function registerChatConnectionsCommand(chat: Command): void {
         if (connections.length === 0) {
           printEmpty(
             'No chat connections recorded.',
-            'A record appears the moment a client calls connect() with @raven/chat.',
+            'A record appears the moment a client calls connect() with @corvidhq/chat.',
           );
           return;
         }

@@ -1,15 +1,27 @@
 {
-  "name": "@raven/cli",
+  "name": "@corvidhq/cli",
   "version": "0.1.0",
   "description": "Raven CLI — manage projects, API keys, and rooms from the terminal; wire up a local app for RTC development.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atulsinghhhh/Raven.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/atulsinghhhh/Raven/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/atulsinghhhh/Raven/issues"
+  },
   "type": "module",
   "bin": {
-    "raven": "./dist/index.js"
+    "raven": "dist/index.js"
   },
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",

@@ -14,7 +14,7 @@ import { TokensResource } from './resources/tokens';
  * or an instance of this class, to a browser (Phase 10 spec §2).
  *
  * ```ts
- * import { Raven } from '@raven/server';
+ * import { Raven } from '@corvidhq/server';
  * const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
  * const token = await raven.tokens.create({ room: roomId, identity: 'user-42' });
  * ```

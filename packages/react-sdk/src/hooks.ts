@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import type { LocalParticipant, LocalTrack, RemoteParticipant, RTCError, Room, RTCClient } from '@raven/rtc';
+import type { LocalParticipant, LocalTrack, RemoteParticipant, RTCError, Room, RTCClient } from '@corvidhq/rtc';
 import { useRavenStore } from './context';
 import type { RavenConnectionState, RavenSnapshot } from './store';
 

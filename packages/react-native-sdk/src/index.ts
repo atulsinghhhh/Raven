@@ -39,7 +39,7 @@ export { bootstrapRavenNative } from './internal/bootstrap';
 export { RN_SDK_VERSION } from './version';
 
 /**
- * Re-exported from `@raven/rtc` so a mobile app needs one import for the
+ * Re-exported from `@corvidhq/rtc` so a mobile app needs one import for the
  * common types. These are the *same* types the web SDK uses — a `Room`
  * here is a `Room` there — which is what makes the two platforms one
  * mental model rather than two APIs that resemble each other (spec §10).
@@ -59,7 +59,7 @@ export type {
   Track,
   TrackKind,
   LogLevel,
-} from '@raven/rtc';
+} from '@corvidhq/rtc';
 
 // Deliberately not exported: the LiveKit adapter, `registerGlobals`
 // internals, RTCView, the chat WebSocket protocol, and every other

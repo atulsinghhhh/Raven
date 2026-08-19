@@ -151,7 +151,7 @@ describe('raven chat (integration)', () => {
       // Conversations can't be created from the CLI (that needs an API
       // key), so the empty state has to say where they do come from.
       expect(result.stdout).toContain('No conversations yet');
-      expect(result.stdout).toContain('@raven/server');
+      expect(result.stdout).toContain('@corvidhq/server');
     });
 
     it('is reachable as `chat list` too', async () => {

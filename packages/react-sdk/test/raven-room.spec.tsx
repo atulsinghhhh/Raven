@@ -1,4 +1,4 @@
-jest.mock('@raven/rtc', () => require('./helpers/fake-rtc-client'));
+jest.mock('@corvidhq/rtc', () => require('./helpers/fake-rtc-client'));
 
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { FakeRoom, lastClient, resetFakeRtc } from './helpers/fake-rtc-client';
