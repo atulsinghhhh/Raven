@@ -113,5 +113,27 @@ describe('ravenApi', () => {
       const diagnostics = await ravenApi.getDiagnostics('token', 'p1');
       expect(diagnostics.dependencies.sfu).toBe('down');
     });
+
+    it('listLiveStreams forwards a status filter', async () => {
+      mockFetchOnce(200, []);
+      await ravenApi.listLiveStreams('token', 'p1', 'LIVE');
+      const [url] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).toContain('status=LIVE');
+    });
+
+    it('listLiveStreams omits the query entirely when no status is given', async () => {
+      mockFetchOnce(200, []);
+      await ravenApi.listLiveStreams('token', 'p1');
+      const [url] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).not.toContain('status=');
+    });
+
+    it('getLiveStream fetches one stream by its stream_... ID', async () => {
+      mockFetchOnce(200, { id: 'stream_abc', title: 'Friday Q&A', status: 'LIVE', viewerCount: 12 });
+      const stream = await ravenApi.getLiveStream('token', 'p1', 'stream_abc');
+      expect(stream.viewerCount).toBe(12);
+      const [url] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).toContain('/v1/projects/p1/live-streams/stream_abc');
+    });
   });
 });

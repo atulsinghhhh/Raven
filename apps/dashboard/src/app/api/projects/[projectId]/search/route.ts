@@ -16,7 +16,7 @@ const SCAN_LIMIT = 200;
 const MAX_PER_GROUP = 5;
 
 export interface SearchHit {
-  type: 'room' | 'connection' | 'error' | 'participant';
+  type: 'room' | 'connection' | 'error' | 'participant' | 'stream';
   id: string;
   title: string;
   subtitle?: string;
@@ -33,10 +33,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (query.length < 2) return NextResponse.json({ hits: [] });
 
   try {
-    const [rooms, connections, errors] = await Promise.all([
+    const [rooms, connections, errors, streams] = await Promise.all([
       ravenApi.listRooms(token, projectId).catch(() => []),
       ravenApi.listConnections(token, projectId, { limit: SCAN_LIMIT }).catch(() => []),
       ravenApi.listErrors(token, projectId, { limit: SCAN_LIMIT }).catch(() => []),
+      ravenApi.listLiveStreams(token, projectId).catch(() => []),
     ]);
 
     const base = `/dashboard/projects/${projectId}`;
@@ -79,6 +80,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         href: `${base}/errors/${e.publicId}`,
       });
       if (hits.filter((h) => h.type === 'error').length >= MAX_PER_GROUP) break;
+    }
+
+    for (const stream of streams) {
+      if (!match(query, stream.title, stream.id, ...stream.hosts.map((h) => h.identity))) continue;
+      hits.push({
+        type: 'stream',
+        id: stream.id,
+        title: stream.title,
+        subtitle: `${stream.status.toLowerCase()}${stream.hosts[0] ? ` · ${stream.hosts[0].identity}` : ''}`,
+        href: `${base}/live-streaming/streams/${stream.id}`,
+      });
+      if (hits.filter((h) => h.type === 'stream').length >= MAX_PER_GROUP) break;
     }
 
     // Participants aren't a resource of their own — they're derived from the

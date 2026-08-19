@@ -265,6 +265,50 @@ export interface HealthResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Live Streaming (Phase 15)
+//
+// Inspection only, same rule as Rooms and Chat: this dashboard never
+// creates, starts, updates, or ends a stream. Those are calls your own
+// backend makes with @corvidhq/server/raven-sdk — the dashboard shows
+// what already exists, the same way `rooms` shows rooms nobody clicked
+// "create" for here.
+// ---------------------------------------------------------------------------
+
+export type LiveStreamStatus = 'CREATED' | 'STARTING' | 'LIVE' | 'ENDING' | 'ENDED';
+export type LiveStreamVisibility = 'PUBLIC' | 'PRIVATE' | 'AUTHENTICATED';
+export type LiveStreamHostRole = 'HOST' | 'CO_HOST';
+
+export interface LiveStreamHostSummary {
+  identity: string;
+  role: LiveStreamHostRole;
+  invitedAt: string;
+}
+
+export interface LiveStreamSummary {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  category: string | null;
+  tags: string[];
+  language: string | null;
+  visibility: LiveStreamVisibility;
+  metadata: Record<string, unknown> | null;
+  status: LiveStreamStatus;
+  hosts: LiveStreamHostSummary[];
+  /** null = the SFU couldn't be reached when this was read — never coerced to 0. Always null from `listLiveStreams`; only `getLiveStream` polls for it. */
+  viewerCount: number | null;
+  peakViewerCount: number;
+  conversationId: string | null;
+  chatRootMessageId: string | null;
+  scheduledAt: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
 // Chat (Phase 12)
 //
 // Note what these types don't carry: message text. The dashboard shows
@@ -619,4 +663,14 @@ export const ravenApi = {
 
   listWebhookDeliveries: (token: string, projectId: string, webhookId: string) =>
     apiFetch<WebhookDeliveryRecord[]>(`/v1/projects/${projectId}/webhooks/${webhookId}/deliveries`, { token }),
+
+  listLiveStreams: (token: string, projectId: string, status?: LiveStreamStatus) =>
+    apiFetch<LiveStreamSummary[]>(
+      `/v1/projects/${projectId}/live-streams${status ? `?status=${status}` : ''}`,
+      { token },
+    ),
+
+  /** Includes the stream's live viewer count — `listLiveStreams` doesn't, to avoid one SFU round trip per row. */
+  getLiveStream: (token: string, projectId: string, streamId: string) =>
+    apiFetch<LiveStreamSummary>(`/v1/projects/${projectId}/live-streams/${streamId}`, { token }),
 };

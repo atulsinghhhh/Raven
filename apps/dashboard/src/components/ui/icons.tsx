@@ -141,6 +141,23 @@ export const IconPresence = (p: IconProps) => (
   </Svg>
 );
 
+/** Live Streaming overview — a play control, distinct from IconStreams' list glyph. */
+export const IconLiveStreaming = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="8" cy="8" r="6.25" />
+    <path d="M6.5 5.5l4 2.5-4 2.5z" />
+  </Svg>
+);
+
+/** Streams list — a screen with a live dot, distinct from IconRooms' plain rectangle. */
+export const IconStreams = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="1.75" y="2.75" width="12.5" height="8.5" rx="1.25" />
+    <path d="M5.5 14h5" />
+    <circle cx="10.75" cy="5.25" r="1" fill="currentColor" stroke="none" />
+  </Svg>
+);
+
 export const IconSearch = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="7.25" cy="7.25" r="4.75" />

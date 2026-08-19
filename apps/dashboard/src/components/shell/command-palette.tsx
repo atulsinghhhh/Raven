@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NAV_GROUPS } from '@/lib/nav';
-import { IconConnections, IconErrors, IconParticipants, IconRooms, IconSearch } from '@/components/ui/icons';
+import { IconConnections, IconErrors, IconLiveStreaming, IconParticipants, IconRooms, IconSearch } from '@/components/ui/icons';
 import type { SearchHit } from '@/app/api/projects/[projectId]/search/route';
 
 type Item = SearchHit | { type: 'page'; id: string; title: string; subtitle?: string; href: string };
@@ -14,9 +14,10 @@ const GROUP_LABEL: Record<Item['type'], string> = {
   connection: 'Connections',
   participant: 'Participants',
   error: 'Errors',
+  stream: 'Live Streaming',
 };
 
-const GROUP_ORDER: Item['type'][] = ['page', 'connection', 'room', 'participant', 'error'];
+const GROUP_ORDER: Item['type'][] = ['page', 'connection', 'room', 'stream', 'participant', 'error'];
 
 function ItemIcon({ type }: { type: Item['type'] }) {
   const cls = 'size-3.5 shrink-0 text-subtle';
@@ -24,6 +25,7 @@ function ItemIcon({ type }: { type: Item['type'] }) {
   if (type === 'connection') return <IconConnections className={cls} />;
   if (type === 'participant') return <IconParticipants className={cls} />;
   if (type === 'error') return <IconErrors className={cls} />;
+  if (type === 'stream') return <IconLiveStreaming className={cls} />;
   return <IconSearch className={cls} />;
 }
 

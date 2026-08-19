@@ -26,6 +26,8 @@ export interface NavItem {
     | 'chat'
     | 'conversations'
     | 'presence'
+    | 'live-streaming'
+    | 'streams'
     | 'webhooks'
     | 'members'
     | 'audit';
@@ -58,6 +60,16 @@ export const NAV_GROUPS: NavGroup[] = [
       { slug: 'chat/conversations', label: 'Conversations', icon: 'conversations' },
       { slug: 'chat/connections', label: 'Connections', icon: 'connections' },
       { slug: 'webhooks', label: 'Webhooks', icon: 'webhooks' },
+    ],
+  },
+  {
+    // Its own group too, for the same reason Chat is — a live stream
+    // composes an RTC room and a chat conversation, but a developer
+    // thinks of it as one product, not two.
+    label: 'Live Streaming',
+    items: [
+      { slug: 'live-streaming', label: 'Overview', icon: 'live-streaming' },
+      { slug: 'live-streaming/streams', label: 'Streams', icon: 'streams' },
     ],
   },
   {
