@@ -36,6 +36,7 @@ version:
   "dependencies": {
     "@raven/rtc": "file:../Raven/packages/sdk",
     "@raven/chat": "file:../Raven/packages/chat-sdk",
+    "@raven/client": "file:../Raven/packages/client",
     "@raven/react": "file:../Raven/packages/react-sdk",
     "@raven/react-native": "file:../Raven/packages/react-native-sdk",
     "@raven/server": "file:../Raven/packages/server-sdk"
@@ -55,6 +56,7 @@ import { createRTCClient } from '@raven/rtc';
 |---|---|
 | `@raven/rtc` | `packages/sdk` |
 | `@raven/chat` | `packages/chat-sdk` |
+| `@raven/client` | `packages/client` |
 | `@raven/react` | `packages/react-sdk` |
 | `@raven/react-native` | `packages/react-native-sdk` |
 | `@raven/server` | `packages/server-sdk` |

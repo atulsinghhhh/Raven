@@ -1,11 +1,13 @@
 ---
 title: TypeScript / Web SDK
-description: Installation, browser support, and using @raven/rtc from Next.js.
+description: Installing @raven/rtc, @raven/chat, and @raven/client; browser support; and using them from Next.js.
 ---
 
-`@raven/rtc` is Raven's browser RTC SDK — see [RTC → Overview](/rtc/overview)
-for the full API (joining, tracks, events, errors, reconnection). This
-page covers installation, browser support, and framework-specific usage.
+Raven ships three browser packages: `@raven/rtc` for calls,
+`@raven/chat` for messaging, and `@raven/client` for both behind one
+object. This page covers which to install, browser support, and
+framework-specific usage — the full APIs live in
+[RTC → Overview](/rtc/overview) and [Chat → Overview](/chat/overview).
 
 ## Install
 
@@ -13,14 +15,78 @@ page covers installation, browser support, and framework-specific usage.
 > will look like once these packages are released. Until then, install
 > from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
+Pick the package that matches what you're building:
+
+| You want | Install | Import |
+|---|---|---|
+| Calls only | `@raven/rtc` | `createRTCClient` |
+| Messaging only | `@raven/chat` | `createChatClient` |
+| Both | `@raven/client` | `createRaven` |
+
 ```bash
-npm install @raven/rtc @raven/chat
+npm install @raven/rtc          # calls
+npm install @raven/chat         # messaging
+npm install @raven/client       # both, behind one object
 ```
 
-`@raven/rtc` and `@raven/chat` are independent packages — install only
-what you use. Neither depends on the other, and either can fail without
-affecting the other. For RTC, everything on this page and in
-[RTC Overview](/rtc/overview) applies. For chat:
+`@raven/rtc` and `@raven/chat` are independent packages — neither
+depends on the other, and either can fail without affecting the other.
+Install only what you use; `@raven/rtc` alone is ~6 KB gzipped and
+pulls in no messaging code.
+
+### Calls and messaging together — `@raven/client`
+
+If your app does both, `@raven/client` wires the two clients from one
+config so you aren't managing two objects and two token lifecycles:
+
+```ts
+import { createRaven } from '@raven/client';
+
+// Every value here comes from your backend's token-mint response.
+// Never mint a token in the browser.
+const raven = createRaven({
+  token: rtc.token,           // POST /v1/rtc/tokens
+  endpoint: rtc.livekitUrl,
+  iceServers: rtc.iceServers,
+  chatToken: chat.token,      // POST /v1/chat/tokens
+  chatApiUrl: chat.apiUrl,
+});
+
+const room = await raven.join('room_123');
+await room.enableCamera();
+await room.enableMicrophone();
+
+await raven.chat!.connect({ room: 'room_123' });
+raven.chat!.on('message', (m) => console.log(`${m.senderId}: ${m.text}`));
+await raven.chat!.sendMessage({ text: 'Hello everyone!' });
+
+// Leaving the call keeps chat connected; dispose() tears down both.
+await raven.leave();
+await raven.dispose();
+```
+
+This is a facade, not a third implementation: `raven.rtc` **is** an
+`RTCClient` and `raven.chat` **is** a `ChatClient`. Every method, event,
+and type documented in [RTC](/rtc/overview) and [Chat](/chat/overview)
+works here unchanged. It mirrors the shape
+[`@raven/react-native`](/sdk/react-native) already gives mobile, so the
+same mental model carries across platforms.
+
+Both credentials are optional, independently — pass whichever planes you
+actually use:
+
+```ts
+createRaven({ token, endpoint });                       // calls only
+createRaven({ chatToken, chatApiUrl });                 // messaging only
+createRaven({ token, endpoint, chatToken, chatApiUrl }); // both
+```
+
+Use `raven.hasRtc` / `raven.hasChat` to branch on what's available.
+Calling `join()` on an instance with no RTC credentials throws
+immediately with an error explaining why, rather than failing later as a
+null reference.
+
+### Messaging on its own
 
 ```ts
 import { createChatClient } from '@raven/chat';
