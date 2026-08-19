@@ -229,6 +229,13 @@ export const IconExternal = (p: IconProps) => (
   </Svg>
 );
 
+export const IconEffects = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M8 1.75v2M8 12.25v2M1.75 8h2M12.25 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M12.5 3.5l-1.4 1.4M4.9 11.1l-1.4 1.4" />
+    <circle cx="8" cy="8" r="1.6" />
+  </Svg>
+);
+
 export const IconFolder = (p: IconProps) => (
   <Svg {...p}>
     <path d="M1.75 4.25A1.5 1.5 0 013.25 2.75h2.6a1 1 0 01.8.4l.7.95h5.4a1.5 1.5 0 011.5 1.5v6.15a1.5 1.5 0 01-1.5 1.5H3.25a1.5 1.5 0 01-1.5-1.5z" />

@@ -30,7 +30,8 @@ export interface NavItem {
     | 'streams'
     | 'webhooks'
     | 'members'
-    | 'audit';
+    | 'audit'
+    | 'effects';
 }
 
 export interface NavGroup {
@@ -71,6 +72,13 @@ export const NAV_GROUPS: NavGroup[] = [
       { slug: 'live-streaming', label: 'Overview', icon: 'live-streaming' },
       { slug: 'live-streaming/streams', label: 'Streams', icon: 'streams' },
     ],
+  },
+  {
+    // A reusable video pipeline shared by RTC and Live Streaming, not a
+    // feature of either — same reasoning as Chat and Live Streaming
+    // getting their own groups above.
+    label: 'Effects',
+    items: [{ slug: 'effects', label: 'Overview', icon: 'effects' }],
   },
   {
     label: 'Observability',
