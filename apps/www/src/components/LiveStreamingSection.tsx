@@ -43,8 +43,8 @@ export function LiveStreamingSection() {
     <section className="border-t border-line bg-surface-sunken/40 py-24">
       <div className="mx-auto grid max-w-6xl gap-12 px-6 md:grid-cols-2 md:items-center">
         <div>
-          <span className="text-sm font-semibold text-accent-text">Live Streaming</span>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-fg md:text-4xl">
+          <span className="mono-label text-[12px] text-accent-text">Live Streaming</span>
+          <h2 className="mt-2 text-3xl font-light tracking-tight text-fg md:text-4xl">
             Turn any product into a live experience.
           </h2>
           <p className="mt-4 text-muted">
@@ -56,9 +56,9 @@ export function LiveStreamingSection() {
           </div>
         </div>
 
-        <div ref={ref} className="overflow-hidden rounded-xl border border-line bg-surface shadow-raven-lg">
+        <div ref={ref} className="overflow-hidden rounded-(--radius-panel) border border-line bg-surface">
           <div className="flex items-center justify-between border-b border-line px-5 py-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-danger px-2.5 py-1 text-xs font-semibold text-accent-fg">
+            <span className="mono-label inline-flex items-center gap-1.5 rounded-full bg-danger px-2.5 py-1 text-[11px] text-accent-fg">
               <span className="h-1.5 w-1.5 rounded-full bg-accent-fg animate-pulse-dot" />
               LIVE
             </span>

@@ -23,6 +23,8 @@ export const DOCS_ROUTES = {
   rtcDiagnostics: `${DOCS_URL}/rtc/diagnostics`,
   chat: `${DOCS_URL}/chat`,
   liveStreaming: `${DOCS_URL}/live-streaming`,
+  effects: `${DOCS_URL}/effects`,
+  effectsQuickstart: `${DOCS_URL}/effects/quickstart`,
   environments: `${DOCS_URL}/production/environments`,
   auditLogs: `${DOCS_URL}/production/audit-logs`,
   sdkWeb: `${DOCS_URL}/sdk/web`,

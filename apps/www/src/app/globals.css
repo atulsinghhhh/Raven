@@ -1,129 +1,64 @@
 @import 'tailwindcss';
 
 /*
- * Raven design system.
+ * Raven marketing-site design system.
  *
- * Two layers here:
- *   1. Raw palette + semantic tokens as CSS vars, redefined per theme.
- *   2. An @theme block mapping those into Tailwind utilities, so
- *      `bg-surface`, `text-muted`, `border-line` etc. all work and all
- *      re-theme automatically.
- *
- * Dark mode is driven by data-theme on <html>, not prefers-color-scheme
- * directly — that's what lets the toggle override the OS. The inline
- * script in layout.tsx resolves stored-choice-or-system before paint, so
- * data-theme is always set by the time anything renders.
+ * Dark-only by design — this is the front door, not the dashboard, and
+ * it commits to one look rather than toggling. Depth comes from three
+ * near-black surface layers plus 1px hairline borders, not shadows; the
+ * only saturated color on the page is the accent. Headings run light
+ * (weight 300-400) instead of bold — the restraint is the point.
  */
 
-@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
-
-:root,
-[data-theme='light'] {
-  color-scheme: light;
-
-  /* Surfaces, back to front */
-  --canvas: oklch(0.985 0.002 265);
-  --surface: oklch(1 0 0);
-  --surface-raised: oklch(0.985 0.002 265);
-  --surface-sunken: oklch(0.968 0.003 265);
-  --overlay: oklch(1 0 0);
-  --scrim: oklch(0.2 0.01 265 / 0.4);
-
-  /* Text */
-  --fg: oklch(0.22 0.012 265);
-  --fg-muted: oklch(0.49 0.012 265);
-  --fg-subtle: oklch(0.62 0.012 265);
-  --fg-inverse: oklch(0.99 0 0);
-
-  /* Lines */
-  --line: oklch(0.918 0.004 265);
-  --line-strong: oklch(0.86 0.006 265);
-
-  /* Accent — Raven's signal violet */
-  --accent: oklch(0.53 0.208 279);
-  --accent-hover: oklch(0.47 0.21 279);
-  --accent-fg: oklch(0.99 0 0);
-  --accent-subtle: oklch(0.955 0.025 279);
-  --accent-line: oklch(0.86 0.07 279);
-  --accent-text: oklch(0.47 0.2 279);
-
-  /* Semantic states */
-  --success: oklch(0.6 0.145 155);
-  --success-subtle: oklch(0.96 0.035 155);
-  --success-line: oklch(0.86 0.08 155);
-  --success-text: oklch(0.46 0.12 155);
-
-  --warning: oklch(0.75 0.16 75);
-  --warning-subtle: oklch(0.965 0.045 85);
-  --warning-line: oklch(0.87 0.09 80);
-  --warning-text: oklch(0.52 0.12 65);
-
-  --danger: oklch(0.58 0.21 22);
-  --danger-subtle: oklch(0.96 0.03 22);
-  --danger-line: oklch(0.87 0.075 22);
-  --danger-text: oklch(0.51 0.19 22);
-
-  --info: oklch(0.6 0.14 245);
-  --info-subtle: oklch(0.96 0.03 245);
-  --info-line: oklch(0.86 0.07 245);
-  --info-text: oklch(0.47 0.14 245);
-
-  --shadow-sm: 0 1px 2px oklch(0.2 0.01 265 / 0.05);
-  --shadow-md: 0 1px 3px oklch(0.2 0.01 265 / 0.08), 0 4px 12px oklch(0.2 0.01 265 / 0.06);
-  --shadow-lg: 0 8px 32px oklch(0.2 0.01 265 / 0.12), 0 2px 8px oklch(0.2 0.01 265 / 0.06);
-}
-
-[data-theme='dark'] {
+:root {
   color-scheme: dark;
 
-  /* Deliberately blue-black, not pure #000 — pure black makes borders and
-     elevation impossible to read on OLED and looks cheap next to real
-     infrastructure consoles. */
-  --canvas: oklch(0.165 0.008 265);
-  --surface: oklch(0.199 0.009 265);
-  --surface-raised: oklch(0.232 0.01 265);
-  --surface-sunken: oklch(0.145 0.008 265);
-  --overlay: oklch(0.232 0.01 265);
-  --scrim: oklch(0.1 0.01 265 / 0.6);
+  /* Surfaces, back to front */
+  --canvas: #0b0b0e;
+  --surface: #111114;
+  --surface-raised: #17171b;
+  --surface-sunken: #08080a;
+  --overlay: #17171b;
+  --scrim: rgb(5 5 7 / 70%);
 
-  --fg: oklch(0.965 0.003 265);
-  --fg-muted: oklch(0.735 0.012 265);
-  --fg-subtle: oklch(0.6 0.012 265);
-  --fg-inverse: oklch(0.18 0.008 265);
+  /* Text — warm cream, not pure white */
+  --fg: #f6f1e6;
+  --fg-muted: #8d8d95;
+  --fg-subtle: #64646c;
+  --fg-inverse: #0b0b0e;
 
-  --line: oklch(0.285 0.012 265);
-  --line-strong: oklch(0.37 0.014 265);
+  /* Lines — the structural skeleton; almost everything below reduces to this */
+  --line: #232328;
+  --line-strong: #35353c;
 
-  --accent: oklch(0.68 0.175 279);
-  --accent-hover: oklch(0.74 0.17 279);
-  --accent-fg: oklch(0.16 0.01 279);
-  --accent-subtle: oklch(0.28 0.06 279);
-  --accent-line: oklch(0.42 0.11 279);
-  --accent-text: oklch(0.79 0.13 279);
+  /* Accent — Raven's burnt orange, used alone (no complementary second CTA color) */
+  --accent: #e2672f;
+  --accent-hover: #ef7c47;
+  --accent-fg: #fff7ee;
+  --accent-subtle: #2a180f;
+  --accent-line: #6b3a20;
+  --accent-text: #f0925c;
 
-  --success: oklch(0.7 0.15 155);
-  --success-subtle: oklch(0.27 0.05 155);
-  --success-line: oklch(0.4 0.08 155);
-  --success-text: oklch(0.8 0.13 155);
+  /* Semantic states */
+  --success: #59c98a;
+  --success-subtle: #12261c;
+  --success-line: #2c4a3a;
+  --success-text: #7ad6a3;
 
-  --warning: oklch(0.79 0.15 78);
-  --warning-subtle: oklch(0.3 0.05 70);
-  --warning-line: oklch(0.43 0.08 72);
-  --warning-text: oklch(0.85 0.13 82);
+  --warning: #e0b34d;
+  --warning-subtle: #2a2313;
+  --warning-line: #4a3f24;
+  --warning-text: #e8c476;
 
-  --danger: oklch(0.65 0.19 22);
-  --danger-subtle: oklch(0.29 0.07 22);
-  --danger-line: oklch(0.42 0.11 22);
-  --danger-text: oklch(0.79 0.14 22);
+  --danger: #e2564f;
+  --danger-subtle: #2a1414;
+  --danger-line: #4a2624;
+  --danger-text: #ea7972;
 
-  --info: oklch(0.7 0.13 245);
-  --info-subtle: oklch(0.28 0.05 245);
-  --info-line: oklch(0.41 0.08 245);
-  --info-text: oklch(0.81 0.11 245);
-
-  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
-  --shadow-md: 0 1px 3px oklch(0 0 0 / 0.4), 0 4px 12px oklch(0 0 0 / 0.3);
-  --shadow-lg: 0 8px 32px oklch(0 0 0 / 0.5), 0 2px 8px oklch(0 0 0 / 0.3);
+  --info: #5aa8e0;
+  --info-subtle: #101f2a;
+  --info-line: #294a63;
+  --info-text: #7cbdea;
 }
 
 @theme inline {
@@ -169,26 +104,20 @@
   --color-info-line: var(--info-line);
   --color-info-text: var(--info-text);
 
-  --font-sans:
-    'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    sans-serif;
-  --font-mono:
-    ui-monospace, 'SF Mono', 'SFMono-Regular', 'JetBrains Mono', 'Menlo', 'Consolas', 'Liberation Mono', monospace;
+  --font-sans: var(--font-raven-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: var(--font-raven-mono), ui-monospace, 'SF Mono', 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
 
-  --radius-xs: 0.25rem;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-
-  --shadow-raven-sm: var(--shadow-sm);
-  --shadow-raven-md: var(--shadow-md);
-  --shadow-raven-lg: var(--shadow-lg);
+  /* One near-sharp radius for panels/cards/inputs; buttons break to full pill separately. */
+  --radius-panel: 0.375rem;
 }
 
 @layer base {
   * {
     border-color: var(--line);
+  }
+
+  html {
+    background: var(--canvas);
   }
 
   body {
@@ -198,9 +127,6 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Tabular figures everywhere a number is compared against another number
-     — metric tiles, table cells, timestamps. Proportional digits make
-     columns of numbers jitter. */
   .tabular {
     font-variant-numeric: tabular-nums;
   }
@@ -210,8 +136,6 @@
     color: var(--accent-text);
   }
 
-  /* One focus treatment for the whole app. Never remove it — see the
-     accessibility notes in docs/dashboard.md. */
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
@@ -236,23 +160,19 @@
 }
 
 @layer utilities {
-  /* Shared entry motion. Kept short — an infrastructure console should
-     feel instant, and anything above ~200ms starts to feel like lag. */
+  /* A console-style label: monospace, uppercase, tracked wide. Used for
+     nav links, section eyebrows, and other developer-facing microcopy —
+     never for body text. */
+  .mono-label {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
   @keyframes raven-fade-in {
     from {
       opacity: 0;
       transform: translateY(2px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
-  @keyframes raven-scale-in {
-    from {
-      opacity: 0;
-      transform: scale(0.97);
     }
     to {
       opacity: 1;
@@ -270,11 +190,28 @@
     }
   }
 
+  /* Traveling packet along an SVG path — shared by the hero network and
+     the architecture diagram, both driven by CSS offset-path so the
+     motion runs from pure CSS with no JS/RAF loop. */
+  @keyframes raven-travel {
+    0% {
+      offset-distance: 0%;
+      opacity: 0;
+    }
+    8% {
+      opacity: 1;
+    }
+    92% {
+      opacity: 1;
+    }
+    100% {
+      offset-distance: 100%;
+      opacity: 0;
+    }
+  }
+
   .animate-fade-in {
     animation: raven-fade-in 0.16s ease-out;
-  }
-  .animate-scale-in {
-    animation: raven-scale-in 0.13s ease-out;
   }
   .animate-pulse-dot {
     animation: raven-pulse 2s ease-in-out infinite;

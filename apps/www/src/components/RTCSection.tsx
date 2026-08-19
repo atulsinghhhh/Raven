@@ -25,13 +25,13 @@ export function RTCSection() {
     <section className="border-t border-line bg-surface-sunken/40 py-24">
       <div className="mx-auto grid max-w-6xl gap-12 px-6 md:grid-cols-2 md:items-center">
         <div>
-          <span className="text-sm font-semibold text-accent-text">RTC</span>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-fg md:text-4xl">
+          <span className="mono-label text-[12px] text-accent-text">RTC</span>
+          <h2 className="mt-2 text-3xl font-light tracking-tight text-fg md:text-4xl">
             Video calls without the infrastructure headache.
           </h2>
           <p className="mt-4 text-muted">
             Rooms, participants, and reconnection handled underneath — your app calls{' '}
-            <code className="rounded bg-surface-raised px-1.5 py-0.5 font-mono text-sm text-fg">join()</code> and gets
+            <code className="rounded-(--radius-panel) bg-surface-raised px-1.5 py-0.5 font-mono text-sm text-fg">join()</code> and gets
             back a room with cameras, microphones, and screen shares already wired for network blips.
           </p>
           <div className="mt-6">
@@ -39,10 +39,10 @@ export function RTCSection() {
           </div>
         </div>
 
-        <div ref={ref} className="rounded-xl border border-line bg-surface p-6 shadow-raven-lg">
+        <div ref={ref} className="rounded-(--radius-panel) border border-line bg-surface p-6">
           <div className="flex items-center justify-between border-b border-line pb-4">
             <span className="font-mono text-sm text-muted">Raven Room · demo-room</span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-success-line bg-success-subtle px-2.5 py-1 text-xs font-medium text-success-text">
+            <span className="mono-label inline-flex items-center gap-1.5 rounded-full border border-success-line bg-success-subtle px-2.5 py-1 text-[11px] text-success-text">
               <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse-dot" />
               Connected
             </span>
@@ -52,7 +52,7 @@ export function RTCSection() {
             {PARTICIPANTS.map((name, i) => (
               <div
                 key={name}
-                className="flex flex-col items-center gap-2 rounded-lg border border-line bg-surface-raised p-4 transition-all duration-500"
+                className="flex flex-col items-center gap-2 rounded-(--radius-panel) border border-line bg-surface-raised p-4 transition-all duration-500"
                 style={{
                   opacity: inView ? 1 : 0,
                   transform: inView ? 'none' : 'translateY(8px)',

@@ -32,7 +32,7 @@ export function ChatSection() {
     <section className="border-t border-line py-24">
       <div className="mx-auto grid max-w-6xl gap-12 px-6 md:grid-cols-2 md:items-center">
         <div className="order-2 md:order-1">
-          <div ref={ref} className="rounded-xl border border-line bg-surface p-6 shadow-raven-lg">
+          <div ref={ref} className="rounded-(--radius-panel) border border-line bg-surface p-6">
             <div className="border-b border-line pb-4">
               <span className="font-mono text-sm text-muted">support-room-42</span>
             </div>
@@ -50,7 +50,7 @@ export function ChatSection() {
                 >
                   <span className="text-xs font-medium text-subtle">{m.from}</span>
                   <span
-                    className={`max-w-[80%] rounded-lg px-3.5 py-2 text-sm ${
+                    className={`max-w-[80%] rounded-(--radius-panel) px-3.5 py-2 text-sm ${
                       m.from === 'Alice' ? 'bg-surface-raised text-fg' : 'bg-accent text-accent-fg'
                     }`}
                   >
@@ -66,7 +66,7 @@ export function ChatSection() {
                 </li>
               ))}
               <li
-                className="flex items-center gap-1 rounded-lg bg-surface-raised px-3.5 py-2.5 transition-all duration-500"
+                className="flex items-center gap-1 rounded-(--radius-panel) bg-surface-raised px-3.5 py-2.5 transition-all duration-500"
                 style={{
                   opacity: inView ? 1 : 0,
                   transitionDelay: `${MESSAGES.length * 180}ms`,
@@ -83,8 +83,8 @@ export function ChatSection() {
         </div>
 
         <div className="order-1 md:order-2">
-          <span className="text-sm font-semibold text-accent-text">Chat</span>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-fg md:text-4xl">
+          <span className="mono-label text-[12px] text-accent-text">Chat</span>
+          <h2 className="mt-2 text-3xl font-light tracking-tight text-fg md:text-4xl">
             Messaging that feels instant.
           </h2>
           <p className="mt-4 text-muted">

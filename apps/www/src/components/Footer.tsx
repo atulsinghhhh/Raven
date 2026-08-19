@@ -3,11 +3,12 @@ import { DiscordIcon } from './icons';
 
 const COLUMNS = [
   {
-    title: 'Products',
+    title: 'Product',
     links: [
       { label: 'RTC', href: DOCS_ROUTES.rtc },
       { label: 'Chat', href: DOCS_ROUTES.chat },
       { label: 'Live Streaming', href: DOCS_ROUTES.liveStreaming },
+      { label: 'Effects', href: DOCS_ROUTES.effects },
     ],
   },
   {
@@ -35,18 +36,18 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <span className="flex items-center gap-2 font-semibold tracking-tight text-fg">
+            <span className="flex items-center gap-2 text-[15px] font-medium tracking-tight text-fg">
               <RavenMark />
-              Raven
+              RAVEN
             </span>
             <p className="mt-3 max-w-xs text-sm text-muted">
-              Real-time infrastructure for developers — RTC, chat, and live streaming through one API.
+              Real-time infrastructure for developers — RTC, chat, live streaming, and effects through one API.
             </p>
           </div>
 
           {COLUMNS.map((column) => (
             <div key={column.title}>
-              <span className="text-sm font-semibold text-fg">{column.title}</span>
+              <span className="mono-label text-[11px] text-subtle">{column.title}</span>
               <ul className="mt-3 flex flex-col gap-2.5">
                 {column.links.map((link) => (
                   <li key={link.label}>
@@ -74,7 +75,7 @@ export function Footer() {
 
 function RavenMark() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5 text-accent" fill="currentColor" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-4 w-4 text-accent" fill="currentColor" aria-hidden="true">
       <path d="M12 2 3 20h5.2l1.4-3.2h4.8L15.8 20H21L12 2Zm-1.3 11 1.3-3 1.3 3h-2.6Z" />
     </svg>
   );

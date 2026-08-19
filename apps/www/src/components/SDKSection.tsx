@@ -2,9 +2,9 @@ import { Reveal } from './Reveal';
 import { DOCS_ROUTES } from '../lib/links';
 
 const SDKS = [
-  { name: 'Web', packages: ['@corvidhq/rtc', '@corvidhq/chat', '@corvidhq/client'], href: DOCS_ROUTES.sdkWeb },
-  { name: 'React', packages: ['@corvidhq/react'], href: DOCS_ROUTES.sdkReact },
-  { name: 'React Native', packages: ['@corvidhq/react-native'], href: DOCS_ROUTES.sdkReactNative },
+  { name: 'Web', packages: ['@corvidhq/rtc', '@corvidhq/chat', '@corvidhq/client', '@corvidhq/effects'], href: DOCS_ROUTES.sdkWeb },
+  { name: 'React', packages: ['@corvidhq/react', '@corvidhq/effects'], href: DOCS_ROUTES.sdkReact },
+  { name: 'React Native', packages: ['@corvidhq/react-native', '@corvidhq/effects'], href: DOCS_ROUTES.sdkReactNative },
   { name: 'Flutter', packages: ['raven_rtc', 'raven_chat', 'raven_live'], href: DOCS_ROUTES.sdkFlutter },
   { name: 'Node.js', packages: ['@corvidhq/server'], href: DOCS_ROUTES.sdkNode },
   { name: 'Python', packages: ['raven-sdk'], href: DOCS_ROUTES.sdkPython },
@@ -17,7 +17,7 @@ export function SDKSection() {
       <div className="mx-auto max-w-6xl px-6">
         <Reveal>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
+            <h2 className="text-3xl font-light tracking-tight text-fg md:text-4xl">
               Build in the language your team already uses.
             </h2>
             <p className="mt-4 text-muted">
@@ -36,9 +36,9 @@ export function SDKSection() {
             <Reveal key={sdk.name} delayMs={i * 50}>
               <a
                 href={sdk.href}
-                className="flex h-full flex-col rounded-xl border border-line bg-surface p-5 transition-shadow hover:shadow-raven-md"
+                className="flex h-full flex-col rounded-(--radius-panel) border border-line bg-surface p-5 transition-colors hover:border-line-strong"
               >
-                <span className="font-semibold text-fg">{sdk.name}</span>
+                <span className="text-sm font-medium text-fg">{sdk.name}</span>
                 <ul className="mt-3 flex flex-col gap-1">
                   {sdk.packages.map((pkg) => (
                     <li key={pkg} className="truncate font-mono text-xs text-muted">
@@ -46,7 +46,7 @@ export function SDKSection() {
                     </li>
                   ))}
                 </ul>
-                <span className="mt-auto pt-4 text-xs font-medium text-accent-text">Documentation →</span>
+                <span className="mono-label mt-auto pt-4 text-[11px] text-accent-text">Documentation →</span>
               </a>
             </Reveal>
           ))}
