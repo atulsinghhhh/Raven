@@ -341,7 +341,8 @@ Full reference: `docs/sdk/chat.md`. Runnable examples: `examples/chat/`
 - `examples/signaling-demo/` — minimal two-tab browser demo of the
   signaling layer (no build step, no media)
 - `examples/media-demo/` — minimal two-tab browser demo of real
-  camera/microphone media through LiveKit (no build step)
+  camera/microphone media through `@raven/rtc`, plus a small Python
+  backend using `raven-sdk` (no frontend build step)
 - `examples/video-call/` — minimal two-tab browser demo built entirely on
   `@raven/rtc`'s public API (no raw WebRTC types)
 - `examples/cli-workflow.md` — the canonical `raven login` →

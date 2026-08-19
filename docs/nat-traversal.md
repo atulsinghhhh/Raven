@@ -72,34 +72,41 @@ in any generated `iceServers` entry.
 
 ## Forcing TURN-relay-only (testing NAT fallback)
 
-The media demo (`examples/media-demo/index.html`) has a "Force TURN relay
-only" checkbox. When checked, it sets:
+`iceTransportPolicy: 'relay'` is the browser's own native WebRTC
+mechanism (no custom ICE logic in Raven) — it restricts the local ICE
+agent to only ever surface `relay` candidates as its own local
+candidates, which forces every connectivity check (and therefore all
+media) through coturn regardless of whether a direct path would have
+worked. This is how Test B below is constructed.
 
-```js
-rtcConfig.iceTransportPolicy = 'relay'
-```
-
-This is the browser's own native WebRTC mechanism (no custom ICE logic in
-Raven) — it restricts the local ICE agent to only ever surface `relay`
-candidates as its own local candidates, which forces every connectivity
-check (and therefore all media) through coturn regardless of whether a
-direct path would have worked. This is how Test B below is constructed.
+**Not currently exposed by `@raven/rtc`'s public API.** The media demo
+(`examples/media-demo/`) used to have a "Force TURN relay only"
+checkbox that set this by reaching directly into `livekit-client`'s
+`Room.connect()` options — a capability the rewrite to Raven's actual
+public SDK surface (`RTCClientConfig` only accepts `iceServers`, not an
+arbitrary `RTCConfiguration`) correctly no longer exposes. Test B below
+was tested directly against the SFU rather than through the demo.
 
 ## Observing connection type
 
-Two ways, in order of authority:
+**`chrome://webrtc-internals`** is the authoritative source, and now the
+only one this repo uses. Inspect the active `candidate-pair` stats
+(`state: succeeded`) and cross-reference the `local candidate`'s
+`candidateType`.
 
-1. **`chrome://webrtc-internals`** — the authoritative source. Inspect the
-   active `candidate-pair` stats (`state: succeeded`) and cross-reference
-   the `local candidate`'s `candidateType`.
-2. **In-app diagnostic** (`pollConnectionType()` in the media demo) — best
-   effort, reaching into `livekit-client`'s undocumented internals
-   (`room.engine.pcManager.subscriber.pc`) to read the same
-   `RTCPeerConnection.getStats()` data automatically every 2s. This is
-   explicitly documented in the code as non-authoritative — LiveKit's
-   internal object graph isn't a public API and the demo already handles
-   it being unavailable ("connection type: unknown") without treating that
-   as a connection failure.
+An earlier version of the media demo also polled this itself
+(`pollConnectionType()`), reaching into `livekit-client`'s undocumented
+internals (`room.engine.pcManager.subscriber.pc`) to approximate the
+same `RTCPeerConnection.getStats()` data every 2s. It was explicitly
+documented in the code as non-authoritative even then. The rewrite to
+`@raven/rtc`'s actual public API dropped it rather than keep depending
+on a non-public surface of the underlying media client — `@raven/rtc`
+has no equivalent public method, by design (spec: the SDK's own
+diagnostics surface is `room.getConnectionStats()`, which reports
+codec/bitrate/loss/jitter/RTT per track, not the raw ICE candidate
+type). `chrome://webrtc-internals` was always the real source of truth
+here; nothing lost verification capability, only a redundant,
+provider-specific shortcut.
 
 ## Connectivity test matrix
 
