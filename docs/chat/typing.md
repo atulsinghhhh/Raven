@@ -30,10 +30,10 @@ in:
 
 1. **Server-side TTL.** The Redis key expires after 7 seconds regardless of
    what any client does or doesn't send.
-2. **Client-side timeout.** `@raven/chat` arms a local timer on
+2. **Client-side timeout.** `@corvidhq/chat` arms a local timer on
    `startTyping()` and stops automatically after a pause, so a user who
    wanders off mid-sentence stops showing as typing.
-3. **Receiver-side expiry.** `@raven/react`'s store expires a typing user
+3. **Receiver-side expiry.** `@corvidhq/react`'s store expires a typing user
    locally after 8 seconds even if the `typing.stopped` frame is lost in
    transit.
 
@@ -57,7 +57,7 @@ guarantee.
 ## React
 
 ```jsx
-import { useTyping } from '@raven/react';
+import { useTyping } from '@corvidhq/react';
 
 function Composer() {
   const { typingUsers, onInput, stop } = useTyping();

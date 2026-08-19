@@ -1,6 +1,6 @@
 # Raven Chat — WebSocket protocol
 
-You do not need this document to use Raven Chat. `@raven/chat` speaks this
+You do not need this document to use Raven Chat. `@corvidhq/chat` speaks this
 protocol so you don't have to, and the SDK is the supported interface. This is
 here for people writing a client in a language Raven doesn't ship an SDK for,
 and for debugging what's actually on the wire.
@@ -192,7 +192,7 @@ happen. What a client must do:
    `after` with a cursor from the newest message you hold.
 6. **Reuse `clientMessageId` on retries.** That's what makes a retry safe.
 
-`@raven/chat` does all six. If you're writing your own client, this list is
+`@corvidhq/chat` does all six. If you're writing your own client, this list is
 the contract.
 
 ## Errors

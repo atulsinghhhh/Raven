@@ -132,7 +132,7 @@ key). See `docs/control-plane.md` for the full API design, or open one of:
 
 - `examples/signaling-demo/index.html` — room presence/SDP/ICE only, no
   media (Phase 3)
-- `examples/media-demo/` — real camera/microphone through `@raven/rtc`
+- `examples/media-demo/` — real camera/microphone through `@corvidhq/rtc`
   (Phase 4, see `docs/sfu.md`) — must be served over HTTP (not
   `file://`) since browsers restrict camera access on `file://` pages;
   see `examples/media-demo/README.md`

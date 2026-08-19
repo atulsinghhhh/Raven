@@ -6,13 +6,13 @@ description: Install, authenticate, connect, and send your first message.
 ## 1. Install
 
 ```bash
-npm install @raven/chat
+npm install @corvidhq/chat
 ```
 
 ## 2. Create a conversation (once, from your backend)
 
 ```ts
-import { Raven } from '@raven/server';
+import { Raven } from '@corvidhq/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 const conversation = await raven.chat.createConversation({
@@ -33,7 +33,7 @@ const token = await raven.chat.createToken({
 ## 4. Connect from the client
 
 ```ts
-import { createChatClient } from '@raven/chat';
+import { createChatClient } from '@corvidhq/chat';
 
 const chat = createChatClient({ token: token.token, apiUrl: token.apiUrl });
 await chat.connect({ room: conversation.publicId });

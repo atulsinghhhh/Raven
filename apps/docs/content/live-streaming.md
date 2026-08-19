@@ -17,7 +17,7 @@ A typical live-streaming build asks you to run an SFU, a chat service,
 and a bridge between the two — three systems, three sets of
 credentials, three failure modes. On Raven, `POST /v1/live-streams`
 gives you both a room and a conversation in one call, and a viewer's
-chat message rides the same infrastructure `@raven/chat` already
+chat message rides the same infrastructure `@corvidhq/chat` already
 documents.
 
 | | RTC | Chat | Live Streaming |

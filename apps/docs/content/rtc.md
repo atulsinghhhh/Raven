@@ -26,7 +26,7 @@ Every track has a `kind`: `'camera' | 'microphone' | 'screenShare' |
 ## Joining
 
 ```ts
-import { createRTCClient } from '@raven/rtc';
+import { createRTCClient } from '@corvidhq/rtc';
 
 const client = createRTCClient({
   token: resp.token,
@@ -105,7 +105,7 @@ DEVICE_NOT_FOUND | NETWORK_ERROR | SIGNALING_ERROR | MEDIA_ERROR | TIMEOUT
 ```
 
 ```ts
-import { isRTCError } from '@raven/rtc';
+import { isRTCError } from '@corvidhq/rtc';
 
 try {
   await client.join('room-123');

@@ -1,10 +1,10 @@
-# @raven/chat — Browser SDK
+# @corvidhq/chat — Browser SDK
 
-`@raven/chat` is Raven's browser SDK for real-time messaging. Connect, send,
+`@corvidhq/chat` is Raven's browser SDK for real-time messaging. Connect, send,
 listen — without writing a line of WebSocket code, a reconnect loop, a
 heartbeat, or message-ordering logic.
 
-It is separate from `@raven/rtc` on purpose. Media and messaging have almost
+It is separate from `@corvidhq/rtc` on purpose. Media and messaging have almost
 nothing in common at the transport layer, and one SDK doing both would force
 every video app to ship a message store and every chat app to ship WebRTC.
 They compose cleanly when you want both — see
@@ -13,7 +13,7 @@ They compose cleanly when you want both — see
 ## Installation
 
 ```bash
-npm install @raven/chat
+npm install @corvidhq/chat
 ```
 
 Chrome, Firefox, Safari, Edge (current versions). Native mobile is out of
@@ -37,7 +37,7 @@ for a token scoped to that one user:
 
 ```js
 // backend
-import { Raven } from '@raven/server';
+import { Raven } from '@corvidhq/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 const token = await raven.chat.createToken({
@@ -53,7 +53,7 @@ receives an already-minted token.
 ## Quick start
 
 ```js
-import { createChatClient } from '@raven/chat';
+import { createChatClient } from '@corvidhq/chat';
 
 const chat = createChatClient({
   token: session.token,
@@ -145,7 +145,7 @@ chat.on('reconnected', async () => {
 });
 ```
 
-`@raven/react`'s store does this automatically.
+`@corvidhq/react`'s store does this automatically.
 
 ## Messages
 
@@ -236,7 +236,7 @@ import {
   RavenRoomError,
   RavenAttachmentError,
   isRavenChatError,
-} from '@raven/chat';
+} from '@corvidhq/chat';
 
 try {
   await chat.sendMessage({ text });
@@ -257,10 +257,10 @@ errors fire the `error` event.
 
 ## React
 
-`@raven/react` ships chat hooks alongside the existing RTC ones:
+`@corvidhq/react` ships chat hooks alongside the existing RTC ones:
 
 ```jsx
-import { RavenChat, useMessages, useTyping, usePresence } from '@raven/react';
+import { RavenChat, useMessages, useTyping, usePresence } from '@corvidhq/react';
 
 function App({ session }) {
   return (

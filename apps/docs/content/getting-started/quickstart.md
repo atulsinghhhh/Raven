@@ -35,7 +35,7 @@ that user should be able to do.
 
 ```ts
 // your backend
-import { Raven } from '@raven/server';
+import { Raven } from '@corvidhq/server';
 
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
@@ -56,7 +56,7 @@ Hand your backend's response straight to the SDK — never hand-construct
 any of these fields yourself.
 
 ```ts
-import { createRTCClient } from '@raven/rtc';
+import { createRTCClient } from '@corvidhq/rtc';
 
 const resp = await fetch('/join-room', { method: 'POST' }).then((r) => r.json());
 

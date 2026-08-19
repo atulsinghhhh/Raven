@@ -10,7 +10,7 @@ there's a feature to document.
 
 ## What exists today
 
-`stream.room` is an ordinary [`@raven/rtc` `Room`](/rtc) —
+`stream.room` is an ordinary [`@corvidhq/rtc` `Room`](/rtc) —
 `enableCamera()`/`enableMicrophone()` publish the raw device track,
 unmodified. Nothing in the current Web SDK intercepts or transforms a
 track between capture and publish.

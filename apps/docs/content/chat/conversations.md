@@ -14,7 +14,7 @@ for why that split exists.
 ## Create
 
 ```ts
-import { Raven } from '@raven/server';
+import { Raven } from '@corvidhq/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 const conversation = await raven.chat.createConversation({

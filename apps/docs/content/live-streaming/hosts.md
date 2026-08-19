@@ -35,7 +35,7 @@ on their own — see [Authentication](/live-streaming/authentication).
 ## Joining as a host in the Web SDK
 
 ```ts
-import { LiveStream } from '@raven/client';
+import { LiveStream } from '@corvidhq/client';
 
 const stream = await LiveStream.join({
   streamId,

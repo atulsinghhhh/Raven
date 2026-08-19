@@ -1,4 +1,4 @@
-# @raven/server — TypeScript / Node.js server SDK
+# @corvidhq/server — TypeScript / Node.js server SDK
 
 Backend-only. Mints short-lived RTC tokens and reads real project data
 (rooms, connections, errors, metrics, diagnostics) using a permanent
@@ -8,7 +8,7 @@ project API key. **Never import this into browser/frontend code** — see
 ## Installation
 
 ```bash
-npm install @raven/server
+npm install @corvidhq/server
 ```
 
 Works with Node.js ≥20 (this repo's supported range), as both ESM
@@ -18,7 +18,7 @@ full `.d.ts` types.
 ## Initialization
 
 ```ts
-import { Raven } from '@raven/server';
+import { Raven } from '@corvidhq/server';
 
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
 ```
@@ -66,7 +66,7 @@ const token = await raven.tokens.create({
 ```
 
 Hand this response straight to your frontend, which passes it into
-`createRTCClient()` from `@raven/rtc` — see `examples/node-server` and
+`createRTCClient()` from `@corvidhq/rtc` — see `examples/node-server` and
 the full flow in `docs/security/server-sdk.md#authorization-model`.
 **Never mint a token in the browser, and never log or store a minted
 token any longer than it takes to forward it.**
@@ -117,7 +117,7 @@ await raven.diagnostics.get(); // signaling/SFU/TURN health + this project's rea
 ## Error model
 
 ```ts
-import { RavenError, isRavenError } from '@raven/server';
+import { RavenError, isRavenError } from '@corvidhq/server';
 
 try {
   await raven.rooms.get('missing-room');

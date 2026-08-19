@@ -6,7 +6,7 @@ description: Install, authenticate, join a room, and publish media — the short
 ## 1. Install
 
 ```bash
-npm install @raven/rtc
+npm install @corvidhq/rtc
 ```
 
 ## 2. Authenticate
@@ -15,7 +15,7 @@ Mint a token on your backend — never construct one client-side:
 
 ```ts
 // your backend
-import { Raven } from '@raven/server';
+import { Raven } from '@corvidhq/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 app.post('/join-room', async (req, res) => {
@@ -34,7 +34,7 @@ See [Authentication](/rtc/authentication) for what each permission controls.
 ## 3. Create a client and join
 
 ```ts
-import { createRTCClient } from '@raven/rtc';
+import { createRTCClient } from '@corvidhq/rtc';
 
 const resp = await fetch('/join-room', { method: 'POST' }).then((r) => r.json());
 

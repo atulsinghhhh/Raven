@@ -36,14 +36,14 @@ Everything else is incremental.
 | Suite | Tests | Result |
 | --- | ---: | --- |
 | `apps/api` | 244 | pass |
-| `@raven/rtc` | 102 | pass |
-| `@raven/cli` | 91 | pass |
-| `@raven/chat` | 67 | pass |
-| `@raven/react` | 42 | pass |
+| `@corvidhq/rtc` | 102 | pass |
+| `@corvidhq/cli` | 91 | pass |
+| `@corvidhq/chat` | 67 | pass |
+| `@corvidhq/react` | 42 | pass |
 | `apps/dashboard` | 59 | pass |
 | `raven-sdk` (Python) | 59 | pass |
-| `@raven/react-native` | 50 | pass |
-| `@raven/server` | 34 | pass |
+| `@corvidhq/react-native` | 50 | pass |
+| `@corvidhq/server` | 34 | pass |
 | **Total** | **748** | **pass** |
 
 Build: `apps/api` builds clean. Dashboard `tsc --noEmit` clean.
@@ -116,8 +116,8 @@ Two further workflow defects surfaced while verifying this:
 There is exactly one ESLint config in the repository:
 `apps/dashboard/eslint.config.mjs`. Yet:
 
-- `apps/api`, `@raven/rtc`, `@raven/chat`, `@raven/react`,
-  `@raven/react-native`, `@raven/server`, `@raven/cli` all declare a
+- `apps/api`, `@corvidhq/rtc`, `@corvidhq/chat`, `@corvidhq/react`,
+  `@corvidhq/react-native`, `@corvidhq/server`, `@corvidhq/cli` all declare a
   `lint` script.
 - Every one of them exits **code 2** — "no configuration file found".
 - `apps/api` declares `eslint` in its `lint` script but does not have
@@ -139,14 +139,14 @@ suppressed:
 
 | Finding | Resolution |
 | --- | --- |
-| `react-hooks/exhaustive-deps` referenced by disable comments but never installed | Added `eslint-plugin-react-hooks`; the rules now actually run on `@raven/react` |
-| Two `no-var-requires` disables in `@raven/react-native` | typescript-eslint v8 renamed the rule to `no-require-imports`, so both directives had silently stopped covering the `require()` beneath them |
+| `react-hooks/exhaustive-deps` referenced by disable comments but never installed | Added `eslint-plugin-react-hooks`; the rules now actually run on `@corvidhq/react` |
+| Two `no-var-requires` disables in `@corvidhq/react-native` | typescript-eslint v8 renamed the rule to `no-require-imports`, so both directives had silently stopped covering the `require()` beneath them |
 | Three unused type imports in `livekit-adapter.ts` | Removed |
 | Unused `printField` import in `cli rooms inspect` | Removed |
 | Stale `no-await-in-loop` disable in the e2e suite | Replaced with prose explaining why the loop is deliberately sequential |
 | `require()` in test files | Allowed in tests only — it is how jest mocking works — and still forbidden in production code |
 
-### B3. `@raven/rtc` fails typecheck
+### B3. `@corvidhq/rtc` fails typecheck
 
 ```
 test/livekit-adapter.spec.ts(67,26): error TS2352: Conversion of type 'A'
@@ -172,10 +172,10 @@ without disturbing the build config.
 
 Surfaced the moment CI got past `prisma generate`.
 
-`@raven/react`, `@raven/react-native` and the CLI resolve their sibling
+`@corvidhq/react`, `@corvidhq/react-native` and the CLI resolve their sibling
 packages through `dist/` via the package `exports` map. A fresh checkout
 has no `dist/`, so both the Typecheck and Unit test jobs failed with
-`Cannot find module '@raven/rtc'` — a build-ordering problem wearing a
+`Cannot find module '@corvidhq/rtc'` — a build-ordering problem wearing a
 missing-dependency costume.
 
 This had always passed locally **because stale `dist/` output was lying
@@ -238,8 +238,8 @@ retention services; a telemetry ingest endpoint.
 
 **SDK ecosystem breadth.** Eight shipping surfaces — TypeScript RTC,
 TypeScript Chat, React, React Native, Flutter, Python, server
-TypeScript, CLI. React Native and Flutter reuse the *same* `@raven/rtc`
-and `@raven/chat` logic rather than reimplementing it.
+TypeScript, CLI. React Native and Flutter reuse the *same* `@corvidhq/rtc`
+and `@corvidhq/chat` logic rather than reimplementing it.
 
 **Dashboard.** 25 routes covering projects, API keys, rooms,
 participants, connections, errors, metrics, diagnostics, chat

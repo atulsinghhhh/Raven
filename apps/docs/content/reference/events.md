@@ -15,9 +15,9 @@ Raven has two separate event surfaces, and they don't overlap:
 
 ## RTC — `room.on(...)`
 
-Every RTC event, from `@raven/rtc`'s `RoomEventMap`. Identical across
-`@raven/rtc`, `@raven/react` (as `useRoomEvent`), and
-`@raven/react-native` — same events, same payloads.
+Every RTC event, from `@corvidhq/rtc`'s `RoomEventMap`. Identical across
+`@corvidhq/rtc`, `@corvidhq/react` (as `useRoomEvent`), and
+`@corvidhq/react-native` — same events, same payloads.
 
 | Event | Payload | Fires when |
 |---|---|---|
@@ -57,7 +57,7 @@ and reconnect *attempt count* (available via
 
 ## Chat — `chat.on(...)`
 
-Every chat event, from `@raven/chat`'s `ChatEventMap`.
+Every chat event, from `@corvidhq/chat`'s `ChatEventMap`.
 
 | Event | Payload | Fires when |
 |---|---|---|

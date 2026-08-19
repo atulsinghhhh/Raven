@@ -34,12 +34,12 @@ version:
 ```json
 {
   "dependencies": {
-    "@raven/rtc": "file:../Raven/packages/sdk",
-    "@raven/chat": "file:../Raven/packages/chat-sdk",
-    "@raven/client": "file:../Raven/packages/client",
-    "@raven/react": "file:../Raven/packages/react-sdk",
-    "@raven/react-native": "file:../Raven/packages/react-native-sdk",
-    "@raven/server": "file:../Raven/packages/server-sdk"
+    "@corvidhq/rtc": "file:../Raven/packages/sdk",
+    "@corvidhq/chat": "file:../Raven/packages/chat-sdk",
+    "@corvidhq/client": "file:../Raven/packages/client",
+    "@corvidhq/react": "file:../Raven/packages/react-sdk",
+    "@corvidhq/react-native": "file:../Raven/packages/react-native-sdk",
+    "@corvidhq/server": "file:../Raven/packages/server-sdk"
   }
 }
 ```
@@ -49,18 +49,18 @@ Adjust the relative paths to wherever you cloned Raven, then
 show them:
 
 ```ts
-import { createRTCClient } from '@raven/rtc';
+import { createRTCClient } from '@corvidhq/rtc';
 ```
 
 | Package | Path in the repo |
 |---|---|
-| `@raven/rtc` | `packages/sdk` |
-| `@raven/chat` | `packages/chat-sdk` |
-| `@raven/client` | `packages/client` |
-| `@raven/react` | `packages/react-sdk` |
-| `@raven/react-native` | `packages/react-native-sdk` |
-| `@raven/server` | `packages/server-sdk` |
-| `@raven/cli` | `packages/cli` |
+| `@corvidhq/rtc` | `packages/sdk` |
+| `@corvidhq/chat` | `packages/chat-sdk` |
+| `@corvidhq/client` | `packages/client` |
+| `@corvidhq/react` | `packages/react-sdk` |
+| `@corvidhq/react-native` | `packages/react-native-sdk` |
+| `@corvidhq/server` | `packages/server-sdk` |
+| `@corvidhq/cli` | `packages/cli` |
 
 ### The CLI
 

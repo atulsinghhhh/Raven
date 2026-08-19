@@ -44,7 +44,7 @@ await chat.sendMessage({ text: 'Hello', clientMessageId: 'client_123' });
 // Same message. The second call returns the original, with deduplicated: true.
 ```
 
-`@raven/chat` attaches one automatically if you don't, so the SDK's own
+`@corvidhq/chat` attaches one automatically if you don't, so the SDK's own
 retries are already safe. Supply your own when *you* control the retry
 — a job queue, a form resubmit, an offline outbox.
 

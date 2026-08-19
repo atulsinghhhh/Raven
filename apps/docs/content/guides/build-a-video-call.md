@@ -40,7 +40,7 @@ npm install file:../Raven/packages/server-sdk file:../Raven/packages/sdk
 ```
 
 Adjust `../Raven` to wherever you cloned it. This gives you
-`@raven/server` (backend) and `@raven/rtc` (browser).
+`@corvidhq/server` (backend) and `@corvidhq/rtc` (browser).
 
 ## Step 2 — Get an API key
 
@@ -68,7 +68,7 @@ Create `server.js`:
 
 ```js
 import express from 'express';
-import { Raven } from '@raven/server';
+import { Raven } from '@corvidhq/server';
 
 const app = express();
 app.use(express.json());
@@ -160,7 +160,7 @@ Create `public/index.html`:
 Create `public/call.js`. This is the whole thing:
 
 ```js
-import { createRTCClient } from '@raven/rtc';
+import { createRTCClient } from '@corvidhq/rtc';
 
 const statusEl = document.getElementById('status');
 const localEl = document.getElementById('local');
@@ -291,7 +291,7 @@ identity, one room, and an explicit permission set, expiring in an hour.
 
 ## Common problems
 
-**"Cannot find module '@raven/rtc'"** — the packages need building
+**"Cannot find module '@corvidhq/rtc'"** — the packages need building
 first: `pnpm --filter "./packages/*" run build` in your Raven checkout.
 
 **Camera works, but the other tab sees nothing** — check that both tabs

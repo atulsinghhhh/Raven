@@ -134,7 +134,7 @@ codes carry information the old ones did not.
 ## RTC errors
 
 Every RTC error a developer sees — in the dashboard, in `raven errors`,
-or in an `@raven/rtc` `error` event — is a **Raven concept**, never a raw
+or in an `@corvidhq/rtc` `error` event — is a **Raven concept**, never a raw
 SFU or TURN error code. One place server-side maps the underlying error
 into this taxonomy.
 
@@ -155,7 +155,7 @@ into this taxonomy.
 
 ## SDK error code → category mapping
 
-| `@raven/rtc` `RTCErrorCode` | Category |
+| `@corvidhq/rtc` `RTCErrorCode` | Category |
 |---|---|
 | `INVALID_TOKEN`, `TOKEN_EXPIRED` | `TOKEN_ERROR` |
 | `PERMISSION_DENIED` | `AUTHORIZATION_ERROR` |
@@ -205,9 +205,9 @@ a claim of certainty a Raven server can't actually back up. Examples:
 > failures arrive as `RAVEN_*` codes (with the chat code preserved in
 > `legacyCode`) — see the envelope section above. The frame keeps its own
 > vocabulary because it is a separately versioned wire protocol that
-> `@raven/chat` already maps.
+> `@corvidhq/chat` already maps.
 
-Every failure from the chat API or `@raven/chat` carries one of these codes.
+Every failure from the chat API or `@corvidhq/chat` carries one of these codes.
 They are stable, and they map one-to-one onto SDK error classes so a caller
 can branch on the class rather than string-matching a message.
 
@@ -262,6 +262,6 @@ working across a server upgrade.
 ## Where to see this
 
 - Dashboard → a project's **Chat** section
-- `@raven/chat`'s `error` event and rejected promises
+- `@corvidhq/chat`'s `error` event and rejected promises
 - [WebSocket Protocol](/chat/websocket) for the frame-level contract
 

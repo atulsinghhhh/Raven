@@ -5,7 +5,7 @@ description: Adding, removing, and listing who's in a conversation — server-si
 
 Membership is what a token's scopes get checked against — see
 [Chat → Authorization](/chat#authorization--two-independent-checks).
-Managing it is a server-side operation only: `@raven/chat` (the browser
+Managing it is a server-side operation only: `@corvidhq/chat` (the browser
 SDK) has no member-management calls, by design — a client can join and
 send messages, never grant itself access to a conversation it isn't
 already in.
@@ -25,7 +25,7 @@ The role determines the scopes described in
 ## Add a member
 
 ```ts
-import { Raven } from '@raven/server';
+import { Raven } from '@corvidhq/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 const member = await raven.chat.addMember('support-room-42', { userId: 'carol', role: 'MODERATOR' });
@@ -69,8 +69,8 @@ read in this conversation until re-added.
 
 ## What this means for each SDK
 
-Membership calls exist on `@raven/server` and `raven-sdk` (Python) only.
-`@raven/chat`, `@raven/react`, `@raven/react-native`, and `raven_chat`
+Membership calls exist on `@corvidhq/server` and `raven-sdk` (Python) only.
+`@corvidhq/chat`, `@corvidhq/react`, `@corvidhq/react-native`, and `raven_chat`
 (Flutter) can read who's *currently present* via
 [Presence](/chat/presence), but none of them can add, remove, or list
 members — that's a backend operation, the same way creating a

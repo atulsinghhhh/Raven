@@ -1,15 +1,15 @@
-# @raven/react — React hooks & optional UI primitives
+# @corvidhq/react — React hooks & optional UI primitives
 
-React integration on top of `@raven/rtc` — Phase 11's main deliverable.
+React integration on top of `@corvidhq/rtc` — Phase 11's main deliverable.
 Headless by default (hooks work with any UI you build), plus a handful
-of genuinely optional components for a fast start. `@raven/rtc` itself
+of genuinely optional components for a fast start. `@corvidhq/rtc` itself
 was not rewritten to build this — see `docs/sdk/web.md` for exactly what
 changed there (small, additive, non-breaking).
 
 ## Installation
 
 ```bash
-npm install @raven/rtc @raven/react
+npm install @corvidhq/rtc @corvidhq/react
 ```
 
 Peer dependencies: `react` and `react-dom` `^18 || ^19`.
@@ -18,7 +18,7 @@ Peer dependencies: `react` and `react-dom` `^18 || ^19`.
 
 ```tsx
 'use client';
-import { RavenRoom, useConnectionState, useLocalParticipant, useRemoteParticipants, useCamera, ParticipantView } from '@raven/react';
+import { RavenRoom, useConnectionState, useLocalParticipant, useRemoteParticipants, useCamera, ParticipantView } from '@corvidhq/react';
 
 function CallPage({ token, livekitUrl, roomName }: { token: string; livekitUrl: string; roomName: string }) {
   return (
@@ -87,7 +87,7 @@ function ManualJoin() {
 ```
 
 `token`/`endpoint`/etc. are read once, at mount — the same one-shot
-model `@raven/rtc` itself uses (an RTC token is minted for exactly one
+model `@corvidhq/rtc` itself uses (an RTC token is minted for exactly one
 join). To join with a fresh token, remount with a new `key`:
 `<RavenRoom key={token} token={token} .../>`.
 
@@ -125,7 +125,7 @@ use them.
 ## Optional components
 
 ```tsx
-import { RavenVideo, RavenAudio, ParticipantView, LocalParticipantView } from '@raven/react';
+import { RavenVideo, RavenAudio, ParticipantView, LocalParticipantView } from '@corvidhq/react';
 
 <RavenVideo track={someTrack} />          // attaches/detaches a Track to a real <video>
 <RavenAudio track={someTrack} />          // same, for <audio>
@@ -143,7 +143,7 @@ Build your own tile layout with `useParticipants()` + `RavenVideo`/
 Device enumeration/selection and screen sharing don't have dedicated
 hooks (the Phase 11 hook wishlist was deliberately kept small) — call
 the underlying client/room directly, exactly as you would without
-`@raven/react` at all:
+`@corvidhq/react` at all:
 
 ```tsx
 const client = useRavenClient();
@@ -164,7 +164,7 @@ useEffect(() => {
 Every file in this package is marked `'use client'` at the build level,
 so Next.js's App Router treats it as a client boundary automatically —
 you don't need to add `'use client'` yourself just to import from
-`@raven/react`. You still need it in **your own** component file if that
+`@corvidhq/react`. You still need it in **your own** component file if that
 file uses hooks (`useState`, `useConnectionState`, etc.) directly:
 
 ```tsx
@@ -178,7 +178,7 @@ export default function Page({ params }: { params: { token: string } }) {
 ```tsx
 // app/call/call-client.tsx
 'use client';
-import { RavenRoom, useConnectionState } from '@raven/react';
+import { RavenRoom, useConnectionState } from '@corvidhq/react';
 export function CallClient({ token }: { token: string }) {
   return <RavenRoom token={token} endpoint="..." room="...">{/* ... */}</RavenRoom>;
 }
@@ -203,15 +203,15 @@ production builds, where effects run once.
 ## TypeScript
 
 Full types are provided, including convenient re-exports of the
-`@raven/rtc` types you'll commonly need (`Room`, `Participant`, `Track`,
+`@corvidhq/rtc` types you'll commonly need (`Room`, `Participant`, `Track`,
 `RTCError`, `ConnectionState`, `DeviceInfo`, etc.) so most apps don't
-need a direct `@raven/rtc` import just for types. LiveKit's own types are
+need a direct `@corvidhq/rtc` import just for types. LiveKit's own types are
 never exported from either package (Phase 11 spec §27).
 
 ## Security
 
-Same model as `@raven/rtc` — `<RavenRoom>` only ever takes the
-short-lived RTC token your backend minted (via `@raven/server`/
+Same model as `@corvidhq/rtc` — `<RavenRoom>` only ever takes the
+short-lived RTC token your backend minted (via `@corvidhq/server`/
 `raven-sdk`, see `docs/security/server-sdk.md`). It never accepts or
 needs a Raven API key, a TURN static credential, or any other permanent
 credential.

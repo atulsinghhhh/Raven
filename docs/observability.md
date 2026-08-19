@@ -17,7 +17,7 @@ is the one place that maps SDK-reported errors onto Raven's own vocabulary.
 ## Architecture
 
 ```
-RTC Client (@raven/rtc)
+RTC Client (@corvidhq/rtc)
     │  best-effort, fire-and-forget events (never blocks RTC)
     ▼
 POST /v1/telemetry/events   — authenticated by the same RTC token

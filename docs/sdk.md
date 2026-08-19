@@ -1,6 +1,6 @@
-# @raven/rtc — Browser SDK
+# @corvidhq/rtc — Browser SDK
 
-`@raven/rtc` is Raven's browser SDK: join a room, publish camera/microphone,
+`@corvidhq/rtc` is Raven's browser SDK: join a room, publish camera/microphone,
 subscribe to remote participants' media — without ever touching SDP, ICE
 candidates, `RTCPeerConnection`, STUN, or TURN directly. Internally it wraps
 `livekit-client` (Raven's chosen SFU client, see
@@ -12,7 +12,7 @@ same even if the underlying SFU integration changes later.
 ## Installation
 
 ```bash
-npm install @raven/rtc
+npm install @corvidhq/rtc
 ```
 
 Supported browsers: **Chrome, Firefox, Safari, Edge** (current versions).
@@ -43,7 +43,7 @@ token.
 
 ```js
 // on your frontend, having fetched `resp` from your own backend:
-import { createRTCClient } from '@raven/rtc';
+import { createRTCClient } from '@corvidhq/rtc';
 
 const client = createRTCClient({
   token: resp.token,
@@ -220,7 +220,7 @@ DEVICE_NOT_FOUND | NETWORK_ERROR | SIGNALING_ERROR | MEDIA_ERROR | TIMEOUT
 ```
 
 ```js
-import { isRTCError } from '@raven/rtc';
+import { isRTCError } from '@corvidhq/rtc';
 
 try {
   await client.join('room-123');
@@ -316,7 +316,7 @@ it adapts livekit-client's surface to Raven's own stable public API.
 ## Browser compatibility
 
 ```js
-import { isBrowserSupported, getBrowserSupportDetails } from '@raven/rtc';
+import { isBrowserSupported, getBrowserSupportDetails } from '@corvidhq/rtc';
 
 if (!isBrowserSupported()) {
   const { missing } = getBrowserSupportDetails(); // e.g. ['RTCPeerConnection']
@@ -346,7 +346,7 @@ either way in this environment):
 
 ## Bundle size
 
-Measured from a real build (`pnpm --filter @raven/rtc build`):
+Measured from a real build (`pnpm --filter @corvidhq/rtc build`):
 
 | File | Raw | Gzip |
 |---|---|---|

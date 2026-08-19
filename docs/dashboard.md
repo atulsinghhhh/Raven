@@ -139,7 +139,7 @@ the pre-existing `RoomsController` (API-key-guarded, for a developer's own
 backend).
 
 This was proven live, not just asserted: two real browser tabs joined a
-real room via `@raven/rtc` (using dashboard-issued test tokens), and the
+real room via `@corvidhq/rtc` (using dashboard-issued test tokens), and the
 Room detail page immediately showed both real participants with real
 join timestamps and real `audio`/`video` track badges — sourced from
 LiveKit, not fabricated.
@@ -174,7 +174,7 @@ Every number on these pages comes from the `Connection`/`ErrorEvent`
 tables — a project with no real connections shows `0`/`—`, never a
 placeholder percentage (same "no fake metrics" rule as the Usage page
 above). There is no client-side ICE/browser diagnostic view here — that
-data only exists inside a running `@raven/rtc` client
+data only exists inside a running `@corvidhq/rtc` client
 (`room.getDiagnostics()`, `docs/diagnostics.md`), and the dashboard
 never fabricates it.
 
@@ -201,7 +201,7 @@ hidden.
 ## SDK Quickstart
 
 Every code example on the Quickstart page was cross-checked line-by-line
-against `docs/sdk.md` and the actual `@raven/rtc` public API
+against `docs/sdk.md` and the actual `@corvidhq/rtc` public API
 (`createRTCClient`, `client.join`, `room.enableCamera`/`enableMicrophone`,
 `room.on('participantJoined'|'trackSubscribed', ...)`, `room.leave`) — no
 example uses an API that doesn't exist. Backend/frontend steps are

@@ -1,9 +1,9 @@
-# @raven/react-native
+# @corvidhq/react-native
 
 Raven on iOS and Android, with the same API as Raven Web.
 
 ```tsx
-import { Raven, RavenVideoView } from '@raven/react-native';
+import { Raven, RavenVideoView } from '@corvidhq/react-native';
 
 const raven = new Raven({ token, endpoint });
 const room = await raven.join('room_123');
@@ -13,7 +13,7 @@ await room.enableMicrophone();
 ```
 
 If that looks like the web SDK, that's the point — and it isn't a
-resemblance. The `Room` you get back is the *same class* `@raven/rtc`
+resemblance. The `Room` you get back is the *same class* `@corvidhq/rtc`
 returns in a browser. Everything you know about rooms, participants,
 tracks and events is true here.
 
@@ -22,7 +22,7 @@ tracks and events is true here.
 **1. Install**
 
 ```bash
-npm install @raven/react-native @raven/rtc @raven/chat \
+npm install @corvidhq/react-native @corvidhq/rtc @corvidhq/chat \
             @livekit/react-native @livekit/react-native-webrtc
 
 cd ios && pod install   # iOS only
@@ -84,7 +84,7 @@ downloadable and inspectable; anything inside it is public.
 Mobile app
     │  your own authenticated request
     ▼
-Your backend  ──(@raven/server, API key)──►  Raven
+Your backend  ──(@corvidhq/server, API key)──►  Raven
     │                                          │
     │◄────────── short-lived token ────────────┘
     ▼
@@ -200,7 +200,7 @@ put, which suits a static thumbnail and breaks a call.
 ## Permissions
 
 ```ts
-import { permissions } from '@raven/react-native';
+import { permissions } from '@corvidhq/react-native';
 
 const status = await permissions.request();     // { camera, microphone }
 await permissions.require(['camera']);          // throws on refusal
@@ -250,7 +250,7 @@ const unsubscribe = raven.chat.on('message', (message) => {
 });
 ```
 
-Everything else is `@raven/chat`'s API unchanged — `messages.list()`,
+Everything else is `@corvidhq/chat`'s API unchanged — `messages.list()`,
 `startTyping()`, `markAsRead()`, `messages.addReaction()`, presence,
 threads. It *is* the same client, so
 [the chat documentation](../chat/overview.md) applies verbatim.
@@ -311,7 +311,7 @@ intent.
 ## Error handling
 
 ```ts
-import { RTCError, RavenPermissionError, isRTCError } from '@raven/react-native';
+import { RTCError, RavenPermissionError, isRTCError } from '@corvidhq/react-native';
 
 try {
   await room.enableCamera();
@@ -362,10 +362,10 @@ cause.
 ## Architecture
 
 ```
-@raven/react-native      ← platform layer: video, permissions,
+@corvidhq/react-native      ← platform layer: video, permissions,
         │                  lifecycle, audio routing
-        ├── @raven/rtc    ← shared with web, unmodified
-        ├── @raven/chat   ← shared with web, unmodified
+        ├── @corvidhq/rtc    ← shared with web, unmodified
+        ├── @corvidhq/chat   ← shared with web, unmodified
         └── @livekit/react-native → native iOS/Android WebRTC
 ```
 

@@ -1,6 +1,6 @@
 ---
 title: Live Streaming Quickstart
-description: Create a stream, mint host and viewer credentials, and join from the browser with @raven/client.
+description: Create a stream, mint host and viewer credentials, and join from the browser with @corvidhq/client.
 ---
 
 This walks through the shortest real path: create a stream from your
@@ -44,7 +44,7 @@ token with `ADMIN` scope — bundle both and send them to your frontend.
 ## 3. Join as host
 
 ```ts
-import { LiveStream } from '@raven/client';
+import { LiveStream } from '@corvidhq/client';
 
 const stream = await LiveStream.join({
   streamId: 'stream_jRoD1T3EXh0PMJRGG4zYzQ',
@@ -58,8 +58,8 @@ await stream.room.enableCamera();
 await stream.room.enableMicrophone();
 ```
 
-`stream.room` is a real `@raven/rtc` `Room` and `stream.chat` is a real
-`@raven/chat` client — `LiveStream` composes them, it doesn't wrap or
+`stream.room` is a real `@corvidhq/rtc` `Room` and `stream.chat` is a real
+`@corvidhq/chat` client — `LiveStream` composes them, it doesn't wrap or
 hide them.
 
 Then flip the stream live:

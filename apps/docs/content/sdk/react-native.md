@@ -4,7 +4,7 @@ description: The same API as Raven Web — the Room class is the same class.
 ---
 
 ```tsx
-import { Raven, RavenVideoView } from '@raven/react-native';
+import { Raven, RavenVideoView } from '@corvidhq/react-native';
 
 const raven = new Raven({ token, endpoint });
 const room = await raven.join('room_123');
@@ -14,7 +14,7 @@ await room.enableMicrophone();
 ```
 
 If that looks like the web SDK, that's the point — and it isn't a
-resemblance. The `Room` you get back is the *same class* `@raven/rtc`
+resemblance. The `Room` you get back is the *same class* `@corvidhq/rtc`
 returns in a browser. Everything you know about rooms, participants,
 tracks, and events on web is true here, and a fix to that logic lands on
 both platforms at once.
@@ -26,7 +26,7 @@ both platforms at once.
 > from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
 ```bash
-npm install @raven/react-native @raven/rtc @raven/chat \
+npm install @corvidhq/react-native @corvidhq/rtc @corvidhq/chat \
             @livekit/react-native @livekit/react-native-webrtc
 
 cd ios && pod install   # iOS only
@@ -36,7 +36,7 @@ The two `@livekit/*` packages are required native modules, not a
 separate SDK to integrate with — React Native's autolinking needs them
 installed directly in your app for the native WebRTC implementation to
 build for iOS/Android. You never import or call them; everything you
-write is `@raven/react-native`'s API.
+write is `@corvidhq/react-native`'s API.
 
 **Permissions** — the SDK can't add these for you.
 
@@ -110,7 +110,7 @@ await raven.chat!.connect('room_123');
 await raven.chat!.send('Hello everyone!');
 ```
 
-Everything else is `@raven/chat`'s API unchanged — `messages.list()`,
+Everything else is `@corvidhq/chat`'s API unchanged — `messages.list()`,
 `startTyping()`, `markAsRead()`, presence, threads. It's the same
 client, so [Chat](/chat) applies verbatim.
 
@@ -159,4 +159,4 @@ new Raven({
   `iceServers` from your token response.
 
 Full API reference (permissions module, audio routing, error types):
-`@raven/react-native`'s exported types.
+`@corvidhq/react-native`'s exported types.

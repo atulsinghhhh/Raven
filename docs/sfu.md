@@ -58,7 +58,7 @@ production-ready signaling, prefer using it... do not create two
 competing signaling systems."*
 
 **Resolution: the media path uses LiveKit's own signaling exclusively.**
-The browser demo (`examples/media-demo/`) connects through `@raven/rtc`,
+The browser demo (`examples/media-demo/`) connects through `@corvidhq/rtc`,
 which internally uses `livekit-client` and LiveKit's own WebSocket
 protocol for SDP/ICE negotiation — Phase 3's custom gateway (`/v1/rtc`)
 is not involved in establishing media at all. Phase 3's gateway remains

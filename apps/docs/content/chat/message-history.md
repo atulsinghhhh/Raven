@@ -31,7 +31,7 @@ A backend can read the same history for export or moderation, with a
 project API key instead of a chat token:
 
 ```ts
-import { Raven } from '@raven/server';
+import { Raven } from '@corvidhq/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 const page = await raven.chat.listMessages('support-room-42', { limit: 50 });

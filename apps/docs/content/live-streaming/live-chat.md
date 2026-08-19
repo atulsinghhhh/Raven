@@ -13,7 +13,7 @@ await stream.chat.sendMessage({ text: 'Hey everyone!' });
 stream.chat.on('message', (message) => console.log(message.senderId, message.text));
 ```
 
-`stream.chat` is a real `@raven/chat` client — the same object
+`stream.chat` is a real `@corvidhq/chat` client — the same object
 [Chat](/chat) itself documents, not a wrapper with a smaller API.
 
 ## Roles carry over from hosting

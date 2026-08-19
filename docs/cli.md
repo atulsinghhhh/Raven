@@ -1,4 +1,4 @@
-# Raven CLI — `@raven/cli`
+# Raven CLI — `@corvidhq/cli`
 
 A terminal workflow tool for Raven, sitting alongside the dashboard
 (visual control center) and the SDK (integration library). The CLI talks
@@ -287,7 +287,7 @@ silently upgraded to healthy.
 
 ## Connections and errors (Phase 9)
 
-Real, event-sourced RTC data from `@raven/rtc`'s best-effort telemetry —
+Real, event-sourced RTC data from `@corvidhq/rtc`'s best-effort telemetry —
 never fabricated (see `docs/observability.md`).
 
 ```
@@ -340,7 +340,7 @@ key**, which is a runtime credential your backend holds. The CLI doesn't
 store one, and encouraging people to paste one into a terminal would
 undo the point of having short-lived tokens at all.
 
-So there is no `raven chat send`. Use `@raven/server` or `raven-sdk` from
+So there is no `raven chat send`. Use `@corvidhq/server` or `raven-sdk` from
 your backend for that — see `docs/sdk/server/typescript.md` and
 `docs/sdk/server/python.md`.
 
@@ -388,14 +388,14 @@ my-video-app
 Active connections:
 2
 
-SDK (@raven/rtc) installed in this directory:
+SDK (@corvidhq/rtc) installed in this directory:
 yes
 ```
 
 Only reports what the CLI can honestly know from a server-side,
 authenticated check plus the local `package.json` — it never fabricates
 a browser connection's ICE/signaling state (that only exists inside a
-running `@raven/rtc` client; call `room.getDiagnostics()` there instead —
+running `@corvidhq/rtc` client; call `room.getDiagnostics()` there instead —
 see `docs/diagnostics.md`).
 
 ## Logs
@@ -445,7 +445,7 @@ A complete GitHub Actions step:
   env:
     RAVEN_TOKEN: ${{ secrets.RAVEN_TOKEN }}
     RAVEN_API_URL: https://api.raven.example
-  run: npx @raven/cli projects list --json
+  run: npx @corvidhq/cli projects list --json
 ```
 
 ## Exit codes
@@ -509,7 +509,7 @@ token is never in scope to leak.
   aggregate CLI usage (deliberately, until an opt-in policy exists).
 - `raven chat` is read-only. Sending messages, minting chat tokens and
   creating conversations all require a project API key, which belongs in
-  your backend rather than in a terminal — use `@raven/server` or
+  your backend rather than in a terminal — use `@corvidhq/server` or
   `raven-sdk`.
 - `raven chat presence` takes a conversation's `conv_…` id, not its name.
   Same backend gap as `rooms inspect`.

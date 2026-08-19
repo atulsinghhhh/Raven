@@ -79,7 +79,7 @@ candidates, which forces every connectivity check (and therefore all
 media) through coturn regardless of whether a direct path would have
 worked. This is how Test B below is constructed.
 
-**Not currently exposed by `@raven/rtc`'s public API.** The media demo
+**Not currently exposed by `@corvidhq/rtc`'s public API.** The media demo
 (`examples/media-demo/`) used to have a "Force TURN relay only"
 checkbox that set this by reaching directly into `livekit-client`'s
 `Room.connect()` options — a capability the rewrite to Raven's actual
@@ -99,8 +99,8 @@ An earlier version of the media demo also polled this itself
 internals (`room.engine.pcManager.subscriber.pc`) to approximate the
 same `RTCPeerConnection.getStats()` data every 2s. It was explicitly
 documented in the code as non-authoritative even then. The rewrite to
-`@raven/rtc`'s actual public API dropped it rather than keep depending
-on a non-public surface of the underlying media client — `@raven/rtc`
+`@corvidhq/rtc`'s actual public API dropped it rather than keep depending
+on a non-public surface of the underlying media client — `@corvidhq/rtc`
 has no equivalent public method, by design (spec: the SDK's own
 diagnostics surface is `room.getConnectionStats()`, which reports
 codec/bitrate/loss/jitter/RTT per track, not the raw ICE candidate

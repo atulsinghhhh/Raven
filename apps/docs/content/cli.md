@@ -3,7 +3,7 @@ title: CLI
 description: Install, authenticate (browser or headless CI), manage projects and keys, and inspect a live deployment from the terminal.
 ---
 
-`@raven/cli` is a terminal workflow tool over the same control plane
+`@corvidhq/cli` is a terminal workflow tool over the same control plane
 every SDK uses — no direct database, Redis, media server, or TURN access.
 
 ## Install
@@ -13,13 +13,13 @@ every SDK uses — no direct database, Redis, media server, or TURN access.
 > from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
 ```bash
-npm install -g @raven/cli
+npm install -g @corvidhq/cli
 ```
 
 Or run it without installing anything, which is what you want in CI:
 
 ```bash
-npx @raven/cli projects list
+npx @corvidhq/cli projects list
 ```
 
 ## Authenticate
@@ -61,7 +61,7 @@ A complete GitHub Actions step:
 - name: List Raven projects
   env:
     RAVEN_TOKEN: ${{ secrets.RAVEN_TOKEN }}
-  run: npx @raven/cli projects list --json
+  run: npx @corvidhq/cli projects list --json
 ```
 
 If a machine has no browser but does have a writable home directory,

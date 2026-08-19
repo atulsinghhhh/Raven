@@ -1,11 +1,11 @@
 ---
 title: React SDK
-description: Hooks and optional components on top of @raven/rtc — headless by default.
+description: Hooks and optional components on top of @corvidhq/rtc — headless by default.
 ---
 
-`@raven/react` is React integration on top of `@raven/rtc`. Headless by
+`@corvidhq/react` is React integration on top of `@corvidhq/rtc`. Headless by
 default — hooks work with any UI you build — plus a handful of
-genuinely optional components for a fast start. `@raven/rtc` itself
+genuinely optional components for a fast start. `@corvidhq/rtc` itself
 wasn't rewritten to build this; see [Web SDK](/sdk/web) for what changed
 there (small, additive, non-breaking).
 
@@ -16,7 +16,7 @@ there (small, additive, non-breaking).
 > from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
 ```bash
-npm install @raven/rtc @raven/react
+npm install @corvidhq/rtc @corvidhq/react
 ```
 
 Peer dependencies: `react` and `react-dom` `^18 || ^19`.
@@ -28,7 +28,7 @@ Peer dependencies: `react` and `react-dom` `^18 || ^19`.
 import {
   RavenRoom, useConnectionState, useLocalParticipant,
   useRemoteParticipants, useCamera, ParticipantView,
-} from '@raven/react';
+} from '@corvidhq/react';
 
 function CallPage({ token, endpoint, roomName }) {
   return (
@@ -78,7 +78,7 @@ The provider every hook needs, and the RTC lifecycle owner — one
 ```
 
 `token`/`endpoint` are read once, at mount — the same one-shot model
-`@raven/rtc` itself uses, since an RTC token is minted for exactly one
+`@corvidhq/rtc` itself uses, since an RTC token is minted for exactly one
 join. To join with a fresh token, remount with a new `key`:
 `<RavenRoom key={token} token={token} .../>`.
 
@@ -108,12 +108,12 @@ function ManualJoin() {
 
 ## Chat
 
-`@raven/react` gained matching hooks on top of `@raven/chat` — same
+`@corvidhq/react` gained matching hooks on top of `@corvidhq/chat` — same
 pattern, same headless-by-default philosophy:
 
 ```tsx
 'use client';
-import { RavenChat, useMessages, useTyping } from '@raven/react';
+import { RavenChat, useMessages, useTyping } from '@corvidhq/react';
 
 function ChatPanel({ chatToken, apiUrl, room }) {
   return (
@@ -158,7 +158,7 @@ alone.
 | `useReadReceipts()` | Read state — yours and everyone else's. |
 
 Full API — history, threads, attachments, delivery semantics — is
-`@raven/chat`'s own surface underneath these hooks; see
+`@corvidhq/chat`'s own surface underneath these hooks; see
 [Chat Overview](/chat).
 
 ## Next.js

@@ -1,6 +1,6 @@
 # Server SDK security model
 
-Applies to both `@raven/server` (TypeScript) and `raven-sdk` (Python).
+Applies to both `@corvidhq/server` (TypeScript) and `raven-sdk` (Python).
 
 ## Three separate authentication layers — never confuse them
 
@@ -25,7 +25,7 @@ Your backend calls raven.tokens.create({ room, identity })  (Raven API key — s
 Raven mints a short-lived RTC token
     │
     ▼
-Browser uses that RTC token with @raven/rtc — never a Raven API key
+Browser uses that RTC token with @corvidhq/rtc — never a Raven API key
 ```
 
 **The browser must never be able to request an arbitrary Raven token.**

@@ -74,7 +74,7 @@ member. Ask for your own with `getReadState()`.
 ## React
 
 ```jsx
-import { useReadReceipts, useMessages } from '@raven/react';
+import { useReadReceipts, useMessages } from '@corvidhq/react';
 
 function MessageList() {
   const { messages } = useMessages();
