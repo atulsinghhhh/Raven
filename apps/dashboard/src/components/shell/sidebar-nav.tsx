@@ -4,12 +4,14 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { NAV_GROUPS, type NavItem } from '@/lib/nav';
 import {
+  IconAudit,
   IconChat,
   IconConnections,
   IconConversations,
   IconDiagnostics,
   IconErrors,
   IconKeys,
+  IconMembers,
   IconMetrics,
   IconOverview,
   IconParticipants,
@@ -39,6 +41,8 @@ const ICONS: Record<NavItem['icon'], (p: { className?: string }) => React.JSX.El
   conversations: IconConversations,
   presence: IconPresence,
   webhooks: IconWebhooks,
+  members: IconMembers,
+  audit: IconAudit,
 };
 
 export function SidebarNav({ projectId, onNavigate }: { projectId: string; onNavigate?: () => void }) {

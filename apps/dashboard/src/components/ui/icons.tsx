@@ -218,6 +218,25 @@ export const IconFolder = (p: IconProps) => (
   </Svg>
 );
 
+/** Members — two figures, one foregrounded, distinct from IconParticipants' call roster. */
+export const IconMembers = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="5.75" cy="5.25" r="2.25" />
+    <path d="M1.75 13.25c0-2.1 1.8-3.5 4-3.5s4 1.4 4 3.5" />
+    <circle cx="11.75" cy="6.5" r="1.75" />
+    <path d="M10.5 10.4c2.05-.4 3.75.85 3.75 2.85" />
+  </Svg>
+);
+
+/** Audit log — a document with ruled lines and a check, i.e. a record of what happened. */
+export const IconAudit = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3.25 2.75h6.5l3 3v7.5a1 1 0 01-1 1h-8.5a1 1 0 01-1-1v-9.5a1 1 0 011-1z" />
+    <path d="M9.5 2.75v3h3" />
+    <path d="M5.5 8.5h5M5.5 11h3" />
+  </Svg>
+);
+
 /** Raven wordmark glyph — a stylised bird head in a rounded square. */
 export const RavenMark = ({ className = 'size-6' }: IconProps) => (
   <svg viewBox="0 0 24 24" className={className} aria-hidden="true">

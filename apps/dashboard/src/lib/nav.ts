@@ -26,7 +26,9 @@ export interface NavItem {
     | 'chat'
     | 'conversations'
     | 'presence'
-    | 'webhooks';
+    | 'webhooks'
+    | 'members'
+    | 'audit';
 }
 
 export interface NavGroup {
@@ -78,9 +80,16 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Project',
     items: [
       { slug: 'usage', label: 'Usage', icon: 'usage' },
+      { slug: 'members', label: 'Members', icon: 'members' },
+      { slug: 'audit', label: 'Audit log', icon: 'audit' },
       { slug: 'settings', label: 'Settings', icon: 'settings' },
     ],
   },
 ];
 
-export const DOCS_URL = 'https://github.com/atulsinghhhh/Raven/tree/main/docs';
+/**
+ * The documentation site (apps/docs). Overridable so a self-hosted
+ * deployment can point at its own copy rather than a URL it doesn't
+ * control.
+ */
+export const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL ?? 'http://localhost:3200';

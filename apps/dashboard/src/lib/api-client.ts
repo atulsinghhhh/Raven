@@ -36,15 +36,49 @@ export interface Project {
   updatedAt: string;
 }
 
+export type Environment = 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION';
+
 export interface ApiKeySummary {
   id: string;
   projectId: string;
   publicId: string;
   name: string | null;
+  /** Optional: the dashboard may be newer than the API it's talking to. */
+  environment?: Environment;
   status: string;
   lastUsedAt: string | null;
   createdAt: string;
   revokedAt: string | null;
+}
+
+export type ProjectRole = 'OWNER' | 'ADMIN' | 'DEVELOPER' | 'VIEWER' | 'BILLING';
+
+export interface ProjectMember {
+  userId: string;
+  email: string;
+  name: string | null;
+  role: ProjectRole;
+  /** What this member's role allows — sent by the API so the UI never keeps a second copy of the matrix. */
+  capabilities: string[];
+  invitedById: string | null;
+  createdAt: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  publicId: string;
+  projectId: string;
+  environment: Environment | null;
+  actorId: string | null;
+  actorEmail: string;
+  action: string;
+  resourceType: string;
+  resourceId: string | null;
+  metadata: Record<string, unknown> | null;
+  requestId: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
 }
 
 export interface CreatedApiKey {
@@ -381,6 +415,37 @@ export const ravenApi = {
 
   revokeApiKey: (token: string, projectId: string, keyId: string) =>
     apiFetch<void>(`/v1/projects/${projectId}/api-keys/${keyId}`, { method: 'DELETE', token }),
+
+  listMembers: (token: string, projectId: string) =>
+    apiFetch<ProjectMember[]>(`/v1/projects/${projectId}/members`, { token }),
+
+  addMember: (token: string, projectId: string, input: { email: string; role?: ProjectRole }) =>
+    apiFetch<ProjectMember>(`/v1/projects/${projectId}/members`, { method: 'POST', token, body: input }),
+
+  updateMemberRole: (token: string, projectId: string, userId: string, role: ProjectRole) =>
+    apiFetch<ProjectMember>(`/v1/projects/${projectId}/members/${userId}`, {
+      method: 'PATCH',
+      token,
+      body: { role },
+    }),
+
+  removeMember: (token: string, projectId: string, userId: string) =>
+    apiFetch<void>(`/v1/projects/${projectId}/members/${userId}`, { method: 'DELETE', token }),
+
+  listAuditLogs: (
+    token: string,
+    projectId: string,
+    opts: { action?: string; actorId?: string; resourceId?: string; limit?: number } = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (opts.action) params.set('action', opts.action);
+    if (opts.actorId) params.set('actorId', opts.actorId);
+    if (opts.resourceId) params.set('resourceId', opts.resourceId);
+    // Capped at 200 server-side (QueryAuditLogsDto).
+    if (opts.limit) params.set('limit', String(opts.limit));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiFetch<AuditLogEntry[]>(`/v1/projects/${projectId}/audit-logs${query}`, { token });
+  },
 
   listRooms: (token: string, projectId: string) =>
     apiFetch<RoomWithLiveState[]>(`/v1/projects/${projectId}/rooms`, { token }),
