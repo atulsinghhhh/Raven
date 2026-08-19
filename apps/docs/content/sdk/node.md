@@ -56,7 +56,41 @@ await raven.diagnostics.get();
 // Chat — see Chat Overview and the Python SDK page for the full surface
 await raven.chat.createConversation({ name: 'support-room-42' });
 await raven.chat.createToken({ userId: 'alice', conversations: [conv.publicId] });
+
+// Live Streaming — see below
+await raven.liveStreams.create({ title: 'Friday Q&A', hostIdentity: 'user-123' });
 ```
+
+## Live Streaming
+
+```ts
+const stream = await raven.liveStreams.create({
+  title: 'Friday Q&A',
+  hostIdentity: 'user-123', // registered as this stream's HOST
+});
+
+await raven.liveStreams.start(stream.id);
+
+// Registering a co-host mints full-publish RTC + moderator chat credentials
+// in one call. Hand the result to the client SDK unchanged.
+const hostCredential = await raven.liveStreams.addHost(stream.id, { identity: 'user-456' });
+
+// A viewer token is always subscribe-only — there is no field here that
+// can request publish access.
+const viewerCredential = await raven.liveStreams.createViewerToken(stream.id, 'user-789');
+
+await raven.liveStreams.removeHost(stream.id, 'user-456');
+await raven.liveStreams.end(stream.id); // LIVE → ENDED, terminal
+```
+
+`get()`/`list()` read back a stream's metadata, registered hosts, and
+(for `get()`) a live viewer count polled from the SFU. `addHost()` and
+`createViewerToken()` are the security-critical methods: the role your
+caller ends up with is determined entirely by which one you call, never
+by a field in the request body. See
+[Live Streaming Overview](/live-streaming) for the full concept model,
+and [SDK Support Matrix](/live-streaming/sdk-support) for what every SDK
+implements.
 
 ## Errors
 

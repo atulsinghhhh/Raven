@@ -161,6 +161,69 @@ Full API — history, threads, attachments, delivery semantics — is
 `@corvidhq/chat`'s own surface underneath these hooks; see
 [Chat Overview](/chat).
 
+## Live Streaming
+
+`<RavenLiveStream>` composes both providers above for you — a stream's
+room and chat are an ordinary `Room` and `ChatClient`, so `useParticipants`,
+`useCamera`, `useMessages`, `useReactions`, and every other hook already
+work inside it. There is no separate `useLiveStreamParticipants()` or
+`useLiveStreamChat()`; that would be the "second chat/RTC implementation"
+the SDK is built specifically to avoid.
+
+```tsx
+'use client';
+import {
+  RavenLiveStream, useLiveStream, useLiveStreamHost, useParticipants, useMessages,
+} from '@corvidhq/react';
+
+function StreamPage({ credentials }) {
+  return (
+    <RavenLiveStream credentials={credentials} fallback={<p>Connecting…</p>}>
+      {credentials.role === 'VIEWER' ? <Viewer /> : <Host />}
+    </RavenLiveStream>
+  );
+}
+
+function Host() {
+  const { camera, microphone, leave } = useLiveStreamHost();
+  const participants = useParticipants();
+  const { messages, send } = useMessages();
+
+  return (
+    <div>
+      <button onClick={() => camera.enable()}>Go live</button>
+      <p>{participants.length} in the room</p>
+      {messages.map((m) => <p key={m.id}>{m.senderId}: {m.text}</p>)}
+      <button onClick={leave}>End for me</button>
+    </div>
+  );
+}
+
+function Viewer() {
+  const { react } = useLiveStream();
+  return <button onClick={() => react('❤️')}>❤️</button>;
+}
+```
+
+`credentials` is exactly what `addHost()`/`createViewerToken()` (server
+SDK) or `POST /v1/live-streams/:id/hosts`/`viewer-tokens` (REST) returns —
+never construct it by hand.
+
+| Hook | Returns |
+|---|---|
+| `useLiveStream()` | `{ status, role, isHost, streamId, stream, error, leave(), react(emoji) }`. |
+| `useLiveStreamRole()` | `{ role, isHost }`. |
+| `useLiveStreamHost()` | Everything `useLiveStream()` has, plus `camera`/`microphone` (`useCamera`/`useMicrophone` bundled in). Throws if called for a `VIEWER`-role stream. |
+| `useLiveStreamViewer()` | Everything `useLiveStream()` has. Throws if called for a `HOST`/`CO_HOST`-role stream. |
+| `useLiveStreamClient()` | The underlying `LiveStream` (from `@corvidhq/client`), for anything the hooks above don't cover. |
+
+`leave()` leaves the room and disconnects chat — it does not end the
+stream. Ending it (`LIVE → ENDED`) is a privileged, server-side call: see
+[Live Streaming → Streams & Lifecycle](/live-streaming/streams).
+
+Peer dependency: `@corvidhq/client` (optional — only needed if you use
+`<RavenLiveStream>`).
+
 ## Next.js
 
 Same rule as the underlying SDK: `<RavenRoom>` and every hook must run

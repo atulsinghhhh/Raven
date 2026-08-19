@@ -135,6 +135,23 @@ raven chat presence <conversationId>
 Read-only by design — the CLI holds a developer session (a JWT), not a
 project API key, so it can't create conversations or send messages.
 
+## Live streams
+
+```bash
+raven streams list
+raven streams list --status LIVE
+raven streams inspect <streamId>          # details + live viewer count + hosts
+raven streams create "Friday Q&A" --host user-123
+raven streams update <streamId> --title "New title"
+raven streams end <streamId>              # LIVE → ENDED, terminal
+```
+
+There is deliberately no `raven streams hosts add/remove` or
+`raven streams token host/viewer` — those mint real RTC + chat
+credentials, and the CLI holds a developer session (a JWT), not a
+project API key, same reason `raven chat send` doesn't exist. Run those
+from your own backend with `@corvidhq/server` or `raven-sdk`.
+
 ## Connections, errors, diagnostics
 
 ```bash

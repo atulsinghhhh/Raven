@@ -171,6 +171,46 @@ re-joins its rooms on the new socket and stops after a maximum number of
 attempts rather than looping forever. A rejected token is never retried
 — close codes 4401 and 4403 are terminal.
 
+## Live Streaming
+
+A third package, `raven_live`, composes `raven_rtc` and `raven_chat` — a
+stream's room and chat are an ordinary `RavenRoom` and `RavenChat`, so
+every API on both packages already works on what it hands back.
+
+```yaml
+dependencies:
+  raven_live:
+    path: ../path/to/your-checkout/sdks/flutter/raven_live
+```
+
+```dart
+import 'package:raven_live/raven_live.dart';
+
+final stream = await RavenLiveStream.join(credentials);
+
+if (stream.isHost) {
+  await stream.room.enableCamera();
+  await stream.room.enableMicrophone();
+}
+
+stream.room.participantChanges.listen((participants) => ...);
+stream.chat?.messages.listen((message) => ...);
+
+await stream.react('❤️');
+await stream.leave();
+```
+
+`RavenLiveStreamCredentials.fromJson(...)` parses exactly what
+`addHost()`/`createViewerToken()` (server SDK) returns — `streamId`,
+`role` (`HOST`/`CO_HOST`/`VIEWER`), `rtc`, an optional `chat`, and an
+optional `chatRootMessageId`. `role` never came from anywhere the app
+controls.
+
+`react(emoji)` throws a `RavenChatException` (`notInRoom`) if the stream
+has no chat conversation attached. `leave()` leaves the room and disposes
+the chat connection — ending the stream itself (`LIVE → ENDED`) is a
+separate, privileged, server-side call.
+
 ## Production
 
 - **Screen share on iOS** needs a Broadcast Upload Extension target in

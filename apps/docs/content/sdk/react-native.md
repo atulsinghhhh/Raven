@@ -139,6 +139,44 @@ new Raven({
 });
 ```
 
+## Live Streaming
+
+`RavenLiveStream` is a thin wrapper around `Raven` — not a parallel
+implementation. A stream's host and viewers are ordinary participants of
+one room, and its chat is ordinary `@corvidhq/chat`, so every mobile
+concern `Raven.join()` already handles (permissions, audio session, app
+lifecycle, network recovery) applies unchanged:
+
+```ts
+import { joinLiveStream, useLiveStream, useCamera } from '@corvidhq/react-native';
+
+const stream = await joinLiveStream(credentials);
+// or, inside a component:
+const { room, joining, error } = useLiveStream(stream);
+const camera = useCamera(room);
+
+if (stream.isHost) {
+  await camera.enable();
+}
+
+await stream.react('❤️');
+await stream.leave();
+```
+
+`credentials` is exactly what `addHost()`/`createViewerToken()` (server
+SDK) returns. `joinLiveStream()` defaults `requestPermissions` to
+whether the role can publish at all — a `VIEWER` is never prompted for
+camera/microphone access, since their token can't use it either way.
+
+`stream.room`/`stream.chat` are the same `Room`/`RavenChatHandle` this
+page already documents — `useParticipants(stream.room)`,
+`useCamera(stream.room)`, and `stream.chat!.messages.list(...)` all work
+unchanged. No new types were introduced for participants or messages.
+
+Requires no new dependency — this package already composes `Raven`, and
+Live Streaming credentials are a plain object (`streamId`, `role`,
+`rtc`, `chat?`, `chatRootMessageId?`) this package types locally.
+
 ## Production notes
 
 - **Background audio (iOS)**: add the `audio` background mode to

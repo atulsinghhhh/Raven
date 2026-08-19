@@ -103,6 +103,7 @@ export const NAV: NavSection[] = [
       { slug: 'live-streaming/filters', title: 'Filters & Effects' },
       { slug: 'live-streaming/network-quality', title: 'Network Quality' },
       { slug: 'live-streaming/analytics', title: 'Analytics' },
+      { slug: 'live-streaming/sdk-support', title: 'SDK Support Matrix' },
     ],
   },
   {

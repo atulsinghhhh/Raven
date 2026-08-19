@@ -107,6 +107,37 @@ must never fabricate an official-looking announcement. Pass
 [Messages](/chat/messages#idempotency). Everything is mirrored
 on `AsyncRaven.chat` with identical names.
 
+## Live Streaming
+
+```python
+from raven import AddHostParams, CreateLiveStreamParams
+
+stream = raven.live_streams.create(
+    CreateLiveStreamParams(title="Friday Q&A", host_identity="user-123")
+)
+raven.live_streams.start(stream["id"])
+
+# Registering a co-host mints full-publish RTC + moderator chat
+# credentials in one call. Hand the result to the client SDK unchanged.
+host_credential = raven.live_streams.add_host(stream["id"], AddHostParams(identity="user-456"))
+
+# A viewer token is always subscribe-only — there is no field here that
+# can request publish access.
+viewer_credential = raven.live_streams.create_viewer_token(stream["id"], "user-789")
+
+raven.live_streams.remove_host(stream["id"], "user-456")
+raven.live_streams.end(stream["id"])  # LIVE -> ENDED, terminal
+```
+
+Same naming convention as every other resource here: `raven.live_streams`
+mirrors `raven.liveStreams` on the Node.js SDK, methods are snake_case,
+everything is mirrored on `AsyncRaven.live_streams` with identical names.
+`add_host()`/`create_viewer_token()` are the security-critical methods —
+the role your caller ends up with is determined entirely by which one you
+call, never by a field in the request. See
+[Live Streaming Overview](/live-streaming) and
+[SDK Support Matrix](/live-streaming/sdk-support).
+
 ## Errors
 
 ```python

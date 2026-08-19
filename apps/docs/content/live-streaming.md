@@ -73,16 +73,20 @@ exactly like every other Raven webhook. See [Webhooks](/webhooks).
 
 ## Known limitations (this phase)
 
-- Web only — no React, React Native, Flutter, or Python Live Streaming
-  SDK yet, and no CLI streaming commands.
 - No cloud recording, AI moderation/captions, or media effects/filters
   pipeline yet — see [Filters & Effects](/live-streaming/filters) for
   the extension boundary the SDK leaves open for this.
-- No dedicated Node server-SDK wrapper yet — call the REST API directly
-  from your backend (see [Quickstart](/live-streaming/quickstart)).
 - Viewer count is derived live from the SFU's current participants, not
   stored — see [Analytics](/live-streaming/analytics) for exactly
   what's tracked.
+- No dashboard/CLI path to mint host or viewer credentials — by design;
+  see [SDK Support Matrix](/live-streaming/sdk-support#cli).
+- Flutter's `raven_live` package hasn't run against a real Flutter
+  toolchain in this repo yet (no Flutter/Dart available in the build
+  environment that wrote it) — the credential-parsing logic has unit
+  tests, but `RavenLiveStream.join()`/`leave()`/`react()` haven't been
+  exercised end-to-end. Treat it as unverified until a Flutter CI job
+  covers it.
 
 ## Next
 
@@ -90,6 +94,7 @@ exactly like every other Raven webhook. See [Webhooks](/webhooks).
 - [Streams & Lifecycle](/live-streaming/streams)
 - [Hosts & Co-hosts](/live-streaming/hosts) and [Viewers](/live-streaming/viewers)
 - [Live Chat](/live-streaming/live-chat) and [Reactions](/live-streaming/reactions)
+- [SDK Support Matrix](/live-streaming/sdk-support) — what every SDK implements, and what's deliberately absent
 
 Interactive hosts and co-hosts run on [Raven RTC](/rtc); comments and
 reactions run on [Raven Chat](/chat) — Live Streaming is what connects
