@@ -306,3 +306,88 @@ export interface ChatMessagePage {
   previousCursor: string | null;
   hasMore: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Live Streaming (Phase 14) — reuses Rooms + RTC Tokens + Chat under the
+// hood; a stream is never a third real-time system alongside them.
+// ---------------------------------------------------------------------------
+
+export type LiveStreamStatus = 'CREATED' | 'STARTING' | 'LIVE' | 'ENDING' | 'ENDED';
+export type LiveStreamVisibility = 'PUBLIC' | 'PRIVATE' | 'AUTHENTICATED';
+export type LiveStreamHostRole = 'HOST' | 'CO_HOST';
+
+export interface LiveStreamHostView {
+  identity: string;
+  role: LiveStreamHostRole;
+  invitedAt: string;
+}
+
+export interface LiveStream {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  category: string | null;
+  tags: string[];
+  language: string | null;
+  visibility: LiveStreamVisibility;
+  metadata: Record<string, unknown> | null;
+  status: LiveStreamStatus;
+  hosts: LiveStreamHostView[];
+  /** Live participants who are not registered hosts. `null` means the SFU could not be reached — distinct from a genuinely empty 0. */
+  viewerCount: number | null;
+  peakViewerCount: number;
+  conversationId: string | null;
+  /** The chat message viewer reactions attach to. */
+  chatRootMessageId: string | null;
+  scheduledAt: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLiveStreamParams {
+  title: string;
+  /** Registered as this stream's HOST — the only identity a stream is created with. */
+  hostIdentity: string;
+  description?: string;
+  /** A URL you host — Raven does not accept or store thumbnail uploads. */
+  thumbnailUrl?: string;
+  category?: string;
+  tags?: string[];
+  language?: string;
+  visibility?: LiveStreamVisibility;
+  metadata?: Record<string, unknown>;
+  /** ISO 8601. Raven does not auto-transition status at this time — call `start()` yourself. */
+  scheduledAt?: string;
+}
+
+/** Everything about a stream you might change before or during it — never its status; use `start()`/`end()` for that. */
+export interface UpdateLiveStreamParams {
+  title?: string;
+  description?: string;
+  thumbnailUrl?: string;
+  category?: string;
+  tags?: string[];
+  language?: string;
+  visibility?: LiveStreamVisibility;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ListLiveStreamsParams {
+  status?: LiveStreamStatus;
+}
+
+export interface AddHostParams {
+  identity: string;
+  /** HOST and CO_HOST get identical RTC/chat grants — the difference is bookkeeping, not permissions. Defaults to CO_HOST. */
+  role?: LiveStreamHostRole;
+}
+
+export interface IssuedStreamCredential {
+  identity: string;
+  role: LiveStreamHostRole | 'VIEWER';
+  rtc: IssuedToken;
+  chat?: IssuedChatToken;
+}

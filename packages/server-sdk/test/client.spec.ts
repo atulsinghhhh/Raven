@@ -18,6 +18,8 @@ describe('Raven', () => {
     expect(raven.errors).toBeDefined();
     expect(raven.metrics).toBeDefined();
     expect(raven.diagnostics).toBeDefined();
+    expect(raven.chat).toBeDefined();
+    expect(raven.liveStreams).toBeDefined();
   });
 
   it('never exposes the API key through JSON.stringify or String() on the client itself', () => {

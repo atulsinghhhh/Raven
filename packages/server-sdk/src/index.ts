@@ -4,6 +4,7 @@ export type { RavenClientOptions } from './http-client';
 export { RavenError, isRavenError } from './errors';
 
 export type {
+  AddHostParams,
   ChatConversation,
   ChatConversationType,
   ChatMember,
@@ -18,6 +19,7 @@ export type {
   ConnectionSummary,
   CreateChatTokenParams,
   CreateConversationParams,
+  CreateLiveStreamParams,
   CreateTokenParams,
   DependencyStatus,
   ErrorCategory,
@@ -25,12 +27,19 @@ export type {
   ErrorSummary,
   IceServer,
   IssuedChatToken,
+  IssuedStreamCredential,
   IssuedToken,
   LiveParticipantInfo,
+  LiveStream,
+  LiveStreamHostRole,
+  LiveStreamHostView,
+  LiveStreamStatus,
+  LiveStreamVisibility,
   LiveTrackInfo,
   ListChatMessagesParams,
   ListConnectionsParams,
   ListErrorsParams,
+  ListLiveStreamsParams,
   MetricsOverview,
   MetricsRange,
   Project,
@@ -40,4 +49,5 @@ export type {
   RoomStatus,
   SendChatMessageParams,
   TokenPermissions,
+  UpdateLiveStreamParams,
 } from './types';

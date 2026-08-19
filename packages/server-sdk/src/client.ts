@@ -3,6 +3,7 @@ import { ChatResource } from './resources/chat';
 import { ConnectionsResource } from './resources/connections';
 import { DiagnosticsResource } from './resources/diagnostics';
 import { ErrorsResource } from './resources/errors-resource';
+import { LiveStreamsResource } from './resources/live-streams';
 import { MetricsResource } from './resources/metrics';
 import { ProjectsResource } from './resources/projects';
 import { RoomsResource } from './resources/rooms';
@@ -29,6 +30,8 @@ export class Raven {
   readonly diagnostics: DiagnosticsResource;
   /** Raven Chat (Phase 12) — mint browser tokens, manage conversations, post server-side messages. */
   readonly chat: ChatResource;
+  /** Raven Live Streaming (Phase 14) — create streams, register hosts, mint viewer credentials. */
+  readonly liveStreams: LiveStreamsResource;
 
   constructor(options: RavenClientOptions) {
     const http = new RavenHttpClient(options);
@@ -40,5 +43,6 @@ export class Raven {
     this.metrics = new MetricsResource(http);
     this.diagnostics = new DiagnosticsResource(http);
     this.chat = new ChatResource(http);
+    this.liveStreams = new LiveStreamsResource(http);
   }
 }
