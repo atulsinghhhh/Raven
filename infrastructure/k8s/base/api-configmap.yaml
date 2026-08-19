@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: raven-api-config
+  labels:
+    app.kubernetes.io/name: raven-api
+    app.kubernetes.io/part-of: raven
+data:
+  # Non-secret runtime config for apps/api — mirrors .env.example.
+  # Anything with a credential/key/secret in the name lives in
+  # api-secret.yaml instead, never here (ConfigMaps aren't encrypted at
+  # rest by default; Secrets at least get base64 + RBAC-gated access).
+  NODE_ENV: "production"
+  API_PORT: "4100"
+  LOG_LEVEL: "info"
+
+  DATABASE_POOL_MAX: "10"
+  DATABASE_POOL_IDLE_TIMEOUT_MS: "30000"
+  DATABASE_POOL_CONNECTION_TIMEOUT_MS: "5000"
+
+  REDIS_COMMAND_TIMEOUT_MS: "2000"
+
+  JWT_EXPIRES_IN: "12h"
+  RTC_TOKEN_DEFAULT_TTL_SECONDS: "600"
+  CORS_ORIGIN: "https://app.example.com"
+  RATE_LIMIT_WINDOW_SECONDS: "60"
+
+  SIGNALING_MAX_PARTICIPANTS_PER_ROOM: "50"
+  SIGNALING_MAX_MESSAGE_BYTES: "16384"
+  SIGNALING_MAX_MESSAGES_PER_WINDOW: "100"
+  SIGNALING_MESSAGE_WINDOW_SECONDS: "10"
+  SIGNALING_MAX_CONNECTIONS_PER_WINDOW: "20"
+
+  CHAT_TOKEN_DEFAULT_TTL_SECONDS: "3600"
+  CHAT_TOKEN_MAX_TTL_SECONDS: "21600"
+  CHAT_MAX_TEXT_LENGTH: "4000"
+  CHAT_MAX_METADATA_BYTES: "4096"
+  CHAT_MAX_FRAME_BYTES: "65536"
+  CHAT_MAX_REACTIONS_PER_MESSAGE: "200"
+  CHAT_MAX_ROOM_SUBSCRIPTIONS: "20"
+  CHAT_MAX_HISTORY_PAGE_SIZE: "100"
+  CHAT_SEND_RATE_LIMIT: "30"
+  CHAT_SEND_RATE_WINDOW_SECONDS: "10"
+  CHAT_REACTION_RATE_LIMIT: "60"
+  CHAT_TYPING_RATE_LIMIT: "20"
+  CHAT_SUBSCRIBE_RATE_LIMIT: "60"
+  CHAT_CONNECTION_RATE_LIMIT: "30"
+  CHAT_PRESENCE_TTL_SECONDS: "45"
+  CHAT_TYPING_TTL_SECONDS: "7"
+  CHAT_RETENTION_DAYS: "0"
+  CHAT_RETENTION_SWEEP_INTERVAL_MS: "21600000"
+
+  WEBHOOK_MAX_ATTEMPTS: "6"
+  WEBHOOK_BACKOFF_BASE_MS: "10000"
+  WEBHOOK_TIMEOUT_MS: "5000"
+  WEBHOOK_POLL_INTERVAL_MS: "2000"
+  WEBHOOK_BATCH_SIZE: "20"
+  WEBHOOK_DISABLE_AFTER_FAILURES: "50"
+
+  STORAGE_REGION: "us-east-1"
+  STORAGE_FORCE_PATH_STYLE: "false"
+  STORAGE_UPLOAD_URL_TTL_SECONDS: "900"
+  STORAGE_DOWNLOAD_URL_TTL_SECONDS: "900"
+  STORAGE_MAX_ATTACHMENT_BYTES: "26214400"
+
+  # Host-facing values — real hostnames/URLs for whatever cluster/ingress
+  # this is deployed behind. Placeholders here; override per environment
+  # (a kustomize overlay, not by editing this base file).
+  API_PUBLIC_URL: "https://api.example.com"
+  LIVEKIT_URL: "wss://livekit.example.com"
+  LIVEKIT_INTERNAL_URL: "http://livekit.raven.svc.cluster.local:7880"
+  TURN_HOST: "turn.example.com"
+  TURN_INTERNAL_HOST: "coturn.raven.svc.cluster.local"
+  TURN_PORT: "3478"

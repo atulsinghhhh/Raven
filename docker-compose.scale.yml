@@ -1,0 +1,21 @@
+# Override for horizontal-scaling load tests — see scripts/k6/README.md
+# for the methodology this exists to support (measuring whether N
+# instances handle proportionally more load than one). The base
+# docker-compose.yml's `api` service is unmodified for everyone else:
+# `container_name` and a fixed host port both make `--scale api=N`
+# reject outright (a fixed name/port can't be claimed by more than one
+# container), so this override clears them, and only this override —
+# normal single-instance dev work is unaffected.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.scale.yml \
+#     up -d --scale api=3
+#   scripts/k6/discover-api-targets.sh   # prints each replica's host port
+services:
+  api:
+    container_name: !reset null
+    # No fixed host port: Docker assigns a random free one per replica.
+    # scripts/k6/discover-api-targets.sh resolves the actual assignments
+    # via `docker compose port`.
+    ports: !override
+      - "${API_PORT:-4100}"

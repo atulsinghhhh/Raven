@@ -50,6 +50,29 @@ services:
     networks:
       - raven-network
 
+  # Creates the raven_community database on this same Postgres instance,
+  # then exits. Separate logical database from `raven` above — Raven
+  # Community (apps/community-api) owns its own schema and never touches
+  # Raven's own tables. Idempotent so `pnpm infra:up` stays a single command
+  # across restarts.
+  community-db-init:
+    image: postgres:16-alpine
+    container_name: raven-community-db-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    entrypoint: >
+      /bin/sh -c "
+      psql -tc \"SELECT 1 FROM pg_database WHERE datname = 'raven_community'\" | grep -q 1 ||
+      psql -c \"CREATE DATABASE raven_community\"
+      "
+    networks:
+      - raven-network
+
   # Redis — ephemeral stuff: presence, rate limiting, room-state cache,
   # token bookkeeping, and LiveKit's own coordination store.
   redis:

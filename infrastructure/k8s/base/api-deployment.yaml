@@ -1,0 +1,131 @@
+# Runs the whole apps/api process — REST control plane, chat gateway,
+# signaling gateway, and the webhook delivery worker all in one pod,
+# because that's what the code actually does today (one AppModule, one
+# `main.ts` entrypoint). See infrastructure/k8s/README.md for the target
+# topology that splits these into independently-scaled deployments, and
+# why that isn't built yet.
+#
+# Every replica is safe to run concurrently without coordination:
+# - Chat: Redis pub/sub fan-out + connection registry (no sticky
+#   sessions needed) — see docs/chat/architecture.md.
+# - Signaling: same pattern, added this pass — see docs/signaling.md's
+#   "Multi-instance readiness" section.
+# - Webhook delivery: a Redis SET-NX-EX lock ensures only one replica
+#   drains the queue at a time regardless of replica count.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: raven-api
+  labels:
+    app.kubernetes.io/name: raven-api
+    app.kubernetes.io/part-of: raven
+spec:
+  # Floor for the HPA below, and the number a rolling update needs to
+  # stay available through (maxUnavailable: 0) — 3 is the smallest
+  # replica count that tolerates losing one pod to a node drain or a
+  # crash without dropping to a single instance.
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: raven-api
+  strategy:
+    rollingUpdate:
+      # Never fewer than `replicas` healthy pods during a deploy — a
+      # surge pod must pass its readiness probe before an old one is
+      # torn down.
+      maxUnavailable: 0
+      maxSurge: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: raven-api
+        app.kubernetes.io/part-of: raven
+      annotations:
+        # Scraped pod-internally — see infrastructure/k8s/README.md on
+        # why /metrics never goes through the public ingress.
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4100"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Spreads replicas across nodes so one node failure can't take out
+      # more than it has to — a soft preference, not a hard requirement,
+      # since a small cluster may not have 3 nodes to spread across.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: raven-api
+      # 30s: long enough for the 15s preStop sleep below plus the actual
+      # shutdown-hook work (closing sockets, disconnecting Prisma/Redis,
+      # clearing the webhook poll timer — see main.ts's
+      # enableShutdownHooks() comment) to finish before SIGKILL.
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: api
+          image: raven-api:latest # overridden per environment by CI/CD, not edited here
+          ports:
+            - name: http
+              containerPort: 4100
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: raven-api-config
+            - secretRef:
+                name: raven-api-secrets
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                # Gives the Service's endpoint controller time to remove
+                # this pod from rotation (and clients time to notice via
+                # a failed/refused connection and start reconnecting)
+                # before SIGTERM actually triggers the shutdown hooks —
+                # without this, the pod could still be receiving new
+                # traffic the instant it starts tearing down.
+                command: ["sh", "-c", "sleep 15"]
+          # PLACEHOLDER — sized conservatively, not from measurement.
+          # Task: replace with the numbers docs/production/capacity-report.md
+          # actually measures (per-instance ceiling, observed failure
+          # mode) before relying on this in a real deployment. See that
+          # doc's methodology section for how these get filled in.
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            # Kubernetes can't resolve a named USER (the Dockerfile sets
+            # `USER node`) from image metadata alone to verify
+            # runAsNonRoot — it needs a numeric UID here explicitly, or
+            # container creation fails with "cannot verify user is
+            # non-root" (found by actually deploying this manifest to a
+            # kind cluster while authoring it — see infrastructure/k8s's
+            # note on validation). 1000 is node:22-alpine's built-in
+            # `node` user, confirmed via `docker run raven-api:latest id`.
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
+      securityContext:
+        fsGroup: 1000

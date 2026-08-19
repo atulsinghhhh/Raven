@@ -1,0 +1,46 @@
+# CPU/memory only, to start — a connection-count-based HPA (scaling
+# chat/signaling pods on active WebSocket count rather than CPU, which
+# can stay low even with thousands of idle-but-open sockets) needs the
+# Prometheus Adapter wired to the /metrics gauges this pass added
+# (raven_chat_connections_active, raven_signaling_connections_active),
+# which isn't provisioned yet — tracked as a P1 follow-up alongside the
+# rest of the monitoring stack.
+#
+# minReplicas/maxReplicas and the utilization targets below are starting
+# points, not measured — see docs/production/capacity-report.md for
+# what the load tests actually showed, and revisit these once that
+# exists.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: raven-api
+  labels:
+    app.kubernetes.io/name: raven-api
+    app.kubernetes.io/part-of: raven
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: raven-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      # Chat/signaling pods hold long-lived connections — scaling down
+      # aggressively on a brief dip would force a wave of reconnects for
+      # no real capacity reason. Scale up has no such stabilization:
+      # default (immediate) is right for absorbing a real spike.
+      stabilizationWindowSeconds: 300

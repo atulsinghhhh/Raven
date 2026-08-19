@@ -176,7 +176,16 @@ async function main() {
 
 function openSocket(minted, room, userId) {
   return new Promise((resolve, reject) => {
-    const url = minted.chatUrl.replace(/^wss?:/, API.startsWith('https') ? 'wss:' : 'ws:');
+    // Host/port from API (what --api-url actually points at), not from
+    // minted.chatUrl: the server always advertises its own configured
+    // public URL there, which is right for a real deployment behind one
+    // shared load balancer but wrong when --api-url points at one
+    // specific instance behind its own port (see
+    // scripts/k6/chat-scaled-load-test.sh, which runs one of these per
+    // horizontally-scaled replica). The path still comes from chatUrl,
+    // in case that's ever not the default CHAT_PATH.
+    const chatPath = new URL(minted.chatUrl).pathname;
+    const url = `${API.replace(/^http/, 'ws')}${chatPath}`;
     const socket = new WebSocket(`${url}?token=${encodeURIComponent(minted.token)}&sdkVersion=loadtest&platform=node`);
     const client = { socket, room, userId, pending: new Map() };
 

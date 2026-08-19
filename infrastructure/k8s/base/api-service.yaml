@@ -1,0 +1,23 @@
+# One Service for REST + chat WS + signaling WS, because apps/api serves
+# all three on the single port main.ts listens on (see
+# infrastructure/k8s/README.md for the target topology that splits
+# these). Deliberately no sessionAffinity: chat and signaling are both
+# Redis-backed fleet-wide (ConnectionRegistryService / the room-registry
+# fix this pass), so any pod can serve any client — a load balancer
+# that ignores connection history is a feature here, not a gap.
+apiVersion: v1
+kind: Service
+metadata:
+  name: raven-api
+  labels:
+    app.kubernetes.io/name: raven-api
+    app.kubernetes.io/part-of: raven
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: raven-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

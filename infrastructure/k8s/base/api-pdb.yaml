@@ -1,0 +1,17 @@
+# minAvailable: 2 against a floor of 3 replicas means a voluntary
+# disruption (node drain, cluster upgrade) can only take one pod at a
+# time — matching the Deployment's own maxUnavailable: 0 rolling-update
+# policy so neither mechanism can starve the other down to a single
+# instance.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: raven-api
+  labels:
+    app.kubernetes.io/name: raven-api
+    app.kubernetes.io/part-of: raven
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: raven-api
