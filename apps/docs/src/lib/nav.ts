@@ -60,6 +60,8 @@ export const NAV: NavSection[] = [
       { slug: 'rtc/rooms-and-participants', title: 'Rooms & Participants' },
       { slug: 'rtc/audio-and-video', title: 'Audio & Video' },
       { slug: 'rtc/screen-sharing', title: 'Screen Sharing' },
+      { slug: 'rtc/permissions', title: 'Permissions' },
+      { slug: 'rtc/background-audio', title: 'Background Audio' },
       { slug: 'rtc/reconnection', title: 'Reconnection & Network Quality' },
       { slug: 'rtc/diagnostics', title: 'Diagnostics' },
       { slug: 'rtc/troubleshooting', title: 'Troubleshooting' },

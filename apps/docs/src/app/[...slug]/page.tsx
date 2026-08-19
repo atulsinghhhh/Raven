@@ -56,10 +56,7 @@ export default async function DocPage({ params }: { params: Promise<{ slug: stri
           <h1 className="text-3xl font-semibold tracking-tight text-fg">{doc.title}</h1>
           {doc.description && <p className="mt-2 text-lg text-muted">{doc.description}</p>}
 
-          <article
-            className="prose mt-8 border-t border-line pt-8"
-            dangerouslySetInnerHTML={{ __html: doc.html }}
-          />
+          <article className="prose mt-8 border-t border-line pt-8">{doc.content}</article>
 
           <nav className="mt-14 grid gap-3 border-t border-line pt-6 sm:grid-cols-2">
             {prev ? (

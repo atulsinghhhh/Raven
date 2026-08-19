@@ -80,7 +80,7 @@ exactly like every other Raven webhook. See [Webhooks](/webhooks).
   stored — see [Analytics](/live-streaming/analytics) for exactly
   what's tracked.
 - No dashboard/CLI path to mint host or viewer credentials — by design;
-  see [SDK Support Matrix](/live-streaming/sdk-support#cli).
+  see [SDK Support Matrix](/live-streaming/sdk-support#why-hosts-viewers-and-cli-differ).
 - Flutter's `raven_live` package hasn't run against a real Flutter
   toolchain in this repo yet (no Flutter/Dart available in the build
   environment that wrote it) — the credential-parsing logic has unit

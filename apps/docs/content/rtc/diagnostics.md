@@ -4,7 +4,11 @@ description: Real WebRTC stats — RTT, jitter, packet loss, bitrate, and codec 
 ---
 
 Raven exposes two levels of diagnostic information, deliberately kept
-separate because they cost different amounts to collect.
+separate because they cost different amounts to collect. Both are
+`Room` methods, so they work identically on **Web and React Native** —
+the same class, not a per-platform reimplementation. **Not currently
+available on Flutter** — `RavenRoom` doesn't expose a stats method yet;
+see [Common errors](#common-errors) below rather than working around it.
 
 ## `getDiagnostics()` — cheap, synchronous, always safe
 
@@ -53,7 +57,7 @@ Each `TrackStats` entry:
 ```
 
 This is async and does real work — collecting it needs a round trip
-through the browser's stats API per track. Call it periodically (every
+through the platform's stats API per track. Call it periodically (every
 few seconds is plenty), not on a tight loop.
 
 ```ts
@@ -68,6 +72,13 @@ setInterval(async () => {
 }, 5000);
 ```
 
+On React Native, the same call works unchanged — `room` is the same
+`Room` instance `raven.join()` returned:
+
+```ts
+const stats = await room.getConnectionStats();
+```
+
 ## Server-side visibility
 
 If your SDK version reports stats via telemetry, the same numbers land
@@ -75,9 +86,26 @@ in Raven's `Connection` records automatically — visible via
 `raven connections inspect <id>` or the dashboard, with no extra code on
 your end. Multiple tracks collapse into one connection-level figure per
 field: RTT from a send-direction track, the worst jitter and packet loss
-across every track, bitrate summed across all of them.
+across every track, bitrate summed across all of them. This works
+regardless of which client SDK reported it, including Flutter.
 
-## Next
+## Common errors
+
+| Error | Why | Fix |
+|---|---|---|
+| `getConnectionStats` is not a function (Flutter) | Not implemented on `RavenRoom` in this phase. | Read connection state via `room.connectionStateChanges` instead, or rely on server-side telemetry (above) for quality numbers on Flutter builds. |
+| Every `TrackStats.bitrateBps` is `undefined` | First sample after a track just started — there's nothing to diff against yet. | Wait for the second poll interval before trusting bitrate. |
+
+## Production notes
+
+- Poll on an interval (5s is a reasonable default), never inside a
+  render loop or a tight `while`.
+- Treat `connectionQuality` as the SFU's summary judgment — use the raw
+  `TrackStats` fields only when you need to explain *why* it's poor.
+- Diagnostics never contain a token, a secret, or PII — safe to log or
+  attach to a support ticket as-is.
+
+## Related
 
 - [Reconnection](/rtc/reconnection) — using `connectionQuality` to drive
   a UI indicator.

@@ -395,8 +395,44 @@
   color: var(--accent-text);
 }
 
-.prose pre {
+/*
+ * The copy button wraps each <pre> in this div (see components/mdx/CodeBlock.tsx)
+ * — the margin that used to live on .prose pre moves here so the button
+ * can sit flush against the block it copies.
+ */
+.prose .code-block {
+  position: relative;
   margin: 1.25rem 0;
+}
+
+.prose .code-block .code-block-copy {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg-muted);
+  font-size: 0.7rem;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 100ms;
+}
+
+.prose .code-block:hover .code-block-copy,
+.prose .code-block .code-block-copy:focus-visible {
+  opacity: 1;
+}
+
+.prose .code-block .code-block-copy:hover {
+  background: var(--surface-raised);
+  color: var(--fg);
+}
+
+.prose pre {
+  margin: 0;
   padding: 1rem 1.25rem;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
@@ -404,6 +440,55 @@
   overflow-x: auto;
   font-size: 0.85rem;
   line-height: 1.6;
+}
+
+/*
+ * SDK/language tabs (components/mdx/Tabs.tsx). Every panel is always in
+ * the DOM (see that file for why) — `hidden` is what actually removes
+ * the inactive ones from layout/paint.
+ */
+.prose .tabs {
+  margin: 1.25rem 0;
+}
+
+.prose .tabs-list {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.prose .tabs-trigger {
+  padding: 0.5rem 0.85rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fg-muted);
+}
+
+.prose .tabs-trigger:hover {
+  color: var(--fg);
+}
+
+.prose .tabs-trigger[aria-selected='true'] {
+  color: var(--accent-text);
+  border-bottom-color: var(--accent);
+}
+
+.prose .tabs-panel {
+  padding-top: 1rem;
+}
+
+.prose .tabs-panel[hidden] {
+  display: none;
+}
+
+.prose .tabs-panel > :first-child {
+  margin-top: 0;
+}
+
+.prose .tabs-panel > :last-child {
+  margin-bottom: 0;
 }
 
 .prose pre code {

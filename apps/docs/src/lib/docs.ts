@@ -1,14 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { ReactElement } from 'react';
 import matter from 'gray-matter';
+import { compileMDX } from 'next-mdx-remote/rsc';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypePrettyCode from 'rehype-pretty-code';
 import rehypeSlug from 'rehype-slug';
 import rehypeStringify from 'rehype-stringify';
 import remarkGfm from 'remark-gfm';
+import remarkMdx from 'remark-mdx';
 import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
+import type { Node, Parent } from 'unist';
 import { unified } from 'unified';
+import { visit } from 'unist-util-visit';
+import { mdxComponents } from '../components/mdx';
 import { NAV } from './nav';
 
 const CONTENT_DIR = path.join(process.cwd(), 'content');
@@ -26,9 +32,34 @@ export interface DocHeading {
 
 export interface DocPage extends DocFrontmatter {
   slug: string;
-  html: string;
+  /** Compiled MDX, already rendered to a React element — render it directly, e.g. `{doc.content}`. */
+  content: ReactElement;
   headings: DocHeading[];
+  /**
+   * The page rendered to plain HTML once, purely for the search indexer
+   * (`search.ts`) — never sent to the browser. Built by a *separate*,
+   * React-free pipeline (remark/rehype only) rather than rendering
+   * `content` to a string: Next 16 refuses to let a Server Component's
+   * module graph import `react-dom/server` at all. Instead `<Tabs>`/
+   * `<Tab>` are unwrapped to their bare children at the AST level
+   * (`remarkUnwrapJsx`) before the normal remark→rehype→HTML conversion
+   * — every SDK tab's code still gets indexed, its button label doesn't.
+   */
+  searchHtml: string;
 }
+
+const MDX_OPTIONS = {
+  remarkPlugins: [remarkGfm],
+  rehypePlugins: [
+    rehypeSlug,
+    [rehypeAutolinkHeadings, { behavior: 'wrap' }],
+    [
+      rehypePrettyCode,
+      { theme: { light: 'github-light', dark: 'github-dark' }, keepBackground: false },
+    ],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- rehype plugin tuples aren't typed generically by CompileOptions
+  ] as any,
+};
 
 function filePath(slug: string): string {
   return path.join(CONTENT_DIR, `${slug}.md`);
@@ -51,12 +82,9 @@ export function getAllSlugs(): string[] {
 }
 
 /**
- * Compiles one page's Markdown to HTML.
- *
- * `rehype-pretty-code` (Shiki under the hood) does syntax highlighting at
- * build time, server-side — the shipped page carries pre-colored `<span>`s
- * and zero client-side highlighting JS, rather than a client bundle that
- * has to load a grammar and re-parse every code block after hydration.
+ * Compiles one page's Markdown/MDX and pre-renders a plain-HTML copy for
+ * search. `rehype-pretty-code` (Shiki under the hood) still does syntax
+ * highlighting at build/request time, server-side, in both pipelines.
  */
 export async function getDoc(slug: string): Promise<DocPage | undefined> {
   const file = filePath(slug);
@@ -65,12 +93,54 @@ export async function getDoc(slug: string): Promise<DocPage | undefined> {
   }
 
   const raw = fs.readFileSync(file, 'utf8');
-  const { data, content } = matter(raw);
+  const { data, content: body } = matter(raw);
   const frontmatter = data as DocFrontmatter;
 
+  const [{ content }, searchHtml] = await Promise.all([
+    compileMDX({ source: body, options: { mdxOptions: MDX_OPTIONS }, components: mdxComponents }),
+    renderSearchHtml(body),
+  ]);
+
+  return {
+    slug,
+    title: frontmatter.title,
+    description: frontmatter.description,
+    content,
+    headings: extractHeadings(searchHtml),
+    searchHtml,
+  };
+}
+
+/**
+ * Replaces every `<Tabs>`/`<Tab>` JSX node with its own children,
+ * dropping the wrapper and its props (component name, `title="Web"`
+ * attribute) entirely. `remark-mdx` parses the JSX into
+ * `mdxJsxFlowElement`/`mdxJsxTextElement` nodes whose `children` are
+ * still ordinary mdast — unwrapping just splices those children in the
+ * parent's place so plain remark-rehype can take it from there as if the
+ * component had never been there.
+ */
+function remarkUnwrapJsx() {
+  return (tree: Node) => {
+    visit(tree, (node: Node, index: number | undefined, parent: Parent | undefined) => {
+      if (!parent || index === undefined) return;
+      if (node.type !== 'mdxJsxFlowElement' && node.type !== 'mdxJsxTextElement') return;
+
+      const children = 'children' in node && Array.isArray(node.children) ? node.children : [];
+      parent.children.splice(index, 1, ...children);
+      // Re-visit starting at the same index: the spliced-in children may
+      // themselves need unwrapping (a Tab nested directly in a Tabs).
+      return index;
+    });
+  };
+}
+
+async function renderSearchHtml(content: string): Promise<string> {
   const processed = await unified()
     .use(remarkParse)
+    .use(remarkMdx)
     .use(remarkGfm)
+    .use(remarkUnwrapJsx)
     .use(remarkRehype, { allowDangerousHtml: false })
     .use(rehypeSlug)
     .use(rehypeAutolinkHeadings, { behavior: 'wrap' })
@@ -81,25 +151,15 @@ export async function getDoc(slug: string): Promise<DocPage | undefined> {
     .use(rehypeStringify)
     .process(content);
 
-  const html = String(processed);
-
-  return {
-    slug,
-    title: frontmatter.title,
-    description: frontmatter.description,
-    html,
-    headings: extractHeadings(html),
-  };
+  return String(processed);
 }
 
 /**
  * Pulls h2/h3 out of the rendered HTML for the "On this page" rail.
  *
- * Regex over the compiled output rather than another rehype pass: the ids
- * are already there (rehype-slug added them), the shape is known and
- * machine-generated, and a second full traversal of the tree to collect
- * six strings isn't worth the extra plugin. h1 is excluded — it's the
- * page title, not a section within it.
+ * Regex over the compiled output rather than another tree traversal —
+ * the ids are already there (rehype-slug added them), and the shape is
+ * known and machine-generated.
  */
 function extractHeadings(html: string): DocHeading[] {
   const headings: DocHeading[] = [];

@@ -65,7 +65,7 @@ export async function buildSearchIndex(): Promise<SearchRecord[]> {
     const group = groupBySlug.get(slug) ?? 'Reference';
     headingIds.set(slug, new Set(doc.headings.map((h) => h.id)));
 
-    for (const section of splitByHeading(doc.html)) {
+    for (const section of splitByHeading(doc.searchHtml)) {
       const text = section.text.slice(0, MAX_SECTION_CHARS);
       // An h2 with nothing under it is still worth a record — the
       // heading itself is what someone is searching for.

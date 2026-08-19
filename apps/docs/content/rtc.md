@@ -21,7 +21,7 @@ Track
 
 Every track has a `kind`: `'camera' | 'microphone' | 'screenShare' |
 'unknown'`. Data messages are not modeled as a track — see
-[Rooms & Participants](/rtc/rooms-and-participants#data).
+[Rooms & Participants](/rtc/rooms-and-participants#sending-data).
 
 ## Joining
 
@@ -116,11 +116,13 @@ try {
 
 ## Next
 
-- [Quickstart](/rtc/quickstart)
+- [Quickstart](/rtc/quickstart) — Web, React, React Native, and Flutter,
+  side by side.
 - [Rooms & Participants](/rtc/rooms-and-participants) — device selection,
   data messages, participant state.
 - [Audio & Video](/rtc/audio-and-video) — camera, microphone, and the
   create-then-publish pattern.
+- [Permissions](/rtc/permissions) — camera/mic prompts across platforms.
 - [Diagnostics](/rtc/diagnostics) — real per-track stats: RTT, jitter,
   packet loss, bitrate, codec.
 

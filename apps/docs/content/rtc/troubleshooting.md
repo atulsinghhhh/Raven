@@ -22,7 +22,9 @@ detected APIs but ships them next release starts working automatically.
 Almost always a permissions issue, not a code bug. Check
 `getBrowserSupportDetails()` and confirm the camera permission was
 actually granted — a silently-denied permission produces a track that
-never starts, not a thrown error.
+never starts, not a thrown error. On React Native/Flutter, call
+`permissions.check()`/check the OS settings directly — see
+[Permissions](/rtc/permissions).
 
 ## No audio, or a remote track plays from the wrong device
 
@@ -33,7 +35,7 @@ unmute on the first click.
 
 ## Screen share has no audio
 
-Expected — see [Screen Sharing](/rtc/screen-sharing#whats-not-included).
+Expected — see [Screen Sharing](/rtc/screen-sharing#whats-not-included-web-and-flutter).
 Screen-share audio isn't currently surfaced even when the OS/browser
 provides it.
 
@@ -58,8 +60,22 @@ Call `client.getDevices()` again after the first successful
 React Native and Flutter are both officially supported —
 [React Native](/sdk/react-native) and [Flutter](/sdk/flutter) reuse the
 same RTC and chat logic as the web SDK, so a bug fix generally lands on
-both platforms at once. Mobile-specific concerns (permissions, audio
-routing, background behavior) are covered on each SDK's own page.
+both platforms at once. Mobile-specific concerns: [Permissions](/rtc/permissions)
+(camera/mic prompts differ by platform), [Background Audio](/rtc/background-audio)
+(React Native only), and audio routing on each SDK's own page.
+
+## "RTCPeerConnection is not defined" (React Native)
+
+The WebRTC globals weren't registered. Constructing a `Raven` does this
+automatically; if you touch WebRTC before that (e.g. rendering a
+pre-join camera preview), call `bootstrapRavenNative()` yourself first,
+in `index.js`.
+
+## App crashes instantly when asking for camera/microphone (React Native, Flutter)
+
+Missing `NSCameraUsageDescription`/`NSMicrophoneUsageDescription` in
+`Info.plist`. iOS terminates the process rather than erroring — see
+[Permissions](/rtc/permissions#platform-manifestplist-setup).
 
 ## What's genuinely not there yet
 
