@@ -13,6 +13,7 @@ from .resources.chat import AsyncChatResource
 from .resources.connections import AsyncConnectionsResource
 from .resources.diagnostics import AsyncDiagnosticsResource
 from .resources.errors import AsyncErrorsResource
+from .resources.live_streams import AsyncLiveStreamsResource
 from .resources.metrics import AsyncMetricsResource
 from .resources.projects import AsyncProjectsResource
 from .resources.rooms import AsyncRoomsResource
@@ -38,6 +39,7 @@ class AsyncRaven:
         self.metrics = AsyncMetricsResource(http)
         self.diagnostics = AsyncDiagnosticsResource(http)
         self.chat = AsyncChatResource(http)
+        self.live_streams = AsyncLiveStreamsResource(http)
 
     async def close(self) -> None:
         await self._http.aclose()

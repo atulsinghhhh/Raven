@@ -360,6 +360,96 @@ class ListChatMessagesParams:
     include_deleted: bool | None = None
 
 
+# Live Streaming (Phase 14). A stream composes an RTC room and a chat
+# conversation — these types mirror LiveStreamView/IssuedStreamCredential
+# on the API side 1:1, the same reuse discipline as the resource itself.
+
+LiveStreamStatus = Literal["CREATED", "STARTING", "LIVE", "ENDING", "ENDED"]
+LiveStreamVisibility = Literal["PUBLIC", "PRIVATE", "AUTHENTICATED"]
+LiveStreamHostRole = Literal["HOST", "CO_HOST"]
+
+
+class LiveStreamHostView(TypedDict, total=False):
+    identity: str
+    role: LiveStreamHostRole
+    invitedAt: str
+
+
+class LiveStream(TypedDict, total=False):
+    id: str
+    title: str
+    description: str | None
+    thumbnailUrl: str | None
+    category: str | None
+    tags: list[str]
+    language: str | None
+    visibility: LiveStreamVisibility
+    metadata: dict[str, Any] | None
+    status: LiveStreamStatus
+    hosts: list[LiveStreamHostView]
+    viewerCount: int | None
+    """``None`` means the SFU could not be reached — distinct from a genuinely empty stream (``0``)."""
+    peakViewerCount: int
+    conversationId: str | None
+    chatRootMessageId: str | None
+    scheduledAt: str | None
+    startedAt: str | None
+    endedAt: str | None
+    createdAt: str
+    updatedAt: str
+
+
+class IssuedStreamCredential(TypedDict, total=False):
+    """What ``add_host()``/``create_viewer_token()`` return.
+
+    ``role`` reflects whichever method minted this credential — it is never
+    a value the caller supplied.
+    """
+
+    identity: str
+    role: str
+    rtc: IssuedToken
+    chat: IssuedChatToken
+
+
+@dataclass
+class CreateLiveStreamParams:
+    title: str
+    host_identity: str
+    """Registered as this stream's HOST — the only identity a stream is created with."""
+    description: str | None = None
+    thumbnail_url: str | None = None
+    """A URL you host — Raven does not accept or store thumbnail uploads."""
+    category: str | None = None
+    tags: list[str] | None = None
+    language: str | None = None
+    visibility: LiveStreamVisibility | None = None
+    metadata: dict[str, Any] | None = None
+    scheduled_at: str | None = None
+    """ISO 8601. Raven does not auto-transition status at this time — call ``start()`` yourself."""
+
+
+@dataclass
+class UpdateLiveStreamParams:
+    """Everything about a stream you might change before or during it — never its status; use ``start()``/``end()`` for that."""
+
+    title: str | None = None
+    description: str | None = None
+    thumbnail_url: str | None = None
+    category: str | None = None
+    tags: list[str] | None = None
+    language: str | None = None
+    visibility: LiveStreamVisibility | None = None
+    metadata: dict[str, Any] | None = None
+
+
+@dataclass
+class AddHostParams:
+    identity: str
+    role: LiveStreamHostRole | None = None
+    """HOST and CO_HOST get identical RTC/chat grants — the difference is bookkeeping, not permissions. Defaults to CO_HOST."""
+
+
 __all__ = [
     "SendChatMessageParams",
     "ListChatMessagesParams",
@@ -401,4 +491,13 @@ __all__ = [
     "Room",
     "RoomStatus",
     "TokenPermissions",
+    "AddHostParams",
+    "CreateLiveStreamParams",
+    "IssuedStreamCredential",
+    "LiveStream",
+    "LiveStreamHostRole",
+    "LiveStreamHostView",
+    "LiveStreamStatus",
+    "LiveStreamVisibility",
+    "UpdateLiveStreamParams",
 ]

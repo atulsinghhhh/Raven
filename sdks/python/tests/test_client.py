@@ -26,6 +26,8 @@ def test_raven_exposes_all_documented_resources() -> None:
     assert raven.errors is not None
     assert raven.metrics is not None
     assert raven.diagnostics is not None
+    assert raven.chat is not None
+    assert raven.live_streams is not None
     raven.close()
 
 
@@ -50,6 +52,8 @@ def test_async_raven_exposes_all_documented_resources() -> None:
     assert raven.errors is not None
     assert raven.metrics is not None
     assert raven.diagnostics is not None
+    assert raven.chat is not None
+    assert raven.live_streams is not None
 
 
 @pytest.mark.asyncio

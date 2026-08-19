@@ -16,6 +16,7 @@ from .resources.chat import ChatResource
 from .resources.connections import ConnectionsResource
 from .resources.diagnostics import DiagnosticsResource
 from .resources.errors import ErrorsResource
+from .resources.live_streams import LiveStreamsResource
 from .resources.metrics import MetricsResource
 from .resources.projects import ProjectsResource
 from .resources.rooms import RoomsResource
@@ -41,6 +42,7 @@ class Raven:
         self.metrics = MetricsResource(http)
         self.diagnostics = DiagnosticsResource(http)
         self.chat = ChatResource(http)
+        self.live_streams = LiveStreamsResource(http)
 
     def close(self) -> None:
         self._http.close()

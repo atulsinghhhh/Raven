@@ -10,6 +10,7 @@ API key and is meant for a trusted backend only. See docs/sdk/server/python.md.
 
 from ._errors import RavenError
 from ._types import (
+    AddHostParams,
     ChatConversation,
     ChatConversationStatus,
     ChatConversationType,
@@ -28,6 +29,7 @@ from ._types import (
     ConversationMember,
     CreateChatTokenParams,
     CreateConversationParams,
+    CreateLiveStreamParams,
     CreateTokenParams,
     DependencyStatus,
     ErrorCategory,
@@ -35,8 +37,14 @@ from ._types import (
     ErrorSummary,
     IceServer,
     IssuedChatToken,
+    IssuedStreamCredential,
     IssuedToken,
     LiveParticipantInfo,
+    LiveStream,
+    LiveStreamHostRole,
+    LiveStreamHostView,
+    LiveStreamStatus,
+    LiveStreamVisibility,
     LiveTrackInfo,
     ListChatMessagesParams,
     ListConnectionsParams,
@@ -50,12 +58,22 @@ from ._types import (
     RoomStatus,
     SendChatMessageParams,
     TokenPermissions,
+    UpdateLiveStreamParams,
 )
 from ._version import SDK_VERSION
 from .async_client import AsyncRaven
 from .client import Raven
 
 __all__ = [
+    "AddHostParams",
+    "CreateLiveStreamParams",
+    "IssuedStreamCredential",
+    "LiveStream",
+    "LiveStreamHostRole",
+    "LiveStreamHostView",
+    "LiveStreamStatus",
+    "LiveStreamVisibility",
+    "UpdateLiveStreamParams",
     "SendChatMessageParams",
     "ListChatMessagesParams",
     "IssuedChatToken",
