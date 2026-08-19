@@ -33,6 +33,14 @@ setup steps.
   plus live chat and reactions, built entirely on `@corvidhq/client`'s
   `LiveStream` API.
 
+## Effects
+
+- **`effects-demo`** — a single-browser demo of `@corvidhq/effects`:
+  one real camera track, one `EffectsPipeline`, "Original" vs
+  "Processed" video side by side. No RTC room or signaling server
+  needed — it exercises the same pipeline `camera.attachEffects()` uses
+  internally, directly.
+
 ## Server SDKs
 
 - **`node-server`** — a real Express server minting RTC tokens with

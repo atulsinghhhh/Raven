@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Effects RTC E2E Harness</title>
+</head>
+<body>
+  <video id="localVideo" autoplay playsinline muted></video>
+  <video id="remoteVideo" autoplay playsinline muted></video>
+  <script type="importmap">
+    { "imports": { "livekit-client": "./vendor/livekit-client.esm.mjs" } }
+  </script>
+  <script type="module" src="./rtc-effects.js"></script>
+</body>
+</html>

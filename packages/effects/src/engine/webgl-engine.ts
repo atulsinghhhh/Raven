@@ -1,4 +1,5 @@
 import { EffectsError } from '../errors';
+import { FrameScheduler } from './frame-scheduler';
 import { gaussianWeights } from '../filters/blur';
 import type { EffectInstance } from '../types';
 import { FrameTimer } from './pixel-ops';
@@ -89,8 +90,7 @@ export class WebGLEngine implements EffectsEngine {
   private gl?: WebGL2RenderingContext;
   private video?: HTMLVideoElement;
   private getEffects?: () => EffectInstance[];
-  private handle?: number;
-  private stopped = false;
+  private scheduler?: FrameScheduler;
   private timer: FrameTimer;
   private onError?: (error: EffectsError) => void;
 
@@ -135,7 +135,8 @@ export class WebGLEngine implements EffectsEngine {
 
     const stream = canvas.captureStream(frameRate);
     const [outputTrack] = stream.getVideoTracks();
-    this.scheduleNextFrame();
+    this.scheduler = new FrameScheduler(video, (now) => this.runFrame(now));
+    this.scheduler.start();
     return outputTrack;
   }
 
@@ -190,15 +191,7 @@ export class WebGLEngine implements EffectsEngine {
   }
 
   stop(): void {
-    this.stopped = true;
-    if (this.handle !== undefined) {
-      const video = this.video as (HTMLVideoElement & { cancelVideoFrameCallback?: (h: number) => void }) | undefined;
-      if (video?.cancelVideoFrameCallback) {
-        video.cancelVideoFrameCallback(this.handle);
-      } else {
-        cancelAnimationFrame(this.handle);
-      }
-    }
+    this.scheduler?.stop();
   }
 
   getStats(): PipelineStats {
@@ -211,30 +204,19 @@ export class WebGLEngine implements EffectsEngine {
     };
   }
 
-  private scheduleNextFrame(): void {
-    if (this.stopped || !this.video) return;
-    const video = this.video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: (now: number) => void) => number };
-    const runFrame = (now: number) => {
-      if (this.stopped) return;
-      const start = typeof performance !== 'undefined' ? performance.now() : Date.now();
-      try {
-        this.renderFrame();
-      } catch (error) {
-        this.onError?.(
-          error instanceof EffectsError
-            ? error
-            : new EffectsError('RAVEN_EFFECT_PROCESSING_FAILED', 'WebGL effect frame failed to render.', error),
-        );
-      }
-      const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - start;
-      this.timer.recordFrame(now, elapsed);
-      this.scheduleNextFrame();
-    };
-    if (typeof video.requestVideoFrameCallback === 'function') {
-      this.handle = video.requestVideoFrameCallback(runFrame);
-    } else {
-      this.handle = requestAnimationFrame(() => runFrame(typeof performance !== 'undefined' ? performance.now() : Date.now()));
+  private runFrame(now: number): void {
+    const start = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    try {
+      this.renderFrame();
+    } catch (error) {
+      this.onError?.(
+        error instanceof EffectsError
+          ? error
+          : new EffectsError('RAVEN_EFFECT_PROCESSING_FAILED', 'WebGL effect frame failed to render.', error),
+      );
     }
+    const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - start;
+    this.timer.recordFrame(now, elapsed);
   }
 
   private renderFrame(): void {

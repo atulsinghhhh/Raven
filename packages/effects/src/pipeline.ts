@@ -227,6 +227,13 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
     const video = document.createElement('video');
     video.muted = true;
     video.playsInline = true;
+    // Chrome (and others) throttle or never decode frames for a <video> that
+    // isn't in the document — `requestVideoFrameCallback` simply never fires
+    // on a detached element. Off-screen-but-attached (not `display: none`,
+    // which some engines also pause) is what actually keeps it decoding.
+    video.setAttribute('aria-hidden', 'true');
+    video.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:2px;height:2px;opacity:0;pointer-events:none;';
+    document.body.appendChild(video);
     try {
       video.srcObject = new MediaStream([sourceTrack]);
       const playResult = video.play() as unknown;
@@ -241,6 +248,7 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
       // A runtime that can't even construct a video element from this track can't run
       // effects — surface it as unsupported and let the caller keep the original track,
       // rather than throwing out of an otherwise-optional feature.
+      video.remove();
       this.emit(
         'error',
         error instanceof EffectsError ? error : new EffectsError('RAVEN_EFFECT_UNSUPPORTED', 'Could not attach the source track to a video element.', error),
@@ -256,6 +264,8 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
       return outputTrack;
     } catch (error) {
       this.engine = undefined;
+      video.remove();
+      this.videoEl = undefined;
       const effectsError =
         error instanceof EffectsError ? error : new EffectsError('RAVEN_EFFECT_PROCESSING_FAILED', 'Failed to start effects engine.', error);
       this.emit('error', effectsError);
@@ -271,6 +281,7 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
     this.engine = undefined;
     if (this.videoEl) {
       this.videoEl.srcObject = null;
+      this.videoEl.remove();
       this.videoEl = undefined;
     }
   }

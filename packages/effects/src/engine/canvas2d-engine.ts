@@ -1,5 +1,6 @@
 import { EffectsError } from '../errors';
 import type { EffectInstance } from '../types';
+import { FrameScheduler } from './frame-scheduler';
 import { applyColorOpToImageData, FrameTimer } from './pixel-ops';
 import type { EffectsEngine, PipelineStats } from './types';
 
@@ -15,8 +16,7 @@ export class Canvas2DEngine implements EffectsEngine {
   private ctx?: CanvasRenderingContext2D;
   private video?: HTMLVideoElement;
   private getEffects?: () => EffectInstance[];
-  private handle?: number;
-  private stopped = false;
+  private scheduler?: FrameScheduler;
   private timer: FrameTimer;
   private onError?: (error: EffectsError) => void;
 
@@ -46,7 +46,8 @@ export class Canvas2DEngine implements EffectsEngine {
 
     const stream = canvas.captureStream(frameRate);
     const [outputTrack] = stream.getVideoTracks();
-    this.scheduleNextFrame();
+    this.scheduler = new FrameScheduler(video, (now) => this.runFrame(now));
+    this.scheduler.start();
     return outputTrack;
   }
 
@@ -55,15 +56,7 @@ export class Canvas2DEngine implements EffectsEngine {
   }
 
   stop(): void {
-    this.stopped = true;
-    if (this.handle !== undefined) {
-      const video = this.video as (HTMLVideoElement & { cancelVideoFrameCallback?: (h: number) => void }) | undefined;
-      if (video?.cancelVideoFrameCallback) {
-        video.cancelVideoFrameCallback(this.handle);
-      } else {
-        cancelAnimationFrame(this.handle);
-      }
-    }
+    this.scheduler?.stop();
   }
 
   getStats(): PipelineStats {
@@ -76,30 +69,19 @@ export class Canvas2DEngine implements EffectsEngine {
     };
   }
 
-  private scheduleNextFrame(): void {
-    if (this.stopped || !this.video) return;
-    const video = this.video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: (now: number) => void) => number };
-    const runFrame = (now: number) => {
-      if (this.stopped) return;
-      const start = typeof performance !== 'undefined' ? performance.now() : Date.now();
-      try {
-        this.renderFrame();
-      } catch (error) {
-        this.onError?.(
-          error instanceof EffectsError
-            ? error
-            : new EffectsError('RAVEN_EFFECT_PROCESSING_FAILED', 'Canvas2D effect frame failed to render.', error),
-        );
-      }
-      const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - start;
-      this.timer.recordFrame(now, elapsed);
-      this.scheduleNextFrame();
-    };
-    if (typeof video.requestVideoFrameCallback === 'function') {
-      this.handle = video.requestVideoFrameCallback(runFrame);
-    } else {
-      this.handle = requestAnimationFrame(() => runFrame(typeof performance !== 'undefined' ? performance.now() : Date.now()));
+  private runFrame(now: number): void {
+    const start = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    try {
+      this.renderFrame();
+    } catch (error) {
+      this.onError?.(
+        error instanceof EffectsError
+          ? error
+          : new EffectsError('RAVEN_EFFECT_PROCESSING_FAILED', 'Canvas2D effect frame failed to render.', error),
+      );
     }
+    const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - start;
+    this.timer.recordFrame(now, elapsed);
   }
 
   private renderFrame(): void {

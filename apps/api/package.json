@@ -49,6 +49,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "playwright": "^1.62.1",
     "@nestjs/cli": "^10.4.9",
     "@nestjs/schematics": "^10.2.3",
     "@nestjs/testing": "^10.4.15",
