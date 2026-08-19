@@ -91,6 +91,30 @@ export class RavenStore {
     void this.client?.leave();
   }
 
+  /**
+   * Wires an already-joined `Room` into this store's reactive machinery,
+   * without calling `client.join()` — for a caller (Live Streaming) that
+   * obtained the room some other way and still wants every existing
+   * hook (`useParticipants`, `useCamera`, ...) to work against it.
+   */
+  attachExisting(room: Room, client?: RTCClient): void {
+    if (client) {
+      this.client = client;
+      this.patch({ client });
+    }
+    this.attachRoom(room);
+  }
+
+  /**
+   * The `attachExisting()` counterpart to `dispose()` — unsubscribes from
+   * room events but never calls `client.leave()`. For a caller (Live
+   * Streaming) whose own `leave()` already tears down the room; calling
+   * both would leave it twice.
+   */
+  detachExisting(): void {
+    this.detachRoom();
+  }
+
   private attachRoom(room: Room): void {
     this.detachRoom();
 

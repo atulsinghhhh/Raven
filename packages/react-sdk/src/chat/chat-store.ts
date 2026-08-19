@@ -113,6 +113,33 @@ export class RavenChatStore {
     void this.client?.disconnect();
   }
 
+  /**
+   * Wires an already-connected `ChatClient` into this store's reactive
+   * machinery, without calling `client.connect()` — for a caller (Live
+   * Streaming) that obtained the client some other way and still wants
+   * every existing hook (`useMessages`, `useReactions`, ...) to work
+   * against it.
+   */
+  async attachExisting(client: ChatClient, room: string, historyLimit = 50): Promise<void> {
+    this.client = client;
+    this.room = room;
+    this.attach(client);
+    this.patch({ client, userId: client.userId, connectionState: client.connectionState });
+
+    await this.loadInitialHistory(historyLimit);
+    await this.hydrateEphemeralState();
+  }
+
+  /**
+   * The `attachExisting()` counterpart to `dispose()` — unsubscribes from
+   * client events but never calls `client.disconnect()`. For a caller
+   * (Live Streaming) whose own `leave()` already tears down the
+   * connection; calling both would disconnect it twice.
+   */
+  detachExisting(): void {
+    this.detach();
+  }
+
   // -------------------------------------------------------------------------
   // Actions
   // -------------------------------------------------------------------------

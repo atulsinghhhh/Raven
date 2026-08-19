@@ -7,6 +7,7 @@ import { RavenChatStore } from '../src/chat/chat-store';
  */
 class FakeChatClient {
   readonly userId = 'alice';
+  connectionState = 'connected';
   readonly handlers = new Map<string, Set<(payload: unknown) => void>>();
   readonly listed: unknown[] = [];
   page: { data: unknown[]; nextCursor: string | null; hasMore: boolean } = {
@@ -237,5 +238,47 @@ describe('RavenChatStore', () => {
     // Each notification must carry a different object, or
     // useSyncExternalStore's Object.is check never fires a re-render.
     expect(seen[0]).not.toBe(seen[1]);
+  });
+
+  describe('attachExisting()', () => {
+    it('wires an already-connected client without calling client.connect()', async () => {
+      const client = new FakeChatClient();
+      client.page = { data: [message('msg_1')], nextCursor: null, hasMore: false };
+      const connectSpy = jest.spyOn(client, 'connect');
+      const store = new RavenChatStore();
+
+      await store.attachExisting(client as never, 'conv_1');
+
+      expect(connectSpy).not.toHaveBeenCalled();
+      expect(store.getSnapshot().client).toBe(client);
+      expect(store.getSnapshot().userId).toBe('alice');
+      expect(store.getSnapshot().connectionState).toBe('connected');
+      expect(store.getSnapshot().messages.map((m) => m.id)).toEqual(['msg_1']);
+    });
+
+    it('reacts to events on the adopted client, same as a client from connect()', async () => {
+      const client = new FakeChatClient();
+      const store = new RavenChatStore();
+      await store.attachExisting(client as never, 'conv_1');
+
+      client.emit('message', message('msg_1'));
+
+      expect(store.getSnapshot().messages.map((m) => m.id)).toEqual(['msg_1']);
+    });
+  });
+
+  describe('detachExisting()', () => {
+    it('unsubscribes from client events without calling client.disconnect()', async () => {
+      const client = new FakeChatClient();
+      const disconnectSpy = jest.spyOn(client, 'disconnect');
+      const store = new RavenChatStore();
+      await store.attachExisting(client as never, 'conv_1');
+
+      store.detachExisting();
+      client.emit('message', message('msg_after_detach'));
+
+      expect(disconnectSpy).not.toHaveBeenCalled();
+      expect(store.getSnapshot().messages).toHaveLength(0);
+    });
   });
 });

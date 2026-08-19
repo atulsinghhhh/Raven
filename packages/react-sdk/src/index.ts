@@ -88,3 +88,26 @@ export type {
   SendMessageOptions,
 } from '@corvidhq/chat';
 export { isRavenChatError, RavenChatError } from '@corvidhq/chat';
+
+// ---------------------------------------------------------------------------
+// Live Streaming (Phase 14) — @corvidhq/client integration.
+//
+// A stream's room and chat are an ordinary Room and ChatClient, so
+// useParticipants/useCamera/useMicrophone (above) and
+// useMessages/useReactions/useTyping/etc. (chat, above) already work
+// inside <RavenLiveStream> — see src/live/live-hooks.ts for why there is
+// no separate useLiveStreamParticipants()/useLiveStreamChat().
+// ---------------------------------------------------------------------------
+export { RavenLiveStream } from './live/raven-live-stream';
+export type { RavenLiveStreamProps } from './live/raven-live-stream';
+
+export { useLiveStream, useLiveStreamClient, useLiveStreamHost, useLiveStreamRole, useLiveStreamViewer } from './live/live-hooks';
+export type { UseLiveStreamHostResult, UseLiveStreamResult } from './live/live-hooks';
+
+export type { RavenLiveStreamContextValue, RavenLiveStreamStatus } from './live/live-context';
+
+// Re-exported for convenience, same as the RTC/Chat types above — so a
+// live-streaming UI doesn't need a direct @corvidhq/client import for
+// common types. @corvidhq/client's own LiveKit-hiding discipline applies
+// here unchanged: nothing provider-specific ever reaches this surface.
+export type { LiveStream, LiveStreamCredentials, LiveStreamRole } from '@corvidhq/client';

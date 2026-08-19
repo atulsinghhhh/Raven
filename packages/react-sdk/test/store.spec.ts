@@ -2,6 +2,7 @@ jest.mock('@corvidhq/rtc', () => require('./helpers/fake-rtc-client'));
 
 import { FakeParticipant, FakeRoom, lastClient, resetFakeRtc } from './helpers/fake-rtc-client';
 import { RavenStore } from '../src/store';
+import type { Room, RTCClient } from '@corvidhq/rtc';
 
 describe('RavenStore', () => {
   beforeEach(() => {
@@ -120,5 +121,56 @@ describe('RavenStore', () => {
 
     expect(() => store.dispose()).not.toThrow();
     expect(lastClient().leaveMock).toHaveBeenCalledTimes(1);
+  });
+
+  describe('attachExisting()', () => {
+    it('wires an already-joined room without calling client.join()', () => {
+      const store = new RavenStore();
+      const room = new FakeRoom('room-1');
+
+      store.attachExisting(room as unknown as Room);
+
+      expect(store.getSnapshot().room).toBe(room);
+      expect(store.getSnapshot().connectionState).toBe('connected');
+      expect(store.getSnapshot().localParticipant?.identity).toBe('local-user');
+    });
+
+    it('reacts to events on the adopted room, same as a room from join()', () => {
+      const store = new RavenStore();
+      const room = new FakeRoom('room-1');
+      store.attachExisting(room as unknown as Room);
+
+      const bob = new FakeParticipant('bob');
+      room.remoteParticipants.push(bob);
+      room.emit('participantJoined', bob);
+
+      expect(store.getSnapshot().remoteParticipants).toEqual([bob]);
+    });
+
+    it('records the given client on the snapshot when provided', () => {
+      const store = new RavenStore();
+      const room = new FakeRoom('room-1');
+      const client = { leave: jest.fn() };
+
+      store.attachExisting(room as unknown as Room, client as unknown as RTCClient);
+
+      expect(store.getSnapshot().client).toBe(client);
+    });
+  });
+
+  describe('detachExisting()', () => {
+    it('unsubscribes from room events without calling client.leave()', () => {
+      const store = new RavenStore();
+      const room = new FakeRoom('room-1');
+      const client = { leave: jest.fn() };
+      store.attachExisting(room as unknown as Room, client as unknown as RTCClient);
+
+      store.detachExisting();
+      const snapshotAfterDetach = store.getSnapshot();
+      room.emit('reconnecting');
+
+      expect(client.leave).not.toHaveBeenCalled();
+      expect(store.getSnapshot()).toBe(snapshotAfterDetach);
+    });
   });
 });
