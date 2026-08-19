@@ -30,7 +30,7 @@ export function AccountShell({
 
       <header className="sticky top-0 z-20 border-b border-line bg-canvas/85 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-[85rem] items-center gap-3 px-4 lg:px-6">
-          <Link href="/dashboard/projects" className="flex items-center gap-2" aria-label="Raven home">
+          <Link href="/dashboard" className="flex items-center gap-2" aria-label="Raven home">
             <RavenMark className="size-6" />
             <span className="text-sm font-semibold tracking-tight text-fg">Raven</span>
           </Link>
