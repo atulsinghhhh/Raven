@@ -8,7 +8,7 @@ into — a support thread, a group channel, a DM, or the chat panel
 attached to an RTC call. Creating and configuring one is server-side
 only: a browser chat token can join a conversation and send messages in
 it, but never create, rename, or reconfigure one. See
-[Chat → Overview](/chat/overview#authorization--two-independent-checks)
+[Chat → Overview](/chat#authorization--two-independent-checks)
 for why that split exists.
 
 ## Create
@@ -54,7 +54,7 @@ one = raven.chat.get_conversation("support-room-42")
 ```
 
 `getConversation`/`get_conversation` accepts any of the three forms
-described in [Conversation references](/chat/overview#conversation-references)
+described in [Conversation references](/chat#conversation-references)
 — the public id, the name, or an attached RTC room's id.
 
 ## Updating a conversation
@@ -69,7 +69,7 @@ curl -X PATCH "$RAVEN_API_URL/v1/chat/conversations/support-room-42" \
   -d '{"retentionDays": 30}'
 ```
 
-See [REST API → Chat](/server/rest-api) for the full field list.
+See [REST API → Chat](/api-reference) for the full field list.
 
 ## Next
 

@@ -19,4 +19,9 @@ export interface ParticipantSession {
   isAlive: boolean;
   /** Sliding-window message timestamps for per-connection rate limiting. */
   messageTimestamps: number[];
+  /**
+   * Releases this instance's ref-counted subscription to the room's
+   * Redis channel. Set while `joinedRoom` is true; undefined otherwise.
+   */
+  roomEventsUnsubscribe?: () => Promise<void>;
 }

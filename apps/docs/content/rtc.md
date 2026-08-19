@@ -116,9 +116,14 @@ try {
 
 ## Next
 
+- [Quickstart](/rtc/quickstart)
 - [Rooms & Participants](/rtc/rooms-and-participants) — device selection,
   data messages, participant state.
 - [Audio & Video](/rtc/audio-and-video) — camera, microphone, and the
   create-then-publish pattern.
 - [Diagnostics](/rtc/diagnostics) — real per-track stats: RTT, jitter,
   packet loss, bitrate, codec.
+
+Need messaging alongside your call? See [Raven Chat](/chat). Building a
+one-to-many broadcast instead of a call? See
+[Raven Live Streaming](/live-streaming).

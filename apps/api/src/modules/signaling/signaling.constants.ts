@@ -43,3 +43,27 @@ export enum SignalingErrorCode {
 export const SIGNALING_PATH = '/v1/rtc';
 export const HEARTBEAT_INTERVAL_MS = 30_000;
 export const HEARTBEAT_TIMEOUT_MS = 60_000; // one missed cycle before termination
+
+/**
+ * Redis key namespace for fleet-wide room state, mirroring
+ * chat.constants.ts's `RedisKeys` convention. Every key here carries a
+ * TTL — same reasoning as chat's presence/connection keys — so a gateway
+ * that dies mid-heartbeat doesn't leave phantom participants behind.
+ */
+export const SignalingRedisKeys = {
+  /** Set of participantIds currently in the room, fleet-wide. */
+  roomParticipants: (roomId: string) => `raven:signaling:room:${roomId}:participants`,
+  /** participantId -> {gatewayId}. Lets any instance locate who holds a target's socket. */
+  participant: (roomId: string, participantId: string) =>
+    `raven:signaling:room:${roomId}:participant:${participantId}`,
+  /** Pub/sub channel for this room, one per room, subscribed to on demand. */
+  roomChannel: (roomId: string) => `raven:signaling:room:${roomId}:events`,
+} as const;
+
+/**
+ * Outlives one full missed heartbeat cycle plus a safety margin, so a
+ * gateway that dies mid-cycle doesn't leave a fleet-wide phantom
+ * participant around much longer than a live one would take to be
+ * cleaned up locally by the heartbeat sweep.
+ */
+export const SIGNALING_PARTICIPANT_TTL_SECONDS = Math.ceil((HEARTBEAT_TIMEOUT_MS * 2) / 1000);

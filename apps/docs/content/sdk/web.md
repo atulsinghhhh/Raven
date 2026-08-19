@@ -7,7 +7,7 @@ Raven ships three browser packages: `@raven/rtc` for calls,
 `@raven/chat` for messaging, and `@raven/client` for both behind one
 object. This page covers which to install, browser support, and
 framework-specific usage — the full APIs live in
-[RTC → Overview](/rtc/overview) and [Chat → Overview](/chat/overview).
+[RTC → Overview](/rtc) and [Chat → Overview](/chat).
 
 ## Install
 
@@ -67,7 +67,7 @@ await raven.dispose();
 
 This is a facade, not a third implementation: `raven.rtc` **is** an
 `RTCClient` and `raven.chat` **is** a `ChatClient`. Every method, event,
-and type documented in [RTC](/rtc/overview) and [Chat](/chat/overview)
+and type documented in [RTC](/rtc) and [Chat](/chat)
 works here unchanged. It mirrors the shape
 [`@raven/react-native`](/sdk/react-native) already gives mobile, so the
 same mental model carries across platforms.
@@ -99,7 +99,7 @@ await chat.sendMessage({ text: 'Hello everyone!' });
 ```
 
 Full chat API — messages, threads, presence, typing, reactions,
-receipts, and attachments — lives in the [Chat](/chat/overview) section,
+receipts, and attachments — lives in the [Chat](/chat) section,
 since none of it is `@raven/rtc`-specific.
 
 ## Browser support

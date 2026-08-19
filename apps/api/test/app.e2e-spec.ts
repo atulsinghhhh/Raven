@@ -52,6 +52,19 @@ describe('Control plane (e2e)', () => {
     });
   });
 
+  it('GET /health/live reports ok without checking any dependency', async () => {
+    const res = await request(app.getHttpServer()).get('/health/live').expect(200);
+    expect(res.body).toEqual({ status: 'ok' });
+  });
+
+  it('GET /health/ready matches GET /health', async () => {
+    const [ready, alias] = await Promise.all([
+      request(app.getHttpServer()).get('/health/ready').expect(200),
+      request(app.getHttpServer()).get('/health').expect(200),
+    ]);
+    expect(ready.body).toEqual(alias.body);
+  });
+
   describe('the full golden path', () => {
     const email = `e2e-${uniqueSuffix}@raven.local`;
     const password = 'correct-horse-battery-staple';

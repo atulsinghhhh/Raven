@@ -118,4 +118,50 @@ describe('HealthController', () => {
       expect.objectContaining({ signaling: { activeConnections: 5, activeRooms: 2, activeParticipants: 7 } }),
     );
   });
+
+  describe('liveness', () => {
+    it('always reports ok without calling any dependency', () => {
+      const res = fakeResponse();
+
+      controller.liveness(res as never);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ status: 'ok' });
+      expect(prisma.ping).not.toHaveBeenCalled();
+      expect(redis.ping).not.toHaveBeenCalled();
+    });
+
+    it('reports ok even while every dependency is down', () => {
+      prisma.ping.mockRejectedValue(new Error('connection refused'));
+      redis.ping.mockRejectedValue(new Error('connection refused'));
+      const res = fakeResponse();
+
+      controller.liveness(res as never);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+  });
+
+  describe('readiness', () => {
+    it('behaves exactly like the /health alias for status and dependencies', async () => {
+      const readyRes = fakeResponse();
+      const aliasRes = fakeResponse();
+
+      await controller.readiness(readyRes as never);
+      await controller.check(aliasRes as never);
+
+      expect(readyRes.status.mock.calls).toEqual(aliasRes.status.mock.calls);
+      expect(readyRes.json.mock.calls).toEqual(aliasRes.json.mock.calls);
+    });
+
+    it('does not include a bare "status ok" shortcut — still runs every dependency check', async () => {
+      prisma.ping.mockRejectedValue(new Error('connection refused'));
+      const res = fakeResponse();
+
+      await controller.readiness(res as never);
+
+      expect(res.status).toHaveBeenCalledWith(503);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'degraded' }));
+    });
+  });
 });

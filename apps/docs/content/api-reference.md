@@ -5,7 +5,7 @@ description: The full resource map — versioned, project-scoped, and shared by 
 
 Every SDK and the CLI call the same versioned REST API. There's no
 separate "internal" API — what your SDK does, you can do with `curl` and
-your own HTTP client, using the same [tokens](/server/tokens) and the
+your own HTTP client, using the same [tokens](/authentication/tokens) and the
 same [error shape](/reference/errors).
 
 Base path: `/v1`. Interactive docs (Swagger) are served at `/docs` on
@@ -98,6 +98,25 @@ GET    /v1/projects/{id}/chat/conversations
 GET    /v1/projects/{id}/chat/connections
 GET    /v1/projects/{id}/chat/conversations/{conversationId}/presence
 ```
+
+## Live Streaming
+
+```
+POST   /v1/live-streams                          (API key)
+GET    /v1/live-streams                          (API key)
+GET    /v1/live-streams/{id}                     (API key)
+PATCH  /v1/live-streams/{id}                     (API key)
+POST   /v1/live-streams/{id}/start               (API key)
+POST   /v1/live-streams/{id}/end                 (API key)
+POST   /v1/live-streams/{id}/hosts               (API key)
+DELETE /v1/live-streams/{id}/hosts/{identity}    (API key)
+POST   /v1/live-streams/{id}/viewer-tokens       (API key)
+POST   /v1/live-streams/{id}/leave               (API key)
+```
+
+Wraps [Rooms and RTC tokens](#rooms-and-rtc-tokens) and
+[Chat](#chat) rather than introducing a third token type — see
+[Live Streaming → Authentication](/live-streaming/authentication).
 
 ## Webhooks
 

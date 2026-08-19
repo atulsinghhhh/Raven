@@ -159,7 +159,7 @@ alone.
 
 Full API — history, threads, attachments, delivery semantics — is
 `@raven/chat`'s own surface underneath these hooks; see
-[Chat Overview](/chat/overview).
+[Chat Overview](/chat).
 
 ## Next.js
 

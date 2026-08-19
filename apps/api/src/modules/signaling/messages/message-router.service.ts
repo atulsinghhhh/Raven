@@ -14,14 +14,20 @@ import { SignalingActionResult } from './signaling-action.interface';
 
 /**
  * Pure message-routing logic, kept separate from the gateway's transport
- * concerns (framing, heartbeat, rate limiting). Never touches SDP
- * content — just checks authorization and forwards.
+ * concerns (framing, heartbeat, rate limiting, and — since the
+ * multi-instance fix — actually delivering anything to a socket). Never
+ * touches SDP content — just checks authorization and describes what
+ * should be forwarded to whom; the gateway is the only thing that ever
+ * touches a live WebSocket or Redis.
  */
 @Injectable()
 export class MessageRouterService {
   constructor(private readonly roomRegistry: RoomRegistryService) {}
 
-  route(session: ParticipantSession, message: InboundSignalingMessage): SignalingActionResult {
+  async route(
+    session: ParticipantSession,
+    message: InboundSignalingMessage,
+  ): Promise<SignalingActionResult> {
     switch (message.type) {
       case ClientMessageType.ROOM_JOIN:
         return this.handleJoin(session, message);
@@ -38,7 +44,10 @@ export class MessageRouterService {
     }
   }
 
-  private handleJoin(session: ParticipantSession, message: RoomJoinMessage): SignalingActionResult {
+  private async handleJoin(
+    session: ParticipantSession,
+    message: RoomJoinMessage,
+  ): Promise<SignalingActionResult> {
     if (!session.permissions.join) {
       throw new SignalingError(SignalingErrorCode.PERMISSION_DENIED, 'join permission required');
     }
@@ -52,7 +61,7 @@ export class MessageRouterService {
       );
     }
 
-    const { replaced, existingParticipants } = this.roomRegistry.join(session);
+    const { existingParticipantIds, wasReconnect } = await this.roomRegistry.join(session);
     session.joinedRoom = true;
     session.joinedAt = new Date();
 
@@ -60,116 +69,129 @@ export class MessageRouterService {
       toSender: {
         type: ServerMessageType.ROOM_JOINED,
         roomId: session.roomId,
-        participants: existingParticipants.map((p) => ({ id: p.participantId })),
+        participants: existingParticipantIds.map((id) => ({ id })),
       },
-      toOthers: existingParticipants.map((p) => ({
-        session: p,
+      toRoom: {
+        roomId: session.roomId,
+        excludeParticipantId: session.participantId,
         message: {
           type: ServerMessageType.PARTICIPANT_JOINED,
           participant: { id: session.participantId },
         },
-      })),
-      kick: replaced ?? undefined,
+      },
+      // Only a genuine reconnect needs the stale session (possibly on a
+      // different instance) closed — an ordinary first join has nothing
+      // to kick, and skipping the broadcast keeps the common case at one
+      // Redis publish instead of two.
+      kickParticipant: wasReconnect
+        ? { roomId: session.roomId, participantId: session.participantId, exceptConnectionId: session.connectionId }
+        : undefined,
     };
   }
 
-  private handleLeave(session: ParticipantSession): SignalingActionResult {
+  private async handleLeave(session: ParticipantSession): Promise<SignalingActionResult> {
     this.requireInRoom(session);
 
-    const removed = this.roomRegistry.leave(session.roomId, session.participantId);
+    await this.roomRegistry.leave(session.roomId, session.participantId);
     session.joinedRoom = false;
-    const others = this.roomRegistry.listParticipants(session.roomId);
 
     return {
       toSender: { type: ServerMessageType.ROOM_LEFT, roomId: session.roomId },
-      toOthers: removed
-        ? others.map((p) => ({
-            session: p,
-            message: {
-              type: ServerMessageType.PARTICIPANT_LEFT,
-              participant: { id: session.participantId },
-            },
-          }))
-        : [],
+      toRoom: {
+        roomId: session.roomId,
+        excludeParticipantId: session.participantId,
+        message: {
+          type: ServerMessageType.PARTICIPANT_LEFT,
+          participant: { id: session.participantId },
+        },
+      },
     };
   }
 
-  private handleSdpOffer(
+  private async handleSdpOffer(
     session: ParticipantSession,
     message: SdpOfferMessage,
-  ): SignalingActionResult {
-    const target = this.resolveTarget(session, message.targetParticipantId);
+  ): Promise<SignalingActionResult> {
+    await this.ensureTargetReachable(session, message.targetParticipantId);
     return {
-      toOthers: [
-        {
-          session: target,
-          message: {
-            type: ServerMessageType.SDP_OFFER,
-            fromParticipantId: session.participantId,
-            sdp: message.sdp,
-          },
+      toParticipant: {
+        roomId: session.roomId,
+        targetParticipantId: message.targetParticipantId,
+        message: {
+          type: ServerMessageType.SDP_OFFER,
+          fromParticipantId: session.participantId,
+          sdp: message.sdp,
         },
-      ],
+      },
     };
   }
 
-  private handleSdpAnswer(
+  private async handleSdpAnswer(
     session: ParticipantSession,
     message: SdpAnswerMessage,
-  ): SignalingActionResult {
-    const target = this.resolveTarget(session, message.targetParticipantId);
+  ): Promise<SignalingActionResult> {
+    await this.ensureTargetReachable(session, message.targetParticipantId);
     return {
-      toOthers: [
-        {
-          session: target,
-          message: {
-            type: ServerMessageType.SDP_ANSWER,
-            fromParticipantId: session.participantId,
-            sdp: message.sdp,
-          },
+      toParticipant: {
+        roomId: session.roomId,
+        targetParticipantId: message.targetParticipantId,
+        message: {
+          type: ServerMessageType.SDP_ANSWER,
+          fromParticipantId: session.participantId,
+          sdp: message.sdp,
         },
-      ],
+      },
     };
   }
 
-  private handleIceCandidate(
+  private async handleIceCandidate(
     session: ParticipantSession,
     message: IceCandidateMessage,
-  ): SignalingActionResult {
-    const target = this.resolveTarget(session, message.targetParticipantId);
+  ): Promise<SignalingActionResult> {
+    await this.ensureTargetReachable(session, message.targetParticipantId);
     return {
-      toOthers: [
-        {
-          session: target,
-          message: {
-            type: ServerMessageType.ICE_CANDIDATE,
-            fromParticipantId: session.participantId,
-            candidate: message.candidate,
-          },
+      toParticipant: {
+        roomId: session.roomId,
+        targetParticipantId: message.targetParticipantId,
+        message: {
+          type: ServerMessageType.ICE_CANDIDATE,
+          fromParticipantId: session.participantId,
+          candidate: message.candidate,
         },
-      ],
+      },
     };
   }
 
   // Same-room membership is implicit here — lookup is scoped to
   // session.roomId, so a target in another room just isn't found. No
   // path exists that could leak a candidate/SDP across rooms.
-  private resolveTarget(session: ParticipantSession, targetParticipantId: string): ParticipantSession {
+  private async ensureTargetReachable(
+    session: ParticipantSession,
+    targetParticipantId: string,
+  ): Promise<void> {
     this.requireInRoom(session);
 
     if (targetParticipantId === session.participantId) {
       throw new SignalingError(SignalingErrorCode.INVALID_MESSAGE, 'Cannot target yourself');
     }
 
-    const target = this.roomRegistry.get(session.roomId, targetParticipantId);
-    if (!target) {
+    // Local-instance participants are already known without a Redis
+    // round trip — most calls (both participants on the same gateway)
+    // never pay for the fleet-wide check below.
+    if (this.roomRegistry.get(session.roomId, targetParticipantId)) {
+      return;
+    }
+
+    const existsElsewhere = await this.roomRegistry.existsFleetWide(
+      session.roomId,
+      targetParticipantId,
+    );
+    if (!existsElsewhere) {
       throw new SignalingError(
         SignalingErrorCode.PARTICIPANT_NOT_FOUND,
         `Participant ${targetParticipantId} not found in this room`,
       );
     }
-
-    return target;
   }
 
   private requireInRoom(session: ParticipantSession): void {

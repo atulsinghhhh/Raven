@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { NAV } from '../lib/nav';
+import { ProductSwitcher } from './ProductSwitcher';
 import { Search } from './Search';
+import { Sidebar } from './Sidebar';
 
 const WWW_URL = process.env.NEXT_PUBLIC_WWW_URL ?? 'http://localhost:3100';
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3000';
@@ -37,6 +38,10 @@ export function DocsNav({ activeSlug }: { activeSlug?: string }) {
           Raven Docs
         </Link>
 
+        <div className="hidden md:block">
+          <ProductSwitcher activeSlug={activeSlug} />
+        </div>
+
         <div className="ml-auto flex items-center gap-4 text-sm">
           <Search />
           <a href={DASHBOARD_URL} className="hidden text-muted transition-colors hover:text-fg sm:inline">
@@ -49,31 +54,11 @@ export function DocsNav({ activeSlug }: { activeSlug?: string }) {
       </div>
 
       {open && (
-        <div className="border-t border-line bg-canvas px-4 py-4 md:hidden">
-          <nav>
-            {NAV.map((section) => (
-              <div key={section.title} className="mb-5">
-                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-subtle">
-                  {section.title}
-                </h3>
-                <ul>
-                  {section.items.map((item) => (
-                    <li key={item.slug}>
-                      <Link
-                        href={`/${item.slug}`}
-                        onClick={() => setOpen(false)}
-                        className={`block rounded-md px-2 py-1.5 text-sm ${
-                          item.slug === activeSlug ? 'bg-accent-subtle font-medium text-accent-text' : 'text-muted'
-                        }`}
-                      >
-                        {item.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </nav>
+        <div className="border-t border-line bg-canvas px-4 py-4 md:hidden" onClick={() => setOpen(false)}>
+          <div className="mb-5" onClick={(e) => e.stopPropagation()}>
+            <ProductSwitcher activeSlug={activeSlug} />
+          </div>
+          <Sidebar activeSlug={activeSlug} />
         </div>
       )}
     </header>

@@ -139,5 +139,5 @@ that key type allows. See [Environments](/production/environments).
 Chat has its own separate member roles *within a conversation*
 (`MEMBER`, `MODERATOR`, `ADMIN`) which are unrelated to these — those are
 about your application's end users, not about who administers your Raven
-project. See [Chat Overview](/chat/overview).
+project. See [Chat Overview](/chat).
 

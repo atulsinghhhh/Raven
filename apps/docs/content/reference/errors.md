@@ -192,7 +192,7 @@ a claim of certainty a Raven server can't actually back up. Examples:
 
 ## Where to see this
 
-- `raven errors list` / `raven errors inspect <errorId>` — see [CLI](/sdk/cli)
+- `raven errors list` / `raven errors inspect <errorId>` — see [CLI](/cli)
 - Dashboard → a project's **Errors** tab and error detail page
 - `GET /v1/projects/:projectId/errors` / `/errors/:errorId` (JWT-guarded)
 

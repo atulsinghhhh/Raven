@@ -72,7 +72,7 @@ await room.enableMicrophone();
 ```
 
 That's a working call. For chat, the same shape applies with a chat
-token instead — see [Chat → Overview](/chat/overview).
+token instead — see [Chat → Overview](/chat).
 
 ## Local development
 
@@ -90,9 +90,9 @@ Interactive API docs are then at `http://localhost:4100/docs`.
 
 ## Next
 
-- [Authentication](/getting-started/authentication) — the full token
+- [Authentication](/authentication) — the full token
   model, and why the client never sees your API key.
-- [RTC → Overview](/rtc/overview) — rooms, participants, and everything
+- [RTC → Overview](/rtc) — rooms, participants, and everything
   a call needs beyond join/publish.
-- [Chat → Overview](/chat/overview) — conversations, messages, and
+- [Chat → Overview](/chat) — conversations, messages, and
   presence.

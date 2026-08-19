@@ -190,13 +190,15 @@ export function assertIndexIsSound(
   // nobody notices by hand.
   const MUST_FIND: [query: string, slug: string][] = [
     ['screen share', 'rtc/screen-sharing'],
-    ['webhook signature', 'server/webhooks'],
-    ['RAVEN_TOKEN', 'sdk/cli'],
+    ['webhook signature', 'webhooks'],
+    ['RAVEN_TOKEN', 'cli'],
     ['audit log', 'production/audit-logs'],
     ['enableCamera', 'rtc/audio-and-video'],
     ['rate limit', 'production/rate-limits'],
-    ['chat token', 'server/tokens'],
+    ['chat token', 'authentication/tokens'],
     ['mute mic', 'rtc/audio-and-video'],
+    ['viewer publish', 'live-streaming/viewers'],
+    ['live stream lifecycle', 'live-streaming/streams'],
   ];
 
   for (const [query, slug] of MUST_FIND) {
@@ -209,7 +211,7 @@ export function assertIndexIsSound(
   // list isn't good enough — the top result is what people click.
   const MUST_RANK_FIRST: [query: string, slug: string][] = [
     ['screen share', 'rtc/screen-sharing'],
-    ['webhooks', 'server/webhooks'],
+    ['webhooks', 'webhooks'],
     ['reconnection', 'rtc/reconnection'],
     ['flutter', 'sdk/flutter'],
   ];

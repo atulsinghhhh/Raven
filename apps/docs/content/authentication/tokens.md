@@ -4,7 +4,7 @@ description: Minting RTC and chat tokens — permissions, TTLs, and what actuall
 ---
 
 Tokens are the only credential that ever reaches a client — see
-[Authentication](/getting-started/authentication) for the full model.
+[Authentication](/authentication) for the full model.
 This page covers minting them from your backend.
 
 ## RTC tokens
@@ -56,7 +56,7 @@ const token = await raven.chat.createToken({
 Scopes are derived from the user's role in each conversation
 (`MEMBER`/`MODERATOR`/`ADMIN`) and narrowed by whatever you pass — asking
 for `chat:moderate` as a plain member grants nothing. See
-[Chat Overview](/chat/overview#authorization--two-independent-checks).
+[Chat Overview](/chat#authorization--two-independent-checks).
 
 ## Environment follows the key
 

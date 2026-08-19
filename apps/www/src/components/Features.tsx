@@ -10,6 +10,10 @@ const FEATURES = [
     body: 'Conversations, threads, reactions, typing, presence, and read receipts — with idempotent sends and cursor-based pagination, not a bolted-on afterthought.',
   },
   {
+    title: 'Live streaming',
+    body: 'Hosts publish, viewers watch, co-hosts join in — with a Raven Chat conversation attached automatically for live comments and reactions. One join call, the same rooms and tokens underneath.',
+  },
+  {
     title: 'Real connection diagnostics',
     body: 'RTT, jitter, packet loss, bitrate, and codec, collected from live WebRTC stats — not a status dot. See exactly what a call looked like, after the fact.',
   },

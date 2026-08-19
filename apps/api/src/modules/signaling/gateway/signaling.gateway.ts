@@ -17,7 +17,9 @@ import { MessageValidatorService } from '../messages/message-validator.service';
 import { SignalingActionResult } from '../messages/signaling-action.interface';
 import { ConnectionRateLimitService } from '../rate-limit/connection-rate-limit.service';
 import { checkMessageRate } from '../rate-limit/message-rate-limiter.util';
+import { RoomEventsService } from '../rooms/room-events.service';
 import { RoomRegistryService } from '../rooms/room-registry.service';
+import { SignalingEventEnvelope } from '../rooms/signaling-event.interface';
 import { SignalingError } from '../signaling-error';
 import {
   ClientMessageType,
@@ -39,6 +41,12 @@ const CLOSE_RATE_LIMITED = 4029;
  * "data": {...}}`), so this gateway skips that binding layer and parses/
  * dispatches raw `message` events itself. handleConnection/handleDisconnect
  * still use Nest's normal gateway lifecycle hooks though.
+ *
+ * Multi-instance delivery works the same way as the chat gateway: this
+ * gateway holds sockets and a local room index; `RoomRegistryService` and
+ * `RoomEventsService` handle fleet-wide membership and fan-out over
+ * Redis, so a room split across gateways still gets join/leave/relay
+ * events delivered correctly (see docs/signaling.md#multi-instance).
  */
 @WebSocketGateway({ path: SIGNALING_PATH })
 export class SignalingGateway
@@ -47,10 +55,12 @@ export class SignalingGateway
   private readonly logger = new Logger(SignalingGateway.name);
   private readonly sessions = new Map<WebSocket, ParticipantSession>();
   private heartbeatTimer?: NodeJS.Timeout;
+  private unsubscribeFromRoomEvents?: () => void;
 
   constructor(
     private readonly tokenVerifier: RtcTokenVerifierService,
     private readonly roomRegistry: RoomRegistryService,
+    private readonly roomEvents: RoomEventsService,
     private readonly messageValidator: MessageValidatorService,
     private readonly messageRouter: MessageRouterService,
     private readonly connectionRateLimit: ConnectionRateLimitService,
@@ -58,6 +68,9 @@ export class SignalingGateway
   ) {}
 
   afterInit(): void {
+    this.unsubscribeFromRoomEvents = this.roomEvents.onEvent((roomId, envelope) =>
+      this.handleRoomEvent(roomId, envelope),
+    );
     this.heartbeatTimer = setInterval(() => this.runHeartbeat(), HEARTBEAT_INTERVAL_MS);
     this.logger.log(`Signaling gateway listening on ${SIGNALING_PATH}`);
   }
@@ -66,6 +79,7 @@ export class SignalingGateway
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
     }
+    this.unsubscribeFromRoomEvents?.();
     for (const client of this.sessions.keys()) {
       client.terminate();
     }
@@ -129,14 +143,14 @@ export class SignalingGateway
       `connection authenticated: participant=${session.participantId} room=${session.roomId}`,
     );
 
-    client.on('message', (data: RawData) => this.handleMessage(session, data));
+    client.on('message', (data: RawData) => void this.handleMessage(session, data));
     client.on('pong', () => {
       session.isAlive = true;
     });
     client.resume();
   }
 
-  handleDisconnect(client: WebSocket): void {
+  async handleDisconnect(client: WebSocket): Promise<void> {
     const session = this.sessions.get(client);
     if (!session) {
       return;
@@ -144,14 +158,22 @@ export class SignalingGateway
     this.sessions.delete(client);
 
     if (session.joinedRoom) {
-      const result = this.messageRouter.route(session, { type: ClientMessageType.ROOM_LEAVE });
-      this.executeAction(session, result);
+      try {
+        const result = await this.messageRouter.route(session, { type: ClientMessageType.ROOM_LEAVE });
+        await this.executeAction(session, result);
+      } catch (err) {
+        this.logger.warn(
+          `room-leave cleanup failed for participant ${session.participantId}: ${(err as Error).message}`,
+        );
+      }
+      await session.roomEventsUnsubscribe?.().catch(() => undefined);
+      session.roomEventsUnsubscribe = undefined;
     }
 
     this.logger.log(`disconnected: participant=${session.participantId}`);
   }
 
-  private handleMessage(session: ParticipantSession, data: RawData): void {
+  private async handleMessage(session: ParticipantSession, data: RawData): Promise<void> {
     const maxMessages = this.configService.get<number>('signaling.maxMessagesPerWindow')!;
     const windowSeconds = this.configService.get<number>('signaling.messageWindowSeconds')!;
 
@@ -166,8 +188,20 @@ export class SignalingGateway
 
     try {
       const message = this.messageValidator.parse(data as Buffer);
-      const result = this.messageRouter.route(session, message);
-      this.executeAction(session, result);
+      const result = await this.messageRouter.route(session, message);
+
+      // Subscribe before publishing anything (including this join's own
+      // possible kick) so this instance never misses an event it caused.
+      if (message.type === ClientMessageType.ROOM_JOIN && session.joinedRoom && !session.roomEventsUnsubscribe) {
+        session.roomEventsUnsubscribe = await this.roomEvents.subscribe(session.roomId);
+      }
+
+      await this.executeAction(session, result);
+
+      if (message.type === ClientMessageType.ROOM_LEAVE) {
+        await session.roomEventsUnsubscribe?.();
+        session.roomEventsUnsubscribe = undefined;
+      }
     } catch (err) {
       if (err instanceof SignalingError) {
         this.sendMessage(session.socket, err.toMessage());
@@ -182,22 +216,77 @@ export class SignalingGateway
     }
   }
 
-  private executeAction(session: ParticipantSession, result: SignalingActionResult): void {
+  /**
+   * Carries out what the router decided. Everything beyond `toSender`
+   * goes through Redis — even when the target turns out to be on this
+   * same instance, delivery happens uniformly via the room-events
+   * subscription handler below (same trade-off chat makes: one code
+   * path, not a local/remote fork, at the cost of one Redis round trip
+   * per relay).
+   */
+  private async executeAction(session: ParticipantSession, result: SignalingActionResult): Promise<void> {
     if (result.toSender) {
       this.sendMessage(session.socket, result.toSender);
     }
 
-    for (const { session: target, message } of result.toOthers ?? []) {
-      this.sendMessage(target.socket, message);
+    if (result.toRoom) {
+      await this.roomEvents.publish(result.toRoom.roomId, {
+        kind: 'broadcast',
+        message: result.toRoom.message,
+        excludeParticipantId: result.toRoom.excludeParticipantId,
+      });
     }
 
-    if (result.kick) {
-      this.sendMessage(result.kick.socket, {
-        type: ServerMessageType.ERROR,
-        code: SignalingErrorCode.UNAUTHORIZED,
-        message: 'This connection was replaced by a newer session for the same participant',
+    if (result.toParticipant) {
+      await this.roomEvents.publish(result.toParticipant.roomId, {
+        kind: 'direct',
+        targetParticipantId: result.toParticipant.targetParticipantId,
+        message: result.toParticipant.message,
       });
-      result.kick.socket.close(CLOSE_REPLACED, 'replaced');
+    }
+
+    if (result.kickParticipant) {
+      await this.roomEvents.publish(result.kickParticipant.roomId, {
+        kind: 'kick',
+        participantId: result.kickParticipant.participantId,
+        exceptConnectionId: result.kickParticipant.exceptConnectionId,
+      });
+    }
+  }
+
+  /** Called for every event on every room this instance subscribes to (own events included). */
+  private handleRoomEvent(roomId: string, envelope: SignalingEventEnvelope): void {
+    switch (envelope.kind) {
+      case 'broadcast': {
+        for (const participant of this.roomRegistry.listParticipants(roomId, envelope.excludeParticipantId)) {
+          this.sendMessage(participant.socket, envelope.message);
+        }
+        return;
+      }
+      case 'direct': {
+        const target = this.roomRegistry.get(roomId, envelope.targetParticipantId);
+        if (target) {
+          this.sendMessage(target.socket, envelope.message);
+        }
+        return;
+      }
+      case 'kick': {
+        for (const [socket, session] of this.sessions) {
+          if (
+            session.roomId === roomId &&
+            session.participantId === envelope.participantId &&
+            session.connectionId !== envelope.exceptConnectionId
+          ) {
+            this.sendMessage(socket, {
+              type: ServerMessageType.ERROR,
+              code: SignalingErrorCode.UNAUTHORIZED,
+              message: 'This connection was replaced by a newer session for the same participant',
+            });
+            socket.close(CLOSE_REPLACED, 'replaced');
+          }
+        }
+        return;
+      }
     }
   }
 
@@ -232,7 +321,7 @@ export class SignalingGateway
     return request.socket.remoteAddress ?? 'unknown';
   }
 
-  /** For observability — not exposed over the wire protocol. */
+  /** For observability — not exposed over the wire protocol. Local-instance only; see RoomRegistryService.getMetrics. */
   getMetrics() {
     return {
       activeConnections: this.sessions.size,

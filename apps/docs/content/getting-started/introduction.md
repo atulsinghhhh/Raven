@@ -37,10 +37,10 @@ for how the pieces fit together.
 
 - New to Raven? Start with the [Quickstart](/getting-started/quickstart)
   — a project, a token, and your first call or message in a few minutes.
-- Building calling? [RTC → Overview](/rtc/overview).
-- Building chat? [Chat → Overview](/chat/overview).
-- Wiring up your backend? [Server → Tokens](/server/tokens) and
-  [Server → REST API](/server/rest-api).
+- Building calling? [RTC → Overview](/rtc).
+- Building chat? [Chat → Overview](/chat).
+- Wiring up your backend? [Server → Tokens](/authentication/tokens) and
+  [Server → REST API](/api-reference).
 - Running this yourself? [Production → Security](/production/security)
   and [Production → Environments](/production/environments).
 

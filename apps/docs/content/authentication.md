@@ -81,7 +81,7 @@ development data, regardless of what a client sends.
 
 ## Next
 
-- [Tokens](/server/tokens) — the full server-side minting API.
+- [Tokens](/authentication/tokens) — the full server-side minting API.
 - [Environments](/production/environments) — how the environment a
   token was minted in follows it everywhere.
 - [Roles & Permissions](/production/roles-and-permissions) — who on

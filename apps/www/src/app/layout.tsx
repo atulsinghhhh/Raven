@@ -4,7 +4,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Raven — Real-time infrastructure for developers',
   description:
-    'Audio, video, and chat infrastructure, managed for you. Token-based auth, real diagnostics, and SDKs for web, mobile, and server.',
+    'Audio, video, chat, and live streaming infrastructure, managed for you. Token-based auth, real diagnostics, and SDKs for web, mobile, and server.',
 };
 
 /**

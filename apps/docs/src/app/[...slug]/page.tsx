@@ -1,20 +1,33 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { DocsNav } from '../../components/DocsNav';
 import { Sidebar } from '../../components/Sidebar';
 import { TableOfContents } from '../../components/TableOfContents';
 import { getAllSlugs, getDoc } from '../../lib/docs';
-import { findNavItem, getAdjacent } from '../../lib/nav';
+import { getAdjacent } from '../../lib/nav';
 
 export function generateStaticParams() {
   return getAllSlugs().map((slug) => ({ slug: slug.split('/') }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string[] }> }) {
-  const { slug } = await params;
-  const doc = await getDoc(slug.join('/'));
+  const { slug: slugParts } = await params;
+  const slug = slugParts.join('/');
+  const doc = await getDoc(slug);
   if (!doc) return {};
-  return { title: doc.title, description: doc.description };
+
+  return {
+    title: doc.title,
+    description: doc.description,
+    alternates: { canonical: `/${slug}` },
+    openGraph: {
+      title: doc.title,
+      description: doc.description,
+      type: 'article',
+      url: `/${slug}`,
+    },
+  };
 }
 
 export default async function DocPage({ params }: { params: Promise<{ slug: string[] }> }) {
@@ -27,7 +40,6 @@ export default async function DocPage({ params }: { params: Promise<{ slug: stri
   }
 
   const { prev, next } = getAdjacent(slug);
-  const navEntry = findNavItem(slug);
 
   return (
     <>
@@ -40,9 +52,7 @@ export default async function DocPage({ params }: { params: Promise<{ slug: stri
         </aside>
 
         <main className="min-w-0 flex-1">
-          {navEntry && (
-            <p className="mb-2 text-sm font-medium text-accent-text">{navEntry.section.title}</p>
-          )}
+          <Breadcrumbs slug={slug} />
           <h1 className="text-3xl font-semibold tracking-tight text-fg">{doc.title}</h1>
           {doc.description && <p className="mt-2 text-lg text-muted">{doc.description}</p>}
 

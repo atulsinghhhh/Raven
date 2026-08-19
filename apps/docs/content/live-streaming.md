@@ -60,7 +60,7 @@ dashboard access.
 
 Every stream gets a `Conversation` the moment it's created, plus a
 hidden system root message. Regular chat (`stream.chat.sendMessage`)
-works exactly as documented in [Chat](/chat/overview). Reactions
+works exactly as documented in [Chat](/chat). Reactions
 (`stream.react('❤️')`) add a `Reaction` to that root message — there's
 no second, live-streaming-specific realtime primitive; it's the same
 aggregation `Reactions` already provides for ordinary messages.
@@ -69,18 +69,28 @@ aggregation `Reactions` already provides for ordinary messages.
 
 `live_stream.created`, `.started`, `.ended`, `.host_joined`,
 `.host_left`, `.viewer_joined`, `.viewer_left` — signed and delivered
-exactly like every other Raven webhook. See [Webhooks](/server/webhooks).
+exactly like every other Raven webhook. See [Webhooks](/webhooks).
 
 ## Known limitations (this phase)
 
 - Web only — no React, React Native, Flutter, or Python Live Streaming
   SDK yet, and no CLI streaming commands.
 - No cloud recording, AI moderation/captions, or media effects/filters
-  pipeline yet. The Web SDK's media path is left unmodified specifically
-  so an effects extension point can be added later without a breaking
-  change.
+  pipeline yet — see [Filters & Effects](/live-streaming/filters) for
+  the extension boundary the SDK leaves open for this.
 - No dedicated Node server-SDK wrapper yet — call the REST API directly
   from your backend (see [Quickstart](/live-streaming/quickstart)).
 - Viewer count is derived live from the SFU's current participants, not
-  stored — expect a brief lag between a viewer's tab closing and the
-  count reflecting it.
+  stored — see [Analytics](/live-streaming/analytics) for exactly
+  what's tracked.
+
+## Next
+
+- [Quickstart](/live-streaming/quickstart)
+- [Streams & Lifecycle](/live-streaming/streams)
+- [Hosts & Co-hosts](/live-streaming/hosts) and [Viewers](/live-streaming/viewers)
+- [Live Chat](/live-streaming/live-chat) and [Reactions](/live-streaming/reactions)
+
+Interactive hosts and co-hosts run on [Raven RTC](/rtc); comments and
+reactions run on [Raven Chat](/chat) — Live Streaming is what connects
+the two into one product surface, not a replacement for either.

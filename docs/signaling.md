@@ -173,20 +173,39 @@ object cannot do. The per-connection *message* rate limit is deliberately
 in-memory instead (see below) — that state is meaningless outside the
 single process holding the live socket, so there's nothing to share.
 
-## Multi-instance readiness (not implemented)
+## Multi-instance readiness
 
-`RoomRegistryService` is in-memory and correct for exactly one signaling
-process. Running more than one instance would need participants of the
-same room to be reachable regardless of which instance they connected
-to — the standard solution is a Redis Pub/Sub channel per room (or a
-shared channel with room-scoped messages) that each instance subscribes
-to, republishing to its own locally-connected sockets. This is explicitly
-**not built now**, per the instruction not to implement multi-instance
-signaling before it's actually required — but the module boundaries
-(`RoomRegistryService` as the single seam between "room state" and
-"who's actually connected to me") are exactly where that Pub/Sub layer
-would slot in later without touching the gateway, message validation, or
-authorization logic at all.
+`RoomRegistryService` keeps two views: a local `Map` of participants this
+exact process holds sockets for, and a Redis-backed fleet view
+(`SignalingRedisKeys.roomParticipants`/`participant`, TTL'd) so
+participants are reachable regardless of which instance they connected
+to. `RoomEventsService` is a room-scoped Redis Pub/Sub layer — one
+duplicated subscriber connection per instance, ref-counted subscribe per
+room — ported directly from chat's `ChatEventsService`/
+`ConnectionRegistryService` pattern (`docs/chat/architecture.md`).
+
+Concretely, `MessageRouterService` no longer resolves a relay/broadcast
+target to a live socket itself — it only knows about rooms and
+participant ids. It returns a `toRoom` (fleet-wide broadcast, e.g.
+`participant.joined`/`participant.left`), `toParticipant` (targeted
+relay, e.g. an SDP offer/answer or ICE candidate), or `kickParticipant`
+(fleet-wide stale-session replacement on reconnect) intent, and
+`SignalingGateway` carries it out via `RoomEventsService.publish()`.
+Every instance subscribed to that room's channel receives the envelope
+and delivers it to whichever local sockets it actually holds — the same
+"publish uniformly, filter on delivery" model chat uses, including for
+same-instance delivery (traded a small amount of latency for one
+delivery code path instead of a local/remote fork).
+
+A two-participant call split across instances now works: alice on
+gateway A and bob on gateway B each show up in the other's `room.joined`
+participant list, `participant.joined`/`participant.left` reach both,
+and SDP/ICE relay reaches whichever instance actually holds the target's
+socket. See `rooms/room-registry.service.spec.ts` (fleet membership,
+capacity, and a same-Redis two-registry test simulating two gateway
+pods) and `messages/message-router.service.spec.ts` for coverage; wire-
+level, single-instance behavior is unchanged and still covered by
+`test/signaling.e2e-spec.ts`.
 
 ## Rate limiting and abuse protection
 
@@ -285,7 +304,7 @@ round-trip liveness itself, not just rely on the server's sweep.
 Per `INFRASTRUCTURE_PHASES.md`, Phase 3 stops at signaling. Not yet
 built: actual SFU/media integration (Phase 4 — including reconciling this
 layer with LiveKit's own signaling, see above), the TypeScript SDK
-(Phase 6), multi-instance Redis Pub/Sub (only if/when a second instance
-is actually needed), and TURN credential issuance tied to signaling
-sessions (still coturn's job, per `docs/architecture/turn.md`, not
-wired into this layer).
+(Phase 6), and TURN credential issuance tied to signaling sessions (still
+coturn's job, per `docs/architecture/turn.md`, not wired into this
+layer). Multi-instance Redis Pub/Sub — previously listed here as
+deferred — is now built; see "Multi-instance readiness" above.

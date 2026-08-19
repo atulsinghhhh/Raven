@@ -16,7 +16,7 @@ type DependencyStatus = 'up' | 'down';
  */
 const DEPENDENCY_CHECK_TIMEOUT_MS = 2000;
 
-interface HealthResponse {
+interface ReadinessResponse {
   status: 'ok' | 'degraded';
   dependencies: {
     database: DependencyStatus;
@@ -45,8 +45,31 @@ export class HealthController {
     private readonly configService: ConfigService,
   ) {}
 
-  @Get()
-  @ApiOperation({ summary: 'Liveness/readiness check — unauthenticated' })
+  /**
+   * Liveness: "is this process able to answer at all". Deliberately makes
+   * no dependency calls — a database/Redis/LiveKit outage must not cause
+   * an orchestrator to conclude the *process* is broken and restart it,
+   * which would just replace a healthy pod that can't reach a dependency
+   * with another healthy pod that also can't reach that dependency. If
+   * this handler runs at all, the event loop isn't wedged, which is the
+   * one thing liveness is actually supposed to answer.
+   */
+  @Get('live')
+  @ApiOperation({ summary: 'Liveness probe — no dependency calls, unauthenticated' })
+  @ApiResponse({ status: 200, description: 'The process is able to handle requests' })
+  liveness(@Res() res: Response): void {
+    res.status(200).json({ status: 'ok' });
+  }
+
+  /**
+   * Readiness: "should traffic be routed to this instance right now".
+   * This is the dependency-probing check that used to be the only thing
+   * `GET /health` did — kept under its own path so an orchestrator can
+   * stop routing to a degraded instance (readiness) without restarting
+   * it (liveness), which is a materially different action.
+   */
+  @Get('ready')
+  @ApiOperation({ summary: 'Readiness probe — checks dependencies, unauthenticated' })
   @ApiResponse({
     status: 200,
     description: 'All dependencies reachable',
@@ -65,7 +88,24 @@ export class HealthController {
       example: { status: 'degraded', dependencies: { database: 'up', redis: 'down', sfu: 'up', turn: 'up' } },
     },
   })
+  async readiness(@Res() res: Response): Promise<void> {
+    const payload = await this.buildReadinessResponse();
+    res.status(payload.status === 'ok' ? 200 : 503).json(payload);
+  }
+
+  /**
+   * Kept as an alias of `/health/ready` — this was the only health path
+   * before the liveness/readiness split, and existing dashboards/scripts
+   * (and load balancers already configured against it) shouldn't have to
+   * change on the same day this split ships.
+   */
+  @Get()
+  @ApiOperation({ summary: 'Alias of /health/ready, kept for backward compatibility — unauthenticated' })
   async check(@Res() res: Response): Promise<void> {
+    await this.readiness(res);
+  }
+
+  private async buildReadinessResponse(): Promise<ReadinessResponse> {
     const [database, redis, sfu, turn] = await Promise.all([
       this.checkDependency(() => this.prisma.ping()),
       this.checkDependency(() => this.redis.ping()),
@@ -84,16 +124,16 @@ export class HealthController {
       }),
     ]);
 
-    const status: HealthResponse['status'] =
+    const status: ReadinessResponse['status'] =
       database === 'up' && redis === 'up' && sfu === 'up' && turn === 'up' ? 'ok' : 'degraded';
 
     // Aggregate counts only, never room/participant IDs — same reasoning
     // as the class-level comment above.
-    res.status(status === 'ok' ? 200 : 503).json({
+    return {
       status,
       dependencies: { database, redis, sfu, turn },
       signaling: this.signalingGateway.getMetrics(),
-    } satisfies HealthResponse);
+    };
   }
 
   /**

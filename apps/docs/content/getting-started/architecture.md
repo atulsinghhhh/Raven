@@ -58,7 +58,7 @@ Your client (browser, mobile, or server)
 ```
 
 Your API key never leaves your backend. See
-[Authentication](/getting-started/authentication) for the full model,
+[Authentication](/authentication) for the full model,
 and [Environments](/production/environments) for how development,
 staging, and production stay isolated from each other.
 

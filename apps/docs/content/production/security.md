@@ -36,14 +36,14 @@ A browser token passing `senderId: 'someone-else'` isn't an error — the
 value is silently discarded. Server actors *can* name a user, because
 that's how a backend posts on someone's behalf, and it's exactly why an
 API key must never reach a browser. See
-[Authentication](/getting-started/authentication).
+[Authentication](/authentication).
 
 ## Authorization is two independent checks
 
 **What the token allows** — scopes, narrowed from a role, never widened.
 **What you're actually a member of** — checked server-side on every
 request, never trusted from a client-cached list. Both have to pass. See
-[Chat → Authorization](/chat/overview#authorization--two-independent-checks)
+[Chat → Authorization](/chat#authorization--two-independent-checks)
 and [Roles & Permissions](/production/roles-and-permissions) for the
 control-plane equivalent.
 
@@ -72,7 +72,7 @@ Webhook SSRF protection is hostname-level only — it refuses obvious
 internal targets but doesn't resolve DNS, so a hostname that resolves to
 a private IP still gets through. A production deployment should
 egress-filter the delivery worker at the network level. See
-[Webhooks → Security](/server/webhooks#security).
+[Webhooks → Security](/webhooks#security).
 
 ## Reporting a vulnerability
 

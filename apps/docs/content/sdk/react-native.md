@@ -112,7 +112,7 @@ await raven.chat!.send('Hello everyone!');
 
 Everything else is `@raven/chat`'s API unchanged — `messages.list()`,
 `startTyping()`, `markAsRead()`, presence, threads. It's the same
-client, so [Chat](/chat/overview) applies verbatim.
+client, so [Chat](/chat) applies verbatim.
 
 ## Reconnection
 

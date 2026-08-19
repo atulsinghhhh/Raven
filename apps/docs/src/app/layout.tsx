@@ -1,10 +1,25 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { assertNavMatchesContent } from '../lib/docs';
+import { SITE_URL } from '../lib/site';
+
+const DESCRIPTION = 'Guides and reference for building on Raven — real-time video, audio, chat, and live streaming.';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: { default: 'Raven Docs', template: '%s — Raven Docs' },
-  description: 'Guides and reference for building on Raven — real-time video, audio, and chat.',
+  description: DESCRIPTION,
+  openGraph: {
+    siteName: 'Raven Docs',
+    title: 'Raven Docs',
+    description: DESCRIPTION,
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Raven Docs',
+    description: DESCRIPTION,
+  },
 };
 
 // Fails the build loudly if the sidebar ever points at a page that

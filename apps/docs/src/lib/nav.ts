@@ -8,7 +8,15 @@
  * here links to a slug that doesn't have a corresponding .md file —
  * `pnpm typecheck`-equivalent for content is `getNav()`'s own
  * `assertNavMatchesContent` check, run at build time.
+ *
+ * RTC, Chat, and Live Streaming are tagged with `product` — that tag is
+ * what makes the sidebar context-aware (Sidebar.tsx renders only the
+ * matching section under `/rtc/*`, `/chat/*`, `/live-streaming/*`) and
+ * what drives the product switcher (ProductSwitcher.tsx). Every other
+ * section is untagged and stays in the site's general/global nav.
  */
+export type ProductId = 'rtc' | 'chat' | 'live-streaming';
+
 export interface NavItem {
   slug: string;
   title: string;
@@ -17,7 +25,20 @@ export interface NavItem {
 export interface NavSection {
   title: string;
   items: NavItem[];
+  /** Set only on the three product sections — see file header. */
+  product?: ProductId;
 }
+
+/**
+ * The three products, in the order the switcher and homepage show them.
+ * Each product's landing page lives at the bare product slug (`rtc`,
+ * not `rtc/overview`) — see `content/rtc.md` etc.
+ */
+export const PRODUCTS: { id: ProductId; label: string; slug: string }[] = [
+  { id: 'rtc', label: 'RTC', slug: 'rtc' },
+  { id: 'chat', label: 'Chat', slug: 'chat' },
+  { id: 'live-streaming', label: 'Live Streaming', slug: 'live-streaming' },
+];
 
 export const NAV: NavSection[] = [
   {
@@ -27,14 +48,15 @@ export const NAV: NavSection[] = [
       { slug: 'getting-started/architecture', title: 'Architecture' },
       { slug: 'getting-started/quickstart', title: 'Quickstart' },
       { slug: 'getting-started/installing-from-source', title: 'Installing from source' },
-      { slug: 'getting-started/build-a-video-call', title: 'Tutorial: build a video call' },
-      { slug: 'getting-started/authentication', title: 'Authentication' },
     ],
   },
   {
     title: 'RTC',
+    product: 'rtc',
     items: [
-      { slug: 'rtc/overview', title: 'Overview' },
+      { slug: 'rtc', title: 'Overview' },
+      { slug: 'rtc/quickstart', title: 'Quickstart' },
+      { slug: 'rtc/authentication', title: 'Authentication' },
       { slug: 'rtc/rooms-and-participants', title: 'Rooms & Participants' },
       { slug: 'rtc/audio-and-video', title: 'Audio & Video' },
       { slug: 'rtc/screen-sharing', title: 'Screen Sharing' },
@@ -45,8 +67,11 @@ export const NAV: NavSection[] = [
   },
   {
     title: 'Chat',
+    product: 'chat',
     items: [
-      { slug: 'chat/overview', title: 'Overview' },
+      { slug: 'chat', title: 'Overview' },
+      { slug: 'chat/quickstart', title: 'Quickstart' },
+      { slug: 'chat/authentication', title: 'Authentication' },
       { slug: 'chat/conversations', title: 'Conversations' },
       { slug: 'chat/members', title: 'Members' },
       { slug: 'chat/messages', title: 'Messages' },
@@ -57,14 +82,27 @@ export const NAV: NavSection[] = [
       { slug: 'chat/reactions', title: 'Reactions' },
       { slug: 'chat/read-receipts', title: 'Delivery & Read Receipts' },
       { slug: 'chat/attachments', title: 'Attachments' },
+      { slug: 'chat/moderation', title: 'Moderation' },
       { slug: 'chat/websocket', title: 'WebSocket Protocol' },
+      { slug: 'chat/troubleshooting', title: 'Troubleshooting' },
     ],
   },
   {
     title: 'Live Streaming',
+    product: 'live-streaming',
     items: [
-      { slug: 'live-streaming/overview', title: 'Overview' },
+      { slug: 'live-streaming', title: 'Overview' },
       { slug: 'live-streaming/quickstart', title: 'Quickstart' },
+      { slug: 'live-streaming/authentication', title: 'Authentication' },
+      { slug: 'live-streaming/streams', title: 'Streams & Lifecycle' },
+      { slug: 'live-streaming/hosts', title: 'Hosts & Co-hosts' },
+      { slug: 'live-streaming/viewers', title: 'Viewers' },
+      { slug: 'live-streaming/live-chat', title: 'Live Chat' },
+      { slug: 'live-streaming/reactions', title: 'Reactions' },
+      { slug: 'live-streaming/moderation', title: 'Moderation' },
+      { slug: 'live-streaming/filters', title: 'Filters & Effects' },
+      { slug: 'live-streaming/network-quality', title: 'Network Quality' },
+      { slug: 'live-streaming/analytics', title: 'Analytics' },
     ],
   },
   {
@@ -76,16 +114,38 @@ export const NAV: NavSection[] = [
       { slug: 'sdk/flutter', title: 'Flutter' },
       { slug: 'sdk/node', title: 'Node.js' },
       { slug: 'sdk/python', title: 'Python' },
-      { slug: 'sdk/cli', title: 'CLI' },
     ],
   },
   {
-    title: 'Server',
+    title: 'Webhooks',
+    items: [{ slug: 'webhooks', title: 'Overview' }],
+  },
+  {
+    title: 'Authentication',
     items: [
-      { slug: 'server/rest-api', title: 'REST API' },
-      { slug: 'server/tokens', title: 'Tokens' },
-      { slug: 'server/webhooks', title: 'Webhooks' },
+      { slug: 'authentication', title: 'Overview' },
+      { slug: 'authentication/tokens', title: 'Tokens' },
     ],
+  },
+  {
+    title: 'API Reference',
+    items: [{ slug: 'api-reference', title: 'Overview' }],
+  },
+  {
+    title: 'CLI',
+    items: [{ slug: 'cli', title: 'Overview' }],
+  },
+  {
+    title: 'Guides',
+    items: [{ slug: 'guides/build-a-video-call', title: 'Build a Video Call' }],
+  },
+  {
+    title: 'Examples',
+    items: [{ slug: 'examples', title: 'Overview' }],
+  },
+  {
+    title: 'Troubleshooting',
+    items: [{ slug: 'troubleshooting', title: 'Overview' }],
   },
   {
     title: 'Production',
@@ -113,6 +173,11 @@ export function findNavItem(slug: string): { section: NavSection; item: NavItem 
     if (item) return { section, item };
   }
   return undefined;
+}
+
+/** Which product's docs area a slug belongs to, if any — drives the context-aware sidebar. */
+export function productForSlug(slug: string): ProductId | undefined {
+  return findNavItem(slug)?.section.product;
 }
 
 /** The previous/next page in reading order, for the footer nav on every doc page. */

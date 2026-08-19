@@ -4,7 +4,7 @@ description: Adding, removing, and listing who's in a conversation — server-si
 ---
 
 Membership is what a token's scopes get checked against — see
-[Chat → Authorization](/chat/overview#authorization--two-independent-checks).
+[Chat → Authorization](/chat#authorization--two-independent-checks).
 Managing it is a server-side operation only: `@raven/chat` (the browser
 SDK) has no member-management calls, by design — a client can join and
 send messages, never grant itself access to a conversation it isn't
@@ -19,7 +19,7 @@ already in.
 | `ADMIN` | Everything `MODERATOR` can, plus reconfiguring the conversation. |
 
 The role determines the scopes described in
-[Chat → Authorization](/chat/overview#authorization--two-independent-checks)
+[Chat → Authorization](/chat#authorization--two-independent-checks)
 — a token can narrow what a role allows but never widen it.
 
 ## Add a member
@@ -75,9 +75,9 @@ Membership calls exist on `@raven/server` and `raven-sdk` (Python) only.
 [Presence](/chat/presence), but none of them can add, remove, or list
 members — that's a backend operation, the same way creating a
 conversation is. The CLI doesn't currently have a `raven chat members`
-command; use the SDK or [REST API](/server/rest-api) directly.
+command; use the SDK or [REST API](/api-reference) directly.
 
 ## Next
 
 - [Conversations](/chat/conversations)
-- [Chat → Authorization](/chat/overview#authorization--two-independent-checks)
+- [Chat → Authorization](/chat#authorization--two-independent-checks)

@@ -20,10 +20,11 @@ export function Hero() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-lg text-muted">
-            Add reliable audio, video, and messaging to your application
-            without building real-time infrastructure from scratch —
-            token-based auth, connection diagnostics, and SDKs for web,
-            mobile, and server, all on infrastructure Raven runs for you.
+            Add reliable audio, video, messaging, and live streaming to
+            your application without building real-time infrastructure
+            from scratch — token-based auth, connection diagnostics, and
+            SDKs for web, mobile, and server, all on infrastructure Raven
+            runs for you.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">

@@ -89,7 +89,7 @@ optionally capped with `limit`.
 The API key lives in a private class field (`#apiKey`) — never a plain
 enumerable property, never included in `JSON.stringify()` of the client,
 never logged, never in a thrown error. See
-[Authentication](/getting-started/authentication).
+[Authentication](/authentication).
 
 ## Framework compatibility
 

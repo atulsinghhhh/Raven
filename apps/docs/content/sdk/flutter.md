@@ -162,7 +162,7 @@ Streams: `messages`, `messageUpdates`, `messageDeletions`, `typing`,
 `presence`, `reactions`, `readReceipts`, `connectionStateChanges`,
 `errors`. `send()` completes only once the message is durably stored and
 attaches an idempotency key automatically. See
-[Chat Overview](/chat/overview).
+[Chat Overview](/chat).
 
 ## Reconnection
 

@@ -306,10 +306,10 @@ Without TURN, connections fail across most real NATs. Always forward it.
 
 ## Next
 
-- [Add chat to this call](/chat/overview) — the same pattern, a chat
+- [Add chat to this call](/chat) — the same pattern, a chat
   token instead of an RTC one.
 - [Diagnostics](/rtc/diagnostics) — RTT, jitter, and packet loss for a
   live call.
 - [React SDK](/sdk/react) — the same thing with hooks, far less code.
-- [Authentication](/getting-started/authentication) — what to fix before
+- [Authentication](/authentication) — what to fix before
   this goes near production.

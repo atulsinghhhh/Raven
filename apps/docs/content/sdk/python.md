@@ -5,7 +5,7 @@ description: Server-side RTC and chat — sync and async, built on httpx.
 
 `raven-sdk` is Raven's server-side Python SDK. It runs on your backend,
 holds your API key, and mints the tokens your frontend actually uses —
-see [Authentication](/getting-started/authentication).
+see [Authentication](/authentication).
 
 ## Install
 
@@ -139,4 +139,4 @@ RTC/TURN credentials. See [Error Codes](/reference/errors).
 The API key lives only in a name-mangled attribute — never a plain
 public attribute, never trivially visible via `vars()`/`repr()`. Never
 logged, never included in a raised error. See
-[Authentication](/getting-started/authentication).
+[Authentication](/authentication).

@@ -66,7 +66,7 @@ routing, background behavior) are covered on each SDK's own page.
 - Per-participant live connection state and metadata updates aren't
   exposed — only identity, metadata-at-join-time, and tracks.
 - Data messages have no reliability options or per-participant
-  targeting. Use [Chat](/chat/overview) if you need either.
+  targeting. Use [Chat](/chat) if you need either.
 
 If you hit something not covered here, the
 [Discord](https://discord.com/invite/HSWd9qMC7) is the fastest way to

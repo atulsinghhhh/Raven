@@ -19,6 +19,7 @@ describe('SignalingGateway heartbeat', () => {
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
       configService,
     );
     // Reach into the private sessions map — see the comment above.

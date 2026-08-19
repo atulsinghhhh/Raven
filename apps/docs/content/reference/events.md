@@ -9,7 +9,7 @@ Raven has two separate event surfaces, and they don't overlap:
   you're already holding — `room.on(...)` and `chat.on(...)`. No
   webhook involved; these exist as long as your client is connected.
 - **Webhooks** are server-to-server, for reacting to activity from your
-  backend rather than a browser tab. See [Webhooks](/server/webhooks)
+  backend rather than a browser tab. See [Webhooks](/webhooks)
   for the envelope, signing, and retry behavior — this page only
   catalogues *which* events exist.
 
@@ -36,7 +36,7 @@ Every RTC event, from `@raven/rtc`'s `RoomEventMap`. Identical across
 | `trackUnmuted` | `kind, participant` | A remote participant unmutes a track. |
 | `localTrackPublished` | `track: LocalTrack` | Your own `enableCamera()`/`enableMicrophone()`/`publish()` finished publishing. |
 | `localTrackUnpublished` | `track: LocalTrack` | Your own track stops publishing. |
-| `dataReceived` | `payload: Uint8Array, participant?` | A data message arrives — see [Overview → Data messages](/rtc/overview). |
+| `dataReceived` | `payload: Uint8Array, participant?` | A data message arrives — see [Overview → Data messages](/rtc). |
 | `error` | `error: RTCError` | Something failed with a typed, catchable error rather than an unhandled rejection. |
 
 ```ts
@@ -88,7 +88,7 @@ events the wire protocol carries.
 ## Webhooks
 
 Delivered server-to-server through the webhook pipeline — see
-[Webhooks](/server/webhooks) for the envelope, signing, and retries.
+[Webhooks](/webhooks) for the envelope, signing, and retries.
 The pipeline is project-scoped rather than chat-specific, so it's the
 same mechanism a future RTC or billing event would publish through, not
 a second one.
@@ -117,6 +117,6 @@ only (see the tables above) — they are not currently delivered as
 webhooks, because nothing server-side needs to react to them on the
 timescale a webhook implies. If your integration needs one as a
 server-side signal, the equivalent data is generally available by
-polling the relevant REST endpoint — see [REST API](/server/rest-api)
+polling the relevant REST endpoint — see [REST API](/api-reference)
 — or, for RTC connection data specifically, via
 [Diagnostics](/rtc/diagnostics).

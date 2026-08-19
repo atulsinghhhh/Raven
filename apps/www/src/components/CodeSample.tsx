@@ -3,10 +3,12 @@
 import { useState } from 'react';
 
 /**
- * Every snippet here is the real, current API — copied from docs/sdk.md,
- * docs/chat/overview.md, and docs/sdk/server/python.md, not invented for
- * effect. If one of these stops compiling against the actual SDK, the
- * docs it was copied from are wrong too — fix both together.
+ * Every snippet here is the real, current API — copied from
+ * docs/rtc/quickstart.md, docs/chat/quickstart.md,
+ * docs/live-streaming/quickstart.md, and docs/sdk/server/python.md, not
+ * invented for effect. If one of these stops compiling against the
+ * actual SDK, the docs it was copied from are wrong too — fix both
+ * together.
  */
 const SAMPLES = [
   {
@@ -37,6 +39,25 @@ await chat.connect({ room: conversation.publicId });
 await chat.sendMessage({ text: 'Hello everyone!' });
 
 chat.on('message', (msg) => console.log(msg.senderId, msg.text));`,
+  },
+  {
+    id: 'live',
+    label: 'Live streaming',
+    filename: 'live.js',
+    code: `import { LiveStream } from '@raven/client';
+
+const stream = await LiveStream.join({
+  streamId,
+  role: 'HOST',
+  rtc: credentials.rtc,
+  chat: credentials.chat,
+});
+
+await stream.room.enableCamera();
+await stream.room.enableMicrophone();
+
+// A Raven Chat conversation comes attached automatically.
+await stream.chat.sendMessage({ text: 'We\\'re live!' });`,
   },
   {
     id: 'server',

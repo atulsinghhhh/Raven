@@ -47,7 +47,7 @@ room.on('dataReceived', (payload, participant) => {
 Requires the token's `publishData` grant — throws `PERMISSION_DENIED`
 otherwise. Deliberately minimal: no reliability options, no
 per-participant targeting. If you need routed, ordered, or persisted
-messages between participants, that's what [Chat](/chat/overview) is for
+messages between participants, that's what [Chat](/chat) is for
 — it's a first-class service, not a fallback bolted onto the data
 channel.
 
