@@ -1,58 +1,176 @@
+'use client';
+
 import Link from 'next/link';
-import { DASHBOARD_URL, DISCORD_URL, DOCS_URL } from '../lib/links';
+import { useEffect, useState } from 'react';
+import { DASHBOARD_URL, DISCORD_URL, DOCS_ROUTES, DOCS_URL } from '../lib/links';
 import { DiscordIcon } from './icons';
 
+const PRODUCT_LINKS = [
+  { label: 'RTC', href: DOCS_ROUTES.rtc },
+  { label: 'Chat', href: DOCS_ROUTES.chat },
+  { label: 'Live Streaming', href: DOCS_ROUTES.liveStreaming },
+];
+
+const DEVELOPER_LINKS = [
+  { label: 'Documentation', href: DOCS_URL },
+  { label: 'SDKs', href: DOCS_ROUTES.sdkWeb },
+  { label: 'API Reference', href: DOCS_ROUTES.apiReference },
+  { label: 'CLI', href: DOCS_ROUTES.cli },
+  { label: 'Examples', href: DOCS_ROUTES.examples },
+];
+
 export function Nav() {
+  const scrolled = useScrolled();
+
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-canvas/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight text-fg">
+    <header
+      className={`sticky top-0 z-50 border-b border-line bg-canvas/80 backdrop-blur-md transition-[padding] duration-200 ${
+        scrolled ? 'py-1.5' : 'py-2.5'
+      }`}
+    >
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
+        <Link href="/" className="flex items-center gap-2 py-1.5 font-semibold tracking-tight text-fg">
           <RavenMark />
           Raven
         </Link>
 
-        <nav className="hidden items-center gap-8 text-sm text-muted md:flex">
-          <a href={DOCS_URL} className="transition-colors hover:text-fg">
-            Docs
-          </a>
-          <Link href="/#features" className="transition-colors hover:text-fg">
-            Features
-          </Link>
-          <Link href="/#how-it-works" className="transition-colors hover:text-fg">
-            How it works
+        <nav className="hidden items-center gap-1 text-sm text-muted md:flex">
+          <NavMenu label="Products" links={PRODUCT_LINKS} />
+          <NavMenu label="Developers" links={DEVELOPER_LINKS} />
+          <Link href="/#reliability" className="rounded-md px-3 py-2 transition-colors hover:text-fg">
+            Reliability
           </Link>
         </nav>
 
-        {/* Discord (community support) top right, plus sign-in/sign-up CTAs. */}
         <div className="flex items-center gap-4">
           <a
             href={DISCORD_URL}
             target="_blank"
             rel="noreferrer noopener"
             aria-label="Join the Raven Discord"
-            className="text-muted transition-colors hover:text-fg"
+            className="hidden text-muted transition-colors hover:text-fg sm:inline-flex"
           >
             <DiscordIcon />
           </a>
-          <a href={DASHBOARD_URL} className="hidden text-sm font-medium text-muted transition-colors hover:text-fg sm:inline">
+          <a
+            href={DASHBOARD_URL}
+            className="hidden text-sm font-medium text-muted transition-colors hover:text-fg sm:inline"
+          >
             Sign in
           </a>
           <a
             href={`${DASHBOARD_URL}/signup`}
-            className="rounded-md bg-accent px-3.5 py-2 text-sm font-medium text-accent-fg shadow-raven-sm transition-colors hover:bg-accent-hover"
+            className="hidden rounded-md bg-accent px-3.5 py-2 text-sm font-medium text-accent-fg shadow-raven-sm transition-colors hover:bg-accent-hover sm:inline-flex"
           >
             Get started
           </a>
+          <MobileNav />
         </div>
       </div>
     </header>
   );
 }
 
+function NavMenu({ label, links }: { label: string; links: { label: string; href: string }[] }) {
+  return (
+    <details className="group relative">
+      <summary className="flex list-none items-center gap-1 rounded-md px-3 py-2 transition-colors hover:text-fg [&::-webkit-details-marker]:hidden">
+        {label}
+        <ChevronDown className="transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="absolute left-0 top-full z-10 mt-1 min-w-48 rounded-lg border border-line bg-surface p-1.5 shadow-raven-lg">
+        {links.map((link) => (
+          <a
+            key={link.label}
+            href={link.href}
+            className="block rounded-md px-3 py-2 text-sm text-muted transition-colors hover:bg-surface-raised hover:text-fg"
+          >
+            {link.label}
+          </a>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function MobileNav() {
+  return (
+    <details className="group relative md:hidden">
+      <summary className="flex list-none items-center justify-center rounded-md p-2 text-fg [&::-webkit-details-marker]:hidden">
+        <span className="sr-only">Menu</span>
+        <HamburgerIcon />
+      </summary>
+      <div className="absolute right-0 top-full z-10 mt-2 w-64 rounded-lg border border-line bg-surface p-2 shadow-raven-lg">
+        <MobileSection title="Products" links={PRODUCT_LINKS} />
+        <MobileSection title="Developers" links={DEVELOPER_LINKS} />
+        <Link href="/#reliability" className="block rounded-md px-3 py-2 text-sm text-muted hover:bg-surface-raised hover:text-fg">
+          Reliability
+        </Link>
+        <div className="mt-2 flex flex-col gap-2 border-t border-line pt-2">
+          <a href={DASHBOARD_URL} className="rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-raised hover:text-fg">
+            Sign in
+          </a>
+          <a
+            href={`${DASHBOARD_URL}/signup`}
+            className="rounded-md bg-accent px-3 py-2 text-center text-sm font-medium text-accent-fg hover:bg-accent-hover"
+          >
+            Get started
+          </a>
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function MobileSection({ title, links }: { title: string; links: { label: string; href: string }[] }) {
+  return (
+    <div className="pb-1">
+      <span className="block px-3 pt-1.5 text-xs font-semibold uppercase tracking-wide text-subtle">{title}</span>
+      {links.map((link) => (
+        <a key={link.label} href={link.href} className="block rounded-md px-3 py-2 text-sm text-muted hover:bg-surface-raised hover:text-fg">
+          {link.label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
+/** Toggles compact padding once the page has scrolled past a small threshold — a light touch, not a layout jump. */
+function useScrolled() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    function onScroll() {
+      setScrolled(window.scrollY > 8);
+    }
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return scrolled;
+}
+
 function RavenMark() {
   return (
     <svg viewBox="0 0 24 24" className="h-6 w-6 text-accent" fill="currentColor" aria-hidden="true">
       <path d="M12 2 3 20h5.2l1.4-3.2h4.8L15.8 20H21L12 2Zm-1.3 11 1.3-3 1.3 3h-2.6Z" />
+    </svg>
+  );
+}
+
+function ChevronDown({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 12 12" className={`h-3 w-3 ${className}`} fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <path d="M2.5 4.5 6 8l3.5-3.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function HamburgerIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <path d="M3 5.5h14M3 10h14M3 14.5h14" strokeLinecap="round" />
     </svg>
   );
 }

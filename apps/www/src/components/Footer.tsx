@@ -1,25 +1,81 @@
-import { DASHBOARD_URL, DISCORD_URL, DOCS_URL } from '../lib/links';
+import { DASHBOARD_URL, DISCORD_URL, DOCS_ROUTES, DOCS_URL } from '../lib/links';
 import { DiscordIcon } from './icons';
+
+const COLUMNS = [
+  {
+    title: 'Products',
+    links: [
+      { label: 'RTC', href: DOCS_ROUTES.rtc },
+      { label: 'Chat', href: DOCS_ROUTES.chat },
+      { label: 'Live Streaming', href: DOCS_ROUTES.liveStreaming },
+    ],
+  },
+  {
+    title: 'Developers',
+    links: [
+      { label: 'Documentation', href: DOCS_URL },
+      { label: 'SDKs', href: DOCS_ROUTES.sdkWeb },
+      { label: 'API Reference', href: DOCS_ROUTES.apiReference },
+      { label: 'CLI', href: DOCS_ROUTES.cli },
+      { label: 'Examples', href: DOCS_ROUTES.examples },
+    ],
+  },
+  {
+    title: 'Community',
+    links: [
+      { label: 'Discord', href: DISCORD_URL },
+      { label: 'Dashboard', href: DASHBOARD_URL },
+    ],
+  },
+];
 
 export function Footer() {
   return (
-    <footer className="border-t border-line py-12">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-6 md:flex-row">
-        <p className="text-sm text-subtle">&copy; Raven. All rights reserved.</p>
+    <footer className="border-t border-line py-16">
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <span className="flex items-center gap-2 font-semibold tracking-tight text-fg">
+              <RavenMark />
+              Raven
+            </span>
+            <p className="mt-3 max-w-xs text-sm text-muted">
+              Real-time infrastructure for developers — RTC, chat, and live streaming through one API.
+            </p>
+          </div>
 
-        <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted">
-          <a href={DOCS_URL} className="transition-colors hover:text-fg">
-            Documentation
-          </a>
-          <a href={DASHBOARD_URL} className="transition-colors hover:text-fg">
-            Dashboard
-          </a>
-          <a href={DISCORD_URL} target="_blank" rel="noreferrer noopener" className="flex items-center gap-1.5 transition-colors hover:text-fg">
-            <DiscordIcon className="h-4 w-4" />
-            Discord
-          </a>
-        </nav>
+          {COLUMNS.map((column) => (
+            <div key={column.title}>
+              <span className="text-sm font-semibold text-fg">{column.title}</span>
+              <ul className="mt-3 flex flex-col gap-2.5">
+                {column.links.map((link) => (
+                  <li key={link.label}>
+                    <a
+                      href={link.href}
+                      target={link.href.startsWith('http') && link.href !== DASHBOARD_URL ? '_blank' : undefined}
+                      rel={link.href.startsWith('http') && link.href !== DASHBOARD_URL ? 'noreferrer noopener' : undefined}
+                      className="flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-fg"
+                    >
+                      {link.label === 'Discord' && <DiscordIcon className="h-4 w-4" />}
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-12 border-t border-line pt-6 text-sm text-subtle">&copy; Raven. All rights reserved.</p>
       </div>
     </footer>
+  );
+}
+
+function RavenMark() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5 text-accent" fill="currentColor" aria-hidden="true">
+      <path d="M12 2 3 20h5.2l1.4-3.2h4.8L15.8 20H21L12 2Zm-1.3 11 1.3-3 1.3 3h-2.6Z" />
+    </svg>
   );
 }
