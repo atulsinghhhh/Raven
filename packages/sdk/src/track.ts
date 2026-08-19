@@ -1,4 +1,6 @@
+import type { EffectsPipeline } from '@corvidhq/effects';
 import { normalizeTrackStats, pickBestLayer, type RawTrackStats, type TrackStats } from './internal/telemetry/track-stats';
+import { RTCError } from './errors';
 
 export type { TrackStats } from './internal/telemetry/track-stats';
 export type TrackKind = 'camera' | 'microphone' | 'screenShare' | 'unknown';
@@ -67,6 +69,15 @@ export interface LocalTrackDelegate extends TrackDelegate {
    * encoding layer rather than a single stream.
    */
   getSenderStats?(): Promise<RawTrackStats | RawTrackStats[] | undefined>;
+  /**
+   * Swaps the underlying MediaStreamTrack on an already-published sender —
+   * livekit-client's LocalTrack.replaceTrack() does this without
+   * renegotiating the RTC session. Optional for the same reason as
+   * getSenderStats — a delegate that predates Raven Effects still satisfies
+   * this interface, and LocalTrack.attachEffects() checks for it explicitly
+   * rather than assuming every delegate supports it.
+   */
+  replaceTrack?(track: MediaStreamTrack, userProvidedTrack?: boolean): Promise<unknown>;
 }
 
 export interface RemoteTrackDelegate extends TrackDelegate {
@@ -78,6 +89,8 @@ export interface RemoteTrackDelegate extends TrackDelegate {
 export class LocalTrack extends Track {
   private readonly localDelegate: LocalTrackDelegate;
   private lastSample?: RawTrackStats;
+  private attachedEffectsPipeline?: EffectsPipeline;
+  private preEffectsMediaStreamTrack?: MediaStreamTrack;
 
   constructor(delegate: LocalTrackDelegate, kind: TrackKind) {
     super(delegate, kind);
@@ -95,6 +108,50 @@ export class LocalTrack extends Track {
   /** Stops the underlying device capture. Publish state is managed by Room.unpublish(). */
   stop(): void {
     this.mediaStreamTrack.stop();
+  }
+
+  /**
+   * Raven Effects (`@corvidhq/effects`) integration point — Camera → Raven
+   * Video Track → Effects Pipeline → Processed Video Track → Raven RTC.
+   * Runs `pipeline` against this track's live camera feed and, if already
+   * published, swaps the sender's `MediaStreamTrack` in place via the
+   * adapter's `replaceTrack()` — no renegotiation, no reconnect, audio and
+   * the rest of the room are untouched. Camera-only today; screen share and
+   * microphone aren't supported.
+   *
+   * If the pipeline can't run on this device (no WebGL2/Canvas2D/
+   * captureStream), it degrades to the original track automatically — the
+   * call keeps working either way.
+   */
+  async attachEffects(pipeline: EffectsPipeline): Promise<void> {
+    if (this.kind !== 'camera') {
+      throw new RTCError('MEDIA_ERROR', `attachEffects() is only supported on camera tracks, not "${this.kind}".`);
+    }
+    if (!this.localDelegate.replaceTrack) {
+      throw new RTCError('MEDIA_ERROR', 'This track cannot be swapped in place — the current adapter does not support replaceTrack().');
+    }
+    if (this.attachedEffectsPipeline) {
+      await this.detachEffects();
+    }
+
+    const original = this.mediaStreamTrack;
+    const processed = await pipeline.attachToTrack(original);
+    if (processed !== original) {
+      await this.localDelegate.replaceTrack(processed, true);
+    }
+    this.attachedEffectsPipeline = pipeline;
+    this.preEffectsMediaStreamTrack = original;
+  }
+
+  /** Reverts to the unmodified camera track and releases the pipeline's engine resources. */
+  async detachEffects(): Promise<void> {
+    if (!this.attachedEffectsPipeline) return;
+    this.attachedEffectsPipeline.detach();
+    if (this.preEffectsMediaStreamTrack && this.localDelegate.replaceTrack) {
+      await this.localDelegate.replaceTrack(this.preEffectsMediaStreamTrack, true);
+    }
+    this.attachedEffectsPipeline = undefined;
+    this.preEffectsMediaStreamTrack = undefined;
   }
 
   /**

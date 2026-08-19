@@ -80,6 +80,86 @@ describe('LocalTrack', () => {
   });
 });
 
+describe('LocalTrack.attachEffects() / detachEffects()', () => {
+  function fakePipeline(processedTrack: MediaStreamTrack) {
+    return {
+      attachToTrack: jest.fn().mockResolvedValue(processedTrack),
+      detach: jest.fn(),
+    };
+  }
+
+  it('rejects attachEffects() on a non-camera track', async () => {
+    const track = new LocalTrack(fakeDelegate(), 'microphone');
+    const pipeline = fakePipeline(fakeMediaStreamTrack());
+
+    await expect(track.attachEffects(pipeline as never)).rejects.toMatchObject({ code: 'MEDIA_ERROR' });
+  });
+
+  it('rejects attachEffects() when the delegate has no replaceTrack support', async () => {
+    const track = new LocalTrack(fakeDelegate({ replaceTrack: undefined }), 'camera');
+    const pipeline = fakePipeline(fakeMediaStreamTrack());
+
+    await expect(track.attachEffects(pipeline as never)).rejects.toMatchObject({ code: 'MEDIA_ERROR' });
+  });
+
+  it('swaps the published track via delegate.replaceTrack() when the pipeline returns a different track', async () => {
+    const original = fakeMediaStreamTrack();
+    const processed = { id: 'processed', stop: jest.fn() } as unknown as MediaStreamTrack;
+    const delegate = fakeDelegate({ mediaStreamTrack: original, replaceTrack: jest.fn().mockResolvedValue(undefined) });
+    const track = new LocalTrack(delegate, 'camera');
+    const pipeline = fakePipeline(processed);
+
+    await track.attachEffects(pipeline as never);
+
+    expect(pipeline.attachToTrack).toHaveBeenCalledWith(original);
+    expect(delegate.replaceTrack).toHaveBeenCalledWith(processed, true);
+  });
+
+  it('does not call replaceTrack() when the pipeline degrades to the original track (no-op path)', async () => {
+    const original = fakeMediaStreamTrack();
+    const delegate = fakeDelegate({ mediaStreamTrack: original, replaceTrack: jest.fn().mockResolvedValue(undefined) });
+    const track = new LocalTrack(delegate, 'camera');
+    const pipeline = fakePipeline(original);
+
+    await track.attachEffects(pipeline as never);
+
+    expect(delegate.replaceTrack).not.toHaveBeenCalled();
+  });
+
+  it('detachEffects() stops the pipeline and restores the original track', async () => {
+    const original = fakeMediaStreamTrack();
+    const processed = { id: 'processed', stop: jest.fn() } as unknown as MediaStreamTrack;
+    const delegate = fakeDelegate({ mediaStreamTrack: original, replaceTrack: jest.fn().mockResolvedValue(undefined) });
+    const track = new LocalTrack(delegate, 'camera');
+    const pipeline = fakePipeline(processed);
+
+    await track.attachEffects(pipeline as never);
+    await track.detachEffects();
+
+    expect(pipeline.detach).toHaveBeenCalledTimes(1);
+    expect(delegate.replaceTrack).toHaveBeenLastCalledWith(original, true);
+  });
+
+  it('detachEffects() is a no-op when no pipeline is attached', async () => {
+    const track = new LocalTrack(fakeDelegate({ replaceTrack: jest.fn() }), 'camera');
+    await expect(track.detachEffects()).resolves.toBeUndefined();
+  });
+
+  it('attachEffects() called twice detaches the first pipeline before attaching the second', async () => {
+    const original = fakeMediaStreamTrack();
+    const delegate = fakeDelegate({ mediaStreamTrack: original, replaceTrack: jest.fn().mockResolvedValue(undefined) });
+    const track = new LocalTrack(delegate, 'camera');
+    const first = fakePipeline({ id: 'processed-1', stop: jest.fn() } as unknown as MediaStreamTrack);
+    const second = fakePipeline({ id: 'processed-2', stop: jest.fn() } as unknown as MediaStreamTrack);
+
+    await track.attachEffects(first as never);
+    await track.attachEffects(second as never);
+
+    expect(first.detach).toHaveBeenCalledTimes(1);
+    expect(second.attachToTrack).toHaveBeenCalled();
+  });
+});
+
 describe('LocalTrack.getStats()', () => {
   it('returns undefined when the delegate has no stats capability at all', async () => {
     // A plain TrackDelegate-shaped fake (no getSenderStats) must still

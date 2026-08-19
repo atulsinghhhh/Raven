@@ -39,6 +39,7 @@
     "size": "pnpm build && node ./scripts/print-bundle-size.mjs"
   },
   "dependencies": {
+    "@corvidhq/effects": "workspace:*",
     "livekit-client": "^2.22.0"
   },
   "devDependencies": {
