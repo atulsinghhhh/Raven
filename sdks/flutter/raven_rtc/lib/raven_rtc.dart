@@ -16,6 +16,20 @@
 /// WebRTC.
 library raven_rtc;
 
+export 'src/effects.dart'
+    show
+        RavenEffectBeauty,
+        RavenEffectFilters,
+        RavenEffectInstance,
+        RavenEffectParamSpec,
+        RavenEffectPresets,
+        RavenEffectsEngineStatus,
+        RavenEffectsErrorCode,
+        RavenEffectsException,
+        RavenEffectsPipeline,
+        RavenFilterConfig,
+        RavenPreset,
+        ravenEffectsNativeEngineStatus;
 export 'src/errors.dart'
     show RavenErrorCode, RavenException, RavenPermission, RavenPermissionException;
 export 'src/permissions.dart' show RavenPermissions;
