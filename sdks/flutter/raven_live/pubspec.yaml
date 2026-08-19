@@ -1,0 +1,36 @@
+name: raven_live
+description: >-
+  Raven Live Streaming for Flutter — join a stream as a host or a viewer,
+  with the room and the live chat that come with it. Composes raven_rtc and
+  raven_chat; adds no media or messaging stack of its own.
+version: 0.1.0
+homepage: https://github.com/atulsinghhhh/Raven
+repository: https://github.com/atulsinghhhh/Raven
+issue_tracker: https://github.com/atulsinghhhh/Raven/issues
+documentation: https://github.com/atulsinghhhh/Raven/blob/main/docs/sdk/flutter.md
+
+environment:
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # A stream is one RTC room plus one chat conversation — the same reuse
+  # discipline the backend itself follows. This package owns lifecycle and
+  # role bookkeeping on top of both; it never duplicates what raven_rtc or
+  # raven_chat already does correctly.
+  raven_rtc:
+    path: ../raven_rtc
+  raven_chat:
+    path: ../raven_chat
+  meta: ^1.15.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+# Not a plugin, and it never will be: raven_live has no native code of its
+# own. Camera/microphone come from raven_rtc, the socket comes from
+# raven_chat.
