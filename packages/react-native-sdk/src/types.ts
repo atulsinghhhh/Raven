@@ -86,3 +86,30 @@ export interface RavenChatHandle extends Omit<ChatClient, 'connect'> {
 }
 
 export type { RavenAppState };
+
+/**
+ * Live Streaming (Phase 14). Mirrors `@corvidhq/client`'s
+ * `LiveStreamCredentials`/`LiveStreamRole` field-for-field — this package
+ * declares its own copy rather than depending on `@corvidhq/client`
+ * (which composes `@corvidhq/rtc`/`@corvidhq/chat` for a *browser*
+ * environment; here `Raven` already does that composition mobile-appropriately).
+ */
+export type LiveStreamRole = 'HOST' | 'CO_HOST' | 'VIEWER';
+
+export interface LiveStreamCredentials {
+  streamId: string;
+  role: LiveStreamRole;
+  rtc: {
+    token: string;
+    endpoint: string;
+    iceServers?: RTCIceServer[];
+    telemetryUrl?: string;
+  };
+  chat?: {
+    token: string;
+    apiUrl?: string;
+    chatUrl?: string;
+    conversations: string[];
+  };
+  chatRootMessageId?: string | null;
+}

@@ -7,6 +7,7 @@ import type {
   RTCError,
 } from '@corvidhq/rtc';
 import type { Raven } from './raven';
+import type { RavenLiveStream } from './live-stream';
 
 /**
  * Hooks for React Native.
@@ -264,6 +265,55 @@ export function useRoom(
       void raven.leave();
     };
   }, [raven, roomId, options.autoJoin]);
+
+  return { room, joining, error };
+}
+
+/**
+ * Joins a live stream on mount and leaves on unmount — the Live Streaming
+ * equivalent of `useRoom()`. Returns the same `Room` `useParticipants()`,
+ * `useCamera()`, `useMicrophone()`, and `useRavenError()` already accept,
+ * so nothing new is needed to use them against a stream.
+ */
+export function useLiveStream(
+  stream: RavenLiveStream | undefined,
+  options: { autoJoin?: boolean } = {},
+): { room?: Room; joining: boolean; error?: RTCError } {
+  const [room, setRoom] = useState<Room>();
+  const [joining, setJoining] = useState(false);
+  const [error, setError] = useState<RTCError>();
+
+  useEffect(() => {
+    if (!stream || options.autoJoin === false) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    setJoining(true);
+    setError(undefined);
+
+    stream
+      .join()
+      .then((joined) => {
+        if (cancelled) {
+          void stream.leave();
+          return;
+        }
+        setRoom(joined);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err as RTCError);
+      })
+      .finally(() => {
+        if (!cancelled) setJoining(false);
+      });
+
+    return () => {
+      cancelled = true;
+      setRoom(undefined);
+      void stream.leave();
+    };
+  }, [stream, options.autoJoin]);
 
   return { room, joining, error };
 }

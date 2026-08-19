@@ -1,6 +1,14 @@
 export { Raven } from './raven';
 export type { RavenConfig, RavenChatHandle, RavenAppState } from './types';
 
+// ---------------------------------------------------------------------------
+// Live Streaming (Phase 14) — a thin wrapper around `Raven`, not a
+// parallel RTC/chat implementation. See src/live-stream.ts.
+// ---------------------------------------------------------------------------
+export { RavenLiveStream, joinLiveStream } from './live-stream';
+export type { RavenLiveStreamOptions } from './live-stream';
+export type { LiveStreamCredentials, LiveStreamRole } from './types';
+
 export { RavenVideoView } from './video-view';
 export type { RavenVideoViewProps } from './video-view';
 
@@ -13,6 +21,7 @@ export type { RavenAudioOutput } from './audio';
 export {
   useCamera,
   useConnectionState,
+  useLiveStream,
   useMicrophone,
   useParticipants,
   useRavenError,
