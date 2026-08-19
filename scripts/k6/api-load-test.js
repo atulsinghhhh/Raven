@@ -90,19 +90,33 @@ export default function (data) {
 
   const roomId = createRes.json('id');
 
-  const tokenRes = http.post(
-    `${base}/v1/rooms/${roomId}/rtc-tokens`,
-    JSON.stringify({
-      participantIdentity: `k6-participant-${__VU}-${__ITER}`,
-      permissions: { join: true, subscribe: true, publish: true, publishAudio: true },
-    }),
-    { headers, tags: { name: 'mint_rtc_token' } },
-  );
-  check(tokenRes, { 'mint_rtc_token status 201': (r) => r.status === 201 });
+  // Token minting is rate-limited per API key (RtcTokensController's
+  // @RateLimit(60)) — a real, deliberate production control, but it
+  // means a single-API-key run finds that limit long before it finds
+  // any actual compute/DB ceiling for this endpoint. Set
+  // SKIP_TOKEN_MINT=1 to isolate the unthrottled create_room/get_room
+  // path when that's what's actually being measured.
+  if (!__ENV.SKIP_TOKEN_MINT) {
+    const tokenRes = http.post(
+      `${base}/v1/rooms/${roomId}/rtc-tokens`,
+      JSON.stringify({
+        participantIdentity: `k6-participant-${__VU}-${__ITER}`,
+        permissions: { join: true, subscribe: true, publish: true, publishAudio: true },
+      }),
+      { headers, tags: { name: 'mint_rtc_token' } },
+    );
+    check(tokenRes, { 'mint_rtc_token status 201': (r) => r.status === 201 });
+  }
 
-  const getRes = http.get(`${base}/v1/rooms/${roomId}`, {
-    headers,
-    tags: { name: 'get_room' },
-  });
-  check(getRes, { 'get_room status 200': (r) => r.status === 200 });
+  // GET :id enriches its response with a live LiveKit RoomServiceClient
+  // round-trip (rooms.service.ts has no participant-count cache) — a
+  // real per-request cost worth isolating from create_room's plain
+  // Postgres path. Set SKIP_GET_ROOM=1 to isolate that.
+  if (!__ENV.SKIP_GET_ROOM) {
+    const getRes = http.get(`${base}/v1/rooms/${roomId}`, {
+      headers,
+      tags: { name: 'get_room' },
+    });
+    check(getRes, { 'get_room status 200': (r) => r.status === 200 });
+  }
 }

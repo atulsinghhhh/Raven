@@ -1,0 +1,144 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "create_room status 201": {
+                    "path": "::create_room status 201",
+                    "id": "046ea2c6e633b15cdef0ba85d591fa29",
+                    "passes": 215,
+                    "fails": 0,
+                    "name": "create_room status 201"
+                },
+                "mint_rtc_token status 201": {
+                    "passes": 60,
+                    "fails": 155,
+                    "name": "mint_rtc_token status 201",
+                    "path": "::mint_rtc_token status 201",
+                    "id": "e7626c77169705d27d1d9dda217f658d"
+                },
+                "get_room status 200": {
+                    "name": "get_room status 200",
+                    "path": "::get_room status 200",
+                    "id": "70064a4bb6ad6786356221bd05122770",
+                    "passes": 215,
+                    "fails": 0
+                }
+            }
+    },
+    "metrics": {
+        "vus": {
+            "value": 1,
+            "min": 1,
+            "max": 10
+        },
+        "iteration_duration": {
+            "avg": 1914.547702511629,
+            "min": 227.312958,
+            "med": 2189.509125,
+            "max": 2897.767625,
+            "p(90)": 2533.9490081999998,
+            "p(95)": 2593.8035295
+        },
+        "vus_max": {
+            "value": 10,
+            "min": 10,
+            "max": 10
+        },
+        "http_req_receiving": {
+            "max": 1.7,
+            "p(90)": 0.068,
+            "p(95)": 0.10129999999999995,
+            "avg": 0.04926234567901234,
+            "min": 0.009,
+            "med": 0.043
+        },
+        "http_req_blocked": {
+            "avg": 0.022458333333333583,
+            "min": 0.001,
+            "med": 0.002,
+            "max": 8.614,
+            "p(90)": 0.004,
+            "p(95)": 0.006
+        },
+        "data_received": {
+            "rate": 8560.906877303103,
+            "count": 433114
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_sending": {
+            "p(95)": 0.026,
+            "avg": 0.01501851851851846,
+            "min": 0.003,
+            "med": 0.013,
+            "max": 0.422,
+            "p(90)": 0.02
+        },
+        "http_req_waiting": {
+            "avg": 635.819469135802,
+            "min": 50.675,
+            "med": 685.8485000000001,
+            "max": 1509.99,
+            "p(90)": 968.3169,
+            "p(95)": 1057.7884499999998
+        },
+        "http_req_failed": {
+            "passes": 155,
+            "fails": 493,
+            "value": 0.23919753086419754
+        },
+        "http_req_duration{expected_response:true}": {
+            "max": 1510.193,
+            "p(90)": 978.2178,
+            "p(95)": 1072.0932,
+            "avg": 612.4408438133876,
+            "min": 50.781,
+            "med": 641.099
+        },
+        "http_req_connecting": {
+            "avg": 0.0057083333333333335,
+            "min": 0,
+            "med": 0,
+            "max": 0.646,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_duration": {
+            "avg": 635.8837499999994,
+            "min": 50.781,
+            "med": 685.9085,
+            "max": 1510.193,
+            "p(90)": 968.3844,
+            "p(95)": 1057.8875999999998
+        },
+        "data_sent": {
+            "count": 191170,
+            "rate": 3778.6554295959822
+        },
+        "checks": {
+            "passes": 490,
+            "fails": 155,
+            "value": 0.7596899224806202
+        },
+        "http_reqs": {
+            "count": 648,
+            "rate": 12.808331424272618
+        },
+        "iterations": {
+            "count": 215,
+            "rate": 4.249677864534896
+        }
+    },
+    "setup_data": {
+        "apiKey": "rvk_dev_83vbhieaLwYC.t8AQ8MydWExsmgtK7b7wA3ZD5A3xBgwWo522Z8b-xEk"
+    }
+}

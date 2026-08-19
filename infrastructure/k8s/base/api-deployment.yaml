@@ -101,11 +101,17 @@ spec:
                 # without this, the pod could still be receiving new
                 # traffic the instant it starts tearing down.
                 command: ["sh", "-c", "sleep 15"]
-          # PLACEHOLDER — sized conservatively, not from measurement.
-          # Task: replace with the numbers docs/production/capacity-report.md
-          # actually measures (per-instance ceiling, observed failure
-          # mode) before relying on this in a real deployment. See that
-          # doc's methodology section for how these get filled in.
+          # PLACEHOLDER — still not a final sizing. The capacity report
+          # (docs/production/capacity-report.md) found the real
+          # bottleneck for both REST and chat is CPU, not memory: chat
+          # pegged one full core at 500 concurrent connections
+          # (§2.3 — 95.23% of one core), and the REST ceiling turned out
+          # to be a `bcryptjs` event-loop-blocking bug (§1.3), not a
+          # resource-sizing question at all. Revisit `cpu` here (likely
+          # upward, at least 1 full core for a chat-heavy pod) once that
+          # bug is fixed and a clean re-measurement exists — sizing CPU
+          # against an unfixed bottleneck would just be sizing around
+          # the bug.
           resources:
             requests:
               cpu: "250m"

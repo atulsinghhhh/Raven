@@ -1,0 +1,150 @@
+{
+    "metrics": {
+        "iteration_duration": {
+            "min": 283.428375,
+            "med": 636.97075,
+            "max": 1058.707,
+            "p(90)": 925.9049836,
+            "p(95)": 992.3059918,
+            "avg": 621.9454168
+        },
+        "data_sent": {
+            "count": 8792,
+            "rate": 3836.2842149034755
+        },
+        "http_req_duration{expected_response:true}": {
+            "max": 756.233,
+            "p(90)": 363.642,
+            "p(95)": 503.66364999999985,
+            "avg": 228.32068181818178,
+            "min": 18.624,
+            "med": 225.916,
+            "thresholds": {
+                "p(95)<500": true
+            }
+        },
+        "checks": {
+            "passes": 19,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_duration": {
+            "p(90)": 363.642,
+            "p(95)": 503.66364999999985,
+            "avg": 228.32068181818178,
+            "min": 18.624,
+            "med": 225.916,
+            "max": 756.233
+        },
+        "http_reqs": {
+            "count": 22,
+            "rate": 9.599437298439089
+        },
+        "http_req_sending": {
+            "p(95)": 1.4410999999999985,
+            "avg": 0.1597272727272727,
+            "min": 0.009,
+            "med": 0.018,
+            "max": 1.533,
+            "p(90)": 0.0729
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 22,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_connecting": {
+            "p(95)": 0.2968,
+            "avg": 0.11172727272727273,
+            "min": 0,
+            "med": 0,
+            "max": 1.112,
+            "p(90)": 0.29269999999999996
+        },
+        "http_req_tls_handshaking": {
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0
+        },
+        "data_received": {
+            "count": 18634,
+            "rate": 8130.723391777908
+        },
+        "http_req_receiving": {
+            "max": 0.161,
+            "p(90)": 0.1052,
+            "p(95)": 0.11834999999999998,
+            "avg": 0.06654545454545455,
+            "min": 0.032,
+            "med": 0.0545
+        },
+        "iterations": {
+            "count": 5,
+            "rate": 2.1816902950997927
+        },
+        "http_req_waiting": {
+            "avg": 228.0944090909091,
+            "min": 18.534,
+            "med": 225.858,
+            "max": 756.147,
+            "p(90)": 362.15950000000004,
+            "p(95)": 503.45574999999985
+        },
+        "vus": {
+            "min": 0,
+            "max": 6,
+            "value": 6
+        },
+        "http_req_blocked": {
+            "avg": 0.9787727272727271,
+            "min": 0.002,
+            "med": 0.004,
+            "max": 18.559,
+            "p(90)": 0.325,
+            "p(95)": 1.6093999999999988
+        },
+        "vus_max": {
+            "value": 20000,
+            "min": 12073,
+            "max": 20000
+        }
+    },
+    "setup_data": {
+        "apiKey": "rvk_dev_x2YrxvRisFpj.Xw3qXpRCHgbos7Ny6Ldd4b3xfrDkAtDb6UuE_W1wxWA"
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "create_room status 201": {
+                    "name": "create_room status 201",
+                    "path": "::create_room status 201",
+                    "id": "046ea2c6e633b15cdef0ba85d591fa29",
+                    "passes": 9,
+                    "fails": 0
+                },
+                "mint_rtc_token status 201": {
+                    "name": "mint_rtc_token status 201",
+                    "path": "::mint_rtc_token status 201",
+                    "id": "e7626c77169705d27d1d9dda217f658d",
+                    "passes": 5,
+                    "fails": 0
+                },
+                "get_room status 200": {
+                    "passes": 5,
+                    "fails": 0,
+                    "name": "get_room status 200",
+                    "path": "::get_room status 200",
+                    "id": "70064a4bb6ad6786356221bd05122770"
+                }
+            }
+    }
+}
