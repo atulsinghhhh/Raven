@@ -36,7 +36,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Compute lowercase image ref
         id: image
@@ -66,7 +66,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: apps/api/Dockerfile
@@ -91,7 +91,7 @@ jobs:
       # worth keeping, so they ship as a build artifact. Swap this back to
       # github/codeql-action/upload-sarif once Advanced Security is enabled.
       - name: Upload scan results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: trivy-results
@@ -109,7 +109,7 @@ jobs:
 
       - name: Push image
         if: github.event_name != 'pull_request'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: apps/api/Dockerfile
