@@ -22,7 +22,7 @@ export function CodeBlock({ filename, code }: { filename: string; code: string }
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-raven-lg">
+    <div className="overflow-hidden rounded-(--radius-panel) border border-line bg-surface">
       <div className="flex items-center gap-1.5 border-b border-line px-4 py-2.5">
         <span className="h-2.5 w-2.5 rounded-full bg-danger/60" />
         <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
@@ -31,7 +31,7 @@ export function CodeBlock({ filename, code }: { filename: string; code: string }
         <button
           type="button"
           onClick={copy}
-          className="ml-auto rounded-md px-2 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-raised hover:text-fg"
+          className="mono-label ml-auto rounded-(--radius-panel) px-2 py-1 text-[11px] text-muted transition-colors hover:bg-surface-raised hover:text-fg"
         >
           {copied ? 'Copied' : 'Copy'}
         </button>

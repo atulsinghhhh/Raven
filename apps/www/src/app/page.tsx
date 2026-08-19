@@ -1,6 +1,8 @@
 import { Architecture } from '../components/Architecture';
 import { ChatSection } from '../components/ChatSection';
+import { CodeShowcase } from '../components/CodeShowcase';
 import { DashboardPreview } from '../components/DashboardPreview';
+import { EffectsSection } from '../components/EffectsSection';
 import { FinalCTA } from '../components/FinalCTA';
 import { Footer } from '../components/Footer';
 import { Hero } from '../components/Hero';
@@ -19,14 +21,16 @@ export default function LandingPage() {
       <Nav />
       <main>
         <Hero />
+        <CodeShowcase />
         <ProductOverview />
         <RTCSection />
         <ChatSection />
         <LiveStreamingSection />
-        <HowItWorks />
+        <EffectsSection />
         <SDKSection />
-        <Architecture />
         <DashboardPreview />
+        <Architecture />
+        <HowItWorks />
         <Reliability />
         <UseCases />
         <FinalCTA />

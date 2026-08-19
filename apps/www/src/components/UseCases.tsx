@@ -17,7 +17,7 @@ export function UseCases() {
       <div className="mx-auto max-w-6xl px-6">
         <Reveal>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">Built for what you&apos;re shipping</h2>
+            <h2 className="text-3xl font-light tracking-tight text-fg md:text-4xl">Built for what you&apos;re shipping</h2>
             <p className="mt-4 text-muted">
               One real-time platform instead of stitching together a calling SDK, a chat service, and a streaming
               provider.
@@ -28,8 +28,8 @@ export function UseCases() {
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {USE_CASES.map((useCase, i) => (
             <Reveal key={useCase.title} delayMs={i * 40}>
-              <div className="h-full rounded-xl border border-line bg-surface p-5">
-                <h3 className="text-sm font-semibold text-fg">{useCase.title}</h3>
+              <div className="h-full rounded-(--radius-panel) border border-line bg-surface p-5">
+                <h3 className="text-sm font-medium text-fg">{useCase.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">{useCase.body}</p>
               </div>
             </Reveal>

@@ -5,10 +5,10 @@ import { useState } from 'react';
 /**
  * Every snippet here is the real, current API — copied from
  * docs/rtc/quickstart.md, docs/chat/quickstart.md,
- * docs/live-streaming/quickstart.md, and docs/sdk/server/python.md, not
- * invented for effect. If one of these stops compiling against the
- * actual SDK, the docs it was copied from are wrong too — fix both
- * together.
+ * docs/live-streaming/quickstart.md, docs/effects/quickstart.md, and
+ * docs/sdk/server/python.md, not invented for effect. If one of these
+ * stops compiling against the actual SDK, the docs it was copied from
+ * are wrong too — fix both together.
  */
 const SAMPLES = [
   {
@@ -60,6 +60,19 @@ await stream.room.enableMicrophone();
 await stream.chat.sendMessage({ text: 'We\\'re live!' });`,
   },
   {
+    id: 'effects',
+    label: 'Effects',
+    filename: 'effects.js',
+    code: `import { effects } from '@corvidhq/effects';
+
+const pipeline = effects.createPipeline();
+pipeline.add(effects.filters.brightness({ value: 0.2 }));
+pipeline.add(effects.filters.saturation({ value: 1.2 }));
+
+const camera = await room.enableCamera();
+await camera.attachEffects(pipeline);`,
+  },
+  {
     id: 'server',
     label: 'Server (Python)',
     filename: 'server.py',
@@ -84,13 +97,13 @@ export function CodeSample() {
   const sample = SAMPLES.find((s) => s.id === active)!;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-raven-lg">
-      <div className="flex items-center gap-1 border-b border-line bg-surface-sunken px-2 pt-2">
+    <div className="overflow-hidden rounded-(--radius-panel) border border-line bg-surface">
+      <div className="mono-label flex items-center gap-1 overflow-x-auto border-b border-line bg-surface-sunken px-2 pt-2 text-[11px]">
         {SAMPLES.map((s) => (
           <button
             key={s.id}
             onClick={() => setActive(s.id)}
-            className={`rounded-t-md px-3.5 py-2 text-sm font-medium transition-colors ${
+            className={`shrink-0 rounded-t-(--radius-panel) px-3.5 py-2 transition-colors ${
               s.id === active
                 ? 'bg-surface text-fg border-x border-t border-line -mb-px'
                 : 'text-muted hover:text-fg'

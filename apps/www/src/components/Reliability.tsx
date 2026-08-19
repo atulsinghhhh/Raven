@@ -48,7 +48,7 @@ export function Reliability() {
       <div className="mx-auto max-w-6xl px-6">
         <Reveal>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">Built for real-time workloads</h2>
+            <h2 className="text-3xl font-light tracking-tight text-fg md:text-4xl">Built for real-time workloads</h2>
             <p className="mt-4 text-muted">
               Not a wrapper around someone else&apos;s API. Raven owns the control plane — projects, tokens,
               permissions, and events — end to end.
@@ -56,14 +56,14 @@ export function Reliability() {
           </div>
         </Reveal>
 
-        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {RELIABILITY.map((item, i) => (
             <Reveal key={item.title} delayMs={i * 60}>
               <a
                 href={item.href}
-                className="block h-full rounded-xl border border-line bg-surface p-6 shadow-raven-sm transition-shadow hover:shadow-raven-md"
+                className="block h-full rounded-(--radius-panel) border border-line bg-surface p-6 transition-colors hover:border-line-strong"
               >
-                <h3 className="font-semibold text-fg">{item.title}</h3>
+                <h3 className="font-medium text-fg">{item.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">{item.body}</p>
               </a>
             </Reveal>

@@ -54,7 +54,7 @@ export function DashboardPreview() {
             </div>
 
             <div className="border-t border-line px-6 py-5">
-              <span className="text-xs font-medium text-muted">Infrastructure</span>
+              <span className="mono-label text-[11px] text-muted">Infrastructure</span>
               <dl className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-5">
                 {DEPENDENCIES.map((dep) => (
                   <div key={dep}>
@@ -69,7 +69,7 @@ export function DashboardPreview() {
             </div>
 
             <div className="border-t border-line px-6 py-4 text-right">
-              <a href={DASHBOARD_URL} className="text-sm font-medium text-accent-text hover:underline">
+              <a href={DASHBOARD_URL} className="mono-label text-[12px] text-accent-text hover:underline">
                 Open the real dashboard →
               </a>
             </div>
@@ -85,7 +85,7 @@ function StatTile({ label, target, active }: { label: string; target: number; ac
   return (
     <div className="bg-surface p-5">
       <div className="text-xs font-medium text-muted">{label}</div>
-      <div className="tabular mt-1.5 text-2xl font-semibold tracking-tight text-fg">{value.toLocaleString()}</div>
+      <div className="tabular mt-1.5 text-2xl font-medium tracking-tight text-fg">{value.toLocaleString()}</div>
     </div>
   );
 }

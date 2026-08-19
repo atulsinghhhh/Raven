@@ -12,7 +12,7 @@ export function Architecture() {
       <div className="mx-auto max-w-5xl px-6">
         <Reveal>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">
+            <h2 className="text-3xl font-light tracking-tight text-fg md:text-4xl">
               You build the experience.
               <br />
               Raven handles the real-time layer.
@@ -23,6 +23,9 @@ export function Architecture() {
         <Reveal delayMs={100}>
           <div className="mt-14">
             <ArchitectureDiagram />
+            <p className="mono-label mt-6 text-center text-[11px] text-subtle">
+              Effects runs inside the SDK, client-side — no extra round trip through the Raven API.
+            </p>
           </div>
         </Reveal>
       </div>
@@ -105,7 +108,7 @@ function ArchNode({ x, y, w = 140, label, tone }: { x: number; y: number; w?: nu
       <rect
         width={w}
         height="44"
-        rx="10"
+        rx="6"
         fill={isAccent ? 'var(--accent-subtle)' : 'var(--surface)'}
         stroke={isAccent ? 'var(--accent-line)' : 'var(--line-strong)'}
         strokeWidth="1.5"
@@ -114,12 +117,13 @@ function ArchNode({ x, y, w = 140, label, tone }: { x: number; y: number; w?: nu
         x={w / 2}
         y="27"
         textAnchor="middle"
-        fontSize="12.5"
-        fontWeight="600"
+        fontSize="12"
+        fontWeight="500"
         fill={isAccent ? 'var(--accent-text)' : 'var(--fg)'}
-        fontFamily="var(--font-sans)"
+        fontFamily="var(--font-mono)"
+        letterSpacing="0.02em"
       >
-        {label}
+        {label.toUpperCase()}
       </text>
     </g>
   );
