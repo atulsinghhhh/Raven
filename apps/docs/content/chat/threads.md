@@ -3,11 +3,39 @@ title: Threads
 description: Flat, not nested — a reply to a reply joins the same thread as its parent.
 ---
 
+<Tabs>
+<Tab title="Web">
+
 ```ts
 await chat.sendMessage({ text: 'This is a reply', replyTo: 'msg_3xR…' });
 
 const thread = await chat.messages.thread('msg_3xR…'); // [root, reply, reply, ...] oldest first
 ```
+
+</Tab>
+<Tab title="React">
+
+```tsx
+const { send } = useMessages();
+await send('This is a reply', { replyTo: 'msg_3xR…' });
+```
+
+Fetching a full thread has no dedicated hook yet — call
+`useChatClient()?.messages.thread(id)` directly.
+
+</Tab>
+<Tab title="Flutter">
+
+```dart
+await chat.send('This is a reply', replyTo: messageId);
+final thread = await chat.thread(messageId); // oldest first
+```
+
+</Tab>
+</Tabs>
+
+React Native uses the same `chat.sendMessage()`/`chat.messages.thread()`
+calls as web.
 
 A thread isn't a separate store — it's a filter over the same messages
 table everything else lives in, so search, retention, moderation, and

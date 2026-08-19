@@ -6,10 +6,31 @@ description: Deleting someone else's message is the same call as deleting your o
 Raven Chat doesn't have a separate moderation API. A moderator deletes a
 message the same way anyone deletes their own — the difference is
 entirely in what the server allows, not in which endpoint gets called.
+The same call, on every SDK:
+
+<Tabs>
+<Tab title="Web">
 
 ```ts
 await chat.messages.delete('msg_3xR…');
 ```
+
+</Tab>
+<Tab title="React Native">
+
+```ts
+await raven.chat!.messages.delete('msg_3xR…');
+```
+
+</Tab>
+<Tab title="Flutter">
+
+```dart
+await chat.delete(messageId);
+```
+
+</Tab>
+</Tabs>
 
 - A `MEMBER` can only delete their own messages.
 - A `MODERATOR` or `ADMIN` can delete anyone's message in that

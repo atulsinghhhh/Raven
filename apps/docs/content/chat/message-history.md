@@ -3,6 +3,9 @@ title: Message History
 description: Cursor-paginated, newest first — and why there's no offset parameter.
 ---
 
+<Tabs>
+<Tab title="Web">
+
 ```ts
 const page = await chat.messages.list({ room: 'conv_9WcQ…', limit: 50 });
 // { data: [...], nextCursor: '...', previousCursor: '...', hasMore: true }
@@ -10,6 +13,35 @@ const page = await chat.messages.list({ room: 'conv_9WcQ…', limit: 50 });
 const older = await chat.messages.list({ before: page.nextCursor });
 const newer = await chat.messages.list({ after: page.previousCursor });
 ```
+
+</Tab>
+<Tab title="React">
+
+```tsx
+const { messages, loadMore, loading, hasMore } = useMessages();
+<button onClick={() => loadMore()} disabled={!hasMore || loading}>Load earlier</button>
+```
+
+`<RavenChat>` already loads the first page (default 50 messages) on
+connect — `loadMore()` pages further back.
+
+</Tab>
+<Tab title="React Native">
+
+```ts
+const page = await raven.chat!.messages.list({ room: 'conv_9WcQ…', limit: 50 });
+```
+
+</Tab>
+<Tab title="Flutter">
+
+```dart
+final page = await chat.history(limit: 50);
+final older = await chat.history(before: page.nextCursor);
+```
+
+</Tab>
+</Tabs>
 
 Newest first. Cursors are opaque — pass back exactly what you were
 given; they encode a timestamp and a **public** message id, never an

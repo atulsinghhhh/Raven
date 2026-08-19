@@ -3,6 +3,9 @@ title: Delivery & Read Receipts
 description: A position, not a log — and why "delivered" isn't a per-recipient flag.
 ---
 
+<Tabs>
+<Tab title="Web">
+
 ```ts
 await chat.markAsRead('msg_3xR…');
 
@@ -13,6 +16,37 @@ chat.on('read', (event) => {
 const state = await chat.getReadState();
 // { lastReadMessageId: 'msg_…', lastReadAt: '...', unreadCount: 3 }
 ```
+
+</Tab>
+<Tab title="React">
+
+```tsx
+const { receipts, markAsRead, readersOf } = useReadReceipts();
+await markAsRead('msg_3xR…');
+const readers = readersOf('msg_3xR…', messages); // everyone (but you) who's read this far or later
+```
+
+</Tab>
+<Tab title="React Native">
+
+```ts
+await raven.chat!.markAsRead('msg_3xR…');
+const state = await raven.chat!.getReadState();
+```
+
+</Tab>
+<Tab title="Flutter">
+
+```dart
+await chat.markAsRead(messageId);
+
+chat.readReceipts.listen((state) {
+  print('${state.userId} has read up to ${state.lastReadMessageId}');
+});
+```
+
+</Tab>
+</Tabs>
 
 Marking a message read marks **everything before it** read too — that
 matches how people actually read a conversation, and it means a client
@@ -68,3 +102,15 @@ const receipts = await chat.getReadReceipts();
 
 Capped at 500 rows — a 10,000-member channel shouldn't return 10,000
 rows to render three avatars.
+
+## Common errors
+
+| Symptom | Why | Fix |
+|---|---|---|
+| Unread count doesn't decrease after reading older messages | The marker only moves forward. | Expected — mark the newest visible message read, not each one individually. |
+| `read` event never fires for your own read | You don't receive an echo of your own action. | Read `getReadState()`'s return value directly instead of waiting for the event. |
+
+## Related
+
+- [Messages](/chat/messages)
+- [Presence](/chat/presence) — a different ephemeral-vs-durable tradeoff, for comparison.

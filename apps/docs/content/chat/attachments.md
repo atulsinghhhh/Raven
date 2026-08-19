@@ -31,9 +31,15 @@ uploads cost Raven no bandwidth, no memory, and no head-of-line
 blocking, and can be resumed or retried without touching the messaging
 path at all.
 
+**Web and React Native only.** `raven_chat` (Flutter) doesn't expose an
+attachments API in this phase — build direct-to-storage uploads against
+the REST endpoints below yourself if you need them there.
+
 ## Using it
 
-The SDK wraps the whole three-step dance:
+React Native uses the exact same calls as web — `raven.chat` is a
+`ChatClient` instance, not a reimplementation. The examples below are
+shown once, for both:
 
 ```ts
 const attachment = await chat.attachments.upload(file);

@@ -71,7 +71,22 @@ curl -X PATCH "$RAVEN_API_URL/v1/chat/conversations/support-room-42" \
 
 See [REST API → Chat](/api-reference) for the full field list.
 
-## Next
+## Common errors
+
+| Error | Why | Fix |
+|---|---|---|
+| `409` on create | A conversation with that `name` already exists in this project/environment. | Names are unique per environment — reuse the existing one via `getConversation()`, or pick a new name. |
+| `404` on `getConversation`/`get_conversation` | Wrong environment, or the reference doesn't match any conversation/room. | Confirm you're passing the same environment the API key belongs to. |
+
+## Production notes
+
+- Treat `name` as a stable identifier your backend chooses, not
+  something end users type — a support-ticket id or a room id, not raw
+  user input.
+- Prefer passing `roomId` at creation over attaching it later — there's
+  no "attach after the fact" call.
+
+## Related
 
 - [Members](/chat/members) — add, remove, and list who's in a conversation.
 - [Messages](/chat/messages)

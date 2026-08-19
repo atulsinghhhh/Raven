@@ -3,6 +3,9 @@ title: Typing Indicators
 description: Never persisted — a signal meaningless seconds after it happens.
 ---
 
+<Tabs>
+<Tab title="Web">
+
 ```ts
 await chat.startTyping();
 await chat.stopTyping();
@@ -11,6 +14,41 @@ chat.on('typing', (event) => {
   console.log(`${event.userId} ${event.isTyping ? 'started' : 'stopped'} typing`);
 });
 ```
+
+</Tab>
+<Tab title="React">
+
+```tsx
+const { typingUsers, onInput } = useTyping();
+// <input onChange={onInput} /> — call on every keystroke
+```
+
+`onInput()` already throttles itself to one signal per second and stops
+automatically after a pause — there's no `startTyping()`/`stopTyping()`
+to call yourself.
+
+</Tab>
+<Tab title="React Native">
+
+```ts
+await raven.chat!.startTyping();
+await raven.chat!.stopTyping();
+```
+
+</Tab>
+<Tab title="Flutter">
+
+```dart
+await chat.startTyping();
+await chat.stopTyping();
+
+chat.typing.listen((event) {
+  print('${event.userId} ${event.isTyping ? "started" : "stopped"} typing');
+});
+```
+
+</Tab>
+</Tabs>
 
 Safe to call `startTyping()` on every keystroke.
 

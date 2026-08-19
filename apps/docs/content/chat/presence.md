@@ -3,6 +3,9 @@ title: Presence
 description: Ephemeral by design — why it never touches Postgres.
 ---
 
+<Tabs>
+<Tab title="Web">
+
 ```ts
 chat.on('presence', (event) => {
   console.log(`${event.userId} is ${event.status}`);
@@ -12,6 +15,36 @@ await chat.setPresence('away');
 const present = await chat.getPresence();
 // [{ userId: 'bob', status: 'online' }]
 ```
+
+</Tab>
+<Tab title="React">
+
+```tsx
+const presence = usePresence(); // { [userId]: status }, kept in sync
+```
+
+Read-only — call `useChatClient()?.setPresence(status)` to change your
+own.
+
+</Tab>
+<Tab title="React Native">
+
+```ts
+raven.chat!.on('presence', (event) => console.log(`${event.userId} is ${event.status}`));
+await raven.chat!.setPresence('away');
+```
+
+</Tab>
+<Tab title="Flutter">
+
+```dart
+chat.presence.listen((entry) => print('${entry.userId} is ${entry.status}'));
+await chat.setPresence(RavenPresenceStatus.away);
+final present = await chat.getPresence();
+```
+
+</Tab>
+</Tabs>
 
 Statuses: `online`, `away`, `offline`.
 

@@ -77,7 +77,23 @@ members — that's a backend operation, the same way creating a
 conversation is. The CLI doesn't currently have a `raven chat members`
 command; use the SDK or [REST API](/api-reference) directly.
 
-## Next
+## Common errors
+
+| Error | Why | Fix |
+|---|---|---|
+| `404` on `addMember` | The conversation reference doesn't resolve. | Check the id/name/roomId — same three forms as [Conversation references](/chat#conversation-references). |
+| A removed member's messages disappear | They shouldn't — removal is soft. | Confirm you're calling `removeMember`, not `deleteMessage` on their history; see [Moderation](/chat/moderation). |
+
+## Production notes
+
+- Reflect role changes in your own app's UI promptly — a demoted
+  moderator's existing chat token isn't revoked, but their *next* action
+  requiring the old scope will be rejected server-side.
+- There's no bulk-add call yet — seed initial membership at creation
+  time via `createConversation({ members })` where you can, rather than
+  looping `addMember` calls afterward.
+
+## Related
 
 - [Conversations](/chat/conversations)
 - [Chat → Authorization](/chat#authorization--two-independent-checks)

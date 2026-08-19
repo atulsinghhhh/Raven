@@ -7,6 +7,9 @@ A chat token and an RTC token are minted separately, signed with
 different keys, and neither works on the other plane — a leak on one
 never compromises the other.
 
+<Tabs>
+<Tab title="Node.js">
+
 ```ts
 const token = await raven.chat.createToken({
   userId: 'alice',
@@ -14,6 +17,20 @@ const token = await raven.chat.createToken({
   expiresIn: 3600, // optional, seconds
 });
 ```
+
+</Tab>
+<Tab title="Python">
+
+```python
+from raven import CreateChatTokenParams
+
+token = raven.chat.create_token(
+    CreateChatTokenParams(user_id="alice", conversations=[conversation["publicId"]], expires_in=3600)
+)
+```
+
+</Tab>
+</Tabs>
 
 ## Two independent checks
 
@@ -42,9 +59,29 @@ project API key, so a connected user can't fabricate an
 official-looking announcement. See [Moderation](/chat/moderation) for
 how the `chat:moderate` scope is actually enforced.
 
-## Next
+## Common errors
+
+| Error | Why | Fix |
+|---|---|---|
+| `chat:send` missing | The member's role doesn't grant it (rare — `MEMBER` has it by default), or the token narrowed it away. | Check the role via [Members](/chat/members); check the token's `scopes`. |
+| Token works for one conversation but not another | `conversations` on the token didn't include it. | Omit `conversations` to allow every conversation the user belongs to, or list it explicitly. |
+
+## Production notes
+
+- Mint a token per authenticated session, not one long-lived token
+  reused across logins.
+- Pass `scopes` through from your own role check if you have one — it
+  can only narrow, never widen, so it's safe to forward without
+  re-validating server-side.
+
+## Related
 
 - [Quickstart](/chat/quickstart)
 - [Members](/chat/members) — how roles get assigned
 - [Authentication → Tokens](/authentication/tokens) — the shared token
   shape across RTC and Chat
+
+## API reference
+
+`raven.chat.createToken()` (Node.js) / `raven.chat.create_token()`
+(Python) — see [Node.js SDK](/sdk/node) and [Python SDK](/sdk/python).
