@@ -2,7 +2,9 @@
  * External links shown in the nav/footer. Centralized so the same URL
  * doesn't drift between the two places it's rendered.
  */
-export const GITHUB_URL = 'https://github.com/atulsinghhhh/Raven';
+// No public GitHub link: Raven is closed-source infrastructure, not an
+// open repository — see docs/production/readiness-audit.md's closed-source
+// note. Community support still goes through Discord.
 export const DISCORD_URL = 'https://discord.com/invite/HSWd9qMC7';
 
 /** Where the dashboard actually lives — a separate app in this monorepo (apps/dashboard). */

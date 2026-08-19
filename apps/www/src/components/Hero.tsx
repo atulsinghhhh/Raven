@@ -1,6 +1,6 @@
 import { CodeSample } from './CodeSample';
 import { ConnectionDiagram } from './ConnectionDiagram';
-import { GITHUB_URL, DOCS_URL } from '../lib/links';
+import { DASHBOARD_URL, DOCS_URL } from '../lib/links';
 
 export function Hero() {
   return (
@@ -11,34 +11,33 @@ export function Hero() {
         <div className="mx-auto max-w-3xl text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse-dot" />
-            Open source · self-hostable
+            Real-time infrastructure, managed
           </span>
 
           <h1 className="mt-6 text-4xl font-semibold tracking-tight text-fg md:text-6xl">
             Real-time infrastructure
-            <br className="hidden md:block" /> your product actually controls.
+            <br className="hidden md:block" /> for developers.
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-lg text-muted">
-            Audio, video, and chat — with token-based auth, real connection
-            diagnostics, and SDKs for web, mobile, and server. Run it on
-            Raven&apos;s infrastructure, or your own.
+            Add reliable audio, video, and messaging to your application
+            without building real-time infrastructure from scratch —
+            token-based auth, connection diagnostics, and SDKs for web,
+            mobile, and server, all on infrastructure Raven runs for you.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a
-              href={DOCS_URL}
+              href={`${DASHBOARD_URL}/signup`}
               className="rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg shadow-raven-sm transition-colors hover:bg-accent-hover"
             >
               Get started
             </a>
             <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noreferrer noopener"
+              href={DOCS_URL}
               className="rounded-md border border-line bg-surface px-5 py-2.5 text-sm font-medium text-fg transition-colors hover:bg-surface-raised"
             >
-              View on GitHub
+              Read documentation
             </a>
           </div>
         </div>

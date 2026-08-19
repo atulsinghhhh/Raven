@@ -7,7 +7,8 @@ import { Search } from './Search';
 
 const WWW_URL = process.env.NEXT_PUBLIC_WWW_URL ?? 'http://localhost:3100';
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3000';
-const GITHUB_URL = 'https://github.com/atulsinghhhh/Raven';
+// No public GitHub link: Raven is closed-source infrastructure, not an
+// open repository. Community support still goes through Discord.
 const DISCORD_URL = 'https://discord.com/invite/HSWd9qMC7';
 
 /**
@@ -43,9 +44,6 @@ export function DocsNav({ activeSlug }: { activeSlug?: string }) {
           </a>
           <a href={DISCORD_URL} target="_blank" rel="noreferrer noopener" aria-label="Discord" className="text-muted hover:text-fg">
             <DiscordIcon />
-          </a>
-          <a href={GITHUB_URL} target="_blank" rel="noreferrer noopener" aria-label="GitHub" className="text-muted hover:text-fg">
-            <GitHubIcon />
           </a>
         </div>
       </div>
@@ -94,14 +92,6 @@ function RavenMark() {
   return (
     <svg viewBox="0 0 24 24" className="h-6 w-6 text-accent" fill="currentColor" aria-hidden="true">
       <path d="M12 2 3 20h5.2l1.4-3.2h4.8L15.8 20H21L12 2Zm-1.3 11 1.3-3 1.3 3h-2.6Z" />
-    </svg>
-  );
-}
-
-function GitHubIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
-      <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.1 3.29 9.42 7.86 10.95.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.04-.72.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.43-2.7 5.4-5.27 5.68.42.36.78 1.07.78 2.15 0 1.55-.01 2.8-.01 3.18 0 .31.21.67.8.56A10.52 10.52 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
     </svg>
   );
 }

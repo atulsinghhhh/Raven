@@ -19,24 +19,19 @@ Dart.
 
 ## Install
 
-Not on pub.dev yet — install directly from the repository as a git
-dependency, pointing `path:` at the package's subdirectory:
+Not on pub.dev yet, and Raven's source isn't a public repository —
+point a path dependency at your local checkout instead:
 
 ```yaml
 dependencies:
   raven_rtc:
-    git:
-      url: https://github.com/atulsinghhhh/Raven.git
-      path: sdks/flutter/raven_rtc
+    path: ../path/to/your-checkout/sdks/flutter/raven_rtc
   raven_chat:                    # only if you want messaging
-    git:
-      url: https://github.com/atulsinghhhh/Raven.git
-      path: sdks/flutter/raven_chat
+    path: ../path/to/your-checkout/sdks/flutter/raven_chat
 ```
 
-Pin to a commit or tag once you've picked a version to build against
-(`ref: v0.1.0`), so `flutter pub get` doesn't silently pull a newer
-commit on a fresh checkout.
+See [Installing from source](/getting-started/installing-from-source)
+for how to get that checkout building in the first place.
 
 **Permissions** — the SDK can't add these for you.
 

@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { DASHBOARD_URL, DISCORD_URL, DOCS_URL, GITHUB_URL } from '../lib/links';
-import { DiscordIcon, GitHubIcon } from './icons';
+import { DASHBOARD_URL, DISCORD_URL, DOCS_URL } from '../lib/links';
+import { DiscordIcon } from './icons';
 
 export function Nav() {
   return (
@@ -23,7 +23,7 @@ export function Nav() {
           </Link>
         </nav>
 
-        {/* Discord + GitHub, top right — plus the dashboard sign-in CTA. */}
+        {/* Discord (community support) top right, plus sign-in/sign-up CTAs. */}
         <div className="flex items-center gap-4">
           <a
             href={DISCORD_URL}
@@ -34,20 +34,14 @@ export function Nav() {
           >
             <DiscordIcon />
           </a>
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noreferrer noopener"
-            aria-label="Raven on GitHub"
-            className="text-muted transition-colors hover:text-fg"
-          >
-            <GitHubIcon />
+          <a href={DASHBOARD_URL} className="hidden text-sm font-medium text-muted transition-colors hover:text-fg sm:inline">
+            Sign in
           </a>
           <a
-            href={DASHBOARD_URL}
+            href={`${DASHBOARD_URL}/signup`}
             className="rounded-md bg-accent px-3.5 py-2 text-sm font-medium text-accent-fg shadow-raven-sm transition-colors hover:bg-accent-hover"
           >
-            Dashboard
+            Get started
           </a>
         </div>
       </div>

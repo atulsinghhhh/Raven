@@ -70,5 +70,4 @@ routing, background behavior) are covered on each SDK's own page.
 
 If you hit something not covered here, the
 [Discord](https://discord.com/invite/HSWd9qMC7) is the fastest way to
-ask, and [GitHub Issues](https://github.com/atulsinghhhh/Raven/issues)
-for anything that looks like a bug.
+ask about anything that looks like a bug.

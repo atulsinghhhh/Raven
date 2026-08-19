@@ -76,7 +76,7 @@ egress-filter the delivery worker at the network level. See
 
 ## Reporting a vulnerability
 
-Open an issue on [GitHub](https://github.com/atulsinghhhh/Raven) marked
-security-sensitive, or reach the team on
-[Discord](https://discord.com/invite/HSWd9qMC7) for anything you'd
-rather not post publicly first.
+Reach the team on [Discord](https://discord.com/invite/HSWd9qMC7), or
+your account contact if you have one — Raven's source and issue tracker
+aren't public, so a security report isn't something to post in the
+open.
