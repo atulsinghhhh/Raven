@@ -1,6 +1,8 @@
 import {
+  formatBitrate,
   formatCount,
   formatDuration,
+  formatMs,
   formatPercent,
   formatRelative,
   normaliseRange,
@@ -78,5 +80,40 @@ describe('formatCount / formatPercent', () => {
     expect(formatPercent(null)).toBeNull();
     expect(formatPercent(0)).toBe('0%');
     expect(formatPercent(98.7)).toBe('98.7%');
+  });
+});
+
+describe('formatMs', () => {
+  it('renders a value in milliseconds', () => {
+    expect(formatMs(84)).toBe('84 ms');
+    expect(formatMs(0)).toBe('0 ms');
+  });
+
+  // A connection with no stats sample yet is not the same as 0ms jitter —
+  // that would read as a perfect connection rather than "unmeasured".
+  it('distinguishes an unmeasured value from a real zero', () => {
+    expect(formatMs(null)).toBeNull();
+    expect(formatMs(undefined)).toBeNull();
+  });
+});
+
+describe('formatBitrate', () => {
+  it('renders sub-kilobit values in bits per second', () => {
+    expect(formatBitrate(500)).toBe('500 bps');
+  });
+
+  it('renders kilobit-range values rounded to the nearest kbps', () => {
+    expect(formatBitrate(64_000)).toBe('64 kbps');
+    expect(formatBitrate(999_999)).toBe('1000 kbps');
+  });
+
+  it('switches to megabits at 1,000,000 bps with one decimal place', () => {
+    expect(formatBitrate(1_000_000)).toBe('1.0 Mbps');
+    expect(formatBitrate(2_500_000)).toBe('2.5 Mbps');
+  });
+
+  it('distinguishes an unmeasured value from a real zero', () => {
+    expect(formatBitrate(null)).toBeNull();
+    expect(formatBitrate(undefined)).toBeNull();
   });
 });

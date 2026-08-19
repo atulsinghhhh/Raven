@@ -86,6 +86,20 @@ export function formatCount(value: number | null | undefined): string {
   return new Intl.NumberFormat('en-GB').format(value);
 }
 
+/** Milliseconds, for RTT/jitter readings — never fabricated, so null stays null rather than 0. */
+export function formatMs(value: number | null | undefined): string | null {
+  if (value === null || value === undefined) return null;
+  return `${value} ms`;
+}
+
+/** bits/sec from the wire → the unit a developer actually thinks in. */
+export function formatBitrate(bps: number | null | undefined): string | null {
+  if (bps === null || bps === undefined) return null;
+  if (bps >= 1_000_000) return `${(bps / 1_000_000).toFixed(1)} Mbps`;
+  if (bps >= 1_000) return `${Math.round(bps / 1_000)} kbps`;
+  return `${bps} bps`;
+}
+
 export const RANGES = ['15m', '1h', '24h', '7d'] as const;
 export type Range = (typeof RANGES)[number];
 

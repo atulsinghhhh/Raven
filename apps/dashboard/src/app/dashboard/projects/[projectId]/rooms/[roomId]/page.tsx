@@ -1,16 +1,16 @@
 import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
 import { ApiError, ravenApi } from '@/lib/api-client';
-import type { LiveParticipantInfo, LiveTrackInfo } from '@/lib/api-client';
-import { Badge, ConnectionStateBadge } from '@/components/ui/badge';
-import { Card, CardHeader, SectionHeader } from '@/components/ui/card';
+import type { ConnectionSummary, LiveParticipantInfo, LiveTrackInfo } from '@/lib/api-client';
+import { Badge, ConnectionQualityBadge, ConnectionStateBadge } from '@/components/ui/badge';
+import { Card, CardHeader, SectionHeader, StatCard } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { ButtonLink } from '@/components/ui/button';
 import { KeyValue, KeyValueGrid, MonoId } from '@/components/ui/mono';
 import { EmptyState, ErrorState, NoDataYet } from '@/components/ui/states';
 import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { IconParticipants } from '@/components/ui/icons';
-import { formatCount, formatDateTime, formatDuration, formatRelative } from '@/lib/format';
+import { formatCount, formatDateTime, formatDuration, formatMs, formatRelative } from '@/lib/format';
 import { TestTokenPanel } from './test-token-panel';
 
 // The room's own connection history is a supporting panel, not the page —
@@ -119,6 +119,14 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ pro
 
       <section>
         <SectionHeader
+          title="Live network quality"
+          subtitle="From the most recent stats sample of each currently-connected participant — not an all-time average."
+        />
+        <LiveQualitySummary connections={connections} />
+      </section>
+
+      <section>
+        <SectionHeader
           title="Recent connections"
           subtitle={`Stored connection records for this room, most recent first (up to ${ROOM_CONNECTION_LIMIT}).`}
           action={
@@ -204,6 +212,82 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ pro
       <TestTokenPanel projectId={projectId} roomId={roomId} />
     </div>
   );
+}
+
+/**
+ * Aggregates the *currently open* connections' last stats sample —
+ * closed connections tell you nothing about the room's health right
+ * now. "Worst of" for jitter/loss, same reasoning as the connection
+ * detail page: for a room someone is actively watching, how bad it
+ * gets is more actionable than an average that hides one bad track.
+ */
+function LiveQualitySummary({ connections }: { connections: ConnectionSummary[] | undefined }) {
+  if (!connections) {
+    return (
+      <Card>
+        <NoDataYet label="Connection records are unavailable right now" />
+      </Card>
+    );
+  }
+
+  const live = connections.filter((c) => c.state === 'CONNECTED' || c.state === 'RECONNECTING');
+  const withStats = live.filter((c) => c.rttMs !== null || c.jitterMs !== null || c.packetLossPercent !== null);
+
+  if (live.length === 0) {
+    return (
+      <EmptyState
+        title="No one is currently connected"
+        description="Quality is only meaningful for an open connection — it reappears here as soon as someone joins."
+      />
+    );
+  }
+
+  if (withStats.length === 0) {
+    return (
+      <Card>
+        <NoDataYet label={`${formatCount(live.length)} connected, but no stats sample has arrived yet`} />
+      </Card>
+    );
+  }
+
+  const rtt = maxOf(withStats, (c) => c.rttMs);
+  const jitter = maxOf(withStats, (c) => c.jitterMs);
+  const loss = maxOf(withStats, (c) => c.packetLossPercent);
+  const worstQuality = worstQualityOf(withStats);
+
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+      <StatCard
+        label="Worst quality"
+        value={worstQuality ? <ConnectionQualityBadge quality={worstQuality} /> : <NoDataYet label="Unknown" />}
+        hint={`Across ${formatCount(withStats.length)} of ${formatCount(live.length)} connected`}
+      />
+      <StatCard label="Highest RTT" value={formatMs(rtt) ?? <NoDataYet label="Unknown" />} hint="Send direction" />
+      <StatCard label="Highest jitter" value={formatMs(jitter) ?? <NoDataYet label="Unknown" />} hint="Worst track per connection" />
+      <StatCard
+        label="Highest packet loss"
+        value={loss === null ? <NoDataYet label="Unknown" /> : `${loss}%`}
+        hint="Worst track per connection"
+      />
+    </div>
+  );
+}
+
+/** Numeric worst-of, skipping nulls — a metric no connection reported yet must not drag the max down to itself. */
+function maxOf(connections: ConnectionSummary[], pick: (c: ConnectionSummary) => number | null): number | null {
+  const values = connections.map(pick).filter((v): v is number => v !== null);
+  return values.length > 0 ? Math.max(...values) : null;
+}
+
+const QUALITY_RANK: Record<string, number> = { excellent: 0, good: 1, unknown: 2, poor: 3, lost: 4 };
+
+/** The single worst reported quality among live connections — same "worst, not average" reasoning as the numeric fields. */
+function worstQualityOf(connections: ConnectionSummary[]): string | null {
+  const known = connections
+    .map((c) => c.connectionQuality)
+    .filter((q): q is Exclude<ConnectionSummary['connectionQuality'], null> => q !== null);
+  if (known.length === 0) return null;
+  return known.reduce((worst, q) => (QUALITY_RANK[q] > QUALITY_RANK[worst] ? q : worst));
 }
 
 function ParticipantCard({ participant }: { participant: LiveParticipantInfo }) {

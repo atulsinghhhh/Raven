@@ -158,6 +158,22 @@ export interface ConnectionSummary {
   iceConnectionState: string | null;
   signalingState: string | null;
   reconnectCount: number;
+  /**
+   * From the SDK's `Room.getConnectionStats()`, reported via telemetry —
+   * absent until at least one stats sample has come in, which the
+   * browser SDK sends every 5s while connected. Never estimated or
+   * backfilled; a connection that never sent one keeps these null.
+   */
+  connectionQuality: 'excellent' | 'good' | 'poor' | 'lost' | 'unknown' | null;
+  /** Round-trip time in ms, send direction only — WebRTC has no receiver-side RTT. */
+  rttMs: number | null;
+  /** Worst (max) jitter in ms across every track on this connection. */
+  jitterMs: number | null;
+  /** Worst (max) packet loss percentage across every track. */
+  packetLossPercent: number | null;
+  /** Summed send + receive bitrate across every track, in bits/sec. */
+  bitrateBps: number | null;
+  codec: string | null;
   startedAt: string;
   connectedAt: string | null;
   disconnectedAt: string | null;

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
 import { ApiError, ravenApi } from '@/lib/api-client';
-import { ConnectionStateBadge, ErrorCategoryBadge } from '@/components/ui/badge';
+import { ConnectionQualityBadge, ConnectionStateBadge, ErrorCategoryBadge } from '@/components/ui/badge';
 import { Card, CardHeader } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { Timeline } from '@/components/ui/timeline';
@@ -9,7 +9,7 @@ import { KeyValue, KeyValueGrid, MonoId } from '@/components/ui/mono';
 import { Dash, EmptyState, ErrorState, NoDataYet } from '@/components/ui/states';
 import { ButtonLink } from '@/components/ui/button';
 import { CopyButton } from '@/components/ui/copy-button';
-import { formatDateTime, formatDuration, formatRelative } from '@/lib/format';
+import { formatBitrate, formatDateTime, formatDuration, formatMs, formatRelative } from '@/lib/format';
 
 export default async function ConnectionDetailPage({
   params,
@@ -162,7 +162,29 @@ export default async function ConnectionDetailPage({
 
         <div className="flex flex-col gap-6">
           <Card>
-            <CardHeader title="Network" subtitle="Last reported transport state." />
+            <CardHeader
+              title="Media quality"
+              subtitle="Last stats sample from Room.getConnectionStats() — sent every 5s while connected."
+              action={c.connectionQuality && <ConnectionQualityBadge quality={c.connectionQuality} />}
+            />
+            {c.rttMs === null && c.jitterMs === null && c.packetLossPercent === null ? (
+              <NoDataYet label="No stats sample received yet for this connection" />
+            ) : (
+              <dl className="flex flex-col gap-3.5">
+                <NetworkRow label="Round-trip time" value={formatMs(c.rttMs)} />
+                <NetworkRow label="Jitter (worst track)" value={formatMs(c.jitterMs)} />
+                <NetworkRow
+                  label="Packet loss (worst track)"
+                  value={c.packetLossPercent === null ? null : `${c.packetLossPercent}%`}
+                />
+                <NetworkRow label="Bitrate (send + receive)" value={formatBitrate(c.bitrateBps)} />
+                <NetworkRow label="Codec" value={c.codec} />
+              </dl>
+            )}
+          </Card>
+
+          <Card>
+            <CardHeader title="Transport" subtitle="Last reported connection-level state." />
             <dl className="flex flex-col gap-3.5">
               <NetworkRow label="ICE connection state" value={c.iceConnectionState} />
               <NetworkRow label="Signaling state" value={c.signalingState} />

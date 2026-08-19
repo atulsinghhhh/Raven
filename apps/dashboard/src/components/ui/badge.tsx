@@ -130,6 +130,26 @@ export function ConnectionStateBadge({ state }: { state: string }) {
   return <Badge tone={meta.tone}>{meta.label}</Badge>;
 }
 
+const CONNECTION_QUALITY: Record<string, { tone: BadgeTone; label: string }> = {
+  excellent: { tone: 'success', label: 'Excellent' },
+  good: { tone: 'success', label: 'Good' },
+  poor: { tone: 'warning', label: 'Poor' },
+  lost: { tone: 'danger', label: 'Lost' },
+  unknown: { tone: 'neutral', label: 'Unknown' },
+};
+
+/**
+ * The SFU's own read on a connection's media quality — see
+ * `ConnectionQuality` in `@raven/rtc`. `null` (no stats sample received
+ * yet) renders nothing rather than a misleading "Unknown" badge, since
+ * `'unknown'` is itself a value the SFU can report.
+ */
+export function ConnectionQualityBadge({ quality }: { quality: string | null }) {
+  if (quality === null) return null;
+  const meta = CONNECTION_QUALITY[quality] ?? { tone: 'neutral' as BadgeTone, label: quality };
+  return <Badge tone={meta.tone}>{meta.label}</Badge>;
+}
+
 /**
  * Error categories are all failures, but they don't all mean the same
  * thing — auth/token problems are the developer's own misconfiguration,
