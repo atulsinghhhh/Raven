@@ -1,15 +1,28 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Injectable()
-export class RedisService implements OnModuleInit, OnModuleDestroy {
+export class RedisService implements OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
-  public client!: Redis;
+  public readonly client: Redis;
 
-  constructor(private readonly configService: ConfigService) {}
-
-  onModuleInit(): void {
+  /**
+   * Built here, not in `onModuleInit()`. Nest's DI container guarantees a
+   * dependency's *constructor* has finished before any consumer's
+   * constructor runs (`ChatEventsService` et al. take `RedisService` as a
+   * constructor param) — but it makes no such guarantee across unrelated
+   * modules for the separate `onModuleInit` lifecycle phase. That gap was
+   * latent until adding a second import path to a consuming module
+   * (Live Streaming importing ChatModule alongside AppModule already
+   * doing so) reordered hook firing enough to expose it:
+   * `ChatEventsService.onModuleInit()` ran before this service's own
+   * `onModuleInit()` had, so `this.client` was still undefined.
+   * Constructing the client synchronously in the constructor removes the
+   * ordering dependency entirely, for every current and future consumer —
+   * not a workaround scoped to the module that happened to trip it.
+   */
+  constructor(private readonly configService: ConfigService) {
     const url = this.configService.get<string>('redis.url');
     this.client = new Redis(url!, {
       lazyConnect: false,

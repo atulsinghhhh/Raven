@@ -118,6 +118,7 @@ model Project {
   conversations    Conversation[]
   chatConnections  ChatConnection[]
   webhookEndpoints WebhookEndpoint[]
+  liveStreams      LiveStream[]
 
   @@index([ownerId])
   @@map("projects")
@@ -219,6 +220,10 @@ model Room {
   /// The chat channel attached to this RTC room, if one was created.
   /// Chat and RTC stay separate services — this is the only join between them.
   conversation Conversation?
+  /// The live stream this room backs, if this room was created *for* one.
+  /// A stream's host/co-hosts and viewers are ordinary RTC participants of
+  /// this room — Live Streaming adds no second media model.
+  liveStream   LiveStream?
 
   // Room names are unique within one environment of one project. Staging
   // and production must both be able to hold a "lobby" — that is most of
@@ -460,6 +465,8 @@ model Conversation {
   readStates  ReadState[]
   attachments Attachment[]
   connections ChatConnection[]
+  /// The live stream this conversation is the chat for, if any.
+  liveStream  LiveStream?
 
   // Names are unique per project so `chat.connect({ room: "support" })`
   // can resolve without the developer having to carry a conv_ id around.
@@ -708,4 +715,123 @@ model WebhookDelivery {
   @@index([status, nextAttemptAt])
   @@index([endpointId, createdAt])
   @@map("webhook_deliveries")
+}
+
+// ---------------------------------------------------------------------------
+// Live Streaming
+//
+// Deliberately not a third media/messaging model: a live stream is an RTC
+// Room (host/co-hosts/viewers are ordinary participants of it, with
+// permissions the server assigns per identity — see live-stream-tokens.ts)
+// plus a Chat Conversation (attached the same way a video call's chat panel
+// already is) plus lifecycle metadata. Viewers get no row here at all —
+// same reasoning as Presence/Typing: a row per viewer join would be an
+// expensive way to store nothing durable, and "who's live in the room right
+// now" is already answerable by asking the SFU, exactly like Room's own
+// liveParticipantCount.
+// ---------------------------------------------------------------------------
+
+enum LiveStreamStatus {
+  CREATED
+  STARTING
+  LIVE
+  ENDING
+  ENDED
+}
+
+enum LiveStreamVisibility {
+  PUBLIC
+  PRIVATE
+  AUTHENTICATED
+}
+
+/// HOST created the stream; CO_HOST was invited into it. Both may publish —
+/// the distinction is bookkeeping (who's the original host) plus a signal
+/// for the developer's own UI, not a difference in RTC/chat permissions.
+enum LiveStreamHostRole {
+  HOST
+  CO_HOST
+}
+
+/// A live stream. `roomId`/`conversationId` are this stream's *own*
+/// dedicated Room/Conversation, created alongside it — never a room or
+/// conversation the developer created for something else, so a stream's
+/// lifecycle can never accidentally end an unrelated call or archive an
+/// unrelated chat.
+model LiveStream {
+  id          String      @id @default(uuid())
+  publicId    String      @unique
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment Environment @default(DEVELOPMENT)
+
+  roomId String @unique
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  /// Nullable only because Prisma requires it for the reverse of an
+  /// optional relation — every stream is given a conversation at creation
+  /// and this is never null in practice. `onDelete: SetNull` rather than
+  /// `Cascade` so deleting the stream's chat history (if a developer ever
+  /// does that directly) doesn't take the stream row down with it.
+  conversationId    String?       @unique
+  conversation      Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  /// Public id of the system message viewers react to (the TikTok-style
+  /// heart tap) — reactions ride on the *existing* chat reaction model
+  /// against this one message, rather than a second realtime primitive.
+  chatRootMessageId String?
+
+  title        String
+  description  String?
+  thumbnailUrl String?
+  category     String?
+  tags         String[]             @default([])
+  language     String?
+  visibility   LiveStreamVisibility @default(PUBLIC)
+  /// Developer-owned JSON, same convention as Room/Conversation.metadata.
+  metadata     Json?
+
+  status          LiveStreamStatus @default(CREATED)
+  /// Best-effort, updated opportunistically whenever viewer count is read
+  /// (the same "poll the SFU, persist the high-water mark" pattern used
+  /// nowhere else yet in this schema, but the only honest way to keep a
+  /// peak without a dedicated counting worker this phase doesn't have).
+  peakViewerCount Int              @default(0)
+
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  hosts LiveStreamHost[]
+
+  // A room/conversation is created *for* exactly one stream, so this is
+  // really just documenting the 1:1 the @unique above already enforces —
+  // scoping it to project+environment too is what a cross-tenant lookup
+  // would otherwise be able to bypass.
+  @@unique([projectId, environment, roomId])
+  @@index([projectId, environment, status])
+  @@index([projectId, environment, createdAt])
+  @@map("live_streams")
+}
+
+/// One row per identity ever granted host/co-host on a stream. Soft-removed
+/// (`removedAt`) rather than deleted, so "who was live and when" survives a
+/// co-host being kicked mid-stream.
+model LiveStreamHost {
+  id       String     @id @default(uuid())
+  streamId String
+  stream   LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+
+  /// The developer's own end-user identity — same concept as an RTC
+  /// participant identity or a chat userId. Raven never owns this account.
+  identity String
+  role     LiveStreamHostRole @default(CO_HOST)
+
+  invitedAt DateTime  @default(now())
+  removedAt DateTime?
+
+  @@unique([streamId, identity])
+  @@index([streamId])
+  @@map("live_stream_hosts")
 }

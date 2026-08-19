@@ -10,5 +10,9 @@ import { RtcTokensService } from './rtc-tokens.service';
   imports: [ApiKeysModule, ProjectsModule, RoomsModule],
   controllers: [RtcTokensController, DashboardRtcTokensController],
   providers: [RtcTokensService],
+  // Live Streaming mints host/viewer RTC tokens through this same service
+  // rather than a second token implementation (spec: "reuse the existing
+  // Raven token architecture where possible").
+  exports: [RtcTokensService],
 })
 export class RtcTokensModule {}

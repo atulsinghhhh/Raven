@@ -11,6 +11,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { HealthModule } from './modules/health/health.module';
+import { LiveStreamsModule } from './modules/live-streams/live-streams.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
@@ -45,6 +46,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
     ServerApiModule,
     WebhooksModule,
     ChatModule,
+    LiveStreamsModule,
   ],
 })
 export class AppModule implements NestModule {

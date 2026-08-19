@@ -48,6 +48,9 @@ import { TypingService } from './typing/typing.service';
     ChatRetentionService,
     ChatGateway,
   ],
-  exports: [ChatGateway, ChatMetricsService, ConversationsService, MessagesService],
+  // ChatTokenService is also how Live Streaming mints viewer/host chat
+  // tokens for a stream's conversation — the same credential a plain chat
+  // integration gets, not a second implementation.
+  exports: [ChatGateway, ChatMetricsService, ConversationsService, MessagesService, ChatTokenService],
 })
 export class ChatModule {}

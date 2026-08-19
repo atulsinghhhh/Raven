@@ -18,6 +18,13 @@ export const WEBHOOK_EVENT_TYPES = [
   'room.created',
   'participant.joined',
   'participant.left',
+  'live_stream.created',
+  'live_stream.started',
+  'live_stream.ended',
+  'live_stream.host_joined',
+  'live_stream.host_left',
+  'live_stream.viewer_joined',
+  'live_stream.viewer_left',
 ] as const;
 
 export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number];

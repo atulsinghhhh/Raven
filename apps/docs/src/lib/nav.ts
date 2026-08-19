@@ -61,6 +61,13 @@ export const NAV: NavSection[] = [
     ],
   },
   {
+    title: 'Live Streaming',
+    items: [
+      { slug: 'live-streaming/overview', title: 'Overview' },
+      { slug: 'live-streaming/quickstart', title: 'Quickstart' },
+    ],
+  },
+  {
     title: 'SDKs',
     items: [
       { slug: 'sdk/web', title: 'TypeScript / Web' },

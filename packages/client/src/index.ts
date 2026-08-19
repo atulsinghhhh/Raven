@@ -1,5 +1,7 @@
 import { createRTCClient, type RTCClient, type RTCClientConfig, type Room } from '@raven/rtc';
 import { createChatClient, type ChatClient, type ChatClientConfig } from '@raven/chat';
+import { LiveStream } from './live/live-stream';
+import type { LiveStreamCredentials } from './live/types';
 
 export type { Raven as RavenClient };
 
@@ -88,10 +90,26 @@ export class Raven {
   readonly rtc?: RTCClient;
   /** Absent for an RTC-only app — see the constructor. */
   readonly chat?: ChatClient;
+  /**
+   * Raven Live Streaming. Unlike `rtc`/`chat` above, this never depends
+   * on the credentials this `Raven` instance was constructed with — a
+   * live stream's host/co-host/viewer tokens are minted per stream, per
+   * role, by your backend (`POST /v1/live-streams/:id/hosts` or
+   * `.../viewer-tokens`), so `live.join()` is available on every
+   * instance regardless of what `new Raven(...)` was given.
+   *
+   * ```ts
+   * const stream = await raven.live.join(credentials);
+   * if (stream.isHost) await stream.room.enableCamera();
+   * ```
+   */
+  readonly live: { join(credentials: LiveStreamCredentials): Promise<LiveStream> };
 
   private currentRoom?: Room;
 
   constructor(config: RavenConfig) {
+    this.live = { join: (credentials) => LiveStream.join(credentials) };
+
     // One without the other is always a mistake, and failing here beats
     // failing at join() with a confusing connection error.
     if (Boolean(config.token) !== Boolean(config.endpoint)) {
@@ -189,3 +207,6 @@ export type { Room, RTCClient, RTCClientConfig } from '@raven/rtc';
 export { RTCError, isRTCError } from '@raven/rtc';
 export type { ChatClient, ChatMessage, ChatConnectionState } from '@raven/chat';
 export { isRavenChatError } from '@raven/chat';
+
+export { LiveStream, joinLiveStream } from './live/live-stream';
+export type { LiveStreamCredentials, LiveStreamRole } from './live/types';

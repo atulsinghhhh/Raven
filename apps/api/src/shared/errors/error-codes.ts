@@ -32,11 +32,14 @@ export const RavenErrorCode = {
   MESSAGE_NOT_FOUND: 'RAVEN_MESSAGE_NOT_FOUND',
   PROJECT_NOT_FOUND: 'RAVEN_PROJECT_NOT_FOUND',
   ATTACHMENT_NOT_FOUND: 'RAVEN_ATTACHMENT_NOT_FOUND',
+  STREAM_NOT_FOUND: 'RAVEN_STREAM_NOT_FOUND',
 
   // --- Conflict -----------------------------------------------------------
   CONFLICT: 'RAVEN_CONFLICT',
   MESSAGE_ALREADY_EXISTS: 'RAVEN_MESSAGE_ALREADY_EXISTS',
   CONVERSATION_ARCHIVED: 'RAVEN_CONVERSATION_ARCHIVED',
+  /** A lifecycle operation that isn't valid from the stream's current status — e.g. starting an already-LIVE stream, or anything on an ENDED one. */
+  STREAM_INVALID_STATE: 'RAVEN_STREAM_INVALID_STATE',
 
   // --- Request problems ---------------------------------------------------
   VALIDATION_FAILED: 'RAVEN_VALIDATION_FAILED',
@@ -80,9 +83,11 @@ export const LEGACY_ERROR_CODE: Record<RavenErrorCode, string> = {
   [RavenErrorCode.MESSAGE_NOT_FOUND]: 'NOT_FOUND',
   [RavenErrorCode.PROJECT_NOT_FOUND]: 'NOT_FOUND',
   [RavenErrorCode.ATTACHMENT_NOT_FOUND]: 'ATTACHMENT_NOT_FOUND',
+  [RavenErrorCode.STREAM_NOT_FOUND]: 'NOT_FOUND',
   [RavenErrorCode.CONFLICT]: 'CONFLICT',
   [RavenErrorCode.MESSAGE_ALREADY_EXISTS]: 'CONFLICT',
   [RavenErrorCode.CONVERSATION_ARCHIVED]: 'CONVERSATION_ARCHIVED',
+  [RavenErrorCode.STREAM_INVALID_STATE]: 'CONFLICT',
   [RavenErrorCode.VALIDATION_FAILED]: 'VALIDATION_FAILED',
   [RavenErrorCode.RATE_LIMITED]: 'RATE_LIMITED',
   [RavenErrorCode.PAYLOAD_TOO_LARGE]: 'VALIDATION_FAILED',

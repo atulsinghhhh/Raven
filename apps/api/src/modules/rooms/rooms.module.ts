@@ -10,6 +10,9 @@ import { RoomsService } from './rooms.service';
   imports: [ApiKeysModule, ProjectsModule],
   controllers: [RoomsController, DashboardRoomsController],
   providers: [RoomsService, LiveKitRoomService],
-  exports: [RoomsService],
+  // LiveKitRoomService is also how Live Streaming derives a live viewer
+  // count (SFU participants minus registered hosts) — same "poll the SFU,
+  // never store live state" pattern Room itself already uses.
+  exports: [RoomsService, LiveKitRoomService],
 })
 export class RoomsModule {}
