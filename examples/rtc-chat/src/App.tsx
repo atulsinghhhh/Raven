@@ -11,7 +11,7 @@ import {
   useParticipants,
   usePresence,
   useTyping,
-} from '@raven/react';
+} from '@corvidhq/react';
 import './index.css';
 
 /**

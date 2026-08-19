@@ -1,6 +1,6 @@
 # CLI workflow: zero to a joined room
 
-The canonical path through `@raven/cli`, exactly as verified end-to-end
+The canonical path through `@corvidhq/cli`, exactly as verified end-to-end
 against a real local Raven deployment (`docker compose up`, `apps/api`
 on `:4100`, dashboard on `:3000`). Every command below is real — no
 placeholders elided for brevity beyond your own project name.
@@ -83,7 +83,7 @@ open http://localhost:8900/index.html
   `raven rooms create` all hit the same Control API the dashboard uses —
   there is no CLI-only backend.
 - The API key minted by the CLI mints a real, working RTC token from the
-  Control API, which a real browser SDK client (`@raven/rtc`) can use to
+  Control API, which a real browser SDK client (`@corvidhq/rtc`) can use to
   join and connect to the actual LiveKit SFU — confirmed live via
   `Status: connected` and correct remote-participant discovery in both
   browser tabs, with real LiveKit signaling visible in the browser

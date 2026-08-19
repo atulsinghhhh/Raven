@@ -1,7 +1,7 @@
-import { createRTCClient } from '@raven/rtc';
-export { RTCError, isRTCError } from '@raven/rtc';
-import { createChatClient } from '@raven/chat';
-export { isRavenChatError } from '@raven/chat';
+import { createRTCClient } from '@corvidhq/rtc';
+export { RTCError, isRTCError } from '@corvidhq/rtc';
+import { createChatClient } from '@corvidhq/chat';
+export { isRavenChatError } from '@corvidhq/chat';
 
 // src/index.ts
 var LiveStream = class _LiveStream {
@@ -43,7 +43,7 @@ var LiveStream = class _LiveStream {
   }
   /**
    * The TikTok-style heart-tap. Reactions ride on the stream's own root
-   * chat message through `@raven/chat`'s existing, already-aggregated
+   * chat message through `@corvidhq/chat`'s existing, already-aggregated
    * reaction model (`chat.messages.addReaction`) — not a second
    * real-time primitive invented for this. Every viewer's tap on the
    * same emoji collapses into one count, the same as reacting to any

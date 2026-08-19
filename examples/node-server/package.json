@@ -7,7 +7,7 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "@raven/server": "file:../../packages/server-sdk",
+    "@corvidhq/server": "file:../../packages/server-sdk",
     "express": "^4.19.2"
   }
 }

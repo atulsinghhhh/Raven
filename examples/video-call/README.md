@@ -1,11 +1,11 @@
 # Raven video-call example
 
-A minimal two-participant video call built entirely on `@raven/rtc`'s public
+A minimal two-participant video call built entirely on `@corvidhq/rtc`'s public
 API — `app.js` never touches SDP, ICE candidates, `RTCPeerConnection`, or any
 LiveKit-specific type.
 
 ```js
-import { createRTCClient } from '@raven/rtc';
+import { createRTCClient } from '@corvidhq/rtc';
 
 const client = createRTCClient({ token, endpoint, iceServers });
 const room = await client.join(roomName);
@@ -23,7 +23,7 @@ room.on('trackSubscribed', (track, participant) => {
 1. Bring up Raven's infrastructure (from the repo root) and build the SDK:
    ```bash
    pnpm infra:up
-   pnpm --filter @raven/rtc build
+   pnpm --filter @corvidhq/rtc build
    ```
 2. Copy the freshly-built SDK and its `livekit-client` dependency into this
    folder (this example loads them via a browser import map, not a bundler
@@ -51,12 +51,12 @@ dependency — no build step. This example follows the same convention:
 `raven-rtc.js` (the SDK's own ESM build) and `livekit-client.esm.mjs`
 (livekit-client's own self-contained ESM bundle) are vendored here, and an
 [import map](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap)
-in `index.html` resolves the bare `@raven/rtc` / `livekit-client` specifiers
+in `index.html` resolves the bare `@corvidhq/rtc` / `livekit-client` specifiers
 `app.js` imports — so `app.js` is exactly what a real app's code would look
 like after a bundler (Vite, webpack, esbuild) resolves those same imports;
 only the resolution mechanism differs. Import maps are supported in all
 current Chrome, Firefox, Safari, and Edge versions (Phase 6 spec §4's
 target browsers).
 
-In a real project, you would simply `npm install @raven/rtc` and let your
+In a real project, you would simply `npm install @corvidhq/rtc` and let your
 own bundler handle resolution — you would not vendor or copy any files.

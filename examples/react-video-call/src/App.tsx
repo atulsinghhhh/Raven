@@ -11,7 +11,7 @@ import {
   useRemoteParticipants,
   useRoom,
   type DeviceInfo,
-} from '@raven/react';
+} from '@corvidhq/react';
 import './index.css';
 
 // This is the ONE thing a developer needs to think about client-side:
@@ -71,7 +71,7 @@ function JoinForm({ onParsed }: { onParsed: (token: ParsedToken) => void }) {
 
   return (
     <main>
-      <h1>Raven video-call example (@raven/react)</h1>
+      <h1>Raven video-call example (@corvidhq/react)</h1>
       <p>
         Paste the full JSON body returned by <code>POST /v1/rooms/:roomId/rtc-tokens</code> (mint one via Swagger at{' '}
         <code>/docs</code>, or use two different <code>participantIdentity</code> values in the same room to test a

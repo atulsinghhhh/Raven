@@ -1,6 +1,6 @@
 # Raven — video call with a chat panel
 
-`@raven/rtc` and `@raven/chat` on the same screen, doing different jobs.
+`@corvidhq/rtc` and `@corvidhq/chat` on the same screen, doing different jobs.
 
 ```
 ┌─────────────────────────────────────────┐
@@ -8,7 +8,7 @@
 ├──────────────────────┬──────────────────┤
 │                      │      Chat        │
 │       Video          │                  │
-│   (@raven/rtc)       │  alice: Hello    │
+│   (@corvidhq/rtc)       │  alice: Hello    │
 │                      │  bob:   Hi       │
 │                      │                  │
 │  [camera] [mute]     │  [ message… ]    │
@@ -27,7 +27,7 @@ So Raven keeps them separate:
 
 | | Video | Chat |
 | --- | --- | --- |
-| SDK | `@raven/rtc` | `@raven/chat` |
+| SDK | `@corvidhq/rtc` | `@corvidhq/chat` |
 | Transport | WebRTC via LiveKit | WebSocket |
 | Token | RTC token (LiveKit-signed) | Chat token (Raven-signed) |
 | Durability | none — media is live or gone | Postgres |

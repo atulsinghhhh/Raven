@@ -9,8 +9,8 @@ import {
   useReadReceipts,
   useTyping,
   type ChatMessage,
-} from '@raven/react';
-import { useChatClient } from '@raven/react';
+} from '@corvidhq/react';
+import { useChatClient } from '@corvidhq/react';
 import './index.css';
 
 /**
@@ -19,7 +19,7 @@ import './index.css';
  * (Phase 12 spec §44).
  *
  * Note what isn't here: no `new WebSocket(...)`, no reconnect logic, no
- * ping/pong, no message ordering. That's all inside @raven/chat.
+ * ping/pong, no message ordering. That's all inside @corvidhq/chat.
  */
 interface Session {
   token: string;

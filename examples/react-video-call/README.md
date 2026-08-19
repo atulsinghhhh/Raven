@@ -1,24 +1,24 @@
-# React video-call example — `@raven/react`
+# React video-call example — `@corvidhq/react`
 
 A real, buildable React app (Vite + TypeScript) demonstrating the Phase
 11 SDK — join a room, camera/microphone, screen sharing, device
 selection, remote participant tiles, connection status, and leave — all
-through `@raven/react`'s hooks and `<RavenRoom>`/`<ParticipantView>`. No
+through `@corvidhq/react`'s hooks and `<RavenRoom>`/`<ParticipantView>`. No
 LiveKit types appear anywhere in `src/`.
 
 This is a sibling to `examples/video-call/` (the original no-build-step,
-plain-JS `@raven/rtc` demo, kept exactly as-is) — this one shows the same
+plain-JS `@corvidhq/rtc` demo, kept exactly as-is) — this one shows the same
 underlying SDK from the React/hooks side.
 
 ## Running it
 
 ```bash
 # From the repo root: build the SDKs this example depends on
-pnpm --filter @raven/rtc build
-pnpm --filter @raven/react build
+pnpm --filter @corvidhq/rtc build
+pnpm --filter @corvidhq/react build
 
 cd examples/react-video-call
-npm install   # resolves @raven/rtc and @raven/react via local file: deps
+npm install   # resolves @corvidhq/rtc and @corvidhq/react via local file: deps
 npm run dev   # → http://localhost:8901
 ```
 
@@ -33,7 +33,7 @@ room to see two-way video.
 - `<RavenRoom>` (the provider) + `useConnectionState()`/
   `useLocalParticipant()`/`useRemoteParticipants()`/`useCamera()`/
   `useMicrophone()` are enough to build a real call UI — no direct
-  `@raven/rtc` `Room` juggling required.
+  `@corvidhq/rtc` `Room` juggling required.
 - `<ParticipantView>` renders a participant's video/audio tracks and
   identity label without the app touching `Track.attach()` itself.
 - Device enumeration + `onDeviceChange()` (via `useRavenClient()`,

@@ -29,7 +29,7 @@ curl -X POST http://localhost:8787/api/rtc/token \
 
 Returns the same shape `POST /v1/rooms/:roomId/rtc-tokens` does —
 `{token, endpoint, iceServers, telemetryUrl, expiresAt, ...}` — pass
-that straight into `createRTCClient()` from `@raven/rtc` on the frontend
+that straight into `createRTCClient()` from `@corvidhq/rtc` on the frontend
 (see `examples/video-call`).
 
 ## The full flow this demonstrates

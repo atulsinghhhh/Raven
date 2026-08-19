@@ -1,17 +1,17 @@
-# Node.js backend example — `@raven/server`
+# Node.js backend example — `@corvidhq/server`
 
 The Phase 10 quickstart: a real Express server that mints RTC tokens for
-your frontend, using `@raven/server`. `RAVEN_API_KEY` never leaves this
+your frontend, using `@corvidhq/server`. `RAVEN_API_KEY` never leaves this
 process — the browser only ever sees a short-lived RTC token.
 
 ## Running it
 
 ```bash
 # From the repo root: build the SDK this example depends on
-pnpm --filter @raven/server build
+pnpm --filter @corvidhq/server build
 
 cd examples/node-server
-npm install     # resolves @raven/server via a local file: dependency
+npm install     # resolves @corvidhq/server via a local file: dependency
 RAVEN_API_KEY=rvk_xxxx.yyyy npm start
 # → Raven node-server example listening on http://localhost:8787
 ```
@@ -29,7 +29,7 @@ curl -X POST http://localhost:8787/api/rtc/token \
 
 Returns the same shape `POST /v1/rooms/:roomId/rtc-tokens` does —
 `{ token, endpoint, iceServers, telemetryUrl, expiresAt, ... }` — pass
-that straight into `createRTCClient()` from `@raven/rtc` on the frontend
+that straight into `createRTCClient()` from `@corvidhq/rtc` on the frontend
 (see `examples/video-call`).
 
 ## The full flow this demonstrates

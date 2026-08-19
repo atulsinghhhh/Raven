@@ -13,7 +13,7 @@
 // Run with:
 //   RAVEN_API_KEY=rvk_xxx.yyy node server.mjs
 import express from 'express';
-import { Raven, RavenError } from '@raven/server';
+import { Raven, RavenError } from '@corvidhq/server';
 
 const raven = new Raven({
   apiKey: process.env.RAVEN_API_KEY,
