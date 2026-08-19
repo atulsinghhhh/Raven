@@ -140,7 +140,7 @@ export class RTCClient {
 
 /**
  * Creates an RTC client from a token minted by your backend. `token` and
- * `endpoint` are the `token` and `livekitUrl` fields from that same
+ * `endpoint` are the `token` and `endpoint` fields from that same
  * mint response — don't construct them by hand, and don't mint a token
  * in the browser.
  */

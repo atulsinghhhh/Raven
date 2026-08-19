@@ -42,7 +42,7 @@ export function registerStatusCommand(program: Command): void {
         printDependency('API', apiReachable);
         printDependency('Signaling', apiReachable);
         printDependency('Database', health.dependencies.database);
-        printDependency('SFU', health.dependencies.livekit);
+        printDependency('SFU', health.dependencies.sfu);
         printDependency('TURN', health.dependencies.turn);
 
         if (projectName) {

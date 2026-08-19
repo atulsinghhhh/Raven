@@ -67,7 +67,8 @@ export interface CreateTokenParams {
 export interface IssuedToken {
   id: string;
   token: string;
-  livekitUrl: string;
+  /** Where the client SDK connects to run the call. Forward this to `createRTCClient({ endpoint })` as-is. */
+  endpoint: string;
   roomId: string;
   roomName: string;
   participantIdentity: string;

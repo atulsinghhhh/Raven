@@ -5,7 +5,7 @@ export interface RTCClientConfig {
   /** The RTC token minted by your backend via Raven's Control API. Never mint this in the browser. */
   token: string;
   /**
-   * RTC infrastructure URL to connect to — the `livekitUrl` field from
+   * RTC infrastructure URL to connect to — the `endpoint` field from
    * the same mint response as `token`. Forward both through as-is, don't
    * hand-construct this.
    */
@@ -76,7 +76,7 @@ export function validateConfig(config: RTCClientConfig): ResolvedRTCClientConfig
   if (!config.endpoint || typeof config.endpoint !== 'string') {
     throw new RTCError(
       'INVALID_TOKEN',
-      'config.endpoint is required — the "livekitUrl" field from the same token-mint response as config.token',
+      'config.endpoint is required — the "endpoint" field from the same token-mint response as config.token',
     );
   }
 

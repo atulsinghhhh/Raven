@@ -17,7 +17,7 @@ const SAMPLES = [
 
 const client = createRTCClient({
   token: resp.token,
-  endpoint: resp.livekitUrl,
+  endpoint: resp.endpoint,
   iceServers: resp.iceServers,
 });
 

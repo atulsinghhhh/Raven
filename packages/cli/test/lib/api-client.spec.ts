@@ -135,7 +135,7 @@ describe('RavenApiClient', () => {
   it('getHealth() returns the parsed body for a 503 "degraded" response instead of throwing — the dependency breakdown is real, structured data, not a failure to surface as an error', async () => {
     const degradedBody = {
       status: 'degraded',
-      dependencies: { database: 'up', redis: 'up', livekit: 'down', turn: 'up' },
+      dependencies: { database: 'up', redis: 'up', sfu: 'down', turn: 'up' },
       signaling: { activeConnections: 0, activeRooms: 0, activeParticipants: 0 },
     };
     mockFetchSequence({ status: 503, body: degradedBody });

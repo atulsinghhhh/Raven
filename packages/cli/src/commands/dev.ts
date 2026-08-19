@@ -30,7 +30,7 @@ export function registerDevCommand(program: Command): void {
         ]);
 
         const apiConnected = health !== undefined;
-        const rtcAvailable = health?.dependencies.livekit === 'up';
+        const rtcAvailable = health?.dependencies.sfu === 'up';
 
         if (opts.json) {
           printJson({

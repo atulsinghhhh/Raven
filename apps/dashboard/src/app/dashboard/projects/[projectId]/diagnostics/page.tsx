@@ -105,9 +105,9 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ pr
     },
     {
       key: 'sfu',
-      name: 'SFU (LiveKit)',
+      name: 'SFU',
       scope: 'This project',
-      status: diagnostics?.dependencies.sfu ?? health?.dependencies.livekit ?? 'unknown',
+      status: diagnostics?.dependencies.sfu ?? health?.dependencies.sfu ?? 'unknown',
       role: 'Routes audio and video between participants so each client sends its stream once instead of to every peer.',
       ifDown: 'Media stops flowing, including for participants already in a room. This is the most visible failure.',
     },

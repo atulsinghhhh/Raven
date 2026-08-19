@@ -54,7 +54,7 @@ describe('HealthController', () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'ok',
-        dependencies: { database: 'up', redis: 'up', livekit: 'up', turn: 'up' },
+        dependencies: { database: 'up', redis: 'up', sfu: 'up', turn: 'up' },
       }),
     );
   });
@@ -69,7 +69,7 @@ describe('HealthController', () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'degraded' }));
   });
 
-  it('reports livekit: down without affecting the database/redis checks', async () => {
+  it('reports sfu: down without affecting the database/redis checks', async () => {
     mockCheckLiveKitHttp.mockResolvedValue(false);
     const res = fakeResponse();
 
@@ -78,7 +78,7 @@ describe('HealthController', () => {
     expect(res.status).toHaveBeenCalledWith(503);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        dependencies: { database: 'up', redis: 'up', livekit: 'down', turn: 'up' },
+        dependencies: { database: 'up', redis: 'up', sfu: 'down', turn: 'up' },
       }),
     );
   });
@@ -92,7 +92,7 @@ describe('HealthController', () => {
     expect(res.status).toHaveBeenCalledWith(503);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        dependencies: { database: 'up', redis: 'up', livekit: 'up', turn: 'down' },
+        dependencies: { database: 'up', redis: 'up', sfu: 'up', turn: 'down' },
       }),
     );
   });

@@ -25,7 +25,7 @@ export interface RavenConfig {
    * Optional together with `endpoint` — omit both for a messaging-only app.
    */
   token?: string;
-  /** The `livekitUrl` from the same mint response. Required whenever `token` is set. */
+  /** The `endpoint` field from the same mint response. Required whenever `token` is set. */
   endpoint?: string;
   /** The `iceServers` array from the same response — forward it as-is, never hand-construct one. */
   iceServers?: RTCIceServer[];

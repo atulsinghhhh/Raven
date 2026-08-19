@@ -11,7 +11,8 @@ import { ProjectScope } from '../../shared/environment/environment.constants';
 export interface IssuedRtcToken {
   id: string;
   token: string;
-  livekitUrl: string;
+  /** Where the client SDK connects to run the call — a Raven-owned contract, not tied to whatever SFU sits behind it. */
+  endpoint: string;
   roomId: string;
   roomName: string;
   participantIdentity: string;
@@ -23,7 +24,7 @@ export interface IssuedRtcToken {
    */
   iceServers: IceServer[];
   // Base URL for @raven/rtc's telemetry — the SDK never hardcodes this,
-  // it just rides along in the same response as livekitUrl/iceServers.
+  // it just rides along in the same response as endpoint/iceServers.
   telemetryUrl: string;
   expiresAt: Date;
   createdAt: Date;
@@ -101,7 +102,7 @@ export class RtcTokensService {
     return {
       id: rtcToken.id,
       token: await accessToken.toJwt(),
-      livekitUrl: this.configService.get<string>('livekit.url')!,
+      endpoint: this.configService.get<string>('livekit.url')!,
       roomId: room.id,
       roomName: room.name,
       participantIdentity: dto.participantIdentity,

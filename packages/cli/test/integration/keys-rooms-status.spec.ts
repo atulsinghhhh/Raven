@@ -173,7 +173,7 @@ describe('raven keys / rooms / status / whoami (integration)', () => {
         status: 200,
         body: {
           status: 'ok',
-          dependencies: { database: 'up', redis: 'up', livekit: 'up', turn: 'up' },
+          dependencies: { database: 'up', redis: 'up', sfu: 'up', turn: 'up' },
           signaling: { activeConnections: 0, activeRooms: 0, activeParticipants: 0 },
         },
       }),
@@ -196,7 +196,7 @@ describe('raven keys / rooms / status / whoami (integration)', () => {
         status: 503,
         body: {
           status: 'degraded',
-          dependencies: { database: 'up', redis: 'up', livekit: 'down', turn: 'up' },
+          dependencies: { database: 'up', redis: 'up', sfu: 'down', turn: 'up' },
           signaling: { activeConnections: 0, activeRooms: 0, activeParticipants: 0 },
         },
       }),

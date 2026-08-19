@@ -88,7 +88,7 @@ export interface RtcTokenPermissions {
 export interface IssuedRtcToken {
   id: string;
   token: string;
-  livekitUrl: string;
+  endpoint: string;
   roomId: string;
   roomName: string;
   participantIdentity: string;
@@ -106,7 +106,7 @@ export interface HealthResponse {
   dependencies: {
     database: DependencyStatus;
     redis: DependencyStatus;
-    livekit: DependencyStatus;
+    sfu: DependencyStatus;
     turn: DependencyStatus;
   };
   signaling: {

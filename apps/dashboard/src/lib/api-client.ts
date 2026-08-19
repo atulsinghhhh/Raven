@@ -127,7 +127,7 @@ export interface IceServer {
 export interface IssuedRtcToken {
   id: string;
   token: string;
-  livekitUrl: string;
+  endpoint: string;
   roomId: string;
   roomName: string;
   participantIdentity: string;
@@ -254,7 +254,7 @@ export interface HealthResponse {
   dependencies: {
     database: 'up' | 'down';
     redis: 'up' | 'down';
-    livekit: 'up' | 'down';
+    sfu: 'up' | 'down';
     turn: 'up' | 'down';
   };
   signaling: {

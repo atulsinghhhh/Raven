@@ -92,7 +92,7 @@ export RAVEN_API_URL="http://localhost:4100"   # your Raven Control API deployme
           />
           <p className="mt-3 text-xs leading-relaxed text-muted">
             The mint response carries <code className="font-mono text-fg">token</code>,{' '}
-            <code className="font-mono text-fg">livekitUrl</code>,{' '}
+            <code className="font-mono text-fg">endpoint</code>,{' '}
             <code className="font-mono text-fg">iceServers</code>,{' '}
             <code className="font-mono text-fg">telemetryUrl</code> and{' '}
             <code className="font-mono text-fg">roomId</code>. Forward those to your frontend as-is — don&apos;t
@@ -240,7 +240,7 @@ const issued = await raven.tokens.create({
 return {
   roomId: issued.roomId,
   token: issued.token,
-  endpoint: issued.livekitUrl,
+  endpoint: issued.endpoint,
   iceServers: issued.iceServers,
   telemetryUrl: issued.telemetryUrl,
 };`;
@@ -270,7 +270,7 @@ issued = raven.tokens.create(
 payload = {
     "roomId": issued["roomId"],
     "token": issued["token"],
-    "endpoint": issued["livekitUrl"],
+    "endpoint": issued["endpoint"],
     "iceServers": issued["iceServers"],
     "telemetryUrl": issued["telemetryUrl"],
 }`;
@@ -292,7 +292,7 @@ const session = await fetch('/api/rtc-session', { method: 'POST' }).then((r) => 
 
 const client = createRTCClient({
   token: session.token,
-  endpoint: session.endpoint,       // the "livekitUrl" field, forwarded as-is
+  endpoint: session.endpoint,       // forwarded as-is from the token-mint response
   iceServers: session.iceServers,   // forwarded as-is — don't hand-configure STUN/TURN
   telemetryUrl: session.telemetryUrl,
 });

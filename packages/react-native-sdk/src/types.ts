@@ -19,7 +19,7 @@ export interface RavenConfig {
    * null reference.
    */
   token?: string;
-  /** The `livekitUrl` field from the same mint response. Required whenever `token` is set. */
+  /** The `endpoint` field from the same mint response. Required whenever `token` is set. */
   endpoint?: string;
   /** The `iceServers` array from the same response — forward it as-is. */
   iceServers?: RTCIceServer[];

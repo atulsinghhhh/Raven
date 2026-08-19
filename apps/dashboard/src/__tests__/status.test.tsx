@@ -9,15 +9,15 @@ import {
 
 describe('deriveSystemStatus', () => {
   it('is operational only when every dependency is up', () => {
-    expect(deriveSystemStatus({ database: 'up', redis: 'up', livekit: 'up', turn: 'up' })).toBe('operational');
+    expect(deriveSystemStatus({ database: 'up', redis: 'up', sfu: 'up', turn: 'up' })).toBe('operational');
   });
 
   it('degrades on a single failing dependency', () => {
-    expect(deriveSystemStatus({ database: 'up', redis: 'up', livekit: 'down', turn: 'up' })).toBe('degraded');
+    expect(deriveSystemStatus({ database: 'up', redis: 'up', sfu: 'down', turn: 'up' })).toBe('degraded');
   });
 
   it('escalates to a partial outage once more than one is down', () => {
-    expect(deriveSystemStatus({ database: 'up', redis: 'down', livekit: 'down', turn: 'up' })).toBe('partial_outage');
+    expect(deriveSystemStatus({ database: 'up', redis: 'down', sfu: 'down', turn: 'up' })).toBe('partial_outage');
   });
 
   it('reports unavailable when everything is down', () => {

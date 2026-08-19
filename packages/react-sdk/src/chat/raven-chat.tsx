@@ -32,7 +32,7 @@ export interface RavenChatProps extends ChatClientConfig {
  * The two nest happily:
  *
  * ```tsx
- * <RavenRoom token={rtc.token} endpoint={rtc.livekitUrl} room={rtc.roomName}>
+ * <RavenRoom token={rtc.token} endpoint={rtc.endpoint} room={rtc.roomName}>
  *   <RavenChat token={chat.token} apiUrl={chat.apiUrl} room={chat.roomId}>
  *     <VideoGrid />
  *     <ChatPanel />

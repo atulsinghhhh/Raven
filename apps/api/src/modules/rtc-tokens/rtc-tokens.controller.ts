@@ -40,7 +40,7 @@ export class RtcTokensController {
       example: {
         id: '2b45e0e5-97f2-466d-b783-a09fed7f6505',
         token: 'eyJhbGciOiJIUzI1NiJ9...',
-        livekitUrl: 'ws://localhost:7880',
+        endpoint: 'ws://localhost:7880',
         roomId: '8d86361a-7c01-4969-98cb-d0748360b803',
         roomName: 'support-room',
         participantIdentity: 'alice',

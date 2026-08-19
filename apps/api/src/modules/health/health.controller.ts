@@ -21,7 +21,8 @@ interface HealthResponse {
   dependencies: {
     database: DependencyStatus;
     redis: DependencyStatus;
-    livekit: DependencyStatus;
+    /** The media server behind Raven's RTC plane — not named after whichever one it is today. */
+    sfu: DependencyStatus;
     turn: DependencyStatus;
   };
   signaling: {
@@ -52,7 +53,7 @@ export class HealthController {
     schema: {
       example: {
         status: 'ok',
-        dependencies: { database: 'up', redis: 'up', livekit: 'up', turn: 'up' },
+        dependencies: { database: 'up', redis: 'up', sfu: 'up', turn: 'up' },
         signaling: { activeConnections: 2, activeRooms: 1, activeParticipants: 2 },
       },
     },
@@ -61,11 +62,11 @@ export class HealthController {
     status: 503,
     description: 'At least one dependency is unreachable',
     schema: {
-      example: { status: 'degraded', dependencies: { database: 'up', redis: 'down', livekit: 'up', turn: 'up' } },
+      example: { status: 'degraded', dependencies: { database: 'up', redis: 'down', sfu: 'up', turn: 'up' } },
     },
   })
   async check(@Res() res: Response): Promise<void> {
-    const [database, redis, livekit, turn] = await Promise.all([
+    const [database, redis, sfu, turn] = await Promise.all([
       this.checkDependency(() => this.prisma.ping()),
       this.checkDependency(() => this.redis.ping()),
       this.checkDependency(async () => {
@@ -84,13 +85,13 @@ export class HealthController {
     ]);
 
     const status: HealthResponse['status'] =
-      database === 'up' && redis === 'up' && livekit === 'up' && turn === 'up' ? 'ok' : 'degraded';
+      database === 'up' && redis === 'up' && sfu === 'up' && turn === 'up' ? 'ok' : 'degraded';
 
     // Aggregate counts only, never room/participant IDs — same reasoning
     // as the class-level comment above.
     res.status(status === 'ok' ? 200 : 503).json({
       status,
-      dependencies: { database, redis, livekit, turn },
+      dependencies: { database, redis, sfu, turn },
       signaling: this.signalingGateway.getMetrics(),
     } satisfies HealthResponse);
   }
