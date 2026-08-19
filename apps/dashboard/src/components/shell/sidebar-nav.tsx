@@ -70,7 +70,7 @@ export function SidebarNav({ projectId, onNavigate }: { projectId: string; onNav
       {NAV_GROUPS.map((group, i) => (
         <div key={group.label ?? i}>
           {group.label && (
-            <div className="px-2.5 pb-1.5 text-[0.6875rem] font-semibold tracking-wide text-subtle uppercase">
+            <div className="px-2.5 pb-1.5 font-mono text-[0.6875rem] font-medium tracking-[0.08em] text-subtle uppercase">
               {group.label}
             </div>
           )}

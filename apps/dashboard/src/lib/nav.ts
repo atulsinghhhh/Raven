@@ -31,7 +31,11 @@ export interface NavItem {
     | 'webhooks'
     | 'members'
     | 'audit'
-    | 'effects';
+    | 'effects'
+    | 'cli'
+    | 'analytics'
+    | 'logs'
+    | 'events';
 }
 
 export interface NavGroup {
@@ -39,69 +43,50 @@ export interface NavGroup {
   items: NavItem[];
 }
 
+/**
+ * The top-level sidebar is intentionally flat — one entry per product,
+ * not one per resource. Rooms/Connections/Participants (RTC),
+ * Conversations/Connections (Chat), and Streams (Live Streaming) still
+ * exist exactly as before; they're reached via the ProductTabs bar each
+ * product's own pages render (see components/shell/product-tabs.tsx),
+ * not from this global list. Nothing here links to a surface the
+ * Control API can't actually back — a nav entry for a non-existent
+ * feature is a lie.
+ */
 export const NAV_GROUPS: NavGroup[] = [
   {
     items: [{ slug: 'overview', label: 'Overview', icon: 'overview' }],
   },
   {
-    label: 'RTC',
+    label: 'Products',
     items: [
-      { slug: 'rooms', label: 'Rooms', icon: 'rooms' },
-      { slug: 'connections', label: 'Connections', icon: 'connections' },
-      { slug: 'participants', label: 'Participants', icon: 'participants' },
-    ],
-  },
-  {
-    // Chat is its own group, not a sub-item of RTC. They're separate
-    // services with separate connections — folding one into the other in
-    // the nav would misrepresent the architecture.
-    label: 'Chat',
-    items: [
-      { slug: 'chat', label: 'Overview', icon: 'chat' },
-      { slug: 'chat/conversations', label: 'Conversations', icon: 'conversations' },
-      { slug: 'chat/connections', label: 'Connections', icon: 'connections' },
-      { slug: 'webhooks', label: 'Webhooks', icon: 'webhooks' },
-    ],
-  },
-  {
-    // Its own group too, for the same reason Chat is — a live stream
-    // composes an RTC room and a chat conversation, but a developer
-    // thinks of it as one product, not two.
-    label: 'Live Streaming',
-    items: [
-      { slug: 'live-streaming', label: 'Overview', icon: 'live-streaming' },
-      { slug: 'live-streaming/streams', label: 'Streams', icon: 'streams' },
-    ],
-  },
-  {
-    // A reusable video pipeline shared by RTC and Live Streaming, not a
-    // feature of either — same reasoning as Chat and Live Streaming
-    // getting their own groups above.
-    label: 'Effects',
-    items: [{ slug: 'effects', label: 'Overview', icon: 'effects' }],
-  },
-  {
-    label: 'Observability',
-    items: [
-      { slug: 'metrics', label: 'Metrics', icon: 'metrics' },
-      { slug: 'errors', label: 'Errors', icon: 'errors' },
-      { slug: 'diagnostics', label: 'Diagnostics', icon: 'diagnostics' },
+      { slug: 'rooms', label: 'RTC', icon: 'rooms' },
+      { slug: 'chat', label: 'Chat', icon: 'chat' },
+      { slug: 'live-streaming', label: 'Live Streaming', icon: 'live-streaming' },
+      { slug: 'effects', label: 'Effects', icon: 'effects' },
     ],
   },
   {
     label: 'Developers',
     items: [
-      { slug: 'quickstart', label: 'Quickstart', icon: 'quickstart' },
       { slug: 'api-keys', label: 'API Keys', icon: 'keys' },
       { slug: 'sdks', label: 'SDKs', icon: 'sdk' },
+      { slug: 'webhooks', label: 'Webhooks', icon: 'webhooks' },
+      { slug: 'cli', label: 'CLI', icon: 'cli' },
+    ],
+  },
+  {
+    label: 'Observability',
+    items: [
+      { slug: 'analytics', label: 'Analytics', icon: 'analytics' },
+      { slug: 'logs', label: 'Logs', icon: 'logs' },
+      { slug: 'events', label: 'Events', icon: 'events' },
     ],
   },
   {
     label: 'Project',
     items: [
-      { slug: 'usage', label: 'Usage', icon: 'usage' },
       { slug: 'members', label: 'Members', icon: 'members' },
-      { slug: 'audit', label: 'Audit log', icon: 'audit' },
       { slug: 'settings', label: 'Settings', icon: 'settings' },
     ],
   },
