@@ -1,10 +1,24 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
+const TITLE = 'Raven — Real-time infrastructure for developers';
+const DESCRIPTION =
+  'Build audio, video, messaging, and live streaming experiences with Raven — a developer-first real-time platform with token-based auth, real diagnostics, and SDKs for web, mobile, and server.';
+
 export const metadata: Metadata = {
-  title: 'Raven — Real-time infrastructure for developers',
-  description:
-    'Audio, video, chat, and live streaming infrastructure, managed for you. Token-based auth, real diagnostics, and SDKs for web, mobile, and server.',
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    type: 'website',
+    siteName: 'Raven',
+  },
+  twitter: {
+    card: 'summary',
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 /**
