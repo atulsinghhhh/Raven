@@ -89,14 +89,14 @@ export default async function ConnectionsPage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Connections"
-        description="Every RTC connection reported by @raven/rtc, newest first."
+        description="Every RTC connection reported by @corvidhq/rtc, newest first."
       />
 
       {fetched.length === 0 && !filtered ? (
         <EmptyState
           icon={<IconConnections className="size-7" />}
           title="No connections yet"
-          description="A connection record appears here the moment a client joins a room with @raven/rtc. Telemetry is automatic — you don't need to instrument anything."
+          description="A connection record appears here the moment a client joins a room with @corvidhq/rtc. Telemetry is automatic — you don't need to instrument anything."
           action={
             <>
               <ButtonLink href={`${base}/quickstart`} variant="primary">

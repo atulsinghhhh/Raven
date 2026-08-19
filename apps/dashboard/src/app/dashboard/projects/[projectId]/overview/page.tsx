@@ -345,10 +345,10 @@ function GetStartedPanel({ projectId }: { projectId: string }) {
               Create an API key in <a href={`${base}/api-keys`} className="text-accent-text hover:underline">API Keys</a>
             </Step>
             <Step n={2}>
-              Mint an RTC token from your backend with <code className="font-mono text-xs text-fg">@raven/server</code>
+              Mint an RTC token from your backend with <code className="font-mono text-xs text-fg">@corvidhq/server</code>
             </Step>
             <Step n={3}>
-              Join a room in the browser with <code className="font-mono text-xs text-fg">@raven/rtc</code>
+              Join a room in the browser with <code className="font-mono text-xs text-fg">@corvidhq/rtc</code>
             </Step>
           </ol>
           <div className="mt-5 flex flex-wrap gap-2">

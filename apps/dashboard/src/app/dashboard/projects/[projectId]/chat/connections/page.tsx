@@ -51,7 +51,7 @@ export default async function ChatConnectionsPage({ params }: { params: Promise<
         <EmptyState
           icon={<IconConnections className="size-7" />}
           title="No chat connections yet"
-          description="A record appears the moment a client calls connect() with @raven/chat. Recording is automatic — nothing to instrument."
+          description="A record appears the moment a client calls connect() with @corvidhq/chat. Recording is automatic — nothing to instrument."
           action={
             <ButtonLink href={`${base}/chat`} variant="secondary">
               Chat overview

@@ -261,7 +261,7 @@ export default async function ConversationDetailPage({
             description={
               hasFilters
                 ? 'Try a wider date range or clear the sender filter.'
-                : 'Messages sent with @raven/chat appear here as soon as they are stored.'
+                : 'Messages sent with @corvidhq/chat appear here as soon as they are stored.'
             }
             action={
               hasFilters ? (

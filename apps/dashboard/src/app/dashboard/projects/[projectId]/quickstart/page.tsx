@@ -43,8 +43,8 @@ export default async function QuickstartPage({ params }: { params: Promise<{ pro
         >
           <CodeTabs
             samples={[
-              { label: 'Browser', language: 'bash', code: 'npm install @raven/rtc' },
-              { label: 'Node.js backend', language: 'bash', code: 'npm install @raven/server' },
+              { label: 'Browser', language: 'bash', code: 'npm install @corvidhq/rtc' },
+              { label: 'Node.js backend', language: 'bash', code: 'npm install @corvidhq/server' },
               { label: 'Python backend', language: 'bash', code: 'pip install raven-sdk' },
             ]}
           />
@@ -137,10 +137,10 @@ export RAVEN_API_URL="http://localhost:4100"   # your Raven Control API deployme
         <CardHeader title="Where to go next" subtitle="Everything below reflects code that exists in this repository." />
         <ul className="flex flex-col gap-2.5 text-sm">
           <NextLink href={`${base}/sdks`}>
-            SDK reference — <span className="font-mono text-xs">@raven/rtc</span>,{' '}
-            <span className="font-mono text-xs">@raven/server</span>,{' '}
+            SDK reference — <span className="font-mono text-xs">@corvidhq/rtc</span>,{' '}
+            <span className="font-mono text-xs">@corvidhq/server</span>,{' '}
             <span className="font-mono text-xs">raven-sdk</span> and{' '}
-            <span className="font-mono text-xs">@raven/react</span>
+            <span className="font-mono text-xs">@corvidhq/react</span>
           </NextLink>
           <NextLink href={`${base}/rooms`}>Rooms — inspect live participants and mint a test token from the dashboard</NextLink>
           <NextLink href={`${base}/connections`}>
@@ -217,7 +217,7 @@ function Step({
   );
 }
 
-const NODE_TOKEN = `import { Raven } from '@raven/server';
+const NODE_TOKEN = `import { Raven } from '@corvidhq/server';
 
 // The SDK never reads env vars on its own — pass the key explicitly.
 const raven = new Raven({
@@ -285,7 +285,7 @@ curl -X POST "$RAVEN_API_URL/v1/rooms/$ROOM_ID/rtc-tokens" \\
     "ttlSeconds": 3600
   }'`;
 
-const BROWSER_JOIN = `import { createRTCClient } from '@raven/rtc';
+const BROWSER_JOIN = `import { createRTCClient } from '@corvidhq/rtc';
 
 // Fetched from your own backend endpoint — the one that called tokens.create().
 const session = await fetch('/api/rtc-session', { method: 'POST' }).then((r) => r.json());

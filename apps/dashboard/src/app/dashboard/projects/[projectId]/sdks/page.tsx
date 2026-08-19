@@ -44,16 +44,16 @@ const SURFACE_LABEL: Record<Surface, string> = {
 
 const SDKS: SdkEntry[] = [
   {
-    name: '@raven/rtc',
+    name: '@corvidhq/rtc',
     version: '0.1.0',
     surface: 'browser',
     headline: 'Join rooms and publish media from the browser',
     description:
       'Raven browser SDK — join a room, publish camera/microphone, subscribe to remote media. Hides SDP/ICE/STUN/TURN/SFU behind a small typed API. It never holds an API key: it only ever receives a token your backend already minted.',
-    install: { language: 'bash', code: 'npm install @raven/rtc' },
+    install: { language: 'bash', code: 'npm install @corvidhq/rtc' },
     usage: {
       language: 'typescript',
-      code: `import { createRTCClient } from '@raven/rtc';
+      code: `import { createRTCClient } from '@corvidhq/rtc';
 
 // token / endpoint / iceServers all come from your backend's mint response.
 const client = createRTCClient({ token, endpoint, iceServers });
@@ -70,16 +70,16 @@ room.on('trackSubscribed', (track) => {
     docsLabel: 'docs/sdk.md',
   },
   {
-    name: '@raven/server',
+    name: '@corvidhq/server',
     version: '0.1.0',
     surface: 'server',
     headline: 'Mint tokens and read project data from Node.js',
     description:
       'Raven server SDK — mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Requires Node.js 20 or newer, and ships both ESM and CommonJS builds with full types. Never for use in a browser.',
-    install: { language: 'bash', code: 'npm install @raven/server' },
+    install: { language: 'bash', code: 'npm install @corvidhq/server' },
     usage: {
       language: 'typescript',
-      code: `import { Raven } from '@raven/server';
+      code: `import { Raven } from '@corvidhq/server';
 
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
 
@@ -129,24 +129,24 @@ issued = raven.tokens.create(
     docsLabel: 'docs/sdk/server/python.md',
   },
   {
-    name: '@raven/react',
+    name: '@corvidhq/react',
     version: '0.1.0',
     surface: 'react',
-    headline: 'Hooks and optional UI primitives over @raven/rtc',
+    headline: 'Hooks and optional UI primitives over @corvidhq/rtc',
     description:
-      'React hooks and optional UI primitives for @raven/rtc — headless by default, no UI lock-in. RavenRoom owns one connection for its lifetime and always leaves on unmount, so a call UI is torn down by unmounting a component. Client-only: never render it from a Server Component.',
-    install: { language: 'bash', code: 'npm install @raven/react @raven/rtc' },
+      'React hooks and optional UI primitives for @corvidhq/rtc — headless by default, no UI lock-in. RavenRoom owns one connection for its lifetime and always leaves on unmount, so a call UI is torn down by unmounting a component. Client-only: never render it from a Server Component.',
+    install: { language: 'bash', code: 'npm install @corvidhq/react @corvidhq/rtc' },
     usage: {
       language: 'typescript',
       code: `'use client';
-import { RavenRoom, useParticipants, ParticipantView } from '@raven/react';
+import { RavenRoom, useParticipants, ParticipantView } from '@corvidhq/react';
 
 function Stage() {
   const participants = useParticipants();
   return participants.map((p) => <ParticipantView key={p.identity} participant={p} />);
 }
 
-// token / endpoint / iceServers come from your backend, same as @raven/rtc.
+// token / endpoint / iceServers come from your backend, same as @corvidhq/rtc.
 <RavenRoom room={roomId} token={token} endpoint={endpoint} iceServers={iceServers}>
   <Stage />
 </RavenRoom>;`,
@@ -179,7 +179,7 @@ export default async function SdksPage({ params }: { params: Promise<{ projectId
         <p className="text-sm leading-relaxed text-info-text">
           <span className="font-medium">One rule splits these packages:</span> server SDKs authenticate with a permanent
           project API key and mint tokens; the browser SDK only ever receives an already-minted token. Never install{' '}
-          <span className="font-mono text-xs">@raven/server</span> or{' '}
+          <span className="font-mono text-xs">@corvidhq/server</span> or{' '}
           <span className="font-mono text-xs">raven-sdk</span> into anything that ships to a browser.
         </p>
       </section>
@@ -197,14 +197,14 @@ export default async function SdksPage({ params }: { params: Promise<{ projectId
         />
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-baseline gap-2">
-            <span className="font-mono text-sm font-medium text-fg">@raven/cli</span>
+            <span className="font-mono text-sm font-medium text-fg">@corvidhq/cli</span>
             <Badge tone="neutral">v0.1.0</Badge>
           </div>
           <p className="text-sm leading-relaxed text-muted">
             Manage projects, API keys, and rooms from the terminal, and wire up a local app for RTC development.
           </p>
           <div className="mt-1">
-            <CodeBlock language="bash" code="npm install -g @raven/cli" />
+            <CodeBlock language="bash" code="npm install -g @corvidhq/cli" />
           </div>
           <a
             href={`${DOCS_URL}/cli.md`}
@@ -221,7 +221,7 @@ export default async function SdksPage({ params }: { params: Promise<{ projectId
         <ul className="flex flex-col gap-2 text-sm leading-relaxed text-muted">
           <li>
             <span className="font-medium text-fg">Native mobile.</span> React Native, Flutter, iOS and Android are
-            explicitly out of scope for <span className="font-mono text-xs">@raven/rtc</span>, which targets current
+            explicitly out of scope for <span className="font-mono text-xs">@corvidhq/rtc</span>, which targets current
             versions of Chrome, Firefox, Safari and Edge.
           </li>
           <li>

@@ -9,7 +9,7 @@ const STEPS = [
   {
     step: '02',
     title: 'Connect from the client',
-    body: 'Hand that token to @raven/rtc, @raven/chat, or @raven/client for live streaming. The SDK never sees your API key — it can only do what the token explicitly grants.',
+    body: 'Hand that token to @corvidhq/rtc, @corvidhq/chat, or @corvidhq/client for live streaming. The SDK never sees your API key — it can only do what the token explicitly grants.',
   },
   {
     step: '03',

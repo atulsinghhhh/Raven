@@ -15,7 +15,7 @@ const SAMPLES = [
     id: 'rtc',
     label: 'Video calling',
     filename: 'client.js',
-    code: `import { createRTCClient } from '@raven/rtc';
+    code: `import { createRTCClient } from '@corvidhq/rtc';
 
 const client = createRTCClient({
   token: resp.token,
@@ -31,7 +31,7 @@ await room.enableMicrophone();`,
     id: 'chat',
     label: 'Chat',
     filename: 'chat.js',
-    code: `import { createChatClient } from '@raven/chat';
+    code: `import { createChatClient } from '@corvidhq/chat';
 
 const chat = createChatClient({ token: resp.token });
 
@@ -44,7 +44,7 @@ chat.on('message', (msg) => console.log(msg.senderId, msg.text));`,
     id: 'live',
     label: 'Live streaming',
     filename: 'live.js',
-    code: `import { LiveStream } from '@raven/client';
+    code: `import { LiveStream } from '@corvidhq/client';
 
 const stream = await LiveStream.join({
   streamId,
