@@ -34,7 +34,7 @@ export function LoginForm() {
 
       // `next` carries the page the user was trying to reach — including
       // the CLI authorisation hand-off — so it has to survive the round trip.
-      router.push(searchParams.get('next') ?? '/dashboard/projects');
+      router.push(searchParams.get('next') ?? '/dashboard');
       router.refresh();
     } catch {
       setError('Could not reach the server. Check your connection and try again.');
