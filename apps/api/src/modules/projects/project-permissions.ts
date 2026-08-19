@@ -35,6 +35,9 @@ export const Capability = {
   /** Conversation and presence metadata in the console. Never message bodies. */
   ChatRead: 'chat:read',
 
+  /** Create/update/end live streams from the dashboard or CLI. Never mints host/viewer credentials — that stays API-key-only. */
+  LiveStreamsWrite: 'live-streams:write',
+
   UsageRead: 'usage:read',
   AuditRead: 'audit:read',
   BillingManage: 'billing:manage',
@@ -70,6 +73,7 @@ const CAPABILITIES: Record<ProjectRole, readonly Capability[]> = {
     Capability.WebhooksManage,
     Capability.RoomsWrite,
     Capability.ChatRead,
+    Capability.LiveStreamsWrite,
     Capability.UsageRead,
     Capability.AuditRead,
   ],
@@ -83,6 +87,7 @@ const CAPABILITIES: Record<ProjectRole, readonly Capability[]> = {
     Capability.WebhooksManage,
     Capability.RoomsWrite,
     Capability.ChatRead,
+    Capability.LiveStreamsWrite,
     Capability.UsageRead,
   ],
 

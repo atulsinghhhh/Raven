@@ -5,6 +5,7 @@ import { ProjectsModule } from '../projects/projects.module';
 import { RoomsModule } from '../rooms/rooms.module';
 import { RtcTokensModule } from '../rtc-tokens/rtc-tokens.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
+import { DashboardLiveStreamsController } from './dashboard-live-streams.controller';
 import { LiveStreamsController } from './live-streams.controller';
 import { LiveStreamsService } from './live-streams.service';
 
@@ -18,7 +19,7 @@ import { LiveStreamsService } from './live-streams.service';
  */
 @Module({
   imports: [ApiKeysModule, ProjectsModule, RoomsModule, RtcTokensModule, ChatModule, WebhooksModule],
-  controllers: [LiveStreamsController],
+  controllers: [LiveStreamsController, DashboardLiveStreamsController],
   providers: [LiveStreamsService],
   exports: [LiveStreamsService],
 })
