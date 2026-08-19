@@ -47,6 +47,30 @@ export { bootstrapRavenNative } from './internal/bootstrap';
 
 export { RN_SDK_VERSION } from './version';
 
+// ---------------------------------------------------------------------------
+// Effects (Phase 16) — see effects.ts for the full architecture note.
+// Filter/preset config is real; the native processing engine is planned.
+// ---------------------------------------------------------------------------
+export {
+  beauty,
+  createEffectsPipeline,
+  EFFECT_SECURITY_LIMITS,
+  EFFECTS_NATIVE_ENGINE_STATUS,
+  filters,
+  isEffectsError,
+  presets,
+} from './effects';
+export type {
+  ColorOpParams,
+  EffectInstance,
+  EffectsError,
+  EffectsErrorCode,
+  EffectsPipeline,
+  EffectsEngineStatus,
+  FilterConfig,
+  Preset,
+} from './effects';
+
 /**
  * Re-exported from `@corvidhq/rtc` so a mobile app needs one import for the
  * common types. These are the *same* types the web SDK uses — a `Room`

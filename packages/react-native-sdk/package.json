@@ -53,6 +53,7 @@
     "@livekit/react-native": ">=2.7.0",
     "@livekit/react-native-webrtc": ">=125.0.0",
     "@corvidhq/chat": "*",
+    "@corvidhq/effects": "*",
     "@corvidhq/rtc": "*",
     "react": ">=18.0.0",
     "react-native": ">=0.73.0"
@@ -64,6 +65,7 @@
   },
   "devDependencies": {
     "@corvidhq/chat": "file:../chat-sdk",
+    "@corvidhq/effects": "file:../effects",
     "@corvidhq/rtc": "file:../sdk",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.2",
