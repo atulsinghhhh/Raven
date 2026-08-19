@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { NAV } from '../lib/nav';
+import { Search } from './Search';
 
 const WWW_URL = process.env.NEXT_PUBLIC_WWW_URL ?? 'http://localhost:3100';
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3000';
@@ -10,9 +11,10 @@ const GITHUB_URL = 'https://github.com/atulsinghhhh/Raven';
 const DISCORD_URL = 'https://discord.com/invite/HSWd9qMC7';
 
 /**
- * The top bar, plus the mobile sidebar drawer — the one client-side piece
- * of an otherwise fully static, server-rendered site. Everything else
- * (every doc page) needs no JavaScript to be fully readable.
+ * The top bar: search, the mobile sidebar drawer, and the external
+ * links. The only client-side piece of an otherwise fully static,
+ * server-rendered site — every doc page is completely readable with
+ * JavaScript disabled, search simply won't be available.
  */
 export function DocsNav({ activeSlug }: { activeSlug?: string }) {
   const [open, setOpen] = useState(false);
@@ -35,6 +37,7 @@ export function DocsNav({ activeSlug }: { activeSlug?: string }) {
         </Link>
 
         <div className="ml-auto flex items-center gap-4 text-sm">
+          <Search />
           <a href={DASHBOARD_URL} className="hidden text-muted transition-colors hover:text-fg sm:inline">
             Dashboard
           </a>
