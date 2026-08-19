@@ -24,6 +24,17 @@ public release.
 
 ## Authentication
 
+There are two ways in, and which one you want depends on whether the
+machine running the CLI has a browser:
+
+| Situation | Use |
+|---|---|
+| Your laptop | `raven login` — browser flow, described below |
+| CI, a container, an SSH session, a cron job | `RAVEN_TOKEN` — no browser, no writable home directory needed |
+| A machine with no browser but a writable home | `raven login --token <jwt>` — verifies once, then behaves like a normal login |
+
+### Browser login (interactive)
+
 `raven login` never asks you to paste a password into the terminal. It
 reuses the dashboard's existing session-based auth (the same login the
 dashboard itself uses) through a short-lived local bridge:
@@ -51,17 +62,80 @@ http://localhost:3000/cli-auth?port=53798&state=952eb67eced91f8ff5edde4fd9d9aa05
 ✔ Logged in as dev@example.com
 ```
 
+### Headless login (CI, containers, SSH)
+
+Set `RAVEN_TOKEN` and skip the login step entirely. No browser is
+opened, nothing is written to disk, and no `~/.raven` directory is
+required — which is what makes this the right form for a read-only
+container image:
+
+```bash
+export RAVEN_TOKEN="$SOME_CI_SECRET"
+export RAVEN_API_URL="https://api.raven.example"   # optional; defaults to the configured apiUrl
+
+raven projects list --json | jq -r '.[0].id'
+```
+
+`RAVEN_TOKEN` takes precedence over `~/.raven/credentials.json`. That
+ordering is deliberate: on your own machine you can prefix a single
+command with a service-account token without disturbing — or being
+disturbed by — your stored session.
+
+```bash
+RAVEN_TOKEN="$DEPLOY_TOKEN" raven keys list --project proj_123
+```
+
+`RAVEN_API_URL` overrides the configured `apiUrl` for one process only.
+It is never written back into `~/.raven/config.json`, so an override
+can't outlive the shell that set it. Use `raven config set apiUrl <url>`
+when you do want it persisted.
+
+Where the token comes from: it's the same session token the dashboard
+uses. Mint one by running `raven login` on a machine that has a browser,
+then copy the `token` field out of `~/.raven/credentials.json` into your
+CI provider's secret store. Session tokens expire — a job that starts
+failing with exit code `3` needs a fresh one, not a code change.
+
+> Treat `RAVEN_TOKEN` as a secret. Store it in your CI provider's
+> encrypted secrets, never in a committed workflow file, and never in a
+> `Dockerfile` `ENV` line — it grants everything your account can do.
+
+### `raven login --token` (no browser, but a writable home)
+
+For a machine where the browser flow can't run but you'd rather not set
+an environment variable on every invocation:
+
+```bash
+raven login --token "$RAVEN_TOKEN"
+```
+
+The token is verified against the Control API *before* anything is
+written, so an expired or malformed token fails here — with exit code
+`3` and an explanation — rather than at some later command where the
+cause is far less obvious. On success it's stored exactly like a browser
+login. The token itself is never echoed back, not even partially.
+
+### Signing out
+
 `raven logout` removes the local credential file and makes a best-effort
 call to invalidate the session server-side; it never deletes your
 account, and it always succeeds locally even if that network call fails.
 
-`raven whoami` prints your identity from real data — no secrets:
+If `RAVEN_TOKEN` is set, `raven logout` says so instead of claiming
+success — the variable still authenticates the next command, and only
+unsetting it actually signs you out of that shell.
+
+`raven whoami` prints your identity from real data — no secrets — and
+names which of the two sources the credential came from, which is
+usually what you want to know when CI and your laptop disagree:
 
 ```
 $ raven whoami
-dev@example.com
-Projects: 3
-Environment: development
+Logged in as: dev@example.com
+Credentials:  credentials file
+API:          http://localhost:4100
+Projects:     3
+Environment:  development
 ```
 
 ## Local configuration — what's stored, and where
@@ -72,6 +146,15 @@ Everything lives under `~/.raven/`:
 |---|---|---|---|
 | `~/.raven/credentials.json` | session token, email, apiUrl | `600` (dir `700`) | yes — the only secret this CLI stores permanently |
 | `~/.raven/config.json` | `apiUrl`, `currentProject` | default | no |
+
+Environment variables, all optional:
+
+| Variable | Effect |
+|---|---|
+| `RAVEN_TOKEN` | Authenticates without `raven login`. Wins over the credentials file. |
+| `RAVEN_API_URL` | Overrides `apiUrl` for one process. Never persisted. |
+| `RAVEN_CONFIG_DIR` | Moves `~/.raven` elsewhere — used for isolated test runs. |
+| `RAVEN_DASHBOARD_URL` | Dashboard origin for the browser login flow, when it isn't derivable from `apiUrl`. |
 
 The CLI never stores a database credential, a TURN password, a
 permanent API key secret, or a long-lived RTC token on disk. The one
@@ -354,6 +437,17 @@ confirmation, a picker) requires `--yes` (confirmations) or `--project`
 (picker) when stdout isn't a TTY, and fails fast with exit code `2`
 instead of hanging, so CI never blocks on an interactive prompt.
 
+Authenticate with `RAVEN_TOKEN` — see [Authentication](#authentication).
+A complete GitHub Actions step:
+
+```yaml
+- name: List Raven projects
+  env:
+    RAVEN_TOKEN: ${{ secrets.RAVEN_TOKEN }}
+    RAVEN_API_URL: https://api.raven.example
+  run: npx @raven/cli projects list --json
+```
+
 ## Exit codes
 
 | Code | Meaning | Example |
@@ -385,8 +479,11 @@ token is never in scope to leak.
 
 ## Security notes
 
-- The only permanent secret the CLI stores is the browser-issued session
-  token, under `~/.raven/credentials.json` (`600`, parent dir `700`).
+- The only permanent secret the CLI stores is the session token, under
+  `~/.raven/credentials.json` (`600`, parent dir `700`). A token supplied
+  via `RAVEN_TOKEN` is never written to disk at all.
+- No command prints a token, in full or truncated, on any code path —
+  including `--json` output, `--debug` traces, and error messages.
 - API key secrets, RTC tokens, and TURN credentials are never written to
   disk by the CLI — they pass through a command's stdout once (API
   keys) or are handed off to your own application (RTC tokens), and

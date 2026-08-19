@@ -55,7 +55,11 @@ export class CliError extends Error {
 }
 
 export function notLoggedInError(): CliError {
-  return new CliError('auth', 'Not logged in.', { suggestion: 'Run `raven login`' });
+  return new CliError('auth', 'Not logged in.', {
+    // Both paths, because the browser one is useless in CI and a
+    // container — which is exactly where this error tends to show up.
+    suggestion: 'Run `raven login`, or set RAVEN_TOKEN if there is no browser here (CI, containers, SSH)',
+  });
 }
 
 export function noProjectSelectedError(): CliError {

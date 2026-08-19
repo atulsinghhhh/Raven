@@ -239,7 +239,9 @@ function mapErrorResponse(status: number, payload: unknown): CliError {
   const message = extractMessage(payload) ?? `Request failed with status ${status}`;
 
   if (status === 401) {
-    return new CliError('auth', message, { suggestion: 'Run `raven login`' });
+    return new CliError('auth', message, {
+      suggestion: 'Run `raven login`, or set RAVEN_TOKEN if there is no browser here',
+    });
   }
   if (status === 403) {
     return new CliError('authz', message);

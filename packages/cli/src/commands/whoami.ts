@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { requireCredentials } from '../lib/context.js';
+import { TOKEN_ENV_VAR } from '../lib/auth-store.js';
 import { RavenApiClient } from '../lib/api-client.js';
 import { printField, printJson } from '../lib/output.js';
 import { withErrorHandling } from '../lib/run.js';
@@ -17,12 +18,25 @@ export function registerWhoamiCommand(program: Command): void {
         // fetched live, not cached or guessed
         const projects = await client.listProjects();
 
+        // Where the token came from. Worth printing: the commonest CI
+        // confusion is a stale credentials.json silently winning, or a
+        // $RAVEN_TOKEN silently overriding a developer's own session.
+        const source = credentials.fromEnvironment ? `$${TOKEN_ENV_VAR}` : 'credentials file';
+
         if (opts.json) {
-          printJson({ email: credentials.email, projectCount: projects.length, environment: 'development' });
+          printJson({
+            email: credentials.email,
+            projectCount: projects.length,
+            environment: 'development',
+            apiUrl: credentials.apiUrl,
+            credentialSource: source,
+          });
           return;
         }
 
         printField('Logged in as', credentials.email);
+        printField('Credentials', source);
+        printField('API', credentials.apiUrl);
         printField('Projects', String(projects.length));
         // control plane doesn't distinguish environments per project yet —
         // this is the honest value, not an invented one

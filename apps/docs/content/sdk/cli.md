@@ -1,6 +1,6 @@
 ---
 title: CLI
-description: raven login, project management, API keys, and read-only inspection.
+description: Install, authenticate (browser or headless CI), manage projects and keys, and inspect a live deployment from the terminal.
 ---
 
 `@raven/cli` is a terminal workflow tool over the same control plane
@@ -14,7 +14,71 @@ every SDK uses — no direct database, Redis, LiveKit, or coturn access.
 
 ```bash
 npm install -g @raven/cli
-raven login   # opens a browser — no password paste
+```
+
+Or run it without installing anything, which is what you want in CI:
+
+```bash
+npx @raven/cli projects list
+```
+
+## Authenticate
+
+On your own machine, `raven login` opens a browser and reuses the
+dashboard session you already have — nothing to paste, no password in
+your shell history:
+
+```bash
+raven login
+```
+
+In CI, a container, or over SSH there is no browser, so set an
+environment variable instead. Nothing is written to disk and no home
+directory is needed:
+
+```bash
+export RAVEN_TOKEN="$YOUR_SESSION_TOKEN"
+export RAVEN_API_URL="https://api.your-raven-deployment.example"  # optional
+
+raven projects list --json
+```
+
+`RAVEN_TOKEN` wins over a stored login, so you can also prefix a single
+command with a different identity:
+
+```bash
+RAVEN_TOKEN="$DEPLOY_TOKEN" raven keys list --project proj_123
+```
+
+To get a token: run `raven login` once on a machine with a browser, then
+copy the `token` field from `~/.raven/credentials.json` into your CI
+provider's secret store. Session tokens expire — a job that starts
+exiting with code `3` needs a fresh one.
+
+A complete GitHub Actions step:
+
+```yaml
+- name: List Raven projects
+  env:
+    RAVEN_TOKEN: ${{ secrets.RAVEN_TOKEN }}
+  run: npx @raven/cli projects list --json
+```
+
+If a machine has no browser but does have a writable home directory,
+`raven login --token "$RAVEN_TOKEN"` verifies the token against the API
+and then stores it like a normal login, so later commands need no
+environment variable.
+
+`raven whoami` tells you which identity is active and where the
+credential came from:
+
+```
+$ raven whoami
+Logged in as: dev@example.com
+Credentials:  $RAVEN_TOKEN
+API:          https://api.your-raven-deployment.example
+Projects:     3
+Environment:  development
 ```
 
 ## Projects
@@ -116,3 +180,12 @@ the actual API call.
 The CLI never has access to a project API key or a chat token's secret
 half — its own session (a JWT, from `raven login`) is scoped to what a
 logged-in developer can already see in the dashboard, nothing more.
+
+A stored session token lives in `~/.raven/credentials.json` with mode
+`600` (parent directory `700`). A token supplied through `RAVEN_TOKEN`
+is never written to disk. No command prints a token on any code path,
+including `--json` output and `--debug` traces.
+
+Treat `RAVEN_TOKEN` as a secret: encrypted CI secrets only, never a
+committed workflow file and never a `Dockerfile` `ENV` line. It grants
+everything your account can do.
