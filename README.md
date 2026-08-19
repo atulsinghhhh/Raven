@@ -14,15 +14,15 @@ architecture decisions.
 
 **Phase 13 of 19** — control plane, signaling, real WebRTC media (LiveKit +
 coturn), a production-oriented TURN/NAT-traversal setup, a TypeScript
-browser SDK (`@raven/rtc`), React hooks/components on top of it
-(`@raven/react`), a developer dashboard (`apps/dashboard`), a terminal
-CLI (`@raven/cli`), a first observability/diagnostics layer, official
-backend SDKs for TypeScript (`@raven/server`) and Python (`raven-sdk`),
-and — new in Phase 12 — a full real-time chat service (`@raven/chat`)
+browser SDK (`@corvidhq/rtc`), React hooks/components on top of it
+(`@corvidhq/react`), a developer dashboard (`apps/dashboard`), a terminal
+CLI (`@corvidhq/cli`), a first observability/diagnostics layer, official
+backend SDKs for TypeScript (`@corvidhq/server`) and Python (`raven-sdk`),
+and — new in Phase 12 — a full real-time chat service (`@corvidhq/chat`)
 with durable messages, presence, typing, read receipts, reactions,
 threads, attachments and webhooks. All working end to end and verified
 live, plus — new in Phase 13 — official mobile SDKs for React Native
-(`@raven/react-native`) and Flutter (`raven_rtc` + `raven_chat`),
+(`@corvidhq/react-native`) and Flutter (`raven_rtc` + `raven_chat`),
 covering RTC and messaging on iOS and Android. No recording, live
 streaming, usage metering/billing, or a Go/Java/etc. SDK yet.
 
@@ -39,25 +39,25 @@ streaming, usage metering/billing, or a Go/Java/etc. SDK yet.
   and signaling layer for real media, [coturn](https://github.com/coturn/coturn)
   for TURN/STUN, with time-limited credentials issued per RTC token and a
   documented production NAT-traversal setup.
-- **Browser SDK** (`packages/sdk`, Phase 6): `@raven/rtc` — join a room,
+- **Browser SDK** (`packages/sdk`, Phase 6): `@corvidhq/rtc` — join a room,
   publish camera/microphone, subscribe to remote media, without ever
   touching SDP, ICE, or `RTCPeerConnection` directly.
-- **React SDK** (`packages/react-sdk`, Phase 11): `@raven/react` — hooks
+- **React SDK** (`packages/react-sdk`, Phase 11): `@corvidhq/react` — hooks
   (`useRaven`, `useConnectionState`, `useParticipants`, `useCamera`, ...)
   and optional components (`RavenRoom`, `ParticipantView`, ...) on top of
-  `@raven/rtc`, which itself was not changed to build this — headless by
+  `@corvidhq/rtc`, which itself was not changed to build this — headless by
   default, no UI lock-in.
 - **Dashboard** (`apps/dashboard`, Phase 7): create an account, manage
   projects and API keys, inspect rooms and their live LiveKit participant
   state, and read SDK integration instructions — a thin, server-rendered
   UI over the same Control API, never a second source of truth.
-- **CLI** (`packages/cli`, Phase 8): `@raven/cli` — `raven login`,
+- **CLI** (`packages/cli`, Phase 8): `@corvidhq/cli` — `raven login`,
   `raven projects create`, `raven init`, `raven dev` — a terminal
   workflow tool over the same Control API, with browser-based auth (no
   password paste) and no direct access to the database, Redis, LiveKit,
   or coturn.
 - **Observability** (`apps/api`, Phase 9): best-effort telemetry from
-  `@raven/rtc` (never blocking, never able to break an RTC connection)
+  `@corvidhq/rtc` (never blocking, never able to break an RTC connection)
   event-sources a real `Connection`/`ErrorEvent` history, classified into
   Raven-facing categories (`TOKEN_ERROR`, `ICE_ERROR`, `TURN_ERROR`, ...)
   — surfaced in the dashboard's Connections/Errors tabs and via `raven
@@ -70,23 +70,23 @@ streaming, usage metering/billing, or a Go/Java/etc. SDK yet.
   offline client catches up from history rather than from the socket.
   Either plane can be used without the other, and either can fail
   without taking the other down.
-- **Chat SDK** (`packages/chat-sdk`, Phase 12): `@raven/chat` — connect,
+- **Chat SDK** (`packages/chat-sdk`, Phase 12): `@corvidhq/chat` — connect,
   send, and listen without writing a `new WebSocket(...)`, a reconnect
-  loop, or a heartbeat. `@raven/react` gained matching hooks
+  loop, or a heartbeat. `@corvidhq/react` gained matching hooks
   (`useMessages`, `usePresence`, `useTyping`, `useReactions`,
   `useReadReceipts`) alongside its existing RTC ones.
 - **Webhooks** (`apps/api`, Phase 12): project-scoped, HMAC-signed,
   retried with exponential backoff, delivered by a worker that never sits
   on the message path.
 - **Mobile SDKs** (`packages/react-native-sdk`, `sdks/flutter`, Phase 13):
-  `@raven/react-native` reuses `@raven/rtc` and `@raven/chat`
+  `@corvidhq/react-native` reuses `@corvidhq/rtc` and `@corvidhq/chat`
   *unmodified* — React Native gets the WebRTC globals it lacks, and only
   rendering, permissions, app lifecycle and audio routing are
   platform-specific. `raven_rtc` and `raven_chat` are idiomatic Dart
   packages with the same concepts. A developer who knows Raven Web knows
   both.
 - **Server SDKs** (`packages/server-sdk`, `sdks/python`, Phase 10):
-  `@raven/server` and `raven-sdk` — mint short-lived RTC tokens and read
+  `@corvidhq/server` and `raven-sdk` — mint short-lived RTC tokens and read
   rooms/connections/errors/metrics/diagnostics from your own backend
   using a permanent project API key, which never reaches a browser. Both
   also mint Raven Chat tokens and provision conversations
@@ -133,8 +133,8 @@ The intended developer path through this repo:
    API key.
 2. **Quickstart tab** (in the dashboard, per-project) — copy the exact
    install command and code for your backend (token minting) and frontend
-   (join/publish/subscribe), matching the real `@raven/rtc` API.
-3. **SDK** (`packages/sdk`, `@raven/rtc`) — the browser package those
+   (join/publish/subscribe), matching the real `@corvidhq/rtc` API.
+3. **SDK** (`packages/sdk`, `@corvidhq/rtc`) — the browser package those
    snippets use. Full reference: `docs/sdk.md`.
 
 See `docs/dashboard.md` for the dashboard's own architecture,
@@ -146,7 +146,7 @@ authentication/authorization model, and security notes.
 raven login                       # browser-based auth, no password paste
 raven projects create my-video-app
 raven init                        # link this directory (writes raven.json)
-raven sdk install                 # installs @raven/rtc via your package manager
+raven sdk install                 # installs @corvidhq/rtc via your package manager
 raven dev                         # confirms this directory is ready for RTC development
 ```
 
@@ -160,12 +160,12 @@ walkthrough: `examples/cli-workflow.md`.
 ## Backend SDKs
 
 ```bash
-npm install @raven/server      # TypeScript / Node.js
+npm install @corvidhq/server      # TypeScript / Node.js
 pip install raven-sdk          # Python
 ```
 
 ```ts
-import { Raven } from '@raven/server';
+import { Raven } from '@corvidhq/server';
 
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
 const token = await raven.tokens.create({ room: roomId, identity: 'user-42' });
@@ -180,7 +180,7 @@ token = raven.tokens.create(CreateTokenParams(room=room_id, identity="user-42"))
 ```
 
 Both wrap the same Control API every other client (dashboard, CLI,
-`@raven/rtc`) uses — a permanent API key that never reaches a browser,
+`@corvidhq/rtc`) uses — a permanent API key that never reaches a browser,
 short-lived RTC tokens, and read access to rooms/connections/errors/
 metrics/diagnostics. Full reference: `docs/sdk/server/typescript.md`,
 `docs/sdk/server/python.md`, security model: `docs/security/server-sdk.md`.
@@ -189,12 +189,12 @@ Runnable examples: `examples/node-server/`, `examples/python-server/`.
 ## React SDK
 
 ```bash
-npm install @raven/rtc @raven/react
+npm install @corvidhq/rtc @corvidhq/react
 ```
 
 ```tsx
 'use client';
-import { RavenRoom, useConnectionState, useCamera, ParticipantView, useLocalParticipant } from '@raven/react';
+import { RavenRoom, useConnectionState, useCamera, ParticipantView, useLocalParticipant } from '@corvidhq/react';
 
 function CallPage({ token, endpoint, room }) {
   return (
@@ -221,7 +221,7 @@ function Call() {
 Headless hooks (`useRaven`, `useConnectionState`, `useParticipants`,
 `useCamera`, `useMicrophone`, ...) plus optional components
 (`RavenRoom`, `ParticipantView`, `RavenVideo`, `RavenAudio`) — nothing
-required beyond the hooks if you'd rather build your own UI. `@raven/rtc`
+required beyond the hooks if you'd rather build your own UI. `@corvidhq/rtc`
 itself is unchanged (see `docs/sdk/web.md` for the small, additive gaps
 Phase 11 closed). Full reference: `docs/sdk/react.md`. Runnable example:
 `examples/react-video-call/`.
@@ -232,14 +232,14 @@ Chat is a separate service from RTC, with its own SDK and its own
 credential. Use either alone, or both together.
 
 ```bash
-npm install @raven/chat
+npm install @corvidhq/chat
 ```
 
 Your backend mints a short-lived, per-user token (never ship a project
 API key to a browser):
 
 ```js
-import { Raven } from '@raven/server';
+import { Raven } from '@corvidhq/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 const conversation = await raven.chat.createConversation({
@@ -256,7 +256,7 @@ const token = await raven.chat.createToken({
 The browser gets three lines:
 
 ```js
-import { createChatClient } from '@raven/chat';
+import { createChatClient } from '@corvidhq/chat';
 
 const chat = createChatClient({ token: token.token, apiUrl: token.apiUrl });
 await chat.connect({ room: conversation.publicId });
@@ -273,7 +273,7 @@ offline catches up from history rather than from the socket.
 React:
 
 ```jsx
-import { RavenChat, useMessages, useTyping } from '@raven/react';
+import { RavenChat, useMessages, useTyping } from '@corvidhq/react';
 
 <RavenChat token={token.token} apiUrl={token.apiUrl} room={roomId}>
   <ChatPanel />
@@ -296,25 +296,25 @@ Full reference: `docs/sdk/chat.md`. Runnable examples: `examples/chat/`
   and why media never touches the API or signaling server
 - `docs/turn.md` / `docs/nat-traversal.md` — Phase 5 STUN/TURN reliability,
   production NAT-traversal checklist, and known local-environment limits
-- `docs/sdk.md` — Phase 6 browser SDK (`@raven/rtc`) API reference
+- `docs/sdk.md` — Phase 6 browser SDK (`@corvidhq/rtc`) API reference
 - `docs/dashboard.md` — Phase 7 dashboard architecture, auth/authorization,
   and security audit notes
 - `docs/cli.md` — Phase 8 CLI reference: authentication, config storage,
   commands, JSON output, exit codes, and security notes
 - `docs/observability.md` — Phase 9 architecture, data model, metrics,
   retention, and privacy
-- `docs/telemetry.md` — Phase 9 what `@raven/rtc` reports and how
+- `docs/telemetry.md` — Phase 9 what `@corvidhq/rtc` reports and how
   (best-effort, never blocking RTC)
 - `docs/diagnostics.md` — Phase 9 the two diagnostic surfaces (server-side
   project diagnostics vs. client-side `room.getDiagnostics()`)
 - `docs/error-codes.md` — Phase 9 error categories and their explanations
-- `docs/sdk/server/typescript.md` — Phase 10 `@raven/server` reference
+- `docs/sdk/server/typescript.md` — Phase 10 `@corvidhq/server` reference
 - `docs/sdk/server/python.md` — Phase 10 `raven-sdk` (Python) reference
 - `docs/security/server-sdk.md` — Phase 10 server SDK security model
   (API key storage, authorization model, short-lived tokens)
-- `docs/sdk/web.md` — Phase 11 `@raven/rtc` additions (browser support,
+- `docs/sdk/web.md` — Phase 11 `@corvidhq/rtc` additions (browser support,
   Next.js usage) — see `docs/sdk.md` for the full API, unchanged
-- `docs/sdk/react.md` — Phase 11 `@raven/react` reference: hooks,
+- `docs/sdk/react.md` — Phase 11 `@corvidhq/react` reference: hooks,
   optional components, Next.js, Strict Mode
 - `docs/chat/overview.md` — Phase 12 Raven Chat: what it guarantees, how
   authorization works, limits, retention
@@ -330,10 +330,10 @@ Full reference: `docs/sdk/chat.md`. Runnable examples: `examples/chat/`
 - `docs/chat/attachments.md` — Phase 12 signed direct-to-storage uploads
 - `docs/chat/webhooks.md` — Phase 12 events, signature verification,
   retries, and idempotency
-- `docs/sdk/chat.md` — Phase 12 `@raven/chat` reference
+- `docs/sdk/chat.md` — Phase 12 `@corvidhq/chat` reference
 - `docs/security/chat.md` — Phase 12 chat security audit, including
   residual risks
-- `docs/sdk/react-native.md` — Phase 13 `@raven/react-native` reference:
+- `docs/sdk/react-native.md` — Phase 13 `@corvidhq/react-native` reference:
   quickstart, permissions, video rendering, lifecycle, audio routing,
   troubleshooting
 - `docs/sdk/flutter.md` — Phase 13 `raven_rtc`/`raven_chat` reference,
@@ -341,24 +341,24 @@ Full reference: `docs/sdk/chat.md`. Runnable examples: `examples/chat/`
 - `examples/signaling-demo/` — minimal two-tab browser demo of the
   signaling layer (no build step, no media)
 - `examples/media-demo/` — minimal two-tab browser demo of real
-  camera/microphone media through `@raven/rtc`, plus a small Python
+  camera/microphone media through `@corvidhq/rtc`, plus a small Python
   backend using `raven-sdk` (no frontend build step)
 - `examples/video-call/` — minimal two-tab browser demo built entirely on
-  `@raven/rtc`'s public API (no raw WebRTC types)
+  `@corvidhq/rtc`'s public API (no raw WebRTC types)
 - `examples/cli-workflow.md` — the canonical `raven login` →
   `projects create` → `init` → `sdk install` → `dev` flow
 - `examples/node-server/` — Express backend minting RTC tokens with
-  `@raven/server`
+  `@corvidhq/server`
 - `examples/python-server/` — FastAPI backend minting RTC tokens with
   `raven-sdk`
 - `examples/react-video-call/` — real, buildable React app (Vite) using
-  `@raven/react`'s hooks and components — camera/mic/screen-share/device
+  `@corvidhq/react`'s hooks and components — camera/mic/screen-share/device
   selection/participants/leave/reconnect status
-- `examples/chat/` — real chat app (Vite + Express) on `@raven/chat`:
+- `examples/chat/` — real chat app (Vite + Express) on `@corvidhq/chat`:
   history, typing, presence, read receipts, reactions, editing, deleting,
   reconnection. No mock message arrays anywhere
-- `examples/rtc-chat/` — a video call with a chat panel: `@raven/rtc` and
-  `@raven/chat` side by side, independent connections, independent
+- `examples/rtc-chat/` — a video call with a chat panel: `@corvidhq/rtc` and
+  `@corvidhq/chat` side by side, independent connections, independent
   failure modes
 - `examples/mobile-rtc-chat/` — React Native app: a video call with a
   chat panel, on a phone

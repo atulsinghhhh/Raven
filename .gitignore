@@ -50,3 +50,6 @@ infrastructure/docker/**/*.local.*
 infrastructure/docker/coturn/certs/
 
 /.docs
+
+/apps/community-api
+/apps/community

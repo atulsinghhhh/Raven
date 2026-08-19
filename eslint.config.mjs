@@ -97,7 +97,7 @@ export default tseslint.config(
   },
 
   {
-    // @raven/react ships hooks, so the rules of hooks are not advisory here —
+    // @corvidhq/react ships hooks, so the rules of hooks are not advisory here —
     // a dependency array that lies is a stale-closure bug in someone else's
     // application. The package already carries exhaustive-deps disable
     // comments; without the plugin loaded those comments were themselves
