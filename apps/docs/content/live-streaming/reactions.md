@@ -3,6 +3,9 @@ title: Reactions
 description: A lightweight, aggregated realtime event — riding the same Reaction model Chat already has, not a second primitive.
 ---
 
+<Tabs>
+<Tab title="Web">
+
 ```ts
 await stream.react('❤️');
 
@@ -10,6 +13,36 @@ stream.chat.on('reactionAdded', (event) => {
   console.log(event.userId, event.emoji);
 });
 ```
+
+</Tab>
+<Tab title="React">
+
+```tsx
+import { useLiveStream } from '@corvidhq/react';
+
+const { react } = useLiveStream();
+<button onClick={() => react('❤️')}>❤️</button>
+```
+
+Available from `useLiveStream()` on both host and viewer — there's no
+separate reaction hook.
+
+</Tab>
+<Tab title="React Native">
+
+```ts
+await stream.react('❤️');
+```
+
+</Tab>
+<Tab title="Flutter">
+
+```dart
+await stream.react('❤️');
+```
+
+</Tab>
+</Tabs>
 
 There's no separate "stream reaction" system. `stream.react()` adds a
 [Chat reaction](/chat/reactions) to the stream's hidden system root

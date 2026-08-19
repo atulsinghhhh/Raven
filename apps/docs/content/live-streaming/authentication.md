@@ -6,6 +6,30 @@ description: Host and viewer credentials are minted separately, and a viewer's R
 A live stream issues two kinds of credential, each bundling an RTC
 token and a chat token together:
 
+<Tabs>
+<Tab title="Node.js">
+
+```ts
+// Host/co-host — full publish permission, chat ADMIN/MODERATOR scope
+const hostCredential = await raven.liveStreams.addHost(streamId, { identity: 'alice', role: 'HOST' });
+
+// Viewer — subscribe-only, chat MEMBER scope
+const viewerCredential = await raven.liveStreams.createViewerToken(streamId, 'carol');
+```
+
+</Tab>
+<Tab title="Python">
+
+```python
+from raven import AddHostParams
+
+host_credential = raven.live_streams.add_host(stream_id, AddHostParams(identity="alice", role="HOST"))
+viewer_credential = raven.live_streams.create_viewer_token(stream_id, "carol")
+```
+
+</Tab>
+<Tab title="cURL">
+
 ```bash
 # Host/co-host — full publish permission, chat ADMIN/MODERATOR scope
 curl -X POST https://api.raven.dev/v1/live-streams/$STREAM_ID/hosts \
@@ -17,6 +41,9 @@ curl -X POST https://api.raven.dev/v1/live-streams/$STREAM_ID/viewer-tokens \
   -H "Authorization: Bearer $RAVEN_API_KEY" \
   -d '{"identity": "carol"}'
 ```
+
+</Tab>
+</Tabs>
 
 ## Viewers cannot become hosts client-side
 

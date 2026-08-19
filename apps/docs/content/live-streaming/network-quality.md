@@ -10,10 +10,41 @@ directly: automatic reconnect with exponential backoff,
 `reconnecting`/`reconnected` events, and `room.getConnectionStats()`
 for a live quality signal.
 
+<Tabs>
+<Tab title="Web">
+
 ```ts
 stream.room.on('reconnecting', () => showBanner('Reconnecting…'));
 stream.room.on('reconnected', () => hideBanner());
 ```
+
+</Tab>
+<Tab title="React">
+
+```tsx
+import { useConnectionState } from '@corvidhq/react';
+
+const state = useConnectionState(); // works inside <RavenLiveStream> — same as any RavenRoom
+```
+
+</Tab>
+<Tab title="React Native">
+
+```ts
+stream.room.on('reconnecting', () => showBanner('Reconnecting…'));
+```
+
+</Tab>
+<Tab title="Flutter">
+
+```dart
+stream.room.connectionStateChanges.listen((state) {
+  if (state == RavenConnectionState.reconnecting) showBanner('Reconnecting…');
+});
+```
+
+</Tab>
+</Tabs>
 
 ## The one stream-specific wrinkle
 

@@ -5,7 +5,40 @@ description: What's actually tracked today — a live viewer count and a peak �
 
 Live Streaming does not have an analytics dashboard or historical
 viewer-metrics store yet. What exists today is two fields on the stream
-itself:
+itself, read the same way regardless of SDK:
+
+<Tabs>
+<Tab title="Node.js">
+
+```ts
+const stream = await raven.liveStreams.get(streamId);
+console.log(stream.viewerCount, stream.peakViewerCount);
+```
+
+</Tab>
+<Tab title="Python">
+
+```python
+stream = raven.live_streams.get(stream_id)
+print(stream["viewerCount"], stream["peakViewerCount"])
+```
+
+</Tab>
+<Tab title="CLI">
+
+```bash
+raven streams inspect <streamId>
+```
+
+</Tab>
+<Tab title="Dashboard">
+
+The [Live Streaming dashboard](/live-streaming) — Overview and a
+stream's own detail page — reads these same two fields; it never
+fabricates a number the API didn't return.
+
+</Tab>
+</Tabs>
 
 ```json
 {

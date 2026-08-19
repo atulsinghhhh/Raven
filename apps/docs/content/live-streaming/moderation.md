@@ -9,9 +9,29 @@ both minted automatically when they're added as a
 [host](/live-streaming/hosts) — and moderation itself is exactly the
 [Chat moderation](/chat/moderation) call:
 
+<Tabs>
+<Tab title="Web">
+
 ```ts
 await stream.chat.messages.delete('msg_3xR…');
 ```
+
+</Tab>
+<Tab title="React Native">
+
+```ts
+await stream.chat!.messages.delete('msg_3xR…');
+```
+
+</Tab>
+<Tab title="Flutter">
+
+```dart
+await stream.chat?.delete(messageId);
+```
+
+</Tab>
+</Tabs>
 
 A viewer's chat token always carries `MEMBER` scope, so this call fails
 for them with the same `PERMISSION_DENIED`-shaped error it would on any

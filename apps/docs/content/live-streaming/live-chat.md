@@ -8,13 +8,54 @@ Creating a stream creates and attaches a Chat
 `raven.chat.createConversation` yourself for a live stream. The
 attached conversation works exactly like any other:
 
+<Tabs>
+<Tab title="Web">
+
 ```ts
 await stream.chat.sendMessage({ text: 'Hey everyone!' });
 stream.chat.on('message', (message) => console.log(message.senderId, message.text));
 ```
 
-`stream.chat` is a real `@corvidhq/chat` client — the same object
-[Chat](/chat) itself documents, not a wrapper with a smaller API.
+</Tab>
+<Tab title="React">
+
+```tsx
+import { useMessages } from '@corvidhq/react';
+
+function LiveChatPanel() {
+  const { messages, send } = useMessages(); // works inside <RavenLiveStream> — no separate hook
+  return (
+    <div>
+      {messages.map((m) => <p key={m.id}>{m.senderId}: {m.text}</p>)}
+      <input onKeyDown={(e) => e.key === 'Enter' && send(e.currentTarget.value)} />
+    </div>
+  );
+}
+```
+
+</Tab>
+<Tab title="React Native">
+
+```ts
+await stream.chat!.send('Hey everyone!');
+stream.chat!.on('message', (message) => console.log(message.senderId, message.text));
+```
+
+</Tab>
+<Tab title="Flutter">
+
+```dart
+await stream.chat?.send('Hey everyone!');
+stream.chat?.messages.listen((message) => print('${message.senderId}: ${message.text}'));
+```
+
+</Tab>
+</Tabs>
+
+`stream.chat` is a real chat client on every SDK — the same object
+[Chat](/chat) itself documents, not a wrapper with a smaller API. On
+React there's deliberately no `useLiveStreamChat()` — `useMessages()`
+and every other chat hook already work inside `<RavenLiveStream>`.
 
 ## Roles carry over from hosting
 
