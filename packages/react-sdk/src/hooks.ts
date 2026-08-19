@@ -1,7 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { LocalParticipant, LocalTrack, RemoteParticipant, RTCError, Room, RTCClient } from '@corvidhq/rtc';
+import { createEffectsPipeline } from '@corvidhq/effects';
+import type { EffectsError, EffectsPipeline, FilterConfig, Preset, ColorOpParams, EffectInstance } from '@corvidhq/effects';
 import { useRavenStore } from './context';
 import type { RavenConnectionState, RavenSnapshot } from './store';
 
@@ -110,4 +112,112 @@ export function useCamera(): LocalMediaControl {
 
 export function useMicrophone(): LocalMediaControl {
   return useLocalMediaTrack('microphone');
+}
+
+export interface UseCameraEffectsResult {
+  /** The underlying Raven Effects pipeline — passed to `raven.effects.presets.*`/`filters.*` for advanced use. */
+  pipeline: EffectsPipeline;
+  effects: readonly EffectInstance[];
+  isEnabled: boolean;
+  /** True once the pipeline is actively processing the live camera track (false before the camera is enabled). */
+  isAttached: boolean;
+  error?: EffectsError;
+  add(config: FilterConfig): EffectInstance;
+  applyPreset(preset: Preset): EffectInstance[];
+  remove(effectOrId: EffectInstance | string): void;
+  update(effectId: string, params: Partial<ColorOpParams>): void;
+  reorder(effectId: string, toIndex: number): void;
+  enable(effectId?: string): void;
+  disable(effectId?: string): void;
+  clear(): void;
+}
+
+/**
+ * Raven Effects for `@corvidhq/react` — consumes the same `EffectsPipeline`
+ * and `LocalTrack.attachEffects()` from `@corvidhq/effects`/`@corvidhq/rtc`
+ * rather than a separate React-specific engine. Creates one pipeline per
+ * hook instance and keeps it attached to whatever camera track `useCamera()`
+ * currently reports, across camera enable/disable/device-switch — the
+ * pipeline itself is what you pass to `raven.effects.presets`/`filters`.
+ */
+export function useCameraEffects(): UseCameraEffectsResult {
+  const camera = useCamera();
+  const pipelineRef = useRef<EffectsPipeline | undefined>(undefined);
+  if (!pipelineRef.current) {
+    pipelineRef.current = createEffectsPipeline();
+  }
+  const pipeline = pipelineRef.current;
+
+  const [version, forceRender] = useReducer((c: number) => c + 1, 0);
+  const [error, setError] = useState<EffectsError>();
+
+  useEffect(() => {
+    const onChange = () => forceRender();
+    const onError = (err: EffectsError) => setError(err);
+    pipeline.on('effectAdded', onChange);
+    pipeline.on('effectRemoved', onChange);
+    pipeline.on('effectUpdated', onChange);
+    pipeline.on('reordered', onChange);
+    pipeline.on('enabled', onChange);
+    pipeline.on('disabled', onChange);
+    pipeline.on('cleared', onChange);
+    pipeline.on('error', onError);
+    return () => {
+      pipeline.off('effectAdded', onChange);
+      pipeline.off('effectRemoved', onChange);
+      pipeline.off('effectUpdated', onChange);
+      pipeline.off('reordered', onChange);
+      pipeline.off('enabled', onChange);
+      pipeline.off('disabled', onChange);
+      pipeline.off('cleared', onChange);
+      pipeline.off('error', onError);
+    };
+  }, [pipeline]);
+
+  const [isAttached, setIsAttached] = useState(false);
+  useEffect(() => {
+    const track = camera.track;
+    if (!track) {
+      setIsAttached(false);
+      return undefined;
+    }
+    let cancelled = false;
+    track
+      .attachEffects(pipeline)
+      .then(() => {
+        if (!cancelled) setIsAttached(true);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err as EffectsError);
+      });
+    return () => {
+      cancelled = true;
+      setIsAttached(false);
+      void track.detachEffects();
+    };
+  }, [camera.track, pipeline]);
+
+  return useMemo(
+    () => ({
+      pipeline,
+      effects: pipeline.effects,
+      isEnabled: pipeline.isEnabled,
+      isAttached,
+      error,
+      add: pipeline.add.bind(pipeline),
+      applyPreset: pipeline.applyPreset.bind(pipeline),
+      remove: pipeline.remove.bind(pipeline),
+      update: pipeline.update.bind(pipeline),
+      reorder: pipeline.reorder.bind(pipeline),
+      enable: pipeline.enable.bind(pipeline),
+      disable: pipeline.disable.bind(pipeline),
+      clear: pipeline.clear.bind(pipeline),
+    }),
+    // `version` is the load-bearing dep: every pipeline event (add/remove/
+    // update/reorder/enable/disable/clear) bumps it via forceRender so this
+    // memo recomputes and re-reads pipeline.effects/isEnabled fresh — those
+    // are live getters, not stable snapshots.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pipeline, isAttached, error, version],
+  );
 }

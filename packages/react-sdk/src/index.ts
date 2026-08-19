@@ -3,6 +3,7 @@ export type { RavenRoomProps } from './raven-room';
 
 export {
   useCamera,
+  useCameraEffects,
   useConnectionState,
   useLocalParticipant,
   useMicrophone,
@@ -13,7 +14,30 @@ export {
   useRemoteParticipants,
   useRoom,
 } from './hooks';
-export type { UseRavenResult } from './hooks';
+export type { UseCameraEffectsResult, UseRavenResult } from './hooks';
+
+// ---------------------------------------------------------------------------
+// Effects (Phase 16) — @corvidhq/effects integration. useCameraEffects()
+// above is the ergonomic entry point; these re-exports let a component
+// build filter/preset configs (`raven.effects.filters.brightness(...)`)
+// without a direct @corvidhq/effects import, mirroring the @corvidhq/rtc
+// re-exports below.
+export {
+  createEffectsPipeline,
+  EFFECT_SECURITY_LIMITS,
+  filters as effectFilters,
+  isEffectsError,
+  presets as effectPresets,
+} from '@corvidhq/effects';
+export type {
+  ColorOpParams,
+  EffectInstance,
+  EffectsError,
+  EffectsErrorCode,
+  EffectsPipeline,
+  FilterConfig,
+  Preset,
+} from '@corvidhq/effects';
 
 export { LocalParticipantView, ParticipantView, RavenAudio, RavenVideo } from './components';
 export type { ParticipantViewProps, RavenAudioProps, RavenVideoProps } from './components';
