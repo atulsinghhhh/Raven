@@ -19,6 +19,7 @@ import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { ProjectScope } from '../../../shared/environment/environment.constants';
+import { WebhookEventsService } from '../../webhooks/webhook-events.service';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -32,7 +33,10 @@ export interface AuthorizedConversation {
 
 @Injectable()
 export class ConversationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly webhooks: WebhookEventsService,
+  ) {}
 
   async create(scope: ProjectScope, dto: CreateConversationDto): Promise<Conversation> {
     const { projectId, environment } = scope;
@@ -44,6 +48,8 @@ export class ConversationsService {
         `A conversation named "${dto.name}" already exists in this project's ${environment} environment`,
       );
     }
+
+    let linkedRoomName: string | undefined;
 
     if (dto.roomId) {
       // Same cross-project check as everywhere else: holding a room id
@@ -58,9 +64,10 @@ export class ConversationsService {
       if (alreadyLinked) {
         throw new ConflictError(`RTC room "${room.name}" already has a conversation attached`);
       }
+      linkedRoomName = room.name;
     }
 
-    return this.prisma.conversation.create({
+    const conversation = await this.prisma.conversation.create({
       data: {
         publicId: generateId('conv'),
         projectId,
@@ -81,6 +88,19 @@ export class ConversationsService {
           : undefined,
       },
     });
+
+    // `void`, like every other emit: a developer's webhook endpoint must
+    // never be able to fail a conversation that is already stored.
+    void this.webhooks.emit(scope, 'room.created', {
+      roomId: conversation.publicId,
+      name: conversation.name,
+      type: conversation.type,
+      rtcRoomId: conversation.roomId,
+      rtcRoomName: linkedRoomName,
+      createdAt: conversation.createdAt.toISOString(),
+    });
+
+    return conversation;
   }
 
   listForProject(scope: ProjectScope, includeArchived = false): Promise<Conversation[]> {
@@ -202,7 +222,7 @@ export class ConversationsService {
 
   async addMember(scope: ProjectScope, reference: string, dto: AddMemberDto): Promise<ChatMember> {
     const conversation = await this.resolve(scope, reference);
-    return this.prisma.chatMember.upsert({
+    const member = await this.prisma.chatMember.upsert({
       where: { conversationId_userId: { conversationId: conversation.id, userId: dto.userId } },
       create: {
         conversationId: conversation.id,
@@ -220,6 +240,15 @@ export class ConversationsService {
         metadata: toJsonInput(dto.metadata),
       },
     });
+
+    void this.webhooks.emit(scope, 'participant.joined', {
+      roomId: conversation.publicId,
+      userId: member.userId,
+      role: member.role,
+      at: member.joinedAt.toISOString(),
+    });
+
+    return member;
   }
 
   async removeMember(scope: ProjectScope, reference: string, userId: string): Promise<void> {
@@ -231,9 +260,16 @@ export class ConversationsService {
       throw new ChatError(ChatErrorCode.NOT_A_MEMBER, 'That user is not a member of this conversation');
     }
     // Soft removal — their messages keep a resolvable author.
-    await this.prisma.chatMember.update({
+    const removed = await this.prisma.chatMember.update({
       where: { id: member.id },
       data: { status: ChatMemberStatus.LEFT, leftAt: new Date() },
+    });
+
+    void this.webhooks.emit(scope, 'participant.left', {
+      roomId: conversation.publicId,
+      userId: removed.userId,
+      role: removed.role,
+      at: (removed.leftAt ?? new Date()).toISOString(),
     });
   }
 
