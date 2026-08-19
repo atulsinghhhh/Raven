@@ -149,7 +149,7 @@ them, most cannot write.
 ## Pagination, filtering, environments
 
 - Chat message history uses opaque cursors (`before`/`after`) — never
-  `offset`. See [Messages & Threads](/chat/messages#history).
+  `offset`. See [Message History](/chat/message-history).
 - API-key-authenticated routes never take an `environment` parameter —
   the key itself decides. Dashboard-session routes that need one accept
   `?environment=` and default to development. See

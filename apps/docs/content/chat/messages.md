@@ -1,6 +1,6 @@
 ---
-title: Messages & Threads
-description: Sending, idempotency, history, editing, deleting, and flat threads.
+title: Messages
+description: Sending, idempotency, receiving, editing, and deleting.
 ---
 
 ## Sending
@@ -19,7 +19,7 @@ what keeps ordering consistent across every client in the room.
 |---|---|
 | `text` | The body. Required for text messages |
 | `type` | `text` (default), `attachment`. `system`/`event` are server-only |
-| `replyTo` | A `msg_...` id — the reply joins that message's thread |
+| `replyTo` | A `msg_...` id — the reply joins that message's thread, see [Threads](/chat/threads) |
 | `clientMessageId` | Idempotency key — see below |
 | `attachmentId` | An `att_...` id from an already-completed upload |
 | `metadata` | Your own JSON, capped at 4 KB |
@@ -51,29 +51,6 @@ retries are already safe. Supply your own when *you* control the retry
 The guarantee is a unique constraint on `(conversationId, senderId,
 clientMessageId)` in Postgres, not a cache — a retry an hour later, or
 on a different gateway, still deduplicates.
-
-## History
-
-```ts
-const page = await chat.messages.list({ room: 'conv_9WcQ…', limit: 50 });
-// { data: [...], nextCursor: '...', previousCursor: '...', hasMore: true }
-
-const older = await chat.messages.list({ before: page.nextCursor });
-const newer = await chat.messages.list({ after: page.previousCursor });
-```
-
-Newest first. Cursors are opaque — pass back exactly what you were
-given; they encode a timestamp and a **public** message id, never an
-internal database id.
-
-Offset pagination isn't merely discouraged here — there's no parameter
-for it. `?offset=50000` makes the database walk and discard 50,000 rows
-before returning anything, and in a live conversation an offset silently
-shifts as new messages arrive between fetches, showing you a duplicate
-or skipping one. A cursor points at a specific position, so it stays
-valid no matter what arrives in between.
-
-Other filters: `threadRootId`, `senderId`, `includeDeleted`.
 
 ## Receiving
 
@@ -114,34 +91,9 @@ never silently rewritten. Only the author may edit; moderators can
 delete, not put words in someone's mouth. Deleting is soft: the row
 survives with `deletedAt` set.
 
-## Threads
-
-```ts
-await chat.sendMessage({ text: 'This is a reply', replyTo: 'msg_3xR…' });
-
-const thread = await chat.messages.thread('msg_3xR…'); // [root, reply, reply, ...] oldest first
-```
-
-A thread isn't a separate store — it's a filter over the same messages
-table everything else lives in, so search, retention, moderation, and
-webhooks all work on threaded messages automatically.
-
-Threads stay **flat**: a reply to a reply joins the same thread rather
-than nesting.
-
-```
-msg_A                    threadRootId: null
-├── msg_B  replyTo: A    threadRootId: A
-└── msg_C  replyTo: B    threadRootId: A     ← not B
-```
-
-Two reasons: it makes "give me the thread" a single indexed range scan
-instead of a recursive walk, and arbitrarily deep nesting produces
-conversations nobody can follow. `chat.messages.thread()` works from any
-message in the thread, not just the root.
-
 ## Next
 
+- [Message History](/chat/message-history) — pagination and filters.
+- [Threads](/chat/threads)
 - [Delivery & Read Receipts](/chat/read-receipts) — what "delivered"
   actually means, and why it isn't stored per-recipient.
-- [Presence & Typing](/chat/presence-and-typing)

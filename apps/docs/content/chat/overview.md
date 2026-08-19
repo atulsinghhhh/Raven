@@ -116,6 +116,9 @@ own name for the thing.
 
 ## Next
 
-- [Messages & Threads](/chat/messages)
-- [Presence & Typing](/chat/presence-and-typing)
+- [Conversations](/chat/conversations)
+- [Members](/chat/members)
+- [Messages](/chat/messages)
+- [Presence](/chat/presence)
+- [Typing Indicators](/chat/typing)
 - [WebSocket Protocol](/chat/websocket) — for a from-scratch client.

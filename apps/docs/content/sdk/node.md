@@ -1,10 +1,11 @@
 ---
-title: Server SDK (TypeScript)
-description: '@raven/server — the same resources as raven-sdk, in TypeScript.'
+title: Node.js SDK
+description: '@raven/server — server-side RTC and chat for Node.js. Same resources as the Python SDK.'
 ---
 
-`@raven/server` is the TypeScript counterpart to [the Python SDK](/sdk/python)
-— same resources, same guarantees, idiomatic to the runtime.
+`@raven/server` is the Node.js/TypeScript counterpart to
+[the Python SDK](/sdk/python) — same resources, same guarantees,
+idiomatic to the runtime.
 
 ## Install
 

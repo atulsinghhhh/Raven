@@ -104,7 +104,7 @@ raven.chat.delete_message("msg_abc")  # soft delete, keeps an audit trail
 attached RTC room. `system` messages are server-only, because a browser
 must never fabricate an official-looking announcement. Pass
 `client_message_id` for the same idempotency guarantee described in
-[Messages & Threads](/chat/messages#idempotency). Everything is mirrored
+[Messages](/chat/messages#idempotency). Everything is mirrored
 on `AsyncRaven.chat` with identical names.
 
 ## Errors

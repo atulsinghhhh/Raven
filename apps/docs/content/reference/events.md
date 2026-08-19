@@ -66,8 +66,8 @@ Every chat event, from `@raven/chat`'s `ChatEventMap`.
 | `messageDeleted` | `event: MessageDeletedEvent` | A message is soft-deleted. |
 | `reactionAdded` | `event: ReactionEvent` | Someone reacts to a message — see [Reactions](/chat/reactions). |
 | `reactionRemoved` | `event: ReactionEvent` | A reaction is removed. |
-| `typing` | `event: TypingEvent` | A participant's typing state changes — see [Presence & Typing](/chat/presence-and-typing). |
-| `presence` | `event: PresenceEvent` | A participant's online/offline state changes. |
+| `typing` | `event: TypingEvent` | A participant's typing state changes — see [Typing Indicators](/chat/typing). |
+| `presence` | `event: PresenceEvent` | A participant's online/offline state changes — see [Presence](/chat/presence). |
 | `read` | `event: ReadReceiptEvent` | A read-receipt position advances — see [Delivery & Read Receipts](/chat/read-receipts). |
 | `connectionStateChanged` | `state: ChatConnectionState` | The chat WebSocket's connection state changes. |
 | `connected` | — | `chat.connect()` finished. |

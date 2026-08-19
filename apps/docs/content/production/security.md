@@ -55,7 +55,7 @@ control-plane equivalent.
   but never returned again after creation.
 - Server SDKs keep the API key in a private field — never enumerable,
   never in `JSON.stringify()`/`repr()`, never logged, never in a thrown
-  error. See [Server SDK](/server/server-sdk) and
+  error. See [Node.js SDK](/sdk/node) and
   [Python SDK](/sdk/python).
 
 ## Attachments
