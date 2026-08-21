@@ -5,6 +5,7 @@ import type { LiveStreamSummary } from '@/lib/api-client';
 import { Badge } from '@/components/ui/badge';
 import { Card, SectionHeader, StatCard } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { liveStreamingTabs, ProductTabs } from '@/components/shell/product-tabs';
 import { ButtonLink } from '@/components/ui/button';
 import { EmptyState, ErrorState, NoDataYet } from '@/components/ui/states';
 import { IconLiveStreaming } from '@/components/ui/icons';
@@ -49,6 +50,7 @@ export default async function LiveStreamingOverviewPage({ params }: { params: Pr
     return (
       <div className="flex flex-col gap-6">
         <PageHeader title="Live Streaming" description="One host, any viewers, and a chat conversation attached automatically." />
+        <ProductTabs tabs={liveStreamingTabs(base)} active="Overview" />
         <EmptyState
           icon={<IconLiveStreaming className="size-7" />}
           title="No live streams yet"
@@ -96,6 +98,7 @@ export default async function LiveStreamingOverviewPage({ params }: { params: Pr
           </ButtonLink>
         }
       />
+      <ProductTabs tabs={liveStreamingTabs(base)} active="Overview" />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard

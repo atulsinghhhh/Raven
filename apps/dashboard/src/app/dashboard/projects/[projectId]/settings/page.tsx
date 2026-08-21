@@ -12,10 +12,10 @@ import { DangerZone } from './danger-zone';
 
 /**
  * Only two things here actually write: PATCH /api/projects/:id (name and
- * description) and DELETE /api/projects/:id (archive). Everything else is
- * read-only metadata or an honest note about a capability that doesn't
- * exist yet — CORS is deployment-wide, and there is no webhook backend at
- * all, so neither gets a control that would pretend otherwise.
+ * description) and DELETE /api/projects/:id (archive). CORS is an honest
+ * note about a capability that doesn't exist per-project yet. Webhooks
+ * have their own dedicated CRUD page (see nav.ts) — this page just
+ * points there rather than duplicating it.
  */
 export default async function SettingsPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -78,22 +78,17 @@ export default async function SettingsPage({ params }: { params: Promise<{ proje
       </Card>
 
       <Card>
-        <CardHeader
-          title="Webhooks"
-          action={<Badge tone="neutral">Coming soon</Badge>}
-          subtitle="No webhook backend exists yet — there is no endpoint to register a URL with, and no events are delivered."
-        />
+        <CardHeader title="Webhooks" subtitle="Register an endpoint to receive chat and live-stream lifecycle events." />
         <p className="text-sm leading-relaxed text-muted">
-          Until it ships, connection and error activity is available by polling the Control API — or by reading the{' '}
-          <a href={`/dashboard/projects/${projectId}/connections`} className="text-accent-text hover:underline">
-            Connections
-          </a>{' '}
-          and{' '}
-          <a href={`/dashboard/projects/${projectId}/errors`} className="text-accent-text hover:underline">
-            Errors
-          </a>{' '}
-          pages, which are backed by the same records a webhook would eventually carry.
+          Managed on its own page — create an endpoint, choose which events it receives, and inspect delivery
+          attempts.
         </p>
+        <a
+          href={`/dashboard/projects/${projectId}/webhooks`}
+          className="mt-3 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-accent-text hover:underline"
+        >
+          Manage webhooks →
+        </a>
       </Card>
 
       <DangerZone projectId={projectId} projectName={project.name} />

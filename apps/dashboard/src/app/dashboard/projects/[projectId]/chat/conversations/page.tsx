@@ -3,6 +3,7 @@ import { getSessionToken } from '@/lib/session';
 import { ApiError, ravenApi } from '@/lib/api-client';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
+import { chatTabs, ProductTabs } from '@/components/shell/product-tabs';
 import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { Dash, EmptyState, ErrorState } from '@/components/ui/states';
 import { ButtonLink } from '@/components/ui/button';
@@ -42,6 +43,7 @@ export default async function ChatConversationsPage({ params }: { params: Promis
     return (
       <div className="flex flex-col gap-6">
         <PageHeader title="Conversations" description="Chat channels in this project." />
+        <ProductTabs tabs={chatTabs(base)} active="Conversations" />
         <EmptyState
           icon={<IconConversations className="size-7" />}
           title="No conversations yet"
@@ -64,6 +66,7 @@ export default async function ChatConversationsPage({ params }: { params: Promis
         title="Conversations"
         description={`${formatCount(conversations.length)} conversations, ${formatCount(totalMessages)} stored messages. Message contents are never shown here.`}
       />
+      <ProductTabs tabs={chatTabs(base)} active="Conversations" />
 
       <TableWrap className="hidden sm:block">
         <Table>

@@ -4,15 +4,19 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { NAV_GROUPS, type NavItem } from '@/lib/nav';
 import {
+  IconAnalytics,
   IconAudit,
   IconChat,
+  IconCli,
   IconConnections,
   IconConversations,
   IconDiagnostics,
   IconEffects,
   IconErrors,
+  IconEvents,
   IconKeys,
   IconLiveStreaming,
+  IconLogs,
   IconMembers,
   IconMetrics,
   IconOverview,
@@ -49,6 +53,22 @@ const ICONS: Record<NavItem['icon'], (p: { className?: string }) => React.JSX.El
   webhooks: IconWebhooks,
   members: IconMembers,
   audit: IconAudit,
+  cli: IconCli,
+  analytics: IconAnalytics,
+  logs: IconLogs,
+  events: IconEvents,
+};
+
+/**
+ * The sidebar's "RTC" entry (slug `rooms`) is the landing page for a
+ * whole product family — Connections and Participants moved out of the
+ * global sidebar into that family's own ProductTabs bar (see
+ * product-tabs.tsx), but should still light up the same sidebar item.
+ * Chat and Live Streaming don't need this: their sub-routes already
+ * nest under the `chat`/`live-streaming` path prefix.
+ */
+const SLUG_FAMILIES: Record<string, string[]> = {
+  rooms: ['connections', 'participants'],
 };
 
 export function SidebarNav({ projectId, onNavigate }: { projectId: string; onNavigate?: () => void }) {
@@ -60,8 +80,11 @@ export function SidebarNav({ projectId, onNavigate }: { projectId: string; onNav
   const activeSlug = NAV_GROUPS.flatMap((group) => group.items)
     .map((item) => item.slug)
     .filter((slug) => {
-      const href = `/dashboard/projects/${projectId}/${slug}`;
-      return pathname === href || pathname.startsWith(`${href}/`);
+      const candidates = [slug, ...(SLUG_FAMILIES[slug] ?? [])];
+      return candidates.some((candidate) => {
+        const href = `/dashboard/projects/${projectId}/${candidate}`;
+        return pathname === href || pathname.startsWith(`${href}/`);
+      });
     })
     .sort((a, b) => b.length - a.length)[0];
 

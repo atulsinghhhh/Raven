@@ -203,15 +203,11 @@ export default async function SdksPage({ params }: { params: Promise<{ projectId
           <p className="text-sm leading-relaxed text-muted">
             Manage projects, API keys, and rooms from the terminal, and wire up a local app for RTC development.
           </p>
-          <div className="mt-1">
-            <CodeBlock language="bash" code="npm install -g @corvidhq/cli" />
-          </div>
           <a
-            href={`${DOCS_URL}/cli.md`}
+            href={`${base}/cli`}
             className="mt-2 inline-flex w-fit items-center gap-1.5 text-xs font-medium text-accent-text hover:underline"
           >
-            docs/cli.md
-            <IconExternal className="size-3" />
+            Full command reference →
           </a>
         </div>
       </Card>

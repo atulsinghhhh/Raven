@@ -3,6 +3,7 @@ import { getSessionToken } from '@/lib/session';
 import { ApiError, ravenApi } from '@/lib/api-client';
 import { Card, CardHeader, SectionHeader, StatCard } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { chatTabs, ProductTabs } from '@/components/shell/product-tabs';
 import { RangeSelector } from '@/components/ui/range-selector';
 import { EmptyState, ErrorState, NoDataYet } from '@/components/ui/states';
 import { ButtonLink } from '@/components/ui/button';
@@ -60,6 +61,7 @@ export default async function ChatOverviewPage({
     return (
       <div className="flex flex-col gap-6">
         <PageHeader title="Chat" description="Real-time messaging for this project." />
+        <ProductTabs tabs={chatTabs(base)} active="Overview" />
         <EmptyState
           icon={<IconChat className="size-7" />}
           title="No chat activity yet"
@@ -89,6 +91,7 @@ export default async function ChatOverviewPage({
         description="Real-time messaging activity. Metadata only — message contents are never shown here."
         actions={<RangeSelector basePath={`${base}/chat`} current={range} />}
       />
+      <ProductTabs tabs={chatTabs(base)} active="Overview" />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Conversations" value={formatCount(overview.conversations)} hint="Active" />

@@ -4,6 +4,7 @@ import { ApiError, ravenApi } from '@/lib/api-client';
 import type { LiveStreamStatus, LiveStreamSummary } from '@/lib/api-client';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
+import { liveStreamingTabs, ProductTabs } from '@/components/shell/product-tabs';
 import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { Dash, EmptyState, ErrorState } from '@/components/ui/states';
 import { ButtonLink } from '@/components/ui/button';
@@ -63,6 +64,7 @@ export default async function LiveStreamsPage({
         description="Every live stream your backend has created in this project."
         actions={<StatusFilter base={`${base}/live-streaming/streams`} current={status} />}
       />
+      <ProductTabs tabs={liveStreamingTabs(base)} active="Streams" />
 
       {streams.length === 0 ? (
         <EmptyState

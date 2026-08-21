@@ -4,6 +4,7 @@ import { ApiError, ravenApi, type ConnectionLifecycleState, type ConnectionSumma
 import { ConnectionStateBadge } from '@/components/ui/badge';
 import { SectionHeader, StatCard } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { ProductTabs, rtcTabs } from '@/components/shell/product-tabs';
 import { DistributionBar } from '@/components/ui/chart';
 import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { Dash, EmptyState, ErrorState, NoDataYet } from '@/components/ui/states';
@@ -91,6 +92,7 @@ export default async function ConnectionsPage({
         title="Connections"
         description="Every RTC connection reported by @corvidhq/rtc, newest first."
       />
+      <ProductTabs tabs={rtcTabs(base)} active="Connections" />
 
       {fetched.length === 0 && !filtered ? (
         <EmptyState

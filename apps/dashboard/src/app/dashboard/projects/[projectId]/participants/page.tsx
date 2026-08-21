@@ -5,6 +5,7 @@ import type { ConnectionSummary } from '@/lib/api-client';
 import { ConnectionStateBadge } from '@/components/ui/badge';
 import { Card, SectionHeader, StatCard } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { ProductTabs, rtcTabs } from '@/components/shell/product-tabs';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Input } from '@/components/ui/field';
 import { KeyValue, KeyValueGrid, MonoId } from '@/components/ui/mono';
@@ -89,6 +90,7 @@ export default async function ParticipantsPage({
         title="Participants"
         description={`Derived from the ${CONNECTION_SCAN_LIMIT} most recent connection records in this project, grouped by participant identity. Raven does not store participants as a separate resource, so this is a recent-activity view rather than a complete historical roster.`}
       />
+      <ProductTabs tabs={rtcTabs(base)} active="Participants" />
 
       {participants.length === 0 ? (
         <EmptyState

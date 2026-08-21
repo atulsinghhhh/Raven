@@ -5,6 +5,7 @@ import type { ConnectionSummary, RoomWithLiveState } from '@/lib/api-client';
 import { Badge } from '@/components/ui/badge';
 import { SectionHeader, StatCard } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { ProductTabs, rtcTabs } from '@/components/shell/product-tabs';
 import { ButtonLink } from '@/components/ui/button';
 import { EmptyState, ErrorState, NoDataYet } from '@/components/ui/states';
 import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
@@ -81,6 +82,7 @@ export default async function RoomsPage({ params }: { params: Promise<{ projectI
           </ButtonLink>
         }
       />
+      <ProductTabs tabs={rtcTabs(base)} active="Rooms" />
 
       {rooms.length === 0 ? (
         <EmptyState

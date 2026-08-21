@@ -4,6 +4,7 @@ import { ApiError, ravenApi } from '@/lib/api-client';
 import { ConnectionStateBadge } from '@/components/ui/badge';
 import { SectionHeader, StatCard } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { chatTabs, ProductTabs } from '@/components/shell/product-tabs';
 import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { Dash, EmptyState, ErrorState, NoDataYet } from '@/components/ui/states';
 import { ButtonLink } from '@/components/ui/button';
@@ -48,6 +49,7 @@ export default async function ChatConnectionsPage({ params }: { params: Promise<
     return (
       <div className="flex flex-col gap-6">
         <PageHeader title="Chat connections" description="WebSocket sessions against the chat gateway." />
+        <ProductTabs tabs={chatTabs(base)} active="Connections" />
         <EmptyState
           icon={<IconConnections className="size-7" />}
           title="No chat connections yet"
@@ -77,6 +79,7 @@ export default async function ChatConnectionsPage({ params }: { params: Promise<
         title="Chat connections"
         description="Every chat WebSocket session, newest first. Separate from RTC connections — a user may hold both at once."
       />
+      <ProductTabs tabs={chatTabs(base)} active="Connections" />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Records shown" value={formatCount(connections.length)} hint={`Most recent ${SCAN_LIMIT} max`} />
