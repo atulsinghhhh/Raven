@@ -172,6 +172,13 @@ export const IconHelp = (p: IconProps) => (
   </Svg>
 );
 
+export const IconBell = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 6.5a4 4 0 018 0c0 3.2 1 4.25 1.25 4.75H2.75C3 10.75 4 9.7 4 6.5z" />
+    <path d="M6.5 13.25a1.5 1.5 0 003 0" />
+  </Svg>
+);
+
 export const IconChevronDown = (p: IconProps) => (
   <Svg {...p}>
     <path d="M4 6.5L8 10.5l4-4" />
@@ -258,6 +265,38 @@ export const IconAudit = (p: IconProps) => (
     <path d="M3.25 2.75h6.5l3 3v7.5a1 1 0 01-1 1h-8.5a1 1 0 01-1-1v-9.5a1 1 0 011-1z" />
     <path d="M9.5 2.75v3h3" />
     <path d="M5.5 8.5h5M5.5 11h3" />
+  </Svg>
+);
+
+/** CLI — a terminal prompt with a chevron and cursor. */
+export const IconCli = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5" />
+    <path d="M4.25 6.25 6.5 8l-2.25 1.75M7.75 9.75h3" />
+  </Svg>
+);
+
+/** Analytics — a simple bar chart, distinct from IconMetrics' single trend line. */
+export const IconAnalytics = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M2.25 13.25h11.5" />
+    <rect x="3.25" y="8.25" width="2.25" height="5" rx="0.5" />
+    <rect x="6.875" y="5.25" width="2.25" height="8" rx="0.5" />
+    <rect x="10.5" y="2.75" width="2.25" height="10.5" rx="0.5" />
+  </Svg>
+);
+
+/** Logs — stacked lines with a leading timestamp marker, i.e. a scrolling event stream. */
+export const IconLogs = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M2.75 4.25h3M7 4.25h6.25M2.75 8h3M7 8h6.25M2.75 11.75h3M7 11.75h6.25" />
+  </Svg>
+);
+
+/** Events — a discrete pulse/spark, distinct from IconLogs' continuous lines. */
+export const IconEvents = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M8.5 1.75 3.5 8.75h3.25L6.25 14.25l5.25-7.5H8.25z" />
   </Svg>
 );
 
