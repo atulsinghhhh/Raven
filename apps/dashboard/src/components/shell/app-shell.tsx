@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { Project } from '@/lib/api-client';
+import type { DashboardNotification } from '@/lib/notifications';
 import { SystemStatusIndicator, type SystemStatus } from '@/components/ui/badge';
 import { IconClose, IconExternal, IconHelp, IconMenu, RavenMark } from '@/components/ui/icons';
 import { DOCS_URL } from '@/lib/nav';
 import { CommandPalette } from './command-palette';
+import { NotificationsBell } from './notifications-bell';
 import { ProjectSwitcher } from './project-switcher';
 import { SidebarNav } from './sidebar-nav';
 import { ThemeToggle } from './theme-toggle';
@@ -27,12 +29,14 @@ export function AppShell({
   currentProject,
   email,
   systemStatus,
+  notifications,
 }: {
   children: React.ReactNode;
   projects: Project[];
   currentProject: Project;
   email?: string;
   systemStatus: SystemStatus;
+  notifications: DashboardNotification[];
 }) {
   const pathname = usePathname();
   // Holds the path the drawer was opened on. Any navigation changes
@@ -150,6 +154,7 @@ export function AppShell({
             <IconHelp className="size-4" />
           </a>
 
+          <NotificationsBell notifications={notifications} />
           <ThemeToggle />
           <UserMenu email={email} />
         </header>
