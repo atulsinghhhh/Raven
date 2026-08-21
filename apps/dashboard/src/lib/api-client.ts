@@ -84,6 +84,7 @@ export interface AuditLogEntry {
 export interface CreatedApiKey {
   id: string;
   name: string | null;
+  environment: Environment;
   publicId: string;
   key: string;
   createdAt: string;
@@ -505,7 +506,7 @@ export const ravenApi = {
   listApiKeys: (token: string, projectId: string) =>
     apiFetch<ApiKeySummary[]>(`/v1/projects/${projectId}/api-keys`, { token }),
 
-  createApiKey: (token: string, projectId: string, input: { name?: string }) =>
+  createApiKey: (token: string, projectId: string, input: { name?: string; environment?: Environment }) =>
     apiFetch<CreatedApiKey>(`/v1/projects/${projectId}/api-keys`, { method: 'POST', token, body: input }),
 
   revokeApiKey: (token: string, projectId: string, keyId: string) =>

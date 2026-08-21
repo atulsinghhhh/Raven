@@ -1,15 +1,33 @@
 'use client';
 
 import { useState } from 'react';
-import type { ApiKeySummary, CreatedApiKey } from '@/lib/api-client';
-import { Badge } from '@/components/ui/badge';
+import type { ApiKeySummary, CreatedApiKey, Environment } from '@/lib/api-client';
+import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
 import { CopyButton } from '@/components/ui/copy-button';
-import { Field } from '@/components/ui/field';
+import { Field, Select } from '@/components/ui/field';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { IconKeys } from '@/components/ui/icons';
 import { formatDate, formatRelative } from '@/lib/format';
+
+/**
+ * Every real environment a key can be scoped to — fixed set of 3, not
+ * user-configurable (see apps/api/prisma/schema.prisma's Environment
+ * enum). Production gets its own tone so it's never visually confused
+ * with a development/staging key at a glance.
+ */
+const ENVIRONMENT_TONE: Record<Environment, BadgeTone> = {
+  DEVELOPMENT: 'neutral',
+  STAGING: 'info',
+  PRODUCTION: 'warning',
+};
+
+const ENVIRONMENT_LABEL: Record<Environment, string> = {
+  DEVELOPMENT: 'Development',
+  STAGING: 'Staging',
+  PRODUCTION: 'Production',
+};
 
 /**
  * Raven only ever stores a bcrypt hash of a key's secret half
@@ -19,16 +37,20 @@ import { formatDate, formatRelative } from '@/lib/format';
  * it's never ambiguous whether the secret is retrievable — it isn't.
  *
  * The Control API backs exactly three operations: list, create, revoke.
- * There is deliberately no rotate button, because there is no rotate
- * endpoint — rotation is spelled out as the two real calls instead.
+ * There is no server-side rotate endpoint — the "Rotate" action below is
+ * a client-side convenience that performs the two real calls in the safe
+ * order (create the replacement first, then revoke the old key), never a
+ * fourth API operation pretending to be atomic.
  */
 export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; initialKeys: ApiKeySummary[] }) {
   const [keys, setKeys] = useState(initialKeys);
   const [name, setName] = useState('');
+  const [environment, setEnvironment] = useState<Environment>('DEVELOPMENT');
   const [creating, setCreating] = useState(false);
   const [justCreated, setJustCreated] = useState<CreatedApiKey>();
   const [error, setError] = useState<string>();
   const [revokingId, setRevokingId] = useState<string>();
+  const [rotatingId, setRotatingId] = useState<string>();
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -40,7 +62,7 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
       const res = await fetch(`/api/projects/${projectId}/api-keys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name || undefined }),
+        body: JSON.stringify({ name: name || undefined, environment }),
       });
       const payload = await res.json();
 
@@ -56,6 +78,7 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
           projectId,
           publicId: payload.publicId,
           name: payload.name,
+          environment: payload.environment,
           status: 'ACTIVE',
           lastUsedAt: null,
           createdAt: payload.createdAt,
@@ -64,6 +87,7 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
         ...prev,
       ]);
       setName('');
+      setEnvironment('DEVELOPMENT');
     } catch {
       setError('Could not reach the server.');
     } finally {
@@ -92,6 +116,63 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
     }
   }
 
+  /**
+   * Create the replacement first, then revoke the old key — never the
+   * other order, so a failure partway through never leaves the project
+   * with zero active keys. If the revoke half fails, the new key still
+   * exists and is surfaced; the old one is left active with an explicit
+   * error rather than silently retried.
+   */
+  async function handleRotate(oldKey: ApiKeySummary) {
+    setRotatingId(oldKey.id);
+    setError(undefined);
+    setJustCreated(undefined);
+
+    try {
+      const createRes = await fetch(`/api/projects/${projectId}/api-keys`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: oldKey.name ? `${oldKey.name} (rotated)` : undefined,
+          environment: oldKey.environment,
+        }),
+      });
+      const created = await createRes.json();
+      if (!createRes.ok) {
+        setError(created.message ?? 'Could not create the replacement key — the old key was not touched.');
+        return;
+      }
+
+      const revokeRes = await fetch(`/api/projects/${projectId}/api-keys/${oldKey.id}`, { method: 'DELETE' });
+      const revoked = revokeRes.ok || revokeRes.status === 204;
+      if (!revoked) {
+        setError('The new key was created, but revoking the old one failed — revoke it manually below.');
+      }
+
+      setJustCreated(created);
+      setKeys((prev) => [
+        {
+          id: created.id,
+          projectId,
+          publicId: created.publicId,
+          name: created.name,
+          environment: created.environment,
+          status: 'ACTIVE',
+          lastUsedAt: null,
+          createdAt: created.createdAt,
+          revokedAt: null,
+        },
+        ...prev.map((k) =>
+          k.id === oldKey.id && revoked ? { ...k, status: 'REVOKED', revokedAt: new Date().toISOString() } : k,
+        ),
+      ]);
+    } catch {
+      setError('Could not reach the server.');
+    } finally {
+      setRotatingId(undefined);
+    }
+  }
+
   const activeCount = keys.filter((k) => k.status === 'ACTIVE').length;
 
   return (
@@ -111,10 +192,25 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
             className="flex-1"
             hint="Only a label for this dashboard — it has no effect on what the key can do."
           />
+          <Select
+            id="key-environment"
+            label="Environment"
+            value={environment}
+            onChange={(e) => setEnvironment(e.target.value as Environment)}
+            className="sm:w-40"
+          >
+            <option value="DEVELOPMENT">Development</option>
+            <option value="STAGING">Staging</option>
+            <option value="PRODUCTION">Production</option>
+          </Select>
           <Button type="submit" loading={creating}>
             Create key
           </Button>
         </form>
+        <p className="mt-2 text-xs leading-relaxed text-subtle">
+          Which environment this key may act in. It has no effect on what the key can do beyond that — set it
+          correctly so a development credential can never be mistaken for one that reaches production.
+        </p>
         {error && (
           <div className="mt-4">
             <ErrorState description={error} />
@@ -154,7 +250,9 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
                 key={key.id}
                 apiKey={key}
                 revoking={revokingId === key.id}
+                rotating={rotatingId === key.id}
                 onRevoke={() => handleRevoke(key.id)}
+                onRotate={() => handleRotate(key)}
               />
             ))}
           </ul>
@@ -254,14 +352,20 @@ function SecretReveal({ created }: { created: CreatedApiKey }) {
 function KeyRow({
   apiKey,
   revoking,
+  rotating,
   onRevoke,
+  onRotate,
 }: {
   apiKey: ApiKeySummary;
   revoking: boolean;
+  rotating: boolean;
   onRevoke: () => void;
+  onRotate: () => void;
 }) {
   const active = apiKey.status === 'ACTIVE';
   const nameId = `key-name-${apiKey.id}`;
+  const [confirming, setConfirming] = useState<'revoke' | 'rotate' | null>(null);
+  const busy = revoking || rotating;
 
   return (
     <li className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:gap-4">
@@ -271,6 +375,11 @@ function KeyRow({
             {apiKey.name || 'Unnamed key'}
           </span>
           <Badge tone={active ? 'success' : 'danger'}>{active ? 'Active' : 'Revoked'}</Badge>
+          {apiKey.environment && (
+            <Badge tone={ENVIRONMENT_TONE[apiKey.environment]} glyph={false}>
+              {ENVIRONMENT_LABEL[apiKey.environment]}
+            </Badge>
+          )}
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -311,9 +420,42 @@ function KeyRow({
 
       {active && (
         <div className="shrink-0">
-          <Button variant="danger" size="sm" aria-describedby={nameId} onClick={onRevoke} disabled={revoking}>
-            {revoking ? 'Revoking…' : 'Revoke'}
-          </Button>
+          {confirming ? (
+            <div className="flex flex-col items-end gap-2 rounded-lg border border-line bg-surface-sunken p-3 sm:w-64">
+              <p className="text-xs leading-relaxed text-muted">
+                {confirming === 'revoke'
+                  ? 'Revoke this key? Anything using it stops working immediately — this can’t be undone.'
+                  : 'Create a replacement key and revoke this one? The old key stops working as soon as the new one is created.'}
+              </p>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setConfirming(null)} disabled={busy}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  aria-describedby={nameId}
+                  disabled={busy}
+                  onClick={() => {
+                    if (confirming === 'revoke') onRevoke();
+                    else onRotate();
+                    setConfirming(null);
+                  }}
+                >
+                  {confirming === 'revoke' ? (revoking ? 'Revoking…' : 'Confirm revoke') : rotating ? 'Rotating…' : 'Confirm rotate'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setConfirming('rotate')} disabled={busy}>
+                Rotate
+              </Button>
+              <Button variant="danger" size="sm" aria-describedby={nameId} onClick={() => setConfirming('revoke')} disabled={busy}>
+                Revoke
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </li>
