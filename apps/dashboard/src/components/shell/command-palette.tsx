@@ -2,13 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { NAV_GROUPS } from '@/lib/nav';
-import { IconConnections, IconErrors, IconLiveStreaming, IconParticipants, IconRooms, IconSearch } from '@/components/ui/icons';
+import { NAV_GROUPS, DOCS_URL } from '@/lib/nav';
+import {
+  IconConnections,
+  IconErrors,
+  IconLiveStreaming,
+  IconParticipants,
+  IconPlus,
+  IconRooms,
+  IconSearch,
+} from '@/components/ui/icons';
 import type { SearchHit } from '@/app/api/projects/[projectId]/search/route';
 
-type Item = SearchHit | { type: 'page'; id: string; title: string; subtitle?: string; href: string };
+type ActionItem = { type: 'action'; id: string; title: string; subtitle?: string; href: string; external?: boolean };
+type Item = SearchHit | { type: 'page'; id: string; title: string; subtitle?: string; href: string } | ActionItem;
 
 const GROUP_LABEL: Record<Item['type'], string> = {
+  action: 'Actions',
   page: 'Go to',
   room: 'Rooms',
   connection: 'Connections',
@@ -17,7 +27,7 @@ const GROUP_LABEL: Record<Item['type'], string> = {
   stream: 'Live Streaming',
 };
 
-const GROUP_ORDER: Item['type'][] = ['page', 'connection', 'room', 'stream', 'participant', 'error'];
+const GROUP_ORDER: Item['type'][] = ['action', 'page', 'connection', 'room', 'stream', 'participant', 'error'];
 
 function ItemIcon({ type }: { type: Item['type'] }) {
   const cls = 'size-3.5 shrink-0 text-subtle';
@@ -26,6 +36,7 @@ function ItemIcon({ type }: { type: Item['type'] }) {
   if (type === 'participant') return <IconParticipants className={cls} />;
   if (type === 'error') return <IconErrors className={cls} />;
   if (type === 'stream') return <IconLiveStreaming className={cls} />;
+  if (type === 'action') return <IconPlus className={cls} />;
   return <IconSearch className={cls} />;
 }
 
@@ -50,6 +61,38 @@ export function CommandPalette({ projectId }: { projectId: string }) {
     [projectId],
   );
 
+  // Things you *do*, not places you go — each still lands on a real page
+  // (the create form on API Keys, the create form on Projects), since
+  // there's no separate "create" endpoint the palette could call
+  // directly without duplicating that page's validation and error UI.
+  const actions: Item[] = useMemo(
+    () => [
+      {
+        type: 'action' as const,
+        id: 'create-api-key',
+        title: 'Create API key',
+        subtitle: 'API Keys',
+        href: `/dashboard/projects/${projectId}/api-keys`,
+      },
+      {
+        type: 'action' as const,
+        id: 'create-project',
+        title: 'Create project',
+        subtitle: 'Projects',
+        href: `/dashboard/projects`,
+      },
+      {
+        type: 'action' as const,
+        id: 'open-docs',
+        title: 'Open documentation',
+        subtitle: DOCS_URL,
+        href: DOCS_URL,
+        external: true,
+      },
+    ],
+    [projectId],
+  );
+
   // Remote hits are only meaningful for the query that fetched them, so
   // they're gated on the query still being long enough rather than being
   // cleared from an effect.
@@ -57,10 +100,11 @@ export function CommandPalette({ projectId }: { projectId: string }) {
 
   const items: Item[] = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const matchedActions = q ? actions.filter((a) => a.title.toLowerCase().includes(q)) : actions;
     const matchedPages = q ? pages.filter((p) => p.title.toLowerCase().includes(q)) : pages;
-    const all = [...matchedPages, ...(searchable ? hits : [])];
+    const all = [...matchedActions, ...matchedPages, ...(searchable ? hits : [])];
     return GROUP_ORDER.flatMap((type) => all.filter((i) => i.type === type));
-  }, [query, pages, hits, searchable]);
+  }, [query, actions, pages, hits, searchable]);
 
   const openPalette = useCallback(() => {
     setQuery('');
@@ -122,6 +166,10 @@ export function CommandPalette({ projectId }: { projectId: string }) {
   const go = useCallback(
     (item: Item) => {
       setOpen(false);
+      if (item.type === 'action' && item.external) {
+        window.open(item.href, '_blank', 'noopener,noreferrer');
+        return;
+      }
       router.push(item.href);
     },
     [router],
