@@ -13,7 +13,7 @@ import { useState } from 'react';
 const SAMPLES = [
   {
     id: 'rtc',
-    label: 'Video calling',
+    label: 'RTC',
     filename: 'client.js',
     code: `import { createRTCClient } from '@corvidhq/rtc';
 

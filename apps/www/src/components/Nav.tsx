@@ -60,7 +60,7 @@ export function Nav() {
             Sign in
           </a>
           <a
-            href={`${DASHBOARD_URL}/signup`}
+            href={`${DASHBOARD_URL}/register`}
             className="mono-label hidden items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[12px] text-accent-fg transition-colors hover:bg-accent-hover sm:inline-flex"
           >
             Start building
