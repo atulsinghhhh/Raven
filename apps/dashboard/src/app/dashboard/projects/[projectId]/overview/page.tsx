@@ -6,11 +6,12 @@ import { Card, CardHeader, SectionHeader, StatCard } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header';
 import { RangeSelector } from '@/components/ui/range-selector';
 import { RateBar } from '@/components/ui/chart';
-import { ButtonLink } from '@/components/ui/button';
 import { MonoId } from '@/components/ui/mono';
 import { Dash, ErrorState, NoDataYet } from '@/components/ui/states';
-import { IconChevronRight, IconQuickstart } from '@/components/ui/icons';
+import { IconChevronRight } from '@/components/ui/icons';
 import { formatCount, formatDuration, formatRelative, normaliseRange, RANGE_LABEL } from '@/lib/format';
+import { buildOnboardingSteps } from '@/lib/onboarding';
+import { OnboardingProgress } from '@/components/onboarding-progress';
 
 export default async function OverviewPage({
   params,
@@ -27,15 +28,27 @@ export default async function OverviewPage({
 
   // Every panel degrades on its own. One unreachable dependency shouldn't
   // blank the page a developer opened *because* something looked wrong.
-  const [projectResult, metricsResult, diagnosticsResult, connectionsResult, errorsResult, roomsResult] =
-    await Promise.allSettled([
-      ravenApi.getProject(token, projectId),
-      ravenApi.getMetrics(token, projectId, range),
-      ravenApi.getDiagnostics(token, projectId),
-      ravenApi.listConnections(token, projectId, { limit: 8 }),
-      ravenApi.listErrors(token, projectId, { limit: 5 }),
-      ravenApi.listRooms(token, projectId),
-    ]);
+  const [
+    projectResult,
+    metricsResult,
+    diagnosticsResult,
+    connectionsResult,
+    errorsResult,
+    roomsResult,
+    apiKeysResult,
+    chatOverviewResult,
+    liveStreamsResult,
+  ] = await Promise.allSettled([
+    ravenApi.getProject(token, projectId),
+    ravenApi.getMetrics(token, projectId, range),
+    ravenApi.getDiagnostics(token, projectId),
+    ravenApi.listConnections(token, projectId, { limit: 8 }),
+    ravenApi.listErrors(token, projectId, { limit: 5 }),
+    ravenApi.listRooms(token, projectId),
+    ravenApi.listApiKeys(token, projectId),
+    ravenApi.getChatOverview(token, projectId, range),
+    ravenApi.listLiveStreams(token, projectId),
+  ]);
 
   if (projectResult.status === 'rejected') {
     if (projectResult.reason instanceof ApiError && projectResult.reason.status === 401) redirect('/login');
@@ -48,9 +61,20 @@ export default async function OverviewPage({
   const connections = connectionsResult.status === 'fulfilled' ? connectionsResult.value : [];
   const errors = errorsResult.status === 'fulfilled' ? errorsResult.value : [];
   const rooms = roomsResult.status === 'fulfilled' ? roomsResult.value : undefined;
+  const apiKeys = apiKeysResult.status === 'fulfilled' ? apiKeysResult.value : [];
+  const chatOverview = chatOverviewResult.status === 'fulfilled' ? chatOverviewResult.value : undefined;
+  const liveStreams = liveStreamsResult.status === 'fulfilled' ? liveStreamsResult.value : [];
 
   const base = `/dashboard/projects/${projectId}`;
   const hasActivity = connections.length > 0 || (rooms?.length ?? 0) > 0;
+
+  const onboardingSteps = buildOnboardingSteps(projectId, {
+    hasApiKey: apiKeys.length > 0,
+    hasConnection: connections.length > 0 || (rooms?.length ?? 0) > 0,
+    hasChatActivity: (chatOverview?.conversations ?? 0) > 0 || (chatOverview?.messagesStored ?? 0) > 0,
+    hasLiveStream: liveStreams.length > 0,
+  });
+  const onboardingComplete = onboardingSteps.every((s) => s.done);
 
   return (
     <div className="flex flex-col gap-8">
@@ -61,8 +85,20 @@ export default async function OverviewPage({
         actions={<RangeSelector basePath={`${base}/overview`} current={range} />}
       />
 
+      {!onboardingComplete && <OnboardingProgress steps={onboardingSteps} />}
+
       {!hasActivity ? (
-        <GetStartedPanel projectId={projectId} />
+        <Card>
+          <p className="text-sm leading-relaxed text-muted">
+            No rooms or connections yet — telemetry appears here automatically the moment your backend mints a
+            token and a client joins with <code className="font-mono text-xs text-fg">@corvidhq/rtc</code>. Follow
+            the steps above, or open the{' '}
+            <a href={`${base}/quickstart`} className="text-accent-text hover:underline">
+              quickstart
+            </a>
+            .
+          </p>
+        </Card>
       ) : (
         <>
           <section>
@@ -324,54 +360,3 @@ function RecentErrors({
   );
 }
 
-/** Shown until the project has any rooms or connections at all. */
-function GetStartedPanel({ projectId }: { projectId: string }) {
-  const base = `/dashboard/projects/${projectId}`;
-
-  return (
-    <Card>
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent-subtle text-accent">
-          <IconQuickstart className="size-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold text-fg">Build your first Raven application</h2>
-          <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted">
-            This project has no rooms or connections yet. Create an API key, mint a token from your backend, and join a
-            room from the browser — connection and error telemetry starts appearing here automatically.
-          </p>
-          <ol className="mt-4 flex flex-col gap-2 text-sm text-muted">
-            <Step n={1}>
-              Create an API key in <a href={`${base}/api-keys`} className="text-accent-text hover:underline">API Keys</a>
-            </Step>
-            <Step n={2}>
-              Mint an RTC token from your backend with <code className="font-mono text-xs text-fg">@corvidhq/server</code>
-            </Step>
-            <Step n={3}>
-              Join a room in the browser with <code className="font-mono text-xs text-fg">@corvidhq/rtc</code>
-            </Step>
-          </ol>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <ButtonLink href={`${base}/quickstart`} variant="primary">
-              Open quickstart
-            </ButtonLink>
-            <ButtonLink href={`${base}/api-keys`} variant="secondary">
-              Create an API key
-            </ButtonLink>
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function Step({ n, children }: { n: number; children: React.ReactNode }) {
-  return (
-    <li className="flex items-center gap-2.5">
-      <span className="tabular flex size-5 shrink-0 items-center justify-center rounded-full border border-line text-[0.6875rem] font-medium text-muted">
-        {n}
-      </span>
-      <span>{children}</span>
-    </li>
-  );
-}
