@@ -15,7 +15,7 @@ import { registerStreamsEndCommand } from './end.js';
  * or removing a host, or minting a viewer token, mints a real RTC + chat
  * credential — that stays on `@corvidhq/server` / `raven-sdk`, run from
  * your own backend, exactly like `raven chat send` and chat token minting
- * never got a CLI equivalent. See docs/cli.md#live-streaming.
+ * never got a CLI equivalent. See docs/cli.md#live-streams.
  */
 export function registerStreamsCommand(program: Command): void {
   const streams = program.command('streams').description("Inspect and manage a project's live streams");

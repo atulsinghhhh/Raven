@@ -73,9 +73,9 @@ exactly like every other Raven webhook. See [Webhooks](/webhooks).
 
 ## Known limitations (this phase)
 
-- No cloud recording, AI moderation/captions, or media effects/filters
-  pipeline yet — see [Filters & Effects](/live-streaming/filters) for
-  the extension boundary the SDK leaves open for this.
+- No cloud recording or AI moderation/captions yet. Filters/effects are
+  already supported — see [Filters & Effects](/live-streaming/filters) —
+  since a stream's camera is an ordinary `@corvidhq/rtc` track.
 - Viewer count is derived live from the SFU's current participants, not
   stored — see [Analytics](/live-streaming/analytics) for exactly
   what's tracked.

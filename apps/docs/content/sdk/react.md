@@ -19,7 +19,7 @@ there (small, additive, non-breaking).
 npm install @corvidhq/rtc @corvidhq/react
 ```
 
-Peer dependencies: `react` and `react-dom` `^18 || ^19`.
+Peer dependency: `react` `^18 || ^19`.
 
 ## Quickstart
 
@@ -104,7 +104,7 @@ function ManualJoin() {
 | `useRoom()` | The current `Room`, or `undefined` before joined. |
 | `useConnectionState()` | Just the connection state string. |
 | `useLocalParticipant()` / `useRemoteParticipants()` | Participant state. |
-| `useCamera()` / `useMicrophone()` | `{ enabled, busy, enable(), disable(), toggle() }`. |
+| `useCamera()` / `useMicrophone()` | `{ enabled, track?, enable(), disable(), error? }`. |
 
 ## Chat
 

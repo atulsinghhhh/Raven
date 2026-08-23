@@ -112,6 +112,12 @@ POST   /v1/live-streams/{id}/hosts               (API key)
 DELETE /v1/live-streams/{id}/hosts/{identity}    (API key)
 POST   /v1/live-streams/{id}/viewer-tokens       (API key)
 POST   /v1/live-streams/{id}/leave               (API key)
+
+GET    /v1/projects/{id}/live-streams            (dashboard session)
+POST   /v1/projects/{id}/live-streams            (dashboard session)
+GET    /v1/projects/{id}/live-streams/{streamId} (dashboard session)
+PATCH  /v1/projects/{id}/live-streams/{streamId} (dashboard session)
+POST   /v1/projects/{id}/live-streams/{streamId}/end (dashboard session)
 ```
 
 Wraps [Rooms and RTC tokens](#rooms-and-rtc-tokens) and

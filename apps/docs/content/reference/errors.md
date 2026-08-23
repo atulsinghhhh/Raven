@@ -72,9 +72,11 @@ new one. Generated IDs look like `req_` followed by 24 hex characters.
 | `RAVEN_CONVERSATION_NOT_FOUND` | 404 | A chat conversation. |
 | `RAVEN_MESSAGE_NOT_FOUND` | 404 | |
 | `RAVEN_ATTACHMENT_NOT_FOUND` | 404 | |
+| `RAVEN_STREAM_NOT_FOUND` | 404 | A live stream. |
 | `RAVEN_CONFLICT` | 409 | Generic conflict — a name already taken, a state already reached. |
 | `RAVEN_MESSAGE_ALREADY_EXISTS` | 409 | An idempotency key was replayed. |
 | `RAVEN_CONVERSATION_ARCHIVED` | 409 | Unarchive it first. |
+| `RAVEN_STREAM_INVALID_STATE` | 409 | A lifecycle operation that isn't valid from the stream's current status — e.g. starting an already-`LIVE` stream. |
 | `RAVEN_VALIDATION_FAILED` | 400 | The request body or query is malformed. |
 | `RAVEN_INVALID_CURSOR` | 400 | Pagination cursor unreadable — do not fall back to page one. |
 | `RAVEN_PAYLOAD_TOO_LARGE` | 413 | Generic size limit. |
@@ -257,7 +259,7 @@ working across a server upgrade.
 | `4403` | Origin not allowed | **No** |
 | `4429` | Connection rate limit | Yes, after backing off |
 | `4440` | Token expired | Yes, with a fresh token |
-| `4500` | Server shutting down | Yes, immediately |
+| `4500` | Server shutting down | Yes, after backing off |
 
 ## Where to see this
 

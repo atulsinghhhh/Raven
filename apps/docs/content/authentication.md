@@ -39,6 +39,31 @@ Identity and permissions are decided by your backend from its own
 authenticated session, never from a value the client sends. A client
 that could name its own identity could impersonate any other user.
 
+## Why a project API key at all?
+
+Raven is multi-tenant: one Raven deployment serves many projects, and every
+room, conversation, and quota belongs to exactly one of them. The API key is
+how a server call identifies *which* project it's acting on — without it,
+there's no way for Raven to know whose rooms to create, whose data to bill,
+or whose rate limits apply.
+
+That identification has to happen on a credential Raven can trust, which is
+why it's a permanent secret held only by your backend rather than something
+derived from the request itself:
+
+- **It's the only thing allowed to mint tokens.** `raven.tokens.create()` and
+  `raven.chat.createToken()` both require it. A client can't call these
+  endpoints itself — only a backend holding the project's key can, which is
+  what makes it safe for that backend to decide identity and permissions
+  from its own session rather than trusting whatever the client claims.
+- **It scopes every downstream token to one project and one environment.**
+  A token minted with your key can never reach another project's rooms or
+  conversations, and a development key can't touch production data — see
+  [Environments](/production/environments).
+- **It's independently revocable and auditable.** Rotating or revoking one
+  project's key doesn't affect any other project, and every call made with
+  it is attributable to that project in the dashboard and audit log.
+
 ## API keys
 
 An API key (`rvk_<env>_...`) is a permanent, project-and-environment-scoped

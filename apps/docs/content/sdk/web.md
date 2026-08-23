@@ -31,7 +31,7 @@ npm install @corvidhq/client       # both, behind one object
 
 `@corvidhq/rtc` and `@corvidhq/chat` are independent packages — neither
 depends on the other, and either can fail without affecting the other.
-Install only what you use; `@corvidhq/rtc` alone is ~6 KB gzipped and
+Install only what you use; `@corvidhq/rtc` alone is ~10.2 KB gzipped and
 pulls in no messaging code.
 
 ### Calls and messaging together — `@corvidhq/client`
@@ -152,8 +152,8 @@ Measured from a real build:
 
 | File | Raw | Gzip |
 |---|---|---|
-| `dist/index.js` (ESM) | 25.0 KB | 5.9 KB |
-| `dist/index.cjs` (CJS) | 25.6 KB | 5.9 KB |
+| `dist/index.js` (ESM) | 40.1 KB | 10.2 KB |
+| `dist/index.cjs` (CJS) | 40.7 KB | 10.2 KB |
 
 The underlying WebRTC client isn't bundled into these numbers — it's a
 regular dependency that `npm install` pulls in automatically (nothing

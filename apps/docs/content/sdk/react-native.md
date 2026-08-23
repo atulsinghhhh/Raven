@@ -26,7 +26,7 @@ both platforms at once.
 > from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
 ```bash
-npm install @corvidhq/react-native @corvidhq/rtc @corvidhq/chat \
+npm install @corvidhq/react-native @corvidhq/rtc @corvidhq/effects @corvidhq/chat \
             @livekit/react-native @livekit/react-native-webrtc
 
 cd ios && pod install   # iOS only
@@ -192,7 +192,9 @@ Live Streaming credentials are a plain object (`streamId`, `role`,
   registered. Constructing a `Raven` does this automatically; if you
   touch WebRTC before that, call `bootstrapRavenNative()` in `index.js`.
 - **Black video, no error** — almost always permissions; call
-  `permissions.check()` and look for `blocked`.
+  `permissions.request()` (or `require()`) and look for `blocked` —
+  `check()` never reports it, since it only inspects status without
+  prompting.
 - **Works on Wi-Fi, fails on cellular** — carrier NAT needs TURN. Forward
   `iceServers` from your token response.
 
