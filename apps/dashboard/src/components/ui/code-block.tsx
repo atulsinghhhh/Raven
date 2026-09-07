@@ -115,7 +115,7 @@ export function CodeBlock({
   return (
     <div className="overflow-hidden rounded-md border border-line bg-[oklch(0.19_0.01_265)]">
       <div className="flex items-center justify-between border-b border-white/8 px-3 py-1.5">
-        <span className="font-mono text-[0.6875rem] text-[oklch(0.68_0.01_265)]">{filename ?? language}</span>
+        <span className="mono-label text-[11px] text-[oklch(0.68_0.01_265)]">{filename ?? language}</span>
         <CopyButton
           value={code}
           iconOnly
@@ -159,7 +159,7 @@ export function CodeTabs({ samples, className = '' }: { samples: CodeSample[]; c
               if (e.key === 'ArrowRight') setActive((i + 1) % samples.length);
               if (e.key === 'ArrowLeft') setActive((i - 1 + samples.length) % samples.length);
             }}
-            className={`rounded-sm px-2.5 py-1 text-xs font-medium transition-colors ${
+            className={`mono-label rounded-sm px-2.5 py-1 text-[11px] transition-colors ${
               i === active ? 'bg-surface-sunken text-fg' : 'text-muted hover:text-fg'
             }`}
           >

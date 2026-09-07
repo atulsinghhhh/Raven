@@ -24,14 +24,15 @@ export function DashboardPreview() {
   const { ref, inView } = useInView<HTMLDivElement>();
 
   return (
-    <section className="border-t border-line bg-surface-sunken/40 py-24">
+    <section className="border-t border-line bg-surface-sunken/40 py-24 md:py-32">
       <div className="mx-auto max-w-5xl px-6">
         <Reveal>
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-light tracking-tight text-fg md:text-4xl">
-              A dashboard for what your rooms are actually doing.
+          <div>
+            <span className="mono-label text-[11px] text-muted">Observability</span>
+            <h2 className="display mt-4 text-3xl text-fg md:text-4xl">
+              See what your rooms are <span className="kw">actually doing</span>
             </h2>
-            <p className="mt-4 text-muted">
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">
               Connection state, reconnects, and dependency health — the same telemetry the diagnostics section
               collects, surfaced per project.
             </p>
@@ -42,7 +43,7 @@ export function DashboardPreview() {
           <div ref={ref} className="mt-12 overflow-hidden rounded-(--radius-panel) border border-line bg-surface">
             <div className="flex items-center justify-between border-b border-line px-6 py-4">
               <span className="text-sm font-medium text-fg">demo-project</span>
-              <span className="mono-label rounded-full border border-line bg-surface-raised px-2.5 py-1 text-[11px] text-subtle">
+              <span className="mono-label rounded-(--radius-panel) border border-line bg-surface-raised px-2.5 py-1 text-[11px] text-muted">
                 Example project — illustrative numbers
               </span>
             </div>

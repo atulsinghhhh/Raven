@@ -70,7 +70,8 @@ changes what a chain actually renders, not just bookkeeping order.
 `attachToTrack()`/`detach()` are internal — call
 [`camera.attachEffects(pipeline)`](/effects/rtc-integration) instead. A
 pipeline can only be attached to one track at a time; attaching a second
-track automatically detaches the first.
+track while already attached throws `RAVEN_EFFECT_INVALID_CONFIG` — call
+`detach()` first.
 
 ## Failure handling
 

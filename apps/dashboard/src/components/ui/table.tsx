@@ -5,6 +5,10 @@
  *
  * On narrow screens callers render <MobileList> instead of shrinking the
  * table; a horizontally scrolling 7-column table is unusable on a phone.
+ *
+ * Column headers are mono-uppercase and a step smaller than the cells
+ * they label. It buys contrast between chrome and data without adding a
+ * second border or a heavier background than the sunken header strip.
  */
 
 export function TableWrap({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -39,7 +43,7 @@ export function TH({
   return (
     <th
       scope="col"
-      className={`px-4 py-2.5 text-xs font-medium whitespace-nowrap text-muted ${
+      className={`mono-label px-4 py-2.5 text-[11px] whitespace-nowrap text-muted ${
         align === 'right' ? 'text-right' : 'text-left'
       } ${className}`}
     >

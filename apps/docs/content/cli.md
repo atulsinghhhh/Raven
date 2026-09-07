@@ -178,7 +178,7 @@ raven config set apiUrl https://api.your-raven-deployment.example
 Every read command accepts `--json`:
 
 ```bash
-raven status --json | jq -r '.database'
+raven status --json | jq -r '.dependencies.database'
 raven projects list --json | jq -r '.[0].id'
 ```
 
@@ -191,6 +191,21 @@ raven --debug status
 Prints verbose request/response logs — never secrets. Useful when a
 command's behavior doesn't match what you expected and you need to see
 the actual API call.
+
+## Exit codes
+
+A contract with scripts and CI — stable across releases, safe to branch
+on:
+
+| Code | Meaning |
+|---|---|
+| `0` | Success |
+| `1` | General failure |
+| `2` | Invalid usage — bad flags or arguments |
+| `3` | Authentication failure |
+| `4` | Authorization failure |
+| `5` | Not found |
+| `6` | Network failure |
 
 ## Security
 

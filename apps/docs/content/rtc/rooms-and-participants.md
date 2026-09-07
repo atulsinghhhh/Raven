@@ -83,8 +83,8 @@ const devices = await client.getDevices();
 // { deviceId, label, kind }[] — kind: 'videoinput' | 'audioinput' | 'audiooutput'
 // labels are populated only once permission has been granted at least once
 
-await client.setCameraDevice(deviceId);
-await client.setMicrophoneDevice(deviceId);
+await room.setCameraDevice(deviceId);
+await room.setMicrophoneDevice(deviceId);
 await room.setSpeakerDevice(deviceId); // where the browser supports setSinkId — not Safari; throws DEVICE_NOT_FOUND there
 
 const unsubscribe = client.onDeviceChange(() => {

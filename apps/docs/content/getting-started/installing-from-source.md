@@ -4,13 +4,15 @@ description: How to use Raven's SDKs today, before they're published to npm and 
 ---
 
 None of Raven's SDKs are published to a package registry yet. Every
-`npm install @raven/...` and `pip install` command in these docs shows
+`npm install @corvidhq/...` and `pip install` command in these docs shows
 what installation *will* look like once they are. Raven's source isn't
 public — this page is for a checkout your Raven contact has already
 given you access to, not something to clone from a public URL.
 
 > **Do not `pip install raven-sdk`.** That name already belongs to an
-> unrelated project on PyPI.
+> unrelated project on PyPI — the checkout's own package is named
+> `raven-sdk` too, but it will need to be renamed before it can be
+> published; don't assume the local name is what ends up on PyPI.
 
 ## 1. Build the checkout
 
@@ -123,5 +125,5 @@ The API is then at `http://localhost:4100`, with interactive docs at
 
 Once the packages are published to a registry, every install command in
 these docs becomes literally correct and this page is deleted. Until
-then, treat any `npm install @raven/...` you see as aspirational — this
-page is the one that reflects reality.
+then, treat any `npm install @corvidhq/...` you see as aspirational —
+this page is the one that reflects reality.

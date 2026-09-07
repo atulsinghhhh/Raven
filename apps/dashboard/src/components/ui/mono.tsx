@@ -40,7 +40,11 @@ export function MonoId({
   );
 }
 
-/** Label-over-value pair used across every detail page. */
+/**
+ * Label-over-value pair used across every detail page. The label is
+ * mono-uppercase chrome; the value is the content and stays in sans
+ * unless the caller asks for mono (ids, hostnames, codecs).
+ */
 export function KeyValue({
   label,
   children,
@@ -52,8 +56,8 @@ export function KeyValue({
 }) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs font-medium text-muted">{label}</dt>
-      <dd className={`mt-1 truncate text-sm text-fg ${mono ? 'font-mono text-xs' : ''}`}>{children}</dd>
+      <dt className="mono-label text-[11px] text-muted">{label}</dt>
+      <dd className={`mt-1.5 truncate text-sm text-fg ${mono ? 'font-mono text-xs' : ''}`}>{children}</dd>
     </div>
   );
 }

@@ -1,7 +1,18 @@
 import { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 
+/*
+ * One control style for every input, select and textarea. Flat: a
+ * hairline border that strengthens on hover and turns accent on focus,
+ * and no inner shadow — same treatment as the buttons next to them.
+ *
+ * Field labels are mono-uppercase to match the table headers and stat
+ * labels, so every piece of chrome in the console speaks with one voice
+ * and the sans text on a page is reliably content.
+ */
 const CONTROL =
   'w-full rounded-md border border-line bg-surface px-3 text-sm text-fg placeholder:text-subtle transition-colors hover:border-line-strong focus:border-accent disabled:opacity-60';
+
+const LABEL = 'mono-label text-[11px] text-muted';
 
 export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`${CONTROL} h-9 ${className}`} />;
@@ -19,7 +30,7 @@ export function Field({
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <label htmlFor={id} className="text-xs font-medium text-fg">
+      <label htmlFor={id} className={LABEL}>
         {label}
       </label>
       <input
@@ -52,7 +63,7 @@ export function TextareaField({
 }: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; id: string; hint?: string }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <label htmlFor={id} className="text-xs font-medium text-fg">
+      <label htmlFor={id} className={LABEL}>
         {label}
       </label>
       <textarea
@@ -80,7 +91,7 @@ export function Select({
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
-        <label htmlFor={id} className="text-xs font-medium text-fg">
+        <label htmlFor={id} className={LABEL}>
           {label}
         </label>
       )}

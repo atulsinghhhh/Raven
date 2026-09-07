@@ -47,7 +47,7 @@ export function Footer() {
 
           {COLUMNS.map((column) => (
             <div key={column.title}>
-              <span className="mono-label text-[11px] text-subtle">{column.title}</span>
+              <span className="mono-label text-[11px] text-muted">{column.title}</span>
               <ul className="mt-3 flex flex-col gap-2.5">
                 {column.links.map((link) => (
                   <li key={link.label}>
@@ -67,7 +67,7 @@ export function Footer() {
           ))}
         </div>
 
-        <p className="mt-12 border-t border-line pt-6 text-sm text-subtle">&copy; Raven. All rights reserved.</p>
+        <p className="mt-12 border-t border-line pt-6 text-sm text-muted">&copy; Raven. All rights reserved.</p>
       </div>
     </footer>
   );

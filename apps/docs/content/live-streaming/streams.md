@@ -28,7 +28,7 @@ raven streams create "Launch Day" --host alice
 <Tab title="cURL">
 
 ```bash
-curl -X POST https://api.raven.dev/v1/live-streams \
+curl -X POST http://localhost:4100/v1/live-streams \
   -H "Authorization: Bearer $RAVEN_API_KEY" \
   -d '{"title": "Launch Day", "hostIdentity": "alice"}'
 ```
@@ -83,10 +83,10 @@ publishing, not by clicking a button in the dashboard/CLI.
 <Tab title="cURL">
 
 ```bash
-curl -X POST https://api.raven.dev/v1/live-streams/$STREAM_ID/start \
+curl -X POST http://localhost:4100/v1/live-streams/$STREAM_ID/start \
   -H "Authorization: Bearer $RAVEN_API_KEY"
 
-curl -X POST https://api.raven.dev/v1/live-streams/$STREAM_ID/end \
+curl -X POST http://localhost:4100/v1/live-streams/$STREAM_ID/end \
   -H "Authorization: Bearer $RAVEN_API_KEY"
 ```
 
@@ -127,7 +127,7 @@ raven streams inspect <streamId>
 <Tab title="cURL">
 
 ```bash
-curl https://api.raven.dev/v1/live-streams/$STREAM_ID \
+curl http://localhost:4100/v1/live-streams/$STREAM_ID \
   -H "Authorization: Bearer $RAVEN_API_KEY"
 ```
 

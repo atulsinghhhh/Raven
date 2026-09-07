@@ -175,11 +175,18 @@
   --font-mono:
     ui-monospace, 'SF Mono', 'SFMono-Regular', 'JetBrains Mono', 'Menlo', 'Consolas', 'Liberation Mono', monospace;
 
+  /* One radius, everywhere — the same 4px corner the marketing site and
+     the console use, so all three read as one product. The five names
+     are kept rather than collapsed to a single token because the
+     components and the .prose rules below already reference them by
+     name; pointing them all at one value reshapes the site without
+     rewriting those call sites. Genuinely circular things use
+     `rounded-full` and are unaffected. */
   --radius-xs: 0.25rem;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.25rem;
 
   --shadow-raven-sm: var(--shadow-sm);
   --shadow-raven-md: var(--shadow-md);
@@ -268,6 +275,22 @@
     50% {
       opacity: 0.45;
     }
+  }
+
+  /* A console-style label: monospace, uppercase, tracked wide. Shared
+     verbatim with the marketing site and the dashboard. Section
+     eyebrows, rail headings, column labels — never body text. */
+  .mono-label {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* Display type for page and section titles: lighter and more tightly
+     tracked than a semibold heading, matching the other two apps. */
+  .display {
+    font-weight: 300;
+    letter-spacing: -0.02em;
   }
 
   .animate-fade-in {

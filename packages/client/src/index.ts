@@ -79,7 +79,7 @@ export interface RavenConfig {
  * await raven.chat!.sendMessage({ text: 'Hello' });
  * ```
  *
- * **Use `@corvidhq/rtc` directly if you only want calls** — it's ~6 KB
+ * **Use `@corvidhq/rtc` directly if you only want calls** — it's ~10 KB
  * gzipped and pulls in no messaging code. This package exists for apps
  * that want both without wiring two clients themselves, and it mirrors
  * the shape `@corvidhq/react-native` already gives mobile, so the same

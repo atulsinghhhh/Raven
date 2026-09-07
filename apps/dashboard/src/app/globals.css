@@ -76,10 +76,16 @@
 [data-theme='dark'] {
   color-scheme: dark;
 
-  /* Raven's console palette — same exact tokens as the design system spec:
-     canvas #0e0e13, surface #18181b, border #27272a, text #fffaea,
-     muted #a1a1aa, accent #e96b34. Companions (raised/sunken/hover/etc.)
-     are derived to match, not independently invented. */
+  /* Raven's console palette: canvas #0e0e13, surface #18181b,
+     border #27272a, text #fffaea, muted #a1a1aa. Companions
+     (raised/sunken/hover/etc.) are derived to match, not independently
+     invented.
+     
+     The neutrals stay console-specific — this canvas is deliberately a
+     little lighter than the marketing site's, which is read in passing
+     rather than stared at for an afternoon. The accent is not: it's the
+     brand, and it had drifted (#e96b34 here vs #e2672f on the site,
+     with nothing pinning either). Both are now #e2672f. */
   --canvas: #0e0e13;
   --surface: #18181b;
   --surface-raised: #1f1f23;
@@ -95,8 +101,8 @@
   --line: #27272a;
   --line-strong: #38383f;
 
-  --accent: #e96b34;
-  --accent-hover: #f0824f;
+  --accent: #e2672f;
+  --accent-hover: #ef7c47;
   --accent-fg: #fff7ee;
   --accent-subtle: #2a190f;
   --accent-line: #6b3a20;
@@ -180,14 +186,20 @@
   --font-mono:
     ui-monospace, 'SF Mono', 'SFMono-Regular', 'JetBrains Mono', 'Menlo', 'Consolas', 'Liberation Mono', monospace;
 
-  /* Sharp, near-console corners — a signature deliberately short of
-     "rounded": every card/input/button in the app derives from this one
-     scale, so tightening it here reshapes the whole product at once. */
+  /* One radius, everywhere — the same 4px corner the marketing site
+     uses, so the two halves of the product read as one thing.
+     
+     The five names are kept rather than collapsed to a single token
+     because ~80 `rounded-sm|md|lg|xl` call sites across the pages
+     reference them; pointing them all at one value reshapes the whole
+     console without touching a page file. Genuinely circular things
+     (status dots, avatars, step numbers) use `rounded-full` and are
+     unaffected by this. */
   --radius-xs: 0.25rem;
-  --radius-sm: 0.3125rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.625rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.25rem;
 
   --shadow-raven-sm: var(--shadow-sm);
   --shadow-raven-md: var(--shadow-md);
@@ -276,6 +288,25 @@
     50% {
       opacity: 0.45;
     }
+  }
+
+  /* A console-style label: monospace, uppercase, tracked wide. Shared
+     verbatim with the marketing site. Used for section eyebrows, table
+     column headers, stat labels and other chrome microcopy — never for
+     body text or anything a developer has to read a sentence of. */
+  .mono-label {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* Display type for page titles. Lighter and more tightly tracked than
+     the old semibold heading — the same restraint as the marketing
+     site's headlines, one step heavier so it still holds at 22px on a
+     dense page. */
+  .display {
+    font-weight: 300;
+    letter-spacing: -0.02em;
   }
 
   .animate-fade-in {

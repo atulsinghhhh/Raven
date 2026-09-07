@@ -66,7 +66,7 @@ and store the samples — Raven isn't doing that recording for you yet.
 ## Structured logging, not analytics
 
 Stream lifecycle events (`created`, `started`, `ended`, host/viewer
-join/leave) are available as [webhooks](/live-streaming/streams), which
+join/leave) are available as [webhooks](/live-streaming#webhooks), which
 you can log or forward yourself — see
 [Webhooks](/webhooks) for the delivery guarantees.
 

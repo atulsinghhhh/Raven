@@ -44,12 +44,15 @@ const RELIABILITY = [
 
 export function Reliability() {
   return (
-    <section id="reliability" className="border-t border-line py-24">
+    <section id="reliability" className="border-t border-line py-24 md:py-32">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal>
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-light tracking-tight text-fg md:text-4xl">Built for real-time workloads</h2>
-            <p className="mt-4 text-muted">
+          <div>
+            <span className="mono-label text-[11px] text-muted">Reliability</span>
+            <h2 className="display mt-4 text-3xl text-fg md:text-4xl">
+              Guarantees, not <span className="kw">status dots</span>
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">
               Not a wrapper around someone else&apos;s API. Raven owns the control plane — projects, tokens,
               permissions, and events — end to end.
             </p>

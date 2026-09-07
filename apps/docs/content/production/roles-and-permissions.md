@@ -28,6 +28,7 @@ BILLING    usage and billing, and nothing else
 | `webhooks:manage` | ✓ | ✓ | ✓ | | |
 | `rooms:write` | ✓ | ✓ | ✓ | | |
 | `chat:read` | ✓ | ✓ | ✓ | ✓ | |
+| `live-streams:write` | ✓ | ✓ | ✓ | | |
 | `usage:read` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `audit:read` | ✓ | ✓ | | | |
 | `billing:manage` | ✓ | | | | ✓ |

@@ -28,11 +28,11 @@ raven.live_streams.remove_host(stream_id, "bob")
 <Tab title="cURL">
 
 ```bash
-curl -X POST https://api.raven.dev/v1/live-streams/$STREAM_ID/hosts \
+curl -X POST http://localhost:4100/v1/live-streams/$STREAM_ID/hosts \
   -H "Authorization: Bearer $RAVEN_API_KEY" \
   -d '{"identity": "bob", "role": "CO_HOST"}'
 
-curl -X DELETE https://api.raven.dev/v1/live-streams/$STREAM_ID/hosts/bob \
+curl -X DELETE http://localhost:4100/v1/live-streams/$STREAM_ID/hosts/bob \
   -H "Authorization: Bearer $RAVEN_API_KEY"
 ```
 

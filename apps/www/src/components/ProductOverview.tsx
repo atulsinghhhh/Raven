@@ -1,73 +1,90 @@
-import { Reveal } from './Reveal';
 import { DOCS_ROUTES } from '../lib/links';
 
+/**
+ * The four-up card grid that sits directly under the code panel — no
+ * heading of its own, since CodeShowcase already carries one for the
+ * whole block. Cards are hairline rectangles with an icon, a line of
+ * copy, and a small button, in the reference's proportions.
+ */
 const PRODUCTS = [
   {
     name: 'RTC',
-    tagline: 'Audio and video communication without managing the real-time infrastructure.',
-    bullets: ['Audio & video calls', 'Rooms & participants', 'Screen sharing', 'Reconnection & diagnostics'],
+    body: 'Audio and video calls with rooms, participants, and screen sharing — reconnection handled underneath.',
     href: DOCS_ROUTES.rtc,
+    icon: <WaveIcon />,
   },
   {
     name: 'Chat',
-    tagline: 'Real-time messaging built for applications, not bolted on afterward.',
-    bullets: ['Conversations & threads', 'Presence & typing', 'Reactions', 'Delivery & read receipts'],
+    body: 'Conversations, threads, presence, typing, and receipts, built for applications rather than bolted on.',
     href: DOCS_ROUTES.chat,
+    icon: <BubbleIcon />,
   },
   {
     name: 'Live Streaming',
-    tagline: 'Build interactive live experiences on the same rooms and tokens underneath.',
-    bullets: ['Hosts & co-hosts', 'Viewers', 'Live chat & reactions', 'Moderation'],
+    body: 'Hosts, co-hosts, and viewers on the same rooms and tokens, with live chat attached on join.',
     href: DOCS_ROUTES.liveStreaming,
+    icon: <BroadcastIcon />,
   },
   {
     name: 'Effects',
-    tagline: 'Filters and presets on the video track itself, before it ever leaves the device.',
-    bullets: ['Filters & presets', 'Beauty smoothing', 'Runs client-side, in the SDK', 'RTC & Live Streaming'],
+    body: 'Filters and presets applied to the video track inside the SDK, before it ever leaves the device.',
     href: DOCS_ROUTES.effects,
+    icon: <SparkIcon />,
   },
 ];
 
 export function ProductOverview() {
   return (
-    <section className="border-t border-line py-24">
-      <div className="mx-auto max-w-6xl px-6">
-        <Reveal>
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-light tracking-tight text-fg md:text-4xl">Everything you need for real-time</h2>
-            <p className="mt-4 text-muted">
-              One control plane underneath four products — the same projects, tokens, and events, whether
-              you&apos;re shipping a call, a conversation, a stream, or a filtered camera feed.
-            </p>
-          </div>
-        </Reveal>
-
-        <div className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {PRODUCTS.map((product, i) => (
-            <Reveal key={product.name} delayMs={i * 80}>
-              <a
-                href={product.href}
-                className="group flex h-full flex-col rounded-(--radius-panel) border border-line bg-surface p-6 transition-colors hover:border-line-strong"
-              >
-                <h3 className="mono-label text-[12px] text-accent-text">{product.name}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-muted">{product.tagline}</p>
-                <ul className="mt-4 flex-1 space-y-1.5 text-sm text-muted">
-                  {product.bullets.map((bullet) => (
-                    <li key={bullet} className="flex items-center gap-2">
-                      <span className="h-1 w-1 shrink-0 rounded-full bg-accent" />
-                      {bullet}
-                    </li>
-                  ))}
-                </ul>
-                <span className="mono-label mt-5 inline-flex items-center gap-1 text-[11px] text-fg">
-                  Explore
-                  <span className="transition-transform group-hover:translate-x-0.5">→</span>
-                </span>
-              </a>
-            </Reveal>
-          ))}
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {PRODUCTS.map((product) => (
+        <div
+          key={product.name}
+          className="flex h-full flex-col rounded-(--radius-panel) border border-line bg-surface p-5"
+        >
+          <span className="text-accent">{product.icon}</span>
+          <h3 className="mt-4 text-sm font-medium text-fg">{product.name}</h3>
+          <p className="mt-2 flex-1 text-[13px] leading-relaxed text-muted">{product.body}</p>
+          <a
+            href={product.href}
+            className="mt-5 self-start rounded-(--radius-panel) border border-line bg-surface-raised px-2.5 py-1.5 text-[12px] font-medium text-fg transition-colors hover:border-line-strong"
+          >
+            Try it out
+          </a>
         </div>
-      </div>
-    </section>
+      ))}
+    </div>
+  );
+}
+
+function WaveIcon() {
+  return (
+    <svg viewBox="0 0 18 18" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+      <path d="M2 9h1.7M6.2 5v8M9 2.5v13M11.8 6v6M15.5 9H16" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BubbleIcon() {
+  return (
+    <svg viewBox="0 0 18 18" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+      <path d="M2.5 5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H8l-4 3.2V12a1.5 1.5 0 0 1-1.5-1.5V5Z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function BroadcastIcon() {
+  return (
+    <svg viewBox="0 0 18 18" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+      <circle cx="9" cy="9" r="2" />
+      <path d="M5.2 5.2a5.4 5.4 0 0 0 0 7.6M12.8 12.8a5.4 5.4 0 0 0 0-7.6M2.6 2.6a9 9 0 0 0 0 12.8M15.4 15.4a9 9 0 0 0 0-12.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SparkIcon() {
+  return (
+    <svg viewBox="0 0 18 18" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+      <path d="M9 2v3.4M9 12.6V16M2 9h3.4M12.6 9H16M4.4 4.4l2.4 2.4M11.2 11.2l2.4 2.4M13.6 4.4l-2.4 2.4M6.8 11.2l-2.4 2.4" strokeLinecap="round" />
+    </svg>
   );
 }
