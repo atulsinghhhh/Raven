@@ -13,6 +13,7 @@ import { registerLogsCommand } from './commands/logs.js';
 import { registerProjectsCommand } from './commands/projects/index.js';
 import { registerKeysCommand } from './commands/keys/index.js';
 import { registerRoomsCommand } from './commands/rooms/index.js';
+import { registerRtcCommand } from './commands/rtc/index.js';
 import { registerChatCommand } from './commands/chat/index.js';
 import { registerStreamsCommand } from './commands/streams/index.js';
 import { registerConfigCommand } from './commands/config/index.js';
@@ -26,7 +27,7 @@ export function buildCli(): Command {
 
   program
     .name('raven')
-    .description('Raven CLI — manage projects, API keys, rooms, chat, and live streams from the terminal.')
+    .description('Raven CLI — manage projects, API keys, rooms, RTC, chat, and live streams from the terminal.')
     .version(CLI_VERSION, '--version', 'output the current version')
     .option('--debug', 'print verbose request/response logs (never includes secrets)')
     .hook('preAction', (thisCommand) => {
@@ -54,6 +55,7 @@ export function buildCli(): Command {
   registerProjectsCommand(program);
   registerKeysCommand(program);
   registerRoomsCommand(program);
+  registerRtcCommand(program);
   registerChatCommand(program);
   registerStreamsCommand(program);
   registerConfigCommand(program);

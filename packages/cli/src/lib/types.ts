@@ -62,7 +62,10 @@ export interface RoomWithLiveState {
   status: RoomStatus;
   createdAt: string;
   updatedAt: string;
-  /** null = couldn't reach LiveKit, not the same thing as a genuinely idle room. */
+  /**
+   * `null` means the RTC server could not be asked — not the same thing
+   * as a genuinely idle room, which reports `0`.
+   */
   liveParticipantCount: number | null;
 }
 
@@ -333,4 +336,45 @@ export interface LiveStreamSummary {
   endedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type RtcServerStatus = 'HEALTHY' | 'DRAINING' | 'UNHEALTHY';
+
+/**
+ * One RTC server in the fleet.
+ *
+ * Load figures are a snapshot from the node's last heartbeat, not live
+ * truth — read them next to `lastHeartbeatAt`. The resource gauges are
+ * nullable because a node that has registered but not yet heartbeated has
+ * no measurement to report, and zero would read as "idle" rather than
+ * "unknown".
+ */
+export interface RtcServer {
+  id: string;
+  name: string;
+  region: string;
+  status: RtcServerStatus;
+  publicHost: string;
+  internalUrl: string;
+  capacity: number;
+  activeRooms: number;
+  activeParticipants: number;
+  cpuPercent: number | null;
+  memoryPercent: number | null;
+  networkInBps: number | null;
+  networkOutBps: number | null;
+  version: string | null;
+  lastHeartbeatAt: string | null;
+  registeredAt: string;
+  updatedAt: string;
+}
+
+export interface RtcFleetMetrics {
+  servers: number;
+  healthyServers: number;
+  drainingServers: number;
+  unhealthyServers: number;
+  activeRooms: number;
+  activeParticipants: number;
+  capacity: number;
 }

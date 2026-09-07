@@ -1,7 +1,7 @@
 {
   "name": "@corvidhq/cli",
   "version": "0.1.0",
-  "description": "Raven CLI — manage projects, API keys, and rooms from the terminal; wire up a local app for RTC development.",
+  "description": "Raven CLI \u2014 manage projects, API keys, and rooms from the terminal; wire up a local app for RTC development.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -49,6 +49,8 @@
     "rootDir": "test",
     "testRegex": ".*\\.spec\\.ts$",
     "moduleNameMapper": {
+      "^chalk$": "<rootDir>/mocks/chalk.ts",
+      "^open$": "<rootDir>/mocks/open.ts",
       "^@/(.*)\\.js$": "<rootDir>/../src/$1",
       "^(\\.{1,2}/.*)\\.js$": "$1"
     },

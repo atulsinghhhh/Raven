@@ -25,6 +25,8 @@ import type {
   ProjectDiagnostics,
   RoomDetailWithLiveState,
   RoomWithLiveState,
+  RtcServer,
+  RtcFleetMetrics,
 } from './types.js';
 
 const MAX_RETRIES = 2;
@@ -102,6 +104,38 @@ export class RavenApiClient {
 
   async createRoom(projectId: string, name: string): Promise<RoomWithLiveState> {
     return this.request<RoomWithLiveState>(`/v1/projects/${projectId}/rooms`, { method: 'POST', body: { name } });
+  }
+
+  async closeRoom(projectId: string, roomId: string): Promise<void> {
+    await this.request<void>(`/v1/projects/${projectId}/rooms/${roomId}/close`, { method: 'POST' });
+  }
+
+  /**
+   * The RTC fleet.
+   *
+   * Not project-scoped, unlike everything above it: an RTC server is
+   * deployment-level infrastructure shared by every project, so there is
+   * no project whose membership could authorize it. It exposes no project
+   * data either — only node identity, health and aggregate load.
+   */
+  async listRtcServers(region?: string): Promise<RtcServer[]> {
+    const query = region ? `?region=${encodeURIComponent(region)}` : '';
+    return this.request<RtcServer[]>(`/v1/rtc/servers${query}`);
+  }
+
+  async getRtcServer(name: string): Promise<RtcServer> {
+    return this.request<RtcServer>(`/v1/rtc/servers/${encodeURIComponent(name)}`);
+  }
+
+  async getRtcFleetMetrics(): Promise<RtcFleetMetrics> {
+    return this.request<RtcFleetMetrics>('/v1/rtc/servers/metrics');
+  }
+
+  async drainRtcServer(name: string, draining: boolean): Promise<RtcServer> {
+    const action = draining ? 'drain' : 'undrain';
+    return this.request<RtcServer>(`/v1/rtc/servers/${encodeURIComponent(name)}/${action}`, {
+      method: 'POST',
+    });
   }
 
   async createTestToken(projectId: string, roomId: string, participantIdentity?: string): Promise<IssuedRtcToken> {
