@@ -1,5 +1,6 @@
 import { ChatMemberRole, ChatMemberStatus, ConversationType } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { ConflictError } from '../../../shared/errors/app-error';
 import { Environment } from '../../../shared/environment/environment.constants';
 import { WebhookEventsService } from '../../webhooks/webhook-events.service';
 import { ConversationsService } from './conversations.service';
@@ -112,6 +113,22 @@ describe('ConversationsService — webhook events', () => {
       await service.create(SCOPE, { name: 'x' });
 
       expect(createOrder).toEqual(['create', 'emit']);
+    });
+
+    it('turns a concurrent duplicate-name race into a clean ConflictError, not a raw Prisma error', async () => {
+      // The findUnique pre-check is a classic check-then-act race: two
+      // concurrent requests for the same name can both pass it, then both
+      // reach prisma.conversation.create — the loser must see the same
+      // ConflictError the pre-check itself throws, not an unhandled 500.
+      prisma.conversation.findUnique.mockResolvedValue(null);
+      prisma.conversation.create.mockRejectedValue(
+        Object.assign(new Error('Unique constraint failed on the fields: (`projectId`,`environment`,`name`)'), {
+          code: 'P2002',
+        }),
+      );
+
+      await expect(service.create(SCOPE, { name: 'general' })).rejects.toBeInstanceOf(ConflictError);
+      expect(webhooks.emit).not.toHaveBeenCalled();
     });
   });
 

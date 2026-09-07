@@ -23,6 +23,10 @@ import { WebhookEventsService } from '../../webhooks/webhook-events.service';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function isUniqueViolation(err: unknown): boolean {
+  return (err as { code?: string })?.code === 'P2002';
+}
+
 /** A conversation plus the calling actor's effective rights inside it. */
 export interface AuthorizedConversation {
   conversation: Conversation;
@@ -67,27 +71,42 @@ export class ConversationsService {
       linkedRoomName = room.name;
     }
 
-    const conversation = await this.prisma.conversation.create({
-      data: {
-        publicId: generateId('conv'),
-        projectId,
-        environment,
-        name: dto.name,
-        type: dto.roomId ? ConversationType.ROOM : (dto.type ?? ConversationType.CHANNEL),
-        roomId: dto.roomId,
-        retentionDays: dto.retentionDays,
-        metadata: toJsonInput(dto.metadata),
-        members: dto.members?.length
-          ? {
-              create: dto.members.map((m) => ({
-                projectId,
-                userId: m.userId,
-                role: m.role ?? ChatMemberRole.MEMBER,
-              })),
-            }
-          : undefined,
-      },
-    });
+    let conversation: Conversation;
+    try {
+      conversation = await this.prisma.conversation.create({
+        data: {
+          publicId: generateId('conv'),
+          projectId,
+          environment,
+          name: dto.name,
+          type: dto.roomId ? ConversationType.ROOM : (dto.type ?? ConversationType.CHANNEL),
+          roomId: dto.roomId,
+          retentionDays: dto.retentionDays,
+          metadata: toJsonInput(dto.metadata),
+          members: dto.members?.length
+            ? {
+                create: dto.members.map((m) => ({
+                  projectId,
+                  userId: m.userId,
+                  role: m.role ?? ChatMemberRole.MEMBER,
+                })),
+              }
+            : undefined,
+        },
+      });
+    } catch (err) {
+      // The findUnique check above is a plain check-then-act race: two
+      // concurrent creates for the same name can both pass it and then
+      // both reach here, with the loser hitting the unique constraint
+      // directly. Surface the same clean ConflictError the pre-check
+      // throws rather than a raw 500.
+      if (isUniqueViolation(err)) {
+        throw new ConflictError(
+          `A conversation named "${dto.name}" already exists in this project's ${environment} environment`,
+        );
+      }
+      throw err;
+    }
 
     // `void`, like every other emit: a developer's webhook endpoint must
     // never be able to fail a conversation that is already stored.
