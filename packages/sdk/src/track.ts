@@ -6,18 +6,18 @@ export type { TrackStats } from './internal/telemetry/track-stats';
 export type TrackKind = 'camera' | 'microphone' | 'screenShare' | 'unknown';
 
 /**
- * Structural interface, not a livekit-client import — livekit-client's
- * own Track class already matches this shape, and it's easy to fake in
- * tests.
+ * Structural interface rather than a concrete class, so a track can be
+ * backed by a raw `MediaStreamTrack` (which is what the native adapter
+ * does) or by a test double, without either having to inherit anything.
  */
 export interface TrackDelegate {
   readonly mediaStreamTrack: MediaStreamTrack;
   readonly mediaStream?: MediaStream;
   readonly isMuted: boolean;
   attach(element?: HTMLMediaElement): HTMLMediaElement;
-  // livekit-client's detach() returns one element or an array depending on
-  // whether you pass an argument — typed loosely to match both. Track.detach()
-  // below always normalizes to an array for a stable public API.
+  // Typed loosely to accept a delegate that returns either one element or
+  // an array. Track.detach() below always normalizes to an array, so the
+  // public API is stable regardless.
   detach(element?: HTMLMediaElement): HTMLMediaElement | HTMLMediaElement[];
 }
 
@@ -57,25 +57,25 @@ export abstract class Track {
 }
 
 export interface LocalTrackDelegate extends TrackDelegate {
-  // livekit-client's mute()/unmute() resolve to `this` — typed as `unknown`
-  // so that and a plain Promise<void> fake both satisfy the interface
+  // Typed as `unknown` so a delegate resolving to anything (or to
+  // nothing) satisfies the interface — callers here never use the value.
   mute(): Promise<unknown>;
   unmute(): Promise<unknown>;
   /**
    * Optional so a delegate that predates stats support (or a test double
    * that doesn't need them) still satisfies this interface unchanged — a
-   * purely additive capability, never a required one. An array covers
-   * livekit-client's video path, which reports one entry per simulcast
-   * encoding layer rather than a single stream.
+   * purely additive capability, never a required one. An array covers the
+   * video path, where a simulcast sender reports one `outbound-rtp` entry
+   * per encoding layer rather than a single stream.
    */
   getSenderStats?(): Promise<RawTrackStats | RawTrackStats[] | undefined>;
   /**
-   * Swaps the underlying MediaStreamTrack on an already-published sender —
-   * livekit-client's LocalTrack.replaceTrack() does this without
-   * renegotiating the RTC session. Optional for the same reason as
-   * getSenderStats — a delegate that predates Raven Effects still satisfies
-   * this interface, and LocalTrack.attachEffects() checks for it explicitly
-   * rather than assuming every delegate supports it.
+   * Swaps the underlying MediaStreamTrack on an already-published sender.
+   * `RTCRtpSender.replaceTrack()` does this without renegotiating, so
+   * nobody else in the room observes anything. Optional for the same
+   * reason as getSenderStats — a delegate that predates Raven Effects
+   * still satisfies this interface, and LocalTrack.attachEffects() checks
+   * for it explicitly rather than assuming every delegate supports it.
    */
   replaceTrack?(track: MediaStreamTrack, userProvidedTrack?: boolean): Promise<unknown>;
 }

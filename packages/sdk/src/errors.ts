@@ -11,6 +11,17 @@ export type RTCErrorCode =
   | 'NETWORK_ERROR'
   | 'SIGNALING_ERROR'
   | 'MEDIA_ERROR'
+  /**
+   * The platform cannot do this at all — e.g. screen sharing on a mobile
+   * browser with no `getDisplayMedia`.
+   *
+   * Added in the native-RTC release, and deliberately distinct from
+   * `MEDIA_ERROR`: "this device has no such capability" is a permanent
+   * fact a UI should reflect by hiding the button, while `MEDIA_ERROR`
+   * is a failure worth retrying. Spec §16 requires the two be
+   * distinguishable. Purely additive — no existing code changed meaning.
+   */
+  | 'NOT_SUPPORTED'
   | 'TIMEOUT';
 
 /** The one error type this SDK throws or emits on the `error` event. */

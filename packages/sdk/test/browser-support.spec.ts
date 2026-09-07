@@ -1,13 +1,18 @@
 import { getBrowserSupportDetails, isBrowserSupported } from '../src/browser-support';
 
 describe('getBrowserSupportDetails / isBrowserSupported', () => {
-  it('reports supported in jsdom, which the SDK\'s own test setup polyfills enough of', () => {
-    // jsdom provides WebSocket and RTCPeerConnection is polyfilled by
-    // livekit-client's own dependency chain in this test environment —
-    // real assertion is just that this never throws and returns a stable shape.
+  it('returns a stable shape, and names what jsdom is missing rather than throwing', () => {
+    // jsdom has WebSocket but neither RTCPeerConnection nor
+    // navigator.mediaDevices, and the SDK's test setup deliberately does
+    // not polyfill them globally — so this environment is genuinely
+    // unsupported, and saying so is the point. A detector that threw when
+    // a capability was absent would be useless exactly where it matters.
     const details = getBrowserSupportDetails();
-    expect(typeof details.supported).toBe('boolean');
-    expect(Array.isArray(details.missing)).toBe(true);
+
+    expect(details.supported).toBe(false);
+    expect(details.missing).toContain('RTCPeerConnection');
+    expect(details.missing).toContain('navigator.mediaDevices.getUserMedia');
+    expect(details.missing).not.toContain('WebSocket');
   });
 
   it('flags a missing capability by name rather than just returning false', () => {

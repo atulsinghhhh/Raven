@@ -2,10 +2,12 @@ import { assertTokenMatchesRoom, validateConfig, type ResolvedRTCClientConfig, t
 import { RTCError } from './errors';
 import { createLogger, type Logger } from './logger';
 import { listDevices } from './internal/devices/enumerate';
-import { createCameraTrack } from './internal/media/camera';
-import { createMicrophoneTrack } from './internal/media/microphone';
-import { createScreenShareTrack } from './internal/media/screen-share';
-import { LiveKitAdapter } from './internal/sfu/livekit-adapter';
+import {
+  createCameraTrack,
+  createMicrophoneTrack,
+  createScreenShareTrack,
+} from './internal/media/capture';
+import { RavenAdapter } from './internal/sfu/raven-adapter';
 import type { DeviceInfo, DeviceKind, SFUAdapter } from './internal/sfu/types';
 import { createTelemetryClient } from './internal/telemetry/telemetry-client';
 import { Room, type ConnectionDiagnostics } from './room';
@@ -14,7 +16,7 @@ import { SDK_VERSION } from './version';
 
 type AdapterFactory = (logger: Logger, autoReconnect: boolean) => SFUAdapter;
 
-const defaultAdapterFactory: AdapterFactory = (logger, autoReconnect) => new LiveKitAdapter(logger, autoReconnect);
+const defaultAdapterFactory: AdapterFactory = (logger, autoReconnect) => new RavenAdapter(logger, autoReconnect);
 
 /**
  * The SDK's entry point. Holds your RTC token/endpoint and lets you join a
@@ -80,12 +82,12 @@ export class RTCClient {
 
   /** Captures a camera track without joining/publishing — pair with `room.publish(track)`. */
   async createCameraTrack(deviceId?: string): Promise<LocalTrack> {
-    return createCameraTrack(deviceId);
+    return createCameraTrack(deviceId ? { deviceId } : {});
   }
 
   /** Captures a microphone track without joining/publishing — pair with `room.publish(track)`. */
   async createMicrophoneTrack(deviceId?: string): Promise<LocalTrack> {
-    return createMicrophoneTrack(deviceId);
+    return createMicrophoneTrack(deviceId ? { deviceId } : {});
   }
 
   /** Captures a screen-share track without joining/publishing — pair with `room.publish(track)`. */

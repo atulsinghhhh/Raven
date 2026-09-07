@@ -513,3 +513,73 @@ describe('Room — periodic stats monitor', () => {
     expect(statsCalls).toHaveLength(1);
   });
 });
+
+/**
+ * `waitUntilConnected()` exists because `join()` resolves on the
+ * control-plane join, not on the media connection — a real behaviour
+ * difference from the LiveKit-backed SDK, where `connect()` resolved only
+ * once media was up. See docs/migration/from-livekit.md.
+ */
+describe('Room — waitUntilConnected', () => {
+  it('resolves immediately when already connected', async () => {
+    const adapter = new FakeAdapter();
+    adapter.setState('connected');
+    const room = new Room(adapter, 'room-1', logger);
+
+    await expect(room.waitUntilConnected()).resolves.toBeUndefined();
+  });
+
+  it('resolves when the connection comes up after joining', async () => {
+    const adapter = new FakeAdapter();
+    adapter.setState('connecting');
+    const room = new Room(adapter, 'room-1', logger);
+
+    const waiting = room.waitUntilConnected(1_000);
+    adapter.setState('connected');
+
+    await expect(waiting).resolves.toBeUndefined();
+  });
+
+  it('rejects rather than hanging when the connection fails', async () => {
+    const adapter = new FakeAdapter();
+    adapter.setState('connecting');
+    const room = new Room(adapter, 'room-1', logger);
+
+    const waiting = room.waitUntilConnected(1_000);
+    adapter.setState('failed');
+
+    await expect(waiting).rejects.toMatchObject({ code: 'CONNECTION_FAILED' });
+  });
+
+  it('rejects on timeout, naming the state it was stuck in', async () => {
+    // A subscriber in a room where nobody publishes can legitimately stay
+    // 'connecting' — there is nothing to negotiate. Reporting the state
+    // is what tells those two cases apart.
+    jest.useFakeTimers();
+    try {
+      const adapter = new FakeAdapter();
+      adapter.setState('connecting');
+      const room = new Room(adapter, 'room-1', logger);
+
+      const waiting = room.waitUntilConnected(5_000);
+      const assertion = expect(waiting).rejects.toThrow(/Still connecting after 5000ms/);
+      await jest.advanceTimersByTimeAsync(5_000);
+      await assertion;
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('stops listening once settled, so a later transition cannot double-settle', async () => {
+    const adapter = new FakeAdapter();
+    adapter.setState('connecting');
+    const room = new Room(adapter, 'room-1', logger);
+
+    const waiting = room.waitUntilConnected(1_000);
+    adapter.setState('connected');
+    await waiting;
+
+    // Would throw an unhandled rejection if the handler were still bound.
+    expect(() => adapter.setState('failed')).not.toThrow();
+  });
+});

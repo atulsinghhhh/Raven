@@ -11,15 +11,26 @@ import { SDK_VERSION } from './version';
 export type ConnectionState = SdkConnectionState;
 
 /**
- * Safe, non-secret diagnostic snapshot (Phase 9 spec §12) —
- * `iceConnectionState`/`signalingState` are `undefined` when the
- * underlying SFU adapter doesn't expose them (currently true for the
- * LiveKit adapter — see docs/sdk.md#known-limitations); never fabricated.
+ * Safe, non-secret diagnostic snapshot — never a token, never a secret,
+ * safe to paste into a bug report as-is.
+ *
+ * Every field is `undefined` rather than guessed when it is not known.
+ * `iceConnectionState`/`signalingState` were always `undefined` under the
+ * LiveKit adapter, which did not expose them; the native adapter does, so
+ * they now carry the states that actually explain a failed connection.
  */
 export interface ConnectionDiagnostics {
   connectionState: ConnectionState;
   iceConnectionState?: string;
   signalingState?: string;
+  /**
+   * What the SFU thinks of this connection. Worth having next to the
+   * local states because the two can disagree, and "the server says
+   * failed while the browser says connected" is a diagnosis rather than a
+   * contradiction.
+   */
+  remoteIceConnectionState?: string;
+  remotePeerConnectionState?: string;
   reconnectCount: number;
   sdkVersion: string;
   platform: string;
@@ -180,16 +191,21 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
   }
 
   /**
-   * A safe, non-secret diagnostic snapshot for support/debugging (Phase 9
-   * spec §12) — never a token, never a secret, safe to print or attach to
-   * a bug report as-is.
+   * A safe, non-secret diagnostic snapshot for support and debugging.
+   *
+   * Synchronous and cheap by design — safe to call from anywhere, any
+   * time, including from an error handler. Live media stats are a
+   * separate, `async` call; see `getConnectionStats()`.
    */
   getDiagnostics(): ConnectionDiagnostics {
     const { platform, browser } = detectPlatform();
+    const remote = this.adapter.getRemoteConnectionState?.() ?? {};
     return {
       connectionState: this.connectionState,
-      iceConnectionState: undefined,
-      signalingState: undefined,
+      iceConnectionState: this.adapter.getIceConnectionState?.(),
+      signalingState: this.adapter.getSignalingState?.(),
+      remoteIceConnectionState: remote.iceState,
+      remotePeerConnectionState: remote.peerState,
       reconnectCount: this.reconnectCount,
       sdkVersion: SDK_VERSION,
       platform,
@@ -326,6 +342,69 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
     // have to think about ArrayBuffer vs SharedArrayBuffer generics
     const bytes = typeof payload === 'string' ? new TextEncoder().encode(payload) : new Uint8Array(payload);
     await this.adapter.sendData(bytes);
+  }
+
+  /**
+   * Resolves once the media connection is actually established.
+   *
+   * # Why this exists
+   *
+   * `client.join()` resolves when the **control plane** has admitted
+   * you: the room is joined, you know who else is in it, and you can
+   * publish. The media connection completes a moment later, after ICE and
+   * DTLS — so `connectionState` is `'connecting'` for a short window
+   * after `join()` returns. That is the honest shape of an SFU
+   * connection, and it is why `'connected'` is an event rather than a
+   * postcondition of joining.
+   *
+   * Most callers need none of this: `enableCamera()` and
+   * `enableMicrophone()` work during that window, and the `connected`
+   * event is the right thing to drive a UI from. This is for code that
+   * genuinely has to block — a test, or a flow that must not proceed
+   * until media is live.
+   *
+   * Resolves immediately if already connected. Rejects on `'failed'`, and
+   * on timeout, rather than resolving with a connection that is not there.
+   *
+   * A subscriber joining a room where nobody is publishing may legitimately
+   * stay `'connecting'`: with no tracks on either side there is nothing to
+   * negotiate, so waiting here would time out on a connection that is not
+   * broken. Drive a UI from the `connected` event instead of blocking on
+   * this when that is possible.
+   */
+  waitUntilConnected(timeoutMs = 15_000): Promise<void> {
+    if (this.connectionState === 'connected') {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      const settle = (fn: () => void) => {
+        clearTimeout(timer);
+        this.off('connectionStateChanged', onState);
+        fn();
+      };
+
+      const onState = (state: ConnectionState) => {
+        if (state === 'connected') {
+          settle(resolve);
+        } else if (state === 'failed') {
+          settle(() => reject(new RTCError('CONNECTION_FAILED', 'The connection failed while waiting for it')));
+        }
+      };
+
+      const timer = setTimeout(() => {
+        settle(() =>
+          reject(
+            new RTCError(
+              'CONNECTION_FAILED',
+              `Still ${this.connectionState} after ${timeoutMs}ms — the media connection did not establish`,
+            ),
+          ),
+        );
+      }, timeoutMs);
+
+      this.on('connectionStateChanged', onState);
+    });
   }
 
   /** Leaves the room, stops local tracks, and closes the underlying connection. */

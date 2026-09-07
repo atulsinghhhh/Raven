@@ -1,12 +1,14 @@
 import type { TrackKind } from '../../track';
 
 /**
- * Structural match for livekit-client's `{Audio,Video}{Sender,Receiver}Stats`
- * — duck-typed rather than imported, so this file (and everything that
- * depends on it) stays usable if the SFU adapter is ever swapped. Every
- * field here is a raw WebRTC stat, in the units the spec defines them in
- * (seconds, not milliseconds) — `normalizeTrackStats` below is where that
- * gets converted into Raven's own vocabulary.
+ * One flattened WebRTC stats sample.
+ *
+ * Duck-typed rather than tied to any particular source, which is what let
+ * this file survive the move from LiveKit's stats objects to reading an
+ * `RTCStatsReport` directly (see `internal/telemetry/rtc-stats.ts`). Every
+ * field is a raw WebRTC stat in the units the spec defines it in (seconds,
+ * not milliseconds); `normalizeTrackStats` below converts into Raven's own
+ * vocabulary.
  */
 export interface RawTrackStats {
   type?: 'audio' | 'video';
@@ -29,7 +31,7 @@ export interface RawTrackStats {
 }
 
 /**
- * Raven's own normalized shape — never raw WebRTC/livekit types on a
+ * Raven's own normalized shape — never a raw WebRTC stats object on a
  * public class. Every field is optional and omitted rather than set to
  * `0`/`null` when the browser or SFU didn't report it: a 0% packet loss
  * figure and "we don't know" are different facts, and this never fabricates

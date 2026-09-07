@@ -1,7 +1,7 @@
-// jsdom (jest's browser-like test environment) doesn't implement
-// TextEncoder/TextDecoder or any WebRTC media types — polyfill just enough
-// for the SDK's own code (not livekit-client's full runtime) to import and
-// run under test.
+// jsdom (jest's browser-like test environment) implements neither
+// TextEncoder/TextDecoder nor any WebRTC type. This polyfills just enough
+// for the SDK to import and run; tests that need to drive a connection
+// install richer fakes themselves (test/helpers/fake-webrtc.ts).
 import { TextDecoder, TextEncoder } from 'util';
 
 if (typeof globalThis.TextEncoder === 'undefined') {
