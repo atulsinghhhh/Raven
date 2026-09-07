@@ -1,5 +1,6 @@
 import { Raven } from '../src/raven';
-import { __calls, __resetCalls } from './mocks/livekit-react-native';
+import { __calls as webrtcCalls, __resetCalls as resetWebrtcCalls } from './mocks/react-native-webrtc';
+import { __calls as audioCalls, __resetCalls as resetAudioCalls } from './mocks/react-native-incall-manager';
 import { __appState, __emitAppState, PermissionsAndroid, __setPlatform } from './mocks/react-native';
 
 /**
@@ -84,7 +85,8 @@ beforeEach(() => {
   // Clears call history but keeps mock implementations — without this,
   // "was not called" assertions see calls from earlier tests.
   jest.clearAllMocks();
-  __resetCalls();
+  resetWebrtcCalls();
+    resetAudioCalls();
   __appState.listeners.clear();
   __appState.current = 'active';
   __setPlatform('android');
@@ -104,7 +106,7 @@ describe('construction', () => {
     makeRaven();
     // Forgetting registerGlobals() is the single most common React Native
     // WebRTC mistake. Doing it in the constructor removes the footgun.
-    expect(__calls.registerGlobals).toBeGreaterThanOrEqual(1);
+    expect(webrtcCalls.registerGlobals).toBeGreaterThanOrEqual(1);
   });
 
   it('has no chat handle without a chat token', () => {
@@ -120,7 +122,7 @@ describe('join', () => {
 
     // Starting it afterwards means the first moments of remote audio play
     // through the wrong route on iOS.
-    expect(__calls.startAudioSession).toBe(1);
+    expect(audioCalls.start).toBe(1);
     expect(rtcState.joins).toEqual(['room_123']);
   });
 
@@ -152,13 +154,13 @@ describe('join', () => {
 
     // Leaving it running keeps the app's audio category overridden on
     // iOS, which can duck other apps' audio indefinitely.
-    expect(__calls.startAudioSession).toBe(1);
-    expect(__calls.stopAudioSession).toBe(1);
+    expect(audioCalls.start).toBe(1);
+    expect(audioCalls.stop).toBe(1);
   });
 
   it('leaves the audio session alone when the app manages it', async () => {
     await makeRaven({ manageAudioSession: false }).join('room_123');
-    expect(__calls.startAudioSession).toBe(0);
+    expect(audioCalls.start).toBe(0);
   });
 
   it('starts watching the app lifecycle only once joined', async () => {
@@ -176,7 +178,7 @@ describe('leave', () => {
     await raven.join('room_123');
     await raven.leave();
 
-    expect(__calls.stopAudioSession).toBe(1);
+    expect(audioCalls.stop).toBe(1);
     // A listener surviving the call is a leak that keeps the Raven
     // instance — and the room it holds — alive forever (spec §19).
     expect(__appState.listeners.size).toBe(0);
@@ -195,7 +197,7 @@ describe('leave', () => {
     await expect(raven.leave()).resolves.toBeUndefined();
     // The session was already stopped; stopping again would unbalance
     // the native session refcount.
-    expect(__calls.stopAudioSession).toBe(1);
+    expect(audioCalls.stop).toBe(1);
   });
 });
 
@@ -265,7 +267,7 @@ describe('messaging-only', () => {
     // A messaging-only app showing a camera dialog before failing would
     // be worse than the failure itself.
     expect(PermissionsAndroid.requestMultiple).not.toHaveBeenCalled();
-    expect(__calls.startAudioSession).toBe(0);
+    expect(audioCalls.start).toBe(0);
   });
 
   it('leaves and disposes cleanly without an RTC client', async () => {

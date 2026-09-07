@@ -16,10 +16,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # The SFU client. Same role livekit-client plays in @raven/rtc on web:
-  # it brings the native WebRTC implementation for iOS and Android, and it
-  # is never re-exported from this package's public API.
-  livekit_client: ^2.11.0
+  # The native WebRTC implementation for iOS, Android, macOS and Web.
+  # Same role react-native-webrtc plays in @corvidhq/react-native: it
+  # provides RTCPeerConnection, getUserMedia and the renderer, and it is
+  # never re-exported from this package's public API.
+  flutter_webrtc: ^1.6.0
+  # The signaling transport. package:web_socket_channel rather than
+  # dart:io's WebSocket because Flutter Web is a supported target and
+  # dart:io is unavailable there.
+  web_socket_channel: ^3.0.0
   meta: ^1.15.0
 
 dev_dependencies:
@@ -29,6 +34,10 @@ dev_dependencies:
 
 # Deliberately not declared as a plugin. raven_rtc ships no platform
 # channels and no native code: the iOS and Android WebRTC implementation
-# arrives through livekit_client (which wraps flutter_webrtc), exactly as
-# @raven/rtc gets it from livekit-client on the web. A second native layer
-# would mean two implementations competing for the same camera.
+# arrives through flutter_webrtc. A second native layer would mean two
+# implementations competing for the same camera.
+#
+# What this package *does* own, and previously did not, is the signaling
+# protocol and the peer-connection lifecycle — see lib/src/internal. Those
+# used to come from livekit_client; they are Raven's own now, which is what
+# lets Raven's SFU change without an SDK release.

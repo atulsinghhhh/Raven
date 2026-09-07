@@ -77,7 +77,7 @@ export type {
  * here is a `Room` there — which is what makes the two platforms one
  * mental model rather than two APIs that resemble each other (spec §10).
  *
- * LiveKit types are never re-exported, on either platform.
+ * A WebRTC type is never re-exported, on either platform.
  */
 export type {
   ConnectionState,
@@ -94,7 +94,8 @@ export type {
   LogLevel,
 } from '@corvidhq/rtc';
 
-// Deliberately not exported: the LiveKit adapter, `registerGlobals`
-// internals, RTCView, the chat WebSocket protocol, and every other
-// implementation detail. A developer using this package should never
-// need to know WebRTC or a WebSocket is involved (spec §2, §21).
+// Deliberately not exported: the signaling client, the peer-connection
+// adapter, `registerGlobals` internals, RTCView, the chat WebSocket
+// protocol, and every other implementation detail. A developer using this
+// package should never need to know WebRTC or a WebSocket is involved
+// (spec §2, §21).

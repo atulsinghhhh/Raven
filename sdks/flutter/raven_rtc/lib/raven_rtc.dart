@@ -36,9 +36,19 @@ export 'src/permissions.dart' show RavenPermissions;
 export 'src/raven.dart' show Raven, RavenIceServer;
 export 'src/room.dart' show RavenRoom;
 export 'src/types.dart'
-    show RavenConnectionState, RavenParticipant, RavenTrackKind;
+    show
+        RavenConnectionState,
+        RavenParticipant,
+        RavenRenderableTrack,
+        RavenTrackKind;
 export 'src/video_view.dart' show RavenVideoFit, RavenVideoView;
 
-// Deliberately not exported: livekit_client, flutter_webrtc, the
-// connection adapter, and every other implementation detail. A developer
-// using Raven should never need to name a WebRTC type (spec §2).
+// Deliberately not exported: flutter_webrtc, the signaling client, the
+// peer-connection engine, and every other implementation detail. A
+// developer using Raven should never need to name a WebRTC type (spec §2).
+//
+// `RavenRenderableTrack` is the one borderline case — it carries a
+// flutter_webrtc MediaStream, and it is exported only so the type
+// `RavenParticipant.videoTrackFor` returns is nameable rather than leaked
+// and unmentionable. It exists for RavenVideoView; an application should
+// not need it.

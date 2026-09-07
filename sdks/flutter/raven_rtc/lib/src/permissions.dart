@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:livekit_client/livekit_client.dart' as lk;
+import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 
 import 'errors.dart';
 
@@ -78,11 +78,16 @@ class RavenPermissions {
   /// capture session, and holding it would leave the camera indicator lit
   /// on a screen that isn't showing video.
   static Future<bool> _probe(RavenPermission permission) async {
-    lk.LocalTrack? track;
+    rtc.MediaStream? stream;
     try {
-      track = permission == RavenPermission.camera
-          ? await lk.LocalVideoTrack.createCameraTrack()
-          : await lk.LocalAudioTrack.create();
+      // One device at a time: asking for both would raise both prompts
+      // together, and a refusal of either would be reported as a refusal
+      // of both.
+      stream = await rtc.navigator.mediaDevices.getUserMedia(
+        permission == RavenPermission.camera
+            ? {'video': true, 'audio': false}
+            : {'audio': true, 'video': false},
+      );
       return true;
     } catch (error) {
       // Logged rather than swallowed: a developer debugging a refused
@@ -91,8 +96,10 @@ class RavenPermissions {
       debugPrint('[raven] ${permission.name} permission probe failed: $error');
       return false;
     } finally {
-      await track?.stop();
-      await track?.dispose();
+      for (final track in stream?.getTracks() ?? const []) {
+        await track.stop();
+      }
+      await stream?.dispose();
     }
   }
 }

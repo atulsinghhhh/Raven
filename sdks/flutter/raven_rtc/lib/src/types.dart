@@ -1,4 +1,5 @@
-import 'package:livekit_client/livekit_client.dart' as lk;
+import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
+import 'package:meta/meta.dart';
 
 /// Connection lifecycle, mirroring the web SDK's `ConnectionState`.
 enum RavenConnectionState {
@@ -9,73 +10,85 @@ enum RavenConnectionState {
   failed,
 }
 
-/// What a track carries. `unknown` exists because the SFU can in
-/// principle report a source this version doesn't know — treating that as
-/// an error would break an app on a server upgrade it didn't ask for.
+/// What a track carries.
+///
+/// `unknown` exists because the SFU can in principle report a source this
+/// version doesn't know — treating that as an error would break an app on
+/// a server upgrade it didn't ask for.
 enum RavenTrackKind { camera, microphone, screenShare, unknown }
+
+/// @internal Maps the wire protocol's source string onto Raven's enum.
+RavenTrackKind trackKindFromSource(String source) => switch (source) {
+      'camera' => RavenTrackKind.camera,
+      'microphone' => RavenTrackKind.microphone,
+      'screenShare' => RavenTrackKind.screenShare,
+      _ => RavenTrackKind.unknown,
+    };
+
+/// @internal The renderable half of a track, as a view needs it.
+@immutable
+class RavenRenderableTrack {
+  const RavenRenderableTrack({
+    required this.trackId,
+    required this.stream,
+    required this.kind,
+  });
+
+  final String trackId;
+  final rtc.MediaStream stream;
+  final RavenTrackKind kind;
+}
 
 /// A participant in a room.
 ///
-/// Wraps the SFU's participant rather than exposing it. `identity` is the
-/// value your backend put in the token, which is the only participant
-/// identifier an application should need to reason about.
+/// A value object built from what the SFU has reported, rather than a
+/// wrapper around a client library's participant. It is a snapshot: read
+/// it again after a change notification rather than holding one and
+/// expecting it to update.
+///
+/// `identity` is the value your backend put in the token, which is the
+/// only participant identifier an application should need to reason
+/// about.
+@immutable
 class RavenParticipant {
-  RavenParticipant._(this._participant, {required this.isLocal});
+  const RavenParticipant({
+    required this.identity,
+    required this.isLocal,
+    this.metadata,
+    Map<RavenTrackKind, RavenRenderableTrack> videoTracks = const {},
+    Set<RavenTrackKind> liveSources = const {},
+  })  : _videoTracks = videoTracks,
+        _liveSources = liveSources;
 
-  final lk.Participant _participant;
+  /// The identity your backend minted the token for.
+  final String identity;
 
   /// True for the device this SDK is running on.
   final bool isLocal;
 
-  /// The identity your backend minted the token for.
-  String get identity => _participant.identity;
-
   /// Opaque application metadata attached when the token was minted.
-  String? get metadata =>
-      _participant.metadata?.isEmpty ?? true ? null : _participant.metadata;
+  final String? metadata;
+
+  final Map<RavenTrackKind, RavenRenderableTrack> _videoTracks;
+  final Set<RavenTrackKind> _liveSources;
 
   /// Whether this participant is currently publishing camera video.
   ///
   /// False while muted, which is what a UI wants: a muted camera should
   /// show an avatar, not a frozen last frame.
-  bool get isCameraEnabled => _hasLiveTrack(lk.TrackSource.camera);
+  bool get isCameraEnabled => _liveSources.contains(RavenTrackKind.camera);
 
-  bool get isMicrophoneEnabled => _hasLiveTrack(lk.TrackSource.microphone);
+  bool get isMicrophoneEnabled =>
+      _liveSources.contains(RavenTrackKind.microphone);
 
-  bool get isScreenSharing => _hasLiveTrack(lk.TrackSource.screenShareVideo);
-
-  bool _hasLiveTrack(lk.TrackSource source) {
-    for (final publication in _participant.trackPublications.values) {
-      if (publication.source == source) {
-        return !publication.muted && publication.track != null;
-      }
-    }
-    return false;
-  }
+  bool get isScreenSharing =>
+      _liveSources.contains(RavenTrackKind.screenShare);
 
   /// @internal Used by [RavenVideoView] to reach the renderable track.
-  /// Not part of the public API — a developer never handles a LiveKit
-  /// object, and the underscore keeps it out of their autocomplete.
-  lk.VideoTrack? videoTrackFor(RavenTrackKind kind) {
-    final source = kind == RavenTrackKind.screenShare
-        ? lk.TrackSource.screenShareVideo
-        : lk.TrackSource.camera;
-
-    for (final publication in _participant.trackPublications.values) {
-      if (publication.source == source && !publication.muted) {
-        final track = publication.track;
-        if (track is lk.VideoTrack) {
-          return track;
-        }
-      }
-    }
-    return null;
-  }
-
-  /// @internal
-  static RavenParticipant wrap(lk.Participant participant,
-          {required bool isLocal}) =>
-      RavenParticipant._(participant, isLocal: isLocal);
+  /// Not part of the public API — a developer never handles a WebRTC
+  /// object, and the doc comment keeps that intent explicit.
+  RavenRenderableTrack? videoTrackFor(RavenTrackKind kind) =>
+      _videoTracks[kind];
 
   @override
   bool operator ==(Object other) =>
@@ -86,18 +99,4 @@ class RavenParticipant {
 
   @override
   String toString() => 'RavenParticipant($identity${isLocal ? ', local' : ''})';
-}
-
-/// @internal Maps the SFU's connection state onto Raven's.
-RavenConnectionState mapConnectionState(lk.ConnectionState state) {
-  switch (state) {
-    case lk.ConnectionState.disconnected:
-      return RavenConnectionState.disconnected;
-    case lk.ConnectionState.connecting:
-      return RavenConnectionState.connecting;
-    case lk.ConnectionState.connected:
-      return RavenConnectionState.connected;
-    case lk.ConnectionState.reconnecting:
-      return RavenConnectionState.reconnecting;
-  }
 }

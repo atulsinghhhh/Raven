@@ -1,6 +1,7 @@
 import { RavenLiveStream, joinLiveStream } from '../src/live-stream';
 import type { LiveStreamCredentials } from '../src/types';
-import { __calls, __resetCalls } from './mocks/livekit-react-native';
+import { __calls as webrtcCalls, __resetCalls as resetWebrtcCalls } from './mocks/react-native-webrtc';
+import { __calls as audioCalls, __resetCalls as resetAudioCalls } from './mocks/react-native-incall-manager';
 import { __appState, PermissionsAndroid, __setPlatform } from './mocks/react-native';
 
 /**
@@ -50,7 +51,8 @@ function credentials(overrides: Partial<LiveStreamCredentials> = {}): LiveStream
 
 beforeEach(() => {
   jest.clearAllMocks();
-  __resetCalls();
+  resetWebrtcCalls();
+    resetAudioCalls();
   __appState.listeners.clear();
   __appState.current = 'active';
   __setPlatform('android');
@@ -127,6 +129,6 @@ describe('RavenLiveStream', () => {
     await stream.join();
 
     expect(__appState.listeners.size).toBe(1);
-    expect(__calls.startAudioSession).toBe(1);
+    expect(audioCalls.start).toBe(1);
   });
 });

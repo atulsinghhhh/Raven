@@ -1,5 +1,5 @@
 import { __resetBootstrapForTests, bootstrapRavenNative } from '../src/internal/bootstrap';
-import { __calls, __resetCalls } from './mocks/livekit-react-native';
+import { __calls, __resetCalls } from './mocks/react-native-webrtc';
 
 beforeEach(() => {
   __resetBootstrapForTests();

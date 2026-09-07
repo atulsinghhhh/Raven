@@ -16,8 +16,8 @@ export default defineConfig({
   external: [
     'react',
     'react-native',
-    '@livekit/react-native',
-    '@livekit/react-native-webrtc',
+    'react-native-webrtc',
+    'react-native-incall-manager',
     '@react-native-community/netinfo',
     '@corvidhq/rtc',
     '@corvidhq/chat',

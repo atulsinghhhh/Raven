@@ -83,10 +83,10 @@ function normalize(status: AppStateStatus): RavenAppState {
  *
  * `@react-native-community/netinfo` is an *optional* peer dependency. It's
  * the standard way to observe connectivity in React Native, but it is
- * another native module to link, and Raven works without it — LiveKit's
- * own ICE restart eventually notices a dead path on its own. Having it
- * just makes recovery faster, so this resolves it lazily and degrades to
- * a no-op when it isn't installed.
+ * another native module to link, and Raven works without it — ICE
+ * eventually notices a dead path on its own. Having it just makes
+ * recovery faster, so this resolves it lazily and degrades to a no-op
+ * when it isn't installed.
  */
 export class NetworkWatcher {
   private unsubscribe?: () => void;

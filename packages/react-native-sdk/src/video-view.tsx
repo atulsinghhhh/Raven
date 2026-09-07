@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
-import { RTCView } from '@livekit/react-native-webrtc';
+import { RTCView } from 'react-native-webrtc';
 import type { LocalParticipant, RemoteParticipant, Room, Track, TrackKind } from '@corvidhq/rtc';
 
 export interface RavenVideoViewProps {
@@ -145,11 +145,10 @@ function findVideoTrack(
  * Bridges a Raven track to the native renderer.
  *
  * `track.mediaStream` is public API on `@corvidhq/rtc`, and under React
- * Native it holds an `@livekit/react-native-webrtc` `MediaStream` — which
- * carries a `toURL()` the native view can bind to. Going through the
- * public surface is what keeps `@corvidhq/rtc` unmodified (spec §22); the
- * cast covers the one method React Native adds that the DOM type doesn't
- * declare.
+ * Native it holds a `react-native-webrtc` `MediaStream` — which carries a
+ * `toURL()` the native view can bind to. Going through the public surface
+ * is what keeps `@corvidhq/rtc` unmodified; the cast covers the one method
+ * React Native adds that the DOM type doesn't declare.
  */
 function toStreamUrl(track: Track): string | undefined {
   const stream = track.mediaStream as (MediaStream & { toURL?: () => string }) | undefined;

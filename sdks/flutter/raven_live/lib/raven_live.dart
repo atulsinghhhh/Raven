@@ -38,7 +38,7 @@ export 'src/types.dart'
         RavenLiveStreamRtcCredentials;
 
 // Deliberately not re-exported here: everything raven_rtc/raven_chat
-// themselves keep private (livekit_client, flutter_webrtc, the WebSocket
-// channel, the frame vocabulary). Import raven_rtc/raven_chat directly
-// for anything beyond RavenRoom/RavenChat — this package only adds the
-// stream-level composition on top.
+// themselves keep private (flutter_webrtc, the signaling client, the
+// peer-connection engine, the frame vocabulary). Import raven_rtc or
+// raven_chat directly for anything beyond RavenRoom/RavenChat — this
+// package only adds the stream-level composition on top.

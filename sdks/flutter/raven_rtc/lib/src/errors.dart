@@ -21,10 +21,10 @@ enum RavenErrorCode {
 
 /// The one error type this SDK throws.
 ///
-/// Never a raw `livekit_client` exception, never a `PlatformException`
-/// from the native layer. Those leak implementation details a developer
-/// using Raven has no way to act on, and would tie application error
-/// handling to whichever SFU Raven happens to use.
+/// Never a raw `flutter_webrtc` error, never a `PlatformException` from
+/// the native layer. Those leak implementation details a developer using
+/// Raven has no way to act on, and would tie application error handling
+/// to whichever WebRTC implementation Raven happens to use.
 class RavenException implements Exception {
   const RavenException(this.code, this.message, [this.cause]);
 

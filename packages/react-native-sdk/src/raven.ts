@@ -221,10 +221,10 @@ export class Raven {
   // -------------------------------------------------------------------------
 
   private handleForeground(): void {
-    // Nothing is force-reconnected here. LiveKit keeps the session alive
-    // across a short background period, and tearing it down on every
-    // app-switch would be far more disruptive than the occasional slow
-    // ICE recovery. If the connection genuinely died, its own reconnect
+    // Nothing is force-reconnected here. A PeerConnection survives a
+    // short background period, and tearing it down on every app-switch
+    // would be far more disruptive than the occasional slow ICE
+    // recovery. If the connection genuinely died, the SDK's own reconnect
     // logic is already running.
     this.config.onAppStateChange?.('active');
   }
@@ -236,10 +236,10 @@ export class Raven {
   /**
    * Connectivity came back — most often a Wi-Fi → cellular handover.
    *
-   * LiveKit will notice on its own eventually, but "eventually" is an ICE
-   * timeout away, and on mobile that transition happens often enough to
-   * be worth shortcutting. Only nudges a connection that has actually
-   * failed; a healthy one is left alone.
+   * ICE notices on its own eventually, but "eventually" is a timeout
+   * away, and on mobile that transition happens often enough to be worth
+   * shortcutting. Only nudges a connection that has actually failed; a
+   * healthy one is left alone.
    */
   private handleNetworkRegained(): void {
     const state = this.currentRoom?.connectionState;

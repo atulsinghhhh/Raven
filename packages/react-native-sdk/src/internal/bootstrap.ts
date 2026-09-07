@@ -1,4 +1,4 @@
-import { registerGlobals } from '@livekit/react-native';
+import { registerGlobals } from 'react-native-webrtc';
 
 let registered = false;
 
@@ -9,8 +9,14 @@ let registered = false;
  * runs unmodified on a phone. `registerGlobals()` puts
  * `RTCPeerConnection`, `navigator.mediaDevices`, `MediaStream` and friends
  * on the global object, backed by the native iOS/Android WebRTC
- * implementation in `@livekit/react-native-webrtc`. From that point on,
- * the code in `@corvidhq/rtc` cannot tell it isn't in a browser.
+ * implementation in `react-native-webrtc`. From that point on, the code in
+ * `@corvidhq/rtc` cannot tell it isn't in a browser.
+ *
+ * This matters more since Raven's own SFU replaced LiveKit: the web SDK
+ * now drives `RTCPeerConnection` directly rather than delegating to a
+ * client library, so what it needs from the platform is exactly the
+ * standard WebRTC API — which is precisely what `react-native-webrtc`
+ * provides.
  *
  * That's the whole architecture of this package: Raven's RTC and chat
  * logic is shared with web, and only the parts that genuinely differ —

@@ -8,6 +8,8 @@ analyzer:
     # A public SDK's docs are part of its API surface, so a missing one on
     # an exported member is an error here rather than a suggestion.
     public_member_api_docs: ignore
+  exclude:
+    - build/**
 
 linter:
   rules:
