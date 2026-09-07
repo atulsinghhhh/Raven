@@ -13,9 +13,9 @@ import { Capability } from '../projects/project-permissions';
 /**
  * Dashboard/CLI-facing view of a project's rooms — guarded by developer
  * session JWT, not the ApiKeyAuthGuard that RoomsController uses for a
- * developer's backend. GET routes enrich each room with live LiveKit
- * participant state, since the Postgres row alone can't say whether
- * anyone's actually connected. The POST route (for `raven rooms create`)
+ * developer's backend. GET routes enrich each room with live participant
+ * state read from the room's assigned SFU node, since the Postgres row
+ * alone can't say whether anyone's actually connected. The POST route (for `raven rooms create`)
  * reuses the same RoomsService.create() as the API-key-guarded
  * controller — one creation path, two auth entrypoints (human via JWT,
  * backend via API key), not two separate implementations.
@@ -47,7 +47,7 @@ export class DashboardRoomsController {
 
   @Get()
   @ApiOperation({ summary: "List a project's rooms with live participant counts" })
-  @ApiResponse({ status: 200, description: 'Rooms, each with liveParticipantCount (null if LiveKit is unreachable)' })
+  @ApiResponse({ status: 200, description: 'Rooms, each with liveParticipantCount (null if the RTC server is unreachable)' })
   @ApiNotFoundResponse({ description: 'Project not found, or not owned by the caller' })
   async findAll(
     @CurrentUser() user: AuthenticatedUser,
@@ -60,7 +60,7 @@ export class DashboardRoomsController {
 
   @Get(':roomId')
   @ApiOperation({ summary: 'Get one room with its live participants and published tracks' })
-  @ApiResponse({ status: 200, description: 'Room with liveParticipants (null if LiveKit is unreachable)' })
+  @ApiResponse({ status: 200, description: 'Room with liveParticipants (null if the RTC server is unreachable)' })
   @ApiNotFoundResponse({ description: 'Project or room not found, or not owned by the caller' })
   async findOne(
     @CurrentUser() user: AuthenticatedUser,

@@ -1,9 +1,9 @@
 import { createServer, Server } from 'node:http';
 import { createSocket, Socket } from 'node:dgram';
 import { AddressInfo } from 'node:net';
-import { checkLiveKitHttp, checkStunBinding } from './dependency-checks.util';
+import { checkSfuHttp, checkStunBinding } from './dependency-checks.util';
 
-describe('checkLiveKitHttp', () => {
+describe('checkSfuHttp', () => {
   let server: Server;
   let port: number;
 
@@ -11,36 +11,54 @@ describe('checkLiveKitHttp', () => {
     server?.close();
   });
 
-  it('resolves true when the HTTP endpoint responds with a 2xx status', async () => {
+  it('resolves true when the node answers 2xx', async () => {
     server = createServer((_req, res) => res.writeHead(200).end('ok'));
     await new Promise<void>((resolve) => server.listen(0, resolve));
     port = (server.address() as AddressInfo).port;
 
-    await expect(checkLiveKitHttp(`ws://localhost:${port}`)).resolves.toBe(true);
+    await expect(checkSfuHttp(`http://localhost:${port}`)).resolves.toBe(true);
   });
 
-  it('resolves false when the HTTP endpoint responds with a non-2xx status', async () => {
-    server = createServer((_req, res) => res.writeHead(503).end('nope'));
-    await new Promise<void>((resolve) => server.listen(0, resolve));
-    port = (server.address() as AddressInfo).port;
-
-    await expect(checkLiveKitHttp(`ws://localhost:${port}`)).resolves.toBe(false);
-  });
-
-  it('resolves false (not throw) when nothing is listening at all', async () => {
-    await expect(checkLiveKitHttp('ws://localhost:1')).resolves.toBe(false);
-  });
-
-  it('converts a ws:// URL to http:// before requesting', async () => {
+  it('probes /healthz, not the root or /readyz', async () => {
+    // /healthz, deliberately: readiness on a node reports whether it can
+    // accept new participants, which depends on its control-plane link —
+    // asking that from the control plane would make the answer partly
+    // about the question.
+    const paths: string[] = [];
     server = createServer((req, res) => {
-      // http.Server doesn't know about the original scheme — just reaching
-      // this handler proves the ws:// URL got translated to a real request.
+      paths.push(req.url ?? '');
       res.writeHead(200).end('ok');
     });
     await new Promise<void>((resolve) => server.listen(0, resolve));
     port = (server.address() as AddressInfo).port;
 
-    await expect(checkLiveKitHttp(`wss://localhost:${port}`.replace('wss', 'ws'))).resolves.toBe(true);
+    await checkSfuHttp(`http://localhost:${port}`);
+    expect(paths).toEqual(['/healthz']);
+  });
+
+  it('tolerates a trailing slash on the base URL', async () => {
+    const paths: string[] = [];
+    server = createServer((req, res) => {
+      paths.push(req.url ?? '');
+      res.writeHead(200).end('ok');
+    });
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    port = (server.address() as AddressInfo).port;
+
+    await checkSfuHttp(`http://localhost:${port}/`);
+    expect(paths).toEqual(['/healthz']);
+  });
+
+  it('resolves false when the node answers non-2xx', async () => {
+    server = createServer((_req, res) => res.writeHead(503).end('nope'));
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    port = (server.address() as AddressInfo).port;
+
+    await expect(checkSfuHttp(`http://localhost:${port}`)).resolves.toBe(false);
+  });
+
+  it('resolves false (not throw) when nothing is listening at all', async () => {
+    await expect(checkSfuHttp('http://localhost:1')).resolves.toBe(false);
   });
 });
 

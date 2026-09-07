@@ -9,8 +9,8 @@ import {
 export type TelemetryRequest = Request & { rtcContext?: VerifiedRtcToken };
 
 /**
- * Authenticates telemetry ingestion with the same RTC (LiveKit) token the
- * browser already holds for its own connection — no separate telemetry
+ * Authenticates telemetry ingestion with the same RTC token the browser
+ * already holds for its own connection — no separate telemetry
  * credential to mint, store, or leak. See docs/telemetry.md#authentication.
  */
 @Injectable()

@@ -18,6 +18,7 @@ import { MetricsModule } from './modules/metrics/metrics.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
+import { RtcServersModule } from './modules/rtc-servers/rtc-servers.module';
 import { RtcTokensModule } from './modules/rtc-tokens/rtc-tokens.module';
 import { ServerApiModule } from './modules/server-api/server-api.module';
 import { SignalingModule } from './modules/signaling/signaling.module';
@@ -60,6 +61,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
     ProjectsModule,
     ApiKeysModule,
     RoomsModule,
+    RtcServersModule,
     RtcTokensModule,
     SignalingModule,
     MetricsModule,

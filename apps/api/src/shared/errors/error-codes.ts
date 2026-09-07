@@ -33,6 +33,7 @@ export const RavenErrorCode = {
   PROJECT_NOT_FOUND: 'RAVEN_PROJECT_NOT_FOUND',
   ATTACHMENT_NOT_FOUND: 'RAVEN_ATTACHMENT_NOT_FOUND',
   STREAM_NOT_FOUND: 'RAVEN_STREAM_NOT_FOUND',
+  RTC_SERVER_NOT_FOUND: 'RAVEN_RTC_SERVER_NOT_FOUND',
 
   // --- Conflict -----------------------------------------------------------
   CONFLICT: 'RAVEN_CONFLICT',
@@ -55,6 +56,10 @@ export const RavenErrorCode = {
 
   // --- Infrastructure -----------------------------------------------------
   CONNECTION_FAILED: 'RAVEN_CONNECTION_FAILED',
+  /** No healthy RTC server had room for this call. An operator/capacity
+   *  problem, not a caller one — distinct from CONNECTION_FAILED so that a
+   *  developer seeing it knows to look at the fleet, not at their code. */
+  NO_RTC_CAPACITY: 'RAVEN_NO_RTC_CAPACITY',
   WEBHOOK_FAILED: 'RAVEN_WEBHOOK_FAILED',
   /** A feature the deployment has not enabled — an operator fix, not a
    *  caller one, and returned with 501 rather than 4xx. */
@@ -84,6 +89,7 @@ export const LEGACY_ERROR_CODE: Record<RavenErrorCode, string> = {
   [RavenErrorCode.PROJECT_NOT_FOUND]: 'NOT_FOUND',
   [RavenErrorCode.ATTACHMENT_NOT_FOUND]: 'ATTACHMENT_NOT_FOUND',
   [RavenErrorCode.STREAM_NOT_FOUND]: 'NOT_FOUND',
+  [RavenErrorCode.RTC_SERVER_NOT_FOUND]: 'NOT_FOUND',
   [RavenErrorCode.CONFLICT]: 'CONFLICT',
   [RavenErrorCode.MESSAGE_ALREADY_EXISTS]: 'CONFLICT',
   [RavenErrorCode.CONVERSATION_ARCHIVED]: 'CONVERSATION_ARCHIVED',
@@ -95,6 +101,7 @@ export const LEGACY_ERROR_CODE: Record<RavenErrorCode, string> = {
   [RavenErrorCode.ATTACHMENT_TOO_LARGE]: 'ATTACHMENT_TOO_LARGE',
   [RavenErrorCode.INVALID_CURSOR]: 'INVALID_CURSOR',
   [RavenErrorCode.CONNECTION_FAILED]: 'CONNECTION_FAILED',
+  [RavenErrorCode.NO_RTC_CAPACITY]: 'CONNECTION_FAILED',
   [RavenErrorCode.WEBHOOK_FAILED]: 'WEBHOOK_FAILED',
   [RavenErrorCode.NOT_CONFIGURED]: 'ATTACHMENTS_NOT_CONFIGURED',
   [RavenErrorCode.INTERNAL_ERROR]: 'INTERNAL_ERROR',

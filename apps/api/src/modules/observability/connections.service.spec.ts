@@ -5,13 +5,24 @@ import { VerifiedRtcToken } from '../signaling/authentication/rtc-token-verifier
 import { ConnectionsService } from './connections.service';
 import { Environment } from '../../shared/environment/environment.constants';
 
+const grant = {
+  join: true,
+  subscribe: true,
+  publish: true,
+  publishAudio: true,
+  publishVideo: true,
+  publishData: false,
+};
+
 const ctx: VerifiedRtcToken = {
+  tokenId: 'rtc-token-1',
   participantId: 'alice',
   projectId: 'project-1',
   environment: Environment.DEVELOPMENT,
   roomId: 'room-1',
   roomName: 'demo-room',
-  permissions: { join: true, subscribe: true, publish: true, publishAudio: true, publishVideo: true, publishData: false },
+  permissions: grant,
+  grant,
   expiresAt: new Date(),
 };
 

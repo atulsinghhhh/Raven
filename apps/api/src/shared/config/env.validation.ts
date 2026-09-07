@@ -15,6 +15,14 @@ class EnvironmentVariables {
   @IsNotEmpty()
   DATABASE_URL!: string;
 
+  // Only the Prisma CLI reads this (prisma.config.ts), and only a
+  // transaction-mode pooler needs it — optional so a direct Postgres
+  // connection stays a one-variable setup.
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  DIRECT_URL?: string;
+
   @IsString()
   @IsNotEmpty()
   REDIS_URL!: string;
@@ -32,21 +40,35 @@ class EnvironmentVariables {
   @IsNotEmpty()
   JWT_EXPIRES_IN!: string;
 
-  @IsString()
-  @IsNotEmpty()
-  LIVEKIT_URL!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  LIVEKIT_API_KEY!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  LIVEKIT_API_SECRET!: string;
-
   @IsInt()
   @Min(1)
   RTC_TOKEN_DEFAULT_TTL_SECONDS!: number;
+
+  // Native RTC. Optional so an existing .env
+  // still boots — configuration.ts falls back to JWT_SECRET for local dev.
+  // What genuinely matters in production (a distinct RTC token secret) is
+  // enforced in validateProductionConfig() below instead, exactly as it is
+  // for CHAT_TOKEN_SECRET.
+  @IsOptional()
+  @IsString()
+  RTC_TOKEN_SECRET?: string;
+
+  @IsOptional()
+  @IsString()
+  RTC_SIGNALING_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  SFU_REGISTRATION_SECRET?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  SFU_HEARTBEAT_TIMEOUT_SECONDS?: number;
+
+  @IsOptional()
+  @IsString()
+  SFU_DEFAULT_REGION?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -156,8 +178,24 @@ function validateProductionConfig(config: EnvironmentVariables): void {
   if (config.TURN_HOST === 'localhost' || config.TURN_HOST === '127.0.0.1') {
     problems.push('TURN_HOST must be a real public hostname in production, not "localhost"');
   }
-  if (config.LIVEKIT_URL.startsWith('ws://')) {
-    problems.push('LIVEKIT_URL must use wss:// (TLS) in production, not ws://');
+  if (!config.RTC_TOKEN_SECRET) {
+    problems.push(
+      'RTC_TOKEN_SECRET is required in production — RTC tokens must not share a signing key with dashboard session JWTs (see docs/rtc/security.md)',
+    );
+  } else if (config.RTC_TOKEN_SECRET === config.JWT_SECRET) {
+    problems.push('RTC_TOKEN_SECRET must differ from JWT_SECRET — they authorize different things');
+  } else if (config.RTC_TOKEN_SECRET === config.CHAT_TOKEN_SECRET) {
+    problems.push('RTC_TOKEN_SECRET must differ from CHAT_TOKEN_SECRET — a leaked chat key must not mint media credentials');
+  }
+  if (!config.SFU_REGISTRATION_SECRET) {
+    problems.push(
+      'SFU_REGISTRATION_SECRET is required in production — otherwise any host that can reach the API can register itself as an RTC server (see docs/rtc/security.md)',
+    );
+  } else if (config.SFU_REGISTRATION_SECRET === config.RTC_TOKEN_SECRET) {
+    problems.push('SFU_REGISTRATION_SECRET must differ from RTC_TOKEN_SECRET — a leaked client token key must not let an attacker join the SFU fleet');
+  }
+  if (config.RTC_SIGNALING_URL?.startsWith('ws://')) {
+    problems.push('RTC_SIGNALING_URL must use wss:// (TLS) in production, not ws:// — RTC tokens travel on it');
   }
   if (!config.CHAT_TOKEN_SECRET) {
     problems.push(

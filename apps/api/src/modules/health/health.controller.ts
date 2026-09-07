@@ -5,12 +5,13 @@ import { Response } from 'express';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { RedisService } from '../../shared/redis/redis.service';
 import { SignalingGateway } from '../signaling/gateway/signaling.gateway';
-import { checkLiveKitHttp, checkStunBinding } from './dependency-checks.util';
+import { RtcServerRegistryService } from '../rtc-servers/rtc-server-registry.service';
+import { checkSfuHttp, checkStunBinding } from './dependency-checks.util';
 
 type DependencyStatus = 'up' | 'down';
 
 /**
- * Upper bound on any single dependency probe. Matches the LiveKit/STUN
+ * Upper bound on any single dependency probe. Matches the SFU/STUN
  * checks' own timeouts so every probe is bounded the same way and the
  * endpoint's worst-case response time is predictable.
  */
@@ -43,11 +44,12 @@ export class HealthController {
     private readonly redis: RedisService,
     private readonly signalingGateway: SignalingGateway,
     private readonly configService: ConfigService,
+    private readonly rtcServers: RtcServerRegistryService,
   ) {}
 
   /**
    * Liveness: "is this process able to answer at all". Deliberately makes
-   * no dependency calls — a database/Redis/LiveKit outage must not cause
+   * no dependency calls — a database/Redis/SFU outage must not cause
    * an orchestrator to conclude the *process* is broken and restart it,
    * which would just replace a healthy pod that can't reach a dependency
    * with another healthy pod that also can't reach that dependency. If
@@ -110,9 +112,19 @@ export class HealthController {
       this.checkDependency(() => this.prisma.ping()),
       this.checkDependency(() => this.redis.ping()),
       this.checkDependency(async () => {
-        // internalUrl, not url — this check runs inside the Docker
-        // network, not from a real client's vantage point.
-        const ok = await checkLiveKitHttp(this.configService.get<string>('livekit.internalUrl')!);
+        // Two things have to be true for RTC to work, and this checks
+        // both: the fleet registry has a healthy node, and that node is
+        // actually reachable from this process.
+        //
+        // Registry state alone would report "up" for a node that
+        // heartbeats but sits behind a broken route from here; a bare HTTP
+        // probe alone would need a hardcoded address, which the whole
+        // registry exists to avoid.
+        const server = await this.rtcServers.pickHealthyForProbe();
+        if (!server) throw new Error('no healthy rtc server registered');
+        // internalUrl, not publicHost — this check runs inside the
+        // deployment's network, not from a real client's vantage point.
+        const ok = await checkSfuHttp(server.internalUrl);
         if (!ok) throw new Error('unreachable');
       }),
       this.checkDependency(async () => {
@@ -148,7 +160,7 @@ export class HealthController {
    * "down", but a request that never returns just looks like the whole
    * API is wedged.
    *
-   * The LiveKit and STUN probes already bound themselves; this covers the
+   * The SFU and STUN probes already bound themselves; this covers the
    * database and Redis ones too, so the endpoint answers within a known
    * time no matter which dependency is misbehaving.
    */

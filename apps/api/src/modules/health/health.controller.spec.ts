@@ -1,9 +1,9 @@
 import { HealthController } from './health.controller';
-import { checkLiveKitHttp, checkStunBinding } from './dependency-checks.util';
+import { checkSfuHttp, checkStunBinding } from './dependency-checks.util';
 
 jest.mock('./dependency-checks.util');
 
-const mockCheckLiveKitHttp = checkLiveKitHttp as jest.Mock;
+const mockCheckSfuHttp = checkSfuHttp as jest.Mock;
 const mockCheckStunBinding = checkStunBinding as jest.Mock;
 
 function fakeResponse() {
@@ -19,6 +19,7 @@ describe('HealthController', () => {
   let redis: { ping: jest.Mock };
   let signalingGateway: { getMetrics: jest.Mock };
   let configService: { get: jest.Mock };
+  let rtcServers: { pickHealthyForProbe: jest.Mock };
 
   beforeEach(() => {
     prisma = { ping: jest.fn().mockResolvedValue(undefined) };
@@ -28,13 +29,17 @@ describe('HealthController', () => {
     };
     configService = {
       get: jest.fn((key: string) => {
-        if (key === 'livekit.internalUrl') return 'http://livekit:7880';
         if (key === 'turn.internalHost') return 'coturn';
         if (key === 'turn.port') return 3478;
         return undefined;
       }),
     };
-    mockCheckLiveKitHttp.mockReset().mockResolvedValue(true);
+    rtcServers = {
+      pickHealthyForProbe: jest
+        .fn()
+        .mockResolvedValue({ name: 'sfu-local-01', internalUrl: 'http://sfu:7000' }),
+    };
+    mockCheckSfuHttp.mockReset().mockResolvedValue(true);
     mockCheckStunBinding.mockReset().mockResolvedValue(true);
 
     controller = new HealthController(
@@ -42,6 +47,7 @@ describe('HealthController', () => {
       redis as never,
       signalingGateway as never,
       configService as never,
+      rtcServers as never,
     );
   });
 
@@ -70,7 +76,7 @@ describe('HealthController', () => {
   });
 
   it('reports sfu: down without affecting the database/redis checks', async () => {
-    mockCheckLiveKitHttp.mockResolvedValue(false);
+    mockCheckSfuHttp.mockResolvedValue(false);
     const res = fakeResponse();
 
     await controller.check(res as never);

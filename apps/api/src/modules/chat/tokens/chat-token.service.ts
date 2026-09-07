@@ -54,13 +54,14 @@ export interface IssuedChatToken {
 /**
  * Mints and verifies the short-lived credential a browser uses to reach
  * the chat gateway (spec §10). Deliberately hand-rolled HS256 rather than
- * pulling in the LiveKit token machinery: chat has nothing to do with
- * LiveKit, and reusing an RTC token here would mean one leaked credential
- * grants both media and messaging.
+ * pulling in the RTC token machinery: chat has nothing to do with the
+ * media plane, and reusing an RTC token here would mean one leaked
+ * credential grants both media and messaging.
  *
  * The signing key is CHAT_TOKEN_SECRET, distinct from JWT_SECRET (the
- * dashboard session key) and from LIVEKIT_API_SECRET. None of the three
- * can mint each other's tokens.
+ * dashboard session key) and from RTC_TOKEN_SECRET. None of the three can
+ * mint each other's tokens, and the `aud` claim means none of them
+ * verifies as another even if a secret were shared by mistake.
  */
 @Injectable()
 export class ChatTokenService {

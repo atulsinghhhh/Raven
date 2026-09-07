@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Matches, MaxLength, MinLength } from 'class-validator';
 
 // Alphanumeric + dash/underscore/dot only — keeps this safe to use
-// verbatim as a LiveKit room name, in URLs, and in logs.
+// verbatim in URLs, in log lines, and on the signaling wire.
 const ROOM_NAME_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 
 export class CreateRoomDto {

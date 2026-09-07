@@ -11,9 +11,6 @@ function baseConfig(overrides: Record<string, unknown> = {}): Record<string, unk
     API_PORT: 4100,
     JWT_SECRET: 'a-jwt-secret-at-least-this-long',
     JWT_EXPIRES_IN: '12h',
-    LIVEKIT_URL: 'ws://localhost:7880',
-    LIVEKIT_API_KEY: 'devkey',
-    LIVEKIT_API_SECRET: 'a-livekit-secret-at-least-this-long',
     RTC_TOKEN_DEFAULT_TTL_SECONDS: 600,
     API_KEY_HASH_SECRET: 'an-api-key-pepper-at-least-this-long',
     SIGNALING_MAX_PARTICIPANTS_PER_ROOM: 50,
@@ -64,7 +61,6 @@ describe('validateEnv — production-only checks', () => {
           NODE_ENV: 'production',
           CORS_ORIGIN: 'https://app.example.com',
           TURN_HOST: 'turn.example.com',
-          LIVEKIT_URL: 'wss://rtc.example.com',
         }),
       ),
     ).toThrow(/TURN_TLS_PORT is required in production/);
@@ -78,7 +74,6 @@ describe('validateEnv — production-only checks', () => {
           TURN_TLS_PORT: 5349,
           CORS_ORIGIN: '*',
           TURN_HOST: 'turn.example.com',
-          LIVEKIT_URL: 'wss://rtc.example.com',
         }),
       ),
     ).toThrow(/CORS_ORIGIN must not be "\*" in production/);
@@ -92,31 +87,37 @@ describe('validateEnv — production-only checks', () => {
           TURN_TLS_PORT: 5349,
           CORS_ORIGIN: 'https://app.example.com',
           TURN_HOST: 'localhost',
-          LIVEKIT_URL: 'wss://rtc.example.com',
         }),
       ),
     ).toThrow(/TURN_HOST must be a real public hostname/);
   });
 
-  it('rejects production config with an unencrypted ws:// LIVEKIT_URL', () => {
-    expect(() =>
-      validateEnv(
-        baseConfig({
-          NODE_ENV: 'production',
-          TURN_TLS_PORT: 5349,
-          CORS_ORIGIN: 'https://app.example.com',
-          TURN_HOST: 'turn.example.com',
-          LIVEKIT_URL: 'ws://rtc.example.com',
-        }),
-      ),
-    ).toThrow(/LIVEKIT_URL must use wss/);
-  });
 
   it('reports every violated production rule at once, not just the first', () => {
     expect(() => validateEnv(baseConfig({ NODE_ENV: 'production' }))).toThrow(
-      /TURN_TLS_PORT.*CORS_ORIGIN.*TURN_HOST.*LIVEKIT_URL.*CHAT_TOKEN_SECRET/s,
+      /TURN_TLS_PORT.*CORS_ORIGIN.*TURN_HOST.*RTC_TOKEN_SECRET.*SFU_REGISTRATION_SECRET.*CHAT_TOKEN_SECRET/s,
     );
   });
+
+  /**
+   * A production config with every guard satisfied. Individual tests
+   * override one key to prove that guard fires — which keeps the "fully
+   * correct" case and the rejection cases from drifting apart as new
+   * required settings are added.
+   */
+  function productionConfig(overrides: Record<string, unknown> = {}) {
+    return baseConfig({
+      NODE_ENV: 'production',
+      TURN_TLS_PORT: 5349,
+      CORS_ORIGIN: 'https://app.example.com',
+      TURN_HOST: 'turn.example.com',
+      CHAT_TOKEN_SECRET: 'a-distinct-chat-token-secret',
+      RTC_TOKEN_SECRET: 'a-distinct-rtc-token-secret',
+      SFU_REGISTRATION_SECRET: 'a-distinct-sfu-registration-secret',
+      STORAGE_ENDPOINT: 'https://storage.example.com',
+      ...overrides,
+    });
+  }
 
   it('rejects production config without a dedicated chat-token secret', () => {
     // A leaked dashboard-session key must not be able to mint chat
@@ -129,7 +130,6 @@ describe('validateEnv — production-only checks', () => {
           TURN_TLS_PORT: 5349,
           CORS_ORIGIN: 'https://app.example.com',
           TURN_HOST: 'turn.example.com',
-          LIVEKIT_URL: 'wss://rtc.example.com',
         }),
       ),
     ).toThrow(/CHAT_TOKEN_SECRET is required in production/);
@@ -143,7 +143,6 @@ describe('validateEnv — production-only checks', () => {
           TURN_TLS_PORT: 5349,
           CORS_ORIGIN: 'https://app.example.com',
           TURN_HOST: 'turn.example.com',
-          LIVEKIT_URL: 'wss://rtc.example.com',
           CHAT_TOKEN_SECRET: 'a-jwt-secret-at-least-this-long',
         }),
       ),
@@ -159,7 +158,6 @@ describe('validateEnv — production-only checks', () => {
           TURN_TLS_PORT: 5349,
           CORS_ORIGIN: 'https://app.example.com',
           TURN_HOST: 'turn.example.com',
-          LIVEKIT_URL: 'wss://rtc.example.com',
           CHAT_TOKEN_SECRET: 'a-distinct-chat-secret',
           STORAGE_ENDPOINT: 'http://storage.example.com',
         }),
@@ -167,7 +165,9 @@ describe('validateEnv — production-only checks', () => {
     ).toThrow(/STORAGE_ENDPOINT must use https/);
   });
 
-  it('accepts a fully-correct production configuration', () => {
+  it('rejects production config without a dedicated RTC-token secret', () => {
+    // Same reasoning as CHAT_TOKEN_SECRET: a leaked dashboard-session key
+    // must not be able to mint media credentials.
     expect(() =>
       validateEnv(
         baseConfig({
@@ -175,11 +175,58 @@ describe('validateEnv — production-only checks', () => {
           TURN_TLS_PORT: 5349,
           CORS_ORIGIN: 'https://app.example.com',
           TURN_HOST: 'turn.example.com',
-          LIVEKIT_URL: 'wss://rtc.example.com',
           CHAT_TOKEN_SECRET: 'a-distinct-chat-token-secret',
-          STORAGE_ENDPOINT: 'https://storage.example.com',
         }),
       ),
-    ).not.toThrow();
+    ).toThrow(/RTC_TOKEN_SECRET is required in production/);
+  });
+
+  it('rejects an RTC-token secret that is just the JWT secret again', () => {
+    expect(() =>
+      validateEnv(
+        productionConfig({ RTC_TOKEN_SECRET: 'a-jwt-secret-at-least-this-long' }),
+      ),
+    ).toThrow(/RTC_TOKEN_SECRET must differ from JWT_SECRET/);
+  });
+
+  it('rejects an RTC-token secret shared with chat', () => {
+    // Media and messaging are separate capabilities; one leaked key must
+    // not grant both.
+    expect(() =>
+      validateEnv(
+        productionConfig({ RTC_TOKEN_SECRET: 'a-distinct-chat-token-secret' }),
+      ),
+    ).toThrow(/RTC_TOKEN_SECRET must differ from CHAT_TOKEN_SECRET/);
+  });
+
+  it('rejects production config without an SFU registration secret', () => {
+    // Without it, any host that can reach the API can join the RTC fleet
+    // and be handed rooms to serve (spec §23, §38).
+    expect(() =>
+      validateEnv(
+        productionConfig({ SFU_REGISTRATION_SECRET: undefined }),
+      ),
+    ).toThrow(/SFU_REGISTRATION_SECRET is required in production/);
+  });
+
+  it('rejects an SFU registration secret shared with the client token secret', () => {
+    // A client token secret is held by whatever mints tokens; the fleet
+    // credential must not be derivable from it.
+    expect(() =>
+      validateEnv(
+        productionConfig({ SFU_REGISTRATION_SECRET: 'a-distinct-rtc-token-secret' }),
+      ),
+    ).toThrow(/SFU_REGISTRATION_SECRET must differ from RTC_TOKEN_SECRET/);
+  });
+
+  it('rejects an unencrypted signaling URL in production', () => {
+    // RTC tokens travel on this connection as a query parameter.
+    expect(() =>
+      validateEnv(productionConfig({ RTC_SIGNALING_URL: 'ws://rtc.example.com/v1/rtc' })),
+    ).toThrow(/RTC_SIGNALING_URL must use wss/);
+  });
+
+  it('accepts a fully-correct production configuration', () => {
+    expect(() => validateEnv(productionConfig())).not.toThrow();
   });
 });

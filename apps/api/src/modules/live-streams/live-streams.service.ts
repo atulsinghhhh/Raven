@@ -16,7 +16,7 @@ import { CHAT_SCOPES } from '../chat/chat-permissions';
 import { ConversationsService } from '../chat/conversations/conversations.service';
 import { MessagesService } from '../chat/messages/messages.service';
 import { ChatTokenService, IssuedChatToken } from '../chat/tokens/chat-token.service';
-import { LiveKitRoomService } from '../rooms/livekit-room.service';
+import { SfuRoomStateService } from '../rooms/sfu-room-state.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { IssuedRtcToken, RtcTokensService } from '../rtc-tokens/rtc-tokens.service';
 import { WebhookEventsService } from '../webhooks/webhook-events.service';
@@ -78,7 +78,7 @@ export class LiveStreamsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly roomsService: RoomsService,
-    private readonly liveKitRoomService: LiveKitRoomService,
+    private readonly roomState: SfuRoomStateService,
     private readonly rtcTokensService: RtcTokensService,
     private readonly conversationsService: ConversationsService,
     private readonly messagesService: MessagesService,
@@ -340,9 +340,11 @@ export class LiveStreamsService {
 
   /**
    * Explicit viewer-leave signal for `live_stream.viewer_left`. This is
-   * the one honest limitation worth stating plainly: Raven has no LiveKit
-   * webhook receiver in this phase, so an abrupt disconnect (crash, lost
-   * network) is not detected server-side for streams — only a clean
+   * the one honest limitation worth stating plainly: nothing yet turns a
+   * dropped media session into a stream-level event, so an abrupt
+   * disconnect (crash, lost network) is not detected server-side for
+   * streams — the SFU knows the peer connection failed, but that signal
+   * is not wired to live streams. Only a clean
    * `stream.leave()` call from the SDK fires this event. Presence-style
    * best-effort detection is real future work, not simulated here.
    */
@@ -441,8 +443,9 @@ export class LiveStreamsService {
     let peakViewerCount = stream.peakViewerCount;
 
     if (withLiveState) {
-      const room = await this.prisma.room.findUnique({ where: { id: stream.roomId }, select: { name: true } });
-      const liveParticipants = room ? await this.liveKitRoomService.listLiveParticipants(room.name) : undefined;
+      // Addressed by room id, which the stream already holds — no name
+      // lookup needed since Raven's media plane is keyed by id.
+      const liveParticipants = await this.roomState.listLiveParticipants(stream.roomId);
 
       if (liveParticipants) {
         const hostIdentities = new Set(hosts.map((h) => h.identity));

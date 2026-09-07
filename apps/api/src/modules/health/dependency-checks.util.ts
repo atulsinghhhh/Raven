@@ -1,14 +1,22 @@
 import { createSocket } from 'node:dgram';
 import { randomBytes } from 'node:crypto';
 
-/** LiveKit serves HTTP on the same host/port its ws(s):// URL points at. */
-export async function checkLiveKitHttp(livekitUrl: string, timeoutMs = 2000): Promise<boolean> {
-  const httpUrl = livekitUrl.replace(/^ws/, 'http');
+/**
+ * Probes one RTC server's liveness endpoint.
+ *
+ * `/healthz`, not `/readyz`: readiness on a node reports whether it can
+ * accept *new* participants, which depends on its control-plane link.
+ * Asking that from the control plane would make the answer partly about
+ * the question — what this check wants to know is whether the node
+ * process is alive and reachable from here.
+ */
+export async function checkSfuHttp(internalUrl: string, timeoutMs = 2000): Promise<boolean> {
+  const base = internalUrl.replace(/\/$/, '');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const res = await fetch(httpUrl, { signal: controller.signal });
+    const res = await fetch(`${base}/healthz`, { signal: controller.signal });
     return res.ok;
   } catch {
     return false;

@@ -23,7 +23,7 @@ import { TypingService } from './typing/typing.service';
 /**
  * Raven Chat — messaging, entirely separate from the RTC plane.
  *
- * Nothing in here imports SignalingModule or LiveKit. The only link
+ * Nothing in here imports SignalingModule or anything under it. The only link
  * between the two planes is `Conversation.roomId`, which lets a video
  * call have a chat panel; either can be used without the other, and
  * either can fail without taking the other down (spec §64).

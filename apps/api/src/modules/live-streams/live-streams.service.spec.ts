@@ -19,7 +19,7 @@ describe('LiveStreamsService', () => {
     conversation: { findUnique: jest.Mock };
   };
   let roomsService: { create: jest.Mock; close: jest.Mock };
-  let liveKitRoomService: { listLiveParticipants: jest.Mock };
+  let sfuRoomState: { listLiveParticipants: jest.Mock };
   let rtcTokensService: { create: jest.Mock };
   let conversationsService: { create: jest.Mock; addMember: jest.Mock; removeMember: jest.Mock };
   let messagesService: { send: jest.Mock };
@@ -70,7 +70,7 @@ describe('LiveStreamsService', () => {
       create: jest.fn().mockResolvedValue({ id: 'room-uuid', name: 'stream_abc123' }),
       close: jest.fn().mockResolvedValue(undefined),
     };
-    liveKitRoomService = { listLiveParticipants: jest.fn() };
+    sfuRoomState = { listLiveParticipants: jest.fn() };
     rtcTokensService = { create: jest.fn().mockResolvedValue({ token: 'rtc-jwt', endpoint: 'ws://x' }) };
     conversationsService = {
       create: jest.fn().mockResolvedValue({ id: 'conv-uuid', publicId: 'conv_xyz789' }),
@@ -86,7 +86,7 @@ describe('LiveStreamsService', () => {
     service = new LiveStreamsService(
       prisma as never,
       roomsService as never,
-      liveKitRoomService as never,
+      sfuRoomState as never,
       rtcTokensService as never,
       conversationsService as never,
       messagesService as never,
@@ -514,7 +514,7 @@ describe('LiveStreamsService', () => {
         { identity: 'alice', role: LiveStreamHostRole.HOST, invitedAt: new Date() },
       ]);
       prisma.room.findUnique.mockResolvedValue({ name: 'stream_abc123' });
-      liveKitRoomService.listLiveParticipants.mockResolvedValue([
+      sfuRoomState.listLiveParticipants.mockResolvedValue([
         { identity: 'alice', joinedAt: new Date(), tracks: [] },
         { identity: 'dave', joinedAt: new Date(), tracks: [] },
         { identity: 'erin', joinedAt: new Date(), tracks: [] },
@@ -529,7 +529,7 @@ describe('LiveStreamsService', () => {
       prisma.liveStream.findUnique.mockResolvedValue(baseStream());
       prisma.liveStreamHost.findMany.mockResolvedValue([]);
       prisma.room.findUnique.mockResolvedValue({ name: 'stream_abc123' });
-      liveKitRoomService.listLiveParticipants.mockResolvedValue(undefined);
+      sfuRoomState.listLiveParticipants.mockResolvedValue(undefined);
 
       const view = await service.get(SCOPE, 'stream_abc123');
 
@@ -542,14 +542,14 @@ describe('LiveStreamsService', () => {
 
       await service.list(SCOPE);
 
-      expect(liveKitRoomService.listLiveParticipants).not.toHaveBeenCalled();
+      expect(sfuRoomState.listLiveParticipants).not.toHaveBeenCalled();
     });
 
     it('raises peakViewerCount when live viewers exceed the stored peak', async () => {
       prisma.liveStream.findUnique.mockResolvedValue(baseStream({ peakViewerCount: 1 }));
       prisma.liveStreamHost.findMany.mockResolvedValue([]);
       prisma.room.findUnique.mockResolvedValue({ name: 'stream_abc123' });
-      liveKitRoomService.listLiveParticipants.mockResolvedValue([
+      sfuRoomState.listLiveParticipants.mockResolvedValue([
         { identity: 'a', joinedAt: new Date(), tracks: [] },
         { identity: 'b', joinedAt: new Date(), tracks: [] },
         { identity: 'c', joinedAt: new Date(), tracks: [] },
@@ -567,7 +567,7 @@ describe('LiveStreamsService', () => {
       prisma.liveStream.findUnique.mockResolvedValue(baseStream({ peakViewerCount: 10 }));
       prisma.liveStreamHost.findMany.mockResolvedValue([]);
       prisma.room.findUnique.mockResolvedValue({ name: 'stream_abc123' });
-      liveKitRoomService.listLiveParticipants.mockResolvedValue([
+      sfuRoomState.listLiveParticipants.mockResolvedValue([
         { identity: 'a', joinedAt: new Date(), tracks: [] },
       ]);
 

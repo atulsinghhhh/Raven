@@ -4,11 +4,11 @@ import { PrismaService } from '../../shared/database/prisma.service';
 import { ConflictError, NotFoundError } from '../../shared/errors/app-error';
 import { RavenErrorCode } from '../../shared/errors/error-codes';
 import { CreateRoomDto } from './dto/create-room.dto';
-import { LiveKitRoomService, LiveParticipantInfo } from './livekit-room.service';
+import { LiveParticipantInfo, SfuRoomStateService } from './sfu-room-state.service';
 import { ProjectScope } from '../../shared/environment/environment.constants';
 
 export interface RoomWithLiveState extends Room {
-  /** Participants actually connected in LiveKit right now. `null` means LiveKit could not be reached — distinct from a genuinely idle 0. */
+  /** Participants actually connected to the room's SFU node right now. `null` means the node could not be reached — distinct from a genuinely idle 0. */
   liveParticipantCount: number | null;
 }
 
@@ -20,7 +20,7 @@ export interface RoomDetailWithLiveState extends RoomWithLiveState {
 export class RoomsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly liveKitRoomService: LiveKitRoomService,
+    private readonly roomState: SfuRoomStateService,
   ) {}
 
   async create(scope: ProjectScope, dto: CreateRoomDto): Promise<Room> {
@@ -66,21 +66,29 @@ export class RoomsService {
     });
   }
 
-  /** Dashboard-facing: control-plane rooms enriched with live LiveKit participant counts. */
+  /**
+   * Dashboard-facing: control-plane rooms enriched with live participant
+   * counts from whichever SFU is serving each one.
+   *
+   * `liveParticipantCount` is `null` when the media plane could not be
+   * asked, and a number when it answered — including `0` for an idle
+   * room. The distinction is the point: rendering "unknown" as zero would
+   * tell an operator every room is empty during a partition.
+   */
   async findAllForProjectWithLiveState(scope: ProjectScope): Promise<RoomWithLiveState[]> {
     const rooms = await this.findAllForProject(scope);
-    const liveCounts = await this.liveKitRoomService.listLiveParticipantCounts(rooms.map((r) => r.name));
+    const liveCounts = await this.roomState.listLiveParticipantCounts(rooms.map((r) => r.id));
 
     return rooms.map((room) => ({
       ...room,
-      liveParticipantCount: liveCounts ? liveCounts.get(room.name) ?? 0 : null,
+      liveParticipantCount: liveCounts ? liveCounts.get(room.id) ?? null : null,
     }));
   }
 
   /** Dashboard-facing: one room's control-plane record plus its live participants/tracks. */
   async findOneForProjectWithLiveState(id: string, scope: ProjectScope): Promise<RoomDetailWithLiveState> {
     const room = await this.findOneForProject(id, scope);
-    const liveParticipants = await this.liveKitRoomService.listLiveParticipants(room.name);
+    const liveParticipants = await this.roomState.listLiveParticipants(room.id);
 
     return {
       ...room,

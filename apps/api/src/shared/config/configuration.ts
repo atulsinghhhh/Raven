@@ -3,12 +3,17 @@ export default () => ({
   port: parseInt(process.env.API_PORT ?? '4000', 10),
 
   // Host-facing URL of this API, handed to RTC clients as `telemetryUrl`
-  // alongside token/livekitUrl/iceServers — lets @corvidhq/rtc POST telemetry
+  // alongside token/endpoint/iceServers — lets @corvidhq/rtc POST telemetry
   // events without hardcoding an address in the SDK.
   publicUrl: process.env.API_PUBLIC_URL ?? `http://localhost:${parseInt(process.env.API_PORT ?? '4000', 10)}`,
 
   database: {
     url: process.env.DATABASE_URL,
+    // Session-mode connection used only by the Prisma CLI (migrate/db
+    // push) when DATABASE_URL points at a transaction-mode pooler — see
+    // prisma.config.ts. Optional, and never used by the running app;
+    // listed here for the same reason `url` is.
+    directUrl: process.env.DIRECT_URL,
     // pg.Pool sizing (read directly from env in prisma.service.ts, same
     // as `url` above — see that file's comment on why this one config
     // key bypasses ConfigService). Documented here anyway, for the same
@@ -40,34 +45,55 @@ export default () => ({
     expiresIn: process.env.JWT_EXPIRES_IN ?? '12h',
   },
 
-  livekit: {
-    url: process.env.LIVEKIT_URL,
-    apiKey: process.env.LIVEKIT_API_KEY,
-    apiSecret: process.env.LIVEKIT_API_SECRET,
-    // Container-to-container address, separate from `url` above (which is
-    // host-facing, for real clients). The API runs inside the Docker
-    // network too, so its own server calls (RoomServiceClient, /health)
-    // need LiveKit's Docker service name — "localhost" here would just
-    // point back at the api container itself.
-    internalUrl: process.env.LIVEKIT_INTERNAL_URL ?? 'http://livekit:7880',
-  },
-
   rtcToken: {
     defaultTtlSeconds: parseInt(process.env.RTC_TOKEN_DEFAULT_TTL_SECONDS ?? '600', 10),
+    // Signing key for Raven's own RTC tokens (rtc-token-signer.service.ts).
+    // Distinct from JWT_SECRET (dashboard sessions) and CHAT_TOKEN_SECRET
+    // (chat) so that no one credential can mint another's — same reasoning
+    // as chat.tokenSecret below. Falls back to JWT_SECRET only so local dev
+    // boots after a `git pull`; production validation rejects that.
+    secret: process.env.RTC_TOKEN_SECRET ?? process.env.JWT_SECRET,
+  },
+
+  rtc: {
+    // Where the client SDK connects to run a call — Raven's own signaling
+    // WebSocket, handed to clients as `endpoint` in the token-mint
+    // response. This is the address of the *control* path: media is
+    // negotiated over it but never flows through it (spec §6).
+    //
+    // Derived from the API's own public URL so there is one address to
+    // configure rather than two, exactly like chat's chatUrl(). Override
+    // only when signaling is fronted by a separate hostname/ingress from
+    // the REST API.
+    signalingUrl: process.env.RTC_SIGNALING_URL,
+  },
+
+  sfu: {
+    // Shared secret the SFU fleet authenticates to the control plane with
+    // when registering and heartbeating (spec §23, §26, §38). Server-to-
+    // server only — never handed to a client, and never the same key as
+    // any client-facing token secret.
+    registrationSecret: process.env.SFU_REGISTRATION_SECRET ?? process.env.JWT_SECRET,
+    // An SFU that has not heartbeated within this window is treated as
+    // unhealthy and stops receiving new room allocations. Must comfortably
+    // exceed the SFU's own heartbeat interval or healthy nodes flap.
+    heartbeatTimeoutSeconds: parseInt(process.env.SFU_HEARTBEAT_TIMEOUT_SECONDS ?? '30', 10),
+    // Default region for room allocation when a request names none and the
+    // project has no configured preference.
+    defaultRegion: process.env.SFU_DEFAULT_REGION ?? 'local',
   },
 
   turn: {
-    // Host-facing, same story as LIVEKIT_URL above — this is what a real
-    // client gets back, not the internal Docker address.
+    // Host-facing — this is what a real client gets back, not the
+    // internal container address.
     host: process.env.TURN_HOST ?? 'localhost',
     port: parseInt(process.env.TURN_PORT ?? '3478', 10),
     // Only advertised as a turns: ICE server when set. Leave unset if
     // coturn has no TLS cert configured.
     tlsPort: process.env.TURN_TLS_PORT ? parseInt(process.env.TURN_TLS_PORT, 10) : undefined,
     secret: process.env.TURN_SECRET,
-    // Same deal as livekit.internalUrl — the STUN health check runs inside
-    // the api container and needs coturn's Docker service name here, not
-    // the host-facing TURN_HOST.
+    // The STUN health check runs inside the api container and needs
+    // coturn's Docker service name here, not the host-facing TURN_HOST.
     internalHost: process.env.TURN_INTERNAL_HOST ?? 'coturn',
   },
 

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Project } from '../../generated/prisma/client';
-import { checkLiveKitHttp, checkStunBinding } from '../health/dependency-checks.util';
+import { RtcServerRegistryService } from '../rtc-servers/rtc-server-registry.service';
+import { checkSfuHttp, checkStunBinding } from '../health/dependency-checks.util';
 import { ConnectionsService } from './connections.service';
 
 export interface ProjectDiagnostics {
@@ -29,11 +30,29 @@ export class DiagnosticsService {
   constructor(
     private readonly configService: ConfigService,
     private readonly connectionsService: ConnectionsService,
+    private readonly rtcServers: RtcServerRegistryService,
   ) {}
+
+  /**
+   * Whether RTC can actually serve a call right now.
+   *
+   * Two things have to hold, and both are checked: the fleet has a
+   * healthy node registered, and that node answers from this process.
+   * Registry state alone would report "up" for a node sitting behind a
+   * broken route; a bare probe would need an address the registry exists
+   * to remove.
+   */
+  private async probeRtcFleet(): Promise<boolean> {
+    const server = await this.rtcServers.pickHealthyForProbe();
+    if (!server) {
+      return false;
+    }
+    return checkSfuHttp(server.internalUrl);
+  }
 
   async getDiagnostics(project: Project): Promise<ProjectDiagnostics> {
     const [sfu, turn, active] = await Promise.all([
-      checkLiveKitHttp(this.configService.get<string>('livekit.internalUrl')!).catch(() => false),
+      this.probeRtcFleet().catch(() => false),
       checkStunBinding(
         this.configService.get<string>('turn.internalHost')!,
         this.configService.get<number>('turn.port')!,

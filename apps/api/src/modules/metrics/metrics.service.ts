@@ -4,6 +4,8 @@ import { WebhookDeliveryStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { ChatGateway } from '../chat/gateway/chat.gateway';
 import { SignalingGateway } from '../signaling/gateway/signaling.gateway';
+import { SfuLinkService } from '../signaling/sfu/sfu-link.service';
+import { RtcServerRegistryService } from '../rtc-servers/rtc-server-registry.service';
 
 /**
  * Infrastructure metrics for Prometheus — a different concern from
@@ -33,6 +35,8 @@ export class MetricsService {
     private readonly prisma: PrismaService,
     private readonly chatGateway: ChatGateway,
     private readonly signalingGateway: SignalingGateway,
+    private readonly sfuLink: SfuLinkService,
+    private readonly rtcServers: RtcServerRegistryService,
   ) {
     collectDefaultMetrics({ register: this.registry });
 
@@ -124,6 +128,100 @@ export class MetricsService {
       registers: [this.registry],
       collect() {
         this.set(signalingGateway.getMetrics().activeParticipants);
+      },
+    });
+
+    const sfuLink = this.sfuLink;
+    const rtcServers = this.rtcServers;
+
+    new Gauge({
+      name: 'raven_rtc_node_links_active',
+      help: 'RTC servers this API instance holds a control-plane link to. Per-instance, like the gateway gauges above.',
+      registers: [this.registry],
+      collect() {
+        this.set(sfuLink.getLinkedServers().length);
+      },
+    });
+
+    new Gauge({
+      name: 'raven_rtc_node_link_sessions',
+      help: 'Media sessions this API instance owns across its RTC server links',
+      registers: [this.registry],
+      collect() {
+        this.set(
+          sfuLink
+            .getLinkedServers()
+            .reduce((total, server) => total + server.sessions, 0),
+        );
+      },
+    });
+
+    // Fleet gauges, unlike everything above them.
+    //
+    // These read shared Postgres state, so every instance reports the
+    // same numbers — the same exception the webhook queue-depth gauge
+    // makes below, and correct for the same reason: fleet capacity is not
+    // a per-instance quantity, and summing it across pods would multiply
+    // it by the pod count.
+    //
+    // The RTC servers' own detailed metrics (bitrate, packet counts,
+    // layer switches) are exposed by each node's /metrics endpoint and
+    // scraped directly. Proxying them through here would put a fan-out to
+    // the whole fleet on every scrape of the API.
+    new Gauge({
+      name: 'raven_rtc_servers',
+      help: 'RTC servers registered in the fleet, by health. Fleet-wide, not per-instance.',
+      labelNames: ['status'],
+      registers: [this.registry],
+      async collect() {
+        try {
+          const fleet = await rtcServers.getFleetMetrics();
+          this.set({ status: 'healthy' }, fleet.healthyServers);
+          this.set({ status: 'draining' }, fleet.drainingServers);
+          this.set({ status: 'unhealthy' }, fleet.unhealthyServers);
+        } catch {
+          // A scrape must never fail because the database hiccuped;
+          // leaving the previous value is better than a 500 on /metrics.
+        }
+      },
+    });
+
+    new Gauge({
+      name: 'raven_rtc_rooms_active',
+      help: 'Rooms the RTC fleet is serving, as of each node\'s last heartbeat. Fleet-wide, not per-instance.',
+      registers: [this.registry],
+      async collect() {
+        try {
+          this.set((await rtcServers.getFleetMetrics()).activeRooms);
+        } catch {
+          // See above.
+        }
+      },
+    });
+
+    new Gauge({
+      name: 'raven_rtc_participants_active',
+      help: 'Participants connected across the RTC fleet, as of each node\'s last heartbeat. Fleet-wide, not per-instance.',
+      registers: [this.registry],
+      async collect() {
+        try {
+          this.set((await rtcServers.getFleetMetrics()).activeParticipants);
+        } catch {
+          // See above.
+        }
+      },
+    });
+
+    new Gauge({
+      name: 'raven_rtc_room_capacity',
+      help: 'Total room capacity advertised by the RTC fleet. With rooms_active, this is the fleet\'s headroom.',
+      registers: [this.registry],
+      async collect() {
+        try {
+          this.set((await rtcServers.getFleetMetrics()).capacity);
+        } catch {
+          // See above.
+        }
       },
     });
 

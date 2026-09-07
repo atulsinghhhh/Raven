@@ -2,7 +2,7 @@ import { ChatServerFrame, PresenceStatus } from '../chat.constants';
 
 /**
  * A message as it appears to a developer. Nothing internal leaks: no
- * database uuid, no Prisma model, no LiveKit type. `id` is the public
+ * database uuid, no Prisma model, no transport type. `id` is the public
  * `msg_...` id, and `roomId` is the conversation's public id — the same
  * string the developer passed to `chat.connect({ room })`.
  */

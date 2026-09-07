@@ -2,7 +2,7 @@ import { RoomStatus } from '../../generated/prisma/client';
 import { Environment } from '../../shared/environment/environment.constants';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { ConflictError, NotFoundError } from '../../shared/errors/app-error';
-import { LiveKitRoomService } from './livekit-room.service';
+import { SfuRoomStateService } from './sfu-room-state.service';
 import { RoomsService } from './rooms.service';
 
 const DEV = { projectId: 'project1', environment: Environment.DEVELOPMENT };
@@ -18,7 +18,7 @@ describe('RoomsService', () => {
       update: jest.Mock;
     };
   };
-  let liveKitRoomService: {
+  let roomState: {
     listLiveParticipantCounts: jest.Mock;
     listLiveParticipants: jest.Mock;
   };
@@ -27,13 +27,13 @@ describe('RoomsService', () => {
     prisma = {
       room: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn() },
     };
-    liveKitRoomService = {
+    roomState = {
       listLiveParticipantCounts: jest.fn(),
       listLiveParticipants: jest.fn(),
     };
     service = new RoomsService(
       prisma as unknown as PrismaService,
-      liveKitRoomService as unknown as LiveKitRoomService,
+      roomState as unknown as SfuRoomStateService,
     );
   });
 
@@ -168,12 +168,12 @@ describe('RoomsService', () => {
   });
 
   describe('findAllForProjectWithLiveState', () => {
-    it('attaches a real live participant count per room when LiveKit is reachable', async () => {
+    it('attaches a real live participant count per room when the SFU answers', async () => {
       prisma.room.findMany.mockResolvedValue([
         { id: 'r1', projectId: 'project1', environment: Environment.DEVELOPMENT, name: 'lobby' },
         { id: 'r2', projectId: 'project1', environment: Environment.DEVELOPMENT, name: 'support' },
       ]);
-      liveKitRoomService.listLiveParticipantCounts.mockResolvedValue(new Map([['lobby', 3]]));
+      roomState.listLiveParticipantCounts.mockResolvedValue(new Map([['r1', 3]]));
 
       const rooms = await service.findAllForProjectWithLiveState(DEV);
 
@@ -190,14 +190,29 @@ describe('RoomsService', () => {
           projectId: 'project1',
           environment: Environment.DEVELOPMENT,
           name: 'support',
-          liveParticipantCount: 0,
+          // Absent from the map means that room's node did not answer.
+          // Reported as unknown rather than 0 — the old service returned
+          // 0 here, which conflated "nobody is in this room" with "we
+          // could not find out".
+          liveParticipantCount: null,
         },
       ]);
     });
 
-    it('reports null (not 0) for every room when LiveKit is unreachable — distinct from genuinely idle', async () => {
+    it('queries by room id, since the media plane is addressed by id', async () => {
+      prisma.room.findMany.mockResolvedValue([
+        { id: 'r1', projectId: 'project1', environment: Environment.DEVELOPMENT, name: 'lobby' },
+      ]);
+      roomState.listLiveParticipantCounts.mockResolvedValue(new Map());
+
+      await service.findAllForProjectWithLiveState(DEV);
+
+      expect(roomState.listLiveParticipantCounts).toHaveBeenCalledWith(['r1']);
+    });
+
+    it('reports null (not 0) for every room when no node answered — distinct from genuinely idle', async () => {
       prisma.room.findMany.mockResolvedValue([{ id: 'r1', projectId: 'project1', environment: Environment.DEVELOPMENT, name: 'lobby' }]);
-      liveKitRoomService.listLiveParticipantCounts.mockResolvedValue(undefined);
+      roomState.listLiveParticipantCounts.mockResolvedValue(undefined);
 
       const rooms = await service.findAllForProjectWithLiveState(DEV);
 
@@ -206,10 +221,10 @@ describe('RoomsService', () => {
   });
 
   describe('findOneForProjectWithLiveState', () => {
-    it('attaches live participants and a matching count when LiveKit is reachable', async () => {
+    it('attaches live participants and a matching count when the SFU answers', async () => {
       prisma.room.findUnique.mockResolvedValue({ id: 'r1', projectId: 'project1', environment: Environment.DEVELOPMENT, name: 'lobby' });
       const participants = [{ identity: 'alice', joinedAt: new Date(), tracks: [] }];
-      liveKitRoomService.listLiveParticipants.mockResolvedValue(participants);
+      roomState.listLiveParticipants.mockResolvedValue(participants);
 
       const room = await service.findOneForProjectWithLiveState('r1', DEV);
 
@@ -217,9 +232,9 @@ describe('RoomsService', () => {
       expect(room.liveParticipantCount).toBe(1);
     });
 
-    it('reports liveParticipants: null and liveParticipantCount: null when LiveKit is unreachable', async () => {
+    it('reports liveParticipants: null and liveParticipantCount: null when the node is unreachable', async () => {
       prisma.room.findUnique.mockResolvedValue({ id: 'r1', projectId: 'project1', environment: Environment.DEVELOPMENT, name: 'lobby' });
-      liveKitRoomService.listLiveParticipants.mockResolvedValue(undefined);
+      roomState.listLiveParticipants.mockResolvedValue(undefined);
 
       const room = await service.findOneForProjectWithLiveState('r1', DEV);
 
@@ -227,13 +242,13 @@ describe('RoomsService', () => {
       expect(room.liveParticipantCount).toBeNull();
     });
 
-    it('still throws NotFoundError for a room in a different project, without calling LiveKit', async () => {
+    it('still throws NotFoundError for a room in a different project, without asking any node', async () => {
       prisma.room.findUnique.mockResolvedValue({ id: 'r1', projectId: 'project-other', environment: Environment.DEVELOPMENT });
 
       await expect(service.findOneForProjectWithLiveState('r1', DEV)).rejects.toBeInstanceOf(
         NotFoundError,
       );
-      expect(liveKitRoomService.listLiveParticipants).not.toHaveBeenCalled();
+      expect(roomState.listLiveParticipants).not.toHaveBeenCalled();
     });
   });
 });
