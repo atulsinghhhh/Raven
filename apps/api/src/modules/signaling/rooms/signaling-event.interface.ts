@@ -13,11 +13,6 @@ export type SignalingEventEnvelope =
       excludeParticipantId?: string;
     }
   | {
-      kind: 'direct';
-      targetParticipantId: string;
-      message: OutboundSignalingMessage;
-    }
-  | {
       kind: 'kick';
       participantId: string;
       /** The connection that must NOT be kicked — the one that just replaced it. */

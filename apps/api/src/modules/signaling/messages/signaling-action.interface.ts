@@ -16,8 +16,16 @@ export interface SignalingActionResult {
   toSender?: OutboundSignalingMessage;
   /** Fan out to every other participant in the room, fleet-wide. */
   toRoom?: { roomId: string; message: OutboundSignalingMessage; excludeParticipantId?: string };
-  /** Deliver to one specific participant, wherever in the fleet they're connected. */
-  toParticipant?: { roomId: string; targetParticipantId: string; message: OutboundSignalingMessage };
-  /** Close any other live connection for this participantId in this room, fleet-wide. */
+  /**
+   * Close any other live connection for this participantId in this room,
+   * fleet-wide.
+   *
+   * There is deliberately no "deliver to one participant" intent. The
+   * mesh protocol needed one — it relayed an SDP offer from one browser to
+   * another — and an SFU does not: a client's only peer is the node
+   * serving its room, so a negotiation message goes to the media plane
+   * over the node link, not to another participant. Everything left here
+   * is genuinely room-wide.
+   */
   kickParticipant?: { roomId: string; participantId: string; exceptConnectionId: string };
 }

@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { ParticipantSession } from '../interfaces/participant-session.interface';
+import { makeSession } from '../testing/session.fixture';
 import { SignalingGateway } from './signaling.gateway';
 
 /**
@@ -14,13 +15,15 @@ describe('SignalingGateway heartbeat', () => {
   function makeGateway(): { gateway: SignalingGateway; sessions: Map<unknown, ParticipantSession> } {
     const configService = { get: jest.fn(() => 100) } as unknown as ConfigService;
     const gateway = new SignalingGateway(
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
+      {} as never, // tokenVerifier
+      {} as never, // roomRegistry
+      {} as never, // roomEvents
+      {} as never, // messageValidator
+      {} as never, // messageRouter
+      {} as never, // connectionRateLimit
       configService,
+      {} as never, // sfuLink
+      {} as never, // sfuFrames
     );
     // Reach into the private sessions map — see the comment above.
     const sessions = (gateway as unknown as { sessions: Map<unknown, ParticipantSession> }).sessions;
@@ -29,22 +32,6 @@ describe('SignalingGateway heartbeat', () => {
 
   function makeSocket() {
     return { ping: jest.fn(), terminate: jest.fn() };
-  }
-
-  function makeSession(overrides: Partial<ParticipantSession>): ParticipantSession {
-    return {
-      connectionId: 'conn-1',
-      participantId: 'alice',
-      projectId: 'p1',
-      roomId: 'r1',
-      permissions: { join: true, subscribe: true, publish: false, publishAudio: false, publishVideo: false, publishData: false },
-      socket: {} as never,
-      joinedRoom: false,
-      joinedAt: null,
-      isAlive: true,
-      messageTimestamps: [],
-      ...overrides,
-    };
   }
 
   it('pings a live connection and marks it not-yet-confirmed', () => {

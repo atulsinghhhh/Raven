@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
-import { ParticipantSession } from '../interfaces/participant-session.interface';
 import { SignalingError } from '../signaling-error';
 import { SignalingErrorCode } from '../signaling.constants';
+import { makeSession } from '../testing/session.fixture';
 import { RoomRegistryService } from './room-registry.service';
 
 /**
@@ -47,22 +47,6 @@ class FakeRedisClient {
     };
     return chain;
   }
-}
-
-function makeSession(overrides: Partial<ParticipantSession>): ParticipantSession {
-  return {
-    connectionId: 'conn-1',
-    participantId: 'alice',
-    projectId: 'project-1',
-    roomId: 'room-1',
-    permissions: { join: true, subscribe: true, publish: true, publishAudio: true, publishVideo: true, publishData: true },
-    socket: {} as never,
-    joinedRoom: false,
-    joinedAt: null,
-    isAlive: true,
-    messageTimestamps: [],
-    ...overrides,
-  };
 }
 
 describe('RoomRegistryService', () => {

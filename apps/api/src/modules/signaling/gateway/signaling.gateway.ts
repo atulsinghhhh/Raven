@@ -19,6 +19,9 @@ import { ConnectionRateLimitService } from '../rate-limit/connection-rate-limit.
 import { checkMessageRate } from '../rate-limit/message-rate-limiter.util';
 import { RoomEventsService } from '../rooms/room-events.service';
 import { RoomRegistryService } from '../rooms/room-registry.service';
+import { SfuFrameHandlerService } from '../sfu/sfu-frame-handler.service';
+import { SfuLinkService } from '../sfu/sfu-link.service';
+import { NodeLinkFrame } from '../sfu/node-link.interface';
 import { SignalingEventEnvelope } from '../rooms/signaling-event.interface';
 import { SignalingError } from '../signaling-error';
 import {
@@ -46,7 +49,8 @@ const CLOSE_RATE_LIMITED = 4029;
  * gateway holds sockets and a local room index; `RoomRegistryService` and
  * `RoomEventsService` handle fleet-wide membership and fan-out over
  * Redis, so a room split across gateways still gets join/leave/relay
- * events delivered correctly (see docs/signaling.md#multi-instance).
+ * events delivered correctly (see
+ * docs/rtc/scaling.md#a-room-split-across-api-instances).
  */
 @WebSocketGateway({ path: SIGNALING_PATH })
 export class SignalingGateway
@@ -54,6 +58,12 @@ export class SignalingGateway
 {
   private readonly logger = new Logger(SignalingGateway.name);
   private readonly sessions = new Map<WebSocket, ParticipantSession>();
+  /**
+   * The same sessions, keyed by connection id — which is the session id on
+   * the node link. Frames from an SFU name a session, not a socket, so
+   * this is the index that resolves them.
+   */
+  private readonly sessionsByConnectionId = new Map<string, ParticipantSession>();
   private heartbeatTimer?: NodeJS.Timeout;
   private unsubscribeFromRoomEvents?: () => void;
 
@@ -65,12 +75,19 @@ export class SignalingGateway
     private readonly messageRouter: MessageRouterService,
     private readonly connectionRateLimit: ConnectionRateLimitService,
     private readonly configService: ConfigService,
+    private readonly sfuLink: SfuLinkService,
+    private readonly sfuFrames: SfuFrameHandlerService,
   ) {}
 
   afterInit(): void {
     this.unsubscribeFromRoomEvents = this.roomEvents.onEvent((roomId, envelope) =>
       this.handleRoomEvent(roomId, envelope),
     );
+    // Frames from an SFU arrive on a link this instance owns, and the
+    // sessions on that link are this instance's own — so a session-
+    // targeted frame is always deliverable locally, with no Redis hop on
+    // the latency-sensitive negotiation path.
+    this.sfuLink.onFrame((frame) => void this.handleSfuFrame(frame));
     this.heartbeatTimer = setInterval(() => this.runHeartbeat(), HEARTBEAT_INTERVAL_MS);
     this.logger.log(`Signaling gateway listening on ${SIGNALING_PATH}`);
   }
@@ -83,6 +100,7 @@ export class SignalingGateway
     for (const client of this.sessions.keys()) {
       client.terminate();
     }
+    this.sessionsByConnectionId.clear();
   }
 
   async handleConnection(client: WebSocket, request: IncomingMessage): Promise<void> {
@@ -127,10 +145,14 @@ export class SignalingGateway
 
     const session: ParticipantSession = {
       connectionId: randomUUID(),
+      tokenId: verified.tokenId,
       participantId: verified.participantId,
       projectId: verified.projectId,
+      environment: verified.environment,
       roomId: verified.roomId,
+      roomName: verified.roomName,
       permissions: verified.permissions,
+      grant: verified.grant,
       socket: client,
       joinedRoom: false,
       joinedAt: null,
@@ -139,6 +161,7 @@ export class SignalingGateway
     };
 
     this.sessions.set(client, session);
+    this.sessionsByConnectionId.set(session.connectionId, session);
     this.logger.log(
       `connection authenticated: participant=${session.participantId} room=${session.roomId}`,
     );
@@ -156,6 +179,7 @@ export class SignalingGateway
       return;
     }
     this.sessions.delete(client);
+    this.sessionsByConnectionId.delete(session.connectionId);
 
     if (session.joinedRoom) {
       try {
@@ -237,19 +261,54 @@ export class SignalingGateway
       });
     }
 
-    if (result.toParticipant) {
-      await this.roomEvents.publish(result.toParticipant.roomId, {
-        kind: 'direct',
-        targetParticipantId: result.toParticipant.targetParticipantId,
-        message: result.toParticipant.message,
-      });
-    }
-
     if (result.kickParticipant) {
       await this.roomEvents.publish(result.kickParticipant.roomId, {
         kind: 'kick',
         participantId: result.kickParticipant.participantId,
         exceptConnectionId: result.kickParticipant.exceptConnectionId,
+      });
+    }
+  }
+
+  /**
+   * Delivers what an SFU frame implies.
+   *
+   * Session-targeted frames (offers, answers, candidates, connection
+   * state) go straight to the socket: the frame arrived on a link this
+   * instance owns, so the session is this instance's own. Room-wide
+   * frames (a track appearing or going away) go through Redis, because
+   * the room's other participants may be on any instance.
+   */
+  private async handleSfuFrame(frame: NodeLinkFrame): Promise<void> {
+    let action;
+    try {
+      action = await this.sfuFrames.handle(frame);
+    } catch (err) {
+      this.logger.error(
+        `handling sfu frame ${frame.type} failed: ${(err as Error).message}`,
+      );
+      return;
+    }
+
+    if (action.toSession) {
+      const session = this.sessionsByConnectionId.get(action.toSession.sessionId);
+      if (!session) {
+        // The client disconnected while the SFU was answering. Expected
+        // often enough not to be a warning — the node cleans up its side
+        // when the PeerConnection dies.
+        this.logger.debug(
+          `dropping ${frame.type} — session ${action.toSession.sessionId} is gone`,
+        );
+      } else {
+        this.sendMessage(session.socket, action.toSession.message);
+      }
+    }
+
+    if (action.toRoom) {
+      await this.roomEvents.publish(action.toRoom.roomId, {
+        kind: 'broadcast',
+        message: action.toRoom.message,
+        excludeParticipantId: action.toRoom.excludeParticipantId,
       });
     }
   }
@@ -260,13 +319,6 @@ export class SignalingGateway
       case 'broadcast': {
         for (const participant of this.roomRegistry.listParticipants(roomId, envelope.excludeParticipantId)) {
           this.sendMessage(participant.socket, envelope.message);
-        }
-        return;
-      }
-      case 'direct': {
-        const target = this.roomRegistry.get(roomId, envelope.targetParticipantId);
-        if (target) {
-          this.sendMessage(target.socket, envelope.message);
         }
         return;
       }

@@ -32,7 +32,7 @@ export interface JoinResult {
  * (mirrors chat's connection-registry reasoning, spec-equivalent to
  * chat's spec §35).
  *
- * See docs/signaling.md#multi-instance-readiness.
+ * See docs/rtc/scaling.md#a-room-split-across-api-instances.
  */
 @Injectable()
 export class RoomRegistryService {
@@ -168,6 +168,29 @@ export class RoomRegistryService {
         `fleet existence check failed for participant ${participantId} in room ${roomId}: ${(err as Error).message}`,
       );
       return false;
+    }
+  }
+
+  /**
+   * How many participants the room holds fleet-wide.
+   *
+   * Used to decide whether a departure emptied the room, which the local
+   * view cannot answer: the last participant on *this* instance is not
+   * necessarily the last in the room.
+   *
+   * Fails closed at 1 rather than 0 when Redis is unreachable. Reporting
+   * "empty" on a failed read would release a live room's RTC server
+   * assignment, and the next participant to join would be allocated a
+   * different node from the people already talking.
+   */
+  async countFleetWide(roomId: string): Promise<number> {
+    try {
+      return await this.redisService.client.scard(SignalingRedisKeys.roomParticipants(roomId));
+    } catch (err) {
+      this.logger.warn(
+        `fleet count failed for room ${roomId}, assuming not empty: ${(err as Error).message}`,
+      );
+      return 1;
     }
   }
 

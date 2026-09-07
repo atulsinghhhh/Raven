@@ -50,39 +50,132 @@ describe('MessageValidatorService', () => {
 
   it('accepts room.join with a roomId', () => {
     const msg = validator.parse('{"type":"room.join","roomId":"room-123"}');
-    expect(msg).toEqual({ type: ClientMessageType.ROOM_JOIN, roomId: 'room-123' });
+    expect(msg).toEqual({ type: ClientMessageType.ROOM_JOIN, roomId: 'room-123', region: undefined });
+  });
+
+  it('accepts room.join with a preferred region', () => {
+    const msg = validator.parse('{"type":"room.join","region":"asia-south"}');
+    expect(msg).toEqual({
+      type: ClientMessageType.ROOM_JOIN,
+      roomId: undefined,
+      region: 'asia-south',
+    });
   });
 
   it('rejects room.join with a non-string roomId', () => {
     expectRejects('{"type":"room.join","roomId":123}', SignalingErrorCode.INVALID_MESSAGE);
   });
 
-  it('accepts a well-formed sdp.offer', () => {
-    const msg = validator.parse('{"type":"sdp.offer","targetParticipantId":"bob","sdp":"v=0..."}');
-    expect(msg).toEqual({ type: ClientMessageType.SDP_OFFER, targetParticipantId: 'bob', sdp: 'v=0...' });
+  it('rejects room.join with a non-string region', () => {
+    expectRejects('{"type":"room.join","region":42}', SignalingErrorCode.INVALID_MESSAGE);
   });
 
-  it('rejects sdp.offer missing targetParticipantId', () => {
-    expectRejects('{"type":"sdp.offer","sdp":"v=0..."}', SignalingErrorCode.INVALID_MESSAGE);
+  it('accepts an sdp.offer with no target', () => {
+    // The client has exactly one peer — the SFU serving its room. A
+    // `targetParticipantId` was the defining field of the mesh protocol
+    // this replaced, and requiring one now would be wrong.
+    const msg = validator.parse('{"type":"sdp.offer","sdp":"v=0..."}');
+    expect(msg).toEqual({ type: ClientMessageType.SDP_OFFER, sdp: 'v=0...' });
+  });
+
+  it('ignores a targetParticipantId if a stale client still sends one', () => {
+    const msg = validator.parse('{"type":"sdp.answer","targetParticipantId":"bob","sdp":"v=0..."}');
+    expect(msg).toEqual({ type: ClientMessageType.SDP_ANSWER, sdp: 'v=0...' });
+  });
+
+  it('rejects sdp.offer missing sdp', () => {
+    expectRejects('{"type":"sdp.offer"}', SignalingErrorCode.INVALID_MESSAGE);
   });
 
   it('rejects sdp.answer missing sdp', () => {
-    expectRejects('{"type":"sdp.answer","targetParticipantId":"bob"}', SignalingErrorCode.INVALID_MESSAGE);
+    expectRejects('{"type":"sdp.answer"}', SignalingErrorCode.INVALID_MESSAGE);
   });
 
   it('accepts a well-formed ice.candidate', () => {
     const msg = validator.parse(
-      '{"type":"ice.candidate","targetParticipantId":"bob","candidate":{"candidate":"..."}}',
+      '{"type":"ice.candidate","candidate":"candidate:1 1 udp 2130706431 10.0.0.1 54321 typ host","sdpMid":"0","sdpMLineIndex":0,"usernameFragment":"abc"}',
     );
     expect(msg).toEqual({
       type: ClientMessageType.ICE_CANDIDATE,
-      targetParticipantId: 'bob',
-      candidate: { candidate: '...' },
+      candidate: 'candidate:1 1 udp 2130706431 10.0.0.1 54321 typ host',
+      sdpMid: '0',
+      sdpMLineIndex: 0,
+      usernameFragment: 'abc',
     });
   });
 
+  it('accepts an ice.candidate with only the candidate line', () => {
+    // sdpMid/sdpMLineIndex are optional in WebRTC; a browser may send
+    // either or neither.
+    const msg = validator.parse('{"type":"ice.candidate","candidate":"candidate:1 1 udp ..."}');
+    expect(msg).toMatchObject({ type: ClientMessageType.ICE_CANDIDATE });
+  });
+
   it('rejects ice.candidate missing the candidate field', () => {
-    expectRejects('{"type":"ice.candidate","targetParticipantId":"bob"}', SignalingErrorCode.INVALID_MESSAGE);
+    expectRejects('{"type":"ice.candidate","sdpMid":"0"}', SignalingErrorCode.INVALID_MESSAGE);
+  });
+
+  it('rejects ice.candidate whose candidate is an object', () => {
+    // The mesh protocol carried an opaque object here; the SFU protocol
+    // carries the candidate line as a string.
+    expectRejects(
+      '{"type":"ice.candidate","candidate":{"candidate":"..."}}',
+      SignalingErrorCode.INVALID_MESSAGE,
+    );
+  });
+
+  it('rejects a non-integer sdpMLineIndex', () => {
+    expectRejects(
+      '{"type":"ice.candidate","candidate":"candidate:1","sdpMLineIndex":1.5}',
+      SignalingErrorCode.INVALID_MESSAGE,
+    );
+  });
+
+  it('accepts a well-formed track.mute', () => {
+    const msg = validator.parse('{"type":"track.mute","trackId":"cam-1","muted":true}');
+    expect(msg).toEqual({ type: ClientMessageType.TRACK_MUTE, trackId: 'cam-1', muted: true });
+  });
+
+  it('rejects track.mute without an explicit boolean', () => {
+    // "muted": "true" from a hand-rolled client must not read as muted.
+    expectRejects(
+      '{"type":"track.mute","trackId":"cam-1","muted":"true"}',
+      SignalingErrorCode.INVALID_MESSAGE,
+    );
+  });
+
+  it('accepts a well-formed subscription.update', () => {
+    const msg = validator.parse(
+      '{"type":"subscription.update","publisherId":"bob","trackId":"bob-cam","layer":"low"}',
+    );
+    expect(msg).toEqual({
+      type: ClientMessageType.SUBSCRIPTION_UPDATE,
+      publisherId: 'bob',
+      trackId: 'bob-cam',
+      layer: 'low',
+    });
+  });
+
+  it('accepts layer "auto"', () => {
+    const msg = validator.parse(
+      '{"type":"subscription.update","publisherId":"bob","trackId":"c","layer":"auto"}',
+    );
+    expect(msg).toMatchObject({ layer: 'auto' });
+  });
+
+  it('rejects an unknown simulcast layer rather than defaulting it', () => {
+    // Silently substituting a different quality would hide a client bug.
+    expectRejects(
+      '{"type":"subscription.update","publisherId":"bob","trackId":"c","layer":"ultra"}',
+      SignalingErrorCode.INVALID_MESSAGE,
+    );
+  });
+
+  it('rejects subscription.update missing publisherId', () => {
+    expectRejects(
+      '{"type":"subscription.update","trackId":"c","layer":"low"}',
+      SignalingErrorCode.INVALID_MESSAGE,
+    );
   });
 
   it('accepts room.leave and ping with no extra fields', () => {
