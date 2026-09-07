@@ -334,6 +334,60 @@ az vm deallocate -g raven-production -n raven-coturn-01 --no-wait
 az vm start -g raven-production -n raven-sfu-01     # SFU_PUBLIC_IP survives: the IP is static
 ```
 
+## Custom domains — ravenstack.online
+
+DNS for `ravenstack.online` is hosted in an **Azure DNS zone** in this
+resource group, fully populated. It is not yet authoritative: the registrar
+(GoDaddy, `ns13/ns14.domaincontrol.com`) still answers for the domain.
+
+Vercel could not host the zone — a third-party-registered domain added as a
+*project* domain gets no zone, and the API returns
+`ravenstack.online is not a DNS zone`. Azure DNS was used instead, so every
+record is managed with the same `az` credentials as the rest of this
+deployment.
+
+**One manual step remains.** At the registrar, replace the nameservers with:
+
+```
+ns1-04.azure-dns.com
+ns2-04.azure-dns.net
+ns3-04.azure-dns.org
+ns4-04.azure-dns.info
+```
+
+Zone contents (all verified against `dig @ns1-04.azure-dns.com`):
+
+| Type | Name | Value | Serves |
+|---|---|---|---|
+| A | `@` | `76.76.21.21` | Landing (Vercel) |
+| CNAME | `www` | `cname.vercel-dns.com` | Landing |
+| CNAME | `app` | `cname.vercel-dns.com` | Dashboard |
+| CNAME | `docs` | `cname.vercel-dns.com` | Docs |
+| CNAME | `api` | `raven-api.…eastasia.azurecontainerapps.io` | API |
+| TXT | `asuid.api` | Container App `customDomainVerificationId` | Azure ownership check |
+| A | `turn` | `40.83.92.152` | coturn |
+
+Then run the cutover, which is gated on those records resolving publicly and
+refuses to run early:
+
+```bash
+./14-custom-domains.sh
+./tests/verify-domains.sh ravenstack.online
+```
+
+It binds `api.ravenstack.online` with an **Azure-managed certificate**,
+issues a Let's Encrypt certificate for `turn.ravenstack.online`, moves the
+coturn realm onto it, then updates `API_PUBLIC_URL`, `RTC_SIGNALING_URL`,
+`CORS_ORIGIN` and `TURN_HOST`, and repoints the dashboard's `RAVEN_API_URL`.
+
+Nothing was switched over in advance, deliberately: `TURN_HOST` feeds every
+client's `iceServers`, so setting it before `turn.ravenstack.online`
+resolves would break relay for real users. `TURN_INTERNAL_HOST` stays on the
+private `10.10.1.5` address — it is only the API's own STUN probe.
+
+The Azure-generated FQDN is never removed, so the cutover widens access
+rather than moving it.
+
 ## Still required
 
 1. **A TURN hostname**, plus an A record to the coturn public IP. The realm
