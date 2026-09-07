@@ -1,8 +1,22 @@
 name: E2E
 
-# Boots the real infra stack (Postgres, Redis, LiveKit, coturn — see
-# docker-compose.yml) and runs apps/api's e2e suite against it, same as a
+# Boots the real infra stack (Redis, the Raven SFU, coturn — see
+# docker-compose.yml), runs the SFU's own Go tests against real Pion
+# peers, then runs apps/api's e2e suite against the stack, same as a
 # developer would locally.
+#
+# The API e2e also builds and spawns a *second* SFU of its own, on
+# non-conflicting ports, so `room.join` negotiates against a real node.
+# That is why Go is set up below even though nothing here is a Go service.
+# See docs/rtc/test-matrix.md for what each layer proves.
+#
+# The one deliberate difference from a developer's setup: the database is a
+# throwaway Postgres service container, not the Supabase database Raven
+# actually runs on (docs/deployment/managed-postgres.md). The e2e suite
+# applies migrations and writes freely, and two concurrent CI runs would
+# corrupt each other's fixtures — neither is acceptable against a shared
+# hosted database. CI is the only place a local Postgres remains, and it is
+# a test fixture rather than Raven's database.
 
 on:
   push:
@@ -19,12 +33,29 @@ permissions:
 
 env:
   NODE_VERSION: "22"
+  GO_VERSION: "1.26.4"
 
 jobs:
   e2e:
     name: API e2e
     runs-on: ubuntu-latest
     timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: raven
+          POSTGRES_USER: raven
+          POSTGRES_PASSWORD: raven
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v7
 
@@ -34,26 +65,62 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
+      # The signaling e2e builds services/sfu and runs it as a child
+      # process, so it can negotiate against a real Pion node rather than
+      # a stub. Pinned rather than relying on whatever the runner image
+      # ships, so a runner update cannot silently change the media plane
+      # under the tests.
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: services/sfu/go.sum
+
       - run: pnpm install --frozen-lockfile
 
       # Must come before prisma:generate: prisma.config.ts resolves
       # DATABASE_URL from the root .env, so generating a client without one
-      # fails outright. Injecting a placeholder here would be worse — it
-      # would shadow the real value for the migrate and test steps below.
-      - name: Prepare local infra env
+      # fails outright.
+      #
+      # The database URLs are rewritten in the file rather than injected as
+      # step-level `env:`, so that every consumer — the Prisma CLI, and the
+      # API booted in-process by the e2e suite — reads one consistent value
+      # from one place. .env.example ships Supabase placeholders, which
+      # would not resolve here and must not be reached from CI anyway.
+      - name: Prepare infra env
         run: |
           cp .env.example .env
+          CI_DB="postgresql://raven:raven@localhost:5432/raven"
+          sed -i "s|^DATABASE_URL=.*|DATABASE_URL=${CI_DB}|" .env
+          sed -i "s|^DIRECT_URL=.*|DIRECT_URL=${CI_DB}|" .env
           bash scripts/generate-turn-cert.sh
 
       - run: pnpm --filter @raven/api run prisma:generate
 
-      - name: Start infra (postgres, redis, livekit, coturn)
-        run: docker compose up -d --wait postgres redis livekit coturn
+      # The effects suites drive two real Chromium contexts against the
+      # SFU — the only tests anywhere in this repo where browser WebRTC
+      # talks to Raven's media plane. Worth the download: they are what
+      # caught the msid mismatch that every fake-transport test agreed was
+      # fine. See docs/rtc/test-matrix.md.
+      - name: Install Chromium for Playwright
+        run: pnpm --filter @raven/api exec playwright install --with-deps chromium
 
+      - name: Start infra (redis, sfu, coturn)
+        run: docker compose up -d --wait redis sfu coturn
+
+      # Applies prisma/migrations to the service container above, over
+      # DIRECT_URL — which CI points at the same database as DATABASE_URL,
+      # there being no pooler in front of it.
       - name: Apply database migrations
         run: pnpm --filter @raven/api run prisma:migrate:deploy
-        env:
-          DATABASE_URL: postgresql://raven:change-me-local-postgres-password@localhost:5433/raven
+
+      # The SFU's own tests: real Pion peers, real ICE/DTLS/SRTP, real
+      # RTP. These are what actually prove media forwarding, simulcast and
+      # RTCP recovery — the API e2e below cannot, since `ws` is not a
+      # WebRTC endpoint. Run first because they are fast and a failure
+      # here makes the e2e result uninterpretable.
+      - name: Run SFU tests
+        run: go test -race ./...
+        working-directory: services/sfu
 
       - name: Run e2e tests
         run: pnpm --filter @raven/api run test:e2e

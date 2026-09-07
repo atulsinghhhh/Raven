@@ -53,3 +53,10 @@ infrastructure/docker/coturn/certs/
 
 /apps/community-api
 /apps/community
+# Dart/Flutter build output. `.dart_tool/` is a package cache full of
+# absolute paths, so it is machine-specific and never portable.
+# `pubspec.lock` is deliberately ignored too: every Dart package here is a
+# *library*, and pub's own guidance is that libraries do not pin — an app
+# that depends on raven_rtc resolves its own versions.
+.dart_tool/
+sdks/flutter/*/pubspec.lock

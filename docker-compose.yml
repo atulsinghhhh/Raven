@@ -1,14 +1,3 @@
-# Raven local dev stack: Postgres, Redis, LiveKit (SFU + signaling),
-# coturn (TURN/STUN), and the api control plane.
-#
-# No separate "signaling" service here — LiveKit does that itself, so a
-# standalone container would just be redundant. See docs/architecture/signaling.md.
-#
-# Usage:
-#   cp .env.example .env   # then edit the generated secrets
-#   pnpm infra:up
-#
-# Full instructions: docs/local-development.md
 
 name: raven
 
@@ -18,63 +7,12 @@ networks:
     driver: bridge
 
 volumes:
-  raven-postgres-data:
-    name: raven-postgres-data
   raven-redis-data:
     name: raven-redis-data
   raven-minio-data:
     name: raven-minio-data
 
 services:
-  # Postgres — stores users, projects, api keys, rooms, usage records.
-  # See infrastructure-decisions.md if you want the reasoning.
-  postgres:
-    image: postgres:16-alpine
-    container_name: raven-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
-      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      PGDATA: /var/lib/postgresql/data/pgdata
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - raven-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-    networks:
-      - raven-network
-
-  # Creates the raven_community database on this same Postgres instance,
-  # then exits. Separate logical database from `raven` above — Raven
-  # Community (apps/community-api) owns its own schema and never touches
-  # Raven's own tables. Idempotent so `pnpm infra:up` stays a single command
-  # across restarts.
-  community-db-init:
-    image: postgres:16-alpine
-    container_name: raven-community-db-init
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      PGHOST: postgres
-      PGUSER: ${POSTGRES_USER}
-      PGPASSWORD: ${POSTGRES_PASSWORD}
-    entrypoint: >
-      /bin/sh -c "
-      psql -tc \"SELECT 1 FROM pg_database WHERE datname = 'raven_community'\" | grep -q 1 ||
-      psql -c \"CREATE DATABASE raven_community\"
-      "
-    networks:
-      - raven-network
-
-  # Redis — ephemeral stuff: presence, rate limiting, room-state cache,
-  # token bookkeeping, and LiveKit's own coordination store.
   redis:
     image: redis:7-alpine
     container_name: raven-redis
@@ -97,30 +35,53 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     networks:
       - raven-network
-
-  # LiveKit — our SFU + signaling (see sfu-comparison.md / signaling.md
-  # for why). Needs Redis for internal coordination.
-  livekit:
-    image: livekit/livekit-server:v1.13.5
-    container_name: raven-livekit
+  sfu:
+    build:
+      context: ./services/sfu
+      dockerfile: Dockerfile
+    image: raven/sfu:dev
+    container_name: raven-sfu
     restart: unless-stopped
     depends_on:
-      redis:
-        condition: service_healthy
-    command: >
-      --config /etc/livekit.yaml
-      --keys "${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}"
-      --redis-host redis:6379
-      --redis-password ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
-      --node-ip=${LIVEKIT_NODE_IP:-127.0.0.1}
-    volumes:
-      - ./infrastructure/docker/livekit/livekit.yaml:/etc/livekit.yaml:ro
+      api:
+        condition: service_started
+    environment:
+      SFU_NODE_ID: ${SFU_NODE_ID:-sfu-local-01}
+      SFU_REGION: ${SFU_DEFAULT_REGION:-local}
+      # What clients are told to reach for media. "localhost" works for a
+      # browser on this machine; a real deployment needs a routable name.
+      SFU_PUBLIC_HOST: ${SFU_PUBLIC_HOST:-localhost}
+      # Advertised in ICE candidates. Without it every candidate carries
+      # the container's private address, which no client can reach, and
+      # the only connections that work are TURN relays.
+      SFU_PUBLIC_IP: ${SFU_PUBLIC_IP:-127.0.0.1}
+      SFU_HTTP_ADDR: ":7000"
+      # Container-to-container, not host-facing: the API is on
+      # this network, so "localhost" would point back at the SFU itself.
+      # Must track API_PORT. Hardcoded to :4000 previously, which the api
+      # container has never listened on — registration failed with
+      # "connection refused" on every retry, so no node ever reached the
+      # registry and /health reported sfu: down. config.go's own default is
+      # :4000 too; neither is the port this deployment uses.
+      SFU_CONTROL_PLANE_URL: http://api:${API_PORT:-4100}
+      SFU_INTERNAL_URL: http://sfu:7000
+      SFU_REGISTRATION_SECRET: ${SFU_REGISTRATION_SECRET:?SFU_REGISTRATION_SECRET is required}
+      SFU_HEARTBEAT_INTERVAL_SECONDS: ${SFU_HEARTBEAT_INTERVAL_SECONDS:-10}
+      SFU_ROOM_CAPACITY: ${SFU_ROOM_CAPACITY:-100}
+      SFU_UDP_PORT_MIN: ${SFU_UDP_PORT_MIN:-51000}
+      SFU_UDP_PORT_MAX: ${SFU_UDP_PORT_MAX:-51200}
+      SFU_LOG_LEVEL: ${SFU_LOG_LEVEL:-info}
     ports:
-      - "${LIVEKIT_PORT:-7880}:7880"                 # HTTP + WebSocket signaling
-      - "${LIVEKIT_RTC_TCP_PORT:-7881}:7881"         # RTC media, TCP fallback
-      - "${LIVEKIT_RTC_UDP_START:-50000}-${LIVEKIT_RTC_UDP_END:-50019}:50000-50019/udp" # RTC media (ICE/SRTP)
+      - "${SFU_HTTP_PORT:-7000}:7000"                # node link, health, metrics
+      # Media. Published one-to-one because ICE advertises the exact port
+      # it bound — a remapped range would hand clients addresses that do
+      # not exist.
+      - "${SFU_UDP_PORT_MIN:-51000}-${SFU_UDP_PORT_MAX:-51200}:51000-51200/udp"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:7880"]
+      # Liveness, not readiness: a node whose control-plane link is down is
+      # still serving the calls already on it, and restarting it would drop
+      # them. /readyz is what the allocator cares about.
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:7000/healthz"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -151,10 +112,11 @@ services:
       # alone doesn't switch it on too.
       - "--dtls"
       # coturn blocks relaying to loopback addresses by default (anti-SSRF).
-      # LiveKit runs with --node-ip=127.0.0.1 so the host browser can reach
-      # it directly, and that same 127.0.0.1 candidate is what a
-      # forced-TURN-relay client has to relay *to* — so we need this flag
-      # here. Real deployments should never need it. See docs/turn.md#local-dev-only-flags.
+      # Locally the SFU advertises SFU_PUBLIC_IP=127.0.0.1 so a browser on
+      # the host can reach it directly, and that same 127.0.0.1 candidate
+      # is what a forced-TURN-relay client has to relay *to* — hence this
+      # flag. Real deployments should never need it, and must not set it.
+      # See docs/turn.md#local-dev-only-flags.
       - "--allow-loopback-peers"
     volumes:
       - ./infrastructure/docker/coturn/turnserver.conf:/etc/turnserver.conf:ro
@@ -221,6 +183,34 @@ services:
     networks:
       - raven-network
 
+  # Applies prisma/migrations/ to Supabase once, then exits — the local
+  # stand-in for production's one-shot migration job. `api` waits on this
+  # completing, so `pnpm infra:up` still needs no manual migrate step.
+  #
+  # Deliberately a separate service rather than part of api's CMD: the api
+  # image is what production scales to N instances, and N of them migrating
+  # concurrently through a transaction pooler is a lock contention bug (see
+  # apps/api/Dockerfile's CMD comment). One migrator, then the app.
+  #
+  # Same image as api, different command — no extra build.
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: raven-migrate
+    restart: "no"
+    environment:
+      # Session mode (:5432), not the :6543 pooler DATABASE_URL points at:
+      # the schema engine needs one session it can hold an advisory lock on
+      # across several statements. This is the only container that reads it.
+      DIRECT_URL: ${DIRECT_URL:?DIRECT_URL is required to migrate — see .env.example}
+      # prisma.config.ts falls back to DATABASE_URL when DIRECT_URL is
+      # unset; passed through so that fallback resolves rather than throwing.
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required — see .env.example}
+    command: ["pnpm", "exec", "prisma", "migrate", "deploy"]
+    networks:
+      - raven-network
+
   # api — the control plane. Handles auth, projects, api keys, rooms, RTC
   # tokens. Doesn't touch media itself. See docs/control-plane.md.
   api:
@@ -230,37 +220,43 @@ services:
     container_name: raven-api
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
-        condition: service_healthy
-      livekit:
         condition: service_healthy
       minio:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       NODE_ENV: development
       API_PORT: ${API_PORT:-4100}
-      # These are container-to-container addresses, not the host-facing
-      # DATABASE_URL/REDIS_URL from .env (those point at localhost + the
-      # mapped ports, for Prisma CLI / `pnpm start:dev` on the host).
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # Passed straight through from .env, unlike REDIS_URL below: the
+      # database is external (Supabase), so there is no container-internal
+      # address to rewrite it to. Keep it on the :6543 transaction pooler.
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required — see .env.example}
+      DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
+      # No DIRECT_URL here on purpose: the running app never reads it (only
+      # the Prisma CLI does, via prisma.config.ts), and this container no
+      # longer migrates — the `migrate` service above does that and holds
+      # the only session-mode connection.
+      # Container-to-container address, not the host-facing REDIS_URL from
+      # .env (that one points at localhost + the mapped port, for
+      # `pnpm start:dev` on the host).
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
-      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
-      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
-      # Host-facing on purpose — this gets handed back to browsers/mobile
-      # clients so they know where to connect. Can't be the internal
-      # "livekit:7880" address.
-      LIVEKIT_URL: ${LIVEKIT_URL:-ws://localhost:7880}
-      # Hardcoded to the Docker service name, same as DATABASE_URL/REDIS_URL
-      # above. Not pulled from .env's LIVEKIT_INTERNAL_URL, which defaults
-      # to a host-reachable address for `pnpm start:dev`/e2e runs on the
-      # host. This one's what the api process itself uses (RoomServiceClient,
-      # /health) since it's on the same Docker network. See docs/dashboard.md#health.
-      LIVEKIT_INTERNAL_URL: http://livekit:7880
+      # Signs Raven's own RTC tokens. Must differ from JWT_SECRET and
+      # CHAT_TOKEN_SECRET — see docs/rtc/security.md.
+      RTC_TOKEN_SECRET: ${RTC_TOKEN_SECRET:?RTC_TOKEN_SECRET is required}
       RTC_TOKEN_DEFAULT_TTL_SECONDS: ${RTC_TOKEN_DEFAULT_TTL_SECONDS:-600}
+      # How SFU nodes authenticate to the control plane. Server-to-server
+      # only; never handed to a client.
+      SFU_REGISTRATION_SECRET: ${SFU_REGISTRATION_SECRET:?SFU_REGISTRATION_SECRET is required}
+      SFU_HEARTBEAT_TIMEOUT_SECONDS: ${SFU_HEARTBEAT_TIMEOUT_SECONDS:-30}
+      SFU_DEFAULT_REGION: ${SFU_DEFAULT_REGION:-local}
+      # Host-facing: this is handed back to clients as `endpoint`, so it
+      # cannot be the internal "api:4000" address. Derived from
+      # API_PUBLIC_URL when unset.
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:4100}
       API_KEY_HASH_SECRET: ${API_KEY_HASH_SECRET:?API_KEY_HASH_SECRET is required}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
       RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
@@ -269,12 +265,12 @@ services:
       SIGNALING_MAX_MESSAGES_PER_WINDOW: ${SIGNALING_MAX_MESSAGES_PER_WINDOW:-100}
       SIGNALING_MESSAGE_WINDOW_SECONDS: ${SIGNALING_MESSAGE_WINDOW_SECONDS:-10}
       SIGNALING_MAX_CONNECTIONS_PER_WINDOW: ${SIGNALING_MAX_CONNECTIONS_PER_WINDOW:-20}
-      # Host-facing on purpose, same reasoning as LIVEKIT_URL — this goes
-      # to real clients as an ICE server address.
+      # Host-facing on purpose — this goes to real clients as an ICE
+      # server address, so it cannot be the internal "coturn" name.
       TURN_HOST: ${TURN_HOST:-localhost}
       TURN_PORT: ${TURN_PORT:-3478}
-      # Hardcoded like LIVEKIT_INTERNAL_URL — only used by api's own
-      # /health STUN check.
+      # Hardcoded to the Docker service name — only used by the api's own
+      # /health STUN check, which runs inside this network.
       TURN_INTERNAL_HOST: coturn
       TURN_TLS_PORT: ${TURN_TLS_PORT:-5349}
       TURN_SECRET: ${TURN_SECRET:?TURN_SECRET is required}

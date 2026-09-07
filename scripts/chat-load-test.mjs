@@ -8,7 +8,7 @@
 // Postgres and Redis.
 //
 // The numbers this produces describe *the machine it ran on*. A laptop
-// running Postgres, Redis, LiveKit, coturn, MinIO and the API in Docker
+// running Postgres, Redis, the Raven SFU, coturn, MinIO and the API in Docker
 // alongside the load generator is not a capacity model for production;
 // see docs/chat/architecture.md#measured-limits for what was measured and
 // what it does and does not tell you.

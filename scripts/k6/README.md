@@ -8,15 +8,17 @@ spread load across a horizontally-scaled local fleet:
 |---|---|---|
 | `k6/api-load-test.js` | REST control plane (Rooms, RTC Tokens) | k6 |
 | `chat-load-test.mjs` (repo root; orchestrated by `k6/chat-scaled-load-test.sh`) | Chat WebSocket | Node + `ws` |
-| `rtc-load-test.sh` | RTC media plane (the SFU itself) | `lk load-test` (livekit-cli) |
+| `rtc-load-test.sh` | RTC media plane (the SFU itself) | Go (`services/sfu` scale tests) |
 | `k6/mixed-scenario.js` | Blended REST + chat + RTC-token traffic | k6 |
 
-Install once: `brew install k6 livekit-cli`.
+Install once: `brew install k6`. `rtc-load-test.sh` needs Go instead —
+it drives the SFU's own scale tests in-process rather than a separate
+load-generator binary.
 
 ## What this can and cannot prove
 
 A single laptop cannot originate 10,000–20,000 real concurrent
-connections **and** run Postgres+Redis+LiveKit+coturn+the API under
+connections **and** run Postgres+Redis+the SFU+coturn+the API under
 test **and** have the load generator itself not be the bottleneck.
 File descriptors, ephemeral port exhaustion, and CPU contention between
 "the thing being measured" and "the thing measuring it" will all skew

@@ -68,6 +68,22 @@ EXPOSE 4100
 # (Prisma migrations write to Postgres, not to this filesystem).
 USER node
 
-# `prisma migrate deploy` only applies existing migrations (never creates
-# new ones), so it's safe to run on every container start.
-CMD ["sh", "-c", "pnpm exec prisma migrate deploy && node dist/main.js"]
+# Starts the app and nothing else. Migrations are deliberately *not* run
+# here, even though `migrate deploy` is apply-only and idempotent.
+#
+# The database is managed Postgres reached through a transaction-mode
+# pooler (Supabase's :6543). N instances of this image starting at once
+# would be N schema-engine sessions contending for one advisory lock, and
+# transaction pooling cannot hold that lock across the multi-statement DDL
+# a migration needs — so the failure is a hang or a lock error at boot,
+# on every replica, rather than a clear message anywhere.
+#
+# Migrations run once, before the instances start, as their own step:
+#   - locally, the `migrate` service in docker-compose.yml (which this
+#     container waits on via `service_completed_successfully`)
+#   - in production, a one-shot job over DIRECT_URL — see
+#     docs/deployment/managed-postgres.md#applying-migrations
+#
+# The image still ships the Prisma CLI and the migration files, so that
+# one-shot job can be this same image with a different command.
+CMD ["node", "dist/main.js"]

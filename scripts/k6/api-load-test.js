@@ -108,7 +108,7 @@ export default function (data) {
     check(tokenRes, { 'mint_rtc_token status 201': (r) => r.status === 201 });
   }
 
-  // GET :id enriches its response with a live LiveKit RoomServiceClient
+  // GET :id enriches its response with a live room-state query to the SFU
   // round-trip (rooms.service.ts has no participant-count cache) — a
   // real per-request cost worth isolating from create_room's plain
   // Postgres path. Set SKIP_GET_ROOM=1 to isolate that.

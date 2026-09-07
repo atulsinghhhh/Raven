@@ -67,8 +67,14 @@ data:
   # this is deployed behind. Placeholders here; override per environment
   # (a kustomize overlay, not by editing this base file).
   API_PUBLIC_URL: "https://api.example.com"
-  LIVEKIT_URL: "wss://livekit.example.com"
-  LIVEKIT_INTERNAL_URL: "http://livekit.raven.svc.cluster.local:7880"
+  # Where clients connect for signaling. Derived from API_PUBLIC_URL when
+  # unset; set explicitly only if signaling is fronted on its own host.
+  # Must be wss:// — RTC tokens travel on this connection.
+  RTC_SIGNALING_URL: "wss://api.example.com/v1/rtc"
+  # An SFU that has not heartbeated within this window stops receiving new
+  # rooms. Must comfortably exceed the nodes' own heartbeat interval.
+  SFU_HEARTBEAT_TIMEOUT_SECONDS: "30"
+  SFU_DEFAULT_REGION: "us-east"
   TURN_HOST: "turn.example.com"
   TURN_INTERNAL_HOST: "coturn.raven.svc.cluster.local"
   TURN_PORT: "3478"

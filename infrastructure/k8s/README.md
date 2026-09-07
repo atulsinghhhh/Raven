@@ -30,7 +30,7 @@ exists.
 
 ## What's deliberately not here
 
-- **Postgres, Redis, LiveKit, coturn.** Their production topology
+- **Postgres, Redis, the Raven SFU, coturn.** Their production topology
   (replication/failover, Sentinel/Cluster, a real TURN relay behind
   NAT) needs infrastructure this pass didn't have access to — tracked
   as P1 in `docs/production/capacity-report.md`. `docker-compose.yml`
@@ -66,7 +66,7 @@ restructure, and the module boundaries already support it — nothing
 about the fix in this pass (signaling's Redis-backing) assumed a single
 process.
 
-LiveKit and coturn get their own load-balanced paths in that topology
+The SFU fleet and coturn get their own load-balanced paths in that topology
 too (UDP/TCP media, not the HTTP ingress) — already implied by
 `docker-compose.yml`'s `50000-50019/udp` port range.
 
