@@ -60,3 +60,7 @@ infrastructure/docker/coturn/certs/
 # that depends on raven_rtc resolves its own versions.
 .dart_tool/
 sdks/flutter/*/pubspec.lock
+
+# Vercel CLI project links (per-project, machine-local)
+.vercel
+.env*

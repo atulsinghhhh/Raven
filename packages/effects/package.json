@@ -1,7 +1,7 @@
 {
   "name": "@corvidhq/effects",
   "version": "0.1.0",
-  "description": "Raven Effects — a reusable real-time video effects pipeline (filters, presets) shared by Raven RTC and Raven Live Streaming. Provider-agnostic: takes a MediaStreamTrack, returns a processed MediaStreamTrack.",
+  "description": "Raven Effects \u2014 a reusable real-time video effects pipeline (filters, presets) shared by Raven RTC and Raven Live Streaming. Provider-agnostic: takes a MediaStreamTrack, returns a processed MediaStreamTrack.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -42,7 +42,7 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.2",
     "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0",
+    "jest-environment-jsdom": "^30.5.1",
     "ts-jest": "^29.2.5",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2"

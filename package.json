@@ -2,7 +2,7 @@
   "name": "raven",
   "version": "0.0.0",
   "private": true,
-  "description": "Raven — open-source, developer-first real-time communication infrastructure (control plane + RTC plane).",
+  "description": "Raven \u2014 open-source, developer-first real-time communication infrastructure (control plane + RTC plane).",
   "packageManager": "pnpm@11.22.0",
   "engines": {
     "node": ">=20"
@@ -28,7 +28,7 @@
     "eslint": "^9.39.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^15.15.0",
-    "typescript-eslint": "^8.67.0",
+    "typescript-eslint": "^8.69.0",
     "ws": "^8.18.0"
   }
 }

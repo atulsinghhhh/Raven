@@ -21,10 +21,130 @@ if this grows past a dozen resources or needs multiple environments.
 
 `00-variables.sh` holds every name, size and port. It contains no secrets.
 
-## What Phase 2 does not include
+## The control plane (Phase 3)
 
-The Raven API. It is Phase 3, and it goes to Container Apps — not to these
-VMs. `snet-apps` is already reserved for it (see below).
+`raven-api` runs on Azure Container Apps in `raven-env`, VNet-integrated
+into `snet-apps` so it reaches Redis and the SFU privately.
+
+```
+https://raven-api.salmontree-6311a7e1.eastasia.azurecontainerapps.io
+```
+
+0.5 vCPU / 1 GiB, min 1 / max 2 replicas, `activeRevisionsMode: Multiple`.
+Image pulled with the app's **system-assigned managed identity** (AcrPull on
+`ravenacr`) — no registry password anywhere.
+
+**Only one Container Apps environment is allowed per Azure for Students
+subscription.** Creating `raven-env` required deleting a pre-existing
+`flanca-env`. Export any app you are about to displace with `az containerapp
+show -o yaml` first — Azure redacts secret *values* from that export, so it
+records the shape to rebuild from, not the secrets.
+
+### Variables the API does NOT have
+
+`SFU_URL` and `SFU_PUBLIC_IP` are not part of the API's configuration
+schema and setting them does nothing. SFU nodes **self-register** into the
+`rtc_servers` table with their own `internalUrl`, and the API discovers them
+from there. `SFU_PUBLIC_IP` is SFU-side only (`06-deploy-sfu.sh`).
+
+The API's SFU keys are `SFU_REGISTRATION_SECRET`,
+`SFU_HEARTBEAT_TIMEOUT_SECONDS` and `SFU_DEFAULT_REGION`.
+
+`DIRECT_URL` is deliberately absent from the app: the running API never
+reads it, and only the migration job should hold a session-mode connection.
+
+### Five variables with no defaults
+
+`SIGNALING_MAX_PARTICIPANTS_PER_ROOM`, `SIGNALING_MAX_MESSAGE_BYTES`,
+`SIGNALING_MAX_MESSAGES_PER_WINDOW`, `SIGNALING_MESSAGE_WINDOW_SECONDS`,
+`SIGNALING_MAX_CONNECTIONS_PER_WINDOW` are **required** by the base
+validation schema, not just in production. Omitting them crash-loops the
+container with `Invalid environment configuration`. Fifteen variables are
+required in total; the rest carry defaults.
+
+### Why the probes use /health/live
+
+Both the liveness and readiness probes hit `/health/live`, not
+`/health/ready`. `/health/ready` returns 503 until an SFU is registered, and
+an SFU registers *by calling this API through this ingress* — so gating
+ingress on it deadlocks a cold start: no traffic, no registration, never
+ready.
+
+`/health/ready` is unmodified and is still the real dependency signal. It is
+what `tests/api-e2e.sh` and the CI health gate check; it is simply not the
+ingress gate.
+
+### Migrations
+
+A one-shot Container Apps job (`raven-migrate`), never the API's startup
+command. `apps/api/Dockerfile`'s `CMD` is `node dist/main.js` alone.
+
+`az containerapp` joins repeated `--args` values **with commas**, which
+corrupts a container command (`/bin/sh: illegal option -,`). Both the job
+and the app are therefore defined via `--yaml`, where `command` and `args`
+stay proper arrays.
+
+## Rollback
+
+Revisions are kept, never auto-pruned. List them:
+
+```bash
+az containerapp revision list -n raven-api -g raven-production \
+  --query "reverse(sort_by([].{name:name,created:properties.createdTime,state:properties.runningState,traffic:properties.trafficWeight},&created))" -o table
+```
+
+Shift all traffic back to a known-good revision:
+
+```bash
+az containerapp ingress traffic set -n raven-api -g raven-production \
+  --revision-weight <good-revision>=100
+```
+
+That is the fast path — it moves traffic without a new deployment. To pin
+the app back to a previous **image** instead:
+
+```bash
+az acr repository show-tags -n ravenacr --repository raven-api -o table
+az containerapp update -n raven-api -g raven-production \
+  --image ravenacr.azurecr.io/raven-api:<older-sha>
+```
+
+Then re-point traffic at the latest revision:
+
+```bash
+az containerapp ingress traffic set -n raven-api -g raven-production --revision-weight latest=100
+```
+
+A rollback does **not** roll back the database. Migrations are forward-only;
+a revision older than the current schema must still be compatible with it.
+
+Deactivate a bad revision only after a good one is serving:
+
+```bash
+az containerapp revision deactivate -n raven-api -g raven-production --revision <bad>
+```
+
+## Hazard: one database, every environment
+
+`rtc_servers` is shared between local development and Azure, because
+`DATABASE_URL` points every environment at the same Supabase project.
+
+A developer running `pnpm infra:up` registers an SFU named `sfu-local-01`
+with `internalUrl=http://sfu:7000` into the **production** fleet. This was
+observed: the deployed API's readiness probe selected that node and reported
+`sfu: down`, because `pickHealthyForProbe()` filters on
+`status: HEALTHY` only — there is no region or environment filter.
+
+It is worse than a noisy probe. `RtcServerAllocator.pickServer()` prefers
+the requested region but **falls back to any region rather than failing the
+call**, so a production room can be allocated to a laptop, handing clients a
+media address nothing can reach.
+
+Mitigations, in order of preference: give each environment its own Supabase
+project; or add an environment column to `rtc_servers` and filter on it; or,
+at minimum, do not run a local SFU against the production database. The
+staleness sweeper marks a stopped local node UNHEALTHY within
+`SFU_HEARTBEAT_TIMEOUT_SECONDS`, which limits but does not remove the window.
 
 ## Region
 
@@ -180,9 +300,16 @@ Vault itself can be told to re-read, and no value would need copying.
 
 ## Cost
 
-Roughly **$62/month** on pay-as-you-go, against a $100 student credit — so
-about six weeks. Revised up from an earlier $50 estimate because eastasia
-has no 1-vCPU v2 size for coturn, and disks were not counted.
+Roughly **$95/month** on pay-as-you-go, against a $100 student credit — so
+about **five weeks**. The media plane alone was ~$62; the always-on
+Container App adds ~$33 (0.5 vCPU and 1 GiB running continuously, minus the
+monthly free grant of 180k vCPU-seconds / 360k GiB-seconds).
+
+Ways to cut it, cheapest first: drop the app to 0.25 vCPU / 0.5 GiB (~$17/mo
+instead of ~$33); deallocate both VMs between test sessions (~$12/mo floor);
+`minReplicas: 0` is **not** a safe saving here — a scaled-to-zero API stops
+answering SFU heartbeats, so the fleet goes unhealthy and RTC breaks until
+something wakes it.
 
 | Item | ~$/mo |
 |---|---|
@@ -192,6 +319,7 @@ has no 1-vCPU v2 size for coturn, and disks were not counted.
 | ACR Basic | 5 |
 | 2 × 30 GB StandardSSD | 5 |
 | Key Vault | ~0 |
+| `raven-api` Container App (0.5 vCPU / 1 GiB, always-on) | ~33 |
 
 Egress is extra and metered (100 GB/month free, then ~$0.087/GB) — see
 `docs/deployment/azure-student.md`, which is why the media plane is the

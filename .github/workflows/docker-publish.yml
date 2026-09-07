@@ -118,3 +118,109 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------
+  # Azure deploy. Extends this workflow rather than adding a second pipeline:
+  # the image is built and scanned exactly once above, and this job promotes
+  # that same digest into ACR and rolls the Container App.
+  #
+  # Requires three repository secrets, set up as a federated (OIDC) credential
+  # on an Entra app with Contributor on the raven-production resource group —
+  # no client secret, nothing long-lived stored in GitHub:
+  #   AZURE_CLIENT_ID  AZURE_TENANT_ID  AZURE_SUBSCRIPTION_ID
+  #
+  # Skipped automatically if AZURE_CLIENT_ID is absent, so forks and
+  # contributors without Azure access are unaffected.
+  deploy-azure:
+    name: Deploy to Azure Container Apps
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+    env:
+      RG: raven-production
+      ACR: ravenacr
+      APP: raven-api
+      MIGRATE_JOB: raven-migrate
+    steps:
+      - name: Check Azure credentials are configured
+        id: gate
+        run: |
+          if [ -n "${{ secrets.AZURE_CLIENT_ID }}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::AZURE_CLIENT_ID not set — skipping Azure deploy."
+          fi
+
+      - name: Azure login (OIDC)
+        if: steps.gate.outputs.enabled == 'true'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Copies the already-built, already-scanned manifest from GHCR into ACR.
+      # No rebuild, so the deployed bytes are the scanned bytes.
+      - name: Promote image to ACR
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          set -euo pipefail
+          az acr login -n "$ACR"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+          OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          SRC="ghcr.io/${OWNER}/${{ env.IMAGE_NAME }}:sha-$(echo '${{ github.sha }}' | cut -c1-7)"
+          docker buildx imagetools create \
+            -t "$ACR.azurecr.io/raven-api:${{ github.sha }}" \
+            -t "$ACR.azurecr.io/raven-api:latest" \
+            "$SRC"
+
+      # Migrations run ONCE here, never in the API's startup command. N
+      # replicas migrating concurrently would contend for one advisory lock
+      # through Supabase's transaction pooler, which cannot hold it across
+      # multi-statement DDL. This job is the only thing holding DIRECT_URL.
+      - name: Run Prisma migrations (one-shot job)
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          set -euo pipefail
+          az containerapp job update -n "$MIGRATE_JOB" -g "$RG" \
+            --image "$ACR.azurecr.io/raven-api:${{ github.sha }}" --output none
+          EXEC=$(az containerapp job start -n "$MIGRATE_JOB" -g "$RG" --query name -o tsv)
+          echo "execution: $EXEC"
+          for _ in $(seq 1 40); do
+            S=$(az containerapp job execution show -n "$MIGRATE_JOB" -g "$RG" \
+                  --job-execution-name "$EXEC" --query properties.status -o tsv 2>/dev/null || echo Unknown)
+            case "$S" in
+              Succeeded) echo "migrations: $S"; exit 0 ;;
+              Failed|Degraded) echo "::error::migration job $S — not deploying"; exit 1 ;;
+            esac
+            sleep 15
+          done
+          echo "::error::migration job did not finish in time"; exit 1
+
+      - name: Deploy revision
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          az containerapp update -n "$APP" -g "$RG" \
+            --image "$ACR.azurecr.io/raven-api:${{ github.sha }}" --output none
+
+      # Gate on /health/ready, not /health/live: this is the point where the
+      # full dependency set (Supabase, Redis, SFU, TURN) must actually be
+      # reachable. It is not used as the ingress probe — that would deadlock
+      # a cold start, since the SFU registers through the ingress.
+      - name: Health check
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          set -euo pipefail
+          FQDN=$(az containerapp show -n "$APP" -g "$RG" \
+                   --query properties.configuration.ingress.fqdn -o tsv)
+          for i in $(seq 1 20); do
+            CODE=$(curl -s -o /tmp/h.json -w '%{http_code}' --max-time 20 "https://$FQDN/health/ready" || echo 000)
+            if [ "$CODE" = "200" ]; then echo "healthy"; cat /tmp/h.json; exit 0; fi
+            echo "attempt $i: HTTP $CODE"; sleep 15
+          done
+          echo "::error::/health/ready never returned 200"; cat /tmp/h.json || true; exit 1

@@ -96,3 +96,11 @@ export RAVEN_ADMIN_USER="ravenadmin"
 
 # Key Vault names are globally unique across Azure.
 export RAVEN_KV="${RAVEN_KV:-raven-kv-ea1}"
+
+# Container Apps environment + API app.
+export RAVEN_CAE="${RAVEN_CAE:-raven-env}"
+export RAVEN_API_APP="${RAVEN_API_APP:-raven-api}"
+# The port apps/api listens on: configuration.ts reads API_PORT (default
+# 4000); the repo standardises on 4100 and Container Apps targetPort matches.
+export RAVEN_API_PORT="${RAVEN_API_PORT:-4100}"
+export RAVEN_MIGRATE_JOB="${RAVEN_MIGRATE_JOB:-raven-migrate}"

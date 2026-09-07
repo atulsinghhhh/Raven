@@ -1,7 +1,7 @@
 {
   "name": "@corvidhq/server",
   "version": "0.1.0",
-  "description": "Raven server SDK — mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Never for use in a browser.",
+  "description": "Raven server SDK \u2014 mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Never for use in a browser.",
   "license": "MIT",
   "repository": {
     "type": "git",

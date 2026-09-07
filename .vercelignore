@@ -1,0 +1,13 @@
+# Build artefacts and caches. Everything else must stay: this is a pnpm
+# workspace, and pnpm-workspace.yaml globs apps/* and packages/*, so removing
+# a sibling package's package.json would break `pnpm install` at the root —
+# which is where Vercel installs from when a project's Root Directory is a
+# workspace member.
+node_modules
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/.swc
+.git
+scripts/results
