@@ -8,7 +8,12 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const DIRECTIVE = "'use client';\n";
-const files = ['dist/index.js', 'dist/index.cjs'];
+// Every entry point in `tsup.config.ts` needs its own directive: Next.js
+// reads it at the module the consumer imports, so the `./chat` subpath
+// export is just as client-only as the barrel and cannot inherit it
+// from `index`. Shared chunks need nothing — they are reached only
+// through an entry that already carries the boundary.
+const files = ['dist/index.js', 'dist/index.cjs', 'dist/chat.js', 'dist/chat.cjs'];
 
 for (const file of files) {
   const content = readFileSync(file, 'utf8');
