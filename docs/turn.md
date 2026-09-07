@@ -171,10 +171,47 @@ bytes), 0% loss, on both TCP and UDP transports — proof that coturn's
 relay *data path* itself (not just the control channel) is functioning
 correctly.
 
+### Forced-relay media test (WebRTC end to end)
+
+`scripts/turn-relay-test.sh` runs two real Pion clients with
+`ICETransportPolicy: relay` against a real SFU and a real coturn, so the
+only candidates either client gathers are TURN allocations. It asserts on
+the nominated candidate pair (`local=relay` on both sides) and then reads
+300 forwarded RTP packets off the subscriber's track — a connection that
+came up over a host or STUN path fails the assertion rather than quietly
+passing.
+
+```bash
+docker compose up -d coturn
+scripts/turn-relay-test.sh                  # TURN over UDP, inside coturn's network
+scripts/turn-relay-test.sh --transport tcp  # TURN over TCP
+scripts/turn-relay-test.sh --host           # from the host, via the published port
+```
+
+All three pass. Artifacts land in `scripts/results/turn-relay-*.log`, and
+the latency comparison against a direct path is in
+[docs/rtc/test-matrix.md §5](rtc/test-matrix.md#relay-only-as-measured).
+This is the test that makes the credential scheme above a wire-verified
+claim rather than a unit-test one: coturn authenticates each allocation
+against the HMAC it recomputes itself.
+
+What it does not cover is a **browser** on a relay-only path, which is a
+separate topology problem described next.
+
 ## Known limitations
 
-**Forced-TURN-relay end-to-end browser test cannot be completed against
+**Forced-TURN-relay end-to-end *browser* test cannot be completed against
 this local Docker Compose stack on Docker Desktop (macOS/Windows).**
+
+Scope, since this section predates the forced-relay media test above and
+was previously read as "relay-only is untestable locally": what cannot be
+done locally is a **browser on the host** relaying to a **containerised
+SFU**. Relay-only forwarding through the SFU *is* tested and passing —
+`scripts/turn-relay-test.sh`, both transports, from inside the Docker
+network and from the host — because there the client and the SFU sit on
+the same side of the host/container boundary and every party sees one
+consistent address for the SFU. The unresolved case below is specifically
+the browser-plus-containerised-SFU split.
 
 This limitation **survived the migration to Raven's own SFU unchanged**,
 which is itself the useful finding: it was never about which SFU was
@@ -233,7 +270,10 @@ loopback/container split this bug depends on simply does not exist there.
 - [ ] Quotas (`TURN_USER_QUOTA`, `TURN_TOTAL_QUOTA`, `TURN_MAX_BPS`)
       re-tuned for production traffic, not left at local-dev-sized
       defaults.
-- [ ] A real, end-to-end forced-relay browser test run against the actual
-      production TURN hostname (not local Docker) to confirm what
+- [ ] A real, end-to-end forced-relay **browser** test run against the
+      actual production TURN hostname (not local Docker) to confirm what
       [Known limitations](#known-limitations) above could not prove
-      locally.
+      locally. The Pion-client forced-relay test
+      ([above](#forced-relay-media-test-webrtc-end-to-end)) already covers
+      the SFU and credential side; what is left is a browser's ICE agent
+      on a real network.
