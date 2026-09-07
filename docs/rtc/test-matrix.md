@@ -17,7 +17,9 @@ run or says plainly that it has not been run.
 Current totals, all passing with no skips: **71** Go tests in
 `services/sfu`, **157** API e2e tests across six suites (four of them
 against a real SFU, two of those in a real browser), **546** API unit
-tests, and **188** web-SDK tests.
+tests, and **188** web-SDK tests. Two further Go tests sit behind the
+`turnrelay` build tag rather than in that count, because they need a
+running coturn to mean anything — see [§5](#5-network-conditions-and-nat-traversal-spec-41).
 
 ---
 
@@ -46,6 +48,11 @@ pnpm --filter @corvidhq/rtc test
 
 # The media-plane scale script, which drives the Go tests above.
 scripts/rtc-load-test.sh --with-100
+
+# Forced TURN relay: two relay-only clients through a real coturn.
+# Needs coturn up (docker compose up -d coturn) and TURN_SECRET.
+scripts/turn-relay-test.sh                  # TURN over UDP
+scripts/turn-relay-test.sh --transport tcp  # TURN over TCP
 ```
 
 ---
@@ -106,6 +113,7 @@ capacity figure is claimed anywhere in these docs.**
 | The shared packet is never mutated per-subscriber | `TestDownTrackDoesNotMutateTheSharedPacket` |
 | Requested vs. actual layer reported separately (§19) | `TestDownTrackReportsRequestedAndActualLayerSeparately` |
 | Keyframe detection: VP8, VP9, H.264, unknown codec | `keyframe_test.go` |
+| Forced TURN relay, both clients relay-only | `TestTURNRelayOnlyForwardsMedia` (tag `turnrelay`, needs coturn) |
 
 ### Node link — `services/sfu/internal/signal`
 
@@ -223,17 +231,17 @@ testing:
 
 ## 5. Network conditions and NAT traversal (spec §41)
 
-**None of this has been tested.** Stated as a gap rather than described
-as covered.
+**The relay path is now tested; the impairment matrix still is not.**
+Stated as a gap rather than described as covered.
 
 | Condition | Status |
 |---|---|
 | Host candidates, same machine | Covered implicitly by every test above |
 | STUN, server-reflexive candidates | **Not tested** |
-| TURN relay, UDP | **Not tested** |
-| TURN relay, TCP | **Not tested** |
-| TURN relay, TLS (`turns:`) | **Not tested** |
-| Symmetric NAT on both sides (relay-only) | **Not tested** |
+| TURN relay, UDP | **Tested, automated** — `scripts/turn-relay-test.sh` |
+| TURN relay, TCP | **Tested, automated** — `scripts/turn-relay-test.sh --transport tcp` |
+| TURN relay, TLS (`turns:`) | **Not tested** end to end — coturn's local cert is self-signed, which Pion rejects for the same reason browsers do. Server-side TLS/DTLS is verified separately ([turn.md](../turn.md#tls)) |
+| Symmetric NAT on both sides (relay-only) | **Relay path tested, the NAT is not** — relay-only is forced by `iceTransportPolicy`, not by a NAT that left no alternative |
 | Packet loss (1%, 5%, 20%) | **Not tested** |
 | Added latency (50 ms, 200 ms, 500 ms) | **Not tested** |
 | Constrained bandwidth | **Not tested** |
@@ -242,16 +250,50 @@ as covered.
 The ICE and TURN machinery is implemented and configured — coturn with
 ephemeral HMAC credentials, `iceServers` minted per token, a bounded UDP
 range the node advertises truthfully. See [networking](./networking.md).
-What is missing is evidence that it works when a direct path is
-unavailable, which is exactly the case TURN exists for and exactly the
-case that does not arise on loopback.
+The relay path itself now has that evidence, below; what is still missing
+is any of it under impairment, which is the condition TURN's users are
+actually in and the one loopback cannot produce.
 
-Two of these gaps are worse than the rest:
+### Relay-only, as measured
 
-- **Relay-only has never been exercised.** A bug in the TURN credential
-  scheme or the candidate handling would be invisible to every test in
-  this repo and would present as "calls fail for some users on corporate
-  networks".
+`TestTURNRelayOnlyForwardsMedia` (tag `turnrelay`) joins two Pion clients
+with `ICETransportPolicy: relay`, so their ICE agents gather nothing but
+TURN-allocated candidates and there is no way for the test to pass over a
+host or STUN path by accident. It asserts on the nominated candidate
+pair's candidate types (`local=relay` on both clients) and then reads 300
+forwarded RTP packets off the subscriber's track. Both legs —
+publisher→SFU and SFU→subscriber — are relayed; the SFU itself is not
+relay-only and is not meant to be, since it holds no TURN credential by
+design (`Manager.iceServers`), so the pair is relay(client)↔host(SFU),
+which is the shape a real client behind symmetric NAT produces.
+
+Measured over UDP, inside coturn's Docker network
+(`scripts/results/turn-relay-in-network-udp-*.log`), against a direct-path
+baseline run back to back on the same machine:
+
+| Path | Median | p95 | Max |
+|---|---|---|---|
+| Relay-only (two coturn hops) | 797 µs | 2.04 ms | 31.9 ms |
+| Direct (host candidates) | 247 µs | 627 µs | 37.9 ms |
+
+One-way publish→receive, timestamp written into the RTP payload by the
+publisher and read by the subscriber off the same clock in the same
+process. **These are container-bridge numbers, not network numbers** — the
+figure worth keeping is the delta, roughly half a millisecond for two
+relay hops, not either absolute. TURN over TCP and a host-side run against
+the published port both pass too, with their own artifacts under
+`scripts/results/`.
+
+What this closes: a bug in the TURN credential scheme or in candidate
+handling would previously have been invisible to every test in this repo
+and would have presented as "calls fail for some users on corporate
+networks". coturn now authenticates both allocations against the same
+time-limited HMAC scheme the control plane mints
+(`turn-credential.util.ts`), so that format is proven on the wire and not
+only in a unit test.
+
+The gap that remains worst:
+
 - **Loss and latency are where congestion control would show, and there
   is no congestion control.** The SFU registers TWCC feedback but nothing
   consumes it, so a subscriber on a degrading connection sees packet loss
@@ -265,9 +307,11 @@ Two of these gaps are worse than the rest:
 
 In rough order of how much each would tell you:
 
-1. **A real relay-only test.** Two peers forced onto TURN, media
-   verified. Cheap to set up with a firewall rule, and it closes the
-   largest gap in §5.
+1. **A relay-only test against a real network.** The forced-relay test
+   in §5 proves the path works; it runs over a container bridge with no
+   NAT in front of it. The same test pointed at a deployed coturn on a
+   public hostname, from a client on a different network, is what turns
+   its latency delta into a number worth quoting.
 2. **Safari and Firefox, two tabs, real media.** Manual is fine; the
    value is in the first run, not in the automation. Playwright can drive
    both, and the browser harness in `apps/api/test/e2e-harness/` already

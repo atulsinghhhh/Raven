@@ -1,0 +1,11 @@
+=== RUN   TestTURNRelayOnlyForwardsMedia
+    turn_relay_test.go:370: publisher pair: local=relay(udp, relay proto "tcp") remote=host rtt=1.296ms
+    turn_relay_test.go:370: subscriber pair: local=relay(udp, relay proto "tcp") remote=host rtt=5.278ms
+    turn_relay_test.go:375: relay-only forwarding latency: n=300 median=677µs p95=2.276ms max=21.192ms
+--- PASS: TestTURNRelayOnlyForwardsMedia (7.15s)
+=== RUN   TestDirectPathForwardingBaseline
+    turn_relay_test.go:392: publisher pair: local=host remote=host
+    turn_relay_test.go:393: subscriber pair: local=host remote=host
+    turn_relay_test.go:394: direct forwarding latency: n=300 median=309µs p95=7.2ms max=82.121ms
+--- PASS: TestDirectPathForwardingBaseline (3.52s)
+PASS

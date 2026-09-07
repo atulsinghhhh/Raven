@@ -58,6 +58,11 @@ type harness struct {
 	tearingDown bool
 
 	trackEvents chan trackEvent
+
+	// clientConfig is what test clients are built with. Zero value means
+	// host candidates only, which is every test in this package except the
+	// forced-relay ones in turn_relay_test.go.
+	clientConfig webrtc.Configuration
 }
 
 type trackEvent struct {
@@ -150,7 +155,7 @@ func newHarness(t *testing.T) *harness {
 func (h *harness) join(roomID, participantID, sessionID string, permissions Permissions, publish *webrtc.TrackLocalStaticRTP) *testClient {
 	h.t.Helper()
 
-	clientPC, err := webrtc.NewPeerConnection(webrtc.Configuration{})
+	clientPC, err := webrtc.NewPeerConnection(h.clientConfig)
 	if err != nil {
 		h.t.Fatalf("create client peer connection: %v", err)
 	}

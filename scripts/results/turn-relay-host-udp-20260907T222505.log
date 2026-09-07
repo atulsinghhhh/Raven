@@ -1,0 +1,12 @@
+=== RUN   TestTURNRelayOnlyForwardsMedia
+    turn_relay_test.go:370: publisher pair: local=relay(udp, relay proto "udp") remote=host rtt=1.899ms
+    turn_relay_test.go:370: subscriber pair: local=relay(udp, relay proto "udp") remote=host rtt=3.675ms
+    turn_relay_test.go:375: relay-only forwarding latency: n=300 median=1.471ms p95=3.735ms max=32.83ms
+--- PASS: TestTURNRelayOnlyForwardsMedia (5.09s)
+=== RUN   TestDirectPathForwardingBaseline
+    turn_relay_test.go:392: publisher pair: local=host remote=host
+    turn_relay_test.go:393: subscriber pair: local=host remote=host
+    turn_relay_test.go:394: direct forwarding latency: n=300 median=270µs p95=854µs max=41.51ms
+--- PASS: TestDirectPathForwardingBaseline (3.08s)
+PASS
+ok  	github.com/corvidhq/raven/services/sfu/internal/room	8.512s

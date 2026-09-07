@@ -69,9 +69,24 @@ printf '%s' "$ICE" | grep -q '"turn:' && ok "iceServers include turn:" || bad "n
 printf '%s' "$ICE" | grep -q '"turns:' \
   && ok "iceServers include turns: (TLS advertised)" \
   || bad "no turns: — TURN_TLS_PORT not set on the API?"
-printf '%s' "$ICE" | grep -q 'cloudapp.azure.com' \
-  && ok "TURN host is the certificated hostname, not a bare IP" \
-  || bad "TURN host looks wrong: $ICE"
+# The TURN host must be a resolvable hostname with a valid certificate, not a
+# bare IP (a cert cannot be issued for an IP, so turns: would fail). Override
+# the expectation with RAVEN_EXPECT_TURN_HOST when the domain changes; do not
+# hardcode one hostname here, or a cutover turns a correct result into a
+# failure.
+EXPECT_TURN="${RAVEN_EXPECT_TURN_HOST:-}"
+TURN_IN_ICE="$(printf '%s' "$ICE" | grep -oE 'turns?:[^:"?]+' | head -1 | cut -d: -f2)"
+if [ -n "$EXPECT_TURN" ]; then
+  [ "$TURN_IN_ICE" = "$EXPECT_TURN" ] \
+    && ok "TURN host is ${TURN_IN_ICE} (matches expected)" \
+    || bad "TURN host is ${TURN_IN_ICE}, expected ${EXPECT_TURN}"
+elif printf '%s' "$TURN_IN_ICE" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+  bad "TURN host is a bare IP (${TURN_IN_ICE}) — turns: cannot present a valid cert"
+elif printf '%s' "$TURN_IN_ICE" | grep -q '\.'; then
+  ok "TURN host is a hostname, not a bare IP (${TURN_IN_ICE})"
+else
+  bad "TURN host looks wrong: ${TURN_IN_ICE:-none}"
+fi
 
 echo "=== SFU registry ==="
 SRV="$(curl -s --max-time 30 "$API/v1/rtc/servers" -H "Authorization: Bearer $TOKEN")"
