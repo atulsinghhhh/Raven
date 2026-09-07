@@ -289,7 +289,7 @@ chat panel.
 
 ## What the SDK does not expose
 
-No `WebSocket`. No frame types. No Redis, Postgres, or LiveKit types. No
+No `WebSocket`. No frame types. No Redis, Postgres, or transport types. No
 internal database ids — every id you see is a `msg_…`, `conv_…`, `att_…`, or
 `ccn_…`. Cursors are opaque and decode to public ids only.
 

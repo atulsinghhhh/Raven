@@ -10,7 +10,7 @@
               ▼                 ▼                 ▼
             RTC               Chat               API
               │                 │                 │
-       WebRTC / LiveKit     WebSocket            HTTP
+       WebRTC / SFU         WebSocket            HTTP
               │                 │                 │
               │           Chat Gateway            │
               │                 │                 │
@@ -185,7 +185,7 @@ mid-scroll can't shift rows across page boundaries.
 These are real numbers from `scripts/chat-load-test.mjs`, not projections.
 
 **Environment.** MacBook (Darwin 25.5, Node 26). Postgres 16, Redis 7,
-LiveKit, coturn and MinIO in Docker; the API as a single Node process; the
+the SFU, coturn and MinIO in Docker; the API as a single Node process; the
 load generator on the *same machine*, competing for the same CPU.
 
 | | Run A | Run B |

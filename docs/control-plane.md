@@ -3,8 +3,8 @@
 This document covers the backend built in Phase 2 of `INFRASTRUCTURE_PHASES.md`:
 a TypeScript/NestJS modular monolith (`apps/api`) that manages developers,
 projects, API keys, rooms, and RTC tokens. **It never carries video/audio
-media** — that is the RTC plane's job (LiveKit + coturn, Phase 0/1), and
-stays that way permanently. See `docs/architecture/infrastructure-decisions.md`.
+media** — that is the RTC plane's job (Raven's own SFU + coturn, see
+`docs/rtc/`), and stays that way permanently. See `docs/architecture/infrastructure-decisions.md`.
 
 ## Why NestJS + Prisma
 
@@ -93,43 +93,45 @@ also need the pepper. HMAC (not string concatenation) is used specifically
 to produce a fixed 32-byte output regardless of pepper length, avoiding
 bcrypt's 72-byte input truncation footgun.
 
-## RTC tokens: Raven's permissions → LiveKit's grant
+## RTC tokens: Raven's permissions
 
 `POST /v1/rooms/:roomId/rtc-tokens` accepts Raven's own permission
 vocabulary (`join`, `subscribe`, `publish`, `publishAudio`, `publishVideo`,
-`publishData` — see `INFRASTRUCTURE_PHASES.md` Phase 2 spec) rather than
-exposing LiveKit's grant shape directly. `rtc-token-grant.mapper.ts`
-translates one into the other:
+`publishData` — see `INFRASTRUCTURE_PHASES.md` Phase 2 spec). There is no
+translation step: those flags are signed straight into the token as
+`perms` and re-checked by the signaling gateway on every action.
 
-| Raven permission | LiveKit grant field |
-|---|---|
-| `join` | `roomJoin` |
-| `subscribe` | `canSubscribe` |
-| `publish` | `canPublish` |
-| `publishData` | `canPublishData` |
-| `publishAudio` + `publishVideo` | `canPublishSources` (restricts to `microphone`/`camera`; left unset — meaning "all sources" — when `publish` is true but neither sub-flag is given) |
+That used to be a mapping onto a third party's grant shape, and keeping
+Raven's names independent of it is what let the media plane be replaced
+without touching this contract. The indirection paid for itself, so it is
+kept: the SFU has its own `room.Permissions` type rather than reusing this
+DTO, and a change to either can happen without the other.
 
-This indirection is deliberate, not incidental: it's what lets the
-documented SFU fallback (mediasoup, see
-`docs/architecture/sfu-comparison.md`) happen later without changing the
-public API contract. `roomJoin`/`canSubscribe`/`canPublish` are always set
-explicitly (never left `undefined`), because LiveKit treats an *unset*
-`canPublish`/`canSubscribe` pair as "grant both" — leaving either unset
-would silently over-grant relative to what the caller asked for.
+Two behaviours are load-bearing and preserved from that mapping
+(`rtc-token.claims.ts`, `resolvePermissions`):
+
+- **Anything unset is denied, never granted.** Every flag is written
+  explicitly, because a token whose absent field means "allow" turns a
+  serialization bug into a privilege escalation.
+- **`publish: true` with neither `publishAudio` nor `publishVideo` means
+  both.** "Let them publish, I don't care what" is what a caller who omits
+  the sub-flags is asking for; naming one of them is what narrows it.
 
 Each call also creates a `Participant` row (upserted by `roomId` +
 `identity`) and an `RtcToken` row — these are the control-plane's audit
-trail, not the credential itself. The actual bearer credential (a signed
-LiveKit JWT) is generated fresh every call and never persisted; recovering
-a lost one isn't possible or necessary, since tokens are meant to be
-short-lived (`RTC_TOKEN_DEFAULT_TTL_SECONDS`, default 600s) and just get
-re-minted.
+trail, not the credential itself. The `RtcToken` row is created **first**,
+because its `id` is the token's `jti`; a token cannot claim an audit-trail
+id that does not exist yet. The bearer credential (a Raven-signed HS256
+JWT with `aud: "raven-rtc"`) is generated fresh every call and never
+persisted; recovering a lost one isn't possible or necessary, since tokens
+are short-lived (`RTC_TOKEN_DEFAULT_TTL_SECONDS`, default 600s) and just
+get re-minted.
 
 Since Phase 4, the response also includes `iceServers` — STUN and
 short-lived TURN credentials for the same coturn deployment from Phase 1,
 scoped to this participant and this token's TTL. See
-`docs/sfu.md#turn-integration` for the credential scheme and
-`docs/media-flow.md` for how a client uses this alongside `token` to
+`docs/rtc/networking.md` for the credential scheme and
+`docs/rtc/architecture.md` for how a client uses this alongside `token` to
 actually establish media.
 
 ## Data model
@@ -147,10 +149,11 @@ Notable choices not obvious from the field list alone:
   in their own projects without conflict, satisfying the "design the
   schema so multiple projects can safely coexist" requirement.
 - **`Participant` is a control-plane concept, not a live session
-  record** — real join/leave state arrives via LiveKit webhooks in a
-  later phase (Phase 3+). For now it exists so `RtcToken` has something
-  durable to reference and so a room enforces one consistent identity per
-  participant (`@@unique([roomId, identity])`).
+  record** — who is actually connected right now is read from the room's
+  assigned SFU node (`SfuRoomStateService`), never from this table, and
+  the two can legitimately disagree. This row exists so `RtcToken` has
+  something durable to reference and so a room enforces one consistent
+  identity per participant (`@@unique([roomId, identity])`).
 
 ## Database migrations
 
@@ -163,10 +166,13 @@ pnpm prisma:generate                            # regenerate the client after sc
 pnpm prisma:studio                              # browse the database
 ```
 
-In Docker, the `api` container runs `prisma migrate deploy` (apply-only,
-never generates new migrations) automatically on every start — see
-`apps/api/Dockerfile`. This is safe to run repeatedly; it's a no-op if
-there's nothing new to apply.
+In Docker, a one-shot `migrate` service runs `prisma migrate deploy`
+(apply-only, never generates new migrations) and the `api` container waits
+for it to finish — so `pnpm infra:up` still needs no manual migrate step.
+The API image itself does not migrate: production scales it to N
+instances, and N of them migrating at once through a transaction pooler
+contend for one advisory lock. See `docker-compose.yml`'s `migrate`
+service and `docs/deployment/managed-postgres.md#applying-migrations`.
 
 ## Rate limiting
 
@@ -281,7 +287,7 @@ migration), `pnpm db:seed` (seed a demo developer/project/key/room).
 ## What's still deferred
 
 Per `INFRASTRUCTURE_PHASES.md`, Phase 2 stops here. WebSocket signaling
-(Phase 3, `docs/signaling.md`) and real SFU media integration (Phase 4,
-`docs/sfu.md`) are now built. Still not built: the TypeScript SDK
+(`docs/rtc/signaling.md`) and the media plane (`docs/rtc/sfu.md`) are now
+built. Still not built: the TypeScript SDK
 (Phase 6), the dashboard (Phase 7), real usage metering (Phase 8),
 recording (Phase 9), and everything from Phase 10 onward.

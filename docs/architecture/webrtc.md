@@ -1,10 +1,19 @@
 # WebRTC Fundamentals
 
-This document exists so that every future contributor (and Claude Code, in
-later phases) shares the same mental model of WebRTC before we integrate
-LiveKit. We are not implementing any of this ourselves — LiveKit and coturn
-own all of it — but the control plane, SDK, and support engineering all need
-to reason about it correctly.
+> **This is a primer, not a description of Raven.** It explains WebRTC
+> itself — the standards, the vocabulary, the parts a real connection is
+> made of. That has not changed and will not. For how *Raven* is put
+> together, read [`../rtc/architecture.md`](../rtc/architecture.md).
+
+This document exists so everyone working on Raven shares the same mental
+model of WebRTC. Raven implements a fair amount of it now — the SFU side —
+but the standards below are still standards, and the control plane, SDKs,
+and support engineering all need to reason about them correctly.
+
+Notably, Raven does **not** implement any of the transport-level pieces:
+ICE, DTLS, SRTP and SCTP come from [Pion](https://github.com/pion/webrtc)
+on the server and from the browser on the client. What Raven writes is the
+layer above — which tracks go to whom, and why.
 
 ## The problem WebRTC solves
 
@@ -18,8 +27,10 @@ and unreliable networks, without a plugin.
 A text format describing what a peer wants to send/receive: codecs,
 resolutions, encryption keys, network candidates. Peers exchange an
 **offer** and an **answer** during signaling to agree on a common session
-shape. We never hand-construct or parse SDP — LiveKit's client/server SDKs
-do this internally.
+shape. Raven never hand-constructs SDP: Pion generates it on the server,
+the browser generates it on the client. Raven *reads* one line of it —
+`a=msid:`, to learn the remote track id of an arriving track, because
+`RTCTrackEvent.track.id` is a locally-minted id and not the remote one.
 
 ### ICE (Interactive Connectivity Establishment)
 The negotiation process that finds a usable network path between two peers.
@@ -44,20 +55,32 @@ infrastructure cost, not just a discovery cost. We use coturn.
 ### RTP / RTCP (Real-time Transport Protocol / Control Protocol)
 RTP carries the actual encoded audio/video frames once a session is
 established. RTCP carries feedback (packet loss, jitter, receiver reports)
-used for congestion control and adaptive bitrate. This is entirely inside
-LiveKit's media path.
+used for congestion control and adaptive bitrate.
+
+Raven's SFU works directly with both: it rewrites RTP sequence numbers and
+timestamps when switching a subscriber between simulcast layers, and it
+relays a subscriber's RTCP keyframe requests (PLI/FIR) back to the
+publisher. Getting that relay wrong is a classic SFU bug whose symptom is
+"video sometimes never recovers after a network blip". See
+[`../rtc/sfu.md#recovery-rtprtcp`](../rtc/sfu.md#recovery-rtprtcp).
 
 ### DTLS / SRTP
 DTLS performs a TLS-style handshake over UDP to derive encryption keys.
 SRTP then encrypts the actual RTP media using those keys. All WebRTC media
-is encrypted by default — there is no unencrypted mode. LiveKit and browsers
-handle this transparently.
+is encrypted by default — there is no unencrypted mode, and Raven does not
+add one. Pion and the browser handle this transparently; Raven's only
+involvement is that the SFU offers `a=setup:actpass`, letting the answerer
+pick the DTLS role.
 
 ### SFU (Selective Forwarding Unit)
 A media server that receives one upload per publisher and forwards
 (selectively, per-subscriber) copies to every other participant, instead of
 every participant uploading N-1 times (full mesh). This is what makes group
-calls scale. See `sfu-comparison.md` for why we chose LiveKit as our SFU.
+calls scale, and it is what Raven's `services/sfu` is.
+
+`sfu-comparison.md` records why a third-party SFU was the right first
+choice; [`native-rtc-migration-map.md`](./native-rtc-migration-map.md#4-technology-decision)
+records why Raven now runs its own.
 
 ### Simulcast
 A publisher sends multiple encoded qualities (e.g. low/medium/high) of the
@@ -72,31 +95,47 @@ transport-wide congestion control) and adjust encoding bitrate or simulcast
 layer selection accordingly, so a bad network degrades quality instead of
 breaking the call.
 
-## How our system uses these pieces
+## How Raven uses these pieces
 
 ```
-Browser/Mobile SDK
+Browser / Mobile SDK
       |
-      | 1. Request an access token from our Control Plane (HTTPS)
+      | 1. Ask your own backend for an access token; it asks Raven's
+      |    Control Plane over HTTPS with a project API key.
       v
-Control Plane (our code) --- issues a scoped, short-lived LiveKit token
+Raven Control Plane --- issues a scoped, short-lived RTC token
       |
-      | 2. Connect to LiveKit using that token (LiveKit's own WS protocol)
+      | 2. Connect to Raven's own signaling WebSocket (/v1/rtc) with it.
       v
-LiveKit signaling — SDP offer/answer + ICE candidates exchanged here
-      |
-      | 3. ICE negotiation: try STUN-derived direct path, else TURN relay
+Raven Signaling — SDP offer/answer + ICE candidates, between the client
+      |             and the SFU node serving its room. The server is a
+      |             party to the negotiation, not a courier.
+      | 3. ICE: try the direct path, then STUN-derived, then TURN relay.
       v
 STUN (candidate discovery) / coturn (relay when needed)
       |
       v
-LiveKit SFU — receives publisher tracks, forwards to subscribers
+Raven SFU (Go/Pion) — receives publisher tracks, forwards to subscribers
       |
       +---- Participant A
       +---- Participant B
       +---- Participant C
 ```
 
-Our control plane never touches SDP, ICE, RTP, or encryption. Its job stops
-at "does this caller have a right to publish/subscribe in this room" and
-"issue a token that proves that fact to LiveKit."
+Two things are worth pulling out of that diagram.
+
+**The control plane still never touches SDP, ICE, RTP, or encryption.**
+Its job stops at "may this caller publish or subscribe in this room", and
+that has not changed — what changed is that the thing on the other side of
+the token is Raven's own SFU rather than a third party's. Media never
+passes through the API.
+
+**A client is never told the SFU's address.** It learns the node's *name*,
+for support and diagnostics. That is what allows the media plane to be
+re-shaped, re-scaled, or reimplemented without an SDK release — and it is
+the property that made replacing the SFU underneath this diagram possible
+at all.
+
+See [`../rtc/architecture.md`](../rtc/architecture.md) for the real
+detail: who offers, how glare is resolved, how simulcast layers are
+chosen, what happens on reconnect.

@@ -19,7 +19,7 @@ mocked to always reject).
 
 ## Authentication
 
-Telemetry reuses the same RTC (LiveKit) token issued for the connection
+Telemetry reuses the same RTC token issued for the connection
 itself — there is no separate telemetry credential to mint, store, or
 leak. The Control API's `POST /v1/telemetry/events` verifies that token
 with the same verifier the signaling layer uses (`RtcTokenVerifierService`)
@@ -79,7 +79,7 @@ expose (`navigator.connection?.effectiveType`) — never geo-IP lookups.
 ## Connection quality / WebRTC stats
 
 **Known limitation:** this phase does not poll `RTCPeerConnection.getStats()`
-or LiveKit's `ConnectionQuality` events for periodic RTT/jitter/packet-loss/
+or a server-computed quality verdict for periodic RTT/jitter/packet-loss/
 bitrate summaries. `Room.getDiagnostics()`'s `iceConnectionState`/
 `signalingState` fields are present in the type but `undefined` today —
 honest about what isn't wired up yet, rather than fabricated. This is the

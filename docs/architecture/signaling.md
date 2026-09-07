@@ -1,14 +1,30 @@
 # Signaling
 
-> **Amended in Phase 3.** This document's original decision — no custom
-> signaling server, LiveKit owns it entirely — has been superseded by an
-> explicit, detailed Phase 3 specification that called for exactly the
-> custom WebSocket signaling layer this ADR argued against. That layer
-> now exists: `apps/api/src/modules/signaling/`, documented in
-> `docs/signaling.md` and `docs/signaling-protocol.md`. The reasoning
-> below is kept for history and because it's still *correct* for the
-> LiveKit/SFU-mediated path — Phase 4 has to decide how the two coexist.
-> Read `docs/signaling.md#why-this-exists-alongside-livekit` first.
+> **Decision record — this decision was reversed, twice.** Read the
+> current contract at [`../rtc/signaling.md`](../rtc/signaling.md); read
+> this only for how the question was reasoned about.
+>
+> **First amendment (Phase 3).** The original decision below — no custom
+> signaling server, the media server owns it entirely — was overruled by a
+> specification calling for exactly the custom WebSocket layer this
+> document argued against. Both then existed side by side: Raven's own
+> WebSocket relayed SDP and ICE between browsers in a full mesh, while the
+> SFU-mediated path used the vendor's protocol.
+>
+> **Second amendment (the native migration).** That split is gone. Raven
+> owns the signaling protocol outright, and it is SFU-oriented: a client
+> has exactly one peer — the node serving its room — so the server is a
+> party to the negotiation rather than a courier, and no message names a
+> `targetParticipantId`. See
+> [`../migration/from-livekit.md`](../migration/from-livekit.md).
+>
+> The argument below is worth keeping for one reason: it was **right about
+> the trade-off and wrong about the price**. Reimplementing a signaling
+> protocol *is* redundant work with no benefit — right up until you want
+> to change the media plane underneath it, at which point owning the
+> protocol is the only thing that makes that possible without an SDK
+> release. That is the cost this document did not price, and the migration
+> is what paid it.
 
 ## What signaling is
 

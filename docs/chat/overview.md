@@ -21,7 +21,7 @@ Raven has two planes, and they stay separate on purpose:
 | --- | --- | --- |
 | What it carries | audio, video, screen share | messages |
 | SDK | `@corvidhq/rtc` | `@corvidhq/chat` |
-| Transport | WebRTC via LiveKit | WebSocket |
+| Transport | WebRTC via Raven's SFU | WebSocket |
 | Credential | RTC token | chat token |
 | Storage | none — media is live or gone | Postgres |
 
@@ -92,7 +92,7 @@ Two independent checks, both server-side:
 **The token** says who you are and what you may do. It carries a project, a
 user identity, an expiry, an optional list of conversations, and a set of
 scopes. It is signed with a key that is not the dashboard session key and not
-the LiveKit key — a leak on one plane doesn't compromise another.
+the RTC token key — a leak on one plane doesn't compromise another.
 
 **Membership** says which conversations you belong to. A `ChatMember` row with
 a role (`MEMBER`, `MODERATOR`, `ADMIN`) exists per conversation, and the role

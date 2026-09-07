@@ -18,10 +18,10 @@ Next.js dashboard (apps/dashboard)
    v
 Raven Control API (apps/api)
    |
-   +-- PostgreSQL (projects, api keys, rooms)
+   +-- PostgreSQL (projects, api keys, rooms, RTC server registry)
    +-- Redis (rate limiting, JWT blocklist)
-   +-- LiveKit RoomServiceClient (live room/participant state)
-   +-- coturn (via the same RTC-token minting path as Phase 4/5)
+   +-- Raven SFU fleet, over the node link (live room/participant state)
+   +-- coturn (via the same RTC-token minting path)
 ```
 
 `apps/dashboard/src/lib/api-client.ts` is the **only** file that knows the
@@ -116,33 +116,73 @@ functionally identical to what a real backend would request via the normal
 API-key-guarded endpoint — it does not introduce a second, weaker token
 model.
 
-## Rooms — real live state, not fake metrics
+## The RTC section
 
-The pre-existing `Room` Postgres row is a control-plane record only — it
-has no idea whether anyone is actually connected. This phase adds
-`LiveKitRoomService` (`apps/api/src/modules/rooms/livekit-room.service.ts`),
-which wraps `livekit-server-sdk`'s `RoomServiceClient` to answer "what's
-actually happening in the SFU right now":
+Five tabs, in the order you reach for them (spec §29). The first three
+answer "what are my users doing"; the last two answer "is the media plane
+itself healthy".
 
-- `listLiveParticipantCounts(names)` → real participant counts per room, or
-  `undefined` if LiveKit is unreachable (a rooms list with `null` per room
-  is rendered as "Unknown", never silently as `0`).
-- `listLiveParticipants(name)` → real participants with their identity,
-  join time, and published tracks (kind + mute state), or `undefined` on
-  the same unreachable-vs-empty distinction.
+| Tab | Page | Backed by |
+|---|---|---|
+| Rooms | `rooms/`, `rooms/[roomId]/` | `GET /v1/projects/:id/rooms` |
+| Connections | `connections/`, `connections/[connectionId]/` | Telemetry-sourced `Connection` history |
+| Participants | `participants/` | Live state across the project's rooms |
+| Servers | `servers/` | `GET /v1/rtc/servers` — **not** project-scoped |
+| Diagnostics | `diagnostics/` | Live dependency probes |
 
-`RoomsService.findAllForProjectWithLiveState` /
-`findOneForProjectWithLiveState` combine the two sources.
+### Rooms — real live state, not fake metrics
+
+The `Room` Postgres row is a control-plane record only — it has no idea
+whether anyone is actually connected. `SfuRoomStateService`
+(`apps/api/src/modules/rooms/sfu-room-state.service.ts`) asks the room's
+assigned SFU node over the node link:
+
+- `listLiveParticipantCounts(roomIds)` → real counts per room. A room
+  whose node did not answer is **absent from the map**, and the whole
+  result is `undefined` when nothing answered at all — rendered as
+  "Unknown", never silently as `0`.
+- `listLiveParticipants(roomId)` → real participants with identity, join
+  time, and published tracks (kind + mute state). `[]` for a room with no
+  assigned node, which is a genuinely idle room; `undefined` when the node
+  could not be reached.
+
+That three-way distinction — serving, idle, unknown — is the point, and it
+survives all the way to the badge: `Active`, `Idle`, `Unknown`. A
+dashboard that reported zero during a partition would tell an operator
+every call had ended.
+
 `DashboardRoomsController` (JWT-guarded, project-ownership-checked) is
-what the dashboard's Rooms/Room-detail pages actually call — distinct from
-the pre-existing `RoomsController` (API-key-guarded, for a developer's own
-backend).
+what these pages call — distinct from `RoomsController` (API-key-guarded,
+for a developer's own backend).
 
-This was proven live, not just asserted: two real browser tabs joined a
-real room via `@corvidhq/rtc` (using dashboard-issued test tokens), and the
-Room detail page immediately showed both real participants with real
-join timestamps and real `audio`/`video` track badges — sourced from
-LiveKit, not fabricated.
+### Servers — the fleet
+
+Deployment-level rather than project-scoped, and deliberately so: an SFU
+node is shared infrastructure, so there is no project whose membership
+could authorize it. It exposes only node identity, health and aggregate
+load — never anything about another project's rooms — which is why any
+authenticated developer of this deployment can see it.
+
+The page is honest about what its numbers are. **Status is the only live
+column**; rooms, participants, CPU and memory are each node's last
+heartbeat, which is why the heartbeat age sits beside them rather than in
+a details panel. A figure the node did not report renders as `—`, never as
+`0`. Nodes are not provisioned here or anywhere — they register themselves
+on boot.
+
+Draining is the one mutation in the RTC section, via
+`POST /api/rtc/servers/:name/drain`. It takes a node out of the allocation
+pool **without** ending the calls on it, which is exactly what you want
+mid-incident. The target state is sent explicitly rather than as a toggle,
+so two operators on stale pages cannot flip a node between pools by each
+clicking what they think is the opposite action. `raven rtc servers drain`
+does the same thing from a terminal.
+
+The Overview page's Infrastructure card carries one extra line from the
+same source, because `SFU: up` cannot answer the question a developer
+actually has when calls fail: a probed node can answer while every node is
+draining, and then no room can be allocated at all. The line says which,
+and links here.
 
 ## Usage
 
@@ -180,23 +220,29 @@ never fabricates it.
 
 ## Infrastructure health
 
-`GET /health` (unauthenticated, used by orchestrators) was extended this
-phase with real LiveKit and coturn checks
+`GET /health` (unauthenticated, used by orchestrators) runs real probes
+rather than reporting a configured value
 (`apps/api/src/modules/health/dependency-checks.util.ts`):
 
-- `checkLiveKitHttp` — a real HTTP request to LiveKit's own port.
+- `checkSfuHttp` — a real HTTP request to a **registered** node's
+  `/healthz`. `/healthz` and not `/readyz`: readiness on a node reports
+  whether it can accept new participants, which depends on its
+  control-plane link — asking that *from* the control plane would make the
+  answer partly about the question.
 - `checkStunBinding` — a **real STUN Binding Request/Response** (RFC 5389)
   over UDP directly against coturn, not a simulated check. Validates the
-  response's magic cookie and transaction ID, guarding against a stray/
+  response's magic cookie and transaction ID, guarding against a stray or
   spoofed UDP packet being misread as success.
 
-Both checks run from inside the api container's own network context, which
-required introducing `LIVEKIT_INTERNAL_URL`/`TURN_INTERNAL_HOST` config —
-distinct from the client-facing `LIVEKIT_URL`/`TURN_HOST`, the same
-internal-vs-external split already established for those values in
-earlier phases. The Overview page's "Infrastructure health" card renders
-this data directly — `Unknown`/`Down` are real, reachable states, not
-hidden.
+The SFU check depends on the registry rather than on configuration, which
+is a real change in what it means: there is no address to probe until a
+node has registered itself. `sfu: down` therefore covers both "the node
+is not answering" and "no node has registered", and the fleet line on the
+Overview page exists to say which. Both probes run from inside the api
+container's own network context, over each node's `internalUrl` and
+`TURN_INTERNAL_HOST` — distinct from the client-facing addresses, the same
+internal-vs-external split used everywhere else. `Unknown`/`Down` are real,
+reachable states, never hidden.
 
 ## SDK Quickstart
 

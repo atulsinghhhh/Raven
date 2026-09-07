@@ -10,7 +10,7 @@ enforces it, so a reviewer can verify rather than take this on trust.
 Dashboard session JWT   →  signed with JWT_SECRET          →  developer, whole account
 Project API key         →  bcrypt + pepper, never stored raw →  backend, whole project
 Chat token              →  signed with CHAT_TOKEN_SECRET   →  one user, short-lived
-RTC token               →  signed with LIVEKIT_API_SECRET  →  one participant, one room
+RTC token               →  signed with RTC_TOKEN_SECRET    →  one participant, one room
 ```
 
 **None can mint or impersonate another.** Chat tokens carry a fixed

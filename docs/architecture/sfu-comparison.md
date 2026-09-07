@@ -1,5 +1,16 @@
 # SFU Comparison and Decision
 
+> **Superseded — historical record.** This document records the Phase 1–6
+> decision to build on LiveKit. Raven has since moved to its own SFU on
+> Pion; see
+> [`native-rtc-migration-map.md`](./native-rtc-migration-map.md#4-technology-decision)
+> for the current decision and the reasoning that reversed this one. The
+> comparison below is kept because it is *why* LiveKit was the right call at
+> the time, and because the trade-off it knowingly accepted ("LiveKit owns the
+> signaling protocol and much of the media-routing decision logic") is exactly
+> what the migration undoes. LiveKit references in this file are intentional
+> and historical — they describe no runtime dependency.
+
 ## Candidates evaluated
 
 | | LiveKit | mediasoup | Pion |
@@ -34,7 +45,7 @@ Rationale:
 Trade-off accepted knowingly: LiveKit owns the signaling protocol and much
 of the media-routing decision logic. This means our "Signaling" phase
 (Phase 3) is much thinner than it would be with mediasoup — see
-`signaling.md`. If, later, cost or routing control requirements outgrow
+`signaling.md` (also a decision record). If, later, cost or routing control requirements outgrow
 what LiveKit's configuration surface allows, mediasoup remains the
 documented fallback (this is why we evaluated it in depth rather than
 skipping straight to LiveKit).

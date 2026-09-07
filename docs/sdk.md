@@ -2,12 +2,16 @@
 
 `@corvidhq/rtc` is Raven's browser SDK: join a room, publish camera/microphone,
 subscribe to remote participants' media — without ever touching SDP, ICE
-candidates, `RTCPeerConnection`, STUN, or TURN directly. Internally it wraps
-`livekit-client` (Raven's chosen SFU client, see
-[docs/architecture/sfu-comparison.md](architecture/sfu-comparison.md)) behind
-a small, stable public API (`internal/sfu/` — see
-[WebRTC abstraction](#webrtc-abstraction) below), so the public API stays the
-same even if the underlying SFU integration changes later.
+candidates, `RTCPeerConnection`, STUN, or TURN directly. Internally it
+speaks Raven's own signaling protocol over a native `RTCPeerConnection`,
+behind a small, stable `SFUAdapter` boundary (`internal/sfu/` — see
+[WebRTC abstraction](#webrtc-abstraction) below).
+
+That boundary has already earned its keep: Raven's media plane was
+replaced wholesale — a third-party SFU for Raven's own, on Pion — and
+because `Room` and `RTCClient` only ever talked to `SFUAdapter`, the
+public API below did not change. See
+[the migration guide](migration/from-livekit.md) if you are upgrading.
 
 ## Installation
 
@@ -27,7 +31,7 @@ The correct architecture:
 ```
 Developer Backend  --(API key)-->  Raven Control API
                                           |
-                                          | RTC token + livekitUrl + iceServers
+                                          | RTC token + endpoint + iceServers
                                           v
                                   Developer Frontend
                                           |
@@ -37,9 +41,14 @@ Developer Backend  --(API key)-->  Raven Control API
 
 Your backend calls `POST /v1/rooms/:roomId/rtc-tokens` (Raven's Control API,
 authenticated with your project's API key) and forwards the response's
-`token`, `livekitUrl`, and `iceServers` fields to the browser. The SDK never
+`token`, `endpoint`, and `iceServers` fields to the browser. The SDK never
 calls the Control API itself — it only ever receives an already-minted
 token.
+
+`endpoint` is Raven's own signaling WebSocket (`wss://your-api/v1/rtc`).
+It is deliberately a Raven-owned address rather than a media server's: a
+client that learned an SFU's address could connect to it directly, and
+then the media plane could not change without breaking that client.
 
 ```js
 // on your frontend, having fetched `resp` from your own backend:
@@ -47,7 +56,7 @@ import { createRTCClient } from '@corvidhq/rtc';
 
 const client = createRTCClient({
   token: resp.token,
-  endpoint: resp.livekitUrl,
+  endpoint: resp.endpoint,
   iceServers: resp.iceServers, // never hand-construct STUN/TURN config yourself
 });
 ```
@@ -233,9 +242,11 @@ try {
 
 ## Reconnection
 
-The SDK surfaces livekit-client's own reconnect policy (exponential backoff
-with a maximum retry delay, then a clean `failed` state — Phase 6 spec §16)
-rather than reimplementing reconnect logic:
+Reconnect is the SDK's own: exponential backoff with jitter and a maximum
+retry delay, then a clean `failed` state (Phase 6 spec §16). There is no
+session resumption — a reconnect rejoins from scratch and rebuilds from
+the `room.joined` and offer that follow, because the server allocates a
+fresh media session rather than reviving the old one:
 
 ```js
 createRTCClient({ token, endpoint, autoReconnect: true }); // default
@@ -297,21 +308,26 @@ src/
   client.ts, room.ts, track.ts, participant.ts, events.ts, errors.ts,
   logger.ts, config.ts        — public API
   internal/
-    sfu/          — SFUAdapter interface + the livekit-client adapter
-                    (the only file that imports livekit-client's Room)
+    sfu/          — SFUAdapter interface + RavenAdapter, the only place
+                    an RTCPeerConnection is touched
+    signaling/    — the wire protocol and its WebSocket client
     media/        — camera/microphone/screen-share capture + error mapping
     devices/      — device enumeration
+    telemetry/    — best-effort stats reporting, never on the media path
 ```
 
 `internal/sfu/types.ts`'s `SFUAdapter` interface is the boundary: `Room`
-and `RTCClient` only ever talk to that interface, never to livekit-client
-directly. This is also what lets the SDK's own unit tests exercise
-Room/Client logic against a fake adapter, with no real browser or WebRTC
-stack involved.
+and `RTCClient` only ever talk to that interface, never to a peer
+connection directly. That is what lets the SDK's own unit tests exercise
+Room/Client logic against a fake adapter with no browser involved — and
+it is what made replacing the entire media plane a one-line change to a
+default factory.
 
-livekit-client itself already owns signaling, SDP, and ICE internally —
-the SDK does not duplicate or reimplement that logic (Phase 6 spec §23);
-it adapts livekit-client's surface to Raven's own stable public API.
+What the SDK does **not** implement is the transport: ICE, DTLS, SRTP and
+SCTP all come from the browser's own WebRTC stack (Phase 6 spec §23, and
+spec §9's "use standards-compliant WebRTC"). What it implements is the
+layer above — the signaling protocol, negotiation ordering, track
+attribution, and the `Room` model a developer actually uses.
 
 ## Browser compatibility
 
@@ -326,8 +342,7 @@ if (!isBrowserSupported()) {
 Feature-detected (Phase 11), not a hardcoded user-agent allowlist — see
 `docs/sdk/web.md#browser-support`.
 
-Tested (see [Files created/changed](#files) for the real two-browser-tab
-test performed): **Chrome**. Firefox, Safari, and Edge were not exercised
+Tested: **Chrome**, two browser tabs against a live stack. Firefox, Safari, and Edge were not exercised
 in this environment — see [Known limitations](#known-limitations). Known
 platform-specific concerns to watch for once tested (not yet confirmed
 either way in this environment):
@@ -350,13 +365,17 @@ Measured from a real build (`pnpm --filter @corvidhq/rtc build`):
 
 | File | Raw | Gzip |
 |---|---|---|
-| `dist/index.js` (ESM) | 25.00 KB | 5.91 KB |
-| `dist/index.cjs` (CJS) | 25.55 KB | 5.93 KB |
+| `dist/index.js` (ESM) | 80.57 KB | 21.09 KB |
+| `dist/index.cjs` (CJS) | 80.87 KB | 21.13 KB |
 
-`livekit-client` (the wrapped SFU client) is a peer dependency, not bundled
-into these numbers — it resolves separately via your own bundler/npm
-install, at roughly 274 KB gzipped on its own. The SDK adds ~6 KB gzip on
-top of that.
+**That is the whole cost.** There is no peer media-plane SDK resolving
+alongside it: WebRTC comes from the browser. The SDK grew from ~6 KB to
+~21 KB gzipped when it took over signaling, negotiation and track
+attribution from a third-party client — which is a ~15 KB increase in
+Raven's own code in exchange for dropping a ~274 KB gzipped dependency.
+
+Re-measure rather than trusting this table:
+`pnpm --filter @corvidhq/rtc build && node packages/sdk/scripts/print-bundle-size.mjs`.
 
 ## Known limitations
 

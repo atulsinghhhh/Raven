@@ -20,9 +20,9 @@ Peer dependencies: `react` and `react-dom` `^18 || ^19`.
 'use client';
 import { RavenRoom, useConnectionState, useLocalParticipant, useRemoteParticipants, useCamera, ParticipantView } from '@corvidhq/react';
 
-function CallPage({ token, livekitUrl, roomName }: { token: string; livekitUrl: string; roomName: string }) {
+function CallPage({ token, endpoint, roomName }: { token: string; endpoint: string; roomName: string }) {
   return (
-    <RavenRoom token={token} endpoint={livekitUrl} room={roomName} fallback={<p>Connecting…</p>}>
+    <RavenRoom token={token} endpoint={endpoint} room={roomName} fallback={<p>Connecting…</p>}>
       <Call />
     </RavenRoom>
   );
@@ -60,7 +60,7 @@ Owns one `RTCClient`/`Room` for its lifetime.
 ```tsx
 <RavenRoom
   token={token}
-  endpoint={livekitUrl}
+  endpoint={endpoint}
   room={roomName}
   iceServers={iceServers}       // optional, from the same token-mint response
   telemetryUrl={telemetryUrl}   // optional, enables Phase 9 telemetry
@@ -205,7 +205,7 @@ production builds, where effects run once.
 Full types are provided, including convenient re-exports of the
 `@corvidhq/rtc` types you'll commonly need (`Room`, `Participant`, `Track`,
 `RTCError`, `ConnectionState`, `DeviceInfo`, etc.) so most apps don't
-need a direct `@corvidhq/rtc` import just for types. LiveKit's own types are
+need a direct `@corvidhq/rtc` import just for types. Media-plane types are
 never exported from either package (Phase 11 spec §27).
 
 ## Security

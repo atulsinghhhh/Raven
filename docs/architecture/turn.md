@@ -1,5 +1,12 @@
 # TURN Infrastructure (coturn)
 
+> **Decision record.** Why coturn, and what it was configured to do. This
+> decision was *not* reversed by the move to Raven's own SFU: coturn is
+> still the TURN server, still authenticated with ephemeral HMAC
+> credentials, still a separate deployable unit. For how TURN works in
+> practice today — ports, firewall rules, forcing a relay path, diagnosing
+> a failure — read [`../rtc/networking.md`](../rtc/networking.md).
+
 ## Why we need TURN
 
 STUN alone lets peers discover their public address, but roughly 10-20% of
@@ -13,24 +20,31 @@ and a direct cost center we must monitor and optimize (plan.md §18).
 ## Technology decision
 
 **coturn**, per engineering rule 3. It is the de facto standard open-source
-TURN/STUN server, used in production by most WebRTC platforms including
-those built on LiveKit. We are not implementing the TURN protocol
-ourselves.
+TURN/STUN server, used in production by essentially every WebRTC
+platform. Raven does not implement the TURN protocol itself and has no
+plans to — this is the one part of the media path where "use the standard
+implementation" is unambiguously right.
 
-## How it fits with LiveKit
+## How it fits with the SFU
 
-LiveKit does not include its own TURN server — it expects an external
-STUN/TURN service and is configured with its address and credentials.
-coturn serves that role. LiveKit's SFU and coturn are therefore separate
-deployable units from Phase 1 onward, even though they're both "RTC plane."
+The SFU embeds no TURN server of its own, and that is deliberate rather
+than a gap: an SFU that also relays is two capacity problems sharing one
+process, and coturn needs to scale and fail independently of the media
+plane. Clients are handed `iceServers` when their RTC token is minted, so
+coturn's address and credentials reach the client from the control plane
+rather than from the SFU.
 
 ```
 Client
   |
-  +------ direct (STUN-derived candidate) ------> LiveKit SFU
+  +------ direct (host / STUN-derived candidate) ------> Raven SFU
   |
-  +------ relayed ------------------------------> coturn --> LiveKit SFU
+  +------ relayed ------------------------------------> coturn --> Raven SFU
 ```
+
+This shape survived the migration unchanged, which is the useful thing to
+know about it: replacing the SFU did not require touching TURN, because
+the two were never coupled beyond the ICE candidate list.
 
 ## Configuration surface for Phase 1 (local dev)
 
@@ -41,7 +55,8 @@ Client
   a shared secret (coturn's `use-auth-secret` / REST API mechanism), not
   static long-lived username/password pairs. The RTC Token Service is the
   one component allowed to mint these, in step with RTC access tokens —
-  implemented in Phase 4 (`docs/sfu.md#turn-integration`), verified
+  implemented in `turn-credential.util.ts` and documented in
+  [`../rtc/networking.md#turn`](../rtc/networking.md#turn), verified
   directly against a running coturn instance before being wired in.
 - **Credential rotation:** shared secret lives in environment/secret
   storage, never in source control; rotating it invalidates future
@@ -69,4 +84,4 @@ Anyone on the team can answer: "why do we need a relay server if STUN
 already tells you your public IP?" — because STUN is discovery-only and
 some networks block direct connectivity outright, requiring an
 on-path relay. coturn is that relay, and it operates independently of,
-but alongside, the LiveKit SFU.
+but alongside, the SFU.

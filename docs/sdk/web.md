@@ -43,9 +43,18 @@ if (!isBrowserSupported()) {
 ```
 
 In practice this means any current release of Chrome, Firefox, Safari,
-or Edge — the same set `livekit-client` (the SFU implementation this SDK
-hides) supports. Internet Explorer and very old mobile browser WebViews
-are not supported (no `RTCPeerConnection`).
+or Edge — whatever supports the browser WebRTC APIs this SDK hides.
+Internet Explorer and very old mobile WebViews are not supported (no
+`RTCPeerConnection`).
+
+Support is **feature-detected**, not matched against a user-agent list:
+`isBrowserSupported()` checks for `RTCPeerConnection`,
+`navigator.mediaDevices.getUserMedia` and `WebSocket`, and
+`getBrowserSupportDetails()` names whichever is missing. That means an
+untested browser with the right capabilities reports supported — a
+statement about capabilities present, not about interop verified. Only
+Chromium has been exercised with real media; see
+[the test matrix](../rtc/test-matrix.md#4-browser-interoperability-spec-40).
 
 ## Next.js
 

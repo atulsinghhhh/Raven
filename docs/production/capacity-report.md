@@ -7,6 +7,15 @@ documented in `scripts/k6/README.md`; read that first if a number here
 looks surprising, since it explains what a single local machine can and
 cannot prove.
 
+> **Historical.** These numbers were measured while Raven ran on LiveKit.
+> The control-plane figures (token minting, REST, chat) are unaffected by
+> the media-plane change and still stand. The **RTC media numbers do
+> not** — they measured a different SFU. What has been measured against
+> Raven's own SFU is in
+> [`docs/rtc/test-matrix.md`](../rtc/test-matrix.md#2-participant-scale-spec-39),
+> and it is explicitly not a capacity figure. Kept because the methodology
+> and the honesty discipline in it are worth reusing.
+
 **Environment**: one MacBook (10 vCPU / 8GB allocated to Docker Desktop),
 running Postgres, Redis, LiveKit, coturn, MinIO, and the API under test
 all on the same machine as the load generator, **while another
@@ -162,7 +171,18 @@ gauges added to `/metrics` this pass, not just a connect/fail count).
 ### 2.3 Resource profile at 500 connections
 
 Sampled via `docker stats` mid-run and a `pg_stat_activity` count
-during a live 500-connection/20s test (`chat-1x-resourcecheck-20260819T161521.log`):
+during a live 500-connection/20s test (`chat-1x-resourcecheck-20260819T161521.log`).
+
+These numbers were taken when Postgres was a local container
+(`raven-postgres`) on the same machine as the API. It is now managed
+Postgres on Supabase, reached over the network through a transaction pooler
+(`docs/deployment/managed-postgres.md`) — so the `raven-postgres` rows below
+describe a topology that no longer exists. The **conclusion** still holds
+and is what this section is cited for: the bottleneck is single-core CPU on
+the Node process, and Postgres barely notices chat load. Per-query latency
+is higher now that the database is a network hop away, and the connection
+ceiling the pool must respect is the Supabase project's rather than a
+container's — both would need re-measuring before being quoted as current.
 
 | Resource | Idle | Under load (500 conns) |
 |---|---|---|

@@ -6,6 +6,12 @@ was changed to produce this report.
 
 Audit date: 2026-08-18. Commit: `1ea19d0`.
 
+> **Historical.** A point-in-time survey, kept as one. It predates the
+> migration to Raven's own SFU, so anything it says about the media plane
+> describes LiveKit. Current state:
+> [`docs/rtc/`](../rtc/README.md) and
+> [`docs/rtc/test-matrix.md`](../rtc/test-matrix.md).
+
 ---
 
 ## Summary

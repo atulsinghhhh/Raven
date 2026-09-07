@@ -2,14 +2,14 @@
 
 Raven's first production-oriented observability layer (Phase 9): answer
 "is my project working, and if not, why?" without ever needing to touch
-LiveKit or coturn directly. See also `docs/telemetry.md` (what the SDK
+the SFU or coturn directly. See also `docs/telemetry.md` (what the SDK
 reports and how), `docs/diagnostics.md` (the two diagnostic surfaces),
 and `docs/error-codes.md` (error categories and explanations).
 
 ## Core principle: Raven concepts, never infrastructure internals
 
 A developer sees `TURN_ERROR` / `"Likely cause: a firewall/NAT
-restriction"` — never a raw LiveKit ICE candidate error code or a coturn
+restriction"` — never a raw ICE candidate error code or a coturn
 allocation failure. Internal infrastructure detail stays out of every
 developer-facing surface (dashboard, CLI, API responses); `error-classifier.ts`
 is the one place that maps SDK-reported errors onto Raven's own vocabulary.
@@ -106,7 +106,7 @@ Observability overview cards and the time-range selector (15 minutes /
 ## Health checks
 
 The existing public `/health` (unauthenticated, Phase 5/7) already
-distinguishes Database/Redis/SFU(LiveKit)/TURN and aggregate signaling
+distinguishes Database/Redis/SFU/TURN and aggregate signaling
 counts — left unchanged (deliberately minimal, since it's commonly
 reachable without auth). The new authenticated `GET /v1/projects/:projectId/diagnostics`
 adds a project-scoped view with the project's own real active-connection
@@ -144,7 +144,7 @@ key secrets, RTC tokens, TURN credentials, private keys. See
 
 ## Security / redaction
 
-- Telemetry ingestion is authenticated by the same signed RTC (LiveKit)
+- Telemetry ingestion is authenticated by the same signed RTC
   token the connection itself uses — verified server-side, never trusted
   from the request body.
 - Every ID returned anywhere (dashboard, CLI, API JSON) is the public
@@ -170,8 +170,12 @@ configuration — deliberately out of scope (Phase 9 spec §28/§35).
 
 - No raw WebRTC statistics (RTT, jitter, packet loss, bitrate) —
   see `docs/telemetry.md#connection-quality--webrtc-stats`.
-- `Room.getDiagnostics()`'s `iceConnectionState`/`signalingState` are
-  always `undefined` today — the LiveKit adapter doesn't expose them yet.
+- **No server-side connection-quality verdict.**
+  `getConnectionQuality()` returns `'unknown'` rather than a client-side
+  guess dressed up as one. The SFU is the only place loss and jitter from
+  every leg of a room are visible, and it does not compute a verdict yet.
+  `room.getConnectionStats()` gives real measured per-track numbers in the
+  meantime.
 - Metrics aggregation uses in-memory dedup over `findMany` results rather
   than SQL `GROUP BY` — correct and simple at this phase's scale; a
   higher-volume deployment would want real SQL aggregation.

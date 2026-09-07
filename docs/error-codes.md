@@ -132,7 +132,7 @@ codes carry information the old ones did not.
 
 Every RTC error a developer sees — in the dashboard, in `raven errors`,
 or in an `@corvidhq/rtc` `error` event — is a **Raven concept**, never a raw
-LiveKit/coturn error code. `apps/api/src/modules/observability/error-classifier.ts`
+SFU or coturn error code. `apps/api/src/modules/observability/error-classifier.ts`
 is the one place that mapping lives.
 
 ## Categories
@@ -145,7 +145,7 @@ is the one place that mapping lives.
 | `SIGNALING_ERROR` | The signaling handshake to the RTC endpoint didn't complete. |
 | `ICE_ERROR` | ICE connectivity checks failed — usually a firewall/NAT restriction. |
 | `TURN_ERROR` | A TURN relay connection specifically could not be established. |
-| `SFU_ERROR` | The media server (LiveKit) couldn't complete the connection, for no more specific reason. |
+| `SFU_ERROR` | The media server couldn't complete the connection, for no more specific reason. |
 | `NETWORK_ERROR` | A generic network-level failure or timeout. |
 | `CLIENT_ERROR` | A local/application-side issue — wrong room, device permission, media error. |
 | `UNKNOWN_ERROR` | Nothing more specific could be determined. |

@@ -162,7 +162,7 @@ Android works out of the box (the system shows a consent dialog).
 **iOS needs a Broadcast Upload Extension** in your app — a target you add
 in Xcode, not something a package can provide. Without it,
 `enableScreenShare()` throws. See
-[livekit_client's iOS screen-share guide](https://docs.livekit.io/home/client/tracks/screenshare/).
+[flutter_webrtc's screen-capture documentation](https://github.com/flutter-webrtc/flutter-webrtc/blob/main/README.md).
 
 ## Rendering video
 
@@ -359,14 +359,20 @@ follows track changes.
 ```
 raven_rtc                        raven_chat
     │                                │
-    └── livekit_client               └── web_socket_channel + http
-            │                                │
-    native iOS/Android WebRTC        Raven Chat service
+    ├── flutter_webrtc              └── web_socket_channel + http
+    └── web_socket_channel                   │
+            │                        Raven Chat service
+    native iOS/Android WebRTC
 ```
 
 `raven_rtc` ships no native code of its own — the iOS and Android WebRTC
-implementation arrives through `livekit_client`, exactly as `@corvidhq/rtc`
-gets it from `livekit-client` on the web. A second native layer would
-mean two implementations competing for the same camera.
+implementation arrives through `flutter_webrtc`, exactly as
+`@corvidhq/rtc` gets it from the browser on the web. A second native layer
+would mean two implementations competing for the same camera.
+
+What `raven_rtc` *does* own, and previously did not, is the signaling
+protocol and the peer-connection lifecycle (`lib/src/internal/`). Those
+used to come from a third-party client; they are Raven's own now, which is
+what lets the SFU change without a package release.
 
 `raven_chat` is pure Dart over the platform's own networking.

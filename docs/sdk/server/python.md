@@ -85,7 +85,7 @@ token = raven.tokens.create(
         expires_in=3600,  # seconds — every token is short-lived by design
     )
 )
-# {"token": ..., "livekitUrl": ..., "iceServers": [...], "telemetryUrl": ..., "expiresAt": ..., ...}
+# {"token": ..., "endpoint": ..., "iceServers": [...], "telemetryUrl": ..., "expiresAt": ..., ...}
 ```
 
 Return this straight to your frontend — see `examples/python-server`

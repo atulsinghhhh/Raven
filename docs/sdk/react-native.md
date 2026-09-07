@@ -23,10 +23,17 @@ tracks and events is true here.
 
 ```bash
 npm install @corvidhq/react-native @corvidhq/rtc @corvidhq/chat \
-            @livekit/react-native @livekit/react-native-webrtc
+            react-native-webrtc react-native-incall-manager
 
 cd ios && pod install   # iOS only
 ```
+
+`react-native-webrtc` is a required native module — autolinking needs it
+in your app for the native WebRTC implementation to build.
+`react-native-incall-manager` is **optional**, for call-audio routing
+(earpiece/speaker, proximity, the in-call audio session); without it
+`audio.*` throws `NOT_SUPPORTED` and everything else works. You never
+import either: everything you write is `@corvidhq/react-native`'s API.
 
 **2. Permissions** — the SDK can't add these for you.
 
@@ -59,7 +66,7 @@ function Call({ session }) {
   const [room, setRoom] = useState();
 
   useEffect(() => {
-    const raven = new Raven({ token: session.token, endpoint: session.livekitUrl });
+    const raven = new Raven({ token: session.token, endpoint: session.endpoint });
     raven.join('room_123').then(setRoom);
     return () => void raven.dispose();
   }, [session]);
@@ -121,7 +128,7 @@ catching it as a network error at join time.
 ```ts
 const raven = new Raven({
   token,                   // RTC token from your backend — omit for chat-only
-  endpoint,                // livekitUrl from the same response
+  endpoint,                // `endpoint` from the same response
   iceServers,              // forward as-is
   telemetryUrl,
   chatToken,               // optional — omit for an RTC-only app
@@ -333,7 +340,7 @@ keeps working. Codes are shared across platforms — see
 - **Background audio (iOS):** add the `audio` background mode to
   `Info.plist` or calls end when the app is backgrounded.
 - **Proguard (Android):** WebRTC classes are already kept by
-  `@livekit/react-native-webrtc`; nothing to add.
+  `react-native-webrtc`; nothing to add.
 - **Simulators can't capture video.** The iOS Simulator and most Android
   emulators have no camera. Test video on real hardware.
 - **Cleartext:** use `wss://` and `https://` endpoints. Android blocks
@@ -366,7 +373,8 @@ cause.
         │                  lifecycle, audio routing
         ├── @corvidhq/rtc    ← shared with web, unmodified
         ├── @corvidhq/chat   ← shared with web, unmodified
-        └── @livekit/react-native → native iOS/Android WebRTC
+        ├── react-native-webrtc → native iOS/Android WebRTC
+        └── react-native-incall-manager → call-audio routing (optional)
 ```
 
 Raven's RTC and messaging logic is shared with web. Only the parts that

@@ -3,20 +3,24 @@
 This is the operational reference for Raven's TURN/STUN deployment: exact
 configuration, authentication mechanism, ports, TLS, abuse protection,
 metrics, and a production checklist. For *why* TURN exists at all and how
-it fits alongside the LiveKit SFU at a design level, see
+it fits alongside the SFU at a design level, see
 [docs/architecture/turn.md](architecture/turn.md). For the end-to-end
 NAT-traversal flow (STUN → ICE → TURN → SFU) and connection-type
-observability, see [docs/nat-traversal.md](nat-traversal.md).
+observability, see [docs/rtc/networking.md](rtc/networking.md).
 
 ## Architecture
 
 coturn is deployed as an independent Docker Compose service
-(`infrastructure/docker/coturn/`), separate from the LiveKit SFU. LiveKit
-has no built-in TURN server — it is handed coturn's address and
-credentials like any other WebRTC client would be. Raven's own control
-plane (not LiveKit) owns TURN credential issuance, minting a fresh
-time-limited credential per RTC token (Phase 4/5) so credential lifetime is
-tied to the same access-control surface as everything else in the token.
+(`infrastructure/docker/coturn/`), separate from the SFU. The SFU embeds
+no TURN server of its own — an SFU that also relays is two capacity
+problems sharing one process, and coturn needs to scale and fail
+independently of the media plane.
+
+The **control plane** owns credential issuance, not the SFU: a fresh
+time-limited credential is minted per RTC token, so its lifetime is tied
+to the same access-control surface as everything else in that token. A
+client therefore never holds a permanent relay credential, and a leaked
+one expires on its own.
 
 ```
 turnserver.conf (non-secret, static config)
@@ -172,26 +176,33 @@ correctly.
 **Forced-TURN-relay end-to-end browser test cannot be completed against
 this local Docker Compose stack on Docker Desktop (macOS/Windows).**
 
-Root cause: LiveKit is started with `--node-ip=127.0.0.1` so a browser
-running on the host machine can reach it directly for host-candidate
-connections (this is what makes the direct/STUN test work). When a client
-is forced to relay-only (`iceTransportPolicy: 'relay'`), LiveKit's SFU-side
-ICE agent must reach the browser's TURN-relayed candidate on coturn — this
-part works (confirmed via `ICE candidate pair stats` logs showing 8
-requests sent from LiveKit to coturn's relay address). The return path
-fails: the browser only knows LiveKit's candidate as `127.0.0.1`, so it
-asks coturn to install a TURN permission for peer `127.0.0.1`, but
-LiveKit's actual outbound packets arrive at coturn from its real container
-IP (confirmed via `netstat` inside the container) — a different address.
+This limitation **survived the migration to Raven's own SFU unchanged**,
+which is itself the useful finding: it was never about which SFU was
+running. The analysis below was done against LiveKit and applies verbatim
+to Raven's SFU, because the cause is the addressing topology, not the
+media server.
+
+Root cause: the SFU advertises `SFU_PUBLIC_IP=127.0.0.1` so a browser on
+the host machine can reach it directly for host-candidate connections
+(this is what makes the direct/STUN path work locally). When a client is
+forced to relay-only (`iceTransportPolicy: 'relay'`), the SFU's ICE agent
+must reach the browser's TURN-relayed candidate on coturn — and that part
+works, confirmed via candidate-pair stats showing requests sent to
+coturn's relay address. The **return path** fails: the browser only knows
+the SFU's candidate as `127.0.0.1`, so it asks coturn to install a TURN
+permission for peer `127.0.0.1` — but the SFU's actual outbound packets
+arrive at coturn from its real container IP (confirmed via `netstat`
+inside the container), a different address.
+
 Per the TURN spec, coturn silently discards data from a peer address with
-no matching permission, so no response is ever relayed back — this
-reproduced identically before and after adding `--allow-loopback-peers`,
-which rules out a permission-*policy* problem and confirms an
-address-*identity* mismatch instead. A direct payload test further
-confirmed Docker Desktop for Mac does not route the container's real
-bridge-network IP to the host at all — so no single address exists that is
-simultaneously valid for "browser on host reaches LiveKit directly" and
-"coturn (a peer container) correctly identifies LiveKit's traffic."
+no matching permission, so nothing is relayed back. This reproduced
+identically before and after adding `--allow-loopback-peers`, which rules
+out a permission-*policy* problem and points at an address-*identity*
+mismatch. A direct payload test confirmed Docker Desktop for Mac does not
+route the container's bridge-network IP to the host at all — so no single
+address is simultaneously valid for "browser on host reaches the SFU
+directly" and "coturn, a peer container, correctly identifies the SFU's
+traffic."
 
 This is a Docker Desktop host/container networking limitation, not a defect
 in Raven's TURN integration or credential/config logic — coturn's relay

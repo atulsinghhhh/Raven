@@ -62,7 +62,7 @@ const token = await raven.tokens.create({
   permissions: { join: true, subscribe: true, publish: true, publishAudio: true, publishVideo: true },
   expiresIn: 3600,        // seconds; every token is short-lived by design — there is no permanent-token option
 });
-// { token, livekitUrl, iceServers, telemetryUrl, expiresAt, ... }
+// { token, endpoint, iceServers, telemetryUrl, expiresAt, ... }
 ```
 
 Hand this response straight to your frontend, which passes it into

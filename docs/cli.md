@@ -3,7 +3,7 @@
 A terminal workflow tool for Raven, sitting alongside the dashboard
 (visual control center) and the SDK (integration library). The CLI talks
 **only** to the Control API (`apps/api`, the same `/v1/...` surface the
-dashboard uses) — it never touches PostgreSQL, Redis, LiveKit, or coturn
+dashboard uses) — it never touches PostgreSQL, Redis, the SFU, or coturn
 directly, and it does not manage infrastructure. If you want
 Terraform-style provisioning, this isn't it: `raven login`, `raven
 projects create`, `raven init`, `raven dev` are the whole shape.
