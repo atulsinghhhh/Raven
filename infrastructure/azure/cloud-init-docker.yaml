@@ -1,0 +1,19 @@
+#cloud-config
+# Minimal Docker host. Both Raven media-plane VMs use this.
+#
+# Docker from Ubuntu's own repo rather than Docker's: fewer moving parts on
+# first boot, and neither VM needs a bleeding-edge engine. The compose
+# plugin comes along for coturn/redis, which are run from compose files.
+package_update: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - redis-tools
+runcmd:
+  - systemctl enable --now docker
+  - usermod -aG docker ravenadmin
+  # Media hosts hold a lot of concurrent UDP flows; the default conntrack
+  # table and socket buffers are sized for a general-purpose server.
+  - sysctl -w net.core.rmem_max=16777216
+  - sysctl -w net.core.wmem_max=16777216
+  - printf 'net.core.rmem_max=16777216\nnet.core.wmem_max=16777216\n' > /etc/sysctl.d/99-raven-media.conf
