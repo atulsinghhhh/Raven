@@ -28,7 +28,7 @@ const RTC_TOKEN_IDEMPOTENCY_TTL_SECONDS = 5 * 60;
 
 // Issues short-lived RTC access tokens for a room. Doesn't establish a
 // WebRTC session itself — the token comes back and the client SDK
-// presents it to LiveKit's signaling endpoint later.
+// presents it to Raven's own signaling endpoint (`/v1/rtc`) later.
 @ApiTags('RTC Tokens')
 @ApiBearerAuth('apiKey')
 @Controller('v1/rooms/:roomId/rtc-tokens')
@@ -44,7 +44,7 @@ export class RtcTokensController {
   @ApiOperation({
     summary: 'Mint a short-lived RTC access token for a participant to join this room',
     description:
-      'Every token expires (ttlSeconds, max 6 hours) — there is no way to request a permanent token. Permissions are translated into a LiveKit access token grant; see docs/control-plane.md#rtc-tokens-ravens-permissions--livekits-grant. Rate limited to 60 requests/window/IP. Safe to retry with the same Idempotency-Key header within 5 minutes to replay the original token instead of minting a new one.',
+      'Every token expires (ttlSeconds, max 6 hours) — there is no way to request a permanent token. Permissions are signed into the token itself and re-verified by the signaling gateway on every join; see docs/control-plane.md#rtc-tokens-ravens-permissions. Rate limited to 60 requests/window/IP. Safe to retry with the same Idempotency-Key header within 5 minutes to replay the original token instead of minting a new one.',
   })
   @ApiResponse({
     status: 201,

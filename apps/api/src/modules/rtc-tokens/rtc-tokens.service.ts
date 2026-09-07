@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AccessToken } from 'livekit-server-sdk';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { CreateRtcTokenDto } from './dto/create-rtc-token.dto';
-import { toLiveKitGrant } from './rtc-token-grant.mapper';
+import { RtcTokenSignerService } from './rtc-token-signer.service';
+import { resolvePermissions, toPermissionsDto } from './rtc-token.claims';
 import { buildIceServers, IceServer } from './turn-credential.util';
 import { ProjectScope } from '../../shared/environment/environment.constants';
+import { SIGNALING_PATH } from '../signaling/signaling.constants';
 
 export interface IssuedRtcToken {
   id: string;
@@ -18,9 +19,9 @@ export interface IssuedRtcToken {
   participantIdentity: string;
   permissions: CreateRtcTokenDto['permissions'];
   /**
-   * STUN + TURN servers for the client's WebRTC RTCConfiguration
-   * (`rtcConfig.iceServers` on the LiveKit client). TURN creds are minted
-   * fresh per token and share its lifetime.
+   * STUN + TURN servers for the client's WebRTC RTCConfiguration. TURN
+   * creds are minted fresh per token and share its lifetime, so a client
+   * never holds a permanent relay credential (spec §11).
    */
   iceServers: IceServer[];
   // Base URL for @corvidhq/rtc's telemetry — the SDK never hardcodes this,
@@ -36,6 +37,7 @@ export class RtcTokensService {
     private readonly prisma: PrismaService,
     private readonly roomsService: RoomsService,
     private readonly configService: ConfigService,
+    private readonly signer: RtcTokenSignerService,
   ) {}
 
   async create(
@@ -49,7 +51,6 @@ export class RtcTokensService {
 
     const ttlSeconds =
       dto.ttlSeconds ?? this.configService.get<number>('rtcToken.defaultTtlSeconds')!;
-    const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
 
     const participant = await this.prisma.participant.upsert({
       where: { roomId_identity: { roomId, identity: dto.participantIdentity } },
@@ -57,38 +58,38 @@ export class RtcTokensService {
       update: { metadata: dto.metadata },
     });
 
+    // Resolved once, here, so the row we persist and the claims we sign
+    // record exactly the same grant — rather than each re-deriving it from
+    // the request's optional flags and risking a drift between what the
+    // dashboard shows and what the signaling layer enforces.
+    const permissions = resolvePermissions(dto.permissions);
+
+    // Row first, then sign with its id as the token's `jti`. The other
+    // order would mean the credential and its record carry different
+    // identifiers, which is what makes revocation and log correlation
+    // awkward later — and it would change the shape of the `id` this
+    // endpoint has always returned.
+    const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
     const rtcToken = await this.prisma.rtcToken.create({
       data: {
         projectId: scope.projectId,
         roomId,
         participantId: participant.id,
-        permissions: dto.permissions as unknown as object,
+        permissions: permissions as unknown as object,
         expiresAt,
       },
     });
 
-    const accessToken = new AccessToken(
-      this.configService.get<string>('livekit.apiKey'),
-      this.configService.get<string>('livekit.apiSecret'),
-      {
-        identity: dto.participantIdentity,
-        ttl: ttlSeconds,
-        metadata: dto.metadata,
-        // Custom attributes, not part of LiveKit's own grant — lets our
-        // signaling layer bind a connection to one project/room without
-        // another DB round-trip on every WebSocket connect. LiveKit just
-        // ignores attributes it doesn't know about.
-        // The environment travels into the media plane too, so signaling
-        // can bind a connection without another round-trip and telemetry
-        // lands in the right environment.
-        attributes: {
-          ravenProjectId: scope.projectId,
-          ravenRoomId: room.id,
-          ravenEnvironment: scope.environment,
-        },
-      },
-    );
-    accessToken.addGrant(toLiveKitGrant(room.name, dto.permissions));
+    const signed = this.signer.sign({
+      tokenId: rtcToken.id,
+      projectId: scope.projectId,
+      environment: scope.environment,
+      roomId: room.id,
+      roomName: room.name,
+      participantIdentity: dto.participantIdentity,
+      permissions,
+      ttlSeconds,
+    });
 
     const iceServers = buildIceServers({
       turnHost: this.configService.get<string>('turn.host')!,
@@ -101,16 +102,39 @@ export class RtcTokensService {
 
     return {
       id: rtcToken.id,
-      token: await accessToken.toJwt(),
-      endpoint: this.configService.get<string>('livekit.url')!,
+      token: signed.token,
+      endpoint: this.signalingEndpoint(),
       roomId: room.id,
       roomName: room.name,
       participantIdentity: dto.participantIdentity,
-      permissions: dto.permissions,
+      permissions: toPermissionsDto(permissions),
       iceServers,
       telemetryUrl: this.configService.get<string>('publicUrl')!,
-      expiresAt,
+      expiresAt: signed.expiresAt,
       createdAt: rtcToken.createdAt,
     };
+  }
+
+  /**
+   * The `endpoint` clients connect to: Raven's own signaling WebSocket.
+   *
+   * Derived from the API's public URL by default so there's one address to
+   * configure rather than two — the same approach `ChatTokenService.chatUrl()`
+   * takes. `RTC_SIGNALING_URL` overrides it for deployments that front
+   * signaling on a separate hostname or ingress.
+   *
+   * Note what this is *not*: the address of an SFU. Clients never learn
+   * which SFU serves their room — the signaling layer allocates one and
+   * negotiates on their behalf, which is what allows the media plane to be
+   * re-shaped (or replaced) without an SDK release.
+   */
+  private signalingEndpoint(): string {
+    const configured = this.configService.get<string>('rtc.signalingUrl');
+    if (configured) {
+      return configured;
+    }
+    const publicUrl = this.configService.get<string>('publicUrl')!;
+    const wsUrl = publicUrl.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:');
+    return `${wsUrl.replace(/\/$/, '')}${SIGNALING_PATH}`;
   }
 }

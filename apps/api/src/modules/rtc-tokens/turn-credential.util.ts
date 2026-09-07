@@ -26,8 +26,9 @@ export function generateTurnCredential(
 /**
  * Builds the ICE server list a WebRTC client needs: our own coturn
  * deployment, for both STUN and TURN, over whatever transports coturn's
- * configured for. Doesn't include LiveKit's embedded TURN — we run coturn
- * externally instead.
+ * configured for. Raven's SFU deliberately embeds no TURN of its own — an
+ * SFU that also relays is two capacity problems sharing one process, and
+ * coturn scales and fails independently of the media plane.
  *
  * The browser's ICE agent already picks the right order to try these in
  * (direct, STUN, TURN/UDP, TURN/TCP, TURN/TLS), so we don't enforce one
