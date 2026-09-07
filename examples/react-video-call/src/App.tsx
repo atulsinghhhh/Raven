@@ -17,7 +17,7 @@ import './index.css';
 // This is the ONE thing a developer needs to think about client-side:
 // forward the full JSON body from your backend's `POST /rtc-tokens` call
 // (see examples/node-server, examples/python-server) straight into
-// <RavenRoom> — never mint a token here, and no LiveKit types appear
+// <RavenRoom> — never mint a token here, and no media-plane types appear
 // anywhere in this file (Phase 11 spec §27).
 interface ParsedToken {
   token: string;

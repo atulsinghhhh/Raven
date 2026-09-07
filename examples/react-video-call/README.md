@@ -4,7 +4,7 @@ A real, buildable React app (Vite + TypeScript) demonstrating the Phase
 11 SDK — join a room, camera/microphone, screen sharing, device
 selection, remote participant tiles, connection status, and leave — all
 through `@corvidhq/react`'s hooks and `<RavenRoom>`/`<ParticipantView>`. No
-LiveKit types appear anywhere in `src/`.
+media-plane types appear anywhere in `src/`.
 
 This is a sibling to `examples/video-call/` (the original no-build-step,
 plain-JS `@corvidhq/rtc` demo, kept exactly as-is) — this one shows the same

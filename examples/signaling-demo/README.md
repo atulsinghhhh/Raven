@@ -4,7 +4,7 @@ A single static HTML file (`index.html`, no build step, no dependencies)
 that demonstrates the Phase 3 signaling layer end-to-end: connect,
 authenticate, join a room, see participant events, exchange placeholder
 SDP/ICE messages, and disconnect. It does **not** establish real media —
-see `docs/signaling.md` for why that's intentionally out of scope until
+see `docs/rtc/architecture.md` for why that's intentionally out of scope until
 Phase 4.
 
 ## Running it
@@ -37,4 +37,4 @@ Phase 4.
 7. Click **Disconnect** in either tab — the other tab receives
    `participant.left`.
 
-See `docs/signaling-protocol.md` for the full message reference.
+See `docs/rtc/signaling.md` for the full message reference.

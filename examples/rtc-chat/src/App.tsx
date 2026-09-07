@@ -20,7 +20,7 @@ import './index.css';
  * The thing to notice is the nesting: `<RavenRoom>` owns the media
  * session and `<RavenChat>` owns the messaging session, each with its own
  * token, its own connection, and its own lifecycle. Media flows over
- * WebRTC through LiveKit; messages flow over a WebSocket through Postgres
+ * WebRTC through Raven's SFU; messages flow over a WebSocket through Postgres
  * and Redis. Neither knows the other exists (Phase 12 spec §45).
  *
  * That separation is load-bearing, not cosmetic: the chat panel keeps

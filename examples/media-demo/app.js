@@ -1,6 +1,5 @@
 // Raven media demo — built entirely on @corvidhq/rtc's public API. No SDP, no
-// ICE candidates, no RTCPeerConnection, and no LiveKit-specific type or
-// import appears anywhere in this file. Run `server.py` alongside this
+// ICE candidates, and no RTCPeerConnection appear anywhere in this file. Run `server.py` alongside this
 // page — see the README.
 import { createRTCClient, isRTCError } from '@corvidhq/rtc';
 

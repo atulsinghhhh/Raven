@@ -28,13 +28,13 @@ So Raven keeps them separate:
 | | Video | Chat |
 | --- | --- | --- |
 | SDK | `@corvidhq/rtc` | `@corvidhq/chat` |
-| Transport | WebRTC via LiveKit | WebSocket |
-| Token | RTC token (LiveKit-signed) | Chat token (Raven-signed) |
+| Transport | WebRTC via Raven's SFU | WebSocket |
+| Token | RTC token (`aud: raven-rtc`) | Chat token (`aud: raven-chat`) |
 | Durability | none — media is live or gone | Postgres |
 | Provider | `<RavenRoom>` | `<RavenChat>` |
 
 The practical payoff: **either half can fail without the other noticing.** Kill
-the LiveKit container and the chat panel keeps working. Restart the Raven API
+the SFU container and the chat panel keeps working. Restart the Raven API
 and the video call carries on while chat reconnects. Neither token is accepted
 by the other plane — try it and you'll get a `401`.
 
@@ -69,7 +69,7 @@ identities, and allow camera/microphone access.
 ## Things worth trying
 
 **Independence.** With both tabs in a call, run
-`docker compose restart livekit`. The video tiles drop and recover; the chat
+`docker compose restart sfu`. The video tiles drop and recover; the chat
 panel never flinches, and messages sent during the outage are all there.
 
 Then the reverse: `docker compose restart api`. Chat shows `reconnecting`,

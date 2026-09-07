@@ -92,8 +92,8 @@ async def get_diagnostics() -> dict:
     """Real signaling/SFU/TURN health and this project's active-connection
     count — `raven.diagnostics.get()` from ``raven/resources/diagnostics.py``,
     passed straight through. This is what the page's "Project diagnostics"
-    panel polls, replacing the old approach of reaching into
-    `livekit-client`'s undocumented internals to guess at connection health
-    from inside the browser.
+    panel polls. It is server-measured rather than guessed at from inside
+    the browser, which is the only place the state of signaling, the SFU
+    fleet, and TURN can actually be observed together.
     """
     return raven.diagnostics.get()

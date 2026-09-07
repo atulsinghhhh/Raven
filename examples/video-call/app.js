@@ -1,6 +1,6 @@
 // Raven video-call example — built entirely on @corvidhq/rtc's public API.
-// No SDP, no ICE candidates, no RTCPeerConnection, no LiveKit-specific
-// types appear anywhere in this file.
+// No SDP, no ICE candidates, and no RTCPeerConnection appear anywhere in
+// this file.
 import { createRTCClient, isRTCError } from '@corvidhq/rtc';
 
 const $ = (id) => document.getElementById(id);

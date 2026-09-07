@@ -1,8 +1,7 @@
 # Raven video-call example
 
 A minimal two-participant video call built entirely on `@corvidhq/rtc`'s public
-API — `app.js` never touches SDP, ICE candidates, `RTCPeerConnection`, or any
-LiveKit-specific type.
+API — `app.js` never touches SDP, ICE candidates, or `RTCPeerConnection`.
 
 ```js
 import { createRTCClient } from '@corvidhq/rtc';
@@ -25,14 +24,14 @@ room.on('trackSubscribed', (track, participant) => {
    pnpm infra:up
    pnpm --filter @corvidhq/rtc build
    ```
-2. Copy the freshly-built SDK and its `livekit-client` dependency into this
-   folder (this example loads them via a browser import map, not a bundler
-   — see below for why):
+2. Copy the freshly-built SDK into this folder (this example loads it via
+   a browser import map, not a bundler — see below for why):
    ```bash
    cp ../../packages/sdk/dist/index.js ./raven-rtc.js
    cp ../../packages/sdk/dist/index.js.map ./raven-rtc.js.map
-   cp ../../packages/sdk/node_modules/livekit-client/dist/livekit-client.esm.mjs ./
    ```
+   One file is all it takes now: `@corvidhq/rtc` has no runtime
+   dependency to vendor alongside it. WebRTC comes from the browser.
 3. Serve this folder statically, e.g.:
    ```bash
    python3 -m http.server 8900
@@ -48,10 +47,9 @@ room.on('trackSubscribed', (track, participant) => {
 Every other example in this repo (`examples/media-demo`,
 `examples/signaling-demo`) is plain static HTML/JS with a vendored
 dependency — no build step. This example follows the same convention:
-`raven-rtc.js` (the SDK's own ESM build) and `livekit-client.esm.mjs`
-(livekit-client's own self-contained ESM bundle) are vendored here, and an
+`raven-rtc.js` (the SDK's own ESM build) is vendored here, and an
 [import map](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap)
-in `index.html` resolves the bare `@corvidhq/rtc` / `livekit-client` specifiers
+in `index.html` resolves the bare `@corvidhq/rtc` specifier
 `app.js` imports — so `app.js` is exactly what a real app's code would look
 like after a bundler (Vite, webpack, esbuild) resolves those same imports;
 only the resolution mechanism differs. Import maps are supported in all

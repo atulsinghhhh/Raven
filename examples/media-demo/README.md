@@ -6,13 +6,13 @@ using `raven-sdk` to mint tokens and surface project diagnostics.
 
 This is built entirely on Raven's public SDKs: `app.js` never touches
 SDP, ICE candidates, `RTCPeerConnection`, or any type specific to the
-media server underneath. `raven-rtc.js` and `livekit-client.esm.mjs`
-are vendored, self-contained ESM bundles (no build step, no CDN — see
-"Why an import map" below); nothing here talks to the media server
-directly.
+media server underneath. `raven-rtc.js` is a vendored, self-contained
+ESM bundle (no build step, no CDN — see "Why an import map" below);
+nothing here talks to the media server directly.
 
 This is deliberately not the production dashboard — see
-`docs/sfu.md`/`docs/media-flow.md` for the architecture this exercises.
+`docs/rtc/architecture.md` and `docs/rtc/sfu.md` for the architecture
+this exercises.
 
 ## Running it
 
@@ -68,7 +68,7 @@ call.
 ## What this intentionally does not do
 
 No recording, no transcoding, no chat — see
-`docs/sfu.md#what-was-not-built`. It also doesn't attempt to prove TURN
+`docs/rtc/sfu.md#known-gaps`. It also doesn't attempt to prove TURN
 relay specifically; disable direct UDP or use a restrictive network and
 watch `iceServers` do its job, or see `docs/turn.md`.
 
@@ -77,9 +77,9 @@ watch `iceServers` do its job, or see `docs/turn.md`.
 Every other JS example in this repo (`examples/rtc-chat`,
 `examples/video-call`) is plain static HTML/JS with vendored
 dependencies — no build step. This example follows the same
-convention: `raven-rtc.js` (`@corvidhq/rtc`'s own ESM build) and
-`livekit-client.esm.mjs` (its dependency's self-contained ESM bundle)
-are vendored here, and an
+convention: `raven-rtc.js` (`@corvidhq/rtc`'s own ESM build) is
+vendored here — one file, since the SDK has no runtime dependency to
+vendor alongside it — and an
 [import map](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap)
 in `index.html` resolves the bare `@corvidhq/rtc` specifier `app.js`
 imports — so `app.js` is exactly what a real app's code would look
@@ -92,7 +92,6 @@ To refresh the vendored files after an SDK change:
 pnpm --filter @corvidhq/rtc build
 cp ../../packages/sdk/dist/index.js ./raven-rtc.js
 cp ../../packages/sdk/dist/index.js.map ./raven-rtc.js.map
-cp ../../packages/sdk/node_modules/livekit-client/dist/livekit-client.esm.mjs ./
 ```
 
 In a real project, you would simply `npm install @corvidhq/rtc` and let

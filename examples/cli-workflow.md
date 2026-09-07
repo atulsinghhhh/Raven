@@ -84,9 +84,9 @@ open http://localhost:8900/index.html
   there is no CLI-only backend.
 - The API key minted by the CLI mints a real, working RTC token from the
   Control API, which a real browser SDK client (`@corvidhq/rtc`) can use to
-  join and connect to the actual LiveKit SFU — confirmed live via
+  join and connect to a real Raven SFU node — confirmed live via
   `Status: connected` and correct remote-participant discovery in both
-  browser tabs, with real LiveKit signaling visible in the browser
+  browser tabs, with real signaling frames visible in the browser
   console.
 
 ## A note on step 11 in an automated/headless environment

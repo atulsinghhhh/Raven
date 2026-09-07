@@ -4,7 +4,7 @@ A real two-browser demo of Raven Live Streaming — one host tab publishing
 camera/microphone, one viewer tab receiving real media, plus live chat and
 reactions — built entirely on `@corvidhq/client`'s `LiveStream` API
 (`raven.live.join()` / `LiveStream.join()`). `app.js` never touches
-LiveKit, SDP, or `RTCPeerConnection` directly.
+SDP or `RTCPeerConnection` directly.
 
 This is deliberately not a polished product UI — see
 `docs/live-streaming/overview.md` for the architecture this exercises.
@@ -26,7 +26,6 @@ cp ../../packages/chat-sdk/dist/index.js{,.map} .
 mv index.js raven-chat.js; mv index.js.map raven-chat.js.map
 cp ../../packages/client/dist/index.js{,.map} .
 mv index.js raven-client.js; mv index.js.map raven-client.js.map
-cp ../../packages/sdk/node_modules/livekit-client/dist/livekit-client.esm.mjs .
 ```
 
 **4. Start the backend** (mints tokens with a real API key — never sent to the browser):

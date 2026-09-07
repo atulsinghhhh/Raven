@@ -1,5 +1,5 @@
 // Raven Live Streaming demo — built entirely on @corvidhq/client's
-// LiveStream API (raven.live.join()). No LiveKit type, no SDP, no
+// LiveStream API (raven.live.join()). No SDP and no
 // RTCPeerConnection anywhere in this file — `stream.room` and
 // `stream.chat` are real @corvidhq/rtc/@corvidhq/chat objects, used exactly as
 // their own docs describe.
