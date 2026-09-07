@@ -1,4 +1,4 @@
-"""Classified RTC errors (Phase 9), never raw LiveKit/coturn error codes — see docs/error-codes.md."""
+"""Classified RTC errors — never a raw SFU or coturn error code. See docs/error-codes.md."""
 
 from __future__ import annotations
 

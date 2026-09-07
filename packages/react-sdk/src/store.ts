@@ -38,7 +38,8 @@ const INITIAL_SNAPSHOT: RavenSnapshot = {
  *
  * All the actual RTC logic still lives in `@corvidhq/rtc` — this class only
  * translates its event stream into React-friendly, referentially-stable
- * snapshots. It never touches LiveKit.
+ * snapshots. It never touches a peer connection, a track, or the
+ * signaling socket directly.
  */
 export class RavenStore {
   private snapshot: RavenSnapshot = INITIAL_SNAPSHOT;

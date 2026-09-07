@@ -1,10 +1,10 @@
 /**
  * A hand-rolled fake of @corvidhq/rtc's public surface — mirrors how
- * packages/sdk's own tests fake livekit-client, one layer up. Every
+ * packages/sdk's own tests fake `RTCPeerConnection`, one layer up. Every
  * @corvidhq/react test mocks the whole `@corvidhq/rtc` module with this file
  * (`jest.mock('@corvidhq/rtc', () => require('./helpers/fake-rtc-client'))`)
  * so store/hook/component logic can be tested without any real
- * WebRTC/LiveKit stack.
+ * WebRTC stack at all.
  */
 
 type Handler = (...args: unknown[]) => void;

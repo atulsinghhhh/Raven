@@ -45,8 +45,10 @@ export type { ParticipantViewProps, RavenAudioProps, RavenVideoProps } from './c
 export type { RavenConnectionState, RavenSnapshot } from './store';
 
 // Re-exported for convenience so a developer building with @corvidhq/react
-// doesn't also need a direct @corvidhq/rtc import for common types —
-// LiveKit itself is still never re-exported (Phase 11 spec §27).
+// doesn't also need a direct @corvidhq/rtc import for common types. No
+// media-plane type is ever re-exported (Phase 11 spec §27) — the surface
+// here is Raven's own vocabulary, which is what let the SFU underneath it
+// be replaced without touching this file.
 export type {
   ConnectionState,
   DeviceInfo,
@@ -132,6 +134,6 @@ export type { RavenLiveStreamContextValue, RavenLiveStreamStatus } from './live/
 
 // Re-exported for convenience, same as the RTC/Chat types above — so a
 // live-streaming UI doesn't need a direct @corvidhq/client import for
-// common types. @corvidhq/client's own LiveKit-hiding discipline applies
-// here unchanged: nothing provider-specific ever reaches this surface.
+// common types. @corvidhq/client's own discipline applies here unchanged:
+// nothing transport- or media-plane-specific ever reaches this surface.
 export type { LiveStream, LiveStreamCredentials, LiveStreamRole } from '@corvidhq/client';
