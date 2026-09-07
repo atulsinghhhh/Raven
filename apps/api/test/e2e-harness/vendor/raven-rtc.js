@@ -1,5 +1,3 @@
-import { Room, RoomEvent, createLocalVideoTrack, createLocalAudioTrack, createLocalScreenTracks, ConnectionState, Track as Track$1, ConnectionError, ConnectionErrorReason, MediaDeviceFailure } from 'livekit-client';
-
 // src/errors.ts
 var RTCError = class extends Error {
   constructor(code, message, cause) {
@@ -85,12 +83,20 @@ function createLogger(level = "silent") {
     }
   };
 }
+
+// src/internal/devices/enumerate.ts
 async function listDevices(kind) {
-  const infos = await Room.getLocalDevices(kind, true);
-  return infos.map((info) => ({
-    deviceId: info.deviceId,
-    label: info.label,
-    kind: info.kind
+  if (typeof navigator === "undefined" || !navigator.mediaDevices?.enumerateDevices) {
+    throw new RTCError(
+      "NOT_SUPPORTED",
+      "Device enumeration is not available in this environment (no navigator.mediaDevices)"
+    );
+  }
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return devices.filter((device) => !kind || device.kind === kind).map((device) => ({
+    deviceId: device.deviceId,
+    label: device.label,
+    kind: device.kind
   }));
 }
 
@@ -259,18 +265,46 @@ var RemoteTrack = class extends Track {
     return stats;
   }
 };
+
+// src/internal/media/errors.ts
 function toMediaError(error, kind) {
-  const failure = MediaDeviceFailure.getFailure(error);
-  switch (failure) {
-    case MediaDeviceFailure.PermissionDenied:
-      return new RTCError(permissionDeniedCode(kind), `Permission to use the ${kind} was denied`, error);
-    case MediaDeviceFailure.NotFound:
-      return new RTCError("DEVICE_NOT_FOUND", `No ${kind} device was found`, error);
-    case MediaDeviceFailure.DeviceInUse:
-      return new RTCError("MEDIA_ERROR", `The ${kind} device is already in use by another application`, error);
+  const name = errorName(error);
+  switch (name) {
+    case "NotAllowedError":
+    case "SecurityError":
+      return new RTCError(
+        permissionDeniedCode(kind),
+        `Permission to use the ${label(kind)} was denied`,
+        error
+      );
+    case "NotFoundError":
+    case "OverconstrainedError":
+      return new RTCError("DEVICE_NOT_FOUND", `No ${label(kind)} device matched`, error);
+    case "NotReadableError":
+      return new RTCError(
+        "MEDIA_ERROR",
+        `The ${label(kind)} is already in use by another application`,
+        error
+      );
+    case "AbortError":
+      return new RTCError("MEDIA_ERROR", `Capturing the ${label(kind)} was aborted`, error);
+    case "TypeError":
+      return new RTCError("MEDIA_ERROR", `Invalid ${label(kind)} capture constraints`, error);
     default:
-      return new RTCError("MEDIA_ERROR", `Could not access the ${kind}`, error);
+      return new RTCError("MEDIA_ERROR", `Could not access the ${label(kind)}`, error);
   }
+}
+function errorName(error) {
+  if (typeof DOMException !== "undefined" && error instanceof DOMException) {
+    return error.name;
+  }
+  if (error && typeof error === "object" && typeof error.name === "string") {
+    return error.name;
+  }
+  return void 0;
+}
+function label(kind) {
+  return kind === "screenShare" ? "screen" : kind;
 }
 function permissionDeniedCode(kind) {
   if (kind === "camera") return "CAMERA_PERMISSION_DENIED";
@@ -278,66 +312,314 @@ function permissionDeniedCode(kind) {
   return "PERMISSION_DENIED";
 }
 
-// src/internal/media/camera.ts
-async function createCameraTrack(deviceId) {
-  try {
-    const lkTrack = await createLocalVideoTrack(deviceId ? { deviceId } : void 0);
-    return new LocalTrack(lkTrack, "camera");
-  } catch (error) {
-    throw toMediaError(error, "camera");
-  }
+// src/internal/telemetry/rtc-stats.ts
+function rawStatsFromReport(report, wanted) {
+  const codecs = /* @__PURE__ */ new Map();
+  const remoteInbound = [];
+  const rtpEntries = [];
+  report.forEach((entry) => {
+    const stats = entry;
+    switch (stats.type) {
+      case "codec":
+        if (typeof stats.id === "string" && typeof stats.mimeType === "string") {
+          codecs.set(stats.id, stats.mimeType);
+        }
+        break;
+      case "remote-inbound-rtp":
+        remoteInbound.push(stats);
+        break;
+      case wanted:
+        rtpEntries.push(stats);
+        break;
+    }
+  });
+  return rtpEntries.map((rtp) => toRawStats(rtp, wanted, codecs, remoteInbound));
 }
-async function createMicrophoneTrack(deviceId) {
-  try {
-    const lkTrack = await createLocalAudioTrack(deviceId ? { deviceId } : void 0);
-    return new LocalTrack(lkTrack, "microphone");
-  } catch (error) {
-    throw toMediaError(error, "microphone");
+function toRawStats(rtp, direction, codecs, remoteInbound) {
+  const kind = rtp.kind ?? rtp.mediaType;
+  const sample = {
+    type: kind === "audio" ? "audio" : kind === "video" ? "video" : void 0,
+    // `RTCStats.timestamp` is a DOMHighResTimeStamp relative to the time
+    // origin, and `normalizeTrackStats` only ever uses it as a delta
+    // against a previous sample, so its epoch does not matter. Falling
+    // back to Date.now() keeps the delta usable in the rare case the
+    // browser omitted it.
+    timestamp: typeof rtp.timestamp === "number" ? rtp.timestamp : Date.now()
+  };
+  if (typeof rtp.jitter === "number") sample.jitter = rtp.jitter;
+  if (typeof rtp.frameWidth === "number") sample.frameWidth = rtp.frameWidth;
+  if (typeof rtp.frameHeight === "number") sample.frameHeight = rtp.frameHeight;
+  if (typeof rtp.framesPerSecond === "number") sample.framesPerSecond = rtp.framesPerSecond;
+  const mimeType = rtp.mimeType ?? (rtp.codecId ? codecs.get(rtp.codecId) : void 0);
+  if (mimeType) sample.mimeType = mimeType;
+  if (direction === "outbound-rtp") {
+    if (typeof rtp.bytesSent === "number") sample.bytesSent = rtp.bytesSent;
+    if (typeof rtp.packetsSent === "number") sample.packetsSent = rtp.packetsSent;
+    const feedback = remoteInbound.find((remote) => rtp.id && remote.localId === rtp.id) ?? remoteInbound.find((remote) => rtp.ssrc !== void 0 && remote.ssrc === rtp.ssrc);
+    if (feedback) {
+      if (typeof feedback.roundTripTime === "number") sample.roundTripTime = feedback.roundTripTime;
+      if (typeof feedback.packetsLost === "number") sample.packetsLost = feedback.packetsLost;
+      if (sample.jitter === void 0 && typeof feedback.jitter === "number") {
+        sample.jitter = feedback.jitter;
+      }
+    }
+    return sample;
   }
+  if (typeof rtp.bytesReceived === "number") sample.bytesReceived = rtp.bytesReceived;
+  if (typeof rtp.packetsReceived === "number") sample.packetsReceived = rtp.packetsReceived;
+  if (typeof rtp.packetsLost === "number") sample.packetsLost = rtp.packetsLost;
+  return sample;
+}
+async function connectionRoundTripTimeMs(connection) {
+  const report = await connection.getStats();
+  let rttSeconds;
+  report.forEach((entry) => {
+    const stats = entry;
+    if (stats.type !== "candidate-pair") {
+      return;
+    }
+    if (stats.state !== "succeeded" || stats.nominated !== true) {
+      return;
+    }
+    if (typeof stats.currentRoundTripTime === "number") {
+      rttSeconds = stats.currentRoundTripTime;
+    }
+  });
+  return rttSeconds === void 0 ? void 0 : rttSeconds * 1e3;
+}
+
+// src/internal/media/native-track.ts
+var NativeTrackDelegate = class {
+  constructor(mediaStreamTrack) {
+    this.attachedElements = /* @__PURE__ */ new Set();
+    this.mediaStreamTrack = mediaStreamTrack;
+  }
+  get mediaStream() {
+    if (!this.stream && typeof MediaStream !== "undefined") {
+      this.stream = new MediaStream([this.mediaStreamTrack]);
+    }
+    return this.stream;
+  }
+  attach(element) {
+    const target = element ?? this.createElement();
+    const stream = this.mediaStream;
+    if (stream) {
+      target.srcObject = stream;
+    }
+    target.autoplay = true;
+    if (target instanceof HTMLVideoElement) {
+      target.playsInline = true;
+    }
+    this.attachedElements.add(target);
+    return target;
+  }
+  detach(element) {
+    if (element) {
+      element.srcObject = null;
+      this.attachedElements.delete(element);
+      return element;
+    }
+    const detached = Array.from(this.attachedElements);
+    for (const attached of detached) {
+      attached.srcObject = null;
+    }
+    this.attachedElements.clear();
+    return detached;
+  }
+  /**
+   * Swaps the track this delegate wraps.
+   *
+   * Called after `replaceTrack` on the sender succeeds, so that
+   * `attach()`ed elements and `mediaStreamTrack` describe what is actually
+   * being sent rather than the track that was replaced.
+   */
+  swapMediaStreamTrack(next) {
+    this.mediaStreamTrack = next;
+    this.stream = typeof MediaStream !== "undefined" ? new MediaStream([next]) : void 0;
+    const stream = this.stream;
+    if (!stream) {
+      return;
+    }
+    for (const element of this.attachedElements) {
+      element.srcObject = stream;
+    }
+  }
+  createElement() {
+    if (typeof document === "undefined") {
+      throw new Error("attach() without an element requires a DOM");
+    }
+    return document.createElement(this.mediaStreamTrack.kind === "video" ? "video" : "audio");
+  }
+};
+var NativeLocalTrackDelegate = class extends NativeTrackDelegate {
+  constructor() {
+    super(...arguments);
+    this.muted = false;
+  }
+  get isMuted() {
+    return this.muted;
+  }
+  /** @internal called by the adapter once the track is attached to a sender. */
+  setSender(sender) {
+    this.sender = sender;
+  }
+  /**
+   * Mutes by disabling the underlying track rather than removing it.
+   *
+   * `track.enabled = false` makes the browser send silence or black
+   * frames — the RTP stream continues, the transceiver stays, and
+   * unmuting is instant. Stopping the track instead would release the
+   * device (turning off the camera light, which users read as "off") but
+   * would then need a fresh `getUserMedia` and a renegotiation to undo.
+   *
+   * The SFU is told separately, via signaling, so it can stop forwarding
+   * the silence to every subscriber instead of paying to relay it.
+   */
+  async mute() {
+    this.mediaStreamTrack.enabled = false;
+    this.muted = true;
+    return void 0;
+  }
+  async unmute() {
+    this.mediaStreamTrack.enabled = true;
+    this.muted = false;
+    return void 0;
+  }
+  /**
+   * Replaces the outgoing track without renegotiating.
+   *
+   * This is what makes Raven Effects work mid-call: `RTCRtpSender.replaceTrack`
+   * swaps the source of an established stream, so a processed video track
+   * takes over from the raw camera with no offer/answer and no
+   * interruption to anyone else in the room.
+   */
+  async replaceTrack(track, _userProvidedTrack) {
+    if (this.sender) {
+      await this.sender.replaceTrack(track);
+    }
+    this.swapMediaStreamTrack(track);
+    if (this.muted) {
+      track.enabled = false;
+    }
+    return void 0;
+  }
+  /**
+   * Send-side stats for this track.
+   *
+   * Returns an array for video, because a simulcast sender reports one
+   * `outbound-rtp` per encoding layer — `LocalTrack.getStats()` picks the
+   * highest-resolution one. `undefined` when there is no sender yet: an
+   * unpublished track has no send statistics, and reporting zeroes would
+   * claim it was sending nothing rather than not sending at all.
+   */
+  async getSenderStats() {
+    if (!this.sender) {
+      return void 0;
+    }
+    const report = await this.sender.getStats();
+    const samples = rawStatsFromReport(report, "outbound-rtp");
+    if (samples.length === 0) {
+      return void 0;
+    }
+    return samples.length === 1 ? samples[0] : samples;
+  }
+};
+var NativeRemoteTrackDelegate = class extends NativeTrackDelegate {
+  constructor(mediaStreamTrack, receiver) {
+    super(mediaStreamTrack);
+    this.publisherMuted = false;
+    this.receiver = receiver;
+  }
+  get isMuted() {
+    return this.publisherMuted;
+  }
+  /** @internal set from the SFU's `track.muted` / `track.unmuted` events. */
+  setPublisherMuted(muted) {
+    this.publisherMuted = muted;
+  }
+  async getReceiverStats() {
+    const report = await this.receiver.getStats();
+    const [sample] = rawStatsFromReport(report, "inbound-rtp");
+    return sample;
+  }
+};
+
+// src/internal/media/capture.ts
+var DEFAULT_AUDIO_CONSTRAINTS = {
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true
+};
+var DEFAULT_VIDEO_CONSTRAINTS = {
+  width: { ideal: 1280 },
+  height: { ideal: 720 },
+  frameRate: { ideal: 30 }
+};
+var VIDEO_PROFILES = {
+  "360p": { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 30 } },
+  "480p": { width: { ideal: 854 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
+  "720p": { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+  "1080p": { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } }
+};
+async function createCameraTrack(options = {}) {
+  const constraints = {
+    ...DEFAULT_VIDEO_CONSTRAINTS,
+    ...options.profile ? VIDEO_PROFILES[options.profile] : {},
+    ...options.facingMode ? { facingMode: options.facingMode } : {},
+    ...options.deviceId ? { deviceId: { exact: options.deviceId } } : {},
+    ...options.constraints
+  };
+  const stream = await getUserMedia({ video: constraints, audio: false }, "camera");
+  return trackFromStream(stream, "camera");
+}
+async function createMicrophoneTrack(options = {}) {
+  const constraints = {
+    ...DEFAULT_AUDIO_CONSTRAINTS,
+    ...options.deviceId ? { deviceId: { exact: options.deviceId } } : {},
+    ...options.constraints
+  };
+  const stream = await getUserMedia({ audio: constraints, video: false }, "microphone");
+  return trackFromStream(stream, "microphone");
 }
 async function createScreenShareTrack() {
+  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getDisplayMedia) {
+    throw new RTCError(
+      "NOT_SUPPORTED",
+      "Screen sharing is not available on this platform (no getDisplayMedia)"
+    );
+  }
+  let stream;
   try {
-    const lkTracks = await createLocalScreenTracks({ audio: false });
-    const [videoTrack] = lkTracks;
-    return new LocalTrack(videoTrack, "screenShare");
+    stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
   } catch (error) {
     throw toMediaError(error, "screenShare");
   }
+  const [videoTrack] = stream.getVideoTracks();
+  if (!videoTrack) {
+    throw new RTCError("MEDIA_ERROR", "Screen capture returned no video track");
+  }
+  return new LocalTrack(new NativeLocalTrackDelegate(videoTrack), "screenShare");
 }
-
-// src/participant.ts
-var Participant = class {
-  constructor(identity, metadata) {
-    this._identity = identity;
-    this.metadata = metadata;
+async function getUserMedia(constraints, kind) {
+  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+    throw new RTCError(
+      "NOT_SUPPORTED",
+      "Media capture is not available in this environment (no navigator.mediaDevices)"
+    );
   }
-  /** The RTC token's participant identity — stable for the session's duration. */
-  get identity() {
-    return this._identity;
+  try {
+    return await navigator.mediaDevices.getUserMedia(constraints);
+  } catch (error) {
+    throw toMediaError(error, kind);
   }
-  /**
-   * @internal Called once by the SFU adapter right after connect()
-   * resolves — the constructor runs before the server confirms identity,
-   * so this patches it in afterward.
-   */
-  _setIdentity(identity) {
-    this._identity = identity;
+}
+function trackFromStream(stream, kind) {
+  const [track] = kind === "microphone" ? stream.getAudioTracks() : stream.getVideoTracks();
+  if (!track) {
+    throw new RTCError("MEDIA_ERROR", `Capture returned no ${kind} track`);
   }
-};
-var LocalParticipant = class extends Participant {
-  constructor() {
-    super(...arguments);
-    /** Tracks this participant has published, in publish order. Mutated by Room. */
-    this.tracks = [];
-  }
-};
-var RemoteParticipant = class extends Participant {
-  constructor() {
-    super(...arguments);
-    /** Tracks subscribed from this participant, in subscribe order. Mutated by Room. */
-    this.tracks = [];
-  }
-};
+  return new LocalTrack(new NativeLocalTrackDelegate(track), kind);
+}
 
 // src/events.ts
 var TypedEventEmitter = class {
@@ -381,263 +663,1171 @@ var TypedEventEmitter = class {
   }
 };
 
-// src/internal/sfu/livekit-adapter.ts
-var noRetryPolicy = { nextRetryDelayInMs: () => null };
-function trackKindFromSource(source) {
-  switch (source) {
-    case Track$1.Source.Camera:
-      return "camera";
-    case Track$1.Source.Microphone:
-      return "microphone";
-    case Track$1.Source.ScreenShare:
-    case Track$1.Source.ScreenShareAudio:
-      return "screenShare";
-    default:
-      return "unknown";
+// src/participant.ts
+var Participant = class {
+  constructor(identity, metadata) {
+    this._identity = identity;
+    this.metadata = metadata;
   }
-}
-var CONNECTION_QUALITIES = ["excellent", "good", "poor", "lost", "unknown"];
-function isConnectionQuality(value) {
-  return CONNECTION_QUALITIES.includes(value);
-}
-function mapConnectionState(state) {
-  switch (state) {
-    case ConnectionState.Disconnected:
-      return "disconnected";
-    case ConnectionState.Connecting:
-      return "connecting";
-    case ConnectionState.Connected:
-      return "connected";
-    case ConnectionState.Reconnecting:
-    case ConnectionState.SignalReconnecting:
-      return "reconnecting";
-    default:
-      return "disconnected";
+  /** The RTC token's participant identity — stable for the session's duration. */
+  get identity() {
+    return this._identity;
   }
-}
-function mapConnectError(error) {
-  if (error instanceof ConnectionError) {
-    switch (error.reason) {
-      case ConnectionErrorReason.NotAllowed:
-        return new RTCError("INVALID_TOKEN", error.message, error);
-      case ConnectionErrorReason.Timeout:
-        return new RTCError("TIMEOUT", error.message, error);
-      case ConnectionErrorReason.ServerUnreachable:
-        return new RTCError("NETWORK_ERROR", error.message, error);
-      case ConnectionErrorReason.WebSocket:
-        return new RTCError("SIGNALING_ERROR", error.message, error);
-      default:
-        return new RTCError("CONNECTION_FAILED", error.message, error);
+  /**
+   * @internal Called once by the SFU adapter right after connect()
+   * resolves — the constructor runs before the server confirms identity,
+   * so this patches it in afterward.
+   */
+  _setIdentity(identity) {
+    this._identity = identity;
+  }
+};
+var LocalParticipant = class extends Participant {
+  constructor() {
+    super(...arguments);
+    /** Tracks this participant has published, in publish order. Mutated by Room. */
+    this.tracks = [];
+  }
+};
+var RemoteParticipant = class extends Participant {
+  constructor() {
+    super(...arguments);
+    /** Tracks subscribed from this participant, in subscribe order. Mutated by Room. */
+    this.tracks = [];
+  }
+};
+
+// src/internal/signaling/protocol.ts
+var ClientMessageType = {
+  ROOM_JOIN: "room.join",
+  ROOM_LEAVE: "room.leave",
+  SDP_ANSWER: "sdp.answer",
+  SDP_OFFER: "sdp.offer",
+  ICE_CANDIDATE: "ice.candidate",
+  TRACK_MUTE: "track.mute",
+  /**
+   * Declares what a track being published is *of*.
+   *
+   * Necessary because WebRTC carries no such concept and a page cannot
+   * choose the `MediaStream` or `MediaStreamTrack` id the SDP will carry
+   * — both are read-only. Without this the SFU can only infer source from
+   * codec kind, which cannot tell a screen share from a camera.
+   */
+  TRACK_PUBLISH: "track.publish",
+  SUBSCRIPTION_UPDATE: "subscription.update",
+  PING: "ping"
+};
+var ServerMessageType = {
+  ROOM_JOINED: "room.joined",
+  PARTICIPANT_JOINED: "participant.joined",
+  PARTICIPANT_LEFT: "participant.left",
+  TRACK_PUBLISHED: "track.published",
+  TRACK_UNPUBLISHED: "track.unpublished",
+  TRACK_MUTED: "track.muted",
+  TRACK_UNMUTED: "track.unmuted",
+  SDP_OFFER: "sdp.offer",
+  SDP_ANSWER: "sdp.answer",
+  ICE_CANDIDATE: "ice.candidate",
+  CONNECTION_STATE: "connection.state",
+  ERROR: "error"};
+var FATAL_ERROR_CODES = /* @__PURE__ */ new Set([
+  "INVALID_TOKEN",
+  "TOKEN_EXPIRED",
+  "UNAUTHORIZED",
+  "ROOM_NOT_FOUND",
+  "PERMISSION_DENIED"
+]);
+
+// src/internal/signaling/signaling-client.ts
+var OPEN_TIMEOUT_MS = 1e4;
+var JOIN_TIMEOUT_MS = 15e3;
+var RECONNECT_BASE_MS = 300;
+var RECONNECT_MAX_MS = 1e4;
+var RECONNECT_MAX_ATTEMPTS = 12;
+var SignalingClient = class extends TypedEventEmitter {
+  constructor(options) {
+    super();
+    this.reconnectAttempts = 0;
+    this.closedByCaller = false;
+    this.joined = false;
+    this.options = options;
+    this.token = options.token;
+    this.logger = options.logger;
+  }
+  get isJoined() {
+    return this.joined;
+  }
+  /**
+   * Opens the socket and joins the room.
+   *
+   * Resolves once `room.joined` arrives — not merely once the socket
+   * opens. A caller that got a resolved promise on socket-open would then
+   * have to wait for an event to know whether it was actually in the room,
+   * which is the same waiting with an extra step.
+   */
+  async connect() {
+    this.closedByCaller = false;
+    return this.openAndJoin();
+  }
+  async openAndJoin() {
+    const socket = await this.openSocket();
+    this.socket = socket;
+    return this.join(socket);
+  }
+  openSocket() {
+    const url = this.buildUrl();
+    return new Promise((resolve, reject) => {
+      let socket;
+      try {
+        socket = new WebSocket(url);
+      } catch (error) {
+        reject(new RTCError("SIGNALING_ERROR", "Could not open a signaling connection", error));
+        return;
+      }
+      const timeout = setTimeout(() => {
+        socket.close();
+        reject(new RTCError("TIMEOUT", `Signaling connection to ${this.options.endpoint} timed out`));
+      }, OPEN_TIMEOUT_MS);
+      socket.onopen = () => {
+        clearTimeout(timeout);
+        this.logger.debug("signaling socket open");
+        resolve(socket);
+      };
+      socket.onerror = () => {
+        clearTimeout(timeout);
+        reject(
+          new RTCError(
+            "NETWORK_ERROR",
+            `Could not reach the signaling endpoint at ${this.options.endpoint}`
+          )
+        );
+      };
+    });
+  }
+  join(socket) {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new RTCError("TIMEOUT", "The server did not confirm the room join"));
+      }, JOIN_TIMEOUT_MS);
+      let settled = false;
+      const settle = (fn) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        fn();
+      };
+      socket.onmessage = (event) => {
+        const message = this.parse(event.data);
+        if (!message) {
+          return;
+        }
+        if (!settled) {
+          if (message.type === ServerMessageType.ROOM_JOINED) {
+            const payload = {
+              roomId: message.roomId,
+              participants: message.participants,
+              rtcServer: message.rtcServer,
+              region: message.region
+            };
+            this.joined = true;
+            this.reconnectAttempts = 0;
+            this.logger.info(
+              "joined room",
+              message.roomId,
+              message.rtcServer ? `via ${message.rtcServer}` : ""
+            );
+            settle(() => resolve(payload));
+            this.emit("joined", payload);
+            return;
+          }
+          if (message.type === ServerMessageType.ERROR) {
+            settle(() => reject(this.toError(message.code, message.message)));
+            return;
+          }
+        }
+        this.handleMessage(message);
+      };
+      socket.onclose = (event) => {
+        this.joined = false;
+        settle(
+          () => reject(
+            new RTCError(
+              "SIGNALING_ERROR",
+              `The signaling connection closed before the room was joined (code ${event.code})`
+            )
+          )
+        );
+        this.handleClose(event);
+      };
+      socket.onerror = () => {
+      };
+      this.send({
+        type: ClientMessageType.ROOM_JOIN,
+        roomId: this.options.roomId,
+        region: this.options.region
+      });
+    });
+  }
+  handleMessage(message) {
+    if (message.type === ServerMessageType.ERROR) {
+      const error = this.toError(message.code, message.message);
+      this.logger.warn("signaling error", message.code, message.message);
+      if (FATAL_ERROR_CODES.has(message.code)) {
+        this.closedByCaller = true;
+        this.socket?.close();
+        this.emit("failed", error);
+        return;
+      }
+    }
+    this.emit("message", message);
+  }
+  handleClose(event) {
+    if (this.closedByCaller) {
+      this.emit("closed");
+      return;
+    }
+    if (!this.options.autoReconnect) {
+      this.emit(
+        "failed",
+        new RTCError("NETWORK_ERROR", `The signaling connection closed (code ${event.code})`)
+      );
+      return;
+    }
+    const authFailed = event.code === 4001;
+    void this.scheduleReconnect(authFailed);
+  }
+  async scheduleReconnect(refreshFirst) {
+    if (this.reconnectAttempts >= RECONNECT_MAX_ATTEMPTS) {
+      this.emit(
+        "failed",
+        new RTCError(
+          "CONNECTION_FAILED",
+          `Could not re-establish signaling after ${RECONNECT_MAX_ATTEMPTS} attempts`
+        )
+      );
+      return;
+    }
+    this.reconnectAttempts++;
+    this.emit("reconnecting");
+    if (refreshFirst || this.reconnectAttempts === 1) {
+      await this.tryRefreshToken();
+    }
+    const backoff = Math.min(RECONNECT_BASE_MS * 2 ** (this.reconnectAttempts - 1), RECONNECT_MAX_MS);
+    const delay = Math.random() * backoff;
+    this.logger.info(
+      `signaling reconnect attempt ${this.reconnectAttempts} in ${Math.round(delay)}ms`
+    );
+    this.reconnectTimer = setTimeout(() => {
+      void this.openAndJoin().catch((error) => {
+        this.logger.warn("signaling reconnect failed", error.message);
+        void this.scheduleReconnect(false);
+      });
+    }, delay);
+  }
+  async tryRefreshToken() {
+    if (!this.options.refreshToken) {
+      return;
+    }
+    try {
+      this.token = await this.options.refreshToken();
+      this.logger.debug("rtc token refreshed");
+    } catch (error) {
+      this.logger.warn("rtc token refresh failed", error.message);
     }
   }
-  return new RTCError("CONNECTION_FAILED", error instanceof Error ? error.message : "Failed to connect", error);
+  /** Replaces the token used by future reconnects (spec §21). */
+  setToken(token) {
+    this.token = token;
+  }
+  send(message) {
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+      this.logger.debug("dropping signaling message, socket not open", message.type);
+      return;
+    }
+    this.socket.send(JSON.stringify(message));
+  }
+  /** Leaves the room and closes the socket. Suppresses reconnection. */
+  close() {
+    this.closedByCaller = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = void 0;
+    }
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      this.send({ type: ClientMessageType.ROOM_LEAVE });
+      this.socket.close(1e3, "client left");
+    }
+    this.joined = false;
+  }
+  buildUrl() {
+    const base = this.options.endpoint.replace(/\/$/, "");
+    return `${base}?token=${encodeURIComponent(this.token)}`;
+  }
+  parse(data) {
+    if (typeof data !== "string") {
+      this.logger.warn("ignoring non-text signaling frame");
+      return void 0;
+    }
+    try {
+      return JSON.parse(data);
+    } catch {
+      this.logger.warn("ignoring unparseable signaling frame");
+      return void 0;
+    }
+  }
+  toError(code, message) {
+    switch (code) {
+      case "INVALID_TOKEN":
+        return new RTCError("INVALID_TOKEN", message);
+      case "TOKEN_EXPIRED":
+        return new RTCError("TOKEN_EXPIRED", message);
+      case "ROOM_NOT_FOUND":
+        return new RTCError("ROOM_NOT_FOUND", message);
+      case "UNAUTHORIZED":
+      case "PERMISSION_DENIED":
+        return new RTCError("PERMISSION_DENIED", message);
+      case "ROOM_FULL":
+      case "NO_RTC_CAPACITY":
+      case "RTC_SERVER_UNREACHABLE":
+        return new RTCError("CONNECTION_FAILED", message);
+      case "RATE_LIMITED":
+        return new RTCError("NETWORK_ERROR", message);
+      default:
+        return new RTCError("SIGNALING_ERROR", message);
+    }
+  }
+};
+
+// src/internal/sfu/raven-adapter.ts
+var DATA_CHANNEL_LABEL = "raven-data";
+var MAX_DATA_PAYLOAD_BYTES = 64 * 1024;
+var ICE_GATHER_HINT_MS = 0;
+function trackKindFromSource(source, kind) {
+  switch (source) {
+    case "camera":
+      return "camera";
+    case "microphone":
+      return "microphone";
+    case "screenShare":
+      return "screenShare";
+    default:
+      return kind === "audio" ? "microphone" : "camera";
+  }
 }
-var LiveKitAdapter = class extends TypedEventEmitter {
+var RavenAdapter = class extends TypedEventEmitter {
   constructor(logger, autoReconnect) {
     super();
-    this.intentionalDisconnect = false;
-    this.wasReconnecting = false;
     this.remoteParticipants = /* @__PURE__ */ new Map();
-    this.localTrackWrappers = /* @__PURE__ */ new WeakMap();
-    this.remoteTrackWrappers = /* @__PURE__ */ new WeakMap();
+    this.iceServers = [];
     this._connectionState = "disconnected";
+    this.intentionalDisconnect = false;
+    /** Published tracks by kind, so `enableCamera(false)` knows what to stop. */
+    this.published = /* @__PURE__ */ new Map();
+    /** Subscribed tracks by `publisherId/trackId`. */
+    this.subscribed = /* @__PURE__ */ new Map();
+    /**
+     * What the server has told us each participant publishes, before the
+     * media itself arrives. `ontrack` and `track.published` race, and either
+     * can be first — so both paths consult this and the subscription is
+     * completed by whichever arrives second.
+     */
+    this.announcedTracks = /* @__PURE__ */ new Map();
+    /** Tracks whose media arrived before the announcement. */
+    this.pendingMedia = /* @__PURE__ */ new Map();
+    /** Publishes deferred by glare, retried once the server's offer is answered. */
+    this.deferredPublishes = [];
     this.logger = logger;
-    this.lkRoom = new Room({
-      reconnectPolicy: autoReconnect ? void 0 : noRetryPolicy
-    });
-    this.localParticipant = new LocalParticipant(this.lkRoom.localParticipant.identity || "");
-    this.wireEvents();
+    this.autoReconnect = autoReconnect;
+    this.localParticipant = new LocalParticipant("");
   }
   get connectionState() {
     return this._connectionState;
   }
+  /**
+   * The SFU's read on this connection's health.
+   *
+   * Currently `'unknown'` unless the SFU has reported a failed state.
+   *
+   * This is deliberate and it is a known gap, not an oversight. The
+   * previous adapter returned LiveKit's server-computed verdict, which had
+   * a vantage point a client cannot have: the SFU sees loss and jitter on
+   * every leg of the room, not just this one. Raven's SFU does not yet
+   * compute an equivalent. Returning a client-side guess dressed up as a
+   * server verdict would be exactly the fabricated metric spec §19
+   * forbids, so it returns "unknown" until the SFU can answer honestly.
+   * `room.getConnectionStats()` returns real per-track numbers in the
+   * meantime.
+   */
   getConnectionQuality() {
-    const quality = this.lkRoom.localParticipant.connectionQuality;
-    return isConnectionQuality(quality) ? quality : "unknown";
+    if (this.sfuPeerState === "failed" || this._connectionState === "failed") {
+      return "lost";
+    }
+    return "unknown";
   }
-  setConnectionState(state) {
-    if (this._connectionState === state) return;
-    this._connectionState = state;
-    this.emit("connectionStateChanged", state);
+  /** Diagnostics the LiveKit adapter could not provide (see `Room.getDiagnostics()`). */
+  getIceConnectionState() {
+    return this.pc?.iceConnectionState;
   }
-  wireEvents() {
-    const room = this.lkRoom;
-    room.on(RoomEvent.ConnectionStateChanged, (state) => {
-      const mapped = mapConnectionState(state);
-      if (mapped === "reconnecting") this.wasReconnecting = true;
-      if (mapped !== "disconnected") this.setConnectionState(mapped);
+  getSignalingState() {
+    return this.pc?.signalingState;
+  }
+  /** The SFU's own view, which can disagree with the local one — and that disagreement is the useful part. */
+  getRemoteConnectionState() {
+    return { iceState: this.sfuIceState, peerState: this.sfuPeerState };
+  }
+  async getConnectionRoundTripTimeMs() {
+    return this.pc ? connectionRoundTripTimeMs(this.pc) : void 0;
+  }
+  // --- Connection --------------------------------------------------------
+  async connect(endpoint, token, iceServers) {
+    this.iceServers = iceServers ?? [];
+    this.setConnectionState("connecting");
+    const roomId = roomIdFromToken(token);
+    const signaling = new SignalingClient({
+      endpoint,
+      token,
+      roomId,
+      autoReconnect: this.autoReconnect,
+      logger: this.logger
     });
-    room.on(RoomEvent.Disconnected, () => {
-      const failed = !this.intentionalDisconnect && this.wasReconnecting;
-      this.setConnectionState(failed ? "failed" : "disconnected");
-      this.wasReconnecting = false;
-      this.intentionalDisconnect = false;
+    this.signaling = signaling;
+    signaling.on("message", (message) => void this.handleSignalingMessage(message));
+    signaling.on("reconnecting", () => {
+      this.setConnectionState("reconnecting");
+      this.teardownPeerConnection();
     });
-    room.on(RoomEvent.ParticipantConnected, (lkParticipant) => {
-      const participant = new RemoteParticipant(lkParticipant.identity, lkParticipant.metadata);
-      this.remoteParticipants.set(lkParticipant.identity, participant);
-      this.emit("participantJoined", participant);
+    signaling.on("joined", (payload) => void this.handleJoined(payload));
+    signaling.on("failed", (error) => {
+      this.logger.error("signaling failed", error.message);
+      this.setConnectionState("failed");
     });
-    room.on(RoomEvent.ParticipantDisconnected, (lkParticipant) => {
-      const participant = this.remoteParticipants.get(lkParticipant.identity);
-      this.remoteParticipants.delete(lkParticipant.identity);
-      if (participant) this.emit("participantLeft", participant);
+    signaling.on("closed", () => {
+      this.setConnectionState(this.intentionalDisconnect ? "disconnected" : "failed");
     });
-    room.on(RoomEvent.TrackPublished, (publication, lkParticipant) => {
-      const participant = this.remoteParticipants.get(lkParticipant.identity);
-      if (participant) this.emit("trackPublished", trackKindFromSource(publication.source), participant);
-    });
-    room.on(RoomEvent.TrackUnpublished, (publication, lkParticipant) => {
-      const participant = this.remoteParticipants.get(lkParticipant.identity);
-      if (participant) this.emit("trackUnpublished", trackKindFromSource(publication.source), participant);
-    });
-    room.on(RoomEvent.TrackMuted, (publication, lkParticipant) => {
-      if (lkParticipant.isLocal) return;
-      const participant = this.remoteParticipants.get(lkParticipant.identity);
-      if (participant) this.emit("trackMuted", trackKindFromSource(publication.source), participant);
-    });
-    room.on(RoomEvent.TrackUnmuted, (publication, lkParticipant) => {
-      if (lkParticipant.isLocal) return;
-      const participant = this.remoteParticipants.get(lkParticipant.identity);
-      if (participant) this.emit("trackUnmuted", trackKindFromSource(publication.source), participant);
-    });
-    room.on(RoomEvent.TrackSubscribed, (lkTrack, publication, lkParticipant) => {
-      const participant = this.remoteParticipants.get(lkParticipant.identity);
-      if (!participant) return;
-      const track = new RemoteTrack(lkTrack, trackKindFromSource(lkTrack.source));
-      this.remoteTrackWrappers.set(lkTrack, track);
-      participant.tracks.push(track);
-      this.emit("trackSubscribed", track, participant);
-    });
-    room.on(RoomEvent.TrackUnsubscribed, (lkTrack, publication, lkParticipant) => {
-      const participant = this.remoteParticipants.get(lkParticipant.identity);
-      const track = this.remoteTrackWrappers.get(lkTrack);
-      if (!participant || !track) return;
-      const index = participant.tracks.indexOf(track);
-      if (index !== -1) participant.tracks.splice(index, 1);
-      this.remoteTrackWrappers.delete(lkTrack);
-      this.emit("trackUnsubscribed", track, participant);
-    });
-    room.on(RoomEvent.LocalTrackPublished, (publication) => {
-      const track = this.localTrackWrappers.get(publication) ?? new LocalTrack(assertLocalTrack(publication), trackKindFromSource(publication.source));
-      this.localTrackWrappers.set(publication, track);
-      if (!this.localParticipant.tracks.includes(track)) this.localParticipant.tracks.push(track);
-      this.emit("localTrackPublished", track);
-    });
-    room.on(RoomEvent.LocalTrackUnpublished, (publication) => {
-      const track = this.localTrackWrappers.get(publication);
-      if (!track) return;
-      const index = this.localParticipant.tracks.indexOf(track);
-      if (index !== -1) this.localParticipant.tracks.splice(index, 1);
-      this.localTrackWrappers.delete(publication);
-      this.emit("localTrackUnpublished", track);
-    });
-    room.on(RoomEvent.DataReceived, (payload, lkParticipant) => {
-      const participant = lkParticipant ? this.remoteParticipants.get(lkParticipant.identity) : void 0;
-      this.emit("dataReceived", payload, participant);
-    });
-    room.on(RoomEvent.MediaDevicesError, (error) => {
-      this.emit("mediaError", error);
-    });
+    try {
+      const joined = await signaling.connect();
+      this.localParticipant._setIdentity(participantIdFromToken(token));
+      await this.handleJoined(joined);
+    } catch (error) {
+      this.setConnectionState("failed");
+      throw error instanceof RTCError ? error : new RTCError("CONNECTION_FAILED", "Could not join the room", error);
+    }
   }
   /**
-   * ParticipantConnected/TrackSubscribed only fire for stuff that arrives
-   * *after* our listeners attach. livekit-client's already populated
-   * room.remoteParticipants by the time connect() resolves, so anyone who
-   * joined earlier has to be picked up here manually — otherwise they'd
-   * never show up for whoever joins second.
+   * Applies the room state the server reported at join.
+   *
+   * Called both on first join and after every reconnect. On a reconnect
+   * the participant list is authoritative and the previous one is
+   * discarded — a participant who left during the outage must not linger,
+   * and one who joined during it must appear.
    */
-  bootstrapExistingParticipants() {
-    for (const lkParticipant of this.lkRoom.remoteParticipants.values()) {
-      const participant = new RemoteParticipant(lkParticipant.identity, lkParticipant.metadata);
-      this.remoteParticipants.set(lkParticipant.identity, participant);
-      this.emit("participantJoined", participant);
-      for (const publication of lkParticipant.trackPublications.values()) {
-        if (!publication.track) continue;
-        const track = new RemoteTrack(publication.track, trackKindFromSource(publication.source));
-        this.remoteTrackWrappers.set(publication.track, track);
-        participant.tracks.push(track);
-        this.emit("trackSubscribed", track, participant);
+  async handleJoined(payload) {
+    this.logger.debug(
+      "room state at join",
+      `${payload.participants.length} participant(s)`,
+      payload.rtcServer ? `on ${payload.rtcServer}` : ""
+    );
+    const present = new Set(payload.participants.map((participant) => participant.id));
+    for (const [id, participant] of this.remoteParticipants) {
+      if (!present.has(id)) {
+        this.remoteParticipants.delete(id);
+        this.emit("participantLeft", participant);
+      }
+    }
+    for (const entry of payload.participants) {
+      let participant = this.remoteParticipants.get(entry.id);
+      if (!participant) {
+        participant = new RemoteParticipant(entry.id);
+        this.remoteParticipants.set(entry.id, participant);
+        this.emit("participantJoined", participant);
+      }
+      for (const track of entry.tracks ?? []) {
+        this.announceTrack(entry.id, track);
       }
     }
   }
-  async connect(endpoint, token, iceServers) {
-    this.setConnectionState("connecting");
-    try {
-      await this.lkRoom.connect(endpoint, token, iceServers ? { rtcConfig: { iceServers } } : void 0);
-      this.localParticipant._setIdentity(this.lkRoom.localParticipant.identity);
-      this.bootstrapExistingParticipants();
-      this.setConnectionState("connected");
-    } catch (error) {
-      this.setConnectionState("failed");
-      throw mapConnectError(error);
+  async handleSignalingMessage(message) {
+    switch (message.type) {
+      case ServerMessageType.ROOM_JOINED:
+        await this.handleJoined({
+          roomId: message.roomId,
+          participants: message.participants,
+          rtcServer: message.rtcServer,
+          region: message.region
+        });
+        return;
+      case ServerMessageType.SDP_OFFER:
+        await this.handleOffer(message.sdp);
+        return;
+      case ServerMessageType.SDP_ANSWER:
+        await this.handleAnswer(message.sdp);
+        return;
+      case ServerMessageType.ICE_CANDIDATE:
+        await this.handleRemoteCandidate(message);
+        return;
+      case ServerMessageType.PARTICIPANT_JOINED: {
+        const existing = this.remoteParticipants.get(message.participant.id);
+        if (existing) {
+          return;
+        }
+        const participant = new RemoteParticipant(message.participant.id);
+        this.remoteParticipants.set(participant.identity, participant);
+        this.emit("participantJoined", participant);
+        return;
+      }
+      case ServerMessageType.PARTICIPANT_LEFT: {
+        const participant = this.remoteParticipants.get(message.participant.id);
+        if (!participant) {
+          return;
+        }
+        this.remoteParticipants.delete(participant.identity);
+        for (const [key, subscription] of this.subscribed) {
+          if (subscription.participantId === participant.identity) {
+            this.subscribed.delete(key);
+            this.emit("trackUnsubscribed", subscription.track, participant);
+          }
+        }
+        this.emit("participantLeft", participant);
+        return;
+      }
+      case ServerMessageType.TRACK_PUBLISHED:
+        this.announceTrack(message.participantId, message.track);
+        return;
+      case ServerMessageType.TRACK_UNPUBLISHED: {
+        const key = subscriptionKey(message.participantId, message.trackId);
+        this.announcedTracks.delete(key);
+        this.pendingMedia.delete(key);
+        const subscription = this.subscribed.get(key);
+        const participant = this.remoteParticipants.get(message.participantId);
+        if (subscription && participant) {
+          this.subscribed.delete(key);
+          this.emit("trackUnpublished", subscription.track.kind, participant);
+          this.emit("trackUnsubscribed", subscription.track, participant);
+        }
+        return;
+      }
+      case ServerMessageType.TRACK_MUTED:
+      case ServerMessageType.TRACK_UNMUTED: {
+        const muted = message.type === ServerMessageType.TRACK_MUTED;
+        const key = subscriptionKey(message.participantId, message.trackId);
+        const subscription = this.subscribed.get(key);
+        const participant = this.remoteParticipants.get(message.participantId);
+        if (!subscription || !participant) {
+          return;
+        }
+        subscription.delegate.setPublisherMuted(muted);
+        this.emit(muted ? "trackMuted" : "trackUnmuted", subscription.track.kind, participant);
+        return;
+      }
+      case ServerMessageType.CONNECTION_STATE:
+        this.sfuIceState = message.iceState;
+        this.sfuPeerState = message.peerState;
+        this.logger.debug("sfu connection state", message.iceState, message.peerState);
+        return;
+      case ServerMessageType.ERROR:
+        if (message.code === "NEGOTIATION_GLARE") {
+          this.logger.debug("publish deferred by glare; will retry after the next offer");
+          return;
+        }
+        this.emit("mediaError", new Error(message.message));
+        return;
+      default:
+        return;
     }
   }
-  async disconnect() {
-    this.intentionalDisconnect = true;
-    await this.lkRoom.disconnect();
+  // --- Negotiation -------------------------------------------------------
+  ensurePeerConnection() {
+    if (this.pc) {
+      return this.pc;
+    }
+    const pc = new RTCPeerConnection({ iceServers: this.iceServers });
+    this.pc = pc;
+    pc.onicecandidate = (event) => {
+      if (!event.candidate) {
+        return;
+      }
+      this.signaling?.send({
+        type: ClientMessageType.ICE_CANDIDATE,
+        candidate: event.candidate.candidate,
+        sdpMid: event.candidate.sdpMid ?? void 0,
+        sdpMLineIndex: event.candidate.sdpMLineIndex ?? void 0,
+        usernameFragment: event.candidate.usernameFragment ?? void 0
+      });
+    };
+    pc.onconnectionstatechange = () => {
+      this.logger.debug("peer connection state", pc.connectionState);
+      switch (pc.connectionState) {
+        case "connected":
+          this.setConnectionState("connected");
+          break;
+        case "failed":
+          this.setConnectionState(this.autoReconnect ? "reconnecting" : "failed");
+          break;
+      }
+    };
+    pc.ontrack = (event) => this.handleIncomingTrack(event);
+    pc.ondatachannel = (event) => {
+      if (event.channel.label !== DATA_CHANNEL_LABEL) {
+        return;
+      }
+      this.attachDataChannel(event.channel);
+    };
+    return pc;
   }
+  async handleOffer(sdp) {
+    const pc = this.ensurePeerConnection();
+    try {
+      await pc.setRemoteDescription({ type: "offer", sdp });
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      this.signaling?.send({
+        type: ClientMessageType.SDP_ANSWER,
+        sdp: pc.localDescription?.sdp ?? answer.sdp ?? ""
+      });
+      this.flushDeferredPublishes();
+    } catch (error) {
+      this.logger.error("failed to answer offer", error.message);
+      this.emit("mediaError", new Error("Could not answer the server's offer"));
+    }
+  }
+  async handleAnswer(sdp) {
+    if (!this.pc) {
+      return;
+    }
+    try {
+      await this.pc.setRemoteDescription({ type: "answer", sdp });
+    } catch (error) {
+      this.logger.error("failed to apply answer", error.message);
+    }
+  }
+  async handleRemoteCandidate(message) {
+    if (!this.pc) {
+      return;
+    }
+    try {
+      await this.pc.addIceCandidate({
+        candidate: message.candidate,
+        sdpMid: message.sdpMid,
+        sdpMLineIndex: message.sdpMLineIndex,
+        usernameFragment: message.usernameFragment
+      });
+    } catch (error) {
+      this.logger.debug("ignoring ICE candidate", error.message);
+    }
+  }
+  flushDeferredPublishes() {
+    const pending = this.deferredPublishes;
+    this.deferredPublishes = [];
+    for (const retry of pending) {
+      retry();
+    }
+  }
+  /**
+   * Offers, so the server learns about a newly added track.
+   *
+   * Needed only when adding a track created a new transceiver — which
+   * happens on the first publish of each kind. Later publishes of the same
+   * kind reuse the transceiver and ride the server's next offer.
+   */
+  async negotiatePublish() {
+    const pc = this.pc;
+    const signaling = this.signaling;
+    if (!pc || !signaling) {
+      return;
+    }
+    if (pc.signalingState !== "stable") {
+      this.logger.debug("deferring publish negotiation until stable");
+      this.deferredPublishes.push(() => void this.negotiatePublish());
+      return;
+    }
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await waitTick();
+      signaling.send({
+        type: ClientMessageType.SDP_OFFER,
+        sdp: pc.localDescription?.sdp ?? offer.sdp ?? ""
+      });
+    } catch (error) {
+      this.logger.error("publish negotiation failed", error.message);
+      throw new RTCError("MEDIA_ERROR", "Could not negotiate the published track", error);
+    }
+  }
+  // --- Incoming media ----------------------------------------------------
+  /**
+   * Matches an arriving track to what signaling said about it.
+   *
+   * The SFU forwards each subscription carrying the *publisher's* track id
+   * as the SDP `msid` track id, which is what makes attribution possible
+   * without a side-channel. `ontrack` and `track.published` race, so this
+   * completes the subscription only when both halves are present and
+   * parks whichever arrived first.
+   *
+   * # Why the id comes from the SDP rather than from the track
+   *
+   * `RTCTrackEvent.track.id` is **not** the remote track id. Chrome mints
+   * a fresh local id for a received track and ignores what the `msid`
+   * said; the id in `a=msid:<stream> <track>` is the remote one. Matching
+   * on `event.track.id` therefore never matched anything, and — because
+   * the unmatched track was parked as "media arrived early" — it failed
+   * silently, as a subscription that simply never completed rather than
+   * as an error. Reading the `msid` is the standards-defined way to get
+   * the id the remote peer chose.
+   */
+  handleIncomingTrack(event) {
+    const [stream] = event.streams;
+    const trackId = this.remoteTrackIdFor(event) ?? event.track.id;
+    const announcement = this.findAnnouncementForTrack(trackId);
+    if (!announcement) {
+      this.logger.debug(
+        "media arrived before its announcement",
+        `resolved=${trackId}`,
+        `local=${event.track.id}`,
+        `stream=${stream?.id ?? "none"}`,
+        `mid=${event.transceiver?.mid ?? "none"}`,
+        `announced=[${Array.from(this.announcedTracks.values()).map((entry) => `${entry.participantId}:${entry.track.trackId}`).join(", ")}]`
+      );
+      this.pendingMedia.set(pendingKey(trackId), {
+        stream: stream ?? new MediaStream([event.track]),
+        track: event.track,
+        receiver: event.receiver
+      });
+      return;
+    }
+    this.completeSubscription(
+      announcement.participantId,
+      announcement.track,
+      event.track,
+      event.receiver
+    );
+  }
+  /**
+   * The remote track id for an arriving track, read from the remote SDP.
+   *
+   * Located by the transceiver's `mid` rather than by scanning every
+   * `a=msid:` line, because a participant publishing both a camera and a
+   * screen share has two video m-sections and picking the wrong one would
+   * label a screen share as somebody's face.
+   *
+   * Returns undefined when the SDP does not say — an `msid`-less offer, or
+   * a transceiver with no mid yet — so the caller can fall back rather
+   * than guess.
+   */
+  remoteTrackIdFor(event) {
+    const mid = event.transceiver?.mid;
+    const sdp = this.pc?.remoteDescription?.sdp;
+    if (!mid || !sdp) {
+      return void 0;
+    }
+    const sections = sdp.split(/\r?\nm=/).slice(1);
+    for (const section of sections) {
+      const lines = section.split(/\r?\n/);
+      if (!lines.some((line) => line.trim() === `a=mid:${mid}`)) {
+        continue;
+      }
+      const msid = lines.find((line) => line.startsWith("a=msid:"));
+      const trackId = msid?.slice("a=msid:".length).trim().split(/\s+/)[1];
+      return trackId && trackId.length > 0 ? trackId : void 0;
+    }
+    return void 0;
+  }
+  findAnnouncementForTrack(trackId) {
+    for (const announcement of this.announcedTracks.values()) {
+      if (announcement.track.trackId === trackId) {
+        return announcement;
+      }
+    }
+    return void 0;
+  }
+  announceTrack(participantId, track) {
+    const key = subscriptionKey(participantId, track.trackId);
+    this.announcedTracks.set(key, { participantId, track });
+    this.logger.debug("track announced", `${participantId}:${track.trackId}`, track.kind, track.source);
+    const participant = this.remoteParticipants.get(participantId);
+    if (participant) {
+      this.emit("trackPublished", trackKindFromSource(track.source, track.kind), participant);
+    }
+    const pending = this.pendingMedia.get(pendingKey(track.trackId));
+    if (pending) {
+      this.pendingMedia.delete(pendingKey(track.trackId));
+      this.completeSubscription(participantId, track, pending.track, pending.receiver);
+    }
+  }
+  completeSubscription(participantId, serverTrack, mediaStreamTrack, receiver) {
+    const participant = this.remoteParticipants.get(participantId);
+    if (!participant) {
+      this.logger.debug("track for an unknown participant", participantId);
+      return;
+    }
+    const key = subscriptionKey(participantId, serverTrack.trackId);
+    if (this.subscribed.has(key)) {
+      return;
+    }
+    const delegate = new NativeRemoteTrackDelegate(mediaStreamTrack, receiver);
+    delegate.setPublisherMuted(serverTrack.muted);
+    const kind = trackKindFromSource(serverTrack.source, serverTrack.kind);
+    const track = new RemoteTrack(delegate, kind);
+    this.subscribed.set(key, { track, delegate, participantId, trackId: serverTrack.trackId });
+    participant.tracks.push(track);
+    this.emit("trackSubscribed", track, participant);
+    mediaStreamTrack.onended = () => {
+      const subscription = this.subscribed.get(key);
+      if (!subscription) {
+        return;
+      }
+      this.subscribed.delete(key);
+      const index = participant.tracks.indexOf(subscription.track);
+      if (index !== -1) {
+        participant.tracks.splice(index, 1);
+      }
+      this.emit("trackUnsubscribed", subscription.track, participant);
+    };
+  }
+  // --- Publishing --------------------------------------------------------
   async enableCamera(enabled) {
-    try {
-      const publication = await this.lkRoom.localParticipant.setCameraEnabled(enabled);
-      return publication?.track ? this.trackFromPublication(publication) : void 0;
-    } catch (error) {
-      throw toMediaError(error, "camera");
-    }
+    return enabled ? this.publishKind("camera", () => createCameraTrack()) : this.unpublishKind("camera");
   }
   async enableMicrophone(enabled) {
-    try {
-      const publication = await this.lkRoom.localParticipant.setMicrophoneEnabled(enabled);
-      return publication?.track ? this.trackFromPublication(publication) : void 0;
-    } catch (error) {
-      throw toMediaError(error, "microphone");
-    }
+    return enabled ? this.publishKind("microphone", () => createMicrophoneTrack()) : this.unpublishKind("microphone");
   }
   async enableScreenShare(enabled) {
-    try {
-      const publication = await this.lkRoom.localParticipant.setScreenShareEnabled(enabled);
-      return publication?.track ? this.trackFromPublication(publication) : void 0;
-    } catch (error) {
-      throw toMediaError(error, "screenShare");
-    }
+    return enabled ? this.publishKind("screenShare", () => createScreenShareTrack()) : this.unpublishKind("screenShare");
   }
-  trackFromPublication(publication) {
-    const existing = this.localTrackWrappers.get(publication);
-    if (existing) return existing;
-    const track = new LocalTrack(publication.track, trackKindFromSource(publication.source));
-    this.localTrackWrappers.set(publication, track);
+  async publishKind(kind, capture) {
+    const existing = this.published.get(kind);
+    if (existing) {
+      await existing.track.unmute();
+      this.signaling?.send({
+        type: ClientMessageType.TRACK_MUTE,
+        trackId: existing.trackId,
+        muted: false
+      });
+      return existing.track;
+    }
+    const track = await capture();
+    await this.publish(track);
     return track;
   }
-  async publish(track) {
-    try {
-      await this.lkRoom.localParticipant.publishTrack(track.mediaStreamTrack);
-    } catch (error) {
-      throw new RTCError("MEDIA_ERROR", "Failed to publish track", error);
+  async unpublishKind(kind) {
+    const existing = this.published.get(kind);
+    if (!existing) {
+      return void 0;
     }
+    await this.unpublish(existing.track);
+    return void 0;
+  }
+  async publish(track) {
+    const pc = this.ensurePeerConnection();
+    const delegate = track["delegate"];
+    if (!(delegate instanceof NativeLocalTrackDelegate)) {
+      throw new RTCError(
+        "MEDIA_ERROR",
+        "This track was not created by the Raven SDK and cannot be published"
+      );
+    }
+    const stream = typeof MediaStream !== "undefined" ? new MediaStream([track.mediaStreamTrack]) : void 0;
+    let sender;
+    try {
+      sender = stream ? pc.addTrack(track.mediaStreamTrack, stream) : pc.addTrack(track.mediaStreamTrack);
+    } catch (error) {
+      throw new RTCError("MEDIA_ERROR", "Could not add the track to the connection", error);
+    }
+    const source = declaredSourceFor(track.kind);
+    if (source) {
+      this.signaling?.send({
+        type: ClientMessageType.TRACK_PUBLISH,
+        trackId: track.mediaStreamTrack.id,
+        source
+      });
+    }
+    delegate.setSender(sender);
+    await this.applySimulcast(sender, track.kind);
+    this.published.set(track.kind, {
+      track,
+      delegate,
+      sender,
+      trackId: track.mediaStreamTrack.id
+    });
+    if (!this.localParticipant.tracks.includes(track)) {
+      this.localParticipant.tracks.push(track);
+    }
+    track.mediaStreamTrack.onended = () => {
+      void this.unpublish(track).catch(() => void 0);
+    };
+    await this.negotiatePublish();
+    this.emit("localTrackPublished", track);
   }
   async unpublish(track) {
-    await this.lkRoom.localParticipant.unpublishTrack(track.mediaStreamTrack);
-  }
-  async sendData(payload) {
+    const entry = this.published.get(track.kind);
+    if (!entry || entry.track !== track) {
+      return;
+    }
+    this.published.delete(track.kind);
+    const index = this.localParticipant.tracks.indexOf(track);
+    if (index !== -1) {
+      this.localParticipant.tracks.splice(index, 1);
+    }
+    entry.delegate.setSender(void 0);
     try {
-      await this.lkRoom.localParticipant.publishData(payload);
+      this.pc?.removeTrack(entry.sender);
     } catch (error) {
-      throw new RTCError("PERMISSION_DENIED", "Failed to send data \u2014 check the token grants publishData", error);
+      this.logger.debug("removeTrack failed", error.message);
+    }
+    track.mediaStreamTrack.stop();
+    await this.negotiatePublish();
+    this.emit("localTrackUnpublished", track);
+  }
+  /**
+   * Configures simulcast on a video sender (spec §15).
+   *
+   * Three spatial layers, each a quarter of the previous one's pixel count
+   * — the standard ladder, and the one browsers implement well. Applied
+   * via `setParameters` after `addTrack` rather than through
+   * `addTransceiver`'s `sendEncodings`, because the transceiver may
+   * already exist from the SFU's offer and re-adding it would renegotiate
+   * for nothing.
+   *
+   * Audio is left alone: there is no spatial layering to do, and Opus
+   * already adapts its own bitrate.
+   */
+  async applySimulcast(sender, kind) {
+    if (kind === "microphone" || sender.track?.kind !== "video") {
+      return;
+    }
+    if (kind === "screenShare") {
+      return;
+    }
+    try {
+      const parameters = sender.getParameters();
+      if (!parameters.encodings || parameters.encodings.length === 0) {
+        return;
+      }
+      parameters.encodings = [
+        { rid: "low", scaleResolutionDownBy: 4, maxBitrate: 15e4 },
+        { rid: "medium", scaleResolutionDownBy: 2, maxBitrate: 5e5 },
+        { rid: "high", scaleResolutionDownBy: 1, maxBitrate: 15e5 }
+      ];
+      await sender.setParameters(parameters);
+    } catch (error) {
+      this.logger.debug("simulcast not applied", error.message);
     }
   }
+  // --- Data channel ------------------------------------------------------
+  attachDataChannel(channel) {
+    this.dataChannel = channel;
+    channel.binaryType = "arraybuffer";
+    channel.onmessage = (event) => {
+      const payload = toUint8Array(event.data);
+      if (payload) {
+        this.emit("dataReceived", payload, void 0);
+      }
+    };
+    channel.onclose = () => {
+      if (this.dataChannel === channel) {
+        this.dataChannel = void 0;
+      }
+    };
+  }
+  async sendData(payload) {
+    if (payload.byteLength > MAX_DATA_PAYLOAD_BYTES) {
+      throw new RTCError(
+        "MEDIA_ERROR",
+        `Data payload is ${payload.byteLength} bytes, over the ${MAX_DATA_PAYLOAD_BYTES}-byte limit`
+      );
+    }
+    const channel = this.dataChannel ?? this.openDataChannel();
+    if (!channel) {
+      throw new RTCError("CONNECTION_FAILED", "sendData() requires an active connection");
+    }
+    if (channel.readyState !== "open") {
+      throw new RTCError("CONNECTION_FAILED", "The data channel is not open yet");
+    }
+    try {
+      channel.send(payload);
+    } catch (error) {
+      throw new RTCError("PERMISSION_DENIED", "Could not send data \u2014 check the token grants publishData", error);
+    }
+  }
+  /**
+   * Opens the data channel on demand.
+   *
+   * Not opened at connect: a channel costs an SCTP association, and most
+   * calls never send data. Created by the client rather than the server
+   * because the client is the side that knows it wants one.
+   */
+  openDataChannel() {
+    if (!this.pc) {
+      return void 0;
+    }
+    const channel = this.pc.createDataChannel(DATA_CHANNEL_LABEL, { ordered: true });
+    this.attachDataChannel(channel);
+    return channel;
+  }
+  // --- Devices -----------------------------------------------------------
   async getDevices(kind) {
-    const infos = await Room.getLocalDevices(kind, true);
-    return infos.map((info) => ({ deviceId: info.deviceId, label: info.label, kind: info.kind }));
+    return listDevices(kind);
   }
   async setDevice(kind, deviceId) {
-    await this.lkRoom.switchActiveDevice(kind, deviceId);
+    switch (kind) {
+      case "videoinput":
+        return this.replaceDevice("camera", () => createCameraTrack({ deviceId }));
+      case "audioinput":
+        return this.replaceDevice("microphone", () => createMicrophoneTrack({ deviceId }));
+      case "audiooutput":
+        return this.setAudioOutput(deviceId);
+      default:
+        throw new RTCError("DEVICE_NOT_FOUND", `Unknown device kind "${String(kind)}"`);
+    }
+  }
+  /**
+   * Switches the device behind a published track without renegotiating.
+   *
+   * `replaceTrack` is what makes this seamless: the transceiver, the SSRC,
+   * and every subscriber's view of the track are untouched, so nobody
+   * else in the room sees anything happen.
+   */
+  async replaceDevice(kind, capture) {
+    const entry = this.published.get(kind);
+    if (!entry) {
+      return;
+    }
+    const replacement = await capture();
+    const previous = entry.track.mediaStreamTrack;
+    await entry.delegate.replaceTrack(replacement.mediaStreamTrack);
+    previous.stop();
+  }
+  /**
+   * Points this room's remote audio at a different output device.
+   *
+   * `setSinkId` is per-element, so this walks the elements each remote
+   * audio track is attached to. Safari has no `setSinkId` at all;
+   * `Room.setSpeakerDevice()` checks for that and throws before reaching
+   * here, so an unsupported browser gets a clear error rather than a
+   * silent no-op.
+   */
+  async setAudioOutput(deviceId) {
+    const failures = [];
+    for (const subscription of this.subscribed.values()) {
+      if (subscription.track.kind === "camera" || subscription.track.kind === "screenShare") {
+        continue;
+      }
+      for (const element of subscription.track.detach()) {
+        const withSink = element;
+        try {
+          await withSink.setSinkId?.(deviceId);
+        } catch (error) {
+          failures.push(error);
+        }
+        subscription.track.attach(element);
+      }
+    }
+    if (failures.length > 0) {
+      throw new RTCError("DEVICE_NOT_FOUND", "Could not switch the audio output device", failures[0]);
+    }
+  }
+  // --- Teardown ----------------------------------------------------------
+  async disconnect() {
+    this.intentionalDisconnect = true;
+    for (const entry of this.published.values()) {
+      entry.track.mediaStreamTrack.stop();
+    }
+    this.published.clear();
+    this.localParticipant.tracks.length = 0;
+    this.signaling?.close();
+    this.teardownPeerConnection();
+    this.remoteParticipants.clear();
+    this.subscribed.clear();
+    this.announcedTracks.clear();
+    this.pendingMedia.clear();
+    this.setConnectionState("disconnected");
+  }
+  teardownPeerConnection() {
+    if (this.dataChannel) {
+      try {
+        this.dataChannel.close();
+      } catch {
+      }
+      this.dataChannel = void 0;
+    }
+    if (!this.pc) {
+      return;
+    }
+    this.pc.onicecandidate = null;
+    this.pc.onconnectionstatechange = null;
+    this.pc.ontrack = null;
+    this.pc.ondatachannel = null;
+    try {
+      this.pc.close();
+    } catch {
+    }
+    this.pc = void 0;
+  }
+  setConnectionState(state) {
+    if (this._connectionState === state) {
+      return;
+    }
+    this._connectionState = state;
+    this.emit("connectionStateChanged", state);
   }
 };
-function assertLocalTrack(publication) {
-  if (!publication.track) {
-    throw new RTCError("MEDIA_ERROR", "Track publication has no local track");
+function subscriptionKey(participantId, trackId) {
+  return `${participantId}/${trackId}`;
+}
+function pendingKey(trackId) {
+  return `media:${trackId}`;
+}
+function declaredSourceFor(kind) {
+  switch (kind) {
+    case "camera":
+    case "microphone":
+    case "screenShare":
+      return kind;
+    default:
+      return void 0;
   }
-  return publication.track;
+}
+function toUint8Array(data) {
+  if (typeof data === "string") {
+    return new TextEncoder().encode(data);
+  }
+  if (ArrayBuffer.isView(data)) {
+    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+  }
+  if (isArrayBufferLike(data)) {
+    return new Uint8Array(data);
+  }
+  return void 0;
+}
+function isArrayBufferLike(value) {
+  const tag = Object.prototype.toString.call(value);
+  return tag === "[object ArrayBuffer]" || tag === "[object SharedArrayBuffer]";
+}
+function waitTick() {
+  return new Promise((resolve) => setTimeout(resolve, ICE_GATHER_HINT_MS));
+}
+function roomIdFromToken(token) {
+  const claims = decodeClaims(token);
+  const roomId = claims?.rid;
+  if (typeof roomId !== "string" || roomId.length === 0) {
+    throw new RTCError("INVALID_TOKEN", "RTC token does not name a room");
+  }
+  return roomId;
+}
+function participantIdFromToken(token) {
+  const claims = decodeClaims(token);
+  return typeof claims?.sub === "string" ? claims.sub : "";
+}
+function decodeClaims(token) {
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return void 0;
+  }
+  try {
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(base64));
+  } catch {
+    return void 0;
+  }
 }
 
 // src/internal/telemetry/connection-id.ts
@@ -793,16 +1983,21 @@ var _Room = class _Room extends TypedEventEmitter {
     });
   }
   /**
-   * A safe, non-secret diagnostic snapshot for support/debugging (Phase 9
-   * spec §12) — never a token, never a secret, safe to print or attach to
-   * a bug report as-is.
+   * A safe, non-secret diagnostic snapshot for support and debugging.
+   *
+   * Synchronous and cheap by design — safe to call from anywhere, any
+   * time, including from an error handler. Live media stats are a
+   * separate, `async` call; see `getConnectionStats()`.
    */
   getDiagnostics() {
     const { platform, browser } = detectPlatform();
+    const remote = this.adapter.getRemoteConnectionState?.() ?? {};
     return {
       connectionState: this.connectionState,
-      iceConnectionState: void 0,
-      signalingState: void 0,
+      iceConnectionState: this.adapter.getIceConnectionState?.(),
+      signalingState: this.adapter.getSignalingState?.(),
+      remoteIceConnectionState: remote.iceState,
+      remotePeerConnectionState: remote.peerState,
       reconnectCount: this.reconnectCount,
       sdkVersion: SDK_VERSION,
       platform,
@@ -918,6 +2113,64 @@ var _Room = class _Room extends TypedEventEmitter {
     const bytes = typeof payload === "string" ? new TextEncoder().encode(payload) : new Uint8Array(payload);
     await this.adapter.sendData(bytes);
   }
+  /**
+   * Resolves once the media connection is actually established.
+   *
+   * # Why this exists
+   *
+   * `client.join()` resolves when the **control plane** has admitted
+   * you: the room is joined, you know who else is in it, and you can
+   * publish. The media connection completes a moment later, after ICE and
+   * DTLS — so `connectionState` is `'connecting'` for a short window
+   * after `join()` returns. That is the honest shape of an SFU
+   * connection, and it is why `'connected'` is an event rather than a
+   * postcondition of joining.
+   *
+   * Most callers need none of this: `enableCamera()` and
+   * `enableMicrophone()` work during that window, and the `connected`
+   * event is the right thing to drive a UI from. This is for code that
+   * genuinely has to block — a test, or a flow that must not proceed
+   * until media is live.
+   *
+   * Resolves immediately if already connected. Rejects on `'failed'`, and
+   * on timeout, rather than resolving with a connection that is not there.
+   *
+   * A subscriber joining a room where nobody is publishing may legitimately
+   * stay `'connecting'`: with no tracks on either side there is nothing to
+   * negotiate, so waiting here would time out on a connection that is not
+   * broken. Drive a UI from the `connected` event instead of blocking on
+   * this when that is possible.
+   */
+  waitUntilConnected(timeoutMs = 15e3) {
+    if (this.connectionState === "connected") {
+      return Promise.resolve();
+    }
+    return new Promise((resolve, reject) => {
+      const settle = (fn) => {
+        clearTimeout(timer);
+        this.off("connectionStateChanged", onState);
+        fn();
+      };
+      const onState = (state) => {
+        if (state === "connected") {
+          settle(resolve);
+        } else if (state === "failed") {
+          settle(() => reject(new RTCError("CONNECTION_FAILED", "The connection failed while waiting for it")));
+        }
+      };
+      const timer = setTimeout(() => {
+        settle(
+          () => reject(
+            new RTCError(
+              "CONNECTION_FAILED",
+              `Still ${this.connectionState} after ${timeoutMs}ms \u2014 the media connection did not establish`
+            )
+          )
+        );
+      }, timeoutMs);
+      this.on("connectionStateChanged", onState);
+    });
+  }
   /** Leaves the room, stops local tracks, and closes the underlying connection. */
   async leave() {
     this.stopStatsMonitor();
@@ -931,10 +2184,10 @@ var _Room = class _Room extends TypedEventEmitter {
  * across a call with dozens of participants each doing this.
  */
 _Room.STATS_INTERVAL_MS = 5e3;
-var Room2 = _Room;
+var Room = _Room;
 
 // src/client.ts
-var defaultAdapterFactory = (logger, autoReconnect) => new LiveKitAdapter(logger, autoReconnect);
+var defaultAdapterFactory = (logger, autoReconnect) => new RavenAdapter(logger, autoReconnect);
 var RTCClient = class {
   /**
    * @internal use `createRTCClient(config)` instead. Second param only
@@ -963,7 +2216,7 @@ var RTCClient = class {
     });
     telemetry.send("connection_started");
     const adapter = this.adapterFactory(this.logger, this.config.autoReconnect);
-    const room = new Room2(adapter, roomId, this.logger, telemetry);
+    const room = new Room(adapter, roomId, this.logger, telemetry);
     try {
       await adapter.connect(this.config.endpoint, this.config.token, this.config.iceServers);
     } catch (error) {
@@ -983,11 +2236,11 @@ var RTCClient = class {
   }
   /** Captures a camera track without joining/publishing — pair with `room.publish(track)`. */
   async createCameraTrack(deviceId) {
-    return createCameraTrack(deviceId);
+    return createCameraTrack(deviceId ? { deviceId } : {});
   }
   /** Captures a microphone track without joining/publishing — pair with `room.publish(track)`. */
   async createMicrophoneTrack(deviceId) {
-    return createMicrophoneTrack(deviceId);
+    return createMicrophoneTrack(deviceId ? { deviceId } : {});
   }
   /** Captures a screen-share track without joining/publishing — pair with `room.publish(track)`. */
   async createScreenShareTrack() {
@@ -1051,6 +2304,6 @@ function isBrowserSupported() {
   return getBrowserSupportDetails().supported;
 }
 
-export { LocalParticipant, LocalTrack, Participant, RTCClient, RTCError, RemoteParticipant, RemoteTrack, Room2 as Room, Track, createRTCClient, getBrowserSupportDetails, isBrowserSupported, isRTCError };
+export { LocalParticipant, LocalTrack, Participant, RTCClient, RTCError, RemoteParticipant, RemoteTrack, Room, Track, createRTCClient, getBrowserSupportDetails, isBrowserSupported, isRTCError };
 //# sourceMappingURL=index.js.map
 //# sourceMappingURL=index.js.map

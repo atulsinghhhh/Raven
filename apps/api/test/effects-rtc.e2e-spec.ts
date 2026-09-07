@@ -9,31 +9,33 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { AllExceptionsFilter } from '../src/shared/errors/all-exceptions.filter';
 import { RedisService } from '../src/shared/redis/redis.service';
+import { registerLocalSfu } from './helpers/register-local-sfu';
+import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics';
 
 /**
  * Real-browser end-to-end test of Phase 16 (Raven Effects) on RTC — a real
- * Chromium instance, a real LiveKit connection (`docker compose up -d`,
+ * Chromium instance, a real SFU connection (`docker compose up -d`,
  * same as every other suite in this file's family), and the actual
  * `@corvidhq/rtc`/`@corvidhq/effects` browser builds. Chrome's fake camera
  * device stands in for real hardware; the pipeline runs against it exactly
  * as it would against a real feed.
  *
- * The second test (two participants, viewer must receive the processed
- * video) is `.skip`ped — see its comment. Investigating it uncovered a
- * real, reproducible finding worth recording here rather than hiding:
- * in this specific sandboxed test environment, a *plain* two-browser
- * publish/subscribe (zero Effects code involved — verified with a
- * `noEffects` control run through the same harness) never completes
- * track subscription either. Server-side LiveKit logs show both peers
- * connect and the publisher's track register, but the subscriber's
- * downtrack logs `dependencyDescriptorExtID mismatch` and no
- * `trackSubscribed` ever fires; ~60s later both peers log a "short ice
- * connection" and disconnect. ICE candidate logs show the browser
- * selecting a server-reflexive (STUN) candidate for what should be a
- * same-host connection, which points at this sandbox's network handling
- * rather than an application bug. The single-participant test below
- * (real connect, real camera-like capture, real GPU pipeline, full
- * lifecycle) is unaffected and passes.
+ * # A note on the two-participant test
+ *
+ * It was `.skip`ped for a long time, attributed to this sandbox's network
+ * handling. That attribution was wrong, and the skip was hiding a real
+ * bug: the adapter matched an arriving track to its announcement by
+ * `RTCTrackEvent.track.id`, which is **not** the remote track id — Chrome
+ * mints a fresh local one and ignores the `msid` that carries the real
+ * one. Every arriving track was therefore parked as "media arrived
+ * early", and no subscription ever completed. It failed silently, as a
+ * subscription that never finished rather than as an error, which is why
+ * only a real browser caught it. Fixed by reading the id from the
+ * remote SDP's `a=msid:` line, located by the transceiver's mid; pinned
+ * in `packages/sdk/test/raven-adapter.spec.ts`.
+ *
+ * The lesson worth keeping: a skipped test with a plausible external
+ * explanation is a good place for a bug to hide. Both tests run now.
  *
  * Requires Chromium to be installed for Playwright:
  *   npx playwright install chromium
@@ -69,12 +71,37 @@ interface RtcCredentials {
   iceServers: unknown[];
 }
 
-function harnessUrl(baseUrl: string, opts: { roomId: string; role: 'publisher' | 'subscriber'; creds: RtcCredentials; preset?: string }): string {
+/**
+ * Points the browser at *this* suite's app rather than at whatever
+ * `API_PUBLIC_URL` names.
+ *
+ * The mint response's `endpoint` is derived from `API_PUBLIC_URL`, which
+ * on a developer's machine is the compose API on :4100 — a different
+ * process reading a different database. A browser sent there would try to
+ * join a room that only exists in this suite's database and be told
+ * `NO_RTC_CAPACITY`, because the room row the allocator needs is not
+ * there. Under LiveKit this never came up: every suite shared one
+ * database, so "some Raven API" was good enough. It is not good enough
+ * now that the e2e suite runs against a scratch database of its own.
+ */
+function localSignalingEndpoint(app: INestApplication): string {
+  const address = app.getHttpServer().address();
+  const port = typeof address === 'object' && address ? address.port : 0;
+  if (!port) {
+    throw new Error('app is not listening — call app.listen(0) before minting credentials');
+  }
+  return `ws://127.0.0.1:${port}/v1/rtc`;
+}
+
+function harnessUrl(
+  baseUrl: string,
+  opts: { roomId: string; role: 'publisher' | 'subscriber'; creds: RtcCredentials; endpoint: string; preset?: string },
+): string {
   const params = new URLSearchParams({
     roomId: opts.roomId,
     role: opts.role,
     token: opts.creds.token,
-    endpoint: opts.creds.endpoint,
+    endpoint: opts.endpoint,
     iceServers: JSON.stringify(opts.creds.iceServers),
   });
   if (opts.preset) params.set('preset', opts.preset);
@@ -85,6 +112,7 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
   let app: INestApplication;
   let harnessServer: Server;
   let harnessUrlBase: string;
+  let signalingEndpoint: string;
   let browser: Browser;
   const suffix = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
@@ -99,10 +127,21 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     app.useGlobalFilters(new AllExceptionsFilter());
     await app.init();
+    // A real listening socket, not just `getHttpServer()`: supertest can
+    // drive an un-listened app, but a browser cannot.
+    await app.listen(0);
+    signalingEndpoint = localSignalingEndpoint(app);
 
     const redis = app.get(RedisService);
     const stale = await redis.client.keys('ratelimit:*');
     if (stale.length > 0) await redis.client.del(...stale);
+
+    // `room.join` allocates a *registered* SFU, and the compose node
+    // registers with the compose API's database rather than this suite's.
+    // Without this row the browser's join fails with NO_RTC_CAPACITY and
+    // the harness never reaches `__ready` — which reads as a timeout with
+    // no obvious cause.
+    await registerLocalSfu(app);
 
     const registered = await request(app.getHttpServer())
       .post('/v1/auth/register')
@@ -161,15 +200,21 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
     return { token: res.body.token, endpoint: res.body.endpoint, iceServers: res.body.iceServers };
   }
 
-  it('connects to a real LiveKit room, runs a real GPU/CPU pipeline against a real camera-like track, and supports the full lifecycle without disconnecting', async () => {
+  it('connects to a real SFU room, runs a real GPU/CPU pipeline against a real camera-like track, and supports the full lifecycle without disconnecting', async () => {
     const publisherCreds = await mintToken('alice', true);
     let publisherCtx: BrowserContext | undefined;
     try {
       publisherCtx = await browser.newContext({ permissions: ['camera', 'microphone'] });
       const publisherPage = await publisherCtx.newPage();
+      const publisherLog = collectPageDiagnostics(publisherPage, 'publisher');
 
-      await publisherPage.goto(harnessUrl(harnessUrlBase, { roomId: roomName, role: 'publisher', creds: publisherCreds, preset: 'cinematic' }));
-      await publisherPage.waitForFunction(() => (window as unknown as { __ready?: boolean }).__ready === true, undefined, { timeout: 30_000 });
+      await publisherPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, roomId: roomName, role: 'publisher', creds: publisherCreds, preset: 'cinematic' }));
+      await waitForPage(
+        publisherPage,
+        () => (window as unknown as { __ready?: boolean }).__ready === true,
+        publisherLog,
+        'the publisher harness to become ready',
+      );
 
       const state = () => publisherPage.evaluate(() => (window as unknown as { __state: Record<string, unknown> }).__state);
 
@@ -202,14 +247,12 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
     }
   });
 
-  // See the module doc: a plain (no Effects) two-browser publish/subscribe
-  // never completes track subscription in this sandboxed environment either
-  // (server-reflexive ICE candidates + a downtrack extension mismatch +
-  // both peers dropped ~60s later), so this is not something Phase 16
-  // introduced. Re-enable once run somewhere with reliable peer-to-peer ICE
-  // (a normal dev machine or CI runner) — the harness and assertions below
-  // are otherwise complete and were exercised manually during development.
-  it.skip('a viewer receives the publisher-processed video, and effect changes never disconnect either side', async () => {
+  // Real browser-to-browser media through Raven's SFU: two Chromium
+  // contexts, a real camera-like track, a real GPU pipeline on the
+  // publisher, and the subscriber must actually decode frames — not
+  // merely receive a track object. See the module doc for why this was
+  // skipped, and what the skip was hiding.
+  it('a viewer receives the publisher-processed video, and effect changes never disconnect either side', async () => {
     const publisherCreds = await mintToken('alice', true);
     const subscriberCreds = await mintToken('bob', false);
 
@@ -220,15 +263,23 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
       subscriberCtx = await browser.newContext({ permissions: ['camera', 'microphone'] });
       const publisherPage = await publisherCtx.newPage();
       const subscriberPage = await subscriberCtx.newPage();
+      const publisherLog = collectPageDiagnostics(publisherPage, 'publisher');
+      const subscriberLog = collectPageDiagnostics(subscriberPage, 'subscriber');
 
-      await publisherPage.goto(harnessUrl(harnessUrlBase, { roomId: roomName, role: 'publisher', creds: publisherCreds, preset: 'cinematic' }));
-      await publisherPage.waitForFunction(() => (window as unknown as { __ready?: boolean }).__ready === true, undefined, { timeout: 30_000 });
+      await publisherPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, roomId: roomName, role: 'publisher', creds: publisherCreds, preset: 'cinematic' }));
+      await waitForPage(
+        publisherPage,
+        () => (window as unknown as { __ready?: boolean }).__ready === true,
+        publisherLog,
+        'the publisher harness to become ready',
+      );
 
-      await subscriberPage.goto(harnessUrl(harnessUrlBase, { roomId: roomName, role: 'subscriber', creds: subscriberCreds }));
-      await subscriberPage.waitForFunction(
+      await subscriberPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, roomId: roomName, role: 'subscriber', creds: subscriberCreds }));
+      await waitForPage(
+        subscriberPage,
         () => (window as unknown as { __state: { remoteTrackSubscribed?: boolean } }).__state.remoteTrackSubscribed === true,
-        undefined,
-        { timeout: 30_000 },
+        () => `${subscriberLog()}\n\n${publisherLog()}`,
+        "the subscriber to receive the publisher's track",
       );
 
       await subscriberPage.waitForFunction(() => {

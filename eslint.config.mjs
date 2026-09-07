@@ -32,6 +32,11 @@ export default tseslint.config(
       '**/.next/**',
       '**/.verify-dist/**',
       'apps/api/src/generated/**',
+      // Vendored SDK builds, copied from packages/*/dist so the browser
+      // e2e harness can load them without a bundler. Same reason `dist`
+      // is ignored: nobody edits these, and linting a minified-ish build
+      // output produces only noise.
+      'apps/api/test/e2e-harness/vendor/**',
       'apps/dashboard/**',
       'apps/www/**',
       'apps/docs/**',
@@ -42,6 +47,17 @@ export default tseslint.config(
 
   js.configs.recommended,
   ...tseslint.configs.recommended,
+
+  {
+    // The browser e2e harness: plain ES modules loaded by a real page, so
+    // `window`/`document`/`location` are exactly what they look like.
+    // Declared separately because the default for a bare `.js` file in
+    // this repo is a Node script.
+    files: ['apps/api/test/e2e-harness/*.js'],
+    languageOptions: {
+      globals: { ...globals.browser },
+    },
+  },
 
   {
     files: ['**/*.{ts,tsx,mts,cts}'],
@@ -63,7 +79,7 @@ export default tseslint.config(
 
       // `any` is a real signal in a codebase whose whole selling point is
       // typed SDKs, but it is not always avoidable at an FFI boundary
-      // (LiveKit internals, WebSocket frames). Warn so it stays visible
+      // (raw WebRTC stats dictionaries, WebSocket frames). Warn so it stays visible
       // without blocking a build.
       '@typescript-eslint/no-explicit-any': 'warn',
 

@@ -9,6 +9,8 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { AllExceptionsFilter } from '../src/shared/errors/all-exceptions.filter';
 import { RedisService } from '../src/shared/redis/redis.service';
+import { registerLocalSfu } from './helpers/register-local-sfu';
+import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics';
 
 /**
  * Real-browser end-to-end test of Phase 16 (Raven Effects) on Live
@@ -22,12 +24,9 @@ import { RedisService } from '../src/shared/redis/redis.service';
  * the stream lifecycle (create → start → end) is exercised for real
  * alongside it.
  *
- * The viewer-reception test is `.skip`ped for the same root-caused,
- * environment-level reason documented in `effects-rtc.e2e-spec.ts`'s
- * module doc (a plain, effects-free two-browser publish/subscribe doesn't
- * complete track subscription in this sandbox either). The single-host
- * test below (real connect, real effects pipeline, real stream lifecycle)
- * is unaffected and passes.
+ * The viewer-reception test was `.skip`ped for what turned out to be a
+ * real bug rather than an environment quirk — see
+ * `effects-rtc.e2e-spec.ts`'s module doc for the diagnosis. Both run now.
  */
 jest.setTimeout(120_000);
 
@@ -61,12 +60,37 @@ interface RtcCredentials {
   roomName: string;
 }
 
-function harnessUrl(baseUrl: string, opts: { role: 'publisher' | 'subscriber'; creds: RtcCredentials; preset?: string }): string {
+/**
+ * Points the browser at *this* suite's app rather than at whatever
+ * `API_PUBLIC_URL` names.
+ *
+ * The mint response's `endpoint` is derived from `API_PUBLIC_URL`, which
+ * on a developer's machine is the compose API on :4100 — a different
+ * process reading a different database. A browser sent there would try to
+ * join a stream whose room only exists in this suite's database and be
+ * told `NO_RTC_CAPACITY`. Under LiveKit this never came up: every suite
+ * shared one database, so "some Raven API" was good enough. It is not
+ * good enough now that the e2e suite runs against a scratch database of
+ * its own.
+ */
+function localSignalingEndpoint(app: INestApplication): string {
+  const address = app.getHttpServer().address();
+  const port = typeof address === 'object' && address ? address.port : 0;
+  if (!port) {
+    throw new Error('app is not listening — call app.listen(0) before minting credentials');
+  }
+  return `ws://127.0.0.1:${port}/v1/rtc`;
+}
+
+function harnessUrl(
+  baseUrl: string,
+  opts: { role: 'publisher' | 'subscriber'; creds: RtcCredentials; endpoint: string; preset?: string },
+): string {
   const params = new URLSearchParams({
     roomId: opts.creds.roomName,
     role: opts.role,
     token: opts.creds.token,
-    endpoint: opts.creds.endpoint,
+    endpoint: opts.endpoint,
     iceServers: JSON.stringify(opts.creds.iceServers),
   });
   if (opts.preset) params.set('preset', opts.preset);
@@ -77,6 +101,7 @@ describe('Raven Effects — Live Streaming (real browser e2e)', () => {
   let app: INestApplication;
   let harnessServer: Server;
   let harnessUrlBase: string;
+  let signalingEndpoint: string;
   let browser: Browser;
   const suffix = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
@@ -89,10 +114,18 @@ describe('Raven Effects — Live Streaming (real browser e2e)', () => {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     app.useGlobalFilters(new AllExceptionsFilter());
     await app.init();
+    // A real listening socket, not just `getHttpServer()`: supertest can
+    // drive an un-listened app, but a browser cannot.
+    await app.listen(0);
+    signalingEndpoint = localSignalingEndpoint(app);
 
     const redis = app.get(RedisService);
     const stale = await redis.client.keys('ratelimit:*');
     if (stale.length > 0) await redis.client.del(...stale);
+
+    // See effects-rtc.e2e-spec.ts: the browser's join needs a registered
+    // node in *this* suite's database, not the compose one's.
+    await registerLocalSfu(app);
 
     const registered = await request(app.getHttpServer())
       .post('/v1/auth/register')
@@ -152,7 +185,16 @@ describe('Raven Effects — Live Streaming (real browser e2e)', () => {
       .set('Authorization', `Bearer ${apiKey}`)
       .send({ identity })
       .expect(201);
-    return { token: res.body.token, endpoint: res.body.endpoint, iceServers: res.body.iceServers, roomName: res.body.roomName };
+    // `rtc`-nested, exactly like the host response — a viewer credential
+    // carries chat alongside RTC. Reading the top level instead gave
+    // `undefined` for every field, which surfaced in the browser as
+    // "RTC token is malformed" rather than as a failed assertion here.
+    return {
+      token: res.body.rtc.token,
+      endpoint: res.body.rtc.endpoint,
+      iceServers: res.body.rtc.iceServers,
+      roomName: res.body.rtc.roomName,
+    };
   }
 
   it('a host publishes camera + effects to a real stream, through its real lifecycle, without disconnecting', async () => {
@@ -169,7 +211,7 @@ describe('Raven Effects — Live Streaming (real browser e2e)', () => {
       hostCtx = await browser.newContext({ permissions: ['camera', 'microphone'] });
       const hostPage = await hostCtx.newPage();
 
-      await hostPage.goto(harnessUrl(harnessUrlBase, { role: 'publisher', creds: hostCreds, preset: 'vivid' }));
+      await hostPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, role: 'publisher', creds: hostCreds, preset: 'vivid' }));
       await hostPage.waitForFunction(() => (window as unknown as { __ready?: boolean }).__ready === true, undefined, { timeout: 30_000 });
 
       const state = await hostPage.evaluate(() => (window as unknown as { __state: Record<string, unknown> }).__state);
@@ -201,7 +243,7 @@ describe('Raven Effects — Live Streaming (real browser e2e)', () => {
   // See the module doc — blocked on the same environment-level ICE/subscription
   // issue as effects-rtc.e2e-spec.ts's skipped test, not anything Live
   // Streaming- or Effects-specific. Re-enable alongside that one.
-  it.skip('a viewer receives the host-processed video, and chat/reactions keep working throughout', async () => {
+  it('a viewer receives the host-processed video, and chat/reactions keep working throughout', async () => {
     const streamId = await createStream();
     const hostCreds = await addHost(streamId, 'alice');
     const viewerCreds = await createViewerToken(streamId, 'carol');
@@ -214,15 +256,23 @@ describe('Raven Effects — Live Streaming (real browser e2e)', () => {
       viewerCtx = await browser.newContext({ permissions: ['camera', 'microphone'] });
       const hostPage = await hostCtx.newPage();
       const viewerPage = await viewerCtx.newPage();
+      const hostLog = collectPageDiagnostics(hostPage, 'host');
+      const viewerLog = collectPageDiagnostics(viewerPage, 'viewer');
 
-      await hostPage.goto(harnessUrl(harnessUrlBase, { role: 'publisher', creds: hostCreds, preset: 'vivid' }));
-      await hostPage.waitForFunction(() => (window as unknown as { __ready?: boolean }).__ready === true, undefined, { timeout: 30_000 });
+      await hostPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, role: 'publisher', creds: hostCreds, preset: 'vivid' }));
+      await waitForPage(
+        hostPage,
+        () => (window as unknown as { __ready?: boolean }).__ready === true,
+        hostLog,
+        'the host harness to become ready',
+      );
 
-      await viewerPage.goto(harnessUrl(harnessUrlBase, { role: 'subscriber', creds: viewerCreds }));
-      await viewerPage.waitForFunction(
+      await viewerPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, role: 'subscriber', creds: viewerCreds }));
+      await waitForPage(
+        viewerPage,
         () => (window as unknown as { __state: { remoteTrackSubscribed?: boolean } }).__state.remoteTrackSubscribed === true,
-        undefined,
-        { timeout: 30_000 },
+        () => `${viewerLog()}\n\n${hostLog()}`,
+        "the viewer to receive the host's track",
       );
 
       // Chat/reactions continuity is covered at the API level by the existing

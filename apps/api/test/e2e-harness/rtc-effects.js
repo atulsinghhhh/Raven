@@ -1,6 +1,6 @@
 // Real-browser E2E harness for Phase 16 (Raven Effects) — driven by
 // apps/api/test/effects-rtc.e2e-spec.ts via Playwright. Publishes/subscribes
-// through the actual @corvidhq/rtc build against a real LiveKit server;
+// through the actual @corvidhq/rtc build against a real Raven SFU;
 // nothing here is mocked. State is exposed on `window.__state` so the test
 // can poll it, and a couple of actions are exposed for the test to trigger
 // mid-call (disable/remove an effect) without needing DOM controls.
@@ -11,7 +11,7 @@ const params = new URLSearchParams(location.search);
 const token = params.get('token');
 const endpoint = params.get('endpoint');
 // Host-candidate-only on purpose: both peers are on the same machine as
-// the LiveKit server in this test, and routing ICE through the real
+// the SFU in this test, and routing ICE through the real
 // STUN/TURN servers the API mints (reachable over the public internet)
 // has been observed to be unstable in this specific sandboxed network —
 // see the e2e-spec.ts module doc for the investigation.
@@ -23,7 +23,10 @@ const preset = params.get('preset'); // optional preset name to apply, publisher
 
 window.__state = { connectionState: 'connecting', error: null };
 
-const client = createRTCClient({ token, endpoint, iceServers });
+// `debug` so the SDK's own negotiation and subscription logging reaches
+// the page console, which the test collects (helpers/page-diagnostics.ts).
+// A browser e2e that fails with nothing but a timeout is not diagnosable.
+const client = createRTCClient({ token, endpoint, iceServers, logLevel: 'debug' });
 window.__client = client;
 
 console.log(`[harness:${role}] joining room=${roomId}`);
@@ -31,12 +34,26 @@ const room = await client.join(roomId);
 window.__room = room;
 window.__state.connectionState = room.connectionState;
 console.log(`[harness:${role}] joined, connectionState=${room.connectionState}`);
+// `join()` resolves on the control-plane join; ICE and DTLS complete a
+// moment later. A publisher must not report ready before then, or the
+// test asserts on a connection that is still coming up.
+if (role === 'publisher') {
+  try {
+    await room.waitUntilConnected(20_000);
+    window.__state.connectionState = room.connectionState;
+    console.log(`[harness:${role}] media connected`);
+  } catch (err) {
+    window.__state.connectError = { code: err?.code, message: err?.message };
+    console.log(`[harness:${role}] media never connected`, err?.code, err?.message);
+  }
+}
 room.on('connectionStateChanged', (state) => {
   console.log(`[harness:${role}] connectionStateChanged -> ${state}`);
   window.__state.connectionState = state;
 });
 room.on('participantJoined', (p) => console.log(`[harness:${role}] participantJoined ${p.identity}`));
-room.on('trackPublished', (pub, p) => console.log(`[harness:${role}] trackPublished kind=${pub?.kind} from=${p?.identity}`));
+// `trackPublished` carries the track *kind*, not a publication object.
+room.on('trackPublished', (kind, p) => console.log(`[harness:${role}] trackPublished kind=${kind} from=${p?.identity}`));
 room.on('localTrackPublished', (t) => console.log(`[harness:${role}] localTrackPublished kind=${t?.kind}`));
 
 room.on('trackSubscribed', (track, participant) => {

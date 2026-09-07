@@ -5,12 +5,19 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { AllExceptionsFilter } from '../src/shared/errors/all-exceptions.filter';
 import { RedisService } from '../src/shared/redis/redis.service';
+import { registerLocalSfu } from './helpers/register-local-sfu';
 
 /**
- * Runs the real control plane against the real Phase 1 Postgres/Redis
- * (docker compose up -d must be running — see docs/local-development.md).
- * This is the "API -> Database -> Redis" integration layer described in
- * INFRASTRUCTURE_PHASES.md's testing strategy, not a unit test.
+ * Runs the real control plane against the real Postgres/Redis/SFU/coturn
+ * (`docker compose up -d` must be running — see
+ * docs/local-development.md). This is the "API -> Database -> Redis"
+ * integration layer described in INFRASTRUCTURE_PHASES.md's testing
+ * strategy, not a unit test.
+ *
+ * The RTC plane needs one extra step now that the SFU fleet registers
+ * itself: the compose node registers with the compose API's database, not
+ * with the scratch one this suite uses, so `beforeAll` registers it here
+ * through the real endpoint. See `helpers/register-local-sfu.ts`.
  */
 describe('Control plane (e2e)', () => {
   let app: INestApplication;
@@ -35,6 +42,11 @@ describe('Control plane (e2e)', () => {
     if (staleKeys.length > 0) {
       await redis.client.del(...staleKeys);
     }
+
+    // Must come after `app.init()` and before any test that reads /health
+    // or diagnostics: both report the RTC plane by probing a registered
+    // node, and there is no row for one until this runs.
+    await registerLocalSfu(app);
   });
 
   afterAll(async () => {
@@ -265,11 +277,16 @@ describe('Control plane (e2e)', () => {
       expect(expiresAt - requestedAt).toBeGreaterThan(20_000);
       expect(expiresAt - requestedAt).toBeLessThan(40_000);
 
-      // The claim actually inside the signed JWT must match, too — not
+      // The claims actually inside the signed JWT must match, too — not
       // just the control-plane's own bookkeeping of what it asked for.
+      // `iat`/`exp`, not `nbf`: Raven's token format is its own, and the
+      // signer never issues a not-before.
       const [, payloadB64] = res.body.token.split('.');
       const claims = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-      expect(claims.exp - claims.nbf).toBeCloseTo(30, -1);
+      expect(claims.exp - claims.iat).toBeCloseTo(30, -1);
+      // Audience-scoped, so a chat token or a dashboard session JWT can
+      // never be replayed as an RTC token.
+      expect(claims.aud).toBe('raven-rtc');
     });
 
     it('rejects an out-of-range ttlSeconds (no permanent tokens allowed)', async () => {
