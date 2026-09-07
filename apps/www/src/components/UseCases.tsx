@@ -1,5 +1,14 @@
-import { Reveal } from './Reveal';
-
+/**
+ * The horizontal marquee, in the slot the reference fills with customer
+ * testimonials. Raven has none to show, and inventing quotes or logos
+ * would be the one thing this page must never do — so the same
+ * two-row, opposite-direction rail carries what Raven is actually
+ * built for instead.
+ *
+ * Pure CSS: each row holds its list twice and slides exactly half its
+ * own width, so the seam never lands in view and there's no JS ticker
+ * to drift or leak. Hover or focus anywhere in a row pauses it.
+ */
 const USE_CASES = [
   { title: 'Video calling', body: '1:1 and group calls without standing up your own SFU.' },
   { title: 'Telehealth', body: 'Video visits with reconnection handled — a dropped signal shouldn’t end an appointment.' },
@@ -11,31 +20,64 @@ const USE_CASES = [
   { title: 'Live commerce', body: 'Host-led streams with viewer reactions and moderation on one connection.' },
 ];
 
+const TOP_ROW = USE_CASES.slice(0, 4);
+const BOTTOM_ROW = USE_CASES.slice(4);
+
 export function UseCases() {
   return (
-    <section className="border-t border-line bg-surface-sunken/40 py-24">
+    <section className="border-t border-line py-24 md:py-32">
       <div className="mx-auto max-w-6xl px-6">
-        <Reveal>
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-light tracking-tight text-fg md:text-4xl">Built for what you&apos;re shipping</h2>
-            <p className="mt-4 text-muted">
-              One real-time platform instead of stitching together a calling SDK, a chat service, and a streaming
-              provider.
-            </p>
-          </div>
-        </Reveal>
+        <span className="mono-label text-[11px] text-muted">What teams build</span>
+        <h2 className="display mt-4 text-3xl text-fg md:text-4xl">
+          One platform, every <span className="kw">real-time</span> surface
+        </h2>
+        <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">
+          Instead of stitching together a calling SDK, a chat service, and a streaming provider — with three
+          sets of credentials and three ideas of what a user is.
+        </p>
+      </div>
 
-        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {USE_CASES.map((useCase, i) => (
-            <Reveal key={useCase.title} delayMs={i * 40}>
-              <div className="h-full rounded-(--radius-panel) border border-line bg-surface p-5">
-                <h3 className="text-sm font-medium text-fg">{useCase.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{useCase.body}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
+      <div className="marquee marquee-mask mt-14 flex flex-col gap-4 overflow-hidden">
+        <MarqueeRow items={TOP_ROW} durationSeconds={52} />
+        <MarqueeRow items={BOTTOM_ROW} durationSeconds={64} reverse />
       </div>
     </section>
+  );
+}
+
+function MarqueeRow({
+  items,
+  durationSeconds,
+  reverse = false,
+}: {
+  items: typeof USE_CASES;
+  durationSeconds: number;
+  reverse?: boolean;
+}) {
+  // Four copies, not two: the row must overflow the viewport before it
+  // can scroll seamlessly, and four cards alone don't on a wide screen.
+  const doubled = [...items, ...items, ...items, ...items];
+
+  return (
+    <div
+      className="marquee-track flex gap-4"
+      style={{
+        ['--marquee-duration' as string]: `${durationSeconds}s`,
+        animationDirection: reverse ? 'reverse' : 'normal',
+      }}
+    >
+      {doubled.map((useCase, i) => (
+        <div
+          key={`${useCase.title}-${i}`}
+          className="w-72 shrink-0 rounded-(--radius-panel) border border-line bg-surface p-5"
+          // The second half is a visual duplicate of the first — hide it
+          // from assistive tech so the list isn't read out four times.
+          aria-hidden={i >= items.length ? true : undefined}
+        >
+          <h3 className="text-sm font-medium text-fg">{useCase.title}</h3>
+          <p className="mt-2 text-[13px] leading-relaxed text-muted">{useCase.body}</p>
+        </div>
+      ))}
+    </div>
   );
 }
