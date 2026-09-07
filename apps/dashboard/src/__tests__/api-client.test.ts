@@ -136,4 +136,74 @@ describe('ravenApi', () => {
       expect(url).toContain('/v1/projects/p1/live-streams/stream_abc');
     });
   });
+  /**
+   * The fleet endpoints are deployment-level, not project-scoped — an SFU
+   * node is shared infrastructure, so there is no project whose
+   * membership could authorize it. These tests pin that URL shape,
+   * because a project segment creeping in would 404 rather than fail
+   * loudly.
+   */
+  describe('RTC fleet', () => {
+    it('lists the fleet without a project segment', async () => {
+      mockFetchOnce(200, []);
+      await ravenApi.listRtcServers('token');
+      const [url] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).toContain('/v1/rtc/servers');
+      expect(url).not.toContain('/projects/');
+    });
+
+    it('forwards a region filter, encoded', async () => {
+      mockFetchOnce(200, []);
+      await ravenApi.listRtcServers('token', 'asia south');
+      const [url] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).toContain('region=asia%20south');
+    });
+
+    it('omits the query entirely when no region is given', async () => {
+      mockFetchOnce(200, []);
+      await ravenApi.listRtcServers('token');
+      const [url] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).not.toContain('?');
+    });
+
+    it('passes fleet metrics through untouched, including a zero capacity', async () => {
+      // A fleet with no registered node has capacity 0, and the caller has
+      // to be able to tell that from "the request failed" — so nothing here
+      // substitutes a default.
+      mockFetchOnce(200, {
+        servers: 0,
+        healthyServers: 0,
+        drainingServers: 0,
+        unhealthyServers: 0,
+        activeRooms: 0,
+        activeParticipants: 0,
+        capacity: 0,
+      });
+      const metrics = await ravenApi.getRtcFleetMetrics('token');
+      expect(metrics.servers).toBe(0);
+      expect(metrics.capacity).toBe(0);
+    });
+
+    it('encodes a node name in the path rather than interpolating it raw', async () => {
+      mockFetchOnce(200, {});
+      await ravenApi.getRtcServer('token', 'sfu/../admin');
+      const [url] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).toContain('sfu%2F..%2Fadmin');
+      expect(url).not.toContain('sfu/../admin');
+    });
+
+    it('drains and un-drains through distinct endpoints, both POST', async () => {
+      mockFetchOnce(200, { name: 'sfu-1', status: 'DRAINING' });
+      await ravenApi.drainRtcServer('token', 'sfu-1');
+      let [url, options] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).toContain('/v1/rtc/servers/sfu-1/drain');
+      expect(options.method).toBe('POST');
+
+      mockFetchOnce(200, { name: 'sfu-1', status: 'HEALTHY' });
+      await ravenApi.undrainRtcServer('token', 'sfu-1');
+      [url, options] = (global.fetch as jest.Mock).mock.calls[1];
+      expect(url).toContain('/v1/rtc/servers/sfu-1/undrain');
+      expect(options.method).toBe('POST');
+    });
+  });
 });

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
-import { ApiError, ravenApi } from '@/lib/api-client';
+import { ApiError, ravenApi, type RtcFleetMetrics } from '@/lib/api-client';
 import { Badge, ConnectionStateBadge, ErrorCategoryBadge, StatusBadge } from '@/components/ui/badge';
 import { Card, CardHeader, SectionHeader, StatCard } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
@@ -38,6 +38,7 @@ export default async function OverviewPage({
     apiKeysResult,
     chatOverviewResult,
     liveStreamsResult,
+    rtcFleetResult,
   ] = await Promise.allSettled([
     ravenApi.getProject(token, projectId),
     ravenApi.getMetrics(token, projectId, range),
@@ -48,6 +49,11 @@ export default async function OverviewPage({
     ravenApi.listApiKeys(token, projectId),
     ravenApi.getChatOverview(token, projectId, range),
     ravenApi.listLiveStreams(token, projectId),
+    // Deployment-level, not project-scoped. Included because `sfu: up`
+    // alone cannot answer the question a developer actually has when
+    // calls are failing: a probed node can answer while every node is
+    // draining, and then no room can be allocated at all.
+    ravenApi.getRtcFleetMetrics(token),
   ]);
 
   if (projectResult.status === 'rejected') {
@@ -64,6 +70,7 @@ export default async function OverviewPage({
   const apiKeys = apiKeysResult.status === 'fulfilled' ? apiKeysResult.value : [];
   const chatOverview = chatOverviewResult.status === 'fulfilled' ? chatOverviewResult.value : undefined;
   const liveStreams = liveStreamsResult.status === 'fulfilled' ? liveStreamsResult.value : [];
+  const rtcFleet = rtcFleetResult.status === 'fulfilled' ? rtcFleetResult.value : undefined;
 
   const base = `/dashboard/projects/${projectId}`;
   const hasActivity = connections.length > 0 || (rooms?.length ?? 0) > 0;
@@ -174,6 +181,7 @@ export default async function OverviewPage({
                 <HealthItem label="SFU" status={diagnostics.dependencies.sfu} />
                 <HealthItem label="TURN" status={diagnostics.dependencies.turn} />
               </dl>
+              <RtcFleetLine base={base} fleet={rtcFleet} />
               <div className="mt-5 border-t border-line pt-4">
                 <a
                   href={`${base}/diagnostics`}
@@ -190,6 +198,55 @@ export default async function OverviewPage({
         </Card>
       </section>
     </div>
+  );
+}
+
+/**
+ * Whether the media plane can actually take a new room.
+ *
+ * Distinct from the `SFU` check above, which probes one registered node's
+ * liveness. Both can be green while no room can be allocated: every node
+ * draining, or every node at its advertised capacity. That gap is exactly
+ * what `RAVEN_NO_RTC_CAPACITY` reports to a caller, and this is the line
+ * that explains it without opening another page.
+ */
+function RtcFleetLine({ base, fleet }: { base: string; fleet?: RtcFleetMetrics }) {
+  if (!fleet) {
+    return (
+      <p className="mt-4 border-t border-line pt-4 text-xs text-subtle">
+        The RTC fleet inventory could not be read, so allocation capacity is unknown.
+      </p>
+    );
+  }
+
+  const noneAllocatable = fleet.healthyServers === 0;
+  const full = !noneAllocatable && fleet.capacity > 0 && fleet.activeRooms >= fleet.capacity;
+
+  return (
+    <p
+      className={`mt-4 border-t border-line pt-4 text-xs ${
+        noneAllocatable || full ? 'text-danger-text' : 'text-muted'
+      }`}
+    >
+      {fleet.servers === 0 ? (
+        <>No SFU has registered with this deployment, so every join will fail.</>
+      ) : noneAllocatable ? (
+        <>
+          {formatCount(fleet.servers)} RTC server(s) registered but <strong>none allocatable</strong> —{' '}
+          {formatCount(fleet.drainingServers)} draining, {formatCount(fleet.unhealthyServers)} not answering. New rooms
+          cannot be placed.
+        </>
+      ) : (
+        <>
+          {formatCount(fleet.healthyServers)} of {formatCount(fleet.servers)} RTC server(s) allocatable, serving{' '}
+          {formatCount(fleet.activeRooms)} room(s) and {formatCount(fleet.activeParticipants)} participant(s).
+          {full && ' Advertised capacity is exhausted.'}
+        </>
+      )}{' '}
+      <a href={`${base}/servers`} className="font-medium text-accent-text hover:underline">
+        Fleet
+      </a>
+    </p>
   );
 }
 

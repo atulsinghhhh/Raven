@@ -75,9 +75,20 @@ export function formatRelative(iso: string | null | undefined, now: number = Dat
   return formatDate(iso);
 }
 
+/**
+ * One decimal at most, and no trailing `.0`.
+ *
+ * Null rather than `'0%'` for an absent value: a node that did not report
+ * its CPU is not a node at 0%, and every caller here renders the two
+ * differently. Rounded because the source is a raw float — a node
+ * reporting `16.1159274436382` percent memory is reporting noise past the
+ * first decimal, and printing all of it makes a table unreadable while
+ * implying a precision nobody measured.
+ */
 export function formatPercent(value: number | null | undefined): string | null {
   if (value === null || value === undefined) return null;
-  return `${value}%`;
+  const rounded = Math.round(value * 10) / 10;
+  return `${rounded}%`;
 }
 
 /** Thousands separators, so 12400 doesn't read as 124 00 at a glance. */

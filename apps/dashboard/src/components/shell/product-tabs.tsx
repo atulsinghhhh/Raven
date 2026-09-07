@@ -39,11 +39,19 @@ export function ProductTabs({ tabs, active }: { tabs: ProductTab[]; active: stri
   );
 }
 
+/**
+ * Spec §29's RTC section. `Servers` and `Diagnostics` sit at the end
+ * deliberately: the first three answer "what are my users doing", the
+ * last two answer "is the media plane itself healthy" — and that is the
+ * order you reach for them in.
+ */
 export function rtcTabs(base: string): ProductTab[] {
   return [
     { label: 'Rooms', href: `${base}/rooms` },
     { label: 'Connections', href: `${base}/connections` },
     { label: 'Participants', href: `${base}/participants` },
+    { label: 'Servers', href: `${base}/servers` },
+    { label: 'Diagnostics', href: `${base}/diagnostics` },
   ];
 }
 

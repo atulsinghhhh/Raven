@@ -81,6 +81,15 @@ describe('formatCount / formatPercent', () => {
     expect(formatPercent(0)).toBe('0%');
     expect(formatPercent(98.7)).toBe('98.7%');
   });
+
+  it('rounds a raw float to one decimal, without a trailing zero', () => {
+    // SFU nodes report memory as a raw float. Printing every digit makes
+    // the fleet table unreadable and implies a precision nobody measured.
+    expect(formatPercent(16.1159274436382)).toBe('16.1%');
+    expect(formatPercent(13.06)).toBe('13.1%');
+    expect(formatPercent(50)).toBe('50%');
+    expect(formatPercent(49.98)).toBe('50%');
+  });
 });
 
 describe('formatMs', () => {

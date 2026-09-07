@@ -7,6 +7,7 @@ import { Card, SectionHeader, StatCard } from '@/components/ui/card';
 import { CopyButton } from '@/components/ui/copy-button';
 import { KeyValue, KeyValueGrid } from '@/components/ui/mono';
 import { PageHeader } from '@/components/ui/page-header';
+import { ProductTabs, rtcTabs } from '@/components/shell/product-tabs';
 import { ErrorState, NoDataYet } from '@/components/ui/states';
 import {
   MobileList,
@@ -155,6 +156,7 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ pr
           </ButtonLink>
         }
       />
+      <ProductTabs tabs={rtcTabs(base)} active="Diagnostics" />
 
       <Card>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

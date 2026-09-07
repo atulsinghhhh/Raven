@@ -98,7 +98,7 @@ export interface RoomWithLiveState {
   status: string;
   createdAt: string;
   updatedAt: string;
-  /** null = LiveKit unreachable, not the same as an idle room with 0 participants. */
+  /** null = the room's RTC server was unreachable, not the same as an idle room with 0 participants. */
   liveParticipantCount: number | null;
 }
 
@@ -263,6 +263,57 @@ export interface HealthResponse {
     activeRooms: number;
     activeParticipants: number;
   };
+}
+
+// ---------------------------------------------------------------------------
+// RTC fleet
+//
+// Deployment-level rather than project-scoped, and deliberately so: an
+// SFU node is shared infrastructure, so there is no project whose
+// membership could authorize it. It exposes only node identity, health
+// and aggregate load — no project data — which is why any authenticated
+// developer of this deployment can see it without leaking anything about
+// anyone else's rooms.
+// ---------------------------------------------------------------------------
+
+export type RtcServerStatus = 'HEALTHY' | 'DRAINING' | 'UNHEALTHY';
+
+export interface RtcServer {
+  id: string;
+  name: string;
+  region: string;
+  status: RtcServerStatus;
+  /** What ICE advertises to clients. Shown for support, never used by the dashboard to connect. */
+  publicHost: string;
+  /** How the control plane reaches this node. Internal — not a client address. */
+  internalUrl: string;
+  capacity: number;
+  activeRooms: number;
+  activeParticipants: number;
+  /**
+   * Load figures a node reported on its **last heartbeat**, not live
+   * truth. Null where the node did not report one — a node that omits CPU
+   * is not a node at 0% CPU, and the UI must not draw it as such.
+   */
+  cpuPercent: number | null;
+  memoryPercent: number | null;
+  networkInBps: number | null;
+  networkOutBps: number | null;
+  version: string | null;
+  lastHeartbeatAt: string | null;
+  registeredAt: string;
+  updatedAt: string;
+}
+
+export interface RtcFleetMetrics {
+  servers: number;
+  healthyServers: number;
+  drainingServers: number;
+  unhealthyServers: number;
+  /** Rooms the fleet is actually *serving*. A room row with no assigned node is not counted. */
+  activeRooms: number;
+  activeParticipants: number;
+  capacity: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -555,6 +606,25 @@ export const ravenApi = {
       token,
       body: { participantIdentity },
     }),
+
+  listRtcServers: (token: string, region?: string) =>
+    apiFetch<RtcServer[]>(`/v1/rtc/servers${region ? `?region=${encodeURIComponent(region)}` : ''}`, { token }),
+
+  getRtcFleetMetrics: (token: string) => apiFetch<RtcFleetMetrics>('/v1/rtc/servers/metrics', { token }),
+
+  getRtcServer: (token: string, name: string) =>
+    apiFetch<RtcServer>(`/v1/rtc/servers/${encodeURIComponent(name)}`, { token }),
+
+  /**
+   * Takes a node out of the allocation pool without stopping it. Its
+   * existing rooms keep running — spec §26 is explicit that draining must
+   * not kill live calls.
+   */
+  drainRtcServer: (token: string, name: string) =>
+    apiFetch<RtcServer>(`/v1/rtc/servers/${encodeURIComponent(name)}/drain`, { method: 'POST', token }),
+
+  undrainRtcServer: (token: string, name: string) =>
+    apiFetch<RtcServer>(`/v1/rtc/servers/${encodeURIComponent(name)}/undrain`, { method: 'POST', token }),
 
   getHealth: () => apiFetch<HealthResponse>('/health'),
 
