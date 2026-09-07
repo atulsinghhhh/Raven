@@ -25,7 +25,7 @@ credential = raven.live_streams.create_viewer_token(stream_id, "carol")
 <Tab title="cURL">
 
 ```bash
-curl -X POST https://api.raven.dev/v1/live-streams/$STREAM_ID/viewer-tokens \
+curl -X POST http://localhost:4100/v1/live-streams/$STREAM_ID/viewer-tokens \
   -H "Authorization: Bearer $RAVEN_API_KEY" \
   -d '{"identity": "carol"}'
 ```
@@ -124,7 +124,7 @@ await stream.leave();
 <Tab title="cURL">
 
 ```bash
-curl -X POST https://api.raven.dev/v1/live-streams/$STREAM_ID/leave \
+curl -X POST http://localhost:4100/v1/live-streams/$STREAM_ID/leave \
   -H "Authorization: Bearer $RAVEN_API_KEY" \
   -d '{"identity": "carol"}'
 ```
@@ -158,6 +158,3 @@ media is off-limits.
 - [Live Chat](/live-streaming/live-chat)
 - [Reactions](/live-streaming/reactions)
 - [SDK Support Matrix](/live-streaming/sdk-support)
-
-- [Live Chat](/live-streaming/live-chat)
-- [Reactions](/live-streaming/reactions)

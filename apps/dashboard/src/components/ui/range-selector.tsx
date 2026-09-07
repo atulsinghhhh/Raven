@@ -20,7 +20,7 @@ export function RangeSelector({ basePath, current }: { basePath: string; current
             href={`${basePath}?range=${range}`}
             aria-current={active ? 'true' : undefined}
             aria-label={RANGE_LABEL[range]}
-            className={`rounded-sm px-2 py-1 text-xs font-medium transition-colors ${
+            className={`mono-label rounded-sm px-2 py-1 text-[11px] transition-colors ${
               active ? 'bg-accent-subtle text-accent-text' : 'text-muted hover:bg-surface-raised hover:text-fg'
             }`}
           >

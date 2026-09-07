@@ -2,6 +2,10 @@
  * Status is never conveyed by colour alone — every badge and indicator
  * here pairs its colour with a distinct glyph and a text label, so it
  * still reads correctly in greyscale or with a colour-vision deficiency.
+ *
+ * Badges are 4px rectangles rather than pills. The status dot inside
+ * each one is still round, which is the point: the round thing is the
+ * indicator, not the container.
  */
 
 // Legacy tone names kept alongside semantic ones so older call sites keep
@@ -57,7 +61,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${TONE[tone]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${TONE[tone]} ${className}`}
     >
       {glyph && (
         <span aria-hidden="true" className="text-[0.6rem] leading-none">
@@ -96,7 +100,7 @@ export function SystemStatusIndicator({ status, className = '' }: { status: Syst
 
   return (
     <span
-      className={`inline-flex items-center gap-2 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-muted ${className}`}
+      className={`inline-flex items-center gap-2 rounded-sm border border-line bg-surface px-2.5 py-1 text-xs font-medium text-muted ${className}`}
     >
       <span className={`size-1.5 rounded-full ${meta.dot} ${alive ? 'animate-pulse-dot' : ''}`} aria-hidden="true" />
       <span className="sr-only">System status: </span>

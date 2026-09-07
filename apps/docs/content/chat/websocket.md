@@ -73,7 +73,7 @@ which plane produced it.
 | `4403` | Origin not allowed | **No** |
 | `4429` | Connection rate limit | Yes, after backing off |
 | `4440` | Token expired | Yes, with a **fresh token** |
-| `4500` | Server shutting down | Yes, immediately — a deploy, not a fault |
+| `4500` | Server shutting down | Yes, after backing off — a deploy, not a fault |
 
 `@corvidhq/chat` treats `4401` and `4403` as terminal and reports `failed`
 rather than retrying forever.

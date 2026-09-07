@@ -55,13 +55,13 @@ export function TableOfContents({ headings }: { headings: Heading[] }) {
 
   return (
     <nav aria-label="On this page" className="text-sm">
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-subtle">On this page</h2>
+      <h2 className="mono-label mb-3 text-[11px] text-muted">On this page</h2>
       <ul className="space-y-1 border-l border-line">
         {headings.map((heading) => (
           <li key={heading.id}>
             <a
               href={`#${heading.id}`}
-              className={`-ml-px block border-l-2 py-1 transition-colors ${
+              className={`-ml-px block border-l-2 py-1.5 transition-colors ${
                 heading.level === 3 ? 'pl-6' : 'pl-3'
               } ${
                 activeId === heading.id

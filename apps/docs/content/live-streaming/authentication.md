@@ -32,12 +32,12 @@ viewer_credential = raven.live_streams.create_viewer_token(stream_id, "carol")
 
 ```bash
 # Host/co-host — full publish permission, chat ADMIN/MODERATOR scope
-curl -X POST https://api.raven.dev/v1/live-streams/$STREAM_ID/hosts \
+curl -X POST http://localhost:4100/v1/live-streams/$STREAM_ID/hosts \
   -H "Authorization: Bearer $RAVEN_API_KEY" \
   -d '{"identity": "alice", "role": "HOST"}'
 
 # Viewer — subscribe-only, chat MEMBER scope
-curl -X POST https://api.raven.dev/v1/live-streams/$STREAM_ID/viewer-tokens \
+curl -X POST http://localhost:4100/v1/live-streams/$STREAM_ID/viewer-tokens \
   -H "Authorization: Bearer $RAVEN_API_KEY" \
   -d '{"identity": "carol"}'
 ```

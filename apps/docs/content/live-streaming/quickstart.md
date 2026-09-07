@@ -44,7 +44,7 @@ stream = raven.live_streams.create(CreateLiveStreamParams(title="Launch Day", ho
 <Tab title="cURL">
 
 ```bash
-curl -X POST https://api.raven.dev/v1/live-streams \
+curl -X POST http://localhost:4100/v1/live-streams \
   -H "Authorization: Bearer $RAVEN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"title": "Launch Day", "hostIdentity": "alice"}'
@@ -76,7 +76,7 @@ host_credential = raven.live_streams.add_host(stream["id"], AddHostParams(identi
 <Tab title="cURL">
 
 ```bash
-curl -X POST https://api.raven.dev/v1/live-streams/stream_jRoD1T3EXh0PMJRGG4zYzQ/hosts \
+curl -X POST http://localhost:4100/v1/live-streams/stream_jRoD1T3EXh0PMJRGG4zYzQ/hosts \
   -H "Authorization: Bearer $RAVEN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"identity": "alice", "role": "HOST"}'
@@ -182,7 +182,7 @@ raven.live_streams.start(stream["id"])
 <Tab title="cURL">
 
 ```bash
-curl -X POST https://api.raven.dev/v1/live-streams/stream_jRoD1T3EXh0PMJRGG4zYzQ/start \
+curl -X POST http://localhost:4100/v1/live-streams/stream_jRoD1T3EXh0PMJRGG4zYzQ/start \
   -H "Authorization: Bearer $RAVEN_API_KEY"
 ```
 
@@ -209,7 +209,7 @@ viewer_credential = raven.live_streams.create_viewer_token(stream["id"], "carol"
 <Tab title="cURL">
 
 ```bash
-curl -X POST https://api.raven.dev/v1/live-streams/stream_jRoD1T3EXh0PMJRGG4zYzQ/viewer-tokens \
+curl -X POST http://localhost:4100/v1/live-streams/stream_jRoD1T3EXh0PMJRGG4zYzQ/viewer-tokens \
   -H "Authorization: Bearer $RAVEN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"identity": "carol"}'
@@ -320,7 +320,7 @@ raven.live_streams.end(stream["id"])
 <Tab title="cURL">
 
 ```bash
-curl -X POST https://api.raven.dev/v1/live-streams/stream_jRoD1T3EXh0PMJRGG4zYzQ/end \
+curl -X POST http://localhost:4100/v1/live-streams/stream_jRoD1T3EXh0PMJRGG4zYzQ/end \
   -H "Authorization: Bearer $RAVEN_API_KEY"
 ```
 

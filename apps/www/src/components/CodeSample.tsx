@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ChatDemo, EffectsDemo, LiveDemo, RoomDemo, TokenDemo } from './ProductDemos';
 
 /**
  * Every snippet here is the real, current API — copied from
@@ -92,36 +93,66 @@ token = raven.tokens.create(
   },
 ] as const;
 
+/**
+ * Which demo panel stands beside each snippet. The pairing is the point
+ * of the split view: the left half is the call you write, the right
+ * half is the thing that call produces.
+ */
+const PREVIEWS: Record<(typeof SAMPLES)[number]['id'], React.ReactNode> = {
+  rtc: <RoomDemo />,
+  chat: <ChatDemo />,
+  live: <LiveDemo />,
+  effects: <EffectsDemo />,
+  server: <TokenDemo />,
+};
+
 export function CodeSample() {
   const [active, setActive] = useState<(typeof SAMPLES)[number]['id']>('rtc');
   const sample = SAMPLES.find((s) => s.id === active)!;
 
   return (
     <div className="overflow-hidden rounded-(--radius-panel) border border-line bg-surface">
-      <div className="mono-label flex items-center gap-1 overflow-x-auto border-b border-line bg-surface-sunken px-2 pt-2 text-[11px]">
+      {/* File tabs read as ordinary sans filenames rather than mono
+          product labels — this is an editor chrome, not a nav. */}
+      <div className="flex items-center gap-1 overflow-x-auto border-b border-line bg-surface-sunken px-1.5 py-1.5 text-[12px]">
         {SAMPLES.map((s) => (
           <button
             key={s.id}
+            type="button"
             onClick={() => setActive(s.id)}
-            className={`shrink-0 rounded-t-(--radius-panel) px-3.5 py-2 transition-colors ${
-              s.id === active
-                ? 'bg-surface text-fg border-x border-t border-line -mb-px'
-                : 'text-muted hover:text-fg'
+            className={`shrink-0 rounded-(--radius-panel) px-3 py-1.5 font-mono transition-colors ${
+              s.id === active ? 'bg-surface text-fg' : 'text-muted hover:text-fg'
             }`}
           >
-            {s.label}
+            {s.filename}
           </button>
         ))}
       </div>
-      <div className="flex items-center gap-1.5 border-b border-line px-4 py-2.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-danger/60" />
-        <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
-        <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
-        <span className="ml-2 font-mono text-xs text-subtle">{sample.filename}</span>
+
+      <div className="grid md:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
+        <pre className="overflow-x-auto p-6 text-[13px] leading-relaxed">
+          <code className="font-mono text-fg">{sample.code}</code>
+        </pre>
+
+        <div className="border-line p-4 md:border-l">
+          <span className="mono-label mb-3 flex items-center gap-1.5 text-[10px] text-muted">
+            <EyeIcon />
+            Preview
+          </span>
+          {/* Keyed so switching files remounts the demo and replays its
+              entrance, instead of swapping content into a settled panel. */}
+          <div key={sample.id}>{PREVIEWS[sample.id]}</div>
+        </div>
       </div>
-      <pre className="overflow-x-auto p-5 text-[13px] leading-relaxed">
-        <code className="font-mono text-fg">{sample.code}</code>
-      </pre>
     </div>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z" strokeLinejoin="round" />
+      <circle cx="8" cy="8" r="1.75" />
+    </svg>
   );
 }

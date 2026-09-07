@@ -40,7 +40,7 @@
   },
   "dependencies": {
     "@corvidhq/effects": "workspace:*",
-    "livekit-client": "^2.22.0"
+    "livekit-client": "^2.22.1"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

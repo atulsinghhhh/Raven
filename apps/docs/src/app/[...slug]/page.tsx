@@ -44,28 +44,35 @@ export default async function DocPage({ params }: { params: Promise<{ slug: stri
   return (
     <>
       <DocsNav activeSlug={slug} />
-      <div className="mx-auto flex max-w-[88rem] gap-8 px-4 py-8 md:px-6 lg:gap-12">
+      <div className="mx-auto flex max-w-[88rem] gap-8 px-4 py-8 md:px-6 lg:gap-12 xl:gap-16">
         <aside className="hidden w-56 shrink-0 lg:block">
           <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pb-8">
             <Sidebar activeSlug={slug} />
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1">
+        {/*
+          A measured column. Prose set to the full width of a 1400px
+          viewport runs past 110 characters a line, which is roughly
+          double what is comfortable to read; capping it keeps the
+          measure sane on wide screens without shrinking the code blocks
+          on narrow ones.
+        */}
+        <main className="min-w-0 max-w-3xl flex-1">
           <Breadcrumbs slug={slug} />
-          <h1 className="text-3xl font-semibold tracking-tight text-fg">{doc.title}</h1>
-          {doc.description && <p className="mt-2 text-lg text-muted">{doc.description}</p>}
+          <h1 className="display text-4xl text-fg">{doc.title}</h1>
+          {doc.description && <p className="mt-4 text-lg leading-relaxed text-muted">{doc.description}</p>}
 
-          <article className="prose mt-8 border-t border-line pt-8">{doc.content}</article>
+          <article className="prose mt-10 border-t border-line pt-10">{doc.content}</article>
 
-          <nav className="mt-14 grid gap-3 border-t border-line pt-6 sm:grid-cols-2">
+          <nav aria-label="Previous and next page" className="mt-16 grid gap-3 border-t border-line pt-8 sm:grid-cols-2">
             {prev ? (
               <Link
                 href={`/${prev.slug}`}
-                className="rounded-lg border border-line p-4 transition-colors hover:border-accent-line hover:bg-surface-raised"
+                className="group rounded-md border border-line p-4 transition-colors hover:border-line-strong hover:bg-surface-raised"
               >
-                <span className="block text-xs text-subtle">Previous</span>
-                <span className="mt-0.5 block font-medium text-fg">{prev.title}</span>
+                <span className="mono-label block text-[11px] text-muted">&larr; Previous</span>
+                <span className="mt-1.5 block text-sm font-medium text-fg">{prev.title}</span>
               </Link>
             ) : (
               <span />
@@ -73,10 +80,10 @@ export default async function DocPage({ params }: { params: Promise<{ slug: stri
             {next ? (
               <Link
                 href={`/${next.slug}`}
-                className="rounded-lg border border-line p-4 text-right transition-colors hover:border-accent-line hover:bg-surface-raised sm:col-start-2"
+                className="group rounded-md border border-line p-4 text-right transition-colors hover:border-line-strong hover:bg-surface-raised sm:col-start-2"
               >
-                <span className="block text-xs text-subtle">Next</span>
-                <span className="mt-0.5 block font-medium text-fg">{next.title}</span>
+                <span className="mono-label block text-[11px] text-muted">Next &rarr;</span>
+                <span className="mt-1.5 block text-sm font-medium text-fg">{next.title}</span>
               </Link>
             ) : (
               <span />

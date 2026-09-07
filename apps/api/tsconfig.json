@@ -11,7 +11,14 @@
     "outDir": "./dist",
     "rootDir": "./src",
 
+    // The incremental cache lives inside outDir on purpose. nest-cli.json
+    // sets deleteOutDir, which wipes dist on every build and watch start;
+    // with the default cache location (the package root) the cache would
+    // survive that wipe, tsc would conclude every file was still current,
+    // emit nothing, and `nest start` would die on a missing dist/main.
+    // Keeping it in dist means deleting dist also invalidates the cache.
     "incremental": true,
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
     "skipLibCheck": true,
 
     "strict": true,

@@ -113,8 +113,8 @@ server stack trace, database error, or RTC/TURN credential. See
 ## Retries, timeouts, pagination
 
 Same model as the Python SDK: transient failures (network errors,
-timeouts, 429/502/503/504) retry with bounded exponential backoff;
-4xx never does. `timeout` bounds every request. Chat history is
+timeouts, 429/502/503/504) retry with bounded exponential backoff; no
+other 4xx does. `timeout` bounds every request. Chat history is
 cursor-paginated; every other list endpoint returns a flat array,
 optionally capped with `limit`.
 

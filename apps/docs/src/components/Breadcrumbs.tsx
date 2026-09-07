@@ -11,7 +11,7 @@ export function Breadcrumbs({ slug }: { slug: string }) {
   const entry = findNavItem(slug);
 
   return (
-    <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-1.5 text-sm text-subtle">
+    <nav aria-label="Breadcrumb" className="mono-label mb-4 flex items-center gap-1.5 text-[11px] text-muted">
       <Link href="/" className="hover:text-fg">
         Home
       </Link>
