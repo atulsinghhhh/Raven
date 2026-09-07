@@ -171,19 +171,53 @@ done
 echo "    ${STATE}"
 
 # ---------------------------------------------------------------------------
-# 4. Point the dashboard's BFF at the new API hostname
+# 4. Repoint the frontends
 # ---------------------------------------------------------------------------
-# Server-only, never NEXT_PUBLIC_. The browser keeps talking to the
-# dashboard's own same-origin /api/* routes and never learns the API host.
-echo "==> Updating Vercel RAVEN_API_URL and redeploying the dashboard"
+# Two different kinds of variable, and both must move or the cutover is only
+# half done:
+#
+#   RAVEN_API_URL   server-only, read at runtime by the dashboard's BFF.
+#                   Never NEXT_PUBLIC_ — the browser talks to the dashboard's
+#                   own same-origin /api/* routes and never learns the API host.
+#
+#   NEXT_PUBLIC_*   cross-site links between landing/dashboard/docs. These are
+#                   INLINED INTO THE BROWSER BUNDLE AT BUILD TIME, so setting
+#                   them is not enough — every affected project must be
+#                   rebuilt. Miss this and the new domains render links back to
+#                   the old ones, which is what happened the first time.
+#
+# Each project is also explicitly aliased to its domain. A project whose
+# custom domain was attached before DNS resolved has no certificate until a
+# deployment is aliased to it, and it serves a TLS failure until then.
+echo "==> Repointing the Vercel frontends"
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-(
-  cd "${REPO_ROOT}"
-  vercel link --project raven-dashboard --yes >/dev/null 2>&1
-  vercel env rm RAVEN_API_URL production --yes >/dev/null 2>&1 || true
-  printf 'https://%s' "${API_HOST}" | vercel env add RAVEN_API_URL production >/dev/null 2>&1
-  vercel deploy --prod --yes | tail -3
-)
+
+setenv() { # setenv <project> <key> <value>
+  local proj="$1" key="$2" val="$3"
+  ( cd "${REPO_ROOT}"
+    vercel link --project "${proj}" --yes >/dev/null 2>&1
+    vercel env rm "${key}" production --yes >/dev/null 2>&1 || true
+    printf '%s' "${val}" | vercel env add "${key}" production >/dev/null 2>&1 )
+}
+
+setenv raven-dashboard RAVEN_API_URL             "https://${API_HOST}"
+setenv raven-dashboard NEXT_PUBLIC_DOCS_URL      "${DOCS}"
+setenv raven-landing   NEXT_PUBLIC_DASHBOARD_URL "${DASH}"
+setenv raven-landing   NEXT_PUBLIC_DOCS_URL      "${DOCS}"
+setenv raven-docs      NEXT_PUBLIC_DASHBOARD_URL "${DASH}"
+setenv raven-docs      NEXT_PUBLIC_DOCS_URL      "${DOCS}"
+setenv raven-docs      NEXT_PUBLIC_WWW_URL       "${LANDING}"
+echo "    env updated on all three projects"
+
+for pair in "raven-landing:${DOMAIN}" "raven-dashboard:app.${DOMAIN}" "raven-docs:docs.${DOMAIN}"; do
+  proj="${pair%%:*}"; host="${pair##*:}"
+  echo "    rebuilding ${proj} -> ${host}"
+  ( cd "${REPO_ROOT}"
+    vercel link --project "${proj}" --yes >/dev/null 2>&1
+    url="$(vercel deploy --prod --yes 2>/dev/null | grep -oE '"url": "[^"]*"' | head -1 | cut -d'"' -f4)"
+    [ -n "${url}" ] && vercel alias set "${url}" "${host}" >/dev/null 2>&1 \
+      && echo "      aliased ${host}" || echo "      WARN: could not alias ${host}" )
+done
 
 echo
 echo "Done. Verify with:"
