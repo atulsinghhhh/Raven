@@ -69,8 +69,8 @@ enum ConnectionState {
   FAILED
 }
 
-/// Raven-facing error categories (Phase 9 spec §18) — never the raw
-/// LiveKit/coturn error a developer would have to reverse-engineer.
+/// Raven-facing error categories (Phase 9 spec §18) — never the raw SFU,
+/// ICE-agent, or coturn error a developer would have to reverse-engineer.
 enum ErrorCategory {
   AUTHENTICATION_ERROR
   AUTHORIZATION_ERROR
@@ -215,6 +215,15 @@ model Room {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
+  /// The SFU currently serving this room (spec §25). Null means the room
+  /// has no live media session — either nobody has joined yet, or everyone
+  /// left and the assignment was released. A room is assigned once, on
+  /// first join, and keeps that SFU for the session's lifetime: migrating a
+  /// live room between SFUs means renegotiating every participant, so it is
+  /// deliberately not something an ordinary join can trigger.
+  rtcServerId String?
+  rtcServer   RtcServer? @relation(fields: [rtcServerId], references: [id], onDelete: SetNull)
+
   participants Participant[]
   rtcTokens    RtcToken[]
   /// The chat channel attached to this RTC room, if one was created.
@@ -230,12 +239,14 @@ model Room {
   // what environment isolation means in practice.
   @@unique([projectId, environment, name])
   @@index([projectId])
+  @@index([rtcServerId])
   @@map("rooms")
 }
 
-/// A logical identity within a room's control-plane record. Real join/leave
-/// state (from LiveKit webhooks) is wired up in a later phase; for now this
-/// row exists so RTC tokens have something durable to reference and so a
+/// A logical identity within a room's control-plane record. This is not
+/// live presence: who is actually connected right now is read from the
+/// room's SFU node (`SfuRoomStateService`), never from this table. The row
+/// exists so RTC tokens have something durable to reference and so a
 /// consistent identity is enforced per room.
 model Participant {
   id        String            @id @default(uuid())
@@ -254,9 +265,10 @@ model Participant {
 }
 
 /// A control-plane record of a granted RTC token. The actual bearer
-/// credential is a signed LiveKit JWT returned once at creation time and
-/// never persisted — this row is the audit/metadata trail, not the secret
-/// itself. See docs/control-plane.md#rtc-tokens.
+/// credential is a Raven-signed HS256 JWT returned once at creation time
+/// and never persisted — this row is the audit/metadata trail, not the
+/// secret itself. This row's `id` is the token's `jti`, which is why it is
+/// created before the token is signed. See docs/rtc/security.md.
 model RtcToken {
   id            String      @id @default(uuid())
   projectId     String
@@ -274,12 +286,12 @@ model RtcToken {
 }
 
 /// A real RTC connection, event-sourced from best-effort SDK telemetry
-/// (Phase 9) — distinct from `RtcToken` (a grant) and from LiveKit's own
-/// internal session bookkeeping. `publicId` (`conn_...`) is generated
-/// client-side by `@raven/rtc` at `join()` time and is the ID surfaced in
-/// the dashboard, the CLI, and any error report, so a developer can
-/// correlate all three without ever touching LiveKit/coturn directly. See
-/// docs/observability.md#connection-lifecycle.
+/// (Phase 9) — distinct from `RtcToken` (a grant) and from the SFU's own
+/// per-session bookkeeping, which is in-memory and dies with the node.
+/// `publicId` (`conn_...`) is generated client-side by `@corvidhq/rtc` at
+/// `join()` time and is the ID surfaced in the dashboard, the CLI, and any
+/// error report, so a developer can correlate all three without reading an
+/// SFU or coturn log. See docs/observability.md#connection-lifecycle.
 model Connection {
   id                  String          @id @default(uuid())
   publicId            String          @unique
@@ -345,7 +357,7 @@ model ConnectionEvent {
 }
 
 /// A classified, developer-facing error (Phase 9 spec §18-20). `category`
-/// is always a Raven concept (never a raw LiveKit/coturn error code) —
+/// is always a Raven concept (never a raw SFU or coturn error code) —
 /// see `error-classifier.ts` for the mapping and docs/error-codes.md for
 /// the full reference.
 model ErrorEvent {
@@ -834,4 +846,78 @@ model LiveStreamHost {
   @@unique([streamId, identity])
   @@index([streamId])
   @@map("live_stream_hosts")
+}
+
+/// Health of an RTC server as the control plane sees it. Derived from
+/// heartbeats, not self-reported: a node that thinks it is fine but has
+/// stopped heartbeating is not fine from the perspective that matters.
+enum RtcServerStatus {
+  /// Accepting new room allocations.
+  HEALTHY
+  /// Reachable and serving its existing rooms, but taking no new ones —
+  /// either it reported itself over capacity, or an operator drained it.
+  DRAINING
+  /// Missed its heartbeat window. Existing rooms are left alone (spec §26:
+  /// do not kill active rooms without recovery logic); no new allocations.
+  UNHEALTHY
+}
+
+/// One Raven SFU process in the fleet (spec §23).
+///
+/// Rows are created by the SFU itself, registering on boot with the shared
+/// SFU_REGISTRATION_SECRET, and kept fresh by its heartbeats. The control
+/// plane never provisions these — a node's existence is a fact about the
+/// deployment, and expecting an operator to also declare it in a database
+/// is how a fleet ends up with phantom entries.
+///
+/// Load figures are a snapshot from the last heartbeat, not live truth.
+/// That is the honest shape for them: an allocator making a decision reads
+/// numbers that are at most one heartbeat interval old, and pretending
+/// otherwise would just hide the staleness the dashboard has to show.
+model RtcServer {
+  id     String          @id @default(uuid())
+  /// Stable operator-facing name, unique across the fleet — the id a human
+  /// uses in `raven rtc servers get <server>` and reads in a log line
+  /// (e.g. "sfu-asia-02"). Supplied by the node itself via SFU_NODE_ID so
+  /// that a restarted process reclaims its own row rather than orphaning it
+  /// and creating a second.
+  name   String          @unique
+  region String
+  status RtcServerStatus @default(HEALTHY)
+
+  /// Host:port ICE advertises for media, and the base URL the control
+  /// plane uses to reach this node over the node link. Two fields because
+  /// inside a container network these are not the same address: the
+  /// control plane dials a service name, while a browser needs a routable
+  /// public one.
+  publicHost  String
+  internalUrl String
+
+  /// Room capacity this node advertises for itself. The allocator treats it
+  /// as a ceiling, not a target.
+  capacity Int @default(100)
+
+  activeRooms        Int @default(0)
+  activeParticipants Int @default(0)
+
+  /// Last-heartbeat resource snapshot. Percentages 0-100; network in bits
+  /// per second. Nullable because a node that has registered but not yet
+  /// heartbeated has no measurement to report, and zero would read as
+  /// "idle" rather than "unknown".
+  cpuPercent     Float?
+  memoryPercent  Float?
+  networkInBps   Float?
+  networkOutBps  Float?
+
+  /// Build identifier, so a fleet mid-rollout is legible in the dashboard.
+  version String?
+
+  lastHeartbeatAt DateTime?
+  registeredAt    DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  rooms Room[]
+
+  @@index([region, status])
+  @@map("rtc_servers")
 }
