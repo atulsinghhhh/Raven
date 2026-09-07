@@ -81,10 +81,16 @@ instance:
 
 ```bash
 cp .env.example .env
-pnpm infra:up       # Postgres, Redis, the media server, TURN, the API
+pnpm infra:up       # Redis, the media server, TURN, the API
 pnpm infra:verify   # confirms everything is healthy
+pnpm db:migrate     # apply migrations to your Postgres
 pnpm db:seed        # optional: a demo developer + project + key + room
 ```
+
+`.env` needs a `DATABASE_URL` and `DIRECT_URL` before any of this works —
+Postgres is not part of the compose stack. Any Postgres will do; Raven's
+own deployment uses managed Postgres on Supabase, whose free tier gives you
+both connection strings in a couple of minutes.
 
 Interactive API docs are then at `http://localhost:4100/docs`.
 

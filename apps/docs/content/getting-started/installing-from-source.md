@@ -112,10 +112,16 @@ The SDKs need a Raven control plane to talk to. To run one locally:
 
 ```bash
 cp .env.example .env
-pnpm infra:up       # Postgres, Redis, the media server, TURN, the API
+pnpm infra:up       # Redis, the media server, TURN, the API
 pnpm infra:verify   # confirms everything is healthy
+pnpm db:migrate     # apply migrations to your Postgres
 pnpm db:seed        # optional: a demo developer, project, key, and room
 ```
+
+`.env` needs a `DATABASE_URL` and `DIRECT_URL` before any of this works —
+Postgres is not part of the compose stack. Any Postgres will do; Raven's
+own deployment uses managed Postgres on Supabase, whose free tier gives you
+both connection strings in a couple of minutes.
 
 The API is then at `http://localhost:4100`, with interactive docs at
 `/docs`. Point your SDK's `apiUrl`/`endpoint` there. See

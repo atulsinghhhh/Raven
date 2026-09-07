@@ -20,7 +20,7 @@
     "lint:fix": "eslint . --fix",
     "test": "pnpm --filter @raven/api test",
     "test:e2e": "pnpm --filter @raven/api test:e2e",
-    "db:migrate": "pnpm --filter @raven/api prisma:migrate:dev",
+    "db:migrate": "pnpm --filter @raven/api prisma:migrate:deploy",
     "db:seed": "pnpm --filter @raven/api prisma:seed"
   },
   "devDependencies": {
