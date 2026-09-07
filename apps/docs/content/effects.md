@@ -4,7 +4,7 @@ description: A reusable real-time video effects pipeline shared by Raven RTC and
 ---
 
 Raven Effects processes a publisher's camera before it's sent anywhere.
-You think about **Raven Effects** — never about LiveKit, WebGL, or which
+You think about **Raven Effects** — never about WebGL, RTP, or which
 transport carries the video underneath.
 
 ```

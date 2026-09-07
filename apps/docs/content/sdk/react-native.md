@@ -27,16 +27,22 @@ both platforms at once.
 
 ```bash
 npm install @corvidhq/react-native @corvidhq/rtc @corvidhq/effects @corvidhq/chat \
-            @livekit/react-native @livekit/react-native-webrtc
+            react-native-webrtc react-native-incall-manager
 
 cd ios && pod install   # iOS only
 ```
 
-The two `@livekit/*` packages are required native modules, not a
-separate SDK to integrate with — React Native's autolinking needs them
-installed directly in your app for the native WebRTC implementation to
-build for iOS/Android. You never import or call them; everything you
-write is `@corvidhq/react-native`'s API.
+`react-native-webrtc` is a required native module, not a separate SDK to
+integrate with — React Native's autolinking needs it installed directly
+in your app so the native WebRTC implementation builds for iOS and
+Android. You never import or call it; everything you write is
+`@corvidhq/react-native`'s API.
+
+`react-native-incall-manager` is **optional** and only used for
+call-audio routing (earpiece/speaker, proximity, the in-call audio
+session). Without it, `audio.*` throws `NOT_SUPPORTED` and everything
+else works; `audio.setAdapter()` lets you supply your own native module
+instead.
 
 **Permissions** — the SDK can't add these for you.
 

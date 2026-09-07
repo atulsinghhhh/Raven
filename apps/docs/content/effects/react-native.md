@@ -26,7 +26,7 @@ look, or validating a saved preference before rendering.
 
 ## What's planned
 
-React Native's camera comes from `@livekit/react-native-webrtc`, wrapped
+React Native's camera comes from `react-native-webrtc`, wrapped
 by the exact same `Room`/`LocalTrack` classes `@corvidhq/rtc` uses on
 web (see [Architecture](/getting-started/architecture)). Because those
 classes are shared unmodified, `camera.attachEffects(pipeline)` **exists**

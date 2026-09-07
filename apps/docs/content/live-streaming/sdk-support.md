@@ -90,6 +90,6 @@ read the docs for Flutter or for the CLI.
   methods that delegate to `raven_rtc`/`raven_chat` (`join`, `leave`,
   `react`) do not — this repo has no Flutter/Dart toolchain available to
   run them, and `raven_rtc` itself has the same gap for the same reason
-  (its `Raven`/`RavenRoom` classes need a real or mocked LiveKit
+  (its `Raven`/`RavenRoom` classes need a real or mocked signaling
   connection this repo's test setup doesn't provide). Run `flutter test`
   in an environment with the Flutter SDK installed before shipping.

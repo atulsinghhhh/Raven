@@ -36,15 +36,16 @@ npm install @corvidhq/rtc @corvidhq/react
 
 ```bash
 npm install @corvidhq/react-native @corvidhq/rtc \
-            @livekit/react-native @livekit/react-native-webrtc
+            react-native-webrtc react-native-incall-manager
 
 cd ios && pod install   # iOS only
 ```
 
-The two `@livekit/*` packages are required native modules — React
-Native's autolinking needs them installed directly in your app. You
-never import or call them yourself; see [Permissions](/rtc/permissions)
-for the OS-level setup they also require.
+`react-native-webrtc` is a required native module — React Native's
+autolinking needs it installed directly in your app. You never import
+or call it yourself; see [Permissions](/rtc/permissions) for the
+OS-level setup it also requires. `react-native-incall-manager` is
+optional, for call-audio routing.
 
 </Tab>
 <Tab title="Flutter">

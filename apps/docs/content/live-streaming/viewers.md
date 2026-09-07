@@ -151,7 +151,7 @@ media is off-limits.
 | Error | Why | Fix |
 |---|---|---|
 | `PERMISSION_DENIED` on `room.enableCamera()` | Every viewer token has `publish: false`. | Expected — a viewer becomes a co-host via `addHost()`, called by your backend, not by asking client-side. |
-| No disconnect detected when a viewer's app crashes | There's no LiveKit webhook receiver for streams in this phase. | Only an explicit `stream.leave()`/`leave` call fires `live_stream.viewer_left` — don't rely on it for abrupt disconnects. |
+| No disconnect detected when a viewer's app crashes | Streams don't yet react to a dropped media session in this phase. | Only an explicit `stream.leave()`/`leave` call fires `live_stream.viewer_left` — don't rely on it for abrupt disconnects. |
 
 ## Related
 
