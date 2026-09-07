@@ -4,14 +4,26 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { Project } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Field, Input } from '@/components/ui/field';
+import { Dialog } from '@/components/ui/dialog';
+import { Field, Input, TextareaField } from '@/components/ui/field';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { MonoId } from '@/components/ui/mono';
 import { IconChevronRight, IconFolder, IconPlus, IconSearch } from '@/components/ui/icons';
 import { formatDate } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
+
+/**
+ * Limits mirror CreateProjectDto on the API (name 2–80, description
+ * optional and ≤500). They're enforced here as `maxLength` plus a
+ * disabled submit rather than as an error message, so the two never
+ * disagree and the request is never sent knowing it will be rejected —
+ * but the server stays the authority, and anything it refuses is still
+ * surfaced verbatim.
+ */
+const NAME_MIN = 2;
+const NAME_MAX = 80;
+const DESCRIPTION_MAX = 500;
 
 export function ProjectsList({
   initialProjects,
@@ -24,6 +36,7 @@ export function ProjectsList({
   const projects = initialProjects; // creating navigates away, so the list never mutates in place
   const [creating, setCreating] = useState(autoOpenCreate);
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [error, setError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
   const [query, setQuery] = useState('');
@@ -33,8 +46,29 @@ export function ProjectsList({
     ? projects.filter((p) => p.name.toLowerCase().includes(trimmedQuery))
     : projects;
 
+  const trimmedName = name.trim();
+  const nameValid = trimmedName.length >= NAME_MIN && trimmedName.length <= NAME_MAX;
+
+  function openCreate() {
+    setName('');
+    setDescription('');
+    setError(undefined);
+    setCreating(true);
+  }
+
+  function closeCreate() {
+    // Left alone while a request is in flight: dismissing the dialog
+    // mid-submit would strand the user with no idea whether the project
+    // was created.
+    if (submitting) return;
+    setCreating(false);
+    setError(undefined);
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+    if (!nameValid || submitting) return;
+
     setSubmitting(true);
     setError(undefined);
 
@@ -42,7 +76,12 @@ export function ProjectsList({
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({
+          name: trimmedName,
+          // Omitted entirely rather than sent empty — the field is
+          // optional on the API and "" is not the same as absent.
+          ...(description.trim() ? { description: description.trim() } : {}),
+        }),
       });
       const payload = await res.json();
 
@@ -62,63 +101,24 @@ export function ProjectsList({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        eyebrow="Account"
         title="Projects"
         description="Each project has its own API keys, rooms, and observability data."
         actions={
-          !creating && (
-            <Button onClick={() => setCreating(true)}>
-              <IconPlus className="size-3.5" />
-              New project
-            </Button>
-          )
+          <Button onClick={openCreate}>
+            <IconPlus className="size-3.5" />
+            New project
+          </Button>
         }
       />
 
-      {creating && (
-        <Card>
-          <form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <Field
-              id="project-name"
-              label="Project name"
-              placeholder="my-video-app"
-              required
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="flex-1"
-              hint="Used across the dashboard, CLI, and SDK quickstarts."
-            />
-            <div className="flex gap-2">
-              <Button type="submit" loading={submitting}>
-                Create project
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setCreating(false);
-                  setError(undefined);
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
-          {error && (
-            <div className="mt-4">
-              <ErrorState title="Could not create project" description={error} />
-            </div>
-          )}
-        </Card>
-      )}
-
-      {projects.length === 0 && !creating ? (
+      {projects.length === 0 ? (
         <EmptyState
           icon={<IconFolder className="size-7" />}
           title="No projects yet"
           description="A project groups your API keys, rooms, and connection telemetry. Create one to get your first RTC token."
           action={
-            <Button onClick={() => setCreating(true)}>
+            <Button onClick={openCreate}>
               <IconPlus className="size-3.5" />
               Create your first project
             </Button>
@@ -128,7 +128,7 @@ export function ProjectsList({
         <>
           {projects.length > 6 && (
             <div className="relative max-w-sm">
-              <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-subtle" />
+              <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted" />
               <Input
                 type="text"
                 value={query}
@@ -156,7 +156,7 @@ export function ProjectsList({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <span className="min-w-0 truncate text-sm font-medium text-fg">{project.name}</span>
-                      <IconChevronRight className="size-4 shrink-0 text-subtle transition-transform group-hover:translate-x-0.5" />
+                      <IconChevronRight className="size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
                     </div>
                     {project.description && (
                       <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{project.description}</p>
@@ -164,7 +164,7 @@ export function ProjectsList({
                     <div className="mt-3 flex items-center gap-2">
                       <MonoId value={project.id} />
                     </div>
-                    <div className="mt-3 flex items-center gap-2 border-t border-line pt-3 text-xs text-subtle">
+                    <div className="mt-3 flex items-center gap-2 border-t border-line pt-3 text-xs text-muted">
                       <Badge tone={project.status === 'ACTIVE' ? 'success' : 'neutral'}>
                         {project.status === 'ACTIVE' ? 'Active' : 'Archived'}
                       </Badge>
@@ -177,6 +177,60 @@ export function ProjectsList({
           )}
         </>
       )}
+
+      <Dialog
+        open={creating}
+        onClose={closeCreate}
+        title="Create a project"
+        description="A project is an isolated set of API keys, rooms, and telemetry. You can rename it later."
+        onSubmit={handleCreate}
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={closeCreate} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={submitting} disabled={!nameValid}>
+              Create project
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <Field
+            id="project-name"
+            label="Project name"
+            placeholder="my-video-app"
+            required
+            autoComplete="off"
+            maxLength={NAME_MAX}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            hint={
+              trimmedName.length === 0
+                ? 'Used across the dashboard, CLI, and SDK quickstarts.'
+                : trimmedName.length < NAME_MIN
+                  ? `At least ${NAME_MIN} characters.`
+                  : `${trimmedName.length} of ${NAME_MAX} characters.`
+            }
+          />
+
+          <TextareaField
+            id="project-description"
+            label="Description (optional)"
+            placeholder="What this project is for — shown on the projects list."
+            maxLength={DESCRIPTION_MAX}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            hint={
+              description.length === 0
+                ? `Up to ${DESCRIPTION_MAX} characters.`
+                : `${description.length} of ${DESCRIPTION_MAX} characters.`
+            }
+          />
+
+          {error && <ErrorState title="Could not create project" description={error} />}
+        </div>
+      </Dialog>
     </div>
   );
 }

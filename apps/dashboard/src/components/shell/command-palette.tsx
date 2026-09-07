@@ -61,10 +61,10 @@ export function CommandPalette({ projectId }: { projectId: string }) {
     [projectId],
   );
 
-  // Things you *do*, not places you go — each still lands on a real page
-  // (the create form on API Keys, the create form on Projects), since
-  // there's no separate "create" endpoint the palette could call
-  // directly without duplicating that page's validation and error UI.
+  // Things you *do*, not places you go. Each still lands on a real page
+  // rather than calling an endpoint from here, which would mean
+  // duplicating that page's validation and error UI — but where the page
+  // supports a deep link that opens its create UI, the action uses it.
   const actions: Item[] = useMemo(
     () => [
       {
@@ -79,7 +79,11 @@ export function CommandPalette({ projectId }: { projectId: string }) {
         id: 'create-project',
         title: 'Create project',
         subtitle: 'Projects',
-        href: `/dashboard/projects`,
+        // ?new=1 is the deep link that opens the create dialog — the
+        // dashboard home and the project switcher already use it. Without
+        // the param this action only landed on the list and the developer
+        // had to find the button themselves.
+        href: `/dashboard/projects?new=1`,
       },
       {
         type: 'action' as const,
