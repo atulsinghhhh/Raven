@@ -3,11 +3,21 @@ import { ButtonHTMLAttributes, AnchorHTMLAttributes } from 'react';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md';
 
+/*
+ * Filled variants carry no shadow. Depth in this console comes from the
+ * surface/canvas contrast and hairline borders, and a drop shadow under
+ * a button was the one place that rule was broken.
+ *
+ * The two filled variants run semibold and the outlined ones medium —
+ * same split as the marketing site's buttons, and it's what lets a
+ * primary action read as primary without also being the only coloured
+ * thing on screen.
+ */
 const VARIANT: Record<Variant, string> = {
-  primary: 'bg-accent text-accent-fg hover:bg-accent-hover shadow-raven-sm',
-  secondary: 'border border-line bg-surface text-fg hover:bg-surface-raised hover:border-line-strong',
-  ghost: 'text-muted hover:text-fg hover:bg-surface-raised',
-  danger: 'bg-danger text-white hover:opacity-90',
+  primary: 'bg-accent text-accent-fg font-semibold hover:bg-accent-hover',
+  secondary: 'border border-line bg-surface text-fg font-medium hover:bg-surface-raised hover:border-line-strong',
+  ghost: 'text-muted font-medium hover:text-fg hover:bg-surface-raised',
+  danger: 'bg-danger text-white font-semibold hover:opacity-90',
 };
 
 const SIZE: Record<Size, string> = {
@@ -16,7 +26,7 @@ const SIZE: Record<Size, string> = {
 };
 
 const BASE =
-  'inline-flex items-center justify-center font-medium whitespace-nowrap transition-[background-color,border-color,color,opacity] duration-100 disabled:opacity-50 disabled:pointer-events-none';
+  'inline-flex items-center justify-center whitespace-nowrap transition-[background-color,border-color,color,opacity] duration-100 disabled:opacity-50 disabled:pointer-events-none';
 
 export function Button({
   variant = 'primary',
