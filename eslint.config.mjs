@@ -146,4 +146,20 @@ export default tseslint.config(
       globals: { ...globals.node },
     },
   },
+
+  {
+    // Load scripts run inside k6's own JS runtime, not Node. k6 injects a
+    // handful of magic globals that no `globals` preset covers: `__ENV`
+    // (the environment map passed via `-e`), and `__VU`/`__ITER` (the
+    // virtual-user and iteration counters used to key per-VU test data).
+    // They are read-only from the script's point of view.
+    files: ['scripts/k6/**/*.js'],
+    languageOptions: {
+      globals: {
+        __ENV: 'readonly',
+        __VU: 'readonly',
+        __ITER: 'readonly',
+      },
+    },
+  },
 );

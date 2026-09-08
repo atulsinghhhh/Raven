@@ -1,6 +1,6 @@
 import { RavenLiveStream, joinLiveStream } from '../src/live-stream';
 import type { LiveStreamCredentials } from '../src/types';
-import { __calls as webrtcCalls, __resetCalls as resetWebrtcCalls } from './mocks/react-native-webrtc';
+import { __resetCalls as resetWebrtcCalls } from './mocks/react-native-webrtc';
 import { __calls as audioCalls, __resetCalls as resetAudioCalls } from './mocks/react-native-incall-manager';
 import { __appState, PermissionsAndroid, __setPlatform } from './mocks/react-native';
 
