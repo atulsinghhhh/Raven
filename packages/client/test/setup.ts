@@ -1,6 +1,7 @@
-// jsdom implements neither TextEncoder/TextDecoder nor any WebRTC media
-// type, and @corvidhq/rtc reaches for both as its module graph loads — so
-// the polyfills have to exist first. Same shim as packages/sdk/test/setup.ts, for the same reason.
+// jsdom has neither TextEncoder/TextDecoder nor any WebRTC media type, and
+// @corvidhq/rtc reaches for both while its module graph loads. So the
+// polyfills have to be in place first. Same shim as
+// packages/sdk/test/setup.ts, for the same reason.
 import { TextDecoder, TextEncoder } from 'util';
 
 if (typeof globalThis.TextEncoder === 'undefined') {

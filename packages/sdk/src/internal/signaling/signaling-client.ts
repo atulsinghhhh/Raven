@@ -12,17 +12,17 @@ import {
 } from './protocol';
 
 /**
- * How long to wait for the socket to open, and for `room.joined` after it.
+ * How long to wait for the socket to open, and then for `room.joined`.
  *
- * Separate from each other because they fail for different reasons: the
- * first is "cannot reach the API", the second is "the API cannot reach an
- * RTC server". A single combined timeout would report both as the same
- * thing.
+ * Two values, because they fail for completely different reasons. The
+ * first means "can't reach the API"; the second means "the API can't reach
+ * an RTC server". One combined timeout would report both as the same
+ * thing, which helps nobody.
  */
 const OPEN_TIMEOUT_MS = 10_000;
 const JOIN_TIMEOUT_MS = 15_000;
 
-/** Reconnect backoff. Jittered, so a fleet-wide blip does not produce a thundering herd. */
+/** Reconnect backoff, jittered, so a fleet-wide blip doesn't turn into a thundering herd. */
 const RECONNECT_BASE_MS = 300;
 const RECONNECT_MAX_MS = 10_000;
 const RECONNECT_MAX_ATTEMPTS = 12;
@@ -37,14 +37,14 @@ export interface JoinedPayload {
 }
 
 export interface SignalingClientEvents {
-  /** The socket opened and the room was joined. Fires again after each successful reconnect. */
+  /** Socket opened, room joined. Fires again after every successful reconnect. */
   joined: (payload: JoinedPayload) => void;
   message: (message: ServerMessage) => void;
   /** Connection lost; a reconnect is being attempted. */
   reconnecting: () => void;
   /** Reconnect attempts exhausted, or the failure is not retryable. */
   failed: (error: RTCError) => void;
-  /** Closed deliberately, by `close()`. */
+  /** Closed on purpose, via `close()`. */
   closed: () => void;
 }
 
@@ -56,9 +56,9 @@ export interface SignalingClientOptions {
   autoReconnect: boolean;
   logger: Logger;
   /**
-   * Supplies a fresh token when the current one is close to expiry or has
-   * been rejected (spec §21). Without it, a call outlives its token and
-   * dies at the next reconnect.
+   * Hands back a fresh token when the current one is nearly expired or has
+   * been rejected outright (spec §21). Without it, a call outlives its
+   * token and dies at the next reconnect.
    */
   refreshToken?: () => Promise<string>;
 }
@@ -66,25 +66,25 @@ export interface SignalingClientOptions {
 /**
  * The SDK's signaling connection.
  *
- * # What this owns and what it does not
+ * # What it owns, and what it doesn't
  *
- * It owns the socket, the join handshake, and reconnection. It does not
- * know what a `PeerConnection` is: every message is handed to the adapter,
+ * It owns the socket, the join handshake and reconnection. It has no idea
+ * what a `PeerConnection` is. Every message goes straight to the adapter,
  * which decides what to negotiate. Keeping that line clean is what makes
- * the reconnect logic testable without a WebRTC stack, and what lets the
- * React Native and Flutter clients reuse the same protocol reasoning
- * against a different transport.
+ * the reconnect logic testable with no WebRTC stack in sight, and what
+ * lets the React Native and Flutter clients reuse the same protocol
+ * reasoning over a different transport.
  *
  * # Reconnection
  *
- * Reconnecting re-runs the whole join, because that is what the server
- * expects: the previous session's PeerConnection is gone (or being reaped),
- * and `room.join` allocates a fresh one. The adapter rebuilds its
- * PeerConnection from the offer that follows. That is more work than
- * resuming a session, and it is chosen deliberately — an ICE restart on a
- * connection that has already failed is less reliable than starting clean,
- * and the client has to handle a fresh session anyway when the network
- * changed underneath it (spec §20).
+ * A reconnect re-runs the entire join, because that's what the server is
+ * expecting. The previous session's PeerConnection is gone or being
+ * reaped, and `room.join` allocates a fresh one; the adapter rebuilds its
+ * PeerConnection off the offer that follows. Yes, that's more work than
+ * resuming a session, and it's the deliberate choice: an ICE restart on a
+ * connection that already failed is flakier than starting clean, and the
+ * client has to cope with a fresh session anyway when the network moved
+ * under it (spec §20).
  */
 export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
   private socket?: WebSocket;
@@ -111,10 +111,10 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
   /**
    * Opens the socket and joins the room.
    *
-   * Resolves once `room.joined` arrives — not merely once the socket
-   * opens. A caller that got a resolved promise on socket-open would then
-   * have to wait for an event to know whether it was actually in the room,
-   * which is the same waiting with an extra step.
+   * Resolves when `room.joined` arrives, not when the socket opens. Resolve
+   * on socket-open and the caller still has to sit waiting on an event to
+   * find out whether they're actually in the room, which is the same wait
+   * with an extra step bolted on.
    */
   async connect(): Promise<JoinedPayload> {
     this.closedByCaller = false;
@@ -152,9 +152,9 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
 
       socket.onerror = () => {
         clearTimeout(timeout);
-        // A browser WebSocket error event carries no detail, by design —
-        // exposing why a connection failed would be a cross-origin
-        // information leak. So the message says what to check rather than
+        // A browser WebSocket error event carries no detail whatsoever,
+        // by design: saying why a connection failed would be a cross-origin
+        // information leak. So this message lists what to check instead of
         // pretending to know.
         reject(
           new RTCError(
@@ -186,8 +186,8 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
           return;
         }
 
-        // The join handshake is resolved here, then every subsequent
-        // message goes to the steady-state handler below.
+        // Join handshake resolves here. Everything after it goes to the
+        // steady-state handler below.
         if (!settled) {
           if (message.type === ServerMessageType.ROOM_JOINED) {
             const payload: JoinedPayload = {
@@ -231,9 +231,9 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
       };
 
       socket.onerror = () => {
-        // Post-open errors are followed by a close event, which is where
-        // reconnection is decided. Nothing to do here but avoid an
-        // unhandled event.
+        // A post-open error is always followed by a close event, and
+        // that's where reconnection gets decided. Nothing to do here except
+        // not leave the event unhandled.
       };
 
       this.send({
@@ -248,8 +248,9 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
     if (message.type === ServerMessageType.ERROR) {
       const error = this.toError(message.code, message.message);
       this.logger.warn('signaling error', message.code, message.message);
-      // Fatal errors end the session; retryable ones are the adapter's
-      // problem (a glare, say, which it resolves by retrying its offer).
+      // Fatal errors end the session. Retryable ones belong to the
+      // adapter, glare being the usual suspect, which it sorts out by
+      // retrying its offer.
       if (FATAL_ERROR_CODES.has(message.code)) {
         this.closedByCaller = true;
         this.socket?.close();
@@ -274,9 +275,9 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
       return;
     }
 
-    // 4001 is the server's authentication-failed close code. Reconnecting
-    // with the same rejected token would just fail again — so a refresh is
-    // attempted first, and only then a reconnect.
+    // 4001 is the server's authentication-failed close code. Reconnect
+    // with the same rejected token and you'll get rejected again, so try a
+    // refresh first and only then reconnect.
     const authFailed = event.code === 4001;
     void this.scheduleReconnect(authFailed);
   }
@@ -297,16 +298,16 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
     this.emit('reconnecting');
 
     if (refreshFirst || this.reconnectAttempts === 1) {
-      // Refreshed on the first attempt too, not only after an auth
-      // failure: a reconnect after a long network outage very often has an
-      // expired token, and discovering that by being rejected costs an
-      // extra round trip and a confusing log line.
+      // Refresh on the first attempt as well, not just after an auth
+      // failure. A reconnect following a long outage very often carries an
+      // expired token, and finding that out by getting rejected costs a
+      // round trip and leaves a confusing line in the log.
       await this.tryRefreshToken();
     }
 
     const backoff = Math.min(RECONNECT_BASE_MS * 2 ** (this.reconnectAttempts - 1), RECONNECT_MAX_MS);
-    // Full jitter: every client picks somewhere in [0, backoff), so a
-    // fleet that all dropped at once does not all retry at once.
+    // Full jitter. Every client picks somewhere in [0, backoff), so a
+    // fleet that all dropped together doesn't all come back together.
     const delay = Math.random() * backoff;
 
     this.logger.info(
@@ -329,8 +330,8 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
       this.token = await this.options.refreshToken();
       this.logger.debug('rtc token refreshed');
     } catch (error) {
-      // Not fatal on its own: the existing token may still be valid, and
-      // failing the reconnect here would turn a recoverable blip into a
+      // Not fatal by itself. The existing token may well still be good,
+      // and failing the reconnect here turns a recoverable blip into a
       // dropped call.
       this.logger.warn('rtc token refresh failed', (error as Error).message);
     }
@@ -343,17 +344,17 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
 
   send(message: ClientMessage): void {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      // Dropped rather than queued. Every message here describes a moment
-      // in a negotiation, and replaying a stale answer after a reconnect
-      // would be worse than never sending it — the reconnect re-joins and
-      // negotiates afresh.
+      // Dropped, not queued. Every message here describes one moment in a
+      // negotiation, and replaying a stale answer after a reconnect is
+      // worse than never sending it. The reconnect re-joins and negotiates
+      // from scratch anyway.
       this.logger.debug('dropping signaling message, socket not open', message.type);
       return;
     }
     this.socket.send(JSON.stringify(message));
   }
 
-  /** Leaves the room and closes the socket. Suppresses reconnection. */
+  /** Leaves the room and closes the socket. No reconnect afterwards. */
   close(): void {
     this.closedByCaller = true;
     if (this.reconnectTimer) {
@@ -369,18 +370,18 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
 
   private buildUrl(): string {
     const base = this.options.endpoint.replace(/\/$/, '');
-    // The token goes in a query parameter because the browser's WebSocket
-    // API cannot set request headers. It is short-lived by design for
-    // exactly this reason, and the connection must be wss:// in
-    // production — which the server's own config validation enforces.
+    // Token rides in a query parameter, because the browser's WebSocket
+    // API can't set request headers. It's short-lived by design for exactly
+    // this reason, and the connection has to be wss:// in production, which
+    // the server's own config validation enforces.
     return `${base}?token=${encodeURIComponent(this.token)}`;
   }
 
   private parse(data: unknown): ServerMessage | undefined {
     if (typeof data !== 'string') {
       // Raven's signaling is text-only. A binary frame means something
-      // else is on this socket, and guessing at it would be worse than
-      // ignoring it.
+      // else has got onto this socket, and guessing at it beats ignoring it
+      // exactly never.
       this.logger.warn('ignoring non-text signaling frame');
       return undefined;
     }

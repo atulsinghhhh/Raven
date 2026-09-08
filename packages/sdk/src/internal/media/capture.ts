@@ -6,11 +6,11 @@ import { NativeLocalTrackDelegate } from './native-track';
 /**
  * Default audio constraints (spec §13).
  *
- * All three are on by default because a call without them sounds bad in
- * the situations calls actually happen in — a laptop speaker and mic in
- * the same room is an echo generator. They are the browser's own
- * processing, not anything Raven implements, and a developer who wants raw
- * audio (music, transcription) can pass their own constraints.
+ * All three on by default, because without them a call sounds dreadful in
+ * the circumstances calls actually happen in. A laptop speaker and mic in
+ * one room is an echo generator. This is the browser's own processing, not
+ * anything Raven implements, and anyone who wants raw audio for music or
+ * transcription can pass their own constraints.
  */
 const DEFAULT_AUDIO_CONSTRAINTS: MediaTrackConstraints = {
   echoCancellation: true,
@@ -21,11 +21,10 @@ const DEFAULT_AUDIO_CONSTRAINTS: MediaTrackConstraints = {
 /**
  * Default camera constraints (spec §14).
  *
- * `ideal`, never `exact`: an exact resolution fails outright on a device
- * that cannot provide it, and "the call did not start because your webcam
- * is 640×480" is not an acceptable outcome. 720p is the ideal because it
- * is the resolution most cameras actually deliver and most layouts
- * actually display.
+ * `ideal`, never `exact`. An exact resolution fails outright on a device
+ * that can't manage it, and "your call didn't start because your webcam is
+ * 640×480" is not an acceptable outcome. 720p because it's the resolution
+ * most cameras genuinely deliver and most layouts genuinely display.
  */
 const DEFAULT_VIDEO_CONSTRAINTS: MediaTrackConstraints = {
   width: { ideal: 1280 },
@@ -33,7 +32,7 @@ const DEFAULT_VIDEO_CONSTRAINTS: MediaTrackConstraints = {
   frameRate: { ideal: 30 },
 };
 
-/** Named video profiles, so a developer picks a size rather than composing constraints. */
+/** Named video profiles, so you pick a size instead of composing constraints. */
 export type VideoProfile = '360p' | '480p' | '720p' | '1080p';
 
 const VIDEO_PROFILES: Record<VideoProfile, MediaTrackConstraints> = {
@@ -57,13 +56,13 @@ export interface MicrophoneOptions {
 }
 
 /**
- * Captures the camera without publishing it — for callers who want a
+ * Captures the camera without publishing it, for anyone who wants a
  * preview before `room.publish(track)`.
  *
- * Does not touch the microphone. Spec §13 is explicit that an audio-only
- * call must not require camera permission, and the converse holds too: a
- * camera preview should not make the browser ask for a microphone the
- * developer never requested.
+ * Doesn't go near the microphone. Spec §13 is explicit that an audio-only
+ * call must not demand camera permission, and it cuts both ways: a camera
+ * preview shouldn't have the browser asking for a microphone nobody
+ * requested.
  */
 export async function createCameraTrack(options: CameraOptions = {}): Promise<LocalTrack> {
   const constraints: MediaTrackConstraints = {
@@ -90,19 +89,19 @@ export async function createMicrophoneTrack(options: MicrophoneOptions = {}): Pr
 }
 
 /**
- * Captures a screen share via `getDisplayMedia`.
+ * Captures a screen share through `getDisplayMedia`.
  *
- * Video only, matching `room.enableScreenShare()`'s single-track
- * contract. Screen-*audio* is requested where the platform offers it, but
- * only the video track is surfaced; a second published track would change
- * the shape of the public API, so it is a documented scope limit rather
- * than a silent omission (spec §16).
+ * Video only, which matches `room.enableScreenShare()`'s single-track
+ * contract. We do request screen *audio* where the platform offers it, but
+ * only surface the video track. A second published track would change the
+ * shape of the public API, so this is a documented scope limit, not a
+ * silent omission (spec §16).
  */
 export async function createScreenShareTrack(): Promise<LocalTrack> {
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getDisplayMedia) {
-    // Mobile browsers and older engines have no getDisplayMedia at all.
-    // Spec §16 says not to assume screen share exists — so this is a
-    // clear, typed refusal rather than an obscure TypeError.
+    // Mobile browsers and older engines have no getDisplayMedia at all,
+    // and spec §16 says don't assume screen share exists. So: a clear
+    // typed refusal, rather than some obscure TypeError.
     throw new RTCError(
       'NOT_SUPPORTED',
       'Screen sharing is not available on this platform (no getDisplayMedia)',
@@ -121,9 +120,9 @@ export async function createScreenShareTrack(): Promise<LocalTrack> {
     throw new RTCError('MEDIA_ERROR', 'Screen capture returned no video track');
   }
 
-  // A user who stops sharing from the browser's own "Stop sharing" bar
-  // ends the track without telling us. The adapter listens for that and
-  // unpublishes; nothing is done here beyond handing the track over.
+  // Someone who stops sharing from the browser's own "Stop sharing" bar
+  // ends the track without telling us a thing. The adapter watches for
+  // that and unpublishes. Nothing to do here but hand the track over.
   return new LocalTrack(new NativeLocalTrackDelegate(videoTrack), 'screenShare');
 }
 

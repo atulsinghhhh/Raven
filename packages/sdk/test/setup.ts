@@ -1,7 +1,7 @@
-// jsdom (jest's browser-like test environment) implements neither
+// jsdom, jest's browser-ish test environment, has neither
 // TextEncoder/TextDecoder nor any WebRTC type. This polyfills just enough
-// for the SDK to import and run; tests that need to drive a connection
-// install richer fakes themselves (test/helpers/fake-webrtc.ts).
+// for the SDK to import and run. Tests that need to actually drive a
+// connection install richer fakes themselves (test/helpers/fake-webrtc.ts).
 import { TextDecoder, TextEncoder } from 'util';
 
 if (typeof globalThis.TextEncoder === 'undefined') {

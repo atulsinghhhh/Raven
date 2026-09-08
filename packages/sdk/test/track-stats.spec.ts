@@ -19,8 +19,8 @@ describe('normalizeTrackStats', () => {
     });
 
     it('omits fields the raw sample never reported, rather than defaulting to 0', () => {
-      // A 0ms RTT and "we don't know" are different facts, and the second
-      // one is what an absent field actually means here.
+      // A 0ms RTT and "we don't know" are different facts. An absent field
+      // means the second one.
       const stats = normalizeTrackStats(raw(), undefined, 'microphone', 'send');
 
       expect(stats.jitterMs).toBeUndefined();
@@ -77,8 +77,8 @@ describe('normalizeTrackStats', () => {
     });
 
     it('reports the raw count even when a percentage cannot be computed', () => {
-      // packetsSent is absent here (e.g. an SFU that doesn't report it),
-      // but packetsLost is still a real, useful number on its own.
+      // No packetsSent here, which happens with an SFU that doesn't report
+      // it. packetsLost is still a real, useful number by itself.
       const stats = normalizeTrackStats(raw({ packetsLost: 3 }), undefined, 'microphone', 'send');
 
       expect(stats.packetsLost).toBe(3);
@@ -113,8 +113,8 @@ describe('normalizeTrackStats', () => {
     });
 
     it('skips the computation when the samples carry the same timestamp', () => {
-      // A caller polling faster than the underlying stats actually refresh
-      // would otherwise divide by zero.
+      // Poll faster than the underlying stats refresh and you'd otherwise
+      // divide by zero.
       const previous = raw({ timestamp: 1000, bytesSent: 0 });
       const current = raw({ timestamp: 1000, bytesSent: 5000 });
 
@@ -124,8 +124,8 @@ describe('normalizeTrackStats', () => {
     });
 
     it('skips the computation when time or the counter moved backwards', () => {
-      // Out-of-order samples (or a counter reset) should not report a
-      // negative or wildly incorrect rate.
+      // Out-of-order samples, or a counter reset, mustn't produce a
+      // negative or wildly wrong rate.
       const previous = raw({ timestamp: 1000, bytesSent: 10_000 });
       const current = raw({ timestamp: 500, bytesSent: 5_000 });
 

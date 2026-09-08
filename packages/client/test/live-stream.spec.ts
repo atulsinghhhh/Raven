@@ -1,11 +1,13 @@
 /**
- * `LiveStream.join()` calls the real `createRTCClient`/`createChatClient`
- * factories from `@corvidhq/rtc`/`@corvidhq/chat` — those packages have their
- * own suites for what a real join/connect actually does over the
- * network. What's under test here is purely LiveStream's own composition
- * logic: which credentials go where, what `isHost` reports, and that
- * `react()`/`leave()` call through to the right underlying method. Both
- * packages are mocked so no test here waits on a real WebRTC connection.
+ * `LiveStream.join()` calls the real `createRTCClient` and
+ * `createChatClient` factories from `@corvidhq/rtc` and `@corvidhq/chat`,
+ * and those packages have their own suites covering what a real
+ * join/connect does over the network.
+ *
+ * What's under test here is only LiveStream's composition logic: which
+ * credentials go where, what `isHost` reports, and whether `react()` and
+ * `leave()` call through to the right underlying method. Both packages are
+ * mocked, so nothing here sits waiting on a real WebRTC connection.
  */
 import { createChatClient } from '@corvidhq/chat';
 import { createRTCClient } from '@corvidhq/rtc';

@@ -4,29 +4,29 @@ export type { RawTrackStats } from './track-stats';
 
 /**
  * Reads an `RTCStatsReport` into the flat samples `normalizeTrackStats`
- * already understands.
+ * already knows how to handle.
  *
- * # Why this needs to walk the report rather than pick one entry
+ * # Why this walks the whole report instead of grabbing one entry
  *
- * The interesting numbers for one track are spread across several stats
- * objects, and which object holds what differs by direction:
+ * The numbers you want for a single track are scattered across several
+ * stats objects, and which object holds what depends on direction:
  *
- * - `outbound-rtp` / `inbound-rtp` hold bytes, packets, and video
+ * - `outbound-rtp` / `inbound-rtp`: bytes, packets, and video
  *   resolution/framerate.
- * - `remote-inbound-rtp` holds the *remote* end's view of a stream we are
- *   sending — which is the only place round-trip time and the loss the
- *   far side actually saw are reported. Send-side loss cannot be measured
- *   locally at all; the sender only knows what it handed to the network.
- * - `codec` holds the mime type, referenced by id rather than inlined.
+ * - `remote-inbound-rtp`: the *remote* end's view of a stream we're
+ *   sending. It's the only place round-trip time and the loss the far side
+ *   actually saw get reported. Send-side loss can't be measured locally at
+ *   all; a sender only knows what it handed to the network.
+ * - `codec`: the mime type, referenced by id rather than inlined.
  *
- * So a faithful sample is a join across those. Doing it here, once, is
- * what lets `TrackStats` stay a flat, honest shape rather than exposing
- * the report's structure to callers.
+ * So a faithful sample is a join across all of those. Doing that here,
+ * once, is what keeps `TrackStats` a flat honest shape instead of
+ * exposing the report's structure to every caller.
  *
- * Anything the report does not contain is left `undefined`. Nothing here
- * substitutes a zero for a missing measurement — spec §19 forbids
- * inventing quality figures, and "0% loss" versus "no report yet" is
- * exactly the distinction that matters.
+ * Anything the report doesn't contain stays `undefined`. Nothing here
+ * swaps a zero in for a missing measurement. Spec §19 forbids inventing
+ * quality figures, and "0% loss" versus "no report yet" is exactly the
+ * distinction that matters.
  */
 export function rawStatsFromReport(
   report: RTCStatsReport,
@@ -96,9 +96,9 @@ function toRawStats(
     type: kind === 'audio' ? 'audio' : kind === 'video' ? 'video' : undefined,
     // `RTCStats.timestamp` is a DOMHighResTimeStamp relative to the time
     // origin, and `normalizeTrackStats` only ever uses it as a delta
-    // against a previous sample, so its epoch does not matter. Falling
-    // back to Date.now() keeps the delta usable in the rare case the
-    // browser omitted it.
+    // against a previous sample, so the epoch is irrelevant. Falling back
+    // to Date.now() keeps the delta usable on the rare browser that omits
+    // it.
     timestamp: typeof rtp.timestamp === 'number' ? rtp.timestamp : Date.now(),
   };
 
@@ -114,11 +114,11 @@ function toRawStats(
     if (typeof rtp.bytesSent === 'number') sample.bytesSent = rtp.bytesSent;
     if (typeof rtp.packetsSent === 'number') sample.packetsSent = rtp.packetsSent;
 
-    // Loss and RTT for a stream we are sending are only knowable from the
-    // receiver's report. Matched by `localId` where the browser provides
-    // it, falling back to SSRC — Safari has historically been
-    // inconsistent about `localId`, and an unmatched report is worse than
-    // a slightly looser match.
+    // Loss and RTT for a stream we're sending are only knowable from the
+    // receiver's report. Match on `localId` where the browser gives us
+    // one, fall back to SSRC otherwise. Safari has a long history of being
+    // inconsistent about `localId`, and a slightly looser match beats no
+    // match at all.
     const feedback =
       remoteInbound.find((remote) => rtp.id && remote.localId === rtp.id) ??
       remoteInbound.find((remote) => rtp.ssrc !== undefined && remote.ssrc === rtp.ssrc);
@@ -139,12 +139,11 @@ function toRawStats(
 }
 
 /**
- * The negotiated ICE candidate pair's round-trip time, if the connection
- * has one.
+ * Round-trip time on the negotiated ICE candidate pair, if there is one.
  *
- * Useful in addition to per-track RTT because it exists for a
- * video-only or receive-only connection, where no audio `remote-inbound-rtp`
- * report is available to carry one.
+ * Worth having alongside per-track RTT because it still exists on a
+ * video-only or receive-only connection, where there's no audio
+ * `remote-inbound-rtp` report to carry one.
  */
 export async function connectionRoundTripTimeMs(
   connection: RTCPeerConnection,
@@ -158,8 +157,8 @@ export async function connectionRoundTripTimeMs(
       return;
     }
     // Only the pair actually in use. A connection gathers several and
-    // reports them all; the others' timings describe paths not being
-    // taken.
+    // reports the lot; the others' timings describe paths nobody is
+    // taking.
     if (stats.state !== 'succeeded' || stats.nominated !== true) {
       return;
     }

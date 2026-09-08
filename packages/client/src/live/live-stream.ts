@@ -5,20 +5,20 @@ import type { LiveStreamCredentials, LiveStreamRole } from './types';
 /**
  * Raven Live Streaming, for the browser.
  *
- * Not a third real-time system: `LiveStream.join()` takes the credentials
+ * Not a third real-time system. `LiveStream.join()` takes the credentials
  * your backend minted (`POST /v1/live-streams/:id/hosts` or
- * `.../viewer-tokens`) and produces a real `@corvidhq/rtc` `Room` plus, when
- * the credentials include one, a real `@corvidhq/chat` `ChatClient` — the
- * exact same classes those packages already document, not wrappers
- * around them. `LiveStream.room` **is** an `@corvidhq/rtc` `Room`; every
- * method and event on it works exactly as documented there.
+ * `.../viewer-tokens`) and gives you a real `@corvidhq/rtc` `Room`, plus a
+ * real `@corvidhq/chat` `ChatClient` when the credentials include one.
+ * The very same classes those packages already document, not wrappers
+ * round them. `LiveStream.room` **is** an `@corvidhq/rtc` `Room`, and
+ * every method and event on it behaves exactly as documented there.
  *
- * A live stream's "host publishes, viewers subscribe" behavior is
- * ordinary `room.enableCamera()`/`enableMicrophone()` on one side and
- * nothing on the other — the server already decided who gets which via
- * the RTC token's permission grant before either browser ever saw a
- * byte. This class never asks you for a role and never sends one; `role`
- * is informational, read from what your backend told it.
+ * The "host publishes, viewers subscribe" behaviour of a live stream is
+ * just ordinary `room.enableCamera()`/`enableMicrophone()` on one side and
+ * nothing at all on the other. The server settled who gets which via the
+ * RTC token's permission grant long before either browser saw a byte. This
+ * class never asks you for a role and never sends one; `role` is purely
+ * informational, read back from what your backend told it.
  *
  * ```ts
  * // Your own backend calls POST /v1/live-streams/:id/hosts (or
@@ -38,9 +38,9 @@ import type { LiveStreamCredentials, LiveStreamRole } from './types';
 export class LiveStream {
   readonly streamId: string;
   readonly role: LiveStreamRole;
-  /** The underlying `@corvidhq/rtc` client — use this directly for anything not exposed on `LiveStream` itself. */
+  /** The underlying `@corvidhq/rtc` client. Go straight to it for anything `LiveStream` doesn't expose. */
   readonly rtc: RTCClient;
-  /** The joined room. Camera, microphone, screen share, participants, connection stats — everything `@corvidhq/rtc`'s Room documents. */
+  /** The joined room: camera, microphone, screen share, participants, connection stats. Everything `@corvidhq/rtc`'s Room documents. */
   readonly room: Room;
   /** Present only when the credentials included a chat token. `undefined` for an RTC-only integration. */
   readonly chat?: ChatClient;
@@ -63,15 +63,15 @@ export class LiveStream {
     this.chatRootMessageId = chatRootMessageId;
   }
 
-  /** True for HOST/CO_HOST — the only roles the server ever grants publish permissions to. A VIEWER's `room` is always subscribe-only, enforced server-side, not by this check. */
+  /** True for HOST and CO_HOST, the only roles the server grants publish permissions to. A VIEWER's `room` is always subscribe-only, and the server enforces that; this check doesn't. */
   get isHost(): boolean {
     return this.role === 'HOST' || this.role === 'CO_HOST';
   }
 
   /**
-   * Joins a live stream. This is the one entry point for both a host and
-   * a viewer — which one you get is entirely a function of the
-   * credentials your backend minted, never a parameter here.
+   * Joins a live stream. One entry point for hosts and viewers alike.
+   * Which one you end up as follows entirely from the credentials your
+   * backend minted; it's never a parameter here.
    */
   static async join(credentials: LiveStreamCredentials): Promise<LiveStream> {
     const rtc = createRTCClient({
@@ -96,17 +96,17 @@ export class LiveStream {
   }
 
   /**
-   * The TikTok-style heart-tap. Reactions ride on the stream's own root
+   * The TikTok-style heart tap. Reactions ride on the stream's own root
    * chat message through `@corvidhq/chat`'s existing, already-aggregated
-   * reaction model (`chat.messages.addReaction`) — not a second
-   * real-time primitive invented for this. Every viewer's tap on the
-   * same emoji collapses into one count, the same as reacting to any
+   * reaction model (`chat.messages.addReaction`). No second real-time
+   * primitive invented specially for this. Every viewer tapping the same
+   * emoji collapses into one count, exactly like reacting to any other
    * chat message.
    */
   async react(emoji: string): Promise<void> {
     if (!this.chat) {
       throw new Error(
-        'This LiveStream has no chat credentials — react() needs the `chat` field on the credentials passed to join().',
+        'This LiveStream has no chat credentials; react() needs the `chat` field on the credentials passed to join().',
       );
     }
     if (!this.chatRootMessageId) {
@@ -116,10 +116,10 @@ export class LiveStream {
   }
 
   /**
-   * Leaves the room and disconnects chat. The stream itself keeps
-   * running for everyone else — this only tears down *your* connection
-   * to it. Ending the stream for everyone is a server-side action
-   * (`POST /v1/live-streams/:id/end`), not something a client calls.
+   * Leaves the room and disconnects chat. The stream carries on for
+   * everybody else; this only tears down *your* connection to it. Ending
+   * it for everyone is a server-side action
+   * (`POST /v1/live-streams/:id/end`), not something a client gets to do.
    */
   async leave(): Promise<void> {
     await this.rtc.leave();
@@ -127,7 +127,7 @@ export class LiveStream {
   }
 }
 
-/** Functional alias, matching `createRTCClient`/`createChatClient`/`createRaven`. */
+/** Functional alias, to match `createRTCClient`, `createChatClient` and `createRaven`. */
 export function joinLiveStream(credentials: LiveStreamCredentials): Promise<LiveStream> {
   return LiveStream.join(credentials);
 }

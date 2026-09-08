@@ -11,12 +11,12 @@ import type { TrackKind } from '../../src/track';
 import { LocalParticipant, RemoteParticipant } from '../../src/participant';
 import type { LocalTrack, RemoteTrack } from '../../src/track';
 
-/** In-memory SFUAdapter double — lets Room/Client tests run without a real browser/WebRTC stack. */
+/** In-memory SFUAdapter double, so Room/Client tests run with no browser or WebRTC stack. */
 export class FakeAdapter extends TypedEventEmitter<SFUAdapterEventMap> implements SFUAdapter {
   connectionState: SdkConnectionState = 'disconnected';
   readonly localParticipant = new LocalParticipant('local-identity');
   readonly remoteParticipants = new Map<string, RemoteParticipant>();
-  /** Test-only knob — set directly to drive `getConnectionQuality()`. */
+  /** Test-only knob. Set it directly to drive `getConnectionQuality()`. */
   connectionQuality: ConnectionQuality = 'unknown';
 
   readonly connectCalls: Array<{ endpoint: string; token: string; iceServers?: RTCIceServer[] }> = [];
@@ -39,13 +39,13 @@ export class FakeAdapter extends TypedEventEmitter<SFUAdapterEventMap> implement
     this.setState('disconnected');
   }
 
-  /** Test-only helper to drive connectionStateChanged transitions directly. */
+  /** Test-only: drives connectionStateChanged transitions directly. */
   setState(state: SdkConnectionState): void {
     this.connectionState = state;
     this.emit('connectionStateChanged', state);
   }
 
-  /** Test-only helper to simulate a remote participant joining. */
+  /** Test-only: fakes a remote participant joining. */
   addRemoteParticipant(identity: string, metadata?: string): RemoteParticipant {
     const participant = new RemoteParticipant(identity, metadata);
     this.remoteParticipants.set(identity, participant);
@@ -53,18 +53,18 @@ export class FakeAdapter extends TypedEventEmitter<SFUAdapterEventMap> implement
     return participant;
   }
 
-  /** Test-only helper to simulate a remote participant leaving. */
+  /** Test-only: fakes a remote participant leaving. */
   removeRemoteParticipant(participant: RemoteParticipant): void {
     this.remoteParticipants.delete(participant.identity);
     this.emit('participantLeft', participant);
   }
 
-  /** Test-only helper to simulate a track subscription. */
+  /** Test-only: fakes a track subscription. */
   emitTrackSubscribed(track: RemoteTrack, participant: RemoteParticipant): void {
     this.emit('trackSubscribed', track, participant);
   }
 
-  /** Test-only helper to simulate a remote participant muting/unmuting a track. */
+  /** Test-only: fakes a remote participant muting or unmuting a track. */
   emitTrackMuted(kind: TrackKind, participant: RemoteParticipant): void {
     this.emit('trackMuted', kind, participant);
   }

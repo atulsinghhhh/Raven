@@ -57,7 +57,7 @@ async function connectAdapter(
   return { adapter, socket };
 }
 
-/** Answers an offer from the SFU, which is what creates the PeerConnection. */
+/** Answers an SFU offer, which is what brings the PeerConnection into being. */
 async function receiveOffer(socket: FakeWebSocket, sdp = 'v=0 fake-server-offer'): Promise<FakeRTCPeerConnection> {
   socket.receive({ type: 'sdp.offer', sdp });
   await flush();
@@ -65,8 +65,8 @@ async function receiveOffer(socket: FakeWebSocket, sdp = 'v=0 fake-server-offer'
 }
 
 /**
- * An offer shaped like the SFU's, with one m-section per subscription and
- * the publisher's track id in `a=msid:` — which is where the remote track
+ * An offer shaped the way the SFU's are: one m-section per subscription,
+ * publisher's track id sitting in `a=msid:`. That's where the remote track
  * id actually lives.
  */
 function offerWithMsid(sections: Array<{ mid: string; streamId: string; trackId: string }>): string {
@@ -142,9 +142,9 @@ describe('RavenAdapter', () => {
     });
 
     it('passes the mint response\'s ICE servers to the PeerConnection', async () => {
-      // A developer forwards `iceServers` from the token response; they
-      // must reach the connection or every NAT traversal falls back to
-      // host candidates only.
+      // A developer forwards `iceServers` from the token response. They
+      // have to reach the connection, or NAT traversal drops back to host
+      // candidates and nothing else.
       const { socket } = await connectAdapter();
       const pc = await receiveOffer(socket);
 
@@ -207,7 +207,7 @@ describe('RavenAdapter', () => {
     });
 
     it('reports connected once the PeerConnection is', async () => {
-      // Not when the WebSocket opens: signaling being up says nothing
+      // Not when the WebSocket opens. Signaling being up tells you nothing
       // about whether media can flow.
       const { adapter, socket } = await connectAdapter();
       const pc = await receiveOffer(socket);
@@ -219,8 +219,8 @@ describe('RavenAdapter', () => {
 
     it('ignores a transient ICE disconnect rather than flapping the state', async () => {
       // WebRTC's `disconnected` is recoverable by definition. A UI that
-      // flashed "reconnecting" on every brief blip would be worse than
-      // one that waited.
+      // flashes "reconnecting" at every little blip is worse than one that
+      // holds its nerve.
       const { adapter, socket } = await connectAdapter();
       const pc = await receiveOffer(socket);
       pc.setConnectionState('connected');
@@ -272,14 +272,14 @@ describe('RavenAdapter', () => {
     });
 
     /**
-     * The regression that made browser-to-browser subscription silently
-     * never complete.
+     * The regression that quietly stopped browser-to-browser subscriptions
+     * ever completing.
      *
-     * `RTCTrackEvent.track.id` is not the remote track id — Chrome mints a
-     * fresh local one and ignores the `msid`. Matching on it meant every
-     * arriving track was parked as "media arrived early" and no
-     * subscription ever finished. It failed silently rather than loudly,
-     * which is why only a real browser caught it.
+     * `RTCTrackEvent.track.id` is not the remote track id. Chrome mints a
+     * fresh local one and ignores the `msid` entirely. Matching on it meant
+     * every arriving track got parked as "media arrived early" and no
+     * subscription ever finished. And it failed in silence rather than
+     * loudly, which is why nothing but a real browser caught it.
      */
     it('matches an arriving track by its SDP msid, not by the local track id the browser minted', async () => {
       const { adapter, socket } = await connectAdapter({ participants: [{ id: 'bob' }] });
@@ -300,8 +300,8 @@ describe('RavenAdapter', () => {
       });
       await flush();
 
-      // Chrome's behaviour: the arriving track's own id has nothing to do
-      // with what the SFU labelled it.
+      // Chrome's actual behaviour. The arriving track's own id has nothing
+      // whatsoever to do with what the SFU labelled it.
       pc.emitTrack(new FakeMediaStreamTrack('video', 'chrome-minted-local-id'), '1');
       await flush();
 
@@ -310,8 +310,8 @@ describe('RavenAdapter', () => {
 
     it('picks the right m-section when a publisher has two video tracks', async () => {
       // A camera and a screen share are both video, so scanning every
-      // `a=msid:` line instead of the transceiver's own m-section would
-      // label a screen share as somebody's face.
+      // `a=msid:` line rather than the transceiver's own m-section ends up
+      // labelling a screen share as somebody's face.
       const { adapter, socket } = await connectAdapter({ participants: [{ id: 'bob' }] });
       const pc = await receiveOffer(
         socket,
@@ -345,9 +345,9 @@ describe('RavenAdapter', () => {
     });
 
     it('falls back to the local track id when the SDP carries no msid', async () => {
-      // A stack that reports no mid, or an offer with no msid, must still
-      // work rather than dropping the track — the fallback is the old
-      // behaviour, which is correct wherever the ids do agree.
+      // A stack reporting no mid, or an offer with no msid, still has to
+      // work instead of dropping the track. The fallback is the old
+      // behaviour, and that's correct wherever the ids do agree.
       const { adapter, socket } = await connectAdapter({ participants: [{ id: 'bob' }] });
       const pc = await receiveOffer(socket);
 
@@ -369,9 +369,9 @@ describe('RavenAdapter', () => {
     });
 
     it('subscribes a track whose media arrives before its announcement', async () => {
-      // `ontrack` and `track.published` race, and either can be first —
-      // a subscription that only worked in one order would drop tracks
-      // nondeterministically.
+      // `ontrack` and `track.published` race and either can win. A
+      // subscription that only worked in one order would drop tracks at
+      // random.
       const { adapter, socket } = await connectAdapter({ participants: [{ id: 'bob' }] });
       const pc = await receiveOffer(socket);
 
@@ -395,8 +395,8 @@ describe('RavenAdapter', () => {
     });
 
     it('reports a screen share as a screen share, not a camera', async () => {
-      // The whole reason the source is declared over signaling — both are
-      // video, and codec kind cannot tell them apart (spec §16).
+      // The whole reason the source gets declared over signaling. Both are
+      // video, and codec kind can't tell them apart (spec §16).
       const { adapter, socket } = await connectAdapter({ participants: [{ id: 'bob' }] });
       const pc = await receiveOffer(socket);
 
@@ -475,8 +475,8 @@ describe('RavenAdapter', () => {
     });
 
     it('reconciles the room on rejoin instead of duplicating participants', async () => {
-      // A reconnect re-runs the join, so the participant list arrives
-      // again. Appending it would double every tile in a UI.
+      // A reconnect re-runs the join, so the participant list turns up all
+      // over again. Append it and every tile in the UI doubles.
       const { adapter, socket } = await connectAdapter({ participants: [{ id: 'bob' }] });
       const events: string[] = [];
       adapter.on('participantJoined', (p: RemoteParticipant) => events.push(`+${p.identity}`));
@@ -489,7 +489,7 @@ describe('RavenAdapter', () => {
       });
       await flush();
 
-      // bob was already known and stays untouched; carol is new.
+      // bob was already known and stays put. carol is new.
       expect(events).toEqual(['+carol']);
       expect([...adapter.remoteParticipants.keys()].sort()).toEqual(['bob', 'carol']);
     });
@@ -510,8 +510,8 @@ describe('RavenAdapter', () => {
     });
 
     it('configures three simulcast layers for a camera', async () => {
-      // Spec §15. The ladder is quarter-pixel steps, which is what
-      // browsers implement well.
+      // Spec §15. Quarter-pixel steps, which is the ladder browsers
+      // actually implement well.
       const { adapter, socket } = await connectAdapter();
       await receiveOffer(socket);
 
@@ -524,8 +524,8 @@ describe('RavenAdapter', () => {
     });
 
     it('does not simulcast a screen share', async () => {
-      // Screen content is usually text, where dropping resolution
-      // destroys legibility in a way it does not for a face.
+      // Screen content is usually text, and dropping resolution wrecks
+      // legibility in a way it never does for a face.
       const { adapter, socket } = await connectAdapter();
       await receiveOffer(socket);
 
@@ -546,8 +546,8 @@ describe('RavenAdapter', () => {
     });
 
     it('unmutes an already-published track rather than capturing again', async () => {
-      // A second getUserMedia for the same device is slower and fails
-      // outright on some platforms.
+      // A second getUserMedia on the same device is slower, and on some
+      // platforms it just fails.
       const { adapter, socket } = await connectAdapter();
       const pc = await receiveOffer(socket);
 
@@ -579,8 +579,8 @@ describe('RavenAdapter', () => {
     });
 
     it('unpublishes when the user stops a screen share from the browser bar', async () => {
-      // The track just ends; nothing tells the application. Leaving it
-      // published would show a frozen last frame to everyone else.
+      // The track simply ends and nothing tells the application. Leave it
+      // published and everyone else stares at a frozen last frame.
       const { adapter, socket } = await connectAdapter();
       await receiveOffer(socket);
 
@@ -598,7 +598,7 @@ describe('RavenAdapter', () => {
 
     it('defers an offer while the server has one in flight', async () => {
       // Two offers on one PeerConnection is glare. The server refuses
-      // ours; deferring avoids the round trip entirely.
+      // ours, so deferring skips the round trip altogether.
       const { adapter, socket } = await connectAdapter();
       const pc = await receiveOffer(socket);
       pc.signalingState = 'have-remote-offer';
@@ -608,7 +608,7 @@ describe('RavenAdapter', () => {
 
       expect(socket.lastSent('sdp.offer')).toBeUndefined();
 
-      // Answering the server's next offer returns us to stable and
+      // Answering the server's next offer puts us back to stable and
       // flushes the deferred publish.
       pc.signalingState = 'stable';
       socket.receive({ type: 'sdp.offer', sdp: 'v=0 second-server-offer' });
@@ -634,8 +634,8 @@ describe('RavenAdapter', () => {
 
   describe('data channel', () => {
     it('opens a channel on demand and sends the payload', async () => {
-      // Not opened at connect: a channel costs an SCTP association and
-      // most calls never send data.
+      // Not opened at connect. A channel costs an SCTP association and
+      // most calls never send a byte.
       const { adapter, socket } = await connectAdapter();
       const pc = await receiveOffer(socket);
       expect(pc.dataChannels).toHaveLength(0);
@@ -656,9 +656,9 @@ describe('RavenAdapter', () => {
     });
 
     it('emits data the SFU forwarded, with no attributed sender', async () => {
-      // The transport carries no sender identity — the SFU fans data out
-      // on each recipient's own channel. Attributing it would mean
-      // trusting a field the sender controls.
+      // The transport carries no sender identity at all, since the SFU
+      // fans data out over each recipient's own channel. Attributing it
+      // would mean trusting a field the sender controls.
       const { adapter, socket } = await connectAdapter();
       const pc = await receiveOffer(socket);
 
@@ -689,9 +689,9 @@ describe('RavenAdapter', () => {
 
   describe('connection quality', () => {
     it('reports unknown rather than inventing a verdict', async () => {
-      // The SFU has the vantage point a client cannot have, and does not
-      // yet compute this. A client-side guess dressed up as a server
-      // verdict is exactly the fabricated metric spec §19 forbids.
+      // The SFU has the vantage point no client can get, and doesn't
+      // compute this yet. A client-side guess dressed up as a server
+      // verdict is precisely the fabricated metric spec §19 forbids.
       const { adapter, socket } = await connectAdapter();
       const pc = await receiveOffer(socket);
       pc.setConnectionState('connected');
@@ -711,9 +711,9 @@ describe('RavenAdapter', () => {
 
     it('exposes ICE and signaling state, which the previous adapter could not', async () => {
       // `Room.getDiagnostics()` reported these as undefined for as long as
-      // LiveKit owned the connection; Raven's own adapter has the peer
-      // connection in hand. They are the states that actually
-      // explain a failed connection in a bug report.
+      // LiveKit owned the connection. Raven's own adapter has the peer
+      // connection right there. These are the states that actually explain
+      // a failed connection in a bug report.
       const { adapter, socket } = await connectAdapter();
       const pc = await receiveOffer(socket);
       pc.iceConnectionState = 'checking';
@@ -734,7 +734,7 @@ describe('RavenAdapter', () => {
     });
 
     it('surfaces the SFU\'s view alongside the local one', async () => {
-      // The two can disagree, and that disagreement is the useful part.
+      // The two can disagree, and the disagreement is the useful bit.
       const { adapter, socket } = await connectAdapter();
       await receiveOffer(socket);
 
@@ -783,8 +783,8 @@ describe('RavenAdapter', () => {
   describe('reconnection', () => {
     it('tears down the old PeerConnection when reconnecting', async () => {
       // The server allocates a fresh session on rejoin, so the old
-      // connection is not reusable — and leaving it open would let a
-      // caller see a connection that looks alive but forwards nothing.
+      // connection is no use to anyone. Leave it open and a caller can
+      // find a connection that looks alive and forwards nothing.
       const { adapter, socket } = await connectAdapter({ autoReconnect: true });
       const pc = await receiveOffer(socket);
       pc.setConnectionState('connected');

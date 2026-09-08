@@ -2,32 +2,32 @@ import { RTCError } from './errors';
 import type { LogLevel } from './logger';
 
 export interface RTCClientConfig {
-  /** The RTC token minted by your backend via Raven's Control API. Never mint this in the browser. */
+  /** The RTC token your backend minted through Raven's Control API. Never mint one in the browser. */
   token: string;
   /**
-   * RTC infrastructure URL to connect to — the `endpoint` field from
-   * the same mint response as `token`. Forward both through as-is, don't
-   * hand-construct this.
+   * RTC infrastructure URL to connect to. It's the `endpoint` field out of
+   * the same mint response as `token`. Forward both through untouched;
+   * don't build this by hand.
    */
   endpoint: string;
   /**
-   * `iceServers` array from the same mint response. Optional so tests
-   * and advanced setups can skip it, but normally just forward it —
-   * don't hand-configure STUN/TURN yourself.
+   * The `iceServers` array from the same mint response. Optional so tests
+   * and advanced setups can skip it, but ordinarily you just forward it.
+   * Don't go configuring STUN/TURN by hand.
    */
   iceServers?: RTCIceServer[];
   logLevel?: LogLevel;
   /** Defaults to true. Set false to disable automatic reconnect on network loss. */
   autoReconnect?: boolean;
   /**
-   * Base URL for best-effort connection telemetry — the `telemetryUrl`
-   * field from the same token-mint response as `token`/`endpoint`. Never
-   * hand-construct this. Omit it (or set `telemetry: false`) to disable
-   * telemetry entirely; RTC itself never depends on it either way. See
-   * docs/telemetry.md.
+   * Base URL for best-effort connection telemetry. Comes from the
+   * `telemetryUrl` field of the same token-mint response as `token` and
+   * `endpoint`; never build it yourself. Leave it out, or set
+   * `telemetry: false`, to turn telemetry off completely. RTC never
+   * depends on it either way. See docs/telemetry.md.
    */
   telemetryUrl?: string;
-  /** Defaults to true. Set false to disable telemetry — never required for RTC to work (Phase 9 spec §31). */
+  /** Defaults to true. Set false to switch telemetry off; RTC never needs it (Phase 9 spec §31). */
   telemetry?: boolean;
 }
 
@@ -47,7 +47,7 @@ interface DecodedTokenPayload {
   sub?: string;
 }
 
-/** Decodes the JWT payload — doesn't verify it, the server's the source of truth. */
+/** Decodes the JWT payload. Doesn't verify it; the server is the source of truth. */
 export function decodeTokenPayload(token: string): DecodedTokenPayload {
   const parts = token.split('.');
   if (parts.length !== 3) {
@@ -71,12 +71,12 @@ export function validateConfig(config: RTCClientConfig): ResolvedRTCClientConfig
     throw new RTCError('INVALID_TOKEN', 'createRTCClient(config) requires a configuration object');
   }
   if (!config.token || typeof config.token !== 'string') {
-    throw new RTCError('INVALID_TOKEN', 'config.token is required — the RTC token from your backend');
+    throw new RTCError('INVALID_TOKEN', 'config.token is required; the RTC token from your backend');
   }
   if (!config.endpoint || typeof config.endpoint !== 'string') {
     throw new RTCError(
       'INVALID_TOKEN',
-      'config.endpoint is required — the "endpoint" field from the same token-mint response as config.token',
+      'config.endpoint is required; the "endpoint" field from the same token-mint response as config.token',
     );
   }
 
@@ -97,9 +97,9 @@ export function validateConfig(config: RTCClientConfig): ResolvedRTCClientConfig
 }
 
 /**
- * Fails fast client-side, before attempting any connection, if the
- * token was minted for a different room than the one being joined —
- * clearer than letting the connection itself fail.
+ * Bails out client-side, before any connection is attempted, if the token
+ * was minted for a different room than the one being joined. Much clearer
+ * than letting the connection fail and working backwards from that.
  */
 export function assertTokenMatchesRoom(token: string, roomId: string): void {
   const { room } = decodeTokenPayload(token);

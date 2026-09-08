@@ -2,11 +2,11 @@ import { getBrowserSupportDetails, isBrowserSupported } from '../src/browser-sup
 
 describe('getBrowserSupportDetails / isBrowserSupported', () => {
   it('returns a stable shape, and names what jsdom is missing rather than throwing', () => {
-    // jsdom has WebSocket but neither RTCPeerConnection nor
-    // navigator.mediaDevices, and the SDK's test setup deliberately does
-    // not polyfill them globally — so this environment is genuinely
-    // unsupported, and saying so is the point. A detector that threw when
-    // a capability was absent would be useless exactly where it matters.
+    // jsdom gives us WebSocket but neither RTCPeerConnection nor
+    // navigator.mediaDevices, and the SDK's test setup pointedly doesn't
+    // polyfill them globally. So this environment really is unsupported,
+    // and saying so is the whole point. A detector that threw whenever a
+    // capability was missing would be useless precisely where it counts.
     const details = getBrowserSupportDetails();
 
     expect(details.supported).toBe(false);
@@ -17,7 +17,7 @@ describe('getBrowserSupportDetails / isBrowserSupported', () => {
 
   it('flags a missing capability by name rather than just returning false', () => {
     const originalWebSocket = globalThis.WebSocket;
-    // @ts-expect-error deliberately deleting a global to simulate an unsupported browser
+    // @ts-expect-error deleting a global on purpose, to fake an unsupported browser
     delete globalThis.WebSocket;
 
     const details = getBrowserSupportDetails();
@@ -30,7 +30,7 @@ describe('getBrowserSupportDetails / isBrowserSupported', () => {
 
   it('isBrowserSupported() is a plain boolean convenience over the same check', () => {
     const originalWebSocket = globalThis.WebSocket;
-    // @ts-expect-error deliberately deleting a global to simulate an unsupported browser
+    // @ts-expect-error by design deleting a global to simulate an unsupported browser
     delete globalThis.WebSocket;
 
     expect(isBrowserSupported()).toBe(false);
@@ -40,7 +40,7 @@ describe('getBrowserSupportDetails / isBrowserSupported', () => {
 
   it('never throws even when navigator is completely absent', () => {
     const originalNavigator = globalThis.navigator;
-    // @ts-expect-error deliberately deleting a global to simulate an extreme environment
+    // @ts-expect-error deleting a global on purpose, to fake an extreme environment
     delete globalThis.navigator;
 
     expect(() => getBrowserSupportDetails()).not.toThrow();

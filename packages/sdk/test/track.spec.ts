@@ -162,8 +162,8 @@ describe('LocalTrack.attachEffects() / detachEffects()', () => {
 
 describe('LocalTrack.getStats()', () => {
   it('returns undefined when the delegate has no stats capability at all', async () => {
-    // A plain TrackDelegate-shaped fake (no getSenderStats) must still
-    // satisfy LocalTrackDelegate — this method is additive, not required.
+    // A plain TrackDelegate-shaped fake with no getSenderStats still has
+    // to satisfy LocalTrackDelegate. The method is additive, not required.
     const track = new LocalTrack(fakeDelegate({ getSenderStats: undefined }), 'microphone');
 
     await expect(track.getStats()).resolves.toBeUndefined();
@@ -259,8 +259,8 @@ describe('RemoteTrack.getStats()', () => {
   });
 
   it('keeps its previous-sample state independent per track instance', async () => {
-    // Two subscribed tracks polled on the same interval must not leak
-    // each other's byte counters into a nonsensical bitrate.
+    // Two subscribed tracks polled on the same interval mustn't leak each
+    // other's byte counters into a nonsense bitrate.
     const trackA = new RemoteTrack(
       fakeRemoteDelegate({
         getReceiverStats: jest

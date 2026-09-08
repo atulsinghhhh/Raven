@@ -6,22 +6,22 @@ export type { TrackStats } from './internal/telemetry/track-stats';
 export type TrackKind = 'camera' | 'microphone' | 'screenShare' | 'unknown';
 
 /**
- * Structural interface rather than a concrete class, so a track can be
- * backed by a raw `MediaStreamTrack` (which is what the native adapter
- * does) or by a test double, without either having to inherit anything.
+ * A structural interface, not a concrete class, so a track can be backed by
+ * a raw `MediaStreamTrack` (what the native adapter does) or by a test
+ * double, with neither having to inherit anything.
  */
 export interface TrackDelegate {
   readonly mediaStreamTrack: MediaStreamTrack;
   readonly mediaStream?: MediaStream;
   readonly isMuted: boolean;
   attach(element?: HTMLMediaElement): HTMLMediaElement;
-  // Typed loosely to accept a delegate that returns either one element or
-  // an array. Track.detach() below always normalizes to an array, so the
-  // public API is stable regardless.
+  // Typed loosely so a delegate can return one element or an array.
+  // Track.detach() below always normalizes to an array, so the public API
+  // looks the same either way.
   detach(element?: HTMLMediaElement): HTMLMediaElement | HTMLMediaElement[];
 }
 
-/** Base class for both local and remote tracks. Never exposes RTCRtpSender/Receiver. */
+/** Base class for local and remote tracks alike. Never leaks RTCRtpSender/Receiver. */
 export abstract class Track {
   readonly kind: TrackKind;
   protected readonly delegate: TrackDelegate;
@@ -31,7 +31,7 @@ export abstract class Track {
     this.kind = kind;
   }
 
-  /** The underlying native track, for the rare case advanced access is needed. */
+  /** The underlying native track, for the rare occasion you need to go deeper. */
   get mediaStreamTrack(): MediaStreamTrack {
     return this.delegate.mediaStreamTrack;
   }
@@ -57,25 +57,25 @@ export abstract class Track {
 }
 
 export interface LocalTrackDelegate extends TrackDelegate {
-  // Typed as `unknown` so a delegate resolving to anything (or to
-  // nothing) satisfies the interface — callers here never use the value.
+  // Typed `unknown` so a delegate resolving to anything, or to nothing at
+  // all, still satisfies the interface. Nobody here uses the value.
   mute(): Promise<unknown>;
   unmute(): Promise<unknown>;
   /**
-   * Optional so a delegate that predates stats support (or a test double
-   * that doesn't need them) still satisfies this interface unchanged — a
-   * purely additive capability, never a required one. An array covers the
-   * video path, where a simulcast sender reports one `outbound-rtp` entry
-   * per encoding layer rather than a single stream.
+   * Optional, so a delegate that predates stats support (or a test double
+   * that doesn't care) still satisfies this interface untouched. Purely
+   * additive, never required. The array form covers video, where a
+   * simulcast sender reports one `outbound-rtp` entry per encoding layer
+   * instead of a single stream.
    */
   getSenderStats?(): Promise<RawTrackStats | RawTrackStats[] | undefined>;
   /**
    * Swaps the underlying MediaStreamTrack on an already-published sender.
-   * `RTCRtpSender.replaceTrack()` does this without renegotiating, so
-   * nobody else in the room observes anything. Optional for the same
-   * reason as getSenderStats — a delegate that predates Raven Effects
-   * still satisfies this interface, and LocalTrack.attachEffects() checks
-   * for it explicitly rather than assuming every delegate supports it.
+   * `RTCRtpSender.replaceTrack()` manages this without renegotiating, so
+   * nobody else in the room sees a thing. Optional for the same reason as
+   * getSenderStats: a delegate predating Raven Effects still satisfies
+   * this interface, and LocalTrack.attachEffects() checks for it rather
+   * than assuming every delegate has it.
    */
   replaceTrack?(track: MediaStreamTrack, userProvidedTrack?: boolean): Promise<unknown>;
 }
@@ -85,7 +85,7 @@ export interface RemoteTrackDelegate extends TrackDelegate {
   getReceiverStats?(): Promise<RawTrackStats | undefined>;
 }
 
-/** A track captured locally (camera/microphone/screen share) — published or not yet published. */
+/** A locally captured track (camera, microphone or screen share), published or not. */
 export class LocalTrack extends Track {
   private readonly localDelegate: LocalTrackDelegate;
   private lastSample?: RawTrackStats;
@@ -105,22 +105,24 @@ export class LocalTrack extends Track {
     await this.localDelegate.unmute();
   }
 
-  /** Stops the underlying device capture. Publish state is managed by Room.unpublish(). */
+  /** Stops the underlying device capture. Publish state belongs to Room.unpublish(). */
   stop(): void {
     this.mediaStreamTrack.stop();
   }
 
   /**
-   * Raven Effects (`@corvidhq/effects`) integration point — Camera → Raven
-   * Video Track → Effects Pipeline → Processed Video Track → Raven RTC.
-   * Runs `pipeline` against this track's live camera feed and, if already
-   * published, swaps the sender's `MediaStreamTrack` in place via the
-   * adapter's `replaceTrack()` — no renegotiation, no reconnect, audio and
-   * the rest of the room are untouched. Camera-only today; screen share and
-   * microphone aren't supported.
+   * Where Raven Effects (`@corvidhq/effects`) plugs in. The chain is
+   * Camera → Raven Video Track → Effects Pipeline → Processed Video Track →
+   * Raven RTC.
    *
-   * If the pipeline can't run on this device (no WebGL2/Canvas2D/
-   * captureStream), it degrades to the original track automatically — the
+   * Runs `pipeline` against this track's live camera feed and, if the track
+   * is already published, swaps the sender's `MediaStreamTrack` in place
+   * through the adapter's `replaceTrack()`. No renegotiation, no reconnect,
+   * audio and the rest of the room untouched. Camera only for now; screen
+   * share and microphone aren't supported.
+   *
+   * Can't run the pipeline on this device (no WebGL2, Canvas2D or
+   * captureStream)? It falls back to the original track on its own. The
    * call keeps working either way.
    */
   async attachEffects(pipeline: EffectsPipeline): Promise<void> {
@@ -128,7 +130,7 @@ export class LocalTrack extends Track {
       throw new RTCError('MEDIA_ERROR', `attachEffects() is only supported on camera tracks, not "${this.kind}".`);
     }
     if (!this.localDelegate.replaceTrack) {
-      throw new RTCError('MEDIA_ERROR', 'This track cannot be swapped in place — the current adapter does not support replaceTrack().');
+      throw new RTCError('MEDIA_ERROR', 'This track cannot be swapped in place; the current adapter does not support replaceTrack().');
     }
     if (this.attachedEffectsPipeline) {
       await this.detachEffects();
@@ -143,7 +145,7 @@ export class LocalTrack extends Track {
     this.preEffectsMediaStreamTrack = original;
   }
 
-  /** Reverts to the unmodified camera track and releases the pipeline's engine resources. */
+  /** Goes back to the unmodified camera track and frees the pipeline's engine resources. */
   async detachEffects(): Promise<void> {
     if (!this.attachedEffectsPipeline) return;
     this.attachedEffectsPipeline.detach();
@@ -155,15 +157,17 @@ export class LocalTrack extends Track {
   }
 
   /**
-   * Live send-side stats for this track — bitrate, packet loss, jitter,
-   * RTT (audio only), resolution/fps (video only). `undefined` when the
-   * adapter can't supply them (no `getSenderStats` on the delegate, or the
-   * underlying call itself resolved to nothing) rather than a
-   * zeroed-out object — see the module doc on why that distinction matters.
+   * Live send-side stats for this track: bitrate, packet loss, jitter, RTT
+   * (audio only), resolution and fps (video only).
    *
-   * Call this periodically (`Room.getConnectionStats()` does, every few
-   * seconds) rather than once: bitrate needs two samples to compute, so
-   * the very first call after a track starts always omits it.
+   * You get `undefined`, not a zeroed-out object, when the adapter can't
+   * supply them, either because the delegate has no `getSenderStats` or
+   * because the underlying call resolved to nothing. The module doc covers
+   * why that distinction matters.
+   *
+   * Call it periodically instead of once. `Room.getConnectionStats()` does,
+   * every few seconds. Bitrate needs two samples to compute, so the first
+   * call after a track starts always omits it.
    */
   async getStats(): Promise<TrackStats | undefined> {
     const raw = await this.localDelegate.getSenderStats?.();
@@ -182,7 +186,7 @@ export class LocalTrack extends Track {
   }
 }
 
-/** A track received from a remote participant via the SFU. */
+/** A track received from a remote participant, via the SFU. */
 export class RemoteTrack extends Track {
   private readonly remoteDelegate: RemoteTrackDelegate;
   private lastSample?: RawTrackStats;
@@ -192,7 +196,7 @@ export class RemoteTrack extends Track {
     this.remoteDelegate = delegate;
   }
 
-  /** Live receive-side stats for this track. See `LocalTrack.getStats()` for the shape and its caveats. */
+  /** Live receive-side stats. `LocalTrack.getStats()` covers the shape and the caveats. */
   async getStats(): Promise<TrackStats | undefined> {
     const raw = await this.remoteDelegate.getReceiverStats?.();
     if (!raw) {

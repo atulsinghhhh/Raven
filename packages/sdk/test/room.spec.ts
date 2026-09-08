@@ -480,8 +480,8 @@ describe('Room — periodic stats monitor', () => {
   });
 
   it('stops reporting once leave() is called, even without a disconnect event', async () => {
-    // leave() is what most apps call directly; waiting on the adapter to
-    // separately emit "disconnected" would leave the timer running in
+    // leave() is what most apps call directly. Wait on the adapter to
+    // separately emit "disconnected" and the timer keeps running in
     // between for however long that takes.
     const adapter = new FakeAdapter();
     const telemetry = fakeTelemetryWithSend();
@@ -507,8 +507,8 @@ describe('Room — periodic stats monitor', () => {
 
     await jest.advanceTimersByTimeAsync(5_000);
 
-    // Exactly one 'stats' call in one interval tick — two live timers
-    // would report twice per tick instead.
+    // Exactly one 'stats' call per interval tick. Two live timers would
+    // report twice a tick.
     const statsCalls = telemetry.send.mock.calls.filter(([type]) => type === 'stats');
     expect(statsCalls).toHaveLength(1);
   });
@@ -516,9 +516,9 @@ describe('Room — periodic stats monitor', () => {
 
 /**
  * `waitUntilConnected()` exists because `join()` resolves on the
- * control-plane join, not on the media connection — a real behaviour
- * difference from the LiveKit-backed SDK, where `connect()` resolved only
- * once media was up. See docs/migration/from-livekit.md.
+ * control-plane join, not on the media connection. That's a genuine
+ * behaviour difference from the LiveKit-backed SDK, where `connect()` only
+ * resolved once media was up. See docs/migration/from-livekit.md.
  */
 describe('Room — waitUntilConnected', () => {
   it('resolves immediately when already connected', async () => {
@@ -552,9 +552,9 @@ describe('Room — waitUntilConnected', () => {
   });
 
   it('rejects on timeout, naming the state it was stuck in', async () => {
-    // A subscriber in a room where nobody publishes can legitimately stay
-    // 'connecting' — there is nothing to negotiate. Reporting the state
-    // is what tells those two cases apart.
+    // A subscriber in a room where nobody publishes can quite legitimately
+    // sit at 'connecting'; there's nothing to negotiate. Reporting the
+    // state is what tells those two cases apart.
     jest.useFakeTimers();
     try {
       const adapter = new FakeAdapter();
@@ -579,7 +579,7 @@ describe('Room — waitUntilConnected', () => {
     adapter.setState('connected');
     await waiting;
 
-    // Would throw an unhandled rejection if the handler were still bound.
+    // Throws an unhandled rejection if the handler is still bound.
     expect(() => adapter.setState('failed')).not.toThrow();
   });
 });

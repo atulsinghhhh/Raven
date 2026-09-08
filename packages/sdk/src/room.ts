@@ -11,23 +11,22 @@ import { SDK_VERSION } from './version';
 export type ConnectionState = SdkConnectionState;
 
 /**
- * Safe, non-secret diagnostic snapshot — never a token, never a secret,
- * safe to paste into a bug report as-is.
+ * A diagnostic snapshot that's safe to paste straight into a bug report.
+ * No tokens, no secrets, nothing sensitive.
  *
- * Every field is `undefined` rather than guessed when it is not known.
- * `iceConnectionState`/`signalingState` were always `undefined` under the
- * LiveKit adapter, which did not expose them; the native adapter does, so
- * they now carry the states that actually explain a failed connection.
+ * Anything we don't know comes back `undefined`; nothing here is guessed.
+ * `iceConnectionState` and `signalingState` were always `undefined` under
+ * the LiveKit adapter, which never exposed them. The native adapter does,
+ * so they now carry the states that actually explain a failed connection.
  */
 export interface ConnectionDiagnostics {
   connectionState: ConnectionState;
   iceConnectionState?: string;
   signalingState?: string;
   /**
-   * What the SFU thinks of this connection. Worth having next to the
-   * local states because the two can disagree, and "the server says
-   * failed while the browser says connected" is a diagnosis rather than a
-   * contradiction.
+   * What the SFU makes of this connection. Worth sitting next to the local
+   * states, because the two can disagree, and "server says failed, browser
+   * says connected" is a diagnosis, not a contradiction.
    */
   remoteIceConnectionState?: string;
   remotePeerConnectionState?: string;
@@ -38,21 +37,21 @@ export interface ConnectionDiagnostics {
 }
 
 /**
- * Live media-quality stats — deliberately a separate, `async` method from
- * `getDiagnostics()` rather than a field added to it. `getDiagnostics()`
- * is synchronous and cheap by design (safe to call from anywhere, any
- * time); collecting real WebRTC stats is neither — it needs at least one
- * round trip through the browser's stats API per track, and per-track
- * numbers don't collapse into one flat object without losing the thing
- * that made them useful in a multi-participant room.
+ * Live media-quality stats. A separate `async` method rather than another
+ * field on `getDiagnostics()`, and that's on purpose. `getDiagnostics()`
+ * is synchronous and cheap so you can call it from anywhere at any time.
+ * Collecting real WebRTC stats is neither: it costs at least one round
+ * trip through the browser's stats API per track, and squashing per-track
+ * numbers into one flat object throws away the very thing that made them
+ * useful in a room full of people.
  */
 export interface ConnectionStats {
   connectionState: ConnectionState;
-  /** The SFU's own read on connection health — see `ConnectionQuality`. */
+  /** The SFU's own read on connection health. See `ConnectionQuality`. */
   connectionQuality: ConnectionQuality;
   /** One entry per track this side has published. */
   local: TrackStats[];
-  /** One entry per track this side has subscribed to, across every remote participant. */
+  /** One entry per subscribed track, across all remote participants. */
   remote: TrackStats[];
 }
 
@@ -68,7 +67,7 @@ export interface RoomEventMap {
   trackUnpublished: (kind: TrackKind, participant: RemoteParticipant) => void;
   trackSubscribed: (track: RemoteTrack, participant: RemoteParticipant) => void;
   trackUnsubscribed: (track: RemoteTrack, participant: RemoteParticipant) => void;
-  /** Phase 11 addition — a remote participant muted/unmuted a track they already published. */
+  /** Phase 11 addition. A remote participant muted or unmuted a track they'd already published. */
   trackMuted: (kind: TrackKind, participant: RemoteParticipant) => void;
   trackUnmuted: (kind: TrackKind, participant: RemoteParticipant) => void;
   localTrackPublished: (track: LocalTrack) => void;
@@ -78,13 +77,13 @@ export interface RoomEventMap {
 }
 
 /**
- * A joined room, returned by `client.join(roomId)` — don't construct it
- * yourself. Owns participant/track state and all room-scoped actions; no
- * SDP, ICE candidates, or RTCPeerConnection leak into this API.
+ * A joined room. You get one from `client.join(roomId)`; don't build it
+ * yourself. It owns participant and track state plus every room-scoped
+ * action. No SDP, ICE candidates or RTCPeerConnection leak out here.
  */
 export class Room extends TypedEventEmitter<RoomEventMap> {
   readonly roomId: string;
-  /** Stable for this connection's whole lifetime — the ID to hand a developer for debugging (Phase 9 spec §8). */
+  /** Stable for the whole life of this connection. This is the id to quote in a bug report (Phase 9 spec §8). */
   readonly connectionId: string;
   readonly localParticipant: LocalParticipant;
   private readonly adapter: SFUAdapter;
@@ -94,14 +93,14 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
   private statsTimer?: ReturnType<typeof setInterval>;
 
   /**
-   * How often the stats monitor samples and reports. Frequent enough that
-   * a dashboard viewing "now" isn't looking at stale numbers; infrequent
-   * enough that it isn't a meaningful load on the telemetry endpoint
-   * across a call with dozens of participants each doing this.
+   * How often the stats monitor samples and reports. Often enough that a
+   * dashboard showing "now" isn't showing you five minutes ago, rarely
+   * enough that it doesn't hammer the telemetry endpoint on a call where
+   * dozens of participants are all doing exactly this.
    */
   private static readonly STATS_INTERVAL_MS = 5_000;
 
-  /** @internal use `client.join(roomId)` — the telemetry client defaults to a no-op so tests/advanced setups can construct a Room directly without wiring one up. */
+  /** @internal Use `client.join(roomId)`. The telemetry client defaults to a no-op, so tests and advanced setups can build a Room directly without wiring one up. */
   constructor(
     adapter: SFUAdapter,
     roomId: string,
@@ -191,11 +190,11 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
   }
 
   /**
-   * A safe, non-secret diagnostic snapshot for support and debugging.
+   * A non-secret diagnostic snapshot for support and debugging.
    *
-   * Synchronous and cheap by design — safe to call from anywhere, any
-   * time, including from an error handler. Live media stats are a
-   * separate, `async` call; see `getConnectionStats()`.
+   * Synchronous and cheap by design, so you can call it from anywhere at
+   * any time, error handlers included. Live media stats are a separate
+   * `async` call; see `getConnectionStats()`.
    */
   getDiagnostics(): ConnectionDiagnostics {
     const { platform, browser } = detectPlatform();
@@ -214,14 +213,14 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
   }
 
   /**
-   * Live media-quality stats for every published and subscribed track —
-   * RTT, jitter, packet loss, bitrate, codec, resolution/fps, plus the
-   * SFU's own connection-quality read. See `ConnectionStats` for why this
-   * is separate from `getDiagnostics()`.
+   * Live media-quality stats for every published and subscribed track.
+   * RTT, jitter, packet loss, bitrate, codec, resolution/fps, and the
+   * SFU's own connection-quality read. `ConnectionStats` explains why this
+   * is kept apart from `getDiagnostics()`.
    *
-   * Safe to call at any time, including before anything has been
-   * published or subscribed — `local`/`remote` are simply empty then, not
-   * an error.
+   * Call it whenever you like, including before anything is published or
+   * subscribed. You just get empty `local`/`remote` arrays then, not an
+   * error.
    */
   async getConnectionStats(): Promise<ConnectionStats> {
     const localTracks = this.localParticipant.tracks;
@@ -241,12 +240,11 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
   }
 
   /**
-   * Polls `getConnectionStats()` on an interval and reports it as
+   * Polls `getConnectionStats()` on a timer and ships the result as
    * telemetry, so the dashboard's RTC view (spec §23) has numbers to show
-   * without every developer wiring this up themselves. Best-effort like
-   * every other telemetry event here: a failure is swallowed rather than
-   * surfaced, since a stats-collection hiccup is not a reason to disrupt
-   * the call it's describing.
+   * without every developer wiring it up by hand. Best-effort, same as
+   * every other telemetry event here: failures get swallowed. A hiccup
+   * collecting stats is no reason to disturb the call it's describing.
    */
   private startStatsMonitor(): void {
     if (this.statsTimer) {
@@ -256,7 +254,7 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
       this.getConnectionStats()
         .then((stats) => this.telemetry.send('stats', stats as unknown as Record<string, unknown>))
         .catch(() => {
-          // Deliberately silent — see the method doc.
+          // Silent on purpose. See the method doc.
         });
     }, Room.STATS_INTERVAL_MS);
   }
@@ -268,7 +266,7 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
     }
   }
 
-  /** Captures and publishes the camera in one call. Resolves to the published track. */
+  /** Captures and publishes the camera in one go. Resolves to the published track. */
   async enableCamera(): Promise<LocalTrack | undefined> {
     return this.adapter.enableCamera(true);
   }
@@ -297,7 +295,7 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
     await this.adapter.enableScreenShare(false);
   }
 
-  /** Publishes a track created via `client.createCameraTrack()` et al. */
+  /** Publishes a track you made with `client.createCameraTrack()` and friends. */
   async publish(track: LocalTrack): Promise<void> {
     await this.adapter.publish(track);
   }
@@ -318,9 +316,9 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
 
   /**
    * Switches the audio output ("speaker") device for this room's remote
-   * audio elements — Phase 11 addition. Not universally supported (Safari
-   * lacks `HTMLMediaElement.setSinkId`); throws `DEVICE_NOT_FOUND` on
-   * browsers that don't implement it, rather than silently no-op-ing.
+   * audio elements. Phase 11 addition. Not supported everywhere: Safari
+   * has no `HTMLMediaElement.setSinkId`. Browsers that don't implement it
+   * get a `DEVICE_NOT_FOUND` throw instead of a silent no-op.
    */
   async setSpeakerDevice(deviceId: string): Promise<void> {
     if (typeof document !== 'undefined') {
@@ -333,44 +331,44 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
   }
 
   /**
-   * Sends a small payload to all participants (or specific ones, if the
-   * underlying SFU adapter supports targeting). Needs the token's
-   * `publishData` grant — throws PERMISSION_DENIED otherwise.
+   * Sends a small payload to everyone, or to specific people if the
+   * underlying SFU adapter supports targeting. Requires the token's
+   * `publishData` grant; throws PERMISSION_DENIED without it.
    */
   async sendData(payload: string | Uint8Array): Promise<void> {
-    // rewrap into a plain ArrayBuffer-backed Uint8Array so callers don't
-    // have to think about ArrayBuffer vs SharedArrayBuffer generics
+    // Rewrap as a plain ArrayBuffer-backed Uint8Array, so callers never
+    // have to think about ArrayBuffer vs SharedArrayBuffer generics.
     const bytes = typeof payload === 'string' ? new TextEncoder().encode(payload) : new Uint8Array(payload);
     await this.adapter.sendData(bytes);
   }
 
   /**
-   * Resolves once the media connection is actually established.
+   * Resolves once the media connection is genuinely up.
    *
    * # Why this exists
    *
-   * `client.join()` resolves when the **control plane** has admitted
-   * you: the room is joined, you know who else is in it, and you can
-   * publish. The media connection completes a moment later, after ICE and
-   * DTLS — so `connectionState` is `'connecting'` for a short window
-   * after `join()` returns. That is the honest shape of an SFU
-   * connection, and it is why `'connected'` is an event rather than a
-   * postcondition of joining.
+   * `client.join()` resolves when the **control plane** lets you in: room
+   * joined, you know who else is here, you can publish. The media
+   * connection finishes a moment later, once ICE and DTLS are done, which
+   * means `connectionState` sits at `'connecting'` for a short window
+   * after `join()` returns. That's the honest shape of an SFU connection,
+   * and it's why `'connected'` is an event, not something joining
+   * guarantees you.
    *
-   * Most callers need none of this: `enableCamera()` and
-   * `enableMicrophone()` work during that window, and the `connected`
-   * event is the right thing to drive a UI from. This is for code that
-   * genuinely has to block — a test, or a flow that must not proceed
-   * until media is live.
+   * Most callers need none of this. `enableCamera()` and
+   * `enableMicrophone()` work fine inside that window, and the `connected`
+   * event is what you want driving a UI. This is for code that genuinely
+   * has to block: a test, or a flow that mustn't move on until media is
+   * live.
    *
-   * Resolves immediately if already connected. Rejects on `'failed'`, and
-   * on timeout, rather than resolving with a connection that is not there.
+   * Resolves straight away if already connected. Rejects on `'failed'` and
+   * on timeout, rather than handing back a connection that isn't there.
    *
-   * A subscriber joining a room where nobody is publishing may legitimately
-   * stay `'connecting'`: with no tracks on either side there is nothing to
-   * negotiate, so waiting here would time out on a connection that is not
-   * broken. Drive a UI from the `connected` event instead of blocking on
-   * this when that is possible.
+   * Careful: a subscriber joining a room where nobody is publishing can
+   * quite legitimately stay `'connecting'`. With no tracks on either side
+   * there's nothing to negotiate, so waiting here times out on a
+   * connection that isn't broken at all. Where you can, drive the UI off
+   * the `connected` event instead of blocking on this.
    */
   waitUntilConnected(timeoutMs = 15_000): Promise<void> {
     if (this.connectionState === 'connected') {
@@ -397,7 +395,7 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
           reject(
             new RTCError(
               'CONNECTION_FAILED',
-              `Still ${this.connectionState} after ${timeoutMs}ms — the media connection did not establish`,
+              `Still ${this.connectionState} after ${timeoutMs}ms; the media connection did not establish`,
             ),
           ),
         );
@@ -407,7 +405,7 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
     });
   }
 
-  /** Leaves the room, stops local tracks, and closes the underlying connection. */
+  /** Leaves the room, stops local tracks and closes the underlying connection. */
   async leave(): Promise<void> {
     this.stopStatsMonitor();
     await this.adapter.disconnect();

@@ -5,9 +5,9 @@ export interface PlatformInfo {
 }
 
 /**
- * Best-effort, browser-only detection — never throws, never assumes
- * `navigator` exists (unit tests run under Node). Coarse on purpose: a
- * "browser/device category" (Phase 9 spec §4), not a fingerprinting
+ * Best-effort, browser-only detection. Never throws, never assumes
+ * `navigator` exists, since unit tests run under Node. Coarse on purpose:
+ * a browser/device category (Phase 9 spec §4), not a fingerprinting
  * library.
  */
 export function detectPlatform(): PlatformInfo {

@@ -1,10 +1,11 @@
 /**
- * Generated client-side, once per `join()` call, and never changed for
- * that connection's lifetime — this is the ID a developer sees in the
- * dashboard, in `raven connections inspect`, and in any error report
- * (Phase 9 spec §8). Prefers `crypto.randomUUID()` (available in every
- * SDK-supported browser); the manual fallback only matters for unusual
- * test/embedding environments.
+ * Generated client-side, once per `join()`, and never changed for the life
+ * of that connection. This is the id a developer sees in the dashboard, in
+ * `raven connections inspect`, and in every error report (Phase 9 spec §8).
+ *
+ * Prefers `crypto.randomUUID()`, which every SDK-supported browser has.
+ * The manual fallback only ever matters in odd test or embedding
+ * environments.
  */
 export function generateConnectionId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {

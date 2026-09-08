@@ -2,15 +2,15 @@
  * Raven's signaling wire protocol, as the client sees it.
  *
  * Mirrors `apps/api/src/modules/signaling/signaling.constants.ts` and
- * `interfaces/signaling-message.interface.ts`. Written out here rather
- * than imported so the SDK has no dependency on the server package —
- * three client implementations (web, React Native, Flutter) speak this,
- * and the contract has to be readable on its own.
+ * `interfaces/signaling-message.interface.ts`. Written out by hand rather
+ * than imported, so the SDK carries no dependency on the server package.
+ * Three client implementations speak this (web, React Native, Flutter) and
+ * the contract has to stand on its own.
  *
- * Note for anyone reading old code: the message *names* mostly survived
- * the move from the previous full-mesh protocol, but their meaning did
- * not. There is no `targetParticipantId` any more — a client has exactly
- * one peer, the SFU serving its room.
+ * Warning if you're reading older code: most of the message *names*
+ * survived the move off the old full-mesh protocol, but their meanings
+ * didn't. `targetParticipantId` is gone. A client has exactly one peer
+ * now: the SFU serving its room.
  */
 
 export const ClientMessageType = {
@@ -23,10 +23,10 @@ export const ClientMessageType = {
   /**
    * Declares what a track being published is *of*.
    *
-   * Necessary because WebRTC carries no such concept and a page cannot
-   * choose the `MediaStream` or `MediaStreamTrack` id the SDP will carry
-   * — both are read-only. Without this the SFU can only infer source from
-   * codec kind, which cannot tell a screen share from a camera.
+   * Needed because WebRTC has no such concept, and a page can't choose the
+   * `MediaStream` or `MediaStreamTrack` id the SDP will carry; both are
+   * read-only. Without this the SFU can only guess the source from codec
+   * kind, and that can't tell a screen share from a camera.
    */
   TRACK_PUBLISH: 'track.publish',
   SUBSCRIPTION_UPDATE: 'subscription.update',
@@ -109,12 +109,12 @@ export type ClientMessage =
   | { type: typeof ClientMessageType.PING };
 
 /**
- * Error codes that mean "the credential is the problem", so reconnecting
- * with the same token cannot help.
+ * Error codes meaning "the credential is the problem", where reconnecting
+ * on the same token can't possibly help.
  *
- * The distinction drives reconnect behaviour: everything else is worth
- * retrying with backoff, these need a fresh token from the application's
- * backend first.
+ * The split drives reconnect behaviour. Everything else is worth retrying
+ * with backoff; these want a fresh token from the application's backend
+ * first.
  */
 export const FATAL_ERROR_CODES: ReadonlySet<SignalingErrorCode> = new Set([
   'INVALID_TOKEN',

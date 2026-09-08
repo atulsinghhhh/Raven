@@ -108,7 +108,7 @@ describe('createTelemetryClient', () => {
     const client = createTelemetryClient({ enabled: true, telemetryUrl: 'http://api.test', token: 't', sdkVersion: '0.1.0', logger });
 
     expect(() => client.send('connection_started')).not.toThrow();
-    // Give the swallowed microtask a chance to run without ever surfacing.
+    // Let the swallowed microtask run without ever surfacing.
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 

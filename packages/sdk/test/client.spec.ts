@@ -61,8 +61,8 @@ describe('RTCClient.join', () => {
 });
 
 describe('RTCClient.onDeviceChange (Phase 11)', () => {
-  // jsdom doesn't implement navigator.mediaDevices at all — polyfill just
-  // enough of it for this one test, matching every real browser's shape.
+  // jsdom has no navigator.mediaDevices whatsoever. Polyfill just enough
+  // for this one test, shaped the way every real browser shapes it.
   const originalMediaDevices = (navigator as { mediaDevices?: unknown }).mediaDevices;
   const addEventListener = jest.fn();
   const removeEventListener = jest.fn();
@@ -151,8 +151,8 @@ describe('RTCClient.join — telemetry (Phase 9, best-effort, never blocking)', 
   });
 
   it('the RTC connection succeeds even when the telemetry endpoint is completely unreachable', async () => {
-    // This is the load-bearing guarantee from Phase 9 spec §11 — a
-    // telemetry outage must never surface as an RTC failure.
+    // The load-bearing guarantee from Phase 9 spec §11. A telemetry outage
+    // must never surface as an RTC failure.
     global.fetch = jest.fn().mockRejectedValue(new Error('ECONNREFUSED')) as unknown as typeof fetch;
 
     const token = makeToken({ video: { room: 'room-1' } });

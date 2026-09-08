@@ -4,14 +4,14 @@ import { rawStatsFromReport, type RawTrackStats } from '../telemetry/rtc-stats';
 /**
  * Attach/detach over a plain `MediaStreamTrack`.
  *
- * `Track.attach()` is the SDK's way of getting media onto a page without
- * the developer touching `srcObject`. What it has to do is small: wrap the
- * track in a `MediaStream`, point an element at it, and remember which
- * elements were attached so `detach()` can find them again.
+ * `Track.attach()` is how the SDK gets media onto a page without anyone
+ * touching `srcObject`. The job itself is small: wrap the track in a
+ * `MediaStream`, point an element at it, and remember which elements you
+ * attached so `detach()` can find them later.
  *
- * The element bookkeeping is the part worth being careful about. Without
- * it, `detach()` with no argument has nothing to detach *from*, and the
- * common cleanup path in a React effect silently leaks a playing video.
+ * That last bit is the part worth getting right. Skip the bookkeeping and
+ * `detach()` with no argument has nothing to detach *from*, at which point
+ * the standard React cleanup path quietly leaks a playing video.
  */
 abstract class NativeTrackDelegate {
   readonly mediaStreamTrack: MediaStreamTrack;
@@ -35,11 +35,11 @@ abstract class NativeTrackDelegate {
     if (stream) {
       target.srcObject = stream;
     }
-    // Autoplay policies block a video element that is not muted unless the
-    // user has interacted with the page. A remote track has to be audible,
-    // so it is not muted here; `autoplay` plus `playsInline` is what makes
-    // it work in the cases that are allowed, and a caller who needs more
-    // control passes their own element.
+    // Autoplay policies block an unmuted video element until the user has
+    // interacted with the page. A remote track needs to be audible, so we
+    // don't mute it. `autoplay` plus `playsInline` covers the cases that
+    // are allowed, and anyone needing finer control passes their own
+    // element.
     target.autoplay = true;
     if (target instanceof HTMLVideoElement) {
       target.playsInline = true;
@@ -64,11 +64,11 @@ abstract class NativeTrackDelegate {
   }
 
   /**
-   * Swaps the track this delegate wraps.
+   * Swaps out the track this delegate wraps.
    *
-   * Called after `replaceTrack` on the sender succeeds, so that
-   * `attach()`ed elements and `mediaStreamTrack` describe what is actually
-   * being sent rather than the track that was replaced.
+   * Called once `replaceTrack` on the sender has succeeded, so attached
+   * elements and `mediaStreamTrack` describe what's actually going out
+   * rather than the track we just replaced.
    */
   protected swapMediaStreamTrack(next: MediaStreamTrack): void {
     (this as { mediaStreamTrack: MediaStreamTrack }).mediaStreamTrack = next;
@@ -91,10 +91,10 @@ abstract class NativeTrackDelegate {
 }
 
 /**
- * A locally captured track, optionally attached to an `RTCRtpSender`.
+ * A locally captured track, which may or may not have an `RTCRtpSender`.
  *
- * The sender is set after publishing, not at construction: a track can be
- * captured for a preview and published later (`client.createCameraTrack()`
+ * The sender arrives after publishing, not at construction. You can capture
+ * a track for a preview and publish it later (`client.createCameraTrack()`
  * then `room.publish(track)`), and mute has to work in both states.
  */
 export class NativeLocalTrackDelegate extends NativeTrackDelegate implements LocalTrackDelegate {
@@ -105,22 +105,22 @@ export class NativeLocalTrackDelegate extends NativeTrackDelegate implements Loc
     return this.muted;
   }
 
-  /** @internal called by the adapter once the track is attached to a sender. */
+  /** @internal Called by the adapter once the track has a sender. */
   setSender(sender: RTCRtpSender | undefined): void {
     this.sender = sender;
   }
 
   /**
-   * Mutes by disabling the underlying track rather than removing it.
+   * Mutes by disabling the underlying track, not by removing it.
    *
-   * `track.enabled = false` makes the browser send silence or black
-   * frames — the RTP stream continues, the transceiver stays, and
-   * unmuting is instant. Stopping the track instead would release the
-   * device (turning off the camera light, which users read as "off") but
-   * would then need a fresh `getUserMedia` and a renegotiation to undo.
+   * `track.enabled = false` has the browser send silence or black frames.
+   * The RTP stream keeps going, the transceiver stays put, and unmuting is
+   * instant. Stopping the track instead releases the device, which does
+   * turn the camera light off (users read that as "off"), but undoing it
+   * then costs a fresh `getUserMedia` and a renegotiation.
    *
-   * The SFU is told separately, via signaling, so it can stop forwarding
-   * the silence to every subscriber instead of paying to relay it.
+   * We tell the SFU separately over signaling, so it can stop forwarding
+   * the silence to every subscriber instead of paying to relay nothing.
    */
   async mute(): Promise<unknown> {
     this.mediaStreamTrack.enabled = false;
@@ -137,17 +137,17 @@ export class NativeLocalTrackDelegate extends NativeTrackDelegate implements Loc
   /**
    * Replaces the outgoing track without renegotiating.
    *
-   * This is what makes Raven Effects work mid-call: `RTCRtpSender.replaceTrack`
-   * swaps the source of an established stream, so a processed video track
-   * takes over from the raw camera with no offer/answer and no
-   * interruption to anyone else in the room.
+   * This is the trick that makes Raven Effects work mid-call.
+   * `RTCRtpSender.replaceTrack` swaps the source of an established stream,
+   * so a processed video track takes over from the raw camera with no
+   * offer/answer and nobody else in the room noticing.
    */
   async replaceTrack(track: MediaStreamTrack, _userProvidedTrack?: boolean): Promise<unknown> {
     if (this.sender) {
       await this.sender.replaceTrack(track);
     }
-    // Applied whether or not there is a sender, so an unpublished track's
-    // preview also follows the swap.
+    // Applied with or without a sender, so an unpublished track's preview
+    // follows the swap too.
     this.swapMediaStreamTrack(track);
     if (this.muted) {
       track.enabled = false;
@@ -158,11 +158,11 @@ export class NativeLocalTrackDelegate extends NativeTrackDelegate implements Loc
   /**
    * Send-side stats for this track.
    *
-   * Returns an array for video, because a simulcast sender reports one
-   * `outbound-rtp` per encoding layer — `LocalTrack.getStats()` picks the
-   * highest-resolution one. `undefined` when there is no sender yet: an
-   * unpublished track has no send statistics, and reporting zeroes would
-   * claim it was sending nothing rather than not sending at all.
+   * Video gets an array, because a simulcast sender reports one
+   * `outbound-rtp` per encoding layer, and `LocalTrack.getStats()` picks
+   * the highest-resolution one. You get `undefined` when there's no sender
+   * yet. An unpublished track has no send statistics, and reporting zeroes
+   * would claim it was sending nothing when really it isn't sending.
    */
   async getSenderStats(): Promise<RawTrackStats | RawTrackStats[] | undefined> {
     if (!this.sender) {
@@ -180,11 +180,11 @@ export class NativeLocalTrackDelegate extends NativeTrackDelegate implements Loc
 /**
  * A track received from a remote participant.
  *
- * `isMuted` reflects the *publisher's* mute, which the SFU reports over
- * signaling — not `mediaStreamTrack.muted`, which in a browser means
- * "no data is arriving right now" and flickers true during ordinary
- * network jitter. A UI driven by that would flash a muted badge on a
- * perfectly healthy connection.
+ * `isMuted` is the *publisher's* mute, as reported by the SFU over
+ * signaling. It is not `mediaStreamTrack.muted`, which in a browser means
+ * "nothing arriving right now" and flickers true during perfectly ordinary
+ * network jitter. Drive a UI off that and it flashes a muted badge on a
+ * completely healthy connection.
  */
 export class NativeRemoteTrackDelegate extends NativeTrackDelegate implements RemoteTrackDelegate {
   private readonly receiver: RTCRtpReceiver;
@@ -199,7 +199,7 @@ export class NativeRemoteTrackDelegate extends NativeTrackDelegate implements Re
     return this.publisherMuted;
   }
 
-  /** @internal set from the SFU's `track.muted` / `track.unmuted` events. */
+  /** @internal Set from the SFU's `track.muted` / `track.unmuted` events. */
   setPublisherMuted(muted: boolean): void {
     this.publisherMuted = muted;
   }

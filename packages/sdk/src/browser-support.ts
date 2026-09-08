@@ -1,7 +1,7 @@
 /**
- * Phase 11 addition — feature-detects what this SDK actually needs,
- * rather than a user-agent allowlist (which goes stale). See
- * docs/sdk/web.md#browser-support for the documented support matrix.
+ * Phase 11 addition. Feature-detects what the SDK actually needs, instead
+ * of keeping a user-agent allowlist that goes stale the moment you write
+ * it. See docs/sdk/web.md#browser-support for the documented matrix.
  */
 export interface BrowserSupportDetails {
   supported: boolean;
@@ -18,7 +18,7 @@ export function getBrowserSupportDetails(): BrowserSupportDetails {
   return { supported: missing.length === 0, missing };
 }
 
-/** Convenience over `getBrowserSupportDetails()` for a simple yes/no check. */
+/** A simple yes/no wrapper over `getBrowserSupportDetails()`. */
 export function isBrowserSupported(): boolean {
   return getBrowserSupportDetails().supported;
 }

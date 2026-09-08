@@ -1,18 +1,19 @@
 /**
- * A minimal WebRTC and WebSocket environment for jsdom.
+ * Just enough WebRTC and WebSocket to run under jsdom.
  *
  * jsdom implements neither, and the adapter's job is almost entirely
- * *protocol* logic — which offer to answer, which track belongs to whom,
- * what to send when a publisher mutes. That logic is worth testing without
- * a browser, so this provides just enough of the two APIs for it to run,
+ * *protocol* logic: which offer to answer, which track belongs to whom,
+ * what to send when a publisher mutes. That's worth testing without
+ * dragging in a browser, so this supplies the bare minimum of both APIs
  * and exposes the seams a test needs to drive it.
  *
- * What this deliberately does not do is simulate media. Nothing here
- * encodes, forwards, or transports a byte. Whether media actually flows is
- * settled by the SFU's own tests, which run real Pion PeerConnections
- * against a real forwarding path — see `services/sfu/internal/room/media_test.go`.
- * Faking media here would produce a test that passes while the product is
- * broken, which is worse than no test.
+ * What it very by design doesn't do is simulate media. Nothing here
+ * encodes, forwards or transports a single byte. Whether media actually
+ * flows is settled by the SFU's own tests, which run real Pion
+ * PeerConnections against a real forwarding path; see
+ * `services/sfu/internal/room/media_test.go`. Faking media here would give
+ * us a test that passes while the product is broken, which is worse than
+ * having no test at all.
  */
 
 export class FakeMediaStreamTrack implements Partial<MediaStreamTrack> {
@@ -32,7 +33,7 @@ export class FakeMediaStreamTrack implements Partial<MediaStreamTrack> {
     this.readyState = 'ended';
   }
 
-  /** Simulates the user ending a screen share from the browser's own bar. */
+  /** Pretends the user hit "Stop sharing" on the browser's own bar. */
   end(): void {
     this.stop();
     this.onended?.();
@@ -117,19 +118,19 @@ export class FakeRTCDataChannel {
     this.onclose?.();
   }
 
-  /** Simulates a message arriving from another participant, via the SFU. */
+  /** Pretends a message arrived from another participant, via the SFU. */
   receive(payload: ArrayBuffer | string): void {
     this.onmessage?.({ data: payload } as MessageEvent);
   }
 }
 
 /**
- * A PeerConnection that records what was asked of it and lets a test drive
- * its callbacks.
+ * A PeerConnection that remembers what was asked of it and lets a test
+ * drive its callbacks.
  *
  * `signalingState` is tracked honestly, because the adapter's glare
- * avoidance depends on it: a fake that always reported `'stable'` would
- * make the deferred-publish path untestable.
+ * avoidance leans on it. A fake that always claimed `'stable'` would make
+ * the deferred-publish path untestable.
  */
 export class FakeRTCPeerConnection {
   static instances: FakeRTCPeerConnection[] = [];
@@ -151,7 +152,7 @@ export class FakeRTCPeerConnection {
   readonly removedSenders: FakeRTCRtpSender[] = [];
   readonly appliedCandidates: RTCIceCandidateInit[] = [];
   readonly dataChannels: FakeRTCDataChannel[] = [];
-  /** Encodings handed to the next sender created by addTrack. */
+  /** Encodings the next sender created by addTrack will get. */
   nextSenderEncodings: RTCRtpEncodingParameters[] = [{}];
 
   constructor(readonly configuration?: RTCConfiguration) {
@@ -231,13 +232,13 @@ export class FakeRTCPeerConnection {
 
   /**
    * Fires `ontrack`, optionally with the transceiver `mid` a real browser
-   * would attach.
+   * would have attached.
    *
    * `mid` matters because the remote track id lives in the SDP's `a=msid:`
-   * line, not on the track: Chrome mints its own id for a received track.
-   * A test that wants to exercise that has to supply the mid so the
-   * adapter can find the right m-section. Omitting it reproduces a stack
-   * that reports no mid, where the adapter falls back to `track.id`.
+   * line and not on the track. Chrome mints its own id for a received
+   * track. Any test wanting to exercise that has to supply the mid so the
+   * adapter can locate the right m-section. Leave it off and you get a
+   * stack that reports no mid, where the adapter falls back to `track.id`.
    */
   emitTrack(track: FakeMediaStreamTrack, mid?: string): FakeRTCRtpReceiver {
     const receiver = new FakeRTCRtpReceiver(track);
@@ -257,7 +258,7 @@ export class FakeRTCPeerConnection {
   }
 }
 
-/** A WebSocket a test can inspect and feed messages into. */
+/** A WebSocket a test can poke at and feed messages into. */
 export class FakeWebSocket {
   static instances: FakeWebSocket[] = [];
   static readonly OPEN = 1;
@@ -277,8 +278,8 @@ export class FakeWebSocket {
 
   constructor(readonly url: string) {
     FakeWebSocket.instances.push(this);
-    // Opened on a microtask so a caller can attach handlers first, which
-    // is what a real WebSocket does too.
+    // Opens on a microtask so a caller gets to attach handlers first,
+    // which is what a real WebSocket does anyway.
     void Promise.resolve().then(() => this.open());
   }
 
@@ -314,7 +315,7 @@ export class FakeWebSocket {
     this.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
   }
 
-  /** Every message the client sent, parsed. */
+  /** Everything the client sent, parsed. */
   sentMessages(): Record<string, unknown>[] {
     return this.sent.map((raw) => JSON.parse(raw) as Record<string, unknown>);
   }
@@ -325,11 +326,10 @@ export class FakeWebSocket {
 }
 
 /**
- * Installs the fakes on `globalThis` and returns a teardown.
+ * Installs the fakes on `globalThis` and hands back a teardown.
  *
- * Installed per test rather than once in setup, so a test that needs
- * different behaviour can swap one out, and so a leaked handler cannot
- * affect the next test.
+ * Per test, not once in setup, so a test needing different behaviour can
+ * swap one out, and so a leaked handler can't reach into the next test.
  */
 export function installFakeWebRTC(): () => void {
   const globals = globalThis as unknown as Record<string, unknown>;
@@ -376,14 +376,14 @@ export function installFakeMediaDevices(options: { devices?: MediaDeviceInfo[] }
   });
 }
 
-/** Builds an unsigned Raven RTC token whose claims the SDK can read. */
+/** Builds an unsigned Raven RTC token the SDK can read claims off. */
 export function fakeToken(claims: Record<string, unknown>): string {
   const encode = (value: unknown) =>
     Buffer.from(JSON.stringify(value), 'utf8').toString('base64url');
   return `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode(claims)}.signature-not-checked-by-the-client`;
 }
 
-/** Lets queued microtasks and zero-delay timers run. */
+/** Lets queued microtasks and zero-delay timers actually run. */
 export async function flush(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
   await Promise.resolve();

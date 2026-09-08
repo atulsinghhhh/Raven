@@ -4,11 +4,11 @@ import type { DeviceInfo, DeviceKind } from '../sfu/types';
 /**
  * Lists available media devices.
  *
- * Labels are empty until permission has been granted at least once — a
- * privacy measure in every browser, not something the SDK can work
- * around. A device with no label still has a usable `deviceId`, so a
- * caller can select it; there is just nothing meaningful to show a user
- * until they have allowed access once.
+ * Labels come back empty until permission has been granted at least once.
+ * That's a privacy measure in every browser and not something the SDK can
+ * route around. A label-less device still has a usable `deviceId`, so you
+ * can select it. There's just nothing worth showing a user until they've
+ * allowed access once.
  */
 export async function listDevices(kind?: DeviceKind): Promise<DeviceInfo[]> {
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) {

@@ -1,16 +1,16 @@
 import { Raven, createRaven } from '../src/index';
 
 /**
- * `@corvidhq/client` is a facade — the interesting behaviour is which
- * clients it does and doesn't construct, and whether it fails early with
- * a useful message when the credential combination can't work.
+ * `@corvidhq/client` is a facade, so the interesting behaviour is which
+ * clients it constructs, which it doesn't, and whether it fails early with
+ * a useful message when the credentials can't possibly work together.
  *
- * The underlying `@corvidhq/rtc` and `@corvidhq/chat` clients have their own
- * suites; nothing here re-tests them.
+ * The underlying `@corvidhq/rtc` and `@corvidhq/chat` clients have suites
+ * of their own. Nothing here re-tests them.
  */
 
-// A syntactically valid RTC token. createRTCClient decodes (never
-// verifies) it client-side, so it has to parse as a JWT.
+// A syntactically valid RTC token. createRTCClient decodes it client-side
+// (never verifies it), so it does at least have to parse as a JWT.
 function fakeRtcToken(): string {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const payload = Buffer.from(
@@ -20,9 +20,9 @@ function fakeRtcToken(): string {
 }
 
 /**
- * @corvidhq/chat decodes (never verifies) the token client-side to fail fast
- * on an expired one, so the fixture needs the claims that decode
- * actually requires: `sub`, `pid`, and a numeric `exp`.
+ * @corvidhq/chat decodes the token client-side, never verifies it, purely
+ * to fail fast on an expired one. So the fixture needs whatever that decode
+ * actually reads: `sub`, `pid`, and a numeric `exp`.
  */
 function fakeChatToken(): string {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
@@ -39,7 +39,7 @@ function fakeChatToken(): string {
 
 describe('Raven — credential validation', () => {
   it('refuses a token without an endpoint', () => {
-    // Always a mistake, and catching it here beats a confusing connection
+    // Always a mistake, and catching it here beats a baffling connection
     // failure at join() time.
     expect(() => new Raven({ token: fakeRtcToken() })).toThrow(/both `token` and `endpoint`/);
   });
@@ -49,8 +49,8 @@ describe('Raven — credential validation', () => {
   });
 
   it('refuses an instance with no credentials at all', () => {
-    // Such an instance could do nothing; failing at construction is far
-    // clearer than a null reference later.
+    // An instance like that can't do anything at all. Failing at
+    // construction is far clearer than a null reference later on.
     expect(() => new Raven({})).toThrow(/at least one credential/);
   });
 
@@ -118,8 +118,8 @@ describe('Raven — both planes', () => {
   });
 
   it('exposes the real underlying clients, not wrappers', () => {
-    // The whole premise of this package: raven.chat IS a ChatClient, so
-    // every method the chat docs describe is present without re-export.
+    // The whole premise of the package. raven.chat IS a ChatClient, so
+    // every method the chat docs describe is right there, no re-export.
     const raven = new Raven(config);
     expect(typeof raven.chat?.sendMessage).toBe('function');
     expect(typeof raven.chat?.connect).toBe('function');

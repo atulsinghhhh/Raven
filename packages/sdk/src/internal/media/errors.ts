@@ -2,17 +2,17 @@ import { RTCError } from '../../errors';
 import type { TrackKind } from '../../track';
 
 /**
- * Maps a raw getUserMedia/getDisplayMedia failure to one of our typed
+ * Maps a raw getUserMedia/getDisplayMedia failure onto one of our typed
  * error codes.
  *
- * The classification is a short read of the `DOMException` names the
- * Media Capture spec defines, so Raven owns it rather than depending on a
- * library for it.
+ * The whole classification is a short read of the `DOMException` names the
+ * Media Capture spec defines, so Raven owns it instead of pulling in a
+ * library.
  *
- * The names come from the spec's error list (getUserMedia §9.2), not from
- * any browser's particulars — every engine reports these, and a name we
- * do not recognise falls through to a generic `MEDIA_ERROR` rather than
- * being guessed at.
+ * Those names come from the spec's own error list (getUserMedia §9.2), not
+ * from any one browser's quirks. Every engine reports them. A name we
+ * don't recognise falls through to a generic `MEDIA_ERROR` instead of
+ * getting guessed at.
  */
 export function toMediaError(error: unknown, kind: TrackKind): RTCError {
   const name = errorName(error);
@@ -20,9 +20,9 @@ export function toMediaError(error: unknown, kind: TrackKind): RTCError {
   switch (name) {
     case 'NotAllowedError':
     case 'SecurityError':
-      // SecurityError is what a browser raises when the page is not a
-      // secure context. It is a permission problem from the developer's
-      // point of view, and the message says which kind.
+      // SecurityError is what a browser raises when the page isn't a
+      // secure context. From the developer's side that's a permission
+      // problem, and the message spells out which kind.
       return new RTCError(
         permissionDeniedCode(kind),
         `Permission to use the ${label(kind)} was denied`,
@@ -31,9 +31,9 @@ export function toMediaError(error: unknown, kind: TrackKind): RTCError {
 
     case 'NotFoundError':
     case 'OverconstrainedError':
-      // OverconstrainedError means no device satisfies the constraints —
-      // in practice a deviceId that no longer exists, which is the same
-      // situation a developer needs to handle as "not found".
+      // OverconstrainedError means nothing satisfies the constraints. In
+      // practice that's a deviceId that no longer exists, which a
+      // developer handles exactly the same way as "not found".
       return new RTCError('DEVICE_NOT_FOUND', `No ${label(kind)} device matched`, error);
 
     case 'NotReadableError':
@@ -47,7 +47,7 @@ export function toMediaError(error: unknown, kind: TrackKind): RTCError {
       return new RTCError('MEDIA_ERROR', `Capturing the ${label(kind)} was aborted`, error);
 
     case 'TypeError':
-      // Empty or malformed constraints. A programming error rather than a
+      // Empty or malformed constraints. That's a programming error, not a
       // device one, so say so.
       return new RTCError('MEDIA_ERROR', `Invalid ${label(kind)} capture constraints`, error);
 
@@ -60,15 +60,15 @@ function errorName(error: unknown): string | undefined {
   if (typeof DOMException !== 'undefined' && error instanceof DOMException) {
     return error.name;
   }
-  // Not every environment exposes DOMException (some test runners, older
-  // React Native), and `error.name` is present either way.
+  // Not every environment has DOMException (some test runners, older
+  // React Native), and `error.name` is there regardless.
   if (error && typeof error === 'object' && typeof (error as { name?: unknown }).name === 'string') {
     return (error as { name: string }).name;
   }
   return undefined;
 }
 
-/** What a developer calls the thing, rather than what the SDK calls it internally. */
+/** What a developer calls it, rather than what the SDK calls it internally. */
 function label(kind: TrackKind): string {
   return kind === 'screenShare' ? 'screen' : kind;
 }

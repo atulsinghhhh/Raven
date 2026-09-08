@@ -3,27 +3,27 @@ import type { TrackKind } from '../../track';
 /**
  * One flattened WebRTC stats sample.
  *
- * Duck-typed rather than tied to any particular source, which is what let
- * this file survive the move from LiveKit's stats objects to reading an
+ * Duck-typed instead of bound to any particular source, which is how this
+ * file survived the move off LiveKit's stats objects to reading an
  * `RTCStatsReport` directly (see `internal/telemetry/rtc-stats.ts`). Every
- * field is a raw WebRTC stat in the units the spec defines it in (seconds,
- * not milliseconds); `normalizeTrackStats` below converts into Raven's own
+ * field is a raw WebRTC stat in the units the spec uses, so seconds, not
+ * milliseconds. `normalizeTrackStats` below translates into Raven's own
  * vocabulary.
  */
 export interface RawTrackStats {
   type?: 'audio' | 'video';
-  /** Epoch ms — when this sample was taken. Used to compute bitrate against a previous sample. */
+  /** Epoch ms: when this sample was taken. Bitrate is a delta against a previous one. */
   timestamp: number;
   /** Seconds, per the WebRTC spec. */
   jitter?: number;
   packetsLost?: number;
   packetsSent?: number;
   packetsReceived?: number;
-  /** Seconds. Only ever populated on an outbound audio stream — WebRTC does not report RTT for video or for the receive direction. */
+  /** Seconds. Only ever set on an outbound audio stream; WebRTC reports no RTT for video or for the receive direction. */
   roundTripTime?: number;
   bytesSent?: number;
   bytesReceived?: number;
-  /** Receive-direction video only; WebRTC does not surface this for audio or for the send direction. */
+  /** Receive-direction video only. WebRTC doesn't surface it for audio or for sending. */
   mimeType?: string;
   frameWidth?: number;
   frameHeight?: number;
@@ -31,24 +31,26 @@ export interface RawTrackStats {
 }
 
 /**
- * Raven's own normalized shape — never a raw WebRTC stats object on a
- * public class. Every field is optional and omitted rather than set to
- * `0`/`null` when the browser or SFU didn't report it: a 0% packet loss
- * figure and "we don't know" are different facts, and this never fabricates
- * the first to paper over the second.
+ * Raven's own normalized shape. A raw WebRTC stats object never appears on
+ * a public class.
+ *
+ * Every field is optional, and gets omitted, not set to `0` or
+ * `null` when the browser or SFU didn't report it. "0% packet loss" and
+ * "we don't know" are different facts, and this will not fabricate the
+ * first to cover for the second.
  */
 export interface TrackStats {
   kind: TrackKind;
-  /** 'send' for a track this side published, 'receive' for one it subscribed to. */
+  /** 'send' for a track we published, 'receive' for one we subscribed to. */
   direction: 'send' | 'receive';
-  /** Bytes/sec, computed from two consecutive samples. Undefined on the first sample of a track — there is nothing yet to take a delta against. */
+  /** Bytes/sec, from two consecutive samples. Undefined on a track's first sample, since there's nothing to take a delta against yet. */
   bitrateBps?: number;
   packetsLost?: number;
-  /** 0-100. See the module doc for why this is an approximation, not a WebRTC-spec figure. */
+  /** 0-100. The module doc explains why it's an approximation and not a WebRTC-spec figure. */
   packetLossPercent?: number;
   jitterMs?: number;
   roundTripTimeMs?: number;
-  /** Populated only for a received video track — see `RawTrackStats.mimeType`. */
+  /** Only set for a received video track. See `RawTrackStats.mimeType`. */
   codec?: string;
   frameWidth?: number;
   frameHeight?: number;
@@ -58,15 +60,15 @@ export interface TrackStats {
 const MS_PER_SECOND = 1000;
 
 /**
- * Converts one raw WebRTC sample into Raven's `TrackStats`, using the
- * previous sample (if any) to compute bitrate as a delta over time.
+ * Turns one raw WebRTC sample into Raven's `TrackStats`, using the previous
+ * sample where there is one to work bitrate out as a delta over time.
  *
- * Packet loss is reported as a percentage using the standard
- * loss-rate approximation (`lost / (lost + sent-or-received)`) that most
- * WebRTC quality tooling uses. It is not the RFC 3550 formula and is not
- * exact — `packetsLost` is a cumulative, remote-reported count with its
- * own delivery lag — but it is close enough to be a useful signal and
- * costs nothing extra to compute from stats already being collected.
+ * Packet loss comes back as a percentage via the usual loss-rate
+ * approximation, `lost / (lost + sent-or-received)`, which is what most
+ * WebRTC quality tooling uses. It isn't the RFC 3550 formula and it isn't
+ * exact: `packetsLost` is a cumulative, remote-reported count with its own
+ * delivery lag. But it's close enough to be a useful signal and costs
+ * nothing on top of stats we're already collecting.
  */
 export function normalizeTrackStats(
   raw: RawTrackStats,
@@ -104,10 +106,11 @@ export function normalizeTrackStats(
 
   if (typeof currentBytes === 'number' && typeof previousBytes === 'number') {
     const elapsedSeconds = (raw.timestamp - previous!.timestamp) / MS_PER_SECOND;
-    // A non-positive elapsed time means the samples are out of order or
-    // identical (a caller polling faster than the underlying stats
-    // actually refresh) — computing a rate from it would divide by zero
-    // or invert the sign, so it is skipped rather than reported as junk.
+    // Non-positive elapsed time means the samples are out of order or
+    // identical, which happens when a caller polls faster than the
+    // underlying stats actually refresh. Computing a rate from that either
+    // divides by zero or flips the sign, so skip it instead of reporting
+    // junk.
     if (elapsedSeconds > 0 && currentBytes >= previousBytes) {
       stats.bitrateBps = ((currentBytes - previousBytes) * 8) / elapsedSeconds;
     }
@@ -117,11 +120,11 @@ export function normalizeTrackStats(
 }
 
 /**
- * `LocalVideoTrack.getSenderStats()` returns one entry per simulcast
- * encoding layer rather than a single stream. The highest-resolution
- * layer is the one worth reporting as "this track's" quality — the lower
- * layers exist for viewers on constrained connections, not to describe
- * what this participant is actually sending at its best.
+ * `LocalVideoTrack.getSenderStats()` hands back one entry per simulcast
+ * encoding layer, not a single stream. The highest-resolution layer is the
+ * one worth calling "this track's" quality. The lower layers exist for
+ * viewers on poor connections; they don't describe what this participant
+ * is sending at its best.
  */
 export function pickBestLayer(layers: RawTrackStats[]): RawTrackStats | undefined {
   return layers.reduce<RawTrackStats | undefined>((best, layer) => {

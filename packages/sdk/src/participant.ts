@@ -1,6 +1,6 @@
 import type { LocalTrack, RemoteTrack } from './track';
 
-/** Common fields shared by the local user and remote participants. */
+/** Fields the local user and remote participants have in common. */
 export abstract class Participant {
   private _identity: string;
   /** Opaque application metadata set when the RTC token was minted. */
@@ -11,15 +11,15 @@ export abstract class Participant {
     this.metadata = metadata;
   }
 
-  /** The RTC token's participant identity — stable for the session's duration. */
+  /** The RTC token's participant identity. Stable for the whole session. */
   get identity(): string {
     return this._identity;
   }
 
   /**
-   * @internal Called once by the SFU adapter right after connect()
-   * resolves — the constructor runs before the server confirms identity,
-   * so this patches it in afterward.
+   * @internal Called once by the SFU adapter just after connect() resolves.
+   * The constructor runs before the server has confirmed identity, so this
+   * patches it in afterwards.
    */
   _setIdentity(identity: string): void {
     this._identity = identity;
