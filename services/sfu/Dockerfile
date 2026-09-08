@@ -44,7 +44,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
       -o /out/sfu \
       ./cmd/sfu
 
-FROM alpine:3.22
+FROM alpine:3.24
 
 # ca-certificates so the registry client can reach a control plane over
 # HTTPS. Nothing else is needed — the binary is static.
