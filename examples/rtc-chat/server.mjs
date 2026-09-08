@@ -3,7 +3,7 @@
 // One endpoint returns two independent credentials: an RTC token for the
 // media session and a chat token for the messaging session. They're
 // minted separately, signed with different keys, and either one can fail
-// without taking the other down — which is exactly the separation
+// without taking the other down, which is exactly the separation
 // Phase 12 is built around.
 //
 // Run with:
@@ -22,7 +22,7 @@ app.use(express.json());
 /**
  * Finds or creates the RTC room *and* the conversation attached to it.
  * The attachment is what lets a developer hand `chat.connect()` the same
- * room they handed `client.join()` — one identity, two planes.
+ * room they handed `client.join()`: one identity, two planes.
  */
 async function ensureRoomAndConversation(roomName) {
   const rooms = await raven.rooms.list();
@@ -60,7 +60,7 @@ app.post('/api/session', async (req, res) => {
     await raven.chat.addMember(conversation.publicId, { userId: identity, role: 'MEMBER' });
 
     // Minted independently. Neither token can be used against the other
-    // plane — an RTC token is rejected by the chat gateway and vice versa.
+    // plane: an RTC token is rejected by the chat gateway and vice versa.
     const [rtc, chat] = await Promise.all([
       raven.tokens.create({
         room: room.id,

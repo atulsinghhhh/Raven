@@ -1,6 +1,6 @@
-// Raven Live Streaming demo — built entirely on @corvidhq/client's
+// Raven Live Streaming demo: built entirely on @corvidhq/client's
 // LiveStream API (raven.live.join()). No SDP and no
-// RTCPeerConnection anywhere in this file — `stream.room` and
+// RTCPeerConnection anywhere in this file: `stream.room` and
 // `stream.chat` are real @corvidhq/rtc/@corvidhq/chat objects, used exactly as
 // their own docs describe.
 import { LiveStream } from '@corvidhq/client';
@@ -151,7 +151,7 @@ $('joinBtn').onclick = async () => {
   log(`joined as ${stream.role} (isHost=${stream.isHost})`);
 
   // Already-published tracks (the host was live before this tab joined)
-  // arrive synchronously on room.remoteParticipants — trackSubscribed
+  // arrive synchronously on room.remoteParticipants: trackSubscribed
   // only fires for arrivals *after* this point.
   for (const participant of stream.room.remoteParticipants) {
     for (const track of participant.tracks) {

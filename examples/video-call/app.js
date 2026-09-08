@@ -1,4 +1,4 @@
-// Raven video-call example — built entirely on @corvidhq/rtc's public API.
+// Raven video-call example: built entirely on @corvidhq/rtc's public API.
 // No SDP, no ICE candidates, and no RTCPeerConnection appear anywhere in
 // this file.
 import { createRTCClient, isRTCError } from '@corvidhq/rtc';
@@ -45,7 +45,7 @@ joinButton.addEventListener('click', async () => {
 
   // This is the entire authentication flow the developer needs to think
   // about: forward token/endpoint/iceServers/telemetryUrl from your
-  // backend's RTC token response — never mint that token in the browser
+  // backend's RTC token response: never mint that token in the browser
   // (docs/sdk.md#authentication). telemetryUrl enables best-effort
   // connection telemetry (docs/telemetry.md); omit it, or pass
   // `telemetry: false`, to disable telemetry entirely.
@@ -92,7 +92,7 @@ joinButton.addEventListener('click', async () => {
   });
 
   // Participants already in the room (and their already-subscribed tracks)
-  // are available synchronously on room.remoteParticipants right away —
+  // are available synchronously on room.remoteParticipants right away;
   // participantJoined/trackSubscribed only fire for arrivals *after* this
   // point, the same convention most real-time SDKs follow. Render anyone
   // already present before relying on the events above for new arrivals.

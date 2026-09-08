@@ -1,4 +1,4 @@
-// Raven Effects demo — built entirely on @corvidhq/effects. No
+// Raven Effects demo: built entirely on @corvidhq/effects. No
 // @corvidhq/rtc/signaling involved: this demonstrates the pipeline itself
 // against a real getUserMedia() track, which is exactly what
 // LocalTrack.attachEffects() does internally once it's wired to a room.

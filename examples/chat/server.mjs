@@ -3,7 +3,7 @@
 // The whole point of this file is the boundary it draws: RAVEN_API_KEY
 // lives here and only here. The browser authenticates against *this*
 // server however your app already does it, and gets back a short-lived
-// chat token scoped to one user — never the project key.
+// chat token scoped to one user: never the project key.
 //
 // Run with:
 //   RAVEN_API_KEY=rvk_xxx.yyy node server.mjs
@@ -22,7 +22,7 @@ app.use(express.json());
 
 /**
  * Makes sure the conversation exists before anyone tries to join it.
- * Provisioning is a backend job — a browser holding a chat token can't
+ * Provisioning is a backend job: a browser holding a chat token can't
  * create conversations, by design.
  */
 async function ensureConversation() {
@@ -44,7 +44,7 @@ app.post('/api/chat/token', async (req, res) => {
   }
 
   // In a real app `userId` comes from your own authenticated session
-  // (req.user.id), never from the request body — otherwise anyone can
+  // (req.user.id), never from the request body: otherwise anyone can
   // ask for a token as anyone. Kept simple here so the example runs
   // without an auth system. Same caveat as examples/node-server.
   try {
@@ -72,7 +72,7 @@ app.post('/api/chat/token', async (req, res) => {
 });
 
 /**
- * A system message — the one message type a browser token cannot send.
+ * A system message: the one message type a browser token cannot send.
  * Wired up here so the example can demonstrate it, and to show where
  * server-authored announcements belong.
  */

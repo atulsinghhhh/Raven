@@ -15,7 +15,7 @@ import './index.css';
 
 /**
  * A real Raven Chat client. Every message on screen came from Postgres
- * via the WebSocket — there is no mock array anywhere in this file
+ * via the WebSocket: there is no mock array anywhere in this file
  * (Phase 12 spec §44).
  *
  * Note what isn't here: no `new WebSocket(...)`, no reconnect logic, no
@@ -185,7 +185,7 @@ function ChatScreen({ session, onSignOut }: { session: Session; onSignOut: () =>
             placeholder="Message…"
             onChange={(event) => {
               setDraft(event.target.value);
-              // Throttled inside the hook — safe to call per keystroke.
+              // Throttled inside the hook: safe to call per keystroke.
               onInput();
             }}
             onBlur={stop}
@@ -366,7 +366,7 @@ function MessageRow({
 function TypingLine({ users }: { users: string[] }) {
   if (users.length === 0) {
     // Reserve the space so the composer doesn't jump when someone starts
-    // typing — a small thing that makes the UI feel much less twitchy.
+    // typing: a small thing that makes the UI feel much less twitchy.
     return <div className="typing placeholder" />;
   }
   const label = users.length === 1 ? `${users[0]} is typing…` : `${users.join(', ')} are typing…`;

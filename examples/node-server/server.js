@@ -1,4 +1,4 @@
-// Minimal backend for a frontend that joins Raven RTC rooms — the canonical
+// Minimal backend for a frontend that joins Raven RTC rooms: the canonical
 // Phase 10 flow: Browser -> your backend -> @corvidhq/server -> Raven -> a
 // short-lived RTC token -> back to the browser -> @corvidhq/rtc.
 //
@@ -22,7 +22,7 @@ app.post('/api/rtc/token', async (req, res) => {
   }
 
   // In a real app, `identity` should come from your own authenticated
-  // session (req.user.id), never trusted verbatim from the request body —
+  // session (req.user.id), never trusted verbatim from the request body;
   // see docs/security/server-sdk.md#authorization-model. Kept simple here
   // to focus the example on the Raven SDK call itself.
   try {

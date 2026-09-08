@@ -1,12 +1,12 @@
 // Blended workload: REST reads, RTC token minting, and chat WS traffic
-// running concurrently — the "mixed" data point the production-scale
+// running concurrently: the "mixed" data point the production-scale
 // plan asks for alongside the per-surface tests, since a naive
 // per-surface-only test can't show cross-surface contention (e.g. chat
 // fan-out competing with REST request handling for the same event
 // loop / DB pool).
 //
 // The chat client here is intentionally minimal (connect, join, send
-// one message, wait for the ack, disconnect) — it exists to produce
+// one message, wait for the ack, disconnect): it exists to produce
 // realistic *blended* traffic, not to replace scripts/chat-load-test.mjs
 // as the dedicated chat measurement (see scripts/k6/README.md and
 // scripts/k6/chat-scaled-load-test.sh for that).
@@ -59,10 +59,10 @@ export const options = {
   },
 };
 
-// A fixed pool rather than one unique userId per iteration: chat
+// A fixed pool, not one unique userId per iteration: chat
 // membership is checked at authorization time (conversations.authorize
 // rejects NOT_A_MEMBER), so every chatting identity has to be a real
-// member of the conversation — the same shape a real app's chat usage
+// member of the conversation: the same shape a real app's chat usage
 // takes (known users, not infinite anonymous ones), and it keeps setup()
 // to one bulk-membership call instead of a per-iteration add-member
 // request.
@@ -136,7 +136,7 @@ export function chatTraffic(data) {
   // Not tokenRes.json('chatUrl'): that's the server's own advertised
   // public URL (its configured API_PUBLIC_URL/API_PORT), which is
   // right for a real deployment behind one shared load balancer but
-  // wrong here — each scaled-replica target has its own random host
+  // wrong here: each scaled-replica target has its own random host
   // port (see discover-api-targets.sh), and the point of this scenario
   // is to actually exercise the specific replica `base` was picked
   // from, not whichever one the server happens to advertise itself as.

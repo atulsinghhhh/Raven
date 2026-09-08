@@ -1,6 +1,6 @@
 // Shared by every k6 script here. TARGETS is a comma-separated list of
-// base URLs — one per running `api` replica (see
-// scripts/k6/discover-api-targets.sh) — so a single k6 run can spread
+// base URLs: one per running `api` replica (see
+// scripts/k6/discover-api-targets.sh), so a single k6 run can spread
 // load across a horizontally-scaled fleet instead of hammering one
 // instance while N-1 others sit idle.
 

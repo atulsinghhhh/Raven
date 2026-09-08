@@ -7,14 +7,14 @@ import tseslint from 'typescript-eslint';
  * The monorepo's lint baseline.
  *
  * One config for apps/api and every package under packages/. The dashboard
- * is deliberately excluded: Next.js needs eslint-config-next's own rules
+ * is excluded on purpose: Next.js needs eslint-config-next's own rules
  * (server components, image usage, core web vitals), so it keeps
  * apps/dashboard/eslint.config.mjs and its own `lint` script. Same for
- * apps/www and apps/docs — every Next.js app in the monorepo keeps its
- * own Next-flavoured config rather than sharing this one.
+ * apps/www and apps/docs too. Every Next.js app in the monorepo keeps its
+ * own Next-flavoured config instead of sharing this one.
  *
- * Rules here are the non-type-aware set. Type-aware linting catches more —
- * floating promises above all — but needs a project graph across eight
+ * Rules here are the non-type-aware set. Type-aware linting catches more,
+ * floating promises above all, but it needs a project graph across eight
  * packages and is markedly slower. Worth doing as its own change, with the
  * errors it surfaces triaged properly, rather than smuggled into the change
  * that makes lint exist at all.
@@ -22,7 +22,7 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   {
     // Nothing below this line is ours to lint. `generated` is Prisma's
-    // client — hundreds of thousands of machine-written lines that would
+    // client: hundreds of thousands of machine-written lines that would
     // dominate any report.
     ignores: [
       '**/node_modules/**',
@@ -65,7 +65,7 @@ export default tseslint.config(
       globals: { ...globals.node, ...globals.browser },
     },
     rules: {
-      // An unused parameter is often deliberate — an interface being
+      // An unused parameter is often quite deliberate: an interface being
       // satisfied, a positional argument being skipped. Leading underscore
       // is the established way to say "intentionally unused".
       '@typescript-eslint/no-unused-vars': [
@@ -83,7 +83,7 @@ export default tseslint.config(
       // without blocking a build.
       '@typescript-eslint/no-explicit-any': 'warn',
 
-      // Catching an error and doing nothing is sometimes correct here — a
+      // Catching an error and doing nothing is sometimes right here: a
       // best-effort telemetry post, a cleanup that must not throw. Those are
       // written as `.catch(() => undefined)`, which this rule allows; a bare
       // empty block is what it flags.
@@ -113,9 +113,9 @@ export default tseslint.config(
   },
 
   {
-    // @corvidhq/react ships hooks, so the rules of hooks are not advisory here —
-    // a dependency array that lies is a stale-closure bug in someone else's
-    // application. The package already carries exhaustive-deps disable
+    // @corvidhq/react ships hooks, so the rules of hooks aren't advisory
+    // here: a dependency array that lies is a stale-closure bug in someone
+    // else's application. The package already carries exhaustive-deps disable
     // comments; without the plugin loaded those comments were themselves
     // errors ("definition for rule not found").
     files: ['packages/react-sdk/**/*.{ts,tsx}'],

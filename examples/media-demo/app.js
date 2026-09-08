@@ -1,6 +1,6 @@
-// Raven media demo — built entirely on @corvidhq/rtc's public API. No SDP, no
+// Raven media demo: built entirely on @corvidhq/rtc's public API. No SDP, no
 // ICE candidates, and no RTCPeerConnection appear anywhere in this file. Run `server.py` alongside this
-// page — see the README.
+// page: see the README.
 import { createRTCClient, isRTCError } from '@corvidhq/rtc';
 
 const TOKEN_ENDPOINT = 'http://localhost:8788/api/rtc/token';
@@ -86,7 +86,7 @@ function renderParticipants() {
   }
 }
 
-// --- Live connection stats — room.getConnectionStats(), not a private API ---
+// --- Live connection stats: room.getConnectionStats(), not a private API ---
 
 function renderStatsRow(entry) {
   const row = document.createElement('tr');
@@ -128,7 +128,7 @@ async function pollStats() {
   }
 }
 
-// --- Project diagnostics — GET /api/diagnostics, a pass-through of the
+// --- Project diagnostics. GET /api/diagnostics, a pass-through of the
 // Python SDK's raven.diagnostics.get() (raven/resources/diagnostics.py).
 // Independent of whether this page is connected to anything: it reports
 // the project's infrastructure health, not this browser tab's state.
@@ -193,7 +193,7 @@ joinBtn.onclick = async () => {
 
   // This is the entire authentication flow the developer needs to think
   // about: forward token/endpoint/iceServers/telemetryUrl from your
-  // backend's RTC token response — never mint that token in the browser.
+  // backend's RTC token response: never mint that token in the browser.
   client = createRTCClient({
     token: issued.token,
     endpoint: issued.endpoint,
@@ -255,7 +255,7 @@ joinBtn.onclick = async () => {
   room.on('trackUnmuted', (kind, participant) => log(`${participant.identity} unmuted ${kind}`));
 
   // Anyone already in the room (and their already-subscribed tracks) is
-  // available synchronously right away — participantJoined/trackSubscribed
+  // available synchronously right away: participantJoined/trackSubscribed
   // only fire for arrivals after this point.
   renderParticipants();
   for (const participant of room.remoteParticipants) {

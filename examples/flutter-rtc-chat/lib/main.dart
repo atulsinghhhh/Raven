@@ -13,7 +13,7 @@ import 'package:raven_rtc/raven_rtc.dart';
 /// (spec §11).
 ///
 /// Devices on the same Wi-Fi should point this at the host machine's LAN
-/// IP — `localhost` on a phone means the phone.
+/// IP: `localhost` on a phone means the phone.
 const String backendUrl = String.fromEnvironment(
   'RAVEN_BACKEND_URL',
   defaultValue: 'http://localhost:8791',
@@ -253,7 +253,7 @@ class _CallScreenState extends State<CallScreen> {
 
       if (!mounted) {
         // The screen went away while connecting. Release everything
-        // rather than leaving a call running behind a dismissed route.
+        // instead of leaving a call running behind a dismissed route.
         await raven.leave();
         chat.dispose();
         return;
@@ -317,7 +317,7 @@ class _CallScreenState extends State<CallScreen> {
       );
     }
 
-    // ListenableBuilder is the idiomatic way to follow a ChangeNotifier —
+    // ListenableBuilder is the idiomatic way to follow a ChangeNotifier;
     // the room rebuilds this subtree as participants and tracks change.
     return ListenableBuilder(
       listenable: room,

@@ -59,7 +59,7 @@ export function App() {
         chatUrl={session.chat.chatUrl}
         room={session.chat.roomId}
         onError={(error) => {
-          // Chat failing must never tear down the call — log it and let
+          // Chat failing must never tear down the call: log it and let
           // the video half carry on.
           // eslint-disable-next-line no-console
           console.error(`[raven-chat] ${error.code}: ${error.message}`);
@@ -142,7 +142,7 @@ function CallScreen({ session, onLeave }: { session: Session; onLeave: () => voi
 
 /**
  * The two connection states, side by side. Showing them separately is the
- * honest thing to do — they genuinely are two connections, and a user
+ * honest thing to do: they genuinely are two connections, and a user
  * whose video is reconnecting while chat stays up should be able to see
  * that.
  */

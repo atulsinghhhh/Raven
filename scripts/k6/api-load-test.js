@@ -1,12 +1,12 @@
-// REST control-plane load test (Rooms + RTC Tokens) — one leg of the
+// REST control-plane load test (Rooms + RTC Tokens): one leg of the
 // four load-test surfaces the production-scale plan calls for
 // (API / Chat / Signaling-via-RTC / Live Streaming / mixed).
 //
 // What this proves: the measured single-instance/N-instance ceiling for
 // the authenticated REST surface, under the SLO defined by the
-// thresholds below — a REAL number from a REAL run, not an estimate.
+// thresholds below: a REAL number from a REAL run, not an estimate.
 // What this does NOT prove: 10k/20k concurrent-user capacity on this
-// machine — see scripts/k6/README.md's "what this can and can't prove"
+// machine: see scripts/k6/README.md's "what this can and can't prove"
 // section. A single laptop originating tens of thousands of connections
 // while also running the server under test is not a production capacity
 // model; use this to find the per-instance ceiling and the multi-
@@ -20,7 +20,7 @@
 //   k6 run -e TARGETS="$TARGETS" -e STAGES='[{"duration":"30s","target":100}]' \
 //     scripts/k6/api-load-test.js
 //
-// Results should be redirected to scripts/results/ — nothing here
+// Results should be redirected to scripts/results/: nothing here
 // writes there itself, to keep this script's job to "produce numbers",
 // not "decide where they go" (see docs/production/capacity-report.md
 // for how raw output there turns into the actual report):
@@ -35,7 +35,7 @@ const targets = parseTargets(__ENV.TARGETS);
 
 // Default ramp sweeps toward the 1K/5K/10K/20K tiers the plan asks for,
 // but abortOnFail thresholds below mean a real run typically stops well
-// before reaching the top of this ramp — that early stop *is* the
+// before reaching the top of this ramp: that early stop *is* the
 // measurement (the concurrency at which the SLO broke), not a failure
 // of the script. Override via -e STAGES for a shorter/targeted run.
 const DEFAULT_STAGES = [
@@ -55,7 +55,7 @@ export const options = {
   stages: __ENV.STAGES ? JSON.parse(__ENV.STAGES) : DEFAULT_STAGES,
   thresholds: {
     // The SLO. abortOnFail stops the whole run the moment it's
-    // breached — that stopping point is the "ceiling" the capacity
+    // breached: that stopping point is the "ceiling" the capacity
     // report's methodology calls for, read off the ramp's VU count at
     // the moment of abort.
     http_req_failed: [{ threshold: 'rate<0.01', abortOnFail: true }],
@@ -91,7 +91,7 @@ export default function (data) {
   const roomId = createRes.json('id');
 
   // Token minting is rate-limited per API key (RtcTokensController's
-  // @RateLimit(60)) — a real, deliberate production control, but it
+  // @RateLimit(60)): a real, deliberate production control, but it
   // means a single-API-key run finds that limit long before it finds
   // any actual compute/DB ceiling for this endpoint. Set
   // SKIP_TOKEN_MINT=1 to isolate the unthrottled create_room/get_room
@@ -109,7 +109,7 @@ export default function (data) {
   }
 
   // GET :id enriches its response with a live room-state query to the SFU
-  // round-trip (rooms.service.ts has no participant-count cache) — a
+  // round-trip (rooms.service.ts has no participant-count cache): a
   // real per-request cost worth isolating from create_room's plain
   // Postgres path. Set SKIP_GET_ROOM=1 to isolate that.
   if (!__ENV.SKIP_GET_ROOM) {

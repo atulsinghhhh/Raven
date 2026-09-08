@@ -3,7 +3,7 @@
 //
 // Opens N real WebSocket connections against a running Raven API, has a
 // share of them send messages at a fixed rate, and measures what actually
-// happened. Nothing here is simulated or extrapolated — every number
+// happened. Nothing here is simulated or extrapolated: every number
 // printed comes from a real socket carrying a real message through
 // Postgres and Redis.
 //
@@ -105,7 +105,7 @@ async function main() {
     metrics.connectionsAttempted++;
     const client = await openSocket(minted, room, userId).catch((error) => {
       metrics.connectionsFailed++;
-      // Print the first few, then stop — a hundred identical lines helps
+      // Print the first few, then stop: a hundred identical lines helps
       // nobody, and the first one already says what's wrong.
       if (metrics.connectionsFailed <= 3) console.error(`  connection failed: ${error.message}`);
       return null;
@@ -238,7 +238,7 @@ function openSocket(minted, room, userId) {
         metrics.connectionsDropped++;
         return;
       }
-      // Closed before it ever joined — reject now rather than sitting on
+      // Closed before it ever joined: reject now instead of sitting on
       // the connect timeout. 4429 in particular means the per-IP
       // connection limiter refused us, which is a configuration problem
       // with the *test*, not a server fault, so say so plainly.
@@ -299,7 +299,7 @@ function report(elapsedSeconds, connectMs) {
   console.log('');
   line('load generator RSS', `${(memory.rss / 1024 / 1024).toFixed(0)} MB`);
 
-  // State the caveat every time, not just in the docs — a number without
+  // State the caveat every time, not just in the docs: a number without
   // its context is how a benchmark turns into a false claim.
   console.log(
     '\n  These figures describe this machine and this configuration only.\n' +

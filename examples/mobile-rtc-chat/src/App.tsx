@@ -128,7 +128,7 @@ function CallScreen({ session, onLeave }: { session: Session; onLeave: () => voi
       .then(async (joined) => {
         if (cancelled) {
           // The screen went away mid-connect. Leaving immediately is the
-          // only correct move — otherwise the call outlives its own UI.
+          // only correct move: otherwise the call outlives its own UI.
           await instance.dispose();
           return;
         }
@@ -141,7 +141,7 @@ function CallScreen({ session, onLeave }: { session: Session; onLeave: () => voi
 
     return () => {
       cancelled = true;
-      // dispose() — not leave() — because the whole feature is going
+      // dispose(), not leave(), because the whole feature is going
       // away, chat connection included.
       void instance.dispose();
     };
@@ -238,13 +238,13 @@ function ChatPanel({ chat, identity }: { chat?: RavenChatHandle; identity: strin
   useEffect(() => {
     if (!chat) return undefined;
 
-    // History first, so the panel opens with context rather than empty.
+    // History first, so the panel opens with context, not empty.
     void chat.messages
       .list({ limit: 50 })
       .then((page) => setMessages([...page.data].reverse()))
       .catch(() => undefined);
 
-    // on() returns an unsubscribe function — calling it on unmount is
+    // on() returns an unsubscribe function: calling it on unmount is
     // what stops a closed panel leaking handlers.
     const offMessage = chat.on('message', (message) => {
       setMessages((current) =>

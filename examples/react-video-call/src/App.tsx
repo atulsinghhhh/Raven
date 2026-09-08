@@ -17,7 +17,7 @@ import './index.css';
 // This is the ONE thing a developer needs to think about client-side:
 // forward the full JSON body from your backend's `POST /rtc-tokens` call
 // (see examples/node-server, examples/python-server) straight into
-// <RavenRoom> — never mint a token here, and no media-plane types appear
+// <RavenRoom>: never mint a token here, and no media-plane types appear
 // anywhere in this file (Phase 11 spec §27).
 interface ParsedToken {
   token: string;
@@ -100,7 +100,7 @@ function CallScreen({ onLeft }: { onLeft: () => void }) {
   const [audioDevices, setAudioDevices] = useState<DeviceInfo[]>([]);
   const [sharingScreen, setSharingScreen] = useState(false);
 
-  // Device enumeration + change detection (Phase 11 §7) — a real headless
+  // Device enumeration + change detection (Phase 11 §7): a real headless
   // use of the client that doesn't need its own dedicated hook.
   useEffect(() => {
     if (!client) return undefined;

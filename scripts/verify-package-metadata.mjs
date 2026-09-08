@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Pre-publish gate for the packages under packages/.
 //
-// npm publish is effectively irreversible — unpublish is restricted to a
+// npm publish is effectively irreversible: unpublish is restricted to a
 // 72-hour window and blocked outright once anything depends on you. So the
 // checks that would otherwise be caught by a reviewer noticing a blank npm
 // page run here instead, before the tarball is built.
