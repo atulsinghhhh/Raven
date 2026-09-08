@@ -1,10 +1,10 @@
 // Package registry keeps this node's entry in the control plane's fleet
-// registry current.
+// registry up to date.
 //
-// Registration is the node's job, not an operator's: a node's existence is
-// a fact about the deployment, and requiring someone to also declare it in
-// a database is how fleets end up with phantom rows for machines that were
-// scaled down months ago.
+// Registering is the node's job, not an operator's. A node existing is a
+// fact about the deployment, and making somebody separately declare it in a
+// database is exactly how fleets end up full of phantom rows for machines
+// that were scaled down months ago.
 package registry
 
 import (
@@ -16,13 +16,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/corvidhq/raven/services/sfu/internal/config"
-	"github.com/corvidhq/raven/services/sfu/internal/room"
+	"github.com/atulsinghhhh/Raven/services/sfu/internal/config"
+	"github.com/atulsinghhhh/Raven/services/sfu/internal/room"
 )
 
-// requestTimeout bounds a registration or heartbeat call. Short, because a
-// heartbeat that takes longer than the interval would pile up, and because
-// the next attempt is only seconds away anyway.
+// requestTimeout caps a registration or heartbeat call. Kept short: a
+// heartbeat slower than the interval piles up behind itself, and the next
+// attempt is only seconds away regardless.
 const requestTimeout = 5 * time.Second
 
 type Client struct {
@@ -31,10 +31,10 @@ type Client struct {
 	http    *http.Client
 	logger  *slog.Logger
 
-	// registered tracks whether the control plane knows us. A heartbeat
-	// that comes back 404 clears it, so the next tick re-registers rather
-	// than heartbeating into the void forever — which is what happens if
-	// the control plane's database was restored from a backup.
+	// registered: does the control plane know about us? A heartbeat coming
+	// back 404 clears it so the next tick re-registers, instead of
+	// heartbeating into the void forever. Which is what you get when
+	// somebody restores the control plane's database from a backup.
 	registered bool
 }
 
@@ -65,7 +65,7 @@ type heartbeatRequest struct {
 	NetworkOutBps      *float64 `json:"networkOutBps,omitempty"`
 }
 
-// Register announces this node. Safe to call repeatedly — the control
+// Register announces this node. Call it as often as you like; the control
 // plane upserts by name.
 func (c *Client) Register(ctx context.Context) error {
 	body := registerRequest{
@@ -93,15 +93,15 @@ func (c *Client) Register(ctx context.Context) error {
 
 // Run registers, then heartbeats until the context is cancelled.
 //
-// A failed heartbeat is logged and retried on the next tick rather than
-// aborting: the control plane being briefly unreachable must not stop this
-// node serving the calls already on it. What it does cost is new
-// allocations — the control plane will mark us unhealthy after the timeout,
-// which is the correct behaviour from its side.
+// A failed heartbeat gets logged and retried on the next tick. We don't
+// abort. The control plane being briefly unreachable must not stop this
+// node serving the calls already on it. It does cost us new allocations,
+// since the control plane marks us unhealthy once the timeout passes, and
+// that's the right call from where it's sitting.
 func (c *Client) Run(ctx context.Context) {
-	// The first registration is retried with backoff rather than being
-	// required to succeed, so a node that boots slightly before the API
-	// does not crash-loop.
+	// First registration gets retried with backoff instead of having to
+	// succeed outright, so a node that boots a few seconds ahead of the API
+	// doesn't sit there crash-looping.
 	c.registerWithRetry(ctx)
 
 	ticker := time.NewTicker(time.Duration(c.cfg.HeartbeatIntervalSeconds) * time.Second)
@@ -166,9 +166,9 @@ func (c *Client) tick(ctx context.Context) {
 
 	switch {
 	case status == http.StatusNotFound:
-		// The control plane has no record of us — a restored database, or a
-		// row deleted by hand. Re-register on the next tick.
-		c.logger.Warn("control plane does not know this node — will re-register")
+		// Control plane has no record of us. Restored database, or somebody
+		// deleted the row by hand. Re-register on the next tick.
+		c.logger.Warn("control plane does not know this node; will re-register")
 		c.registered = false
 	case status < 200 || status >= 300:
 		c.logger.Warn("heartbeat rejected", "status", status)

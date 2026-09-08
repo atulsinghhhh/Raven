@@ -1,38 +1,38 @@
-// Package signal defines and serves the node link — the WebSocket between
-// Raven's control plane and this SFU node.
+// Package signal defines and serves the node link, the WebSocket sitting
+// between Raven's control plane and this SFU node.
 //
 // # Why a node link at all
 //
 // Clients never talk to the SFU's signaling directly. They hold one
-// WebSocket to the Raven API, and the API relays negotiation to whichever
-// SFU was allocated for their room. That indirection is the whole point:
-// it is what lets the media plane be re-shaped, re-deployed, or replaced
-// without an SDK release, because no client ever learned an SFU's address
-// or protocol. Media itself, of course, goes straight from the client to
-// this node over WebRTC — only *control* takes the longer path.
+// WebSocket to the Raven API, and the API relays negotiation on to
+// whichever SFU got allocated for their room. That indirection is the
+// whole point. No client ever learns an SFU's address or its protocol, so
+// the media plane can be re-shaped, re-deployed or replaced outright
+// without an SDK release. Media itself still goes straight from client to
+// node over WebRTC, naturally. Only *control* takes the scenic route.
 //
 // # Why one connection per node, not per participant
 //
-// The link is bidirectional: the SFU has to initiate renegotiation
-// whenever a room's track set changes, which is not a response to anything
-// the client did. A request/response HTTP API cannot express that without
-// polling or callbacks, and one WebSocket per participant would mean
-// thousands of connections between two processes to carry very little
-// traffic. So it is one multiplexed link per node, and every frame names
-// the session it concerns.
+// The link has to be bidirectional. The SFU kicks off renegotiation
+// whenever a room's track set changes, and that isn't a response to
+// anything the client did. Request/response HTTP can't express it without
+// polling or callbacks, and a WebSocket per participant would mean
+// thousands of connections between two processes carrying almost no
+// traffic. So: one multiplexed link per node, and every frame names the
+// session it concerns.
 package signal
 
 import (
 	"encoding/json"
 
-	"github.com/corvidhq/raven/services/sfu/internal/room"
+	"github.com/atulsinghhhh/Raven/services/sfu/internal/room"
 )
 
 // Frame is the envelope every node-link message travels in.
 //
-// `SessionID` identifies one client connection — the control plane's own
-// connection id, reused here so a log line on either side of the link can
-// be joined to the other without a translation table.
+// SessionID identifies one client connection. It's the control plane's own
+// connection id, reused verbatim so a log line on either side of the link
+// joins to the other without anyone maintaining a translation table.
 type Frame struct {
 	Type      MessageType     `json:"type"`
 	SessionID string          `json:"sessionId,omitempty"`
@@ -41,11 +41,11 @@ type Frame struct {
 
 	// RequestID correlates a query with its reply.
 	//
-	// Separate from SessionID on purpose. Session-scoped frames bind a
-	// session to the link they arrived on (see server.go), so using a
-	// session id to correlate a query would register a session that does
-	// not exist and then have it swept as an orphan. A query is not about
-	// a participant, so it gets its own identifier.
+	// Kept separate from SessionID on purpose. Session-scoped frames bind a
+	// session to the link they arrived on (see server.go), so correlating a
+	// query by session id would register a session that doesn't exist and
+	// then get it swept up as an orphan. A query isn't about a participant.
+	// It gets its own identifier.
 	RequestID string `json:"requestId,omitempty"`
 }
 
@@ -62,10 +62,10 @@ const (
 	TypeParticipantRemove MessageType = "participant.remove"
 	// TypeSDPAnswer carries a client's answer to an SFU-initiated offer.
 	TypeSDPAnswer MessageType = "sdp.answer"
-	// TypeSDPOfferFromClient carries a client-initiated offer — what a
-	// client sends when it starts publishing. Named distinctly from the
-	// SFU's own TypeSDPOffer so a frame's direction is unambiguous from
-	// its type alone, rather than depending on which side read it.
+	// TypeSDPOfferFromClient carries a client-initiated offer, which is
+	// what a client sends when it starts publishing. Named differently from
+	// the SFU's own TypeSDPOffer so a frame's direction is obvious from the
+	// type alone, without needing to know which side read it.
 	TypeSDPOfferFromClient MessageType = "sdp.offer.client"
 	// TypeICECandidate flows both ways; the direction is implied by which
 	// side sent it.
@@ -75,25 +75,25 @@ const (
 	TypeTrackMute MessageType = "track.mute"
 	// TypeTrackSource declares what a track being published is *of*.
 	//
-	// WebRTC has no notion of source, and a browser page cannot choose the
-	// MediaStream or MediaStreamTrack id that ends up in the SDP — both
-	// are read-only. So codec kind is all this node could otherwise infer
-	// from, and that cannot tell a screen share from a camera. The client
-	// declares it before negotiating; the declaration is held against the
-	// track id and applied when the media arrives.
+	// WebRTC has no concept of a source, and a browser page can't pick the
+	// MediaStream or MediaStreamTrack id that lands in the SDP; both are
+	// read-only. Codec kind is all this node could otherwise go on, and
+	// that can't tell a screen share from a camera. So the client declares
+	// it before negotiating. We hold the declaration against the track id
+	// and apply it when the media turns up.
 	TypeTrackSource MessageType = "track.source"
 	// TypeSubscriptionUpdate changes which simulcast layer a subscriber
 	// receives for one publisher's video.
 	TypeSubscriptionUpdate MessageType = "subscription.update"
-	// TypeRoomClose evicts a whole room — an admin action.
+	// TypeRoomClose evicts an entire room. Admin action.
 	TypeRoomClose MessageType = "room.close"
 	// TypeRoomState asks for a snapshot of a room's live participants and
 	// tracks. This is what replaced polling LiveKit's RoomServiceClient.
 	TypeRoomState MessageType = "room.state"
-	// TypeSessionKeepalive re-binds an idle session to the link it arrives
-	// on. Sessions are owned by the link that created them (see
-	// server.go); without this, a session with no negotiation traffic
-	// would stay orphaned after a link reconnect until it was swept.
+	// TypeSessionKeepalive re-binds an idle session to the link it arrived
+	// on. Sessions belong to the link that created them (see server.go), so
+	// without this a session with no negotiation traffic sits orphaned
+	// after a link reconnect until the sweeper eventually eats it.
 	TypeSessionKeepalive MessageType = "session.keepalive"
 
 	// --- SFU → control plane -------------------------------------------
@@ -105,32 +105,31 @@ const (
 	// TypeSDPAnswerToClient answers a client-initiated offer.
 	TypeSDPAnswerToClient MessageType = "sdp.answer.sfu"
 	// TypeTrackPublished/Unpublished report what a participant is actually
-	// sending, as observed on the wire — not what they claimed they would
-	// send.
+	// sending, as seen on the wire. Not what they said they'd send.
 	TypeTrackPublished   MessageType = "track.published"
 	TypeTrackUnpublished MessageType = "track.unpublished"
 	// TypeConnectionState reports real ICE/DTLS progress for one session,
-	// so the control plane's telemetry reflects the media plane rather
-	// than guessing from the WebSocket's health.
+	// so control-plane telemetry reflects the media plane instead of
+	// guessing at it from how healthy the WebSocket looks.
 	TypeConnectionState MessageType = "connection.state"
 	// TypeParticipantStats carries the SFU's own measurement of a
-	// participant's connection — the vantage point a client cannot have,
-	// since the node sees every leg of the room.
+	// participant's connection. This is the vantage point no client can
+	// have, since the node sees every leg of the room at once.
 	TypeParticipantStats MessageType = "participant.stats"
 	// TypeRoomStateResult answers TypeRoomState.
 	TypeRoomStateResult MessageType = "room.state.result"
-	// TypeError reports that a frame could not be carried out. Always
-	// carries the session it concerns, so the control plane can fail one
-	// participant rather than assuming the node is broken.
+	// TypeError reports that a frame couldn't be carried out. Always names
+	// the session it concerns, so the control plane can fail a single
+	// participant instead of writing off the whole node.
 	TypeError MessageType = "error"
 )
 
 // Permissions is the wire form of a participant's grant.
 //
-// A separate type from room.Permissions, and deliberately so: this one has
-// JSON tags and is part of a contract two processes must agree on, while
-// the domain type is free to change shape. `ToDomain` is the one place the
-// two are related.
+// Separate from room.Permissions on purpose. This one has JSON tags and
+// forms part of a contract two processes have to agree on; the domain type
+// stays free to change shape whenever it likes. ToDomain is the only place
+// the two ever meet.
 type Permissions struct {
 	Publish      bool `json:"publish"`
 	Subscribe    bool `json:"subscribe"`
@@ -152,9 +151,8 @@ func (p Permissions) ToDomain() room.Permissions {
 type ParticipantAddPayload struct {
 	ParticipantID string      `json:"participantId"`
 	Permissions   Permissions `json:"permissions"`
-	// ICEServers the *client* should use, forwarded so the node can include
-	// them in the offer's context. The node does not relay through these
-	// itself.
+	// ICEServers the *client* should use. Forwarded so the node can put
+	// them in the offer's context. The node doesn't relay through them.
 	ICEServers []ICEServer `json:"iceServers,omitempty"`
 }
 
@@ -166,9 +164,9 @@ type ICEServer struct {
 
 type SDPPayload struct {
 	SDP string `json:"sdp"`
-	// Type is "offer" or "answer" — carried explicitly rather than inferred
-	// from the frame type, so a mismatched pair fails loudly at
-	// SetRemoteDescription instead of silently half-negotiating.
+	// Type is "offer" or "answer". Carried explicitly instead of inferred
+	// from the frame type, so a mismatched pair blows up loudly at
+	// SetRemoteDescription instead of quietly half-negotiating.
 	Type string `json:"type"`
 }
 
@@ -191,10 +189,10 @@ type TrackSourcePayload struct {
 
 // SubscriptionUpdatePayload asks for a different simulcast layer.
 //
-// `Layer` is a preference, not a command: the node will not hand a
-// subscriber a layer the publisher is not actually sending, and congestion
-// control may hold it lower. The distinction matters because a UI that
-// treats this as a command will show the wrong quality badge.
+// Layer is a preference, not a command. The node won't hand a subscriber a
+// layer the publisher isn't actually sending, and congestion control may
+// well hold it lower anyway. Worth being clear about, because a UI that
+// treats this as a command ends up showing the wrong quality badge.
 type SubscriptionUpdatePayload struct {
 	PublisherID string `json:"publisherId"`
 	TrackID     string `json:"trackId"`
@@ -206,8 +204,8 @@ type TrackPublishedPayload struct {
 	TrackID       string `json:"trackId"`
 	Kind          string `json:"kind"`   // "audio" | "video"
 	Source        string `json:"source"` // "microphone" | "camera" | "screenShare" | "unknown"
-	// Simulcast is true when the publisher is sending more than one spatial
-	// layer for this track.
+	// Simulcast: the publisher is sending more than one spatial layer for
+	// this track.
 	Simulcast bool     `json:"simulcast"`
 	Layers    []string `json:"layers,omitempty"`
 }
@@ -218,21 +216,21 @@ type TrackUnpublishedPayload struct {
 }
 
 type ConnectionStatePayload struct {
-	// ICEState and PeerState are Pion's own state strings, passed through
-	// unchanged. Deliberately not collapsed into a Raven vocabulary here —
-	// this is a diagnostic channel, and the honest thing to report is what
-	// the stack actually said.
+	// ICEState and PeerState are Pion's own state strings, passed straight
+	// through. We don't collapse them into some Raven vocabulary. This is a
+	// diagnostic channel; the honest thing to report is whatever the stack
+	// actually said.
 	ICEState  string `json:"iceState"`
 	PeerState string `json:"peerState"`
 }
 
 // ParticipantStatsPayload is the SFU's read on one participant's link.
 //
-// Every field is measured, never estimated: RTT and loss come from the
-// RTCP reports the peer itself sends, jitter from the receiver report, and
-// bitrates from bytes actually forwarded. A field the node has no
-// measurement for is omitted rather than zeroed — zero packet loss and
-// "we have not received a report yet" must not look the same (spec §19).
+// Every field is measured, never estimated. RTT and loss come out of the
+// RTCP reports the peer itself sends, jitter from the receiver report,
+// bitrates from bytes we actually forwarded. Anything the node hasn't
+// measured is omitted, not zeroed. Zero packet loss and "no report yet"
+// must never look the same (spec §19).
 type ParticipantStatsPayload struct {
 	ParticipantID    string   `json:"participantId"`
 	RTTMillis        *float64 `json:"rttMs,omitempty"`
@@ -270,19 +268,19 @@ type ErrorPayload struct {
 	Message string `json:"message"`
 }
 
-// Error codes on the node link. Coarse on purpose: the control plane needs
-// to know whether to fail this participant, retry, or give up on the node,
-// and finer detail belongs in logs rather than in a wire contract both
-// sides have to agree on forever.
+// Error codes on the node link. Coarse on purpose. All the control plane
+// needs to decide is whether to fail this participant, retry, or write off
+// the node. Finer detail belongs in the logs, not in a wire contract both
+// sides are stuck agreeing on forever.
 const (
 	ErrCodeUnknownSession   = "UNKNOWN_SESSION"
 	ErrCodeRoomFull         = "ROOM_FULL"
 	ErrCodePermissionDenied = "PERMISSION_DENIED"
 	ErrCodeNegotiation      = "NEGOTIATION_FAILED"
 	// ErrCodeGlare means the server already has an offer in flight. Unlike
-	// NEGOTIATION_FAILED it is retryable, and distinguishing them is what
-	// lets the SDK retry a publish instead of surfacing an error to the
-	// application.
+	// NEGOTIATION_FAILED it's retryable, and keeping the two apart is what
+	// lets the SDK quietly retry a publish instead of throwing an error at
+	// the application.
 	ErrCodeGlare    = "NEGOTIATION_GLARE"
 	ErrCodeInternal = "INTERNAL"
 )
@@ -299,10 +297,10 @@ func NewReply(t MessageType, requestID, roomID string, payload any) (Frame, erro
 
 // NewFrame builds a frame with its payload already marshalled.
 //
-// Marshalling can only fail here for a payload that cannot be represented
-// as JSON, which for these fixed structs would be a programming error
-// rather than a runtime condition — so the error is returned rather than
-// panicking, and callers on the send path log it and drop the frame.
+// Marshalling can only fail on a payload that won't go to JSON, which for
+// these fixed structs means somebody made a programming error rather than
+// anything happening at runtime. Still returns the error instead of
+// panicking; callers on the send path log it and drop the frame.
 func NewFrame(t MessageType, sessionID, roomID string, payload any) (Frame, error) {
 	frame := Frame{Type: t, SessionID: sessionID, RoomID: roomID}
 	if payload == nil {
@@ -318,9 +316,9 @@ func NewFrame(t MessageType, sessionID, roomID string, payload any) (Frame, erro
 
 // RoomStateFromDomain maps a room's snapshot onto the wire form.
 //
-// The mapping exists so the domain type can gain a field without that
-// field silently becoming part of a contract the control plane parses —
-// every wire field is here, explicitly, on purpose.
+// The mapping exists so somebody can add a field to the domain type
+// without it silently becoming part of a contract the control plane
+// parses. Every wire field is written out here, by hand, on purpose.
 func RoomStateFromDomain(state room.State) RoomStateResultPayload {
 	payload := RoomStateResultPayload{
 		RoomID:       state.RoomID,

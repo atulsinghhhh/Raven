@@ -16,18 +16,18 @@ import (
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
 
-	"github.com/corvidhq/raven/services/sfu/internal/config"
-	"github.com/corvidhq/raven/services/sfu/internal/room"
+	"github.com/atulsinghhhh/Raven/services/sfu/internal/config"
+	"github.com/atulsinghhhh/Raven/services/sfu/internal/room"
 )
 
-// These tests exercise the node link — the SFU's entire external contract
-// — over a real WebSocket, driving real Pion clients.
+// These tests exercise the node link, which is the SFU's entire external
+// contract, over a real WebSocket with real Pion clients behind it.
 //
-// The room package's own tests call the room API directly. These go one
-// layer out: everything here travels as JSON frames over the wire, exactly
-// as the control plane sends them. That is what catches a protocol drift
-// between the Go and TypeScript sides, which a direct-call test cannot
-// see.
+// The room package's own tests call the room API directly. These sit one
+// layer further out: everything travels as JSON frames on the wire, exactly
+// the way the control plane sends them. That's what catches protocol drift
+// between the Go and TypeScript sides, which a direct-call test is blind
+// to.
 
 const (
 	linkSecret  = "node-link-test-secret"
@@ -35,7 +35,7 @@ const (
 	connectWait = 20 * time.Second
 )
 
-// fakeControlPlane is the API's half of the node link.
+// fakeControlPlane plays the API's half of the node link.
 type fakeControlPlane struct {
 	t    *testing.T
 	conn *websocket.Conn
@@ -104,8 +104,8 @@ func (p *fakeControlPlane) send(frame Frame) {
 	}
 }
 
-// await blocks until a frame matching the predicate arrives, including
-// frames that arrived before this call.
+// await blocks until a frame matching the predicate shows up, counting
+// frames that already arrived before the call.
 func (p *fakeControlPlane) await(match func(Frame) bool) Frame {
 	p.t.Helper()
 	deadline := time.After(frameWait)
@@ -124,8 +124,8 @@ func (p *fakeControlPlane) await(match func(Frame) bool) Frame {
 
 		select {
 		case <-waiter:
-			// Loop and re-scan: the frame that woke us may not be the one
-			// we want, and another may have arrived alongside it.
+			// Loop and re-scan. The frame that woke us might not be the one
+			// we're after, and another may have landed alongside it.
 		case <-deadline:
 			p.mu.Lock()
 			types := make([]string, 0, len(p.received))
@@ -154,7 +154,7 @@ func payloadOf[T any](t *testing.T, frame Frame) T {
 	return value
 }
 
-// newLinkServer starts an SFU with its node link exposed over HTTP.
+// newLinkServer boots an SFU with its node link exposed over HTTP.
 func newLinkServer(t *testing.T) (*Server, *room.Manager, string) {
 	t.Helper()
 
@@ -201,7 +201,7 @@ func newLinkServer(t *testing.T) (*Server, *room.Manager, string) {
 	return link, manager, httpServer.URL
 }
 
-// linkClient is a browser-side participant driven through the node link.
+// linkClient is a browser-side participant driven over the node link.
 type linkClient struct {
 	t         *testing.T
 	plane     *fakeControlPlane
@@ -214,9 +214,9 @@ type linkClient struct {
 	trackWaiters   []chan *webrtc.TrackRemote
 }
 
-// joinViaLink performs the whole join exactly as the control plane would:
-// participant.add, then answer whatever the SFU offers, trickling ICE both
-// ways over the link.
+// joinViaLink does the whole join the way the control plane would.
+// participant.add, answer whatever the SFU offers, trickle ICE both ways
+// over the link.
 func joinViaLink(
 	t *testing.T,
 	plane *fakeControlPlane,
@@ -269,11 +269,11 @@ func joinViaLink(
 		Permissions:   permissions,
 	}))
 
-	// The SFU offers first — it owns the subscriber side.
+	// SFU offers first. It owns the subscriber side.
 	offerFrame := plane.awaitType(TypeSDPOffer, sessionID)
 	client.answer(payloadOf[SDPPayload](t, offerFrame).SDP)
 
-	// Relay the SFU's candidates in.
+	// Feed the SFU's candidates back in.
 	go client.relayServerCandidates()
 
 	return client
@@ -302,7 +302,7 @@ func (c *linkClient) answer(offerSDP string) {
 	}))
 }
 
-// relayServerCandidates feeds the SFU's ICE candidates into this client.
+// relayServerCandidates pushes the SFU's ICE candidates into this client.
 func (c *linkClient) relayServerCandidates() {
 	seen := 0
 	deadline := time.After(connectWait)
@@ -428,8 +428,8 @@ func fullPermissions() Permissions {
 // --- Tests ---------------------------------------------------------------
 
 func TestNodeLinkRejectsAnUnauthenticatedControlPlane(t *testing.T) {
-	// Spec §38: without this, any host that can reach the node can create
-	// PeerConnections on it.
+	// Spec §38. Without this, any host that can reach the node gets to
+	// create PeerConnections on it.
 	_, _, serverURL := newLinkServer(t)
 
 	if _, err := dialLink(t, serverURL, "the-wrong-secret"); err == nil {
@@ -441,9 +441,9 @@ func TestNodeLinkRejectsAnUnauthenticatedControlPlane(t *testing.T) {
 }
 
 func TestNodeLinkAcceptsSeveralControlPlanes(t *testing.T) {
-	// The API scales horizontally and each instance keeps its own link;
-	// accepting one and replacing it would strand sessions on an instance
-	// with no socket to deliver to.
+	// The API scales horizontally and every instance keeps its own link.
+	// Accept one and replace it and you strand sessions on an instance with
+	// no socket to deliver them on.
 	link, _, serverURL := newLinkServer(t)
 
 	first, err := dialLink(t, serverURL, linkSecret)
@@ -467,8 +467,8 @@ func TestNodeLinkAcceptsSeveralControlPlanes(t *testing.T) {
 }
 
 func TestNodeLinkFullJoinAndMediaFlow(t *testing.T) {
-	// The whole contract, over the wire: participant.add → the SFU's
-	// offer → the client's answer → trickled ICE → real forwarded RTP.
+	// The whole contract, over the wire. participant.add → SFU's offer →
+	// client's answer → trickled ICE → real forwarded RTP.
 	_, manager, serverURL := newLinkServer(t)
 	plane, err := dialLink(t, serverURL, linkSecret)
 	if err != nil {
@@ -483,7 +483,7 @@ func TestNodeLinkFullJoinAndMediaFlow(t *testing.T) {
 	defer cancel()
 	go pumpTestRTP(ctx, aliceTrack)
 
-	// The node reports the track it actually sees on the wire.
+	// The node reports the track it genuinely sees on the wire.
 	publishedFrame := plane.awaitType(TypeTrackPublished, "")
 	published := payloadOf[TrackPublishedPayload](t, publishedFrame)
 	if published.ParticipantID != "alice" || published.TrackID != "alice-video" {
@@ -498,7 +498,7 @@ func TestNodeLinkFullJoinAndMediaFlow(t *testing.T) {
 
 	received := bob.awaitTrack()
 	if received.ID() != "alice-video" {
-		t.Errorf("track id = %q, want alice-video — subscribers must be able to attribute a track", received.ID())
+		t.Errorf("track id = %q, want alice-video; subscribers must be able to attribute a track", received.ID())
 	}
 
 	if err := received.SetReadDeadline(time.Now().Add(frameWait)); err != nil {
@@ -516,9 +516,9 @@ func TestNodeLinkFullJoinAndMediaFlow(t *testing.T) {
 }
 
 func TestNodeLinkDeclaredTrackSourceReachesTheRoomState(t *testing.T) {
-	// The declaration exists because a page cannot choose the stream or
-	// track id in the SDP, so codec kind is all the node could otherwise
-	// infer from — and that cannot tell a screen share from a camera.
+	// The declaration exists because a page can't choose the stream or
+	// track id in the SDP. Codec kind is all the node would otherwise have
+	// to go on, and that can't tell a screen share from a camera.
 	_, _, serverURL := newLinkServer(t)
 	plane, err := dialLink(t, serverURL, linkSecret)
 	if err != nil {
@@ -540,8 +540,8 @@ func TestNodeLinkDeclaredTrackSourceReachesTheRoomState(t *testing.T) {
 
 	plane.awaitType(TypeTrackPublished, "")
 
-	// Asked for over the link, exactly as the dashboard does: a room
-	// query carries a correlation id rather than a session id.
+	// Asked over the link, exactly as the dashboard does it. A room query
+	// carries a correlation id, not a session id.
 	plane.send(Frame{Type: TypeRoomState, RoomID: "room-2", RequestID: "req-1"})
 	stateFrame := plane.await(func(frame Frame) bool {
 		return frame.Type == TypeRoomStateResult && frame.RequestID == "req-1"
@@ -557,8 +557,8 @@ func TestNodeLinkDeclaredTrackSourceReachesTheRoomState(t *testing.T) {
 }
 
 func TestNodeLinkRoomStateForAnEmptyRoom(t *testing.T) {
-	// A room row exists in the control plane long before anyone joins.
-	// The honest answer is "nobody is here", not an error.
+	// The room row exists in the control plane long before anyone joins.
+	// "Nobody is here" is the honest answer, not an error.
 	_, _, serverURL := newLinkServer(t)
 	plane, err := dialLink(t, serverURL, linkSecret)
 	if err != nil {
@@ -584,8 +584,8 @@ func TestNodeLinkRoomStateForAnEmptyRoom(t *testing.T) {
 }
 
 func TestNodeLinkReportsRoomFullDistinctly(t *testing.T) {
-	// The control plane needs to tell "this room is full" from "the node
-	// broke", because only one of them is worth retrying elsewhere.
+	// The control plane has to tell "this room is full" from "the node
+	// broke". Only one of those is worth retrying somewhere else.
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := &config.Config{
 		NodeID:                   "sfu-full",
@@ -679,8 +679,8 @@ func TestNodeLinkParticipantRemoveTearsDownTheSession(t *testing.T) {
 }
 
 func TestNodeLinkReportsConnectionStateFromTheMediaPlane(t *testing.T) {
-	// The client's own view can disagree with the node's, and knowing
-	// that is often the whole diagnosis.
+	// The client's view can disagree with the node's, and spotting that is
+	// frequently the entire diagnosis.
 	_, _, serverURL := newLinkServer(t)
 	plane, err := dialLink(t, serverURL, linkSecret)
 	if err != nil {
@@ -708,9 +708,9 @@ func TestNodeLinkReportsConnectionStateFromTheMediaPlane(t *testing.T) {
 }
 
 func TestNodeLinkIgnoresAnUnknownFrameType(t *testing.T) {
-	// Forward compatibility: a newer control plane sending a frame this
-	// node does not know must not take the link down and with it every
-	// call on the node.
+	// Forward compatibility. A newer control plane sending a frame this
+	// node has never heard of must not take the link down, and every call
+	// on the node with it.
 	_, manager, serverURL := newLinkServer(t)
 	plane, err := dialLink(t, serverURL, linkSecret)
 	if err != nil {
@@ -719,12 +719,12 @@ func TestNodeLinkIgnoresAnUnknownFrameType(t *testing.T) {
 
 	plane.send(Frame{Type: MessageType("something.from.the.future"), SessionID: "sess-x"})
 
-	// The link still works afterwards.
+	// Link still works afterwards.
 	alice := joinViaLink(t, plane, "room-5", "alice", "sess-alice", fullPermissions(), nil)
 	alice.waitConnected()
 
 	if size := roomSizeOf(manager, "room-5"); size != 1 {
-		t.Errorf("room size = %d, want 1 — the link should have survived", size)
+		t.Errorf("room size = %d, want 1; the link should have survived", size)
 	}
 }
 
@@ -737,10 +737,9 @@ func roomSizeOf(manager *room.Manager, roomID string) int {
 }
 
 func TestNodeLinkQueryDoesNotRegisterASession(t *testing.T) {
-	// A room query is about a room, not a participant. Claiming a session
-	// for one would register a session that does not exist and then have
-	// it swept as an orphan — which is why queries carry a correlation id
-	// instead of a session id.
+	// A room query is about a room, not a participant. Claim a session for
+	// one and you register a session that doesn't exist, which then gets
+	// swept up as an orphan. Hence the correlation id instead.
 	link, _, serverURL := newLinkServer(t)
 	plane, err := dialLink(t, serverURL, linkSecret)
 	if err != nil {
@@ -755,8 +754,8 @@ func TestNodeLinkQueryDoesNotRegisterASession(t *testing.T) {
 		return frame.Type == TypeRoomStateResult && frame.RequestID == "req-q"
 	})
 
-	// Same package, so the ownership map can be inspected directly —
-	// which is the only way to assert the absence of a phantom entry.
+	// Same package, so we can poke at the ownership map directly. That's
+	// the only way to assert a phantom entry *isn't* there.
 	link.mu.RLock()
 	owners := len(link.owners)
 	_, aliceOwned := link.owners["sess-alice"]
@@ -766,6 +765,6 @@ func TestNodeLinkQueryDoesNotRegisterASession(t *testing.T) {
 		t.Error("the real session lost its owner")
 	}
 	if owners != 1 {
-		t.Errorf("owners = %d, want 1 — a query must not register a session", owners)
+		t.Errorf("owners = %d, want 1; a query must not register a session", owners)
 	}
 }

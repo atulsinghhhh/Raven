@@ -2,6 +2,7 @@ package room
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"strings"
@@ -12,56 +13,56 @@ import (
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
 
-	"github.com/corvidhq/raven/services/sfu/internal/config"
+	"github.com/atulsinghhhh/Raven/services/sfu/internal/config"
 )
 
 // These tests drive real Pion PeerConnections against a real Manager and
-// assert on RTP that actually crossed a DTLS-SRTP transport. Nothing here
-// is mocked below the room API.
+// assert on RTP that genuinely crossed a DTLS-SRTP transport. Nothing below
+// the room API is mocked.
 //
-// That is deliberate and it is the point: an SFU that passes unit tests on
-// its layer-selection logic can still fail to forward a single packet, and
-// the only way to know it works is to watch bytes arrive on the far side.
-// Spec §39 asks for a real WebRTC test matrix; this is its foundation.
+// That's the entire point. An SFU can sail through unit tests on its
+// layer-selection logic and still not forward a single packet, and the only
+// way to know it works is to sit and watch bytes turn up on the far side.
+// Spec §39 wants a real WebRTC test matrix; this is the foundation of it.
 
 const (
-	// negotiationTimeout bounds how long a test waits for ICE and DTLS.
-	// Generous, because CI machines gather candidates slowly, and a flaky
-	// media test is worse than a slow one.
+	// negotiationTimeout caps how long a test waits on ICE and DTLS.
+	// Generous on purpose: CI machines gather candidates slowly, and a
+	// flaky media test is far worse than a slow one.
 	negotiationTimeout = 20 * time.Second
 	mediaTimeout       = 15 * time.Second
 
-	// maxTracksPerClient bounds the per-client inbound track buffer.
-	// Comfortably above the largest mesh any test builds.
+	// maxTracksPerClient sizes the per-client inbound track buffer.
+	// Comfortably above the biggest mesh any test here builds.
 	maxTracksPerClient = 512
 )
 
-// harness is a Manager plus the plumbing that stands in for the control
-// plane: it routes the SFU's offers and ICE candidates to the right test
-// client, exactly as the node link would.
+// harness is a Manager plus enough plumbing to stand in for the control
+// plane. It routes the SFU's offers and ICE candidates to the right test
+// client, doing what the node link would do.
 type harness struct {
 	t       *testing.T
 	manager *Manager
 
 	mu      sync.Mutex
 	clients map[string]*testClient // by session id
-	// tearingDown is set before cleanup closes the client PeerConnections.
-	// Renegotiations are asynchronous, so an offer can still be in flight
-	// when a test returns; failing the test for a SetRemoteDescription on
-	// an intentionally-closed connection would report a harness race as a
-	// product bug.
+	// tearingDown goes up before cleanup closes the client PeerConnections.
+	// Renegotiation is asynchronous, so an offer can still be in flight
+	// when a test returns, and failing on a SetRemoteDescription against a
+	// connection we closed on purpose reports a harness race as a product
+	// bug.
 	//
-	// The harness closes every client connection itself, in one cleanup,
-	// rather than each client registering its own: t.Cleanup runs LIFO, so
-	// per-client cleanups registered later would close connections before
-	// this flag was ever set.
+	// The harness closes every client connection itself in one cleanup
+	// rather than letting each client register its own. t.Cleanup runs
+	// LIFO, so per-client cleanups registered later would close connections
+	// before this flag ever got set.
 	tearingDown bool
 
 	trackEvents chan trackEvent
 
-	// clientConfig is what test clients are built with. Zero value means
-	// host candidates only, which is every test in this package except the
-	// forced-relay ones in turn_relay_test.go.
+	// clientConfig is what test clients get built with. Zero value means
+	// host candidates only, which covers every test in this package bar the
+	// forced-relay ones over in turn_relay_test.go.
 	clientConfig webrtc.Configuration
 }
 
@@ -76,17 +77,17 @@ type testClient struct {
 	pc          *webrtc.PeerConnection
 	participant *Participant
 
-	// pendingCandidates buffers candidates that arrive before the client
-	// has a remote description. Real clients need this too — trickle ICE
-	// does not wait for negotiation to finish.
+	// pendingCandidates holds candidates that turn up before the client has
+	// a remote description. Real clients need this too; trickle ICE doesn't
+	// politely wait for negotiation to finish.
 	mu                sync.Mutex
 	remoteDescription bool
 	pendingCandidates []webrtc.ICECandidateInit
 
-	// tracksReceived must be able to hold every track a test expects. A
-	// buffer that silently dropped the overflow once made a full mesh look
-	// like the SFU had failed to forward — the count matched the buffer
-	// size exactly, not anything about the product.
+	// tracksReceived has to hold every track a test expects. A buffer that
+	// quietly dropped the overflow once made a full mesh look like the SFU
+	// had stopped forwarding. The count matched the buffer size exactly,
+	// and told us nothing whatsoever about the product.
 	tracksReceived chan *webrtc.TrackRemote
 }
 
@@ -111,8 +112,9 @@ func newHarness(t *testing.T) *harness {
 
 	events := RoomEvents{
 		OnOffer: func(p *Participant, sdp webrtc.SessionDescription) {
-			// The SFU renegotiating on its own — a participant joining or a
-			// track appearing. Answered here the same way a client would.
+			// SFU renegotiating off its own bat, because a participant
+			// joined or a track appeared. Answer it the way a client
+			// would.
 			h.answerOffer(p, sdp)
 		},
 		OnICECandidate: func(p *Participant, candidate *webrtc.ICECandidate) {
@@ -149,9 +151,8 @@ func newHarness(t *testing.T) *harness {
 	return h
 }
 
-// join creates a client PeerConnection, adds it to the room, and completes
-// the initial negotiation. `publish` optionally supplies a track for the
-// client to send.
+// join builds a client PeerConnection, adds it to the room and finishes the
+// initial negotiation. Pass publish to give the client a track to send.
 func (h *harness) join(roomID, participantID, sessionID string, permissions Permissions, publish *webrtc.TrackLocalStaticRTP) *testClient {
 	h.t.Helper()
 
@@ -170,11 +171,11 @@ func (h *harness) join(roomID, participantID, sessionID string, permissions Perm
 		select {
 		case client.tracksReceived <- track:
 		default:
-			// Loudly, rather than dropping: a full buffer means a test
-			// expects more tracks than the harness can hold, and a
-			// silently-lost track is indistinguishable from an SFU that
-			// never forwarded it.
-			h.t.Errorf("track buffer full (%d) — raise maxTracksPerClient", maxTracksPerClient)
+			// Fail loudly instead of dropping. A full buffer means the test
+			// expects more tracks than the harness can hold, and a track
+			// lost that way looks exactly like an SFU that never forwarded
+			// it.
+			h.t.Errorf("track buffer full (%d); raise maxTracksPerClient", maxTracksPerClient)
 		}
 	})
 
@@ -194,8 +195,8 @@ func (h *harness) join(roomID, participantID, sessionID string, permissions Perm
 	}
 	client.participant = participant
 
-	// The client's own candidates go to the SFU. Registered after
-	// AddParticipant so `participant` is non-nil when it fires.
+	// Client's own candidates head to the SFU. Registered after
+	// AddParticipant so participant is non-nil by the time this fires.
 	clientPC.OnICECandidate(func(candidate *webrtc.ICECandidate) {
 		if candidate == nil {
 			return
@@ -226,17 +227,16 @@ func (h *harness) answerOffer(participant *Participant, offer webrtc.SessionDesc
 
 	fail := h.t.Errorf
 	if tearingDown || client.pc.ConnectionState() == webrtc.PeerConnectionStateClosed {
-		// Losing a negotiation to a deliberate shutdown is expected.
+		// Losing a negotiation to a shutdown we asked for is fine.
 		fail = h.t.Logf
 	}
-	// Pion marks a PeerConnection closed internally before its public
-	// connection state catches up, so the state check above can miss a
-	// deliberate close by a few microseconds. Treat this specific error as
-	// teardown noise rather than a product failure — any other error still
-	// fails the test.
+	// Pion flags a PeerConnection closed internally a beat before its
+	// public connection state catches up, so the check above can miss an
+	// intentional close by a few microseconds. Treat this one error as
+	// teardown noise. Anything else still fails the test.
 	reportClosed := func(err error) {
 		if strings.Contains(err.Error(), "connection closed") {
-			h.t.Logf("negotiation abandoned — connection closed: %v", err)
+			h.t.Logf("negotiation abandoned; connection closed: %v", err)
 			return
 		}
 		fail("negotiation failed: %v", err)
@@ -276,7 +276,7 @@ func (c *testClient) addRemoteCandidate(t *testing.T, init webrtc.ICECandidateIn
 	c.mu.Lock()
 	if !c.remoteDescription {
 		// AddICECandidate before SetRemoteDescription is an error in
-		// WebRTC, so buffer — the same thing every real client does.
+		// WebRTC, so buffer it. Same thing every real client does.
 		c.pendingCandidates = append(c.pendingCandidates, init)
 		c.mu.Unlock()
 		return
@@ -336,10 +336,10 @@ func newVideoTrack(t *testing.T, id, streamID string) *webrtc.TrackLocalStaticRT
 
 // pumpRTP writes synthetic VP8 packets until the context is cancelled.
 //
-// Every packet is marked as a keyframe so a subscriber joining at any
-// moment can decode immediately — real media would not do this, but a test
-// that had to wait for an encoder's keyframe cadence would be slower and
-// no more truthful about whether forwarding works.
+// Every packet is flagged as a keyframe so a subscriber joining at any
+// moment decodes straight away. Real media obviously doesn't behave like
+// this, but a test that sat waiting on an encoder's keyframe cadence would
+// be slower and no more truthful about whether forwarding works.
 func pumpRTP(ctx context.Context, track *webrtc.TrackLocalStaticRTP) {
 	ticker := time.NewTicker(10 * time.Millisecond)
 	defer ticker.Stop()
@@ -389,9 +389,9 @@ func publisherPermissions() Permissions {
 // --- Tests ---------------------------------------------------------------
 
 func TestSFUForwardsMediaBetweenTwoParticipants(t *testing.T) {
-	// The single most important test in this package: media published by
-	// one participant reaches another, over real ICE/DTLS/SRTP, through
-	// the SFU's forwarding path.
+	// The single most important test in this package. Media published by
+	// one participant reaches another, over real ICE/DTLS/SRTP, through the
+	// SFU's forwarding path.
 	h := newHarness(t)
 
 	aliceTrack := newVideoTrack(t, "alice-video", "alice-camera")
@@ -416,14 +416,14 @@ func TestSFUForwardsMediaBetweenTwoParticipants(t *testing.T) {
 	}
 
 	if received.ID() != "alice-video" {
-		t.Errorf("track id = %q, want %q — subscribers must be able to attribute a track to its publisher", received.ID(), "alice-video")
+		t.Errorf("track id = %q, want %q; subscribers must be able to attribute a track to its publisher", received.ID(), "alice-video")
 	}
 	if received.StreamID() != "alice-camera" {
 		t.Errorf("stream id = %q, want %q", received.StreamID(), "alice-camera")
 	}
 
-	// Now the part that cannot be faked: read packets that actually
-	// traversed the SFU.
+	// Now the bit that can't be faked. Read packets that genuinely went
+	// through the SFU.
 	if err := received.SetReadDeadline(time.Now().Add(mediaTimeout)); err != nil {
 		t.Fatalf("set read deadline: %v", err)
 	}
@@ -441,8 +441,8 @@ func TestSFUForwardsMediaBetweenTwoParticipants(t *testing.T) {
 }
 
 func TestSFUForwardsToMultipleSubscribers(t *testing.T) {
-	// One publisher, several subscribers — the actual shape of a group
-	// call, and the case where a shared-output-track design would break.
+	// One publisher, several subscribers. The real shape of a group call,
+	// and precisely where a shared-output-track design falls over.
 	h := newHarness(t)
 
 	aliceTrack := newVideoTrack(t, "alice-video", "alice-camera")
@@ -485,8 +485,8 @@ func TestSFUForwardsToMultipleSubscribers(t *testing.T) {
 }
 
 func TestSFUForwardsTrackPublishedMidCall(t *testing.T) {
-	// Joining an empty room and then publishing is the common case for the
-	// first participant, and it exercises renegotiation rather than the
+	// Join an empty room, then publish. That's the common path for the
+	// first participant, and it exercises renegotiation instead of the
 	// join-time subscribe path.
 	h := newHarness(t)
 
@@ -495,8 +495,8 @@ func TestSFUForwardsTrackPublishedMidCall(t *testing.T) {
 	alice.waitConnected(t)
 	bob.waitConnected(t)
 
-	// Alice starts publishing after both are already connected, and offers
-	// from her side — a client-initiated renegotiation.
+	// Alice starts publishing once both are already connected, and offers
+	// from her side. Client-initiated renegotiation.
 	aliceTrack := newVideoTrack(t, "alice-late-video", "alice-camera")
 	if _, err := alice.pc.AddTrack(aliceTrack); err != nil {
 		t.Fatalf("add track mid-call: %v", err)
@@ -541,8 +541,8 @@ func TestSFUForwardsTrackPublishedMidCall(t *testing.T) {
 }
 
 func TestSFURejectsPublishWithoutPermission(t *testing.T) {
-	// Spec §38: the media plane does not trust that signaling checked.
-	// A client that negotiates a track it was not granted must have it
+	// Spec §38. The media plane doesn't take signaling's word for it. A
+	// client that negotiates a track it wasn't granted gets that track
 	// dropped, not forwarded.
 	h := newHarness(t)
 
@@ -562,7 +562,7 @@ func TestSFURejectsPublishWithoutPermission(t *testing.T) {
 			t.Fatalf("unauthorized track was published: %+v", event)
 		}
 	case <-time.After(3 * time.Second):
-		// Expected: the SFU saw the RTP and refused to register it.
+		// What we want: the SFU saw the RTP and refused to register it.
 	}
 
 	if tracks := alice.participant.PublishedTracks(); len(tracks) != 0 {
@@ -602,9 +602,9 @@ func TestSFUUnpublishesTracksWhenParticipantLeaves(t *testing.T) {
 }
 
 func TestSFUReapsEmptyRooms(t *testing.T) {
-	// An empty room left behind would inflate this node's reported load
-	// and, through the allocator, quietly shrink the fleet's usable
-	// capacity.
+	// Leave an empty room lying about and this node over-reports its load,
+	// which the allocator quietly turns into lost capacity across the
+	// fleet.
 	h := newHarness(t)
 
 	h.join("room-6", "alice", "sess-alice", publisherPermissions(), nil)
@@ -623,9 +623,9 @@ func TestSFUReapsEmptyRooms(t *testing.T) {
 }
 
 func TestSFUEvictsStaleSessionOnReconnect(t *testing.T) {
-	// A participant that reconnects (new network, refreshed tab) arrives
-	// with a new session while the old one may still look alive. Two
-	// sessions for one identity means the room shows a ghost.
+	// Someone reconnecting (new network, refreshed tab) turns up with a new
+	// session while the old one may still look alive. Two sessions for one
+	// identity puts a ghost in the room.
 	h := newHarness(t)
 
 	first := h.join("room-7", "alice", "sess-alice-1", publisherPermissions(), nil)
@@ -635,7 +635,7 @@ func TestSFUEvictsStaleSessionOnReconnect(t *testing.T) {
 	second.waitConnected(t)
 
 	if size := h.roomSize("room-7"); size != 1 {
-		t.Errorf("room size = %d, want 1 — the stale session should have been evicted", size)
+		t.Errorf("room size = %d, want 1; the stale session should have been evicted", size)
 	}
 
 	activeRoom, _ := h.manager.Room("room-7")
@@ -650,8 +650,8 @@ func TestSFUEvictsStaleSessionOnReconnect(t *testing.T) {
 func TestSFUEnforcesRoomCapacity(t *testing.T) {
 	h := newHarness(t)
 
-	// Shrink the room by building it directly, rather than reconfiguring
-	// the whole manager: capacity is a room property.
+	// Build the room directly to shrink it, rather than reconfiguring the
+	// whole manager. Capacity is a property of the room.
 	small := NewRoom("room-8", 1, RoomEvents{}, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	firstPC, err := webrtc.NewPeerConnection(webrtc.Configuration{})
@@ -673,15 +673,15 @@ func TestSFUEnforcesRoomCapacity(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected the room to be full")
 	}
-	if err != ErrRoomFull {
-		t.Errorf("err = %v, want ErrRoomFull — the control plane distinguishes this from an internal failure", err)
+	if !errors.Is(err, ErrRoomFull) {
+		t.Errorf("err = %v, want ErrRoomFull; the control plane distinguishes this from an internal failure", err)
 	}
 	_ = h
 }
 
 func TestRoomStateReportsLiveParticipantsAndTracks(t *testing.T) {
-	// This snapshot is what replaced polling LiveKit's RoomServiceClient,
-	// so the dashboard depends on it being truthful.
+	// This snapshot replaced polling LiveKit's RoomServiceClient, so the
+	// dashboard is relying on it being truthful.
 	h := newHarness(t)
 
 	aliceTrack := newVideoTrack(t, "alice-video", "alice-camera")
@@ -720,7 +720,7 @@ func TestRoomStateReportsLiveParticipantsAndTracks(t *testing.T) {
 		t.Errorf("track kind = %q, want video", entry.Tracks[0].Kind)
 	}
 	if entry.Tracks[0].Source != string(SourceCamera) {
-		t.Errorf("track source = %q, want %q — read from the publisher's stream id", entry.Tracks[0].Source, SourceCamera)
+		t.Errorf("track source = %q, want %q; read from the publisher's stream id", entry.Tracks[0].Source, SourceCamera)
 	}
 }
 
@@ -746,7 +746,8 @@ func TestPublisherMuteStopsForwardingWithoutUnpublishing(t *testing.T) {
 		t.Fatal("bob never received alice's track")
 	}
 
-	// Confirm media is flowing first, so a later absence means something.
+	// Check media is flowing first, so its absence later actually means
+	// something.
 	if err := received.SetReadDeadline(time.Now().Add(mediaTimeout)); err != nil {
 		t.Fatalf("set read deadline: %v", err)
 	}
@@ -758,9 +759,8 @@ func TestPublisherMuteStopsForwardingWithoutUnpublishing(t *testing.T) {
 		t.Fatal("mute reported no such track")
 	}
 
-	// The track is still published — mute must not tear it down, or
-	// unmuting would cost a renegotiation and the subscriber's UI would
-	// lose the participant's tile.
+	// Track is still published. Mute mustn't tear it down, or unmuting
+	// costs a renegotiation and the subscriber's UI loses the tile.
 	if tracks := alice.participant.PublishedTracks(); len(tracks) != 1 {
 		t.Errorf("published tracks = %d after mute, want 1", len(tracks))
 	}
@@ -789,10 +789,10 @@ func (h *harness) roomSize(roomID string) int {
 }
 
 func TestDeclaredTrackSourceOverridesTheKindGuess(t *testing.T) {
-	// A screen share and a camera are both video, so codec kind cannot
-	// tell them apart — and a browser page cannot choose the stream or
-	// track id that reaches the SDP. The client therefore declares the
-	// source, and spec §16 needs that distinction to survive.
+	// A screen share and a camera are both video, so codec kind can't tell
+	// them apart, and a browser page can't pick the stream or track id that
+	// reaches the SDP. So the client declares the source instead, and spec
+	// §16 needs that distinction to survive the trip.
 	h := newHarness(t)
 
 	track := newVideoTrack(t, "alice-screen", "whatever-the-browser-chose")
@@ -803,8 +803,8 @@ func TestDeclaredTrackSourceOverridesTheKindGuess(t *testing.T) {
 	defer cancel()
 	go pumpRTP(ctx, track)
 
-	// Declared after the media is already flowing — the harder ordering,
-	// and a real one, since the declaration and the negotiation race.
+	// Declared once the media is already flowing. That's the harder
+	// ordering, and a real one: the declaration and the negotiation race.
 	h.awaitTrackEvent("alice", true)
 	alice.participant.DeclareTrackSource("alice-screen", SourceScreenShare)
 
@@ -816,7 +816,7 @@ func TestDeclaredTrackSourceOverridesTheKindGuess(t *testing.T) {
 		t.Errorf("source = %q, want %q", got, SourceScreenShare)
 	}
 
-	// And it shows up in the room state the dashboard reads.
+	// And it turns up in the room state the dashboard reads.
 	activeRoom, _ := h.manager.Room("room-src")
 	state := activeRoom.State()
 	if state.Participants[0].Tracks[0].Source != string(SourceScreenShare) {
@@ -826,7 +826,7 @@ func TestDeclaredTrackSourceOverridesTheKindGuess(t *testing.T) {
 }
 
 func TestDeclaredSourceBeforeMediaArrives(t *testing.T) {
-	// The ordinary ordering: the client declares, then negotiates.
+	// The ordinary ordering. Client declares, then negotiates.
 	h := newHarness(t)
 
 	pc, err := webrtc.NewPeerConnection(webrtc.Configuration{})
@@ -841,15 +841,15 @@ func TestDeclaredSourceBeforeMediaArrives(t *testing.T) {
 	}
 	participant.DeclareTrackSource("future-track", SourceScreenShare)
 
-	// Nothing published yet, so nothing to assert on the track — what
-	// matters is that the declaration is retained rather than dropped for
-	// a track that does not exist yet.
+	// Nothing published yet, so there's no track to assert on. What matters
+	// is that we keep the declaration instead of binning it for a track
+	// that doesn't exist yet.
 	participant.DeclareTrackSource("future-track", SourceScreenShare)
 }
 
 func TestInvalidDeclaredSourceIsIgnored(t *testing.T) {
-	// A malformed declaration must not end up on a track and be forwarded
-	// to every subscriber as though it meant something.
+	// A malformed declaration mustn't stick to a track and get forwarded to
+	// every subscriber as though it meant something.
 	h := newHarness(t)
 
 	track := newVideoTrack(t, "alice-cam", "stream")

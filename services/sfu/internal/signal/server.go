@@ -14,38 +14,37 @@ import (
 	"github.com/coder/websocket"
 	"github.com/pion/webrtc/v4"
 
-	"github.com/corvidhq/raven/services/sfu/internal/room"
+	"github.com/atulsinghhhh/Raven/services/sfu/internal/room"
 )
 
 const (
-	// writeTimeout bounds a single frame write. A control plane that has
-	// stopped reading must not be able to block the SFU's event loop
-	// indefinitely — better to drop the link and let it reconnect, since a
-	// half-dead link silently loses negotiation frames.
+	// writeTimeout caps a single frame write. A control plane that stopped
+	// reading must not be able to wedge the SFU's event loop forever. Drop
+	// the link and let it reconnect; a half-dead link loses negotiation
+	// frames without telling anybody.
 	writeTimeout = 5 * time.Second
 
-	// orphanGrace is how long a session survives after the link that owned
-	// it goes away.
+	// orphanGrace is how long a session outlives the link that owned it.
 	//
-	// Not zero, and not forever. Zero would mean a brief network blip
-	// between the API and this node drops every call on it — the client's
-	// own WebSocket may be perfectly healthy, since that runs over a
-	// different path. Forever would leak PeerConnections for an API
-	// instance that genuinely died. The window is long enough for a
-	// reconnecting instance to re-claim its sessions (any frame naming a
-	// session re-binds it) and short enough that a dead instance's
-	// participants do not linger through a whole call.
+	// Not zero, not forever. Zero means a momentary blip between the API
+	// and this node kills every call on it, even though the clients' own
+	// WebSockets are probably fine (different path entirely). Forever means
+	// leaking PeerConnections whenever an API instance really does die. The
+	// window wants to be long enough for a reconnecting instance to re-claim
+	// its sessions (any frame naming a session re-binds it), short enough
+	// that a dead instance's participants don't hang around for a whole
+	// call.
 	orphanGrace = 45 * time.Second
 
-	// orphanSweepInterval is how often orphaned sessions are checked.
+	// How often we go looking for orphans.
 	orphanSweepInterval = 10 * time.Second
 )
 
 // link is one control-plane connection.
 type link struct {
 	conn *websocket.Conn
-	// writeMu serialises frame writes. Concurrent writes to one WebSocket
-	// interleave frames and corrupt the stream.
+	// writeMu serialises frame writes. Two goroutines writing one WebSocket
+	// will interleave frames and corrupt the stream.
 	writeMu sync.Mutex
 }
 
@@ -59,20 +58,21 @@ func (l *link) write(ctx context.Context, payload []byte) error {
 //
 // # Why several links, each owning its own sessions
 //
-// The API scales horizontally, and a client's signaling WebSocket lands on
-// one instance. Whichever instance holds that socket is the only one that
-// can deliver an offer to that client — so it is the instance that must
-// hold the link carrying that session's frames.
+// The API scales horizontally and a client's signaling WebSocket lands on
+// exactly one instance. That instance is the only one that can deliver an
+// offer to that client, so it had better be the one holding the link
+// carrying that session's frames.
 //
-// Accepting one link and replacing it would mean the SFU's frames
-// routinely arrive at an instance with no socket to deliver them on,
-// forcing every SDP and ICE message through Redis to find the right one.
-// Instead each instance keeps its own link, a session belongs to the link
-// that created it, and no cross-instance routing is needed at all.
+// Accept a single link and keep replacing it, and the SFU's frames start
+// routinely arriving at an instance with no socket to deliver them on.
+// Every SDP and ICE message then has to go through Redis to find the right
+// instance. So instead: each instance keeps its own link, a session belongs
+// to the link that created it, and cross-instance routing never enters the
+// picture.
 //
-// Ownership is re-bound by any inbound frame naming a session, which is
-// what lets an instance re-claim its sessions after a link reconnects
-// without a dedicated handshake for it.
+// Any inbound frame naming a session re-binds ownership, which is how an
+// instance re-claims its sessions after a link reconnect without needing a
+// dedicated handshake for it.
 type Server struct {
 	manager *room.Manager
 	secret  string
@@ -109,7 +109,7 @@ func (s *Server) Start() {
 	})
 }
 
-// Stop ends the sweep. Does not close links or rooms — the manager owns
+// Stop ends the sweep. Doesn't close links or rooms; the manager owns
 // those.
 func (s *Server) Stop() {
 	select {
@@ -129,9 +129,9 @@ func (s *Server) Handler() http.Handler {
 		}
 
 		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-			// The control plane is not a browser and sends no Origin, so
-			// origin checking would only ever reject legitimate links. The
-			// bearer secret above is the actual authentication.
+			// The control plane isn't a browser and sends no Origin, so
+			// origin checking can only ever reject legitimate links. The
+			// bearer secret above is the real authentication.
 			InsecureSkipVerify: true,
 		})
 		if err != nil {
@@ -151,8 +151,8 @@ func (s *Server) authenticate(r *http.Request) bool {
 	}
 	provided := header[len(prefix):]
 
-	// Hashed before comparing so the compare is over fixed-length inputs —
-	// otherwise the length check itself is an oracle.
+	// Hash first so the compare runs over fixed-length inputs. Otherwise
+	// the length check is itself an oracle.
 	providedHash := sha256.Sum256([]byte(provided))
 	expectedHash := sha256.Sum256([]byte(s.secret))
 	return subtle.ConstantTimeCompare(providedHash[:], expectedHash[:]) == 1
@@ -187,34 +187,33 @@ func (s *Server) serve(ctx context.Context, conn *websocket.Conn) {
 			continue
 		}
 
-		// Any frame naming a session binds (or re-binds) that session to
-		// the link it arrived on. This is what lets a reconnecting API
-		// instance re-claim its sessions without a dedicated handshake.
+		// Any frame naming a session binds, or re-binds, that session to
+		// the link it came in on. That's how a reconnecting API instance
+		// re-claims its sessions with no dedicated handshake.
 		//
-		// Query frames are excluded: they are about a room, not a
-		// participant, and claiming a session for one would register a
-		// session that does not exist and then have it swept as an
-		// orphan.
+		// Queries don't count. They're about a room, not a participant, and
+		// claiming a session for one would register a session that doesn't
+		// exist and then get it swept as an orphan.
 		if frame.SessionID != "" && !isQuery(frame.Type) {
 			s.claim(frame.SessionID, current)
 		}
 
-		// A query is answered on the link it arrived on, since that is the
-		// instance waiting for it.
+		// Answer a query on the link it came in on. That's the instance
+		// sitting there waiting for it.
 		if isQuery(frame.Type) {
 			go s.handleQuery(current, frame)
 			continue
 		}
 
-		// Handled on its own goroutine: creating a PeerConnection and
-		// gathering ICE takes long enough that doing it inline would stall
-		// every other participant's frames behind it.
+		// Own goroutine. Building a PeerConnection and gathering ICE takes
+		// long enough that doing it inline would stall every other
+		// participant's frames behind it.
 		go s.handle(frame)
 	}
 }
 
-// isQuery reports whether a frame expects a correlated reply rather than
-// concerning one participant's session.
+// isQuery: does this frame want a correlated reply, as opposed to
+// concerning one participant's session?
 func isQuery(t MessageType) bool {
 	return t == TypeRoomState
 }
@@ -236,9 +235,9 @@ func (s *Server) handleQuery(asker *link, frame Frame) {
 		RoomID:       frame.RoomID,
 		Participants: []RoomStateParticipant{},
 	}
-	// An empty room is not an error: a room row exists in the control
-	// plane long before anyone joins, and after everyone leaves. The
-	// honest answer is "nobody is here".
+	// An empty room isn't an error. The room row exists in the control
+	// plane long before anyone joins and long after everyone leaves. The
+	// honest answer is just "nobody is here".
 	if target, found := s.manager.Room(frame.RoomID); found {
 		payload = RoomStateFromDomain(target.State())
 	}
@@ -269,9 +268,9 @@ func (s *Server) claim(sessionID string, owner *link) {
 	delete(s.orphanedAt, sessionID)
 }
 
-// detach removes a link and orphans the sessions it owned.
+// detach drops a link and orphans whatever sessions it owned.
 //
-// The sessions are not closed here: see `orphanGrace`.
+// It does not close those sessions. See orphanGrace for why.
 func (s *Server) detach(departing *link) {
 	s.mu.Lock()
 	delete(s.links, departing)
@@ -324,7 +323,7 @@ func (s *Server) closeExpiredOrphans() {
 		if !found {
 			continue
 		}
-		s.logger.Warn("closing orphaned session — no control plane re-claimed it",
+		s.logger.Warn("closing orphaned session: no control plane re-claimed it",
 			"sessionId", sessionID, "roomId", owningRoom.ID, "participantId", participant.ID)
 		s.manager.RemoveParticipant(owningRoom.ID, sessionID)
 	}
@@ -332,8 +331,8 @@ func (s *Server) closeExpiredOrphans() {
 
 func (s *Server) handle(frame Frame) {
 	defer func() {
-		// A panic in one frame handler must not take the node down and
-		// disconnect every call on it.
+		// One frame handler panicking must not take the node down and cut
+		// off every call running on it.
 		if recovered := recover(); recovered != nil {
 			s.logger.Error("panic handling node-link frame",
 				"type", frame.Type, "sessionId", frame.SessionID, "panic", recovered)
@@ -361,14 +360,15 @@ func (s *Server) handle(frame Frame) {
 	case TypeRoomClose:
 		s.handleRoomClose(frame)
 	case TypeRoomState:
-		// Queries are intercepted in the read loop and answered with a
-		// correlation id; reaching here means a caller addressed a room
-		// query by session, which the control plane no longer does.
+		// The read loop intercepts queries and answers them with a
+		// correlation id. Getting here means somebody addressed a room
+		// query by session, which the control plane stopped doing a while
+		// back.
 		s.handleRoomState(frame)
 	case TypeSessionKeepalive:
-		// Ownership was already re-bound by the read loop; nothing else to
-		// do. This frame exists purely so an idle session's ownership
-		// survives a link reconnect.
+		// Read loop already re-bound ownership, so there's nothing to do.
+		// This frame exists purely so an idle session's ownership survives
+		// a link reconnect.
 	default:
 		s.logger.Warn("unknown node-link frame type", "type", frame.Type)
 	}
@@ -393,9 +393,9 @@ func (s *Server) handleParticipantAdd(frame Frame) {
 		return
 	}
 
-	// The SFU offers first. It has to: it owns the subscriber side of the
-	// connection, and on join it already knows every track the participant
-	// should receive.
+	// The SFU offers first, and has to. It owns the subscriber side of the
+	// connection, and by join time it already knows every track this
+	// participant should be receiving.
 	offer, err := participant.CreateOffer()
 	if err != nil {
 		s.logger.Error("initial offer failed", "sessionId", frame.SessionID, "err", err)
@@ -408,15 +408,15 @@ func (s *Server) handleParticipantAdd(frame Frame) {
 
 func (s *Server) handleParticipantRemove(frame Frame) {
 	if !s.manager.RemoveParticipant(frame.RoomID, frame.SessionID) {
-		// Already gone — a client that dropped its socket and a control
-		// plane that noticed both lead here, and neither is a problem.
+		// Already gone. A client dropping its socket and a control plane
+		// noticing both end up here, and neither is a problem.
 		s.logger.Debug("participant already removed", "sessionId", frame.SessionID)
 	}
 	s.release(frame.SessionID)
 }
 
-// release forgets a session entirely, so a deliberate removal is not later
-// swept as an orphan.
+// release forgets a session outright, so an intentional removal doesn't
+// get swept up as an orphan later.
 func (s *Server) release(sessionID string) {
 	s.mu.Lock()
 	delete(s.owners, sessionID)
@@ -458,12 +458,12 @@ func (s *Server) handleClientOffer(frame Frame) {
 	answer, err := participant.AcceptOffer(payload.SDP)
 	if err != nil {
 		if errors.Is(err, room.ErrNegotiationInProgress) {
-			// Genuine glare: one of our offers is already on its way. The
-			// client answers that, then retries — a distinct code so the
-			// SDK retries rather than treating it as a hard failure.
-			s.logger.Debug("client offer deferred — glare", "sessionId", frame.SessionID)
+			// Genuine glare. One of our offers is already on its way; the
+			// client answers that and then retries. Separate code so the
+			// SDK knows to retry instead of treating it as a hard failure.
+			s.logger.Debug("client offer deferred: glare", "sessionId", frame.SessionID)
 			s.sendError(frame.SessionID, frame.RoomID, ErrCodeGlare,
-				"an offer from the server is already in flight — answer it, then retry")
+				"an offer from the server is already in flight; answer it, then retry")
 			return
 		}
 		s.logger.Warn("client offer rejected", "sessionId", frame.SessionID, "err", err)
@@ -477,9 +477,9 @@ func (s *Server) handleClientOffer(frame Frame) {
 func (s *Server) handleICECandidate(frame Frame) {
 	participant, _, found := s.manager.FindParticipant(frame.SessionID)
 	if !found {
-		// Candidates commonly arrive just after a participant left, or
-		// just before the add was processed. Neither deserves an error
-		// frame back — it would only add noise to the control plane's logs.
+		// Candidates turn up just after a participant left, or just before
+		// their add got processed, all the time. Neither is worth an error
+		// frame; it'd only add noise to the control plane's logs.
 		s.logger.Debug("ICE candidate for unknown session", "sessionId", frame.SessionID)
 		return
 	}
@@ -517,10 +517,10 @@ func (s *Server) handleTrackMute(frame Frame) {
 func (s *Server) handleTrackSource(frame Frame) {
 	participant, _, found := s.manager.FindParticipant(frame.SessionID)
 	if !found {
-		// The declaration can legitimately arrive before participant.add
-		// has been processed, since both are handled on their own
-		// goroutines. Dropping it costs a mislabelled source, not a
-		// broken call, so this is a debug line rather than an error frame.
+		// The declaration can quite legitimately beat participant.add,
+		// since the two run on separate goroutines. Dropping it costs us a
+		// mislabelled source, not a broken call, so: debug line, not an
+		// error frame.
 		s.logger.Debug("track source declared for unknown session", "sessionId", frame.SessionID)
 		return
 	}
@@ -559,10 +559,10 @@ func (s *Server) handleRoomClose(frame Frame) {
 func (s *Server) handleRoomState(frame Frame) {
 	target, found := s.manager.Room(frame.RoomID)
 	if !found {
-		// An empty room is not an error: a room row exists in the control
-		// plane long before anyone joins, and after everyone leaves. The
-		// honest answer is "nobody is here", which is what an empty
-		// participant list says.
+		// An empty room isn't an error. The room row exists in the control
+		// plane long before anyone joins and long after everyone leaves.
+		// "Nobody is here" is the honest answer, and an empty participant
+		// list says exactly that.
 		s.send(TypeRoomStateResult, frame.SessionID, frame.RoomID, RoomStateResultPayload{
 			RoomID:       frame.RoomID,
 			Participants: []RoomStateParticipant{},
@@ -623,19 +623,19 @@ func (s *Server) sendError(sessionID, roomID, code, message string) {
 	s.send(TypeError, sessionID, roomID, ErrorPayload{Code: code, Message: message})
 }
 
-// send writes one frame on the link that owns the session.
+// send writes one frame on whichever link owns the session.
 //
-// Dropped, not buffered, if that link is gone: every frame here describes a
-// moment in a negotiation, and replaying a stale offer after a link
-// reconnects would be worse than never sending it. A control plane that
-// reconnects re-establishes what it needs by asking for room state.
+// If that link has gone, the frame is dropped rather than buffered. Every
+// frame here describes one moment in a negotiation, and replaying a stale
+// offer after a reconnect is worse than never sending it at all. A control
+// plane that reconnects catches up by asking for room state.
 func (s *Server) send(t MessageType, sessionID, roomID string, payload any) {
 	s.mu.RLock()
 	owner := s.owners[sessionID]
 	s.mu.RUnlock()
 
 	if owner == nil {
-		s.logger.Debug("dropping frame — session has no attached control plane",
+		s.logger.Debug("dropping frame: session has no attached control plane",
 			"type", t, "sessionId", sessionID)
 		return
 	}
@@ -659,17 +659,17 @@ func (s *Server) send(t MessageType, sessionID, roomID string, payload any) {
 	}
 }
 
-// Connected reports whether any control plane is attached. Surfaced on the
-// readiness endpoint: a node with no link cannot be given new
-// participants, so it is not ready even though its process is fine and its
-// existing calls are unaffected.
+// Connected: is any control plane attached? Surfaced on the readiness
+// endpoint. A node with no link can't be given new participants, so it
+// isn't ready, even though the process is perfectly healthy and its
+// existing calls carry on untouched.
 func (s *Server) Connected() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return len(s.links) > 0
 }
 
-// LinkCount is for the readiness payload and metrics.
+// LinkCount feeds the readiness payload and the metrics.
 func (s *Server) LinkCount() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

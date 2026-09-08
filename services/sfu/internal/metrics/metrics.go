@@ -1,9 +1,9 @@
 // Package metrics exposes this node's Prometheus surface (spec §27).
 //
-// Everything here is measured from the forwarding path itself. There is no
-// derived "quality" gauge: a single number claiming to summarise a room's
-// health would be an invention, and spec §19 is explicit that quality must
-// come from telemetry rather than being asserted.
+// Every number here is measured off the forwarding path itself. You won't
+// find a derived "quality" gauge. Any single number claiming to sum up a
+// room's health would be made up, and spec §19 is blunt about it: quality
+// comes from telemetry, we don't get to assert it.
 package metrics
 
 import (
@@ -12,14 +12,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/corvidhq/raven/services/sfu/internal/room"
+	"github.com/atulsinghhhh/Raven/services/sfu/internal/room"
 )
 
 type Metrics struct {
 	registry *prometheus.Registry
 
-	// Counters — monotonic, so a scrape gap loses rate precision but never
-	// a whole event.
+	// Monotonic counters. Miss a scrape and you lose rate precision, but
+	// never a whole event.
 	ParticipantsJoined   prometheus.Counter
 	ParticipantsLeft     prometheus.Counter
 	RoomsCreated         prometheus.Counter
@@ -32,10 +32,9 @@ type Metrics struct {
 	LayerSwitches        prometheus.Counter
 	KeyframesRequested   prometheus.Counter
 
-	// Gauges reflecting current state, refreshed from the room manager at
-	// scrape time rather than being written on every change — the manager
-	// is the source of truth, and mirroring it into gauges invites the two
-	// to disagree.
+	// Current state, pulled from the room manager at scrape time. We don't
+	// write these on every change: the manager is the source of truth, and
+	// keeping a second copy in sync is how the two end up disagreeing.
 	activeRooms        prometheus.GaugeFunc
 	activeParticipants prometheus.GaugeFunc
 	activeAudioTracks  prometheus.GaugeFunc
@@ -45,10 +44,9 @@ type Metrics struct {
 
 // New builds the node's metric set.
 //
-// `linkConnected` is a function rather than a value so the gauge reports
-// the live state of the control-plane link — a node whose link is down is
-// serving its existing calls but cannot accept new ones, and that is worth
-// alerting on.
+// linkConnected is a func, not a bool, so the gauge always reports the
+// live state of the control-plane link. A node with a dead link keeps
+// serving the calls it already has but can't take new ones. Alert on it.
 func New(manager *room.Manager, linkConnected func() bool) *Metrics {
 	registry := prometheus.NewRegistry()
 
@@ -141,10 +139,9 @@ func New(manager *room.Manager, linkConnected func() bool) *Metrics {
 		m.nodeLinkConnected,
 	)
 
-	// Byte counters come from the forwarding path via a custom collector,
-	// because they live on the tracks themselves and mirroring them into
-	// Prometheus counters on every packet would put a metric write in the
-	// hot path.
+	// Byte counters come in through a custom collector. They live on the
+	// tracks, and mirroring them into Prometheus counters would mean a
+	// metric write per packet. Not in the hot path, thanks.
 	registry.MustRegister(newTrafficCollector(manager))
 
 	return m
@@ -154,8 +151,8 @@ func (m *Metrics) Handler() http.Handler {
 	return promhttp.HandlerFor(m.registry, promhttp.HandlerOpts{})
 }
 
-// trafficCollector reads byte and packet totals off the live tracks at
-// scrape time.
+// trafficCollector walks the live tracks at scrape time and adds up their
+// byte and packet totals.
 type trafficCollector struct {
 	manager *room.Manager
 
@@ -175,7 +172,7 @@ func newTrafficCollector(manager *room.Manager) *trafficCollector {
 		),
 		bytesSent: prometheus.NewDesc(
 			"raven_sfu_media_bytes_sent_total",
-			"Media bytes forwarded to subscribers. Expected to exceed bytes received — one publisher feeds many subscribers.", nil, nil,
+			"Media bytes forwarded to subscribers. Expected to exceed bytes received, since one publisher feeds many subscribers.", nil, nil,
 		),
 		packetsReceived: prometheus.NewDesc(
 			"raven_sfu_media_packets_received_total",

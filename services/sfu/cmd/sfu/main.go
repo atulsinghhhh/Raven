@@ -1,14 +1,14 @@
 // Command sfu is Raven's Selective Forwarding Unit.
 //
-// It receives media from publishers and forwards it to subscribers over
-// standards-compliant WebRTC — ICE, DTLS-SRTP, RTP/RTCP — using Pion. It
-// holds no application state: rooms, participants, permissions and tokens
-// all live in Raven's control plane, and this process learns about them
-// only through the node link.
+// Media comes in from publishers, goes back out to subscribers, all over
+// bog-standard WebRTC (ICE, DTLS-SRTP, RTP/RTCP) on top of Pion. No
+// application state lives here. Rooms, participants, permissions, tokens:
+// all of that is the control plane's problem, and this process only ever
+// hears about it through the node link.
 //
-// That split is the point. Clients never address this process directly, so
-// the media plane can be redeployed, re-scaled, or reimplemented without
-// an SDK release.
+// Which is the whole reason for the split. Clients never address this
+// process directly, so we can redeploy it, re-scale it, or throw the
+// implementation away entirely without shipping a new SDK.
 package main
 
 import (
@@ -24,24 +24,25 @@ import (
 
 	"github.com/pion/webrtc/v4"
 
-	"github.com/corvidhq/raven/services/sfu/internal/config"
-	"github.com/corvidhq/raven/services/sfu/internal/metrics"
-	"github.com/corvidhq/raven/services/sfu/internal/registry"
-	"github.com/corvidhq/raven/services/sfu/internal/room"
-	"github.com/corvidhq/raven/services/sfu/internal/signal"
+	"github.com/atulsinghhhh/Raven/services/sfu/internal/config"
+	"github.com/atulsinghhhh/Raven/services/sfu/internal/metrics"
+	"github.com/atulsinghhhh/Raven/services/sfu/internal/registry"
+	"github.com/atulsinghhhh/Raven/services/sfu/internal/room"
+	"github.com/atulsinghhhh/Raven/services/sfu/internal/signal"
 )
 
-// shutdownGrace bounds how long we wait for rooms to close cleanly on
-// SIGTERM. Closing a PeerConnection properly lets the client reconnect
-// immediately instead of waiting out an ICE timeout, which is the
-// difference between a two-second blip and a thirty-second one for
-// everyone on a call during a deploy.
+// How long we'll wait for rooms to close cleanly on SIGTERM.
+//
+// Worth the wait. Closing a PeerConnection properly lets the client
+// reconnect straight away instead of sitting out an ICE timeout: a
+// two-second blip versus a thirty-second one, for everybody on a call,
+// every time we deploy.
 const shutdownGrace = 10 * time.Second
 
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		// No logger yet, and this is fatal — stderr is the right channel.
+		// No logger yet and we're about to die. stderr it is.
 		slog.New(slog.NewJSONHandler(os.Stderr, nil)).Error("invalid configuration", "err", err)
 		os.Exit(1)
 	}
@@ -51,9 +52,9 @@ func main() {
 		"node", cfg.NodeID, "region", cfg.Region, "version", cfg.Version,
 		"httpAddr", cfg.HTTPAddr, "udpRange", portRange(cfg), "capacity", cfg.RoomCapacity)
 
-	// The manager and the node link are mutually referential: the manager
-	// raises events the link forwards, and the link drives the manager.
-	// Declared first, wired below.
+	// Chicken and egg. The manager raises events the link forwards, and the
+	// link turns around and drives the manager. Declare both up here, wire
+	// them together below.
 	var link *signal.Server
 	var nodeMetrics *metrics.Metrics
 
@@ -107,9 +108,9 @@ func main() {
 	server := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: newHTTPHandler(cfg, manager, link, nodeMetrics),
-		// Read/write timeouts are deliberately unset: the node link is a
-		// long-lived WebSocket, and a write timeout here would kill it. The
-		// link does its own per-frame timeout instead.
+		// No Read/Write timeouts on purpose. The node link is a long-lived
+		// WebSocket and a write timeout would simply kill it. Per-frame
+		// timeouts happen inside the link itself.
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
@@ -124,10 +125,9 @@ func main() {
 	<-ctx.Done()
 	logger.Info("shutting down")
 
-	// Rooms first, then the listener: closing PeerConnections while the
-	// control plane can still be told about it means the clients on those
-	// calls learn their session ended, rather than discovering it by
-	// timeout.
+	// Order matters here. Close the PeerConnections while the control plane
+	// can still be told about it, and clients get told their session ended
+	// instead of working it out from a timeout.
 	manager.Shutdown()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownGrace)
@@ -141,15 +141,17 @@ func main() {
 func newHTTPHandler(cfg *config.Config, manager *room.Manager, link *signal.Server, nodeMetrics *metrics.Metrics) http.Handler {
 	mux := http.NewServeMux()
 
-	// The node link. Control traffic only — media never touches this
+	// The node link. Control traffic only; media never comes near this
 	// listener.
 	mux.Handle("/internal/link", link.Handler())
 
 	mux.Handle("/metrics", nodeMetrics.Handler())
 
-	// Liveness: is the process running at all. Deliberately does not check
-	// the node link, because a node whose link is down should not be
-	// restarted — it is still serving calls, and restarting would drop them.
+	// Liveness: is the process up at all?
+	//
+	// This does not check the node link, and mustn't. A node with a dead
+	// link is still happily serving its existing calls. Restart it and you
+	// drop every one of them.
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"status":  "ok",
@@ -159,8 +161,8 @@ func newHTTPHandler(cfg *config.Config, manager *room.Manager, link *signal.Serv
 		})
 	})
 
-	// Readiness: can this node take new participants. Requires the link,
-	// because without it there is no way to be told about one.
+	// Readiness: can this node take on new participants? Needs the link,
+	// since without one nobody can tell us about them.
 	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
 		load := manager.Load()
 		ready := link.Connected()
@@ -197,10 +199,10 @@ func newLogger(cfg *config.Config) *slog.Logger {
 		level = slog.LevelError
 	}
 
-	// JSON, with the node id on every line. Spec §28 wants every RTC
-	// operation traceable: room, participant, track and session ids are
-	// attached at the point they are known, and the node id here means a
-	// line from a fleet of SFUs says which one produced it.
+	// JSON, node id stamped on every line. Spec §28 wants every RTC
+	// operation traceable, so room/participant/track/session ids get
+	// attached wherever they happen to be known. The node id is what tells
+	// you which box in the fleet produced a given line.
 	handler := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: level})
 	return slog.New(handler).With("service", "raven-sfu", "rtcServer", cfg.NodeID)
 }
