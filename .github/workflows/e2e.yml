@@ -33,7 +33,10 @@ permissions:
 
 env:
   NODE_VERSION: "22"
-  GO_VERSION: "1.26.4"
+  # 1.26.4 is affected by GO-2026-5856 (crypto/tls) and GO-2026-5026
+  # (net/http), both of which govulncheck reports as reachable from this
+  # service. Keep in step with sfu-publish.yml and security.yml.
+  GO_VERSION: "1.26.6"
 
 jobs:
   e2e:
