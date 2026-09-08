@@ -9,7 +9,7 @@ import { RavenChatStore } from '../chat/chat-store';
 import { RavenLiveStreamContext, type RavenLiveStreamContextValue, type RavenLiveStreamStatus } from './live-context';
 
 export interface RavenLiveStreamProps {
-  /** Minted server-side by `addHost()`/`createViewerToken()` — never construct this by hand. */
+  /** Minted server-side by `addHost()` or `createViewerToken()`. Never build one by hand. */
   credentials: LiveStreamCredentials;
   /** How many messages of live chat history to load once connected. Defaults to 50. */
   historyLimit?: number;
@@ -22,14 +22,15 @@ export interface RavenLiveStreamProps {
 /**
  * The provider every Live Streaming hook needs.
  *
- * Deliberately mounts the *same* `RavenStoreContext`/`RavenChatStoreContext`
- * that `<RavenRoom>`/`<RavenChat>` use — a stream's `room` and `chat` are
- * exactly a `@corvidhq/rtc` `Room` and a `@corvidhq/chat` `ChatClient`, so
- * every existing hook (`useParticipants`, `useCamera`, `useMicrophone`,
- * `useMessages`, `useReactions`, `useTyping`, ...) already works inside a
- * `<RavenLiveStream>` — nothing here reimplements participants or chat.
+ * Mounts the *same* `RavenStoreContext` and `RavenChatStoreContext` that
+ * `<RavenRoom>` and `<RavenChat>` use, on purpose. A stream's `room` and
+ * `chat` are precisely a `@corvidhq/rtc` `Room` and a `@corvidhq/chat`
+ * `ChatClient`, so every existing hook already works inside a
+ * `<RavenLiveStream>`: `useParticipants`, `useCamera`, `useMicrophone`,
+ * `useMessages`, `useReactions`, `useTyping`, the lot. Nothing here
+ * reimplements participants or chat.
  *
- * Client-only — never render this from a Server Component.
+ * Client-only. Never render this from a Server Component.
  */
 export function RavenLiveStream({ credentials, historyLimit = 50, fallback, onError, children }: RavenLiveStreamProps) {
   const rtcStoreRef = useRef<RavenStore | null>(null);
@@ -42,10 +43,11 @@ export function RavenLiveStream({ credentials, historyLimit = 50, fallback, onEr
     status: 'connecting',
   });
 
-  // Credentials are read once at mount, same one-shot model as
-  // <RavenRoom>/<RavenChat> — a stream credential is minted for one
-  // identity and one role; swapping it mid-flight would change who this
-  // component *is*. Remount with <RavenLiveStream key={credentials.streamId}> to switch.
+  // Credentials are read once at mount, the same one-shot model
+  // <RavenRoom> and <RavenChat> use. A stream credential is minted for one
+  // identity and one role, so swapping it mid-flight changes who this
+  // component *is*. To switch, remount with
+  // <RavenLiveStream key={credentials.streamId}>.
   useEffect(() => {
     let cancelled = false;
     setState({ status: 'connecting' });
@@ -72,9 +74,9 @@ export function RavenLiveStream({ credentials, historyLimit = 50, fallback, onEr
 
     return () => {
       cancelled = true;
-      // detachExisting(), not dispose() — stream.leave() below already
-      // tears down the underlying RTC/chat connections; dispose() would
-      // leave/disconnect them a second time.
+      // detachExisting(), not dispose(). stream.leave() below already tears
+      // down the underlying RTC and chat connections, and dispose() would
+      // leave and disconnect them all over again.
       rtcStoreRef.current?.detachExisting();
       chatStoreRef.current?.detachExisting();
       void streamRef.current?.leave();

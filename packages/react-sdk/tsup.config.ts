@@ -11,11 +11,11 @@ export default defineConfig({
   treeshake: true,
   minify: false,
   external: ['react', 'react-dom', '@corvidhq/rtc', '@corvidhq/chat'],
-  // esbuild strips a source-level "use client" directive once multiple
-  // files are bundled together (it can't prove it still applies to the
-  // concatenated output) — a `banner` has the same problem when combined
-  // with a source-level directive (two directives → both dropped, see
-  // scripts/prepend-use-client.mjs for the real fix, run as this
-  // package's postbuild step).
+  // esbuild strips a source-level "use client" directive once several files
+  // get bundled together, because it can't prove the directive still applies
+  // to the concatenated output. A `banner` runs into the same problem when
+  // combined with a source-level directive: two directives, both dropped.
+  // The real fix is scripts/prepend-use-client.mjs, which runs as this
+  // package's postbuild step.
   onSuccess: 'node scripts/prepend-use-client.mjs',
 });

@@ -17,10 +17,12 @@ export {
 export type { UseCameraEffectsResult, UseRavenResult } from './hooks';
 
 // ---------------------------------------------------------------------------
-// Effects (Phase 16) — @corvidhq/effects integration. useCameraEffects()
-// above is the ergonomic entry point; these re-exports let a component
-// build filter/preset configs (`raven.effects.filters.brightness(...)`)
-// without a direct @corvidhq/effects import, mirroring the @corvidhq/rtc
+// Effects (Phase 16), the @corvidhq/effects integration.
+//
+// useCameraEffects() above is the ergonomic entry point. These re-exports
+// are so a component can build filter and preset configs, like
+// `raven.effects.filters.brightness(...)`, without importing
+// @corvidhq/effects directly. Same arrangement as the @corvidhq/rtc
 // re-exports below.
 export {
   createEffectsPipeline,
@@ -44,11 +46,12 @@ export type { ParticipantViewProps, RavenAudioProps, RavenVideoProps } from './c
 
 export type { RavenConnectionState, RavenSnapshot } from './store';
 
-// Re-exported for convenience so a developer building with @corvidhq/react
-// doesn't also need a direct @corvidhq/rtc import for common types. No
-// media-plane type is ever re-exported (Phase 11 spec §27) — the surface
-// here is Raven's own vocabulary, which is what let the SFU underneath it
-// be replaced without touching this file.
+// Re-exported for convenience, so anyone building on @corvidhq/react
+// doesn't need a direct @corvidhq/rtc import just to name a common type.
+//
+// No media-plane type is ever re-exported (Phase 11 spec §27). Everything
+// here is Raven's own vocabulary, which is exactly what let the SFU
+// underneath get replaced without touching this file.
 export type {
   ConnectionState,
   DeviceInfo,
@@ -68,12 +71,12 @@ export type {
 export { isRTCError } from '@corvidhq/rtc';
 
 // ---------------------------------------------------------------------------
-// Chat (Phase 12) — @corvidhq/chat integration.
+// Chat (Phase 12), the @corvidhq/chat integration.
 //
-// A separate provider and a separate set of hooks, sharing this package's
-// existing store/snapshot pattern rather than introducing a second one
-// (spec §43). RTC and Chat stay independent: either can be used alone,
-// and both can be mounted together for a call with a chat panel.
+// Its own provider and its own hooks, but sharing this package's existing
+// store/snapshot pattern instead of inventing a second one (spec §43).
+// RTC and Chat stay independent: use either alone, or mount both together
+// for a call with a chat panel.
 // ---------------------------------------------------------------------------
 export { RavenChat } from './chat/raven-chat';
 export type { RavenChatProps } from './chat/raven-chat';
@@ -99,7 +102,7 @@ export type {
 
 export type { RavenChatSnapshot } from './chat/chat-store';
 
-// Re-exported for convenience, same as the RTC types above — so a chat UI
+// Re-exported for convenience, same as the RTC types above, so a chat UI
 // doesn't need a direct @corvidhq/chat import for common types.
 export type {
   ChatAttachment,
@@ -116,13 +119,14 @@ export type {
 export { isRavenChatError, RavenChatError } from '@corvidhq/chat';
 
 // ---------------------------------------------------------------------------
-// Live Streaming (Phase 14) — @corvidhq/client integration.
+// Live Streaming (Phase 14), the @corvidhq/client integration.
 //
 // A stream's room and chat are an ordinary Room and ChatClient, so
-// useParticipants/useCamera/useMicrophone (above) and
-// useMessages/useReactions/useTyping/etc. (chat, above) already work
-// inside <RavenLiveStream> — see src/live/live-hooks.ts for why there is
-// no separate useLiveStreamParticipants()/useLiveStreamChat().
+// useParticipants, useCamera and useMicrophone from above, plus
+// useMessages, useReactions, useTyping and the rest of the chat hooks, all
+// already work inside <RavenLiveStream>. src/live/live-hooks.ts explains
+// why there's no separate useLiveStreamParticipants() or
+// useLiveStreamChat().
 // ---------------------------------------------------------------------------
 export { RavenLiveStream } from './live/raven-live-stream';
 export type { RavenLiveStreamProps } from './live/raven-live-stream';
@@ -132,8 +136,8 @@ export type { UseLiveStreamHostResult, UseLiveStreamResult } from './live/live-h
 
 export type { RavenLiveStreamContextValue, RavenLiveStreamStatus } from './live/live-context';
 
-// Re-exported for convenience, same as the RTC/Chat types above — so a
+// Re-exported for convenience, same as the RTC and Chat types above, so a
 // live-streaming UI doesn't need a direct @corvidhq/client import for
-// common types. @corvidhq/client's own discipline applies here unchanged:
+// common types. @corvidhq/client's own discipline carries over unchanged:
 // nothing transport- or media-plane-specific ever reaches this surface.
 export type { LiveStream, LiveStreamCredentials, LiveStreamRole } from '@corvidhq/client';

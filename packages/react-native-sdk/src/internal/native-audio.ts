@@ -2,63 +2,64 @@ import { Platform } from 'react-native';
 import type { RavenAudioOutput } from '../audio';
 
 /**
- * The platform capabilities call-audio routing needs.
+ * The platform capabilities call-audio routing depends on.
  *
- * # Why this is an interface rather than a direct dependency
+ * # Why this is an interface and not a direct dependency
  *
- * Raven previously got audio routing from `@livekit/react-native`'s
- * `AudioSession`, which bundled session management, output selection,
- * device enumeration and the iOS route picker into one native module.
- * There is no single upstream package that does all of that:
- * `react-native-incall-manager` covers session management and output
- * selection well, does device enumeration only on Android, and does not
- * implement the iOS route picker at all.
+ * Raven used to get audio routing from `@livekit/react-native`'s
+ * `AudioSession`, which crammed session management, output selection,
+ * device enumeration and the iOS route picker into one native module. No
+ * single upstream package does all of that. `react-native-incall-manager`
+ * handles session management and output selection well, does device
+ * enumeration on Android only, and doesn't implement the iOS route picker
+ * at all.
  *
- * Rather than pretend otherwise, the pieces the platform genuinely cannot
- * do are `undefined` here, `audio.ts` reports them as `NOT_SUPPORTED`,
- * and an app that needs full fidelity can supply its own adapter
- * (`audio.setAdapter`) wrapping whatever native module it already has —
- * an `AVRoutePickerView` bridge, say. That is a real limitation, stated
- * rather than hidden; see docs/sdk/react-native.md#audio-routing.
+ * So rather than pretend otherwise: the pieces the platform genuinely
+ * can't do are `undefined` here, `audio.ts` reports them as
+ * `NOT_SUPPORTED`, and an app needing full fidelity supplies its own
+ * adapter through `audio.setAdapter`, wrapping whatever native module it
+ * already has (an `AVRoutePickerView` bridge, say). A real limitation,
+ * stated out loud instead of hidden. See
+ * docs/sdk/react-native.md#audio-routing.
  */
 export interface NativeAudioAdapter {
-  /** Claims the audio session for a call. Sets the category/mode so the earpiece and speaker behave. */
+  /** Claims the audio session for a call, setting the category and mode so earpiece and speaker behave. */
   startSession(): Promise<void>;
   stopSession(): Promise<void>;
 
   /**
    * Forces the loudspeaker on or off.
    *
-   * `null` means "return to the platform's own choice", which is what
-   * respects a connected headset or Bluetooth device instead of
-   * overriding the user's obviously-intended output.
+   * `null` means "go back to the platform's own choice", which is what
+   * respects a connected headset or Bluetooth device instead of overriding
+   * the output the user obviously wanted.
    */
   setForceSpeakerphone(enabled: boolean | null): Promise<void>;
 
   /**
-   * Selects a specific output. Optional: iOS gives an app no way to force
-   * a route other than the speaker, so this is Android-only in the
-   * default adapter.
+   * Selects a specific output. Optional, because iOS gives an app no way to
+   * force any route but the speaker, so it's Android-only in the default
+   * adapter.
    */
   selectOutput?(output: RavenAudioOutput): Promise<void>;
 
   /**
-   * Currently available outputs. Optional for the same reason —
-   * enumeration comes from an Android-only device-change event.
+   * Outputs available right now. Optional for the same reason: enumeration
+   * comes off an Android-only device-change event.
    */
   availableOutputs?(): Promise<RavenAudioOutput[]>;
 
-  /** The system route picker. Optional; iOS-only, and no upstream module provides it. */
+  /** The system route picker. Optional, iOS-only, and no upstream module provides it. */
   showRoutePicker?(): Promise<void>;
 }
 
 /**
- * `react-native-incall-manager`'s surface, as much of it as is used here.
+ * As much of `react-native-incall-manager`'s surface as gets used here.
  *
- * Declared locally rather than imported so this package does not need the
- * module's types at build time — it is an optional peer, and a project
- * that only uses Raven Chat should not have to install a call-audio
- * native module to typecheck.
+ * Declared locally instead of imported, so this package doesn't need the
+ * module's types at build time. It's an optional peer, and a project that
+ * only uses Raven Chat shouldn't have to install a call-audio native module
+ * just to typecheck.
  */
 interface InCallManagerModule {
   start(options?: { media?: 'audio' | 'video'; auto?: boolean; ringback?: string }): void;
@@ -67,7 +68,7 @@ interface InCallManagerModule {
   chooseAudioRoute?(route: string): Promise<unknown>;
 }
 
-/** Android's route names, which differ from Raven's vocabulary. */
+/** Android's route names, which don't match Raven's vocabulary. */
 const ANDROID_ROUTES: Record<RavenAudioOutput, string> = {
   speaker: 'SPEAKER_PHONE',
   earpiece: 'EARPIECE',
@@ -76,13 +77,13 @@ const ANDROID_ROUTES: Record<RavenAudioOutput, string> = {
 };
 
 /**
- * Loads `react-native-incall-manager` if the app has it installed.
+ * Loads `react-native-incall-manager`, if the app happens to have it.
  *
- * `require` rather than a static import, and swallowed on failure,
- * because the module is an optional peer dependency: an app using Raven
- * for chat only, or one that supplies its own adapter, must not fail to
- * start because a call-audio native module is missing. `audio.ts` reports
- * a clear error if routing is then actually used.
+ * `require`, not a static import, and failures swallowed, because
+ * the module is an optional peer dependency. An app using Raven for chat
+ * only, or one supplying its own adapter, must not fail to start over a
+ * missing call-audio native module. If routing does then get used,
+ * `audio.ts` reports a clear error.
  */
 function loadInCallManager(): InCallManagerModule | undefined {
   try {
@@ -100,8 +101,8 @@ function loadInCallManager(): InCallManagerModule | undefined {
  * The default adapter, over `react-native-incall-manager`.
  *
  * Returns `undefined` when the module is not installed, so `audio.ts` can
- * tell "not configured" from "the platform cannot do this" — two problems
- * with different fixes.
+ * tell "not configured" apart from "the platform can't do this". Two
+ * problems, two different fixes.
  */
 export function createDefaultAudioAdapter(): NativeAudioAdapter | undefined {
   const inCallManager = loadInCallManager();
@@ -111,11 +112,12 @@ export function createDefaultAudioAdapter(): NativeAudioAdapter | undefined {
 
   const adapter: NativeAudioAdapter = {
     async startSession() {
-      // `media: 'video'` rather than `'audio'` even for a voice call: it
-      // is what stops the proximity sensor blanking the screen, and a
-      // voice call in a video app still has a UI the user is looking at.
+      // `media: 'video'` even for a voice call, not `'audio'`. It's what
+      // stops the proximity sensor blanking the screen, and a voice call in
+      // a video app still has a UI somebody is looking at.
+      //
       // `auto: true` lets the module follow headset and Bluetooth changes
-      // on its own, which is the behaviour that is right by default.
+      // by itself, which is the right default.
       inCallManager.start({ media: 'video', auto: true });
     },
 
@@ -128,9 +130,9 @@ export function createDefaultAudioAdapter(): NativeAudioAdapter | undefined {
     },
   };
 
-  // Only advertised where it actually works. On iOS `chooseAudioRoute` is
-  // not implemented, and claiming support would leave audio somewhere the
-  // user did not ask for while reporting success.
+  // Only advertised where it genuinely works. `chooseAudioRoute` isn't
+  // implemented on iOS, and claiming support there would leave audio
+  // somewhere nobody asked for while cheerfully reporting success.
   if (Platform.OS === 'android' && typeof inCallManager.chooseAudioRoute === 'function') {
     adapter.selectOutput = async (output: RavenAudioOutput) => {
       await inCallManager.chooseAudioRoute!(ANDROID_ROUTES[output]);

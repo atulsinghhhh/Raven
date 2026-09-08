@@ -112,7 +112,7 @@ describe('RavenStore', () => {
 
     const snapshotAfterLeave = store.getSnapshot();
     room.emit('reconnecting');
-    expect(store.getSnapshot()).toBe(snapshotAfterLeave); // no patch happened — listener was detached
+    expect(store.getSnapshot()).toBe(snapshotAfterLeave); // no patch happened; listener was detached
   });
 
   it('dispose() detaches listeners and calls leave() on the client, without throwing if never joined', () => {

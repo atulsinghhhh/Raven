@@ -5,10 +5,13 @@ import type { LocalParticipant, RemoteParticipant, Track } from '@corvidhq/rtc';
 import { useLocalParticipant } from './hooks';
 
 /**
- * Optional primitives (Phase 11 spec §18/§19) — every hook above works
- * fine without these; use them for a quick start, not because you have
- * to. Attaches/detaches a track to a real `<video>`/`<audio>` element via
- * `Track.attach()`/`.detach()` — never touches SDP/track internals itself.
+ * Optional primitives (Phase 11 spec §18/§19). Every hook above works
+ * perfectly well without them; use these for a quick start, not because
+ * you have to.
+ *
+ * Attaches and detaches a track to a real `<video>` or `<audio>` element
+ * through `Track.attach()` and `.detach()`. Never touches SDP or track
+ * internals itself.
  */
 export interface RavenVideoProps extends Omit<React.VideoHTMLAttributes<HTMLVideoElement>, 'ref'> {
   track?: Track;
@@ -51,11 +54,11 @@ export function RavenAudio({ track, ...props }: RavenAudioProps) {
 export interface ParticipantViewProps {
   participant: LocalParticipant | RemoteParticipant;
   className?: string;
-  /** Rendered below the video/audio elements — defaults to the participant's identity. */
+  /** Rendered below the video and audio elements. Defaults to the participant's identity. */
   label?: React.ReactNode;
 }
 
-/** A ready-made tile: video (camera or screen share) + audio + an identity label. Fully optional — build your own with `useParticipants()` + `RavenVideo`/`RavenAudio` instead if this doesn't fit. */
+/** A ready-made tile: video (camera or screen share), audio, an identity label. Entirely optional. If it doesn't fit, build your own from `useParticipants()` plus `RavenVideo`/`RavenAudio`. */
 export function ParticipantView({ participant, className, label }: ParticipantViewProps) {
   const videoTrack = participant.tracks.find((t) => t.kind === 'camera' || t.kind === 'screenShare');
   const audioTrack = participant.tracks.find((t) => t.kind === 'microphone');

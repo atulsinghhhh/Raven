@@ -14,7 +14,7 @@ export interface RavenChatSnapshot {
   client?: ChatClient;
   /** Oldest-first, the order a message list renders in. */
   messages: ChatMessage[];
-  /** userId -> presence status, for whoever is currently present. */
+  /** userId -> presence status, for whoever's around. */
   presence: Record<string, PresenceStatus>;
   /** userIds currently typing, excluding this user. */
   typing: string[];
@@ -22,7 +22,7 @@ export interface RavenChatSnapshot {
   readReceipts: Record<string, string | null>;
   /** True while the first page of history is loading. */
   loadingHistory: boolean;
-  /** Cursor for the next older page; null once history is exhausted. */
+  /** Cursor for the next older page. Null once history runs out. */
   nextCursor: string | null;
   hasMoreHistory: boolean;
   error?: RavenChatError;
@@ -41,18 +41,17 @@ const INITIAL_SNAPSHOT: RavenChatSnapshot = {
 };
 
 /**
- * Owns one `ChatClient` and turns its event stream into immutable
- * snapshots for `useSyncExternalStore`. Every hook in this package reads
- * one slice, so a new message doesn't re-render a component that only
- * cares about typing indicators (spec §59, "avoid unnecessary SDK
- * rerenders").
+ * Owns one `ChatClient` and turns its event stream into immutable snapshots
+ * for `useSyncExternalStore`. Every hook in this package reads a single
+ * slice, so a new message doesn't re-render a component that only cares
+ * about typing indicators (spec §59, "avoid unnecessary SDK rerenders").
  *
- * This is the same shape as `RavenStore` on the RTC side — deliberately,
- * so a developer using both learns one pattern, not two (spec §43: extend
- * the existing React ecosystem, don't build a parallel one).
+ * Same shape as `RavenStore` on the RTC side, and that's on purpose:
+ * anyone using both learns one pattern instead of two (spec §43, extend
+ * the existing React ecosystem, not building a parallel one).
  *
- * All the actual chat logic lives in `@corvidhq/chat`. This class only
- * translates; it never talks to a WebSocket.
+ * The actual chat logic all lives in `@corvidhq/chat`. This class only
+ * translates. It never touches a WebSocket.
  */
 export class RavenChatStore {
   private snapshot: RavenChatSnapshot = INITIAL_SNAPSHOT;
@@ -60,7 +59,7 @@ export class RavenChatStore {
   private unsubscribers: Array<() => void> = [];
   private client?: ChatClient;
   private room?: string;
-  /** Local timers that expire a stale "typing" even if the stop event never arrives. */
+  /** Local timers that expire a stale "typing" even when the stop event never turns up. */
   private readonly typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   getSnapshot = (): RavenChatSnapshot => this.snapshot;
@@ -107,7 +106,7 @@ export class RavenChatStore {
     this.patch({ ...INITIAL_SNAPSHOT, connectionState: 'disconnected', client: this.client, userId: this.client?.userId });
   }
 
-  /** Call on unmount. Detaches every listener and closes the socket. */
+  /** Call this on unmount. Detaches every listener and closes the socket. */
   dispose(): void {
     this.detach();
     void this.client?.disconnect();
@@ -115,10 +114,11 @@ export class RavenChatStore {
 
   /**
    * Wires an already-connected `ChatClient` into this store's reactive
-   * machinery, without calling `client.connect()` — for a caller (Live
-   * Streaming) that obtained the client some other way and still wants
-   * every existing hook (`useMessages`, `useReactions`, ...) to work
-   * against it.
+   * machinery without calling `client.connect()`.
+   *
+   * For a caller (Live Streaming) that got hold of the client some other
+   * way and still wants every existing hook, `useMessages`,
+   * `useReactions` and the rest, to work against it.
    */
   async attachExisting(client: ChatClient, room: string, historyLimit = 50): Promise<void> {
     this.client = client;
@@ -131,10 +131,11 @@ export class RavenChatStore {
   }
 
   /**
-   * The `attachExisting()` counterpart to `dispose()` — unsubscribes from
-   * client events but never calls `client.disconnect()`. For a caller
-   * (Live Streaming) whose own `leave()` already tears down the
-   * connection; calling both would disconnect it twice.
+   * `attachExisting()`'s counterpart to `dispose()`. Unsubscribes from
+   * client events and never calls `client.disconnect()`.
+   *
+   * For a caller (Live Streaming) whose own `leave()` already tears the
+   * connection down. Do both and you disconnect it twice.
    */
   detachExisting(): void {
     this.detach();
@@ -148,8 +149,8 @@ export class RavenChatStore {
     if (!this.client) return;
     // No optimistic insert. The server's fan-out echoes the message back
     // with its canonical id and timestamp, and rendering a local
-    // placeholder first would mean reconciling two versions of the same
-    // message — for a saving of a few milliseconds.
+    // placeholder first means reconciling two versions of the same
+    // message. All to save a few milliseconds.
     await this.client.sendMessage({ text, replyTo: options.replyTo, room: this.room });
   };
 
@@ -164,7 +165,7 @@ export class RavenChatStore {
         limit,
         before: this.snapshot.nextCursor,
       });
-      // Older messages go in front; the server returns newest-first.
+      // Older messages go on the front. The server returns newest-first.
       this.patch({
         messages: [...[...page.data].reverse(), ...this.snapshot.messages],
         nextCursor: page.nextCursor,
@@ -188,8 +189,8 @@ export class RavenChatStore {
       client.on('error', (error) => this.patch({ error })),
 
       client.on('message', (message) => {
-        // Guard against a duplicate arriving after a reconnect replayed
-        // something we already have.
+        // Guard against a duplicate turning up when a reconnect replays
+        // something we already hold.
         if (this.snapshot.messages.some((m) => m.id === message.id)) return;
         this.patch({ messages: [...this.snapshot.messages, message] });
       }),
@@ -202,8 +203,8 @@ export class RavenChatStore {
 
       client.on('messageDeleted', (event) =>
         this.patch({
-          // Keep the row as a tombstone so the list doesn't jump — the
-          // server's soft delete is what makes this possible.
+          // Keep the row as a tombstone so the list doesn't jump. The
+          // server's soft delete is what makes that possible.
           messages: this.snapshot.messages.map((m) =>
             m.id === event.messageId
               ? { ...m, deleted: true, text: null, deletedAt: event.deletedAt, attachment: null, reactions: [] }
@@ -226,8 +227,8 @@ export class RavenChatStore {
       ),
 
       client.on('reconnected', () => {
-        // Pull anything that arrived while the socket was down. The
-        // WebSocket is not the source of truth (spec §19).
+        // Pull whatever arrived while the socket was down. The WebSocket
+        // is not the source of truth (spec §19).
         void this.catchUp();
       }),
     ];
@@ -264,10 +265,10 @@ export class RavenChatStore {
   }
 
   /**
-   * Tracks who is typing, with a local expiry. The server already TTLs
-   * typing state, but a `typing.stopped` frame can be lost on a flaky
-   * connection — without this, "Alice is typing…" would stay on screen
-   * forever (spec §21).
+   * Tracks who's typing, with a local expiry. The server does TTL typing
+   * state, but a `typing.stopped` frame can go missing on a flaky
+   * connection, and without this "Alice is typing…" sits on screen forever
+   * (spec §21).
    */
   private applyTyping(userId: string, isTyping: boolean): void {
     if (userId === this.snapshot.userId) return;
@@ -301,8 +302,8 @@ export class RavenChatStore {
     try {
       const page = await this.client.messages.list({ room: this.room, limit });
       this.patch({
-        // Reversed to oldest-first: that's render order, and doing it here
-        // means every consumer doesn't have to.
+        // Reversed to oldest-first, which is render order. Do it here and
+        // no consumer has to.
         messages: [...page.data].reverse(),
         nextCursor: page.nextCursor,
         hasMoreHistory: page.hasMore,
@@ -313,7 +314,7 @@ export class RavenChatStore {
     }
   }
 
-  /** Fetches messages newer than the last one we hold, after a reconnect. */
+  /** After a reconnect, fetches anything newer than the last message we hold. */
   private async catchUp(): Promise<void> {
     if (!this.client) return;
     const newest = this.snapshot.messages[this.snapshot.messages.length - 1];
@@ -328,8 +329,8 @@ export class RavenChatStore {
         this.patch({ messages: [...this.snapshot.messages, ...fresh] });
       }
     } catch {
-      // A failed catch-up is recoverable — the next message that arrives
-      // over the socket still renders, and the user can scroll to refetch.
+      // A failed catch-up is recoverable. The next message over the socket
+      // still renders, and the user can scroll to refetch.
     }
   }
 
@@ -345,17 +346,17 @@ export class RavenChatStore {
         readReceipts: Object.fromEntries(receipts.map((r) => [r.userId, r.lastReadMessageId])),
       });
     } catch {
-      // Presence is a nice-to-have; failing to hydrate it must not fail
-      // the connection.
+      // Presence is a nice-to-have. Failing to hydrate it mustn't take the
+      // connection down with it.
     }
   }
 }
 
 /**
  * Rebuilds the opaque cursor for a message we already hold. The format
- * matches the server's (base64 of `createdAt|id`) — the one place this
- * package knows it, so a catch-up doesn't need an extra round-trip just
- * to learn where it is.
+ * matches the server's, base64 of `createdAt|id`, and this is the one
+ * place in the package that knows that. Saves a catch-up an extra round
+ * trip just to find out where it is.
  */
 function encodeMessageCursor(message: ChatMessage): string {
   const raw = `${message.createdAt}|${message.id}`;

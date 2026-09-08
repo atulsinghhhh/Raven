@@ -1,14 +1,18 @@
 // Chat-only entry point (`@corvidhq/react/chat`).
 //
-// `src/chat/*` depends on nothing but `react` and `@corvidhq/chat` — no
-// coupling to RTC/effects/live. This file exists so a consumer that only
-// wants Chat (e.g. a text-channel feature with no video/voice) never needs
-// `@corvidhq/rtc`/`@corvidhq/effects`/`@corvidhq/client` resolvable, honoring
-// what `package.json`'s `peerDependenciesMeta` already promises — the single
-// `index.ts` barrel re-exports from all four integrations unconditionally,
-// so bundlers require every peer to be installed just to import anything
-// from it at all. Keep this file's re-exports in sync with index.ts's Chat
-// section if that ever changes.
+// `src/chat/*` depends on `react` and `@corvidhq/chat` and nothing else. No
+// coupling to RTC, effects or live.
+//
+// This file exists so anyone who only wants Chat, a text-channel feature
+// with no video or voice say, never needs `@corvidhq/rtc`,
+// `@corvidhq/effects` or `@corvidhq/client` to be resolvable. That's what
+// `package.json`'s `peerDependenciesMeta` already promises, and the single
+// `index.ts` barrel breaks it: it re-exports from all four integrations
+// unconditionally, so a bundler demands every peer be installed just to
+// import anything from it.
+//
+// If that ever changes, keep this file's re-exports in sync with index.ts's
+// Chat section.
 export { RavenChat } from './chat/raven-chat';
 export type { RavenChatProps } from './chat/raven-chat';
 

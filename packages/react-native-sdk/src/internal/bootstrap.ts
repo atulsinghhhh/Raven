@@ -5,27 +5,26 @@ let registered = false;
 /**
  * Installs the WebRTC globals React Native doesn't ship with.
  *
- * This is the single reason `@corvidhq/rtc` — a package written for browsers —
- * runs unmodified on a phone. `registerGlobals()` puts
- * `RTCPeerConnection`, `navigator.mediaDevices`, `MediaStream` and friends
- * on the global object, backed by the native iOS/Android WebRTC
- * implementation in `react-native-webrtc`. From that point on, the code in
- * `@corvidhq/rtc` cannot tell it isn't in a browser.
+ * This one function is the entire reason `@corvidhq/rtc`, a package written
+ * for browsers, runs unmodified on a phone. `registerGlobals()` drops
+ * `RTCPeerConnection`, `navigator.mediaDevices`, `MediaStream` and the rest
+ * onto the global object, backed by the native iOS and Android WebRTC
+ * implementation in `react-native-webrtc`. After that, nothing in
+ * `@corvidhq/rtc` can tell it isn't in a browser.
  *
- * This matters more since Raven's own SFU replaced LiveKit: the web SDK
- * now drives `RTCPeerConnection` directly rather than delegating to a
- * client library, so what it needs from the platform is exactly the
- * standard WebRTC API — which is precisely what `react-native-webrtc`
- * provides.
+ * It matters more since Raven's own SFU replaced LiveKit. The web SDK now
+ * drives `RTCPeerConnection` directly rather than handing off to a client
+ * library, so what it wants from the platform is precisely the standard
+ * WebRTC API. Which is precisely what `react-native-webrtc` gives it.
  *
- * That's the whole architecture of this package: Raven's RTC and chat
- * logic is shared with web, and only the parts that genuinely differ —
- * rendering, permissions, app lifecycle, audio routing — live here.
+ * And that's the whole architecture of this package. Raven's RTC and chat
+ * logic is shared with web, and only what genuinely differs lives here:
+ * rendering, permissions, app lifecycle, audio routing.
  *
- * Must run before any Raven client is constructed, and exactly once. It's
- * called automatically by `new Raven(...)`, so a developer never has to
- * remember it; calling it yourself earlier (in `index.js`, before the
- * first render) is supported and occasionally useful.
+ * Has to run before any Raven client is constructed, and exactly once.
+ * `new Raven(...)` calls it for you so nobody has to remember. Calling it
+ * yourself earlier, in `index.js` before the first render, is supported and
+ * occasionally handy.
  */
 export function bootstrapRavenNative(): void {
   if (registered) {
@@ -37,21 +36,21 @@ export function bootstrapRavenNative(): void {
   installBase64Polyfill();
 }
 
-/** @internal test-only — lets a suite assert the once-only behaviour. */
+/** @internal Test-only. Lets a suite assert the once-only behaviour. */
 export function __resetBootstrapForTests(): void {
   registered = false;
 }
 
 /**
- * `@corvidhq/chat` decodes its token payload with `atob` to learn the user
- * id and expiry without a round-trip. Hermes has shipped `atob`/`btoa`
- * since React Native 0.74; older runtimes and some JSC configurations
- * haven't. Rather than declare a floor we don't otherwise need, fill the
- * gap when it exists.
+ * `@corvidhq/chat` decodes its token payload with `atob`, to get the user id
+ * and expiry without a round trip. Hermes has shipped `atob`/`btoa` since
+ * React Native 0.74; older runtimes and some JSC configurations haven't.
+ * Rather than declare a version floor we don't otherwise need, just fill
+ * the gap where it exists.
  *
- * Deliberately minimal: this decodes standard base64 only, which is all
- * the JWT path asks of it. It is not a general-purpose polyfill and
- * doesn't pretend to be.
+ * Minimal on purpose. It decodes standard base64 and nothing else, which is
+ * all the JWT path ever asks of it. Not a general-purpose polyfill, and it
+ * doesn't pretend to be one.
  */
 function installBase64Polyfill(): void {
   const globalRef = globalThis as typeof globalThis & {

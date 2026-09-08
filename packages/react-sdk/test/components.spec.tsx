@@ -16,7 +16,7 @@ function fakeParticipant(identity: string, tracks: ReturnType<typeof fakeTrack>[
   return { identity, tracks, metadata: undefined };
 }
 
-/** Minimal store double — just enough for useLocalParticipant()'s useSyncExternalStore call. */
+/** Minimal store double. Just enough for useLocalParticipant()'s useSyncExternalStore call. */
 function fakeStore(snapshot: Partial<RavenSnapshot>) {
   const full: RavenSnapshot = { connectionState: 'connected', remoteParticipants: [], reconnectCount: 0, ...snapshot };
   return { subscribe: () => () => {}, getSnapshot: () => full };

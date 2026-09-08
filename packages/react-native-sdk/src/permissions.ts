@@ -19,29 +19,29 @@ const ANDROID_PERMISSION: Record<RavenPermissionKind, 'android.permission.CAMERA
 /**
  * Camera and microphone permissions, normalised across iOS and Android.
  *
- * The two platforms are genuinely different here, and this module exists
- * to hide that difference rather than pretend it doesn't exist:
+ * The two platforms really are different here, and this module exists to
+ * paper over that difference honestly rather than pretend it isn't there.
  *
- * **Android** has a real permissions API in React Native core
+ * **Android** has a proper permissions API in React Native core
  * (`PermissionsAndroid`), so we can check state without prompting, prompt
- * explicitly, and distinguish "denied" from "never ask again".
+ * explicitly, and tell "denied" apart from "never ask again".
  *
- * **iOS** has no such API without a native module. `AVCaptureDevice`
- * authorization status isn't reachable from JavaScript, and adding a
- * native module purely to read it would mean shipping (and asking every
- * developer to link) native code for one enum. Instead we prompt the only
- * way iOS allows from JS — by asking for the device — and read the
- * outcome. That means `check()` on iOS reports `undetermined` rather than
- * guessing, and `request()` does the real work.
+ * **iOS** has nothing of the sort without a native module.
+ * `AVCaptureDevice` authorization status isn't reachable from JavaScript,
+ * and shipping a native module purely to read one enum, which every
+ * developer would then have to link, isn't a trade worth making. So we
+ * prompt the only way iOS allows from JS, by asking for the device, and
+ * read the outcome. Which means `check()` on iOS reports `undetermined`
+ * instead of guessing, and `request()` does the real work.
  *
- * Whatever the platform, a denial is always an error you can branch on.
- * Nothing here fails silently (spec §3).
+ * Either way a denial is always an error you can branch on. Nothing here
+ * fails silently (spec §3).
  */
 export const permissions = {
   /**
-   * Reports current status without prompting, where the platform allows
-   * it. On iOS this returns `undetermined` — see the note above; use
-   * `request()` there.
+   * Reports current status without prompting, where the platform lets us.
+   * On iOS you get `undetermined`; see the note above, and use `request()`
+   * there instead.
    */
   async check(): Promise<PermissionResult> {
     if (Platform.OS === 'android') {
@@ -56,9 +56,9 @@ export const permissions = {
     }
 
     if (Platform.OS === 'ios') {
-      // Honest, not optimistic: we cannot read iOS authorization status
-      // from JS, and claiming 'granted' here would make a developer skip
-      // the request and hit a silent black frame instead.
+      // Honest instead of optimistic. We can't read iOS authorization
+      // status from JS, and claiming 'granted' here would have a developer
+      // skip the request and hit a silent black frame instead.
       return { camera: 'undetermined', microphone: 'undetermined' };
     }
 
@@ -66,11 +66,11 @@ export const permissions = {
   },
 
   /**
-   * Prompts for whichever of camera/microphone you ask for, and returns
-   * the resulting status per permission. Does not throw — inspect the
-   * result, or use `require()` if you'd rather have an exception.
+   * Prompts for whichever of camera and microphone you ask for, and returns
+   * a status per permission. Doesn't throw: inspect the result, or use
+   * `require()` if you'd rather have an exception.
    *
-   * Safe to call repeatedly: both platforms no-op when already granted.
+   * Call it as often as you like. Both platforms no-op once granted.
    */
   async request(
     kinds: RavenPermissionKind[] = ['camera', 'microphone'],
@@ -89,9 +89,9 @@ export const permissions = {
 
     if (Platform.OS === 'ios') {
       // Asking for the device is the only way to trigger the iOS prompt
-      // from JavaScript. The stream is released immediately — this is a
-      // permission probe, not a capture session, and holding it would
-      // leave the camera light on.
+      // from JavaScript. We release the stream immediately: this is a
+      // permission probe, not a capture session, and hanging on to it
+      // leaves the camera light burning.
       for (const kind of kinds) {
         result[kind] = await probeIosPermission(kind);
       }
@@ -102,10 +102,10 @@ export const permissions = {
   },
 
   /**
-   * Like `request()`, but throws `RavenPermissionError` on anything other
-   * than a grant — including `blocked`, which carries `requiresSettings`
-   * so your UI can send the user to Settings rather than uselessly
-   * prompting again.
+   * Like `request()`, but throws `RavenPermissionError` on anything short
+   * of a grant. That includes `blocked`, which carries `requiresSettings`
+   * so your UI can send the user to Settings instead of prompting again to
+   * no effect.
    */
   async require(kinds: RavenPermissionKind[] = ['camera', 'microphone']): Promise<void> {
     const result = await permissions.request(kinds);
@@ -135,8 +135,8 @@ function mapAndroidResult(value: string | undefined): RavenPermissionStatus {
 async function probeIosPermission(kind: RavenPermissionKind): Promise<RavenPermissionStatus> {
   const mediaDevices = (globalThis as { navigator?: { mediaDevices?: MediaDevices } }).navigator?.mediaDevices;
   if (!mediaDevices?.getUserMedia) {
-    // bootstrapRavenNative() hasn't run. Not a permission problem, and
-    // reporting one would send the developer down the wrong path.
+    // bootstrapRavenNative() hasn't run. That's not a permission problem,
+    // and reporting one sends the developer down entirely the wrong path.
     return 'unavailable';
   }
 
@@ -148,7 +148,7 @@ async function probeIosPermission(kind: RavenPermissionKind): Promise<RavenPermi
     return 'granted';
   } catch (error) {
     // iOS never re-prompts after a refusal, so any denial is effectively
-    // permanent until the user visits Settings.
+    // permanent until the user goes to Settings.
     return toPermissionError(kind, error) ? 'blocked' : 'denied';
   } finally {
     stream?.getTracks().forEach((track) => track.stop());

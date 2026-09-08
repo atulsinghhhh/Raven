@@ -9,7 +9,7 @@ import {
   type RTCError,
 } from '@corvidhq/rtc';
 
-/** `'idle'` = `join()` hasn't been called yet — distinct from `'disconnected'`, which means a real connection ended. */
+/** `'idle'` means `join()` hasn't been called yet. Not the same as `'disconnected'`, which means a real connection ended. */
 export type RavenConnectionState = ConnectionState | 'idle';
 
 export interface RavenSnapshot {
@@ -29,17 +29,19 @@ const INITIAL_SNAPSHOT: RavenSnapshot = {
 };
 
 /**
- * Owns one `RTCClient`/`Room` pair and exposes it as an immutable
- * snapshot, compatible with `useSyncExternalStore` (Phase 11 spec §30 —
- * "avoid unnecessary rerenders"). Every hook in this package reads from
- * an instance of this via context, each selecting only the slice it
- * needs so a change to (say) `remoteParticipants` never re-renders a
- * component that only reads `connectionState`.
+ * Owns one `RTCClient`/`Room` pair and hands it out as an immutable
+ * snapshot, the shape `useSyncExternalStore` wants (Phase 11 spec §30,
+ * "avoid unnecessary rerenders").
  *
- * All the actual RTC logic still lives in `@corvidhq/rtc` — this class only
- * translates its event stream into React-friendly, referentially-stable
- * snapshots. It never touches a peer connection, a track, or the
- * signaling socket directly.
+ * Every hook in this package reads an instance of this through context, and
+ * each one selects only the slice it needs. So a change to, say,
+ * `remoteParticipants` never re-renders a component that only reads
+ * `connectionState`.
+ *
+ * The actual RTC logic all still lives in `@corvidhq/rtc`. This class only
+ * translates its event stream into React-friendly, referentially stable
+ * snapshots. It never touches a peer connection, a track, or the signaling
+ * socket.
  */
 export class RavenStore {
   private snapshot: RavenSnapshot = INITIAL_SNAPSHOT;
@@ -86,17 +88,19 @@ export class RavenStore {
     this.patch({ ...INITIAL_SNAPSHOT, connectionState: 'disconnected', client: this.client });
   }
 
-  /** Unsubscribes from room events and stops the underlying client — call on unmount. */
+  /** Unsubscribes from room events and stops the underlying client. Call it on unmount. */
   dispose(): void {
     this.detachRoom();
     void this.client?.leave();
   }
 
   /**
-   * Wires an already-joined `Room` into this store's reactive machinery,
-   * without calling `client.join()` — for a caller (Live Streaming) that
-   * obtained the room some other way and still wants every existing
-   * hook (`useParticipants`, `useCamera`, ...) to work against it.
+   * Wires an already-joined `Room` into this store's reactive machinery
+   * without calling `client.join()`.
+   *
+   * For a caller (Live Streaming) that got the room some other way and
+   * still wants every existing hook working against it: `useParticipants`,
+   * `useCamera`, and the rest.
    */
   attachExisting(room: Room, client?: RTCClient): void {
     if (client) {
@@ -107,10 +111,11 @@ export class RavenStore {
   }
 
   /**
-   * The `attachExisting()` counterpart to `dispose()` — unsubscribes from
-   * room events but never calls `client.leave()`. For a caller (Live
-   * Streaming) whose own `leave()` already tears down the room; calling
-   * both would leave it twice.
+   * `attachExisting()`'s counterpart to `dispose()`. Unsubscribes from room
+   * events and never calls `client.leave()`.
+   *
+   * For a caller (Live Streaming) whose own `leave()` already tears the
+   * room down. Do both and you leave it twice.
    */
   detachExisting(): void {
     this.detachRoom();
@@ -159,8 +164,8 @@ export class RavenStore {
   }
 
   private syncParticipants(room: Room): void {
-    // New array/object references each time, on purpose — this is what
-    // gives useSyncExternalStore something to Object.is-compare against.
+    // Fresh array and object references every time, on purpose. It's what
+    // gives useSyncExternalStore something to Object.is against.
     this.patch({ remoteParticipants: [...room.remoteParticipants], localParticipant: room.localParticipant });
   }
 

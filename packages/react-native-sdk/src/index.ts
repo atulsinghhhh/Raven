@@ -2,8 +2,8 @@ export { Raven } from './raven';
 export type { RavenConfig, RavenChatHandle, RavenAppState } from './types';
 
 // ---------------------------------------------------------------------------
-// Live Streaming (Phase 14) — a thin wrapper around `Raven`, not a
-// parallel RTC/chat implementation. See src/live-stream.ts.
+// Live Streaming (Phase 14). A thin wrapper round `Raven`, not a parallel
+// RTC/chat implementation. See src/live-stream.ts.
 // ---------------------------------------------------------------------------
 export { RavenLiveStream, joinLiveStream } from './live-stream';
 export type { RavenLiveStreamOptions } from './live-stream';
@@ -39,16 +39,16 @@ export {
 export type { RavenPermissionKind, RavenPermissionStatus, RTCErrorCode } from './errors';
 
 /**
- * Call this manually only if you need the WebRTC globals installed before
- * a `Raven` instance exists — for example to render a camera preview on a
- * pre-join screen. `new Raven(...)` calls it for you otherwise.
+ * Only call this by hand if you need the WebRTC globals in place before a
+ * `Raven` instance exists, say to render a camera preview on a pre-join
+ * screen. Otherwise `new Raven(...)` handles it.
  */
 export { bootstrapRavenNative } from './internal/bootstrap';
 
 export { RN_SDK_VERSION } from './version';
 
 // ---------------------------------------------------------------------------
-// Effects (Phase 16) — see effects.ts for the full architecture note.
+// Effects (Phase 16). effects.ts has the full architecture note.
 // Filter/preset config is real; the native processing engine is planned.
 // ---------------------------------------------------------------------------
 export {
@@ -73,9 +73,9 @@ export type {
 
 /**
  * Re-exported from `@corvidhq/rtc` so a mobile app needs one import for the
- * common types. These are the *same* types the web SDK uses — a `Room`
- * here is a `Room` there — which is what makes the two platforms one
- * mental model rather than two APIs that resemble each other (spec §10).
+ * common types. These are the *same* types the web SDK uses: a `Room` here
+ * is a `Room` there. That's what makes the two platforms one mental model
+ * instead of two APIs that merely resemble each other (spec §10).
  *
  * A WebRTC type is never re-exported, on either platform.
  */
@@ -94,8 +94,8 @@ export type {
   LogLevel,
 } from '@corvidhq/rtc';
 
-// Deliberately not exported: the signaling client, the peer-connection
+// Pointedly not exported: the signaling client, the peer-connection
 // adapter, `registerGlobals` internals, RTCView, the chat WebSocket
-// protocol, and every other implementation detail. A developer using this
-// package should never need to know WebRTC or a WebSocket is involved
+// protocol, and every other implementation detail. Nobody using this
+// package should ever need to know a WebRTC or a WebSocket is involved
 // (spec §2, §21).

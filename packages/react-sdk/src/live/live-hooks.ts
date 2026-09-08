@@ -7,14 +7,14 @@ import { useRavenLiveStreamContext, type RavenLiveStreamStatus } from './live-co
 /**
  * Live Streaming hooks for `@corvidhq/react`.
  *
- * There is deliberately no `useLiveStreamParticipants()` or
- * `useLiveStreamChat()` here — a stream's participants and chat are a
- * `@corvidhq/rtc` roster and a `@corvidhq/chat` conversation like any
- * other, so `useParticipants()`, `useMessages()`, `useReactions()`, and
- * every other existing `@corvidhq/react` hook already work inside a
- * `<RavenLiveStream>`. Adding parallel names for the same data would be
- * the "separate chat/RTC implementation for streaming" the spec says not
- * to build.
+ * You'll notice there's no `useLiveStreamParticipants()` or
+ * `useLiveStreamChat()`. That's deliberate. A stream's participants and
+ * chat are a `@corvidhq/rtc` roster and a `@corvidhq/chat` conversation
+ * like any other, so `useParticipants()`, `useMessages()`,
+ * `useReactions()` and every other existing `@corvidhq/react` hook already
+ * work inside a `<RavenLiveStream>`. Adding parallel names for the same
+ * data is exactly the "separate chat/RTC implementation for streaming" the
+ * spec tells us not to build.
  */
 
 export interface UseLiveStreamResult {
@@ -28,7 +28,7 @@ export interface UseLiveStreamResult {
   react(emoji: string): Promise<void>;
 }
 
-/** The full picture: connection status, role, and the two actions every stream needs. */
+/** The full picture: connection status, role, and the two actions every stream wants. */
 export function useLiveStream(): UseLiveStreamResult {
   return useRavenLiveStreamContext();
 }
@@ -38,7 +38,7 @@ export function useLiveStreamRole(): { role: LiveStreamRole; isHost: boolean } {
   return { role, isHost };
 }
 
-/** The underlying `LiveStream`, once joined — for anything the hooks don't cover. */
+/** The underlying `LiveStream`, once joined, for whatever the hooks don't cover. */
 export function useLiveStreamClient(): LiveStream | undefined {
   return useRavenLiveStreamContext().stream;
 }
@@ -49,10 +49,12 @@ export interface UseLiveStreamHostResult extends UseLiveStreamResult {
 }
 
 /**
- * The host/co-host experience: everything `useLiveStream()` has, plus
- * camera/microphone control. Throws if called for a VIEWER-role stream —
- * a viewer's RTC token has no publish grant, so offering camera/mic
- * controls here would draw a button that can only ever fail.
+ * The host and co-host experience: everything `useLiveStream()` has, plus
+ * camera and microphone control.
+ *
+ * Throws if called on a VIEWER-role stream. A viewer's RTC token carries no
+ * publish grant, so offering camera and mic controls here would put a
+ * button on screen that can only ever fail.
  */
 export function useLiveStreamHost(): UseLiveStreamHostResult {
   const stream = useLiveStream();
@@ -60,23 +62,24 @@ export function useLiveStreamHost(): UseLiveStreamHostResult {
   const microphone = useMicrophone();
 
   if (!stream.isHost) {
-    throw new Error('useLiveStreamHost() was called for a VIEWER-role stream — use useLiveStreamViewer() instead.');
+    throw new Error('useLiveStreamHost() was called for a VIEWER-role stream; use useLiveStreamViewer() instead.');
   }
 
   return { ...stream, camera, microphone };
 }
 
 /**
- * The viewer experience: everything `useLiveStream()` has. Throws if
- * called for a HOST/CO_HOST-role stream, symmetrically with
- * `useLiveStreamHost()` — pick the hook that matches the role your
- * backend minted, rather than branching on `isHost` yourself.
+ * The viewer experience: everything `useLiveStream()` has.
+ *
+ * Throws on a HOST or CO_HOST stream, symmetrically with
+ * `useLiveStreamHost()`. Pick the hook matching the role your backend
+ * minted instead of branching on `isHost` yourself.
  */
 export function useLiveStreamViewer(): UseLiveStreamResult {
   const stream = useLiveStream();
 
   if (stream.isHost) {
-    throw new Error('useLiveStreamViewer() was called for a HOST/CO_HOST-role stream — use useLiveStreamHost() instead.');
+    throw new Error('useLiveStreamViewer() was called for a HOST/CO_HOST-role stream; use useLiveStreamHost() instead.');
   }
 
   return stream;

@@ -1,9 +1,9 @@
 /**
  * Stands in for `react-native-incall-manager`.
  *
- * Records what the audio module asks of the native layer. The real
- * module's methods are synchronous and fire-and-forget, which is why
- * these are too — the adapter is what makes them awaitable.
+ * Records what the audio module asks of the native layer. The real module's
+ * methods are synchronous and fire-and-forget, so these are too. The
+ * adapter is the thing that makes them awaitable.
  */
 export const __calls = {
   start: 0,

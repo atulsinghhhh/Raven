@@ -1,10 +1,12 @@
 /**
- * A hand-rolled fake of @corvidhq/rtc's public surface — mirrors how
- * packages/sdk's own tests fake `RTCPeerConnection`, one layer up. Every
- * @corvidhq/react test mocks the whole `@corvidhq/rtc` module with this file
- * (`jest.mock('@corvidhq/rtc', () => require('./helpers/fake-rtc-client'))`)
- * so store/hook/component logic can be tested without any real
- * WebRTC stack at all.
+ * A hand-rolled fake of @corvidhq/rtc's public surface. Same idea as the way
+ * packages/sdk's own tests fake `RTCPeerConnection`, one layer further up.
+ *
+ * Every @corvidhq/react test mocks the whole `@corvidhq/rtc` module with
+ * this file, via
+ * `jest.mock('@corvidhq/rtc', () => require('./helpers/fake-rtc-client'))`,
+ * so store, hook and component logic can be tested with no real WebRTC
+ * stack anywhere in sight.
  */
 
 type Handler = (...args: unknown[]) => void;
@@ -27,7 +29,7 @@ export class FakeEmitter {
     return this;
   }
 
-  /** Test-only — real @corvidhq/rtc keeps emit() protected; this fake needs it public to drive scenarios. */
+  /** Test-only. Real @corvidhq/rtc keeps emit() protected; this fake needs it public to drive scenarios. */
   emit(event: string, ...args: unknown[]): void {
     for (const handler of Array.from(this.listeners.get(event) ?? [])) handler(...args);
   }
@@ -72,11 +74,12 @@ function defer<T>(): Deferred<T> {
 
 export class FakeClient {
   /**
-   * `RavenRoom` calls `join()` synchronously inside its mount effect —
-   * before a test gets a chance to configure a mock return value. So
-   * `join()` always returns THIS specific, already-pending promise,
-   * which a test resolves/rejects directly via `pendingJoin.resolve(...)`
-   * whenever it's ready — no race with when the effect actually fires.
+   * `RavenRoom` calls `join()` synchronously inside its mount effect,
+   * before a test has any chance to configure a mock return value.
+   *
+   * So `join()` always returns THIS specific, already-pending promise, and
+   * a test resolves or rejects it directly through `pendingJoin.resolve(...)`
+   * whenever it's ready. No racing against when the effect fires.
    */
   pendingJoin: Deferred<FakeRoom> = defer<FakeRoom>();
   joinMock = jest.fn((_roomId: string) => this.pendingJoin.promise);
@@ -99,7 +102,7 @@ export const instances: FakeClient[] = [];
 
 export function lastClient(): FakeClient {
   const client = instances[instances.length - 1];
-  if (!client) throw new Error('No FakeClient was created yet — call createRTCClient() first');
+  if (!client) throw new Error('No FakeClient was created yet; call createRTCClient() first');
   return client;
 }
 

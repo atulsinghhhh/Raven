@@ -5,30 +5,28 @@ import { createDefaultAudioAdapter, type NativeAudioAdapter } from './internal/n
 export type RavenAudioOutput = 'speaker' | 'earpiece' | 'headset' | 'bluetooth';
 
 /**
- * Call audio routing — the mobile-only concern the web SDK has no
- * equivalent for.
+ * Call audio routing. A mobile-only concern with no web equivalent.
  *
  * On a phone, "which speaker is this coming out of" is a real question
- * with a wrong answer: a video call that plays through the earpiece at
- * arm's length sounds broken, and one that plays through the loudspeaker
- * when the user has AirPods in is worse. The OS also reroutes underneath
- * you when a headset is plugged in, a call comes through, or Bluetooth
- * connects.
+ * with a wrong answer. A video call playing through the earpiece at arm's
+ * length sounds broken, and one blaring out of the loudspeaker while the
+ * user has AirPods in is worse. The OS also reroutes underneath you when a
+ * headset gets plugged in, a call comes through, or Bluetooth connects.
  *
- * `Raven` starts and stops the audio session around a room automatically,
- * so the default behaviour is correct without any of this being called.
- * This module is for the cases where the app wants to override it — a
- * speakerphone button being the obvious one.
+ * `Raven` starts and stops the audio session around a room for you, so the
+ * default behaviour is right without any of this being called. This module
+ * is for when the app wants to override it, a speakerphone button being
+ * the obvious case.
  *
- * # What backs this
+ * # What's actually behind this
  *
- * Raven no longer bundles an audio-session implementation. The default
- * adapter uses `react-native-incall-manager`, an optional peer
- * dependency; `setAdapter()` replaces it. Two methods —
- * `getOutputs()` and `showRoutePicker()` — have no upstream
- * implementation and report `NOT_SUPPORTED` unless an adapter provides
- * them. See docs/sdk/react-native.md#audio-routing for why, and for what
- * to do if you need them.
+ * Raven doesn't bundle an audio-session implementation any more. The
+ * default adapter goes through `react-native-incall-manager`, an optional
+ * peer dependency, and `setAdapter()` swaps it out. Two methods,
+ * `getOutputs()` and `showRoutePicker()`, have no upstream implementation
+ * at all and report `NOT_SUPPORTED` unless an adapter supplies them.
+ * docs/sdk/react-native.md#audio-routing covers why, and what to do if you
+ * need them.
  */
 
 let adapter: NativeAudioAdapter | undefined;
@@ -43,12 +41,11 @@ function resolveAdapter(): NativeAudioAdapter | undefined {
 }
 
 /**
- * Requires an adapter, with an error that says which of the two problems
- * this is.
+ * Demands an adapter, and says which of the two problems you've got.
  *
- * "You have not installed the native module" and "this platform cannot do
- * that" need different fixes, and collapsing them into one message is how
- * a developer spends an afternoon on the wrong one.
+ * "You haven't installed the native module" and "this platform can't do
+ * that" want different fixes. Collapse them into one message and somebody
+ * spends an afternoon chasing the wrong one.
  */
 function requireAdapter(): NativeAudioAdapter {
   const resolved = resolveAdapter();
@@ -64,11 +61,11 @@ function requireAdapter(): NativeAudioAdapter {
 
 export const audio = {
   /**
-   * Replaces the audio-routing implementation.
+   * Swaps out the audio-routing implementation.
    *
    * For apps that already hold an audio session, or that need the two
-   * capabilities the default adapter lacks. Call it before joining a
-   * room.
+   * capabilities the default adapter doesn't have. Call it before you join
+   * a room.
    */
   setAdapter(custom: NativeAudioAdapter | undefined): void {
     adapter = custom;
@@ -76,28 +73,28 @@ export const audio = {
   },
 
   /**
-   * Routes call audio to the loudspeaker, or back to the default route
-   * (earpiece, or whatever is plugged in).
+   * Sends call audio to the loudspeaker, or back to the default route:
+   * earpiece, or whatever happens to be plugged in.
    *
-   * Prefer this over `setOutput()` for a speakerphone toggle: passing
-   * `false` returns control to the platform, which respects a connected
-   * headset or Bluetooth device instead of overriding the user's
-   * obviously-intended output.
+   * Use this rather than `setOutput()` for a speakerphone toggle. Passing
+   * `false` hands control back to the platform, which then respects a
+   * connected headset or Bluetooth device instead of overriding the output
+   * the user obviously wanted.
    */
   async setSpeakerphone(enabled: boolean): Promise<void> {
-    // `null`, not `false`, when turning it off — `false` on some
-    // platforms means "force the earpiece", which would override a
-    // connected headset. `null` hands the decision back.
+    // `null` when turning it off, not `false`. On some platforms `false`
+    // means "force the earpiece", which would override a connected
+    // headset. `null` hands the decision back.
     await requireAdapter().setForceSpeakerphone(enabled ? true : null);
   },
 
   /**
    * Picks a specific output.
    *
-   * Android only in the default adapter. iOS gives an app no way to force
-   * a route other than the speaker — the OS owns that decision — so
-   * anything but `'speaker'` reports `NOT_SUPPORTED` there rather than
-   * silently doing nothing. Use `setSpeakerphone()` on iOS, or
+   * Android only, in the default adapter. iOS gives an app no way to force
+   * any route but the speaker; the OS owns that decision. So on iOS
+   * anything other than `'speaker'` reports `NOT_SUPPORTED` instead of
+   * quietly doing nothing. Use `setSpeakerphone()` there, or
    * `showRoutePicker()` with an adapter that implements it.
    */
   async setOutput(output: RavenAudioOutput): Promise<void> {
@@ -108,8 +105,8 @@ export const audio = {
       return;
     }
 
-    // Falling back to the speaker toggle covers the two cases that can be
-    // expressed everywhere, and refuses the rest instead of pretending.
+    // Falling back to the speaker toggle covers the two cases every
+    // platform can express, and refuses the rest instead of pretending.
     if (output === 'speaker') {
       await resolved.setForceSpeakerphone(true);
       return;
@@ -127,13 +124,13 @@ export const audio = {
   },
 
   /**
-   * What's currently available to route to. The list changes as headsets
-   * and Bluetooth devices come and go, so read it when you render the
-   * picker rather than caching it.
+   * What's available to route to right now. The list shifts as headsets and
+   * Bluetooth devices come and go, so read it when you render the picker.
+   * Don't cache it.
    *
-   * Reports `NOT_SUPPORTED` unless the adapter can enumerate — the
-   * default one cannot. Returning a guessed list would put outputs in a
-   * picker that selecting does nothing to.
+   * Reports `NOT_SUPPORTED` unless the adapter can enumerate, and the
+   * default one can't. Handing back a guessed list would fill a picker with
+   * outputs that do nothing when selected.
    */
   async getOutputs(): Promise<RavenAudioOutput[]> {
     const resolved = requireAdapter();
@@ -148,11 +145,11 @@ export const audio = {
   },
 
   /**
-   * Shows the system route picker (iOS's AirPlay-style sheet).
+   * Shows the system route picker, iOS's AirPlay-style sheet.
    *
-   * Reports `NOT_SUPPORTED` unless the adapter implements it; no upstream
-   * React Native module does. It is preferable to a custom list on iOS
-   * when available, because it is the control users already recognise.
+   * Reports `NOT_SUPPORTED` unless the adapter implements it, and no
+   * upstream React Native module does. Where you can get it, it beats a
+   * custom list on iOS: it's the control users already recognise.
    */
   async showRoutePicker(): Promise<void> {
     const resolved = requireAdapter();
@@ -168,12 +165,12 @@ export const audio = {
 
   /**
    * @internal Called by `Raven` when a room is joined. Exposed for apps
-   * that manage the session themselves — for example one already holding
-   * an audio session for its own playback.
+   * that manage the session themselves, say one already holding an audio
+   * session for its own playback.
    *
-   * Best-effort: a missing audio module must not stop a call from
-   * connecting. Video still works, and audio routing falls back to
-   * whatever the OS chose — degraded, not broken.
+   * Best-effort. A missing audio module mustn't stop a call connecting.
+   * Video still works and audio routing falls back to whatever the OS
+   * picked: degraded, not broken.
    */
   async start(): Promise<void> {
     await resolveAdapter()?.startSession();
@@ -184,7 +181,7 @@ export const audio = {
     await resolveAdapter()?.stopSession();
   },
 
-  /** @internal test-only — forces the default adapter to be looked up again. */
+  /** @internal Test-only. Forces the default adapter to be looked up again. */
   __resetForTests(): void {
     adapter = undefined;
     adapterResolved = false;

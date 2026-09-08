@@ -3,8 +3,7 @@
  *
  * Records `registerGlobals` calls so the bootstrap suite can assert the
  * once-only behaviour, and exposes `RTCView` as a string element name,
- * which is how React Native's own test setup represents a native
- * component.
+ * which is how React Native's own test setup represents a native component.
  */
 export const __calls = {
   registerGlobals: 0,

@@ -170,7 +170,7 @@ describe('<RavenLiveStream>', () => {
     unmount();
 
     // Teardown goes through stream.leave(), never the store's own
-    // disconnect — calling both would disconnect the socket twice.
+    // disconnect. Do both and the socket gets disconnected twice.
     expect(chat.disconnect).not.toHaveBeenCalled();
   });
 

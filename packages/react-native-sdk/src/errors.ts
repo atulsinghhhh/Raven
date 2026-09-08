@@ -1,46 +1,47 @@
 import { RTCError, type RTCErrorCode } from '@corvidhq/rtc';
 
 /**
- * Mobile adds exactly one failure mode the web SDK doesn't have: an
+ * Mobile brings exactly one failure mode the web SDK doesn't have: an
  * operating system that can refuse camera or microphone access outright,
  * permanently, with no way for the app to ask again.
  *
- * Everything else — expired tokens, failed connections, missing rooms,
- * unavailable devices — already has a code in `@corvidhq/rtc`, and reusing
- * those is the point. A developer moving from web to mobile should be
- * catching the same `RTCError` with the same `code`, not learning a
- * parallel error vocabulary (Phase 13 spec §14).
+ * Everything else already has a code in `@corvidhq/rtc`: expired tokens,
+ * failed connections, missing rooms, unavailable devices. Reusing those is
+ * the entire point. Someone moving from web to mobile should be catching
+ * the same `RTCError` with the same `code`, not learning a second error
+ * vocabulary (Phase 13 spec §14).
  *
- * So this file adds a subclass with extra mobile-specific context, not a
- * new hierarchy: `RavenPermissionError` *is* an `RTCError`, and existing
- * `catch (e) { if (isRTCError(e)) ... }` code keeps working unchanged.
+ * So what this file adds is a subclass carrying extra mobile-specific
+ * context, not a new hierarchy. `RavenPermissionError` *is* an `RTCError`,
+ * and existing `catch (e) { if (isRTCError(e)) ... }` code carries on
+ * working untouched.
  */
 export type RavenPermissionKind = 'camera' | 'microphone';
 
 /** What the OS said, normalised across iOS and Android. */
 export type RavenPermissionStatus =
   | 'granted'
-  /** Refused this time. Asking again may still prompt. */
+  /** Refused this time round. Asking again might still prompt. */
   | 'denied'
   /**
-   * Refused permanently — Android's "don't ask again", or iOS after any
-   * refusal. Prompting again does nothing; the user has to change it in
-   * Settings, and your UI needs to say so.
+   * Refused permanently. Android's "don't ask again", or iOS after any
+   * refusal at all. Prompting again does nothing; the user has to change it
+   * in Settings, and your UI had better say so.
    */
   | 'blocked'
-  /** Not determined yet — no prompt has been shown. */
+  /** Not determined yet. No prompt has been shown. */
   | 'undetermined'
-  /** The platform doesn't gate this permission (or we can't tell). */
+  /** The platform doesn't gate this permission, or we can't tell. */
   | 'unavailable';
 
 /**
- * Thrown when the OS denies camera or microphone access.
+ * Thrown when the OS refuses camera or microphone access.
  *
- * Carries `blocked` because the correct UI differs sharply: a plain
- * denial can be retried with another prompt, while a blocked one must
- * send the user to Settings. Silently failing here — the thing §3 of the
- * spec explicitly forbids — is how apps end up showing a black rectangle
- * with no explanation.
+ * Carries `blocked` because the right UI is completely different either
+ * way: a plain denial can be retried with another prompt, a blocked one has
+ * to send the user to Settings. Failing silently here, which §3 of the spec
+ * explicitly forbids, is how apps end up showing a black rectangle and no
+ * explanation.
  */
 export class RavenPermissionError extends RTCError {
   readonly permission: RavenPermissionKind;
@@ -50,7 +51,7 @@ export class RavenPermissionError extends RTCError {
     super(
       permission === 'camera' ? 'CAMERA_PERMISSION_DENIED' : 'MICROPHONE_PERMISSION_DENIED',
       status === 'blocked'
-        ? `${permission} access is blocked. The user must enable it in the system settings — prompting again will not show a dialog.`
+        ? `${permission} access is blocked. The user must enable it in the system settings; prompting again will not show a dialog.`
         : `${permission} access was denied.`,
       cause,
     );
@@ -59,7 +60,7 @@ export class RavenPermissionError extends RTCError {
     this.status = status;
   }
 
-  /** True when re-prompting is pointless and only Settings will help. */
+  /** True when re-prompting is pointless and only Settings will do. */
   get requiresSettings(): boolean {
     return this.status === 'blocked';
   }
@@ -70,13 +71,13 @@ export function isRavenPermissionError(value: unknown): value is RavenPermission
 }
 
 /**
- * Maps a `getUserMedia` rejection to a permission error where that's what
- * it really was.
+ * Turns a `getUserMedia` rejection into a permission error, where that's
+ * what it actually was.
  *
- * iOS gives no permissions API to React Native without a native module,
- * so a denied camera surfaces only as a `getUserMedia` failure. Reading
- * the DOMException name is how we turn that into something a developer
- * can branch on.
+ * iOS gives React Native no permissions API without a native module, so a
+ * denied camera only ever surfaces as a `getUserMedia` failure. Reading the
+ * DOMException name is how we get that back into something a developer can
+ * branch on.
  */
 export function toPermissionError(
   permission: RavenPermissionKind,
@@ -94,6 +95,6 @@ export function toPermissionError(
 }
 
 // Re-exported so a mobile app can catch everything Raven throws without
-// also importing @corvidhq/rtc directly.
+// having to import @corvidhq/rtc as well.
 export { RTCError, isRTCError } from '@corvidhq/rtc';
 export type { RTCErrorCode };

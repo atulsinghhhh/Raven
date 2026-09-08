@@ -32,8 +32,8 @@ describe('LifecycleWatcher', () => {
     __emitAppState('background');
     __emitAppState('background');
 
-    // Android emits duplicate change events in some situations; acting on
-    // each one would tear down and rebuild media repeatedly.
+    // Android emits duplicate change events in some situations. Act on
+    // each one and you tear down and rebuild media over and over.
     expect(events).toEqual(['background']);
   });
 
@@ -46,9 +46,9 @@ describe('LifecycleWatcher', () => {
     });
 
     watcher.start();
-    // Raised by a phone call or the app switcher — the app is still
-    // running, so treating it as a background would end calls whenever
-    // someone glanced at Control Centre.
+    // Raised by a phone call or the app switcher. The app is still running,
+    // so treating it as a background would end calls every time someone
+    // glanced at Control Centre.
     __emitAppState('inactive');
 
     expect(events).toEqual(['inactive']);
@@ -76,8 +76,8 @@ describe('LifecycleWatcher', () => {
     watcher.start();
     watcher.start();
 
-    // A second listener would double every callback — and leak, because
-    // stop() only removes one subscription.
+    // A second listener doubles every callback, and leaks, because stop()
+    // only removes one subscription.
     expect(__appState.listeners.size).toBe(1);
     watcher.stop();
   });
@@ -85,7 +85,7 @@ describe('LifecycleWatcher', () => {
 
 describe('NetworkWatcher', () => {
   it('degrades to a no-op when NetInfo is not installed', () => {
-    // NetInfo is an optional peer dependency. Not having it should cost
+    // NetInfo is an optional peer dependency. Going without should cost you
     // faster reconnects, not a crash at construction.
     const watcher = new NetworkWatcher(() => {});
     expect(() => watcher.start()).not.toThrow();

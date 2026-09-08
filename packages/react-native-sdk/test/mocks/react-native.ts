@@ -1,10 +1,10 @@
 /**
  * Stand-in for react-native's JS surface.
  *
- * The real package can't be imported under plain Jest — it ships Flow
- * types and expects Metro. Only the pieces this SDK actually touches are
- * modelled here, and `__setPlatform` lets a test exercise both platforms
- * in one run, which is the whole point of testing the permissions layer.
+ * The real package won't import under plain Jest; it ships Flow types and
+ * expects Metro. Only the bits this SDK actually touches are modelled here.
+ * `__setPlatform` lets one test run exercise both platforms, which is the
+ * entire point of testing the permissions layer.
  */
 export const __platformState = { OS: 'ios' as 'ios' | 'android' | 'web' };
 
@@ -56,7 +56,7 @@ export const AppState = {
   },
 };
 
-/** Drives an OS lifecycle transition in a test. */
+/** Fakes an OS lifecycle transition in a test. */
 export function __emitAppState(next: string): void {
   __appState.current = next;
   for (const listener of Array.from(__appState.listeners)) listener(next);

@@ -5,25 +5,25 @@ export type RavenAppState = 'active' | 'background' | 'inactive';
 export interface LifecycleHandlers {
   onForeground(): void;
   onBackground(): void;
-  /** iOS only — a transient state during a phone call, Control Centre, or the app switcher. */
+  /** iOS only. A transient state during a phone call, Control Centre, or the app switcher. */
   onInactive?(): void;
 }
 
 /**
- * Watches the OS app lifecycle so the SDK can react to a call being
+ * Watches the OS app lifecycle so the SDK can respond to a call being
  * backgrounded.
  *
- * What this deliberately does *not* do is tear the connection down when
- * the app goes to the background. On both platforms a backgrounded app
- * with an active audio session keeps running, and dropping the socket
- * would turn "switched to Messages for four seconds" into "left the
- * meeting". Video capture is what actually stops — iOS suspends the
- * camera, and Android does the same without a foreground service — so the
- * useful thing to do on return is re-check state, not reconnect.
+ * What it very deliberately does *not* do is tear the connection down when
+ * the app goes into the background. On both platforms a backgrounded app
+ * with a live audio session keeps running, and dropping the socket turns
+ * "switched to Messages for four seconds" into "left the meeting". Video
+ * capture is the thing that actually stops: iOS suspends the camera, and
+ * Android does the same without a foreground service. So the useful move
+ * on return is re-checking state, not reconnecting.
  *
- * Anything stronger than that belongs to the app, not the SDK: whether a
+ * Anything more aggressive belongs to the app, not the SDK. Whether a
  * backgrounded user should stay in the room is a product decision, and
- * making it here would take it away from the developer.
+ * deciding it here takes it away from the developer.
  */
 export class LifecycleWatcher {
   private subscription?: NativeEventSubscription;
@@ -70,23 +70,23 @@ export class LifecycleWatcher {
 
 function normalize(status: AppStateStatus): RavenAppState {
   if (status === 'active') return 'active';
-  // iOS reports 'inactive' during a call or the app switcher; Android
-  // never does. Everything else ('extension', 'unknown') is treated as
-  // backgrounded, which is the conservative reading.
+  // iOS reports 'inactive' during a call or the app switcher. Android never
+  // does. Everything else ('extension', 'unknown') counts as backgrounded,
+  // which is the conservative reading.
   if (status === 'inactive') return 'inactive';
   return 'background';
 }
 
 /**
- * Watches connectivity so a Wi-Fi → cellular handover can be turned into
- * a deliberate reconnect rather than a slow timeout.
+ * Watches connectivity, so a Wi-Fi → cellular handover becomes a
+ * deliberate reconnect instead of a slow timeout.
  *
  * `@react-native-community/netinfo` is an *optional* peer dependency. It's
- * the standard way to observe connectivity in React Native, but it is
- * another native module to link, and Raven works without it — ICE
- * eventually notices a dead path on its own. Having it just makes
- * recovery faster, so this resolves it lazily and degrades to a no-op
- * when it isn't installed.
+ * the standard way to observe connectivity in React Native, but it's also
+ * another native module to link, and Raven works fine without it: ICE
+ * notices a dead path on its own eventually. Having it just makes recovery
+ * quicker. So this resolves it lazily and falls back to a no-op when it
+ * isn't installed.
  */
 export class NetworkWatcher {
   private unsubscribe?: () => void;
@@ -109,8 +109,8 @@ export class NetworkWatcher {
       const regained = reachable && !this.lastReachable;
       this.lastReachable = reachable;
 
-      // Only fire on the transition back to connectivity. Firing on every
-      // NetInfo event would reconnect on a signal-strength change.
+      // Only fire on the transition back to connectivity. Fire on every
+      // NetInfo event and you'd reconnect on a signal-strength change.
       if (regained) {
         this.onReconnected();
       }
@@ -122,7 +122,7 @@ export class NetworkWatcher {
     this.unsubscribe = undefined;
   }
 
-  /** True when connectivity observation is actually available. */
+  /** True when we can actually observe connectivity. */
   get isObserving(): boolean {
     return this.unsubscribe !== undefined;
   }
@@ -134,7 +134,7 @@ interface NetInfoLike {
 
 function loadNetInfo(): NetInfoLike | undefined {
   try {
-    // Resolved at runtime on purpose: a static import would make an
+    // Resolved at runtime on purpose. A static import would make an
     // optional peer dependency mandatory at bundle time.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require('@react-native-community/netinfo');

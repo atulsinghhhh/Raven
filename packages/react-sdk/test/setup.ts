@@ -1,5 +1,5 @@
-// jsdom doesn't implement TextEncoder/TextDecoder or MediaStream — same
-// polyfill packages/sdk's own tests use, needed transitively here too.
+// jsdom has neither TextEncoder/TextDecoder nor MediaStream. Same polyfill
+// packages/sdk's own tests use; we need it transitively here too.
 import { TextDecoder, TextEncoder } from 'util';
 
 if (typeof globalThis.TextEncoder === 'undefined') {

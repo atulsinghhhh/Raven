@@ -5,15 +5,15 @@ import { __calls, __resetCalls } from './mocks/react-native-incall-manager';
 import { __setPlatform } from './mocks/react-native';
 
 /**
- * Audio routing is the one part of the mobile SDK that could not simply
- * follow the web SDK off LiveKit: `AudioSession` had no upstream
- * equivalent. What replaced it is an adapter interface with a default
- * implementation over `react-native-incall-manager`, and two capabilities
- * that genuinely do not survive the move.
+ * Audio routing is the one part of the mobile SDK that couldn't just follow
+ * the web SDK off LiveKit. `AudioSession` had no upstream equivalent. What
+ * took its place is an adapter interface with a default implementation over
+ * `react-native-incall-manager`, plus two capabilities that genuinely
+ * don't survive the move.
  *
- * These tests exist mostly to pin down that honesty — that the two
- * unsupported methods say so instead of silently doing nothing, which is
- * the failure mode that costs a developer an afternoon.
+ * These tests mostly exist to pin down that honesty: the two unsupported
+ * methods say so out loud, not quietly doing nothing, which is the
+ * failure mode that costs somebody an afternoon.
  */
 describe('audio', () => {
   beforeEach(() => {
@@ -37,8 +37,8 @@ describe('audio', () => {
 
     it('does not fail a call when no audio module is installed', async () => {
       // Video still works and routing falls back to whatever the OS
-      // chose — degraded, not broken. Throwing here would stop a call
-      // from connecting over a missing optional dependency.
+      // picked: degraded, not broken. Throw here and a missing optional
+      // dependency stops a call connecting.
       audio.setAdapter(undefined);
 
       await expect(audio.start()).resolves.toBeUndefined();
@@ -53,9 +53,9 @@ describe('audio', () => {
     });
 
     it('hands the route back to the platform when turned off', async () => {
-      // `null`, not `false`: on some platforms `false` means "force the
-      // earpiece", which would override a connected headset — the exact
-      // thing a speakerphone toggle must not do.
+      // `null`, not `false`. On some platforms `false` means "force the
+      // earpiece", overriding a connected headset. Which is precisely what
+      // a speakerphone toggle must never do.
       await audio.setSpeakerphone(false);
       expect(__calls.forceSpeakerphone).toEqual([null]);
     });
@@ -82,8 +82,8 @@ describe('audio', () => {
     });
 
     it('falls back to the speaker toggle where route selection is unavailable', async () => {
-      // iOS gives an app no way to force an arbitrary route, so the
-      // default adapter advertises no selectOutput there.
+      // iOS gives an app no way to force an arbitrary route, so the default
+      // adapter advertises no selectOutput there at all.
       __setPlatform('ios');
       audio.__resetForTests();
 
@@ -96,8 +96,8 @@ describe('audio', () => {
     });
 
     it('refuses a route it cannot honour rather than doing nothing', async () => {
-      // Reporting success while leaving audio somewhere the user did not
-      // ask for is worse than an error.
+      // Reporting success while leaving audio somewhere nobody asked for is
+      // worse than an error.
       __setPlatform('ios');
       audio.__resetForTests();
 
@@ -110,8 +110,8 @@ describe('audio', () => {
 
   describe('capabilities the default adapter does not have', () => {
     it('reports getOutputs as unsupported instead of guessing a list', async () => {
-      // A guessed list would put outputs in a picker that selecting does
-      // nothing to.
+      // A guessed list fills a picker with outputs that do nothing when
+      // you select them.
       await expect(audio.getOutputs()).rejects.toMatchObject({ code: 'NOT_SUPPORTED' });
     });
 
@@ -120,8 +120,8 @@ describe('audio', () => {
     });
 
     it('names the fix in the error message', async () => {
-      // "Not supported" on its own is not actionable; the message has to
-      // say what to do about it.
+      // "Not supported" on its own is useless. The message has to say what
+      // to do about it.
       try {
         await audio.getOutputs();
         throw new Error('expected a rejection');
@@ -165,8 +165,8 @@ describe('audio', () => {
     });
 
     it('distinguishes "no module installed" from "platform cannot do this"', async () => {
-      // Two problems with different fixes; one message for both is how a
-      // developer spends an afternoon on the wrong one.
+      // Two problems, two different fixes. One message for both is how
+      // somebody spends an afternoon on the wrong one.
       audio.setAdapter(undefined);
 
       await expect(audio.setSpeakerphone(true)).rejects.toMatchObject({

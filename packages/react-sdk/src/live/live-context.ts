@@ -9,9 +9,9 @@ export interface RavenLiveStreamContextValue {
   status: RavenLiveStreamStatus;
   streamId: string;
   role: LiveStreamRole;
-  /** `true` for HOST and CO_HOST — never something the SDK infers, only ever what the credentials said. */
+  /** `true` for HOST and CO_HOST. The SDK never infers this; it's only ever what the credentials said. */
   isHost: boolean;
-  /** The underlying `LiveStream`, once joined — for anything the hooks below don't cover. */
+  /** The underlying `LiveStream`, once joined, for whatever the hooks below don't cover. */
   stream?: LiveStream;
   error?: unknown;
   leave(): Promise<void>;
@@ -23,7 +23,7 @@ export const RavenLiveStreamContext = createContext<RavenLiveStreamContextValue 
 export function useRavenLiveStreamContext(): RavenLiveStreamContextValue {
   const value = useContext(RavenLiveStreamContext);
   if (!value) {
-    throw new Error('@corvidhq/react Live Streaming hooks must be used inside a <RavenLiveStream> — see docs/sdk/react.md#live-streaming.');
+    throw new Error('@corvidhq/react Live Streaming hooks must be used inside a <RavenLiveStream>; see docs/sdk/react.md#live-streaming.');
   }
   return value;
 }

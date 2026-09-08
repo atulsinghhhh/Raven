@@ -7,7 +7,7 @@ import type { EffectsError, EffectsPipeline, FilterConfig, Preset, ColorOpParams
 import { useRavenStore } from './context';
 import type { RavenConnectionState, RavenSnapshot } from './store';
 
-/** The full snapshot, plus `join`/`leave` — use the narrower hooks below where you can, to avoid rerendering on unrelated changes. */
+/** The full snapshot plus `join` and `leave`. Use the narrower hooks below where you can, and avoid re-rendering on unrelated changes. */
 export interface UseRavenResult extends RavenSnapshot {
   join(roomId: string): Promise<void>;
   leave(): Promise<void>;
@@ -27,7 +27,7 @@ export function useRoom(): Room | undefined {
   return useSyncExternalStore(store.subscribe, () => store.getSnapshot().room);
 }
 
-/** @internal exposed mainly so `examples/` and advanced integrations can reach the raw client before a room exists. */
+/** @internal Exposed mostly so `examples/` and advanced integrations can reach the raw client before a room exists. */
 export function useRavenClient(): RTCClient | undefined {
   const store = useRavenStore();
   return useSyncExternalStore(store.subscribe, () => store.getSnapshot().client);
@@ -48,7 +48,7 @@ export function useRemoteParticipants() {
   return useSyncExternalStore(store.subscribe, () => store.getSnapshot().remoteParticipants);
 }
 
-/** Local participant (if joined) followed by every remote participant — the full roster in one call. */
+/** Local participant, if joined, then every remote one. The full roster in one call. */
 export function useParticipants(): (LocalParticipant | RemoteParticipant)[] {
   const local = useLocalParticipant();
   const remote = useRemoteParticipants();
@@ -115,7 +115,7 @@ export function useMicrophone(): LocalMediaControl {
 }
 
 export interface UseCameraEffectsResult {
-  /** The underlying Raven Effects pipeline — passed to `raven.effects.presets.*`/`filters.*` for advanced use. */
+  /** The underlying Raven Effects pipeline. Pass it to `raven.effects.presets.*` or `filters.*` for anything advanced. */
   pipeline: EffectsPipeline;
   effects: readonly EffectInstance[];
   isEnabled: boolean;
@@ -133,12 +133,14 @@ export interface UseCameraEffectsResult {
 }
 
 /**
- * Raven Effects for `@corvidhq/react` — consumes the same `EffectsPipeline`
- * and `LocalTrack.attachEffects()` from `@corvidhq/effects`/`@corvidhq/rtc`
- * rather than a separate React-specific engine. Creates one pipeline per
- * hook instance and keeps it attached to whatever camera track `useCamera()`
- * currently reports, across camera enable/disable/device-switch — the
- * pipeline itself is what you pass to `raven.effects.presets`/`filters`.
+ * Raven Effects for `@corvidhq/react`.
+ *
+ * Consumes the same `EffectsPipeline` and `LocalTrack.attachEffects()` from
+ * `@corvidhq/effects` and `@corvidhq/rtc`, rather than a separate
+ * React-specific engine. Creates one pipeline per hook instance and keeps
+ * it attached to whatever camera track `useCamera()` currently reports,
+ * through enables, disables and device switches. The pipeline itself is
+ * what you hand to `raven.effects.presets` and `filters`.
  */
 export function useCameraEffects(): UseCameraEffectsResult {
   const camera = useCamera();
@@ -213,10 +215,10 @@ export function useCameraEffects(): UseCameraEffectsResult {
       disable: pipeline.disable.bind(pipeline),
       clear: pipeline.clear.bind(pipeline),
     }),
-    // `version` is the load-bearing dep: every pipeline event (add/remove/
-    // update/reorder/enable/disable/clear) bumps it via forceRender so this
-    // memo recomputes and re-reads pipeline.effects/isEnabled fresh — those
-    // are live getters, not stable snapshots.
+    // `version` is the load-bearing dep. Every pipeline event bumps it via
+    // forceRender (add, remove, update, reorder, enable, disable, clear), so
+    // this memo recomputes and re-reads pipeline.effects and isEnabled
+    // fresh. Those are live getters, not stable snapshots.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pipeline, isAttached, error, version],
   );

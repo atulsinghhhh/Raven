@@ -11,8 +11,8 @@ export interface RavenChatProps extends ChatClientConfig {
   /** How many messages of history to load on connect. Defaults to 50. */
   historyLimit?: number;
   /**
-   * Defaults to `true` — connects on mount and disconnects on unmount.
-   * Set `false` to drive `connect()`/`disconnect()` yourself via
+   * Defaults to `true`: connects on mount, disconnects on unmount. Set
+   * `false` to drive `connect()` and `disconnect()` yourself through
    * `useChat()`.
    */
   autoConnect?: boolean;
@@ -25,11 +25,11 @@ export interface RavenChatProps extends ChatClientConfig {
 /**
  * The provider every chat hook needs.
  *
- * Mirrors `<RavenRoom>` from the RTC side — same lifecycle, same
- * autoConnect/fallback/onError props — so a developer already using
+ * Mirrors `<RavenRoom>` from the RTC side: same lifecycle, same
+ * autoConnect, fallback and onError props. Anyone already using
  * `@corvidhq/react` for video has nothing new to learn (spec §43).
  *
- * The two nest happily:
+ * The two nest quite happily:
  *
  * ```tsx
  * <RavenRoom token={rtc.token} endpoint={rtc.endpoint} room={rtc.roomName}>
@@ -40,7 +40,7 @@ export interface RavenChatProps extends ChatClientConfig {
  * </RavenRoom>
  * ```
  *
- * Client-only — never render this from a Server Component.
+ * Client-only. Never render this from a Server Component.
  */
 export function RavenChat({
   room,
@@ -60,9 +60,9 @@ export function RavenChat({
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
   // Token and room are read once at mount. A chat token is minted for one
-  // user and one set of conversations, so swapping it mid-flight would
-  // change who this component *is*. Remount with <RavenChat key={token}>
-  // to switch — the same one-shot model <RavenRoom> uses.
+  // user and one set of conversations, so swapping it mid-flight changes
+  // who this component *is*. To switch, remount with
+  // <RavenChat key={token}>. Same one-shot model <RavenRoom> uses.
   useEffect(() => {
     if (!autoConnect) return undefined;
 

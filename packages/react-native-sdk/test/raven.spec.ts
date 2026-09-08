@@ -6,11 +6,11 @@ import { __appState, __emitAppState, PermissionsAndroid, __setPlatform } from '.
 /**
  * Drives `Raven` against a fake `@corvidhq/rtc` client.
  *
- * The point is not to re-test RTC — that's covered by `@corvidhq/rtc`'s own
- * 102 tests, and re-testing it here would just assert that the mock
- * works. What matters is the mobile-only behaviour layered on top:
- * audio-session lifecycle, permission prompting, OS listener cleanup, and
- * not leaving resources behind when a join fails.
+ * Not here to re-test RTC. `@corvidhq/rtc` has its own 102 tests for that,
+ * and re-testing it here would only assert that the mock works. What
+ * matters is the mobile-only behaviour layered on top: audio-session
+ * lifecycle, permission prompting, OS listener cleanup, and not leaving
+ * resources lying about when a join fails.
  */
 const rtcState = {
   joinShouldFail: false,
@@ -51,9 +51,9 @@ jest.mock('@corvidhq/rtc', () => ({
 /**
  * A syntactically valid chat token.
  *
- * @corvidhq/chat decodes the payload on construction to learn the user id and
- * expiry, so a placeholder string is rejected — which is itself proof that
- * the chat handle builds a real client rather than a stub.
+ * @corvidhq/chat decodes the payload on construction to get the user id and
+ * expiry, so a placeholder string gets rejected. Which is itself proof the
+ * chat handle builds a real client rather than a stub.
  */
 function fakeChatToken(): string {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
@@ -82,8 +82,8 @@ function makeRaven(overrides: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => {
-  // Clears call history but keeps mock implementations — without this,
-  // "was not called" assertions see calls from earlier tests.
+  // Clears call history but keeps mock implementations. Without it, "was
+  // not called" assertions pick up calls from earlier tests.
   jest.clearAllMocks();
   resetWebrtcCalls();
     resetAudioCalls();
@@ -105,7 +105,7 @@ describe('construction', () => {
   it('registers the WebRTC globals so a developer never has to', () => {
     makeRaven();
     // Forgetting registerGlobals() is the single most common React Native
-    // WebRTC mistake. Doing it in the constructor removes the footgun.
+    // WebRTC mistake. Doing it in the constructor takes the footgun away.
     expect(webrtcCalls.registerGlobals).toBeGreaterThanOrEqual(1);
   });
 
@@ -120,8 +120,8 @@ describe('join', () => {
     const raven = makeRaven();
     await raven.join('room_123');
 
-    // Starting it afterwards means the first moments of remote audio play
-    // through the wrong route on iOS.
+    // Start it afterwards and the first moments of remote audio come out
+    // of the wrong route on iOS.
     expect(audioCalls.start).toBe(1);
     expect(rtcState.joins).toEqual(['room_123']);
   });
@@ -142,7 +142,7 @@ describe('join', () => {
       'android.permission.RECORD_AUDIO': 'never_ask_again',
     } as never);
 
-    // Declining to publish is not declining to attend — a user who can't
+    // Declining to publish isn't declining to attend. Someone who can't
     // share their camera can still watch and listen.
     await expect(makeRaven().join('room_123')).resolves.toBeDefined();
   });
@@ -152,8 +152,8 @@ describe('join', () => {
 
     await expect(makeRaven().join('room_123')).rejects.toThrow('connection refused');
 
-    // Leaving it running keeps the app's audio category overridden on
-    // iOS, which can duck other apps' audio indefinitely.
+    // Leave it running and the app's audio category stays overridden on
+    // iOS, ducking other apps' audio indefinitely.
     expect(audioCalls.start).toBe(1);
     expect(audioCalls.stop).toBe(1);
   });
@@ -179,8 +179,8 @@ describe('leave', () => {
     await raven.leave();
 
     expect(audioCalls.stop).toBe(1);
-    // A listener surviving the call is a leak that keeps the Raven
-    // instance — and the room it holds — alive forever (spec §19).
+    // A listener that outlives the call is a leak. It keeps the Raven
+    // instance alive forever, and the room it's holding with it (spec §19).
     expect(__appState.listeners.size).toBe(0);
     expect(raven.room).toBeUndefined();
   });
@@ -195,8 +195,8 @@ describe('leave', () => {
     await raven.leave();
 
     await expect(raven.leave()).resolves.toBeUndefined();
-    // The session was already stopped; stopping again would unbalance
-    // the native session refcount.
+    // The session was already stopped. Stopping it again unbalances the
+    // native session refcount.
     expect(audioCalls.stop).toBe(1);
   });
 });
@@ -222,9 +222,9 @@ describe('network recovery', () => {
     const raven = makeRaven({ onNetworkReconnect: () => reconnects.push(1) });
     await raven.join('room_123');
 
-    // Reaching into the private handler is deliberate: NetInfo isn't
-    // installed in this environment, so this is the only way to exercise
-    // the decision the watcher would otherwise trigger.
+    // Reaching into the private handler on purpose. NetInfo isn't
+    // installed here, so it's the only way to exercise the decision the
+    // watcher would otherwise trigger.
     const handle = raven as unknown as { handleNetworkRegained(): void };
 
     rtcState.connectionState = 'connected';
@@ -239,8 +239,8 @@ describe('network recovery', () => {
 
 describe('messaging-only', () => {
   it('constructs with a chat token and no RTC credentials', () => {
-    // The whole point: a messaging app should not have to mint a
-    // meaningless RTC token just to build this object.
+    // The whole point. A messaging app shouldn't have to mint a pointless
+    // RTC token just to build this object.
     expect(() => makeRaven({ token: undefined, endpoint: undefined, chatToken: fakeChatToken(), chatApiUrl: 'https://api.test' })).not.toThrow();
   });
 
@@ -264,8 +264,8 @@ describe('messaging-only', () => {
 
     await raven.join('room_123').catch(() => undefined);
 
-    // A messaging-only app showing a camera dialog before failing would
-    // be worse than the failure itself.
+    // A messaging-only app flashing a camera dialog on its way to failing
+    // would be worse than the failure.
     expect(PermissionsAndroid.requestMultiple).not.toHaveBeenCalled();
     expect(audioCalls.start).toBe(0);
   });
@@ -280,7 +280,7 @@ describe('messaging-only', () => {
 
 describe('credential validation', () => {
   it('rejects a token without an endpoint', () => {
-    // Failing here is far kinder than failing at join() with a
+    // Failing here is a lot kinder than failing at join() with a
     // connection error that points at the network.
     expect(() => makeRaven({ endpoint: undefined })).toThrow(/both `token` and `endpoint`/);
   });

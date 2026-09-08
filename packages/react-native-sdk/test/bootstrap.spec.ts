@@ -17,9 +17,9 @@ describe('bootstrapRavenNative', () => {
     bootstrapRavenNative();
     bootstrapRavenNative();
 
-    // Registering twice replaces globals that live objects already hold
-    // references to — the kind of fault that only appears on a device,
-    // as tracks that silently stop working after a reload.
+    // Register twice and you replace globals that live objects are already
+    // holding references to. The kind of fault that only shows up on a
+    // device, as tracks that quietly stop working after a reload.
     expect(__calls.registerGlobals).toBe(1);
   });
 });
@@ -27,8 +27,8 @@ describe('bootstrapRavenNative', () => {
 describe('base64 polyfill', () => {
   // `lib.dom` declares atob/btoa as required on globalThis, so an
   // intersection can't make them optional and `delete` won't typecheck.
-  // Removing them is exactly what these tests need to simulate a runtime
-  // that lacks them, so the indexed view is the honest way to say it.
+  // Removing them is exactly what these tests need to fake a runtime
+  // without them, and the indexed view is the honest way to say so.
   const globalRef = globalThis as unknown as {
     atob?: (input: string) => string;
     btoa?: (input: string) => string;
@@ -72,7 +72,7 @@ describe('base64 polyfill', () => {
     delete globalRef.atob;
     bootstrapRavenNative();
 
-    // A JWT payload segment arrives with its '=' padding stripped.
+    // A JWT payload segment turns up with its '=' padding stripped.
     expect(globalRef.atob!('YWJjZA')).toBe('abcd');
     expect(globalRef.atob!('YWJj')).toBe('abc');
   });
@@ -83,8 +83,8 @@ describe('base64 polyfill', () => {
 
     bootstrapRavenNative();
 
-    // Replacing Hermes' native implementation would be slower and could
-    // differ in edge cases for no benefit.
+    // Replacing Hermes' native implementation would be slower and might
+    // differ in the edge cases, all for nothing.
     expect(globalRef.atob).toBe(existing);
   });
 

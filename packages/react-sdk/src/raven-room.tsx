@@ -9,9 +9,9 @@ export interface RavenRoomProps extends RTCClientConfig {
   /** The room to join. Required whenever `autoConnect` (the default) is true. */
   room: string;
   /**
-   * Defaults to `true` — joins automatically on mount and leaves on
-   * unmount. Set `false` to drive `join()`/`leave()` yourself via
-   * `useRaven()` (e.g. to join only after the user clicks a button).
+   * Defaults to `true`: joins on mount, leaves on unmount. Set `false` to
+   * drive `join()` and `leave()` yourself through `useRaven()`, say to join
+   * only once the user clicks something.
    */
   autoConnect?: boolean;
   /** Rendered instead of `children` while the initial join is in flight, or if it fails. */
@@ -21,13 +21,14 @@ export interface RavenRoomProps extends RTCClientConfig {
 }
 
 /**
- * The provider every `@corvidhq/react` hook and component needs — also
+ * The provider every `@corvidhq/react` hook and component needs. Also
  * usable directly as the "RavenRoom" primitive from the Phase 11 spec.
- * Owns exactly one `RTCClient`/`Room` for its lifetime; unmounting it
- * always calls `leave()`, so a video call UI can be torn down just by
- * unmounting this component.
  *
- * Client-only — never render this from a Server Component (see
+ * Owns exactly one `RTCClient` and `Room` for its whole lifetime, and
+ * unmounting it always calls `leave()`. So tearing down a video call UI is
+ * just a matter of unmounting this component.
+ *
+ * Client-only. Never render it from a Server Component (see
  * docs/sdk/react.md#nextjs).
  */
 export function RavenRoom({ room: roomId, autoConnect = true, fallback, onError, children, ...config }: RavenRoomProps) {
@@ -39,10 +40,10 @@ export function RavenRoom({ room: roomId, autoConnect = true, fallback, onError,
   const store = storeRef.current;
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot);
 
-  // `room`/token/etc. are read once at mount and intentionally not
-  // re-applied on change — an RTC token is minted for exactly one join,
-  // the same one-shot model @corvidhq/rtc itself uses. Swap the token by
-  // remounting <RavenRoom key={token}> with a fresh one.
+  // `room`, token and the rest are read once at mount and pointedly not
+  // re-applied on change. An RTC token is minted for exactly one join, the
+  // same one-shot model @corvidhq/rtc itself uses. To swap the token,
+  // remount <RavenRoom key={token}> with a fresh one.
   useEffect(() => {
     if (!autoConnect) return undefined;
 

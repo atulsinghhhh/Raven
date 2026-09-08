@@ -5,25 +5,25 @@ import type { RavenAppState } from './internal/lifecycle';
 /**
  * Everything `new Raven(...)` needs.
  *
- * The RTC fields are the same ones `createRTCClient` takes on web, with
- * the same meanings and the same rule: they all come from your backend's
- * token-mint response, and none of them should be hand-constructed.
+ * The RTC fields are exactly what `createRTCClient` takes on web, same
+ * meanings, same rule: they come from your backend's token-mint response,
+ * and none of them should ever be built by hand.
  */
 export interface RavenConfig {
   /**
-   * RTC token from your backend. Never mint this in the app (spec §15).
+   * RTC token from your backend. Never mint one in the app (spec §15).
    *
-   * Optional together with `endpoint`: omit both for a messaging-only
-   * app, and `raven.chat` works without an RTC connection ever being
-   * created. `join()` then throws a clear error rather than a confusing
-   * null reference.
+   * Optional alongside `endpoint`. Leave both out for a messaging-only app
+   * and `raven.chat` works with no RTC connection ever being created.
+   * `join()` then throws a clear error rather than a baffling null
+   * reference.
    */
   token?: string;
   /** The `endpoint` field from the same mint response. Required whenever `token` is set. */
   endpoint?: string;
-  /** The `iceServers` array from the same response — forward it as-is. */
+  /** The `iceServers` array from the same response. Forward it untouched. */
   iceServers?: RTCIceServer[];
-  /** The `telemetryUrl` from the same response. Doubles as the chat REST base if `chatApiUrl` is omitted. */
+  /** The `telemetryUrl` from the same response. Doubles as the chat REST base when `chatApiUrl` is left out. */
   telemetryUrl?: string;
   /** Defaults to true. Telemetry is best-effort and never blocks a call. */
   telemetry?: boolean;
@@ -32,13 +32,13 @@ export interface RavenConfig {
   autoReconnect?: boolean;
 
   /**
-   * Chat token from your backend's `POST /v1/chat/tokens`. Omit for an
-   * RTC-only app — `raven.chat` is simply absent then. Supply it *without*
-   * `token`/`endpoint` for a messaging-only app.
+   * Chat token from your backend's `POST /v1/chat/tokens`. Leave it out for
+   * an RTC-only app and `raven.chat` simply isn't there. Supply it
+   * *without* `token`/`endpoint` for a messaging-only app.
    *
-   * This is a *separate* credential from `token` above, by design: the
-   * two planes are independent, and neither token works on the other
-   * (see docs/chat/overview.md).
+   * A *separate* credential from `token` above, by design. The two planes
+   * are independent and neither token works on the other
+   * (docs/chat/overview.md).
    */
   chatToken?: string;
   /** REST base for chat. Defaults to `telemetryUrl`, which is the same host. */
@@ -46,24 +46,24 @@ export interface RavenConfig {
   /** Chat WebSocket URL. Derived from `chatApiUrl` when omitted. */
   chatUrl?: string;
   /**
-   * Called shortly before the chat token expires. Return a fresh one and
-   * the SDK reconnects transparently — without this, a long call's chat
-   * connection simply closes when the token runs out.
+   * Called shortly before the chat token expires. Hand back a fresh one and
+   * the SDK reconnects without anyone noticing. Without it, a long call's
+   * chat connection just closes when the token runs out.
    */
   onChatTokenExpiring?: () => Promise<string> | string;
 
   /**
-   * Set false if your app already owns the audio session. Raven starts
-   * one when joining and stops it when leaving otherwise.
+   * Set false if your app already owns the audio session. Otherwise Raven
+   * starts one on join and stops it on leave.
    */
   manageAudioSession?: boolean;
 
   /** Notified when the app moves between foreground and background. */
   onAppStateChange?: (state: RavenAppState) => void;
   /**
-   * Fired when connectivity returns *and* the room is disconnected —
-   * a hook for showing "reconnecting…" or forcing a rejoin. Requires
-   * `@react-native-community/netinfo` to be installed.
+   * Fires when connectivity comes back *and* the room is disconnected.
+   * Somewhere to hang a "reconnecting…" message, or to force a rejoin.
+   * Needs `@react-native-community/netinfo` installed.
    */
   onNetworkReconnect?: () => void;
 }
@@ -71,17 +71,17 @@ export interface RavenConfig {
 /**
  * The chat surface hanging off `raven.chat`.
  *
- * Structurally this is `@corvidhq/chat`'s `ChatClient` with a mobile-shaped
- * `connect(room)` in front of it: on web you construct a client and
- * connect it, whereas here the client already exists and joining a room
- * is the only step left. Everything else — `sendMessage`, `on`,
- * `messages.list`, presence, typing, reactions, read receipts, threads —
- * is the identical API, because it *is* the same object.
+ * Structurally it's `@corvidhq/chat`'s `ChatClient` with a mobile-shaped
+ * `connect(room)` bolted on the front. On web you construct a client and
+ * connect it; here the client already exists and joining a room is the only
+ * step left. Everything else is the identical API, because it *is* the
+ * same object: `sendMessage`, `on`, `messages.list`, presence, typing,
+ * reactions, read receipts, threads.
  */
 export interface RavenChatHandle extends Omit<ChatClient, 'connect'> {
-  /** Connects (if needed) and joins a conversation. Accepts a `conv_` id, a name, or an attached RTC room id. */
+  /** Connects if it needs to, then joins a conversation. Takes a `conv_` id, a name, or an attached RTC room id. */
   connect(room: string): Promise<void>;
-  /** Convenience for `sendMessage({ text })` — the common case on a phone. */
+  /** Shorthand for `sendMessage({ text })`, which is the common case on a phone. */
   send(text: string): Promise<unknown>;
 }
 
@@ -89,10 +89,12 @@ export type { RavenAppState };
 
 /**
  * Live Streaming (Phase 14). Mirrors `@corvidhq/client`'s
- * `LiveStreamCredentials`/`LiveStreamRole` field-for-field — this package
- * declares its own copy rather than depending on `@corvidhq/client`
- * (which composes `@corvidhq/rtc`/`@corvidhq/chat` for a *browser*
- * environment; here `Raven` already does that composition mobile-appropriately).
+ * `LiveStreamCredentials` and `LiveStreamRole` field for field.
+ *
+ * This package keeps its own copy instead of depending on
+ * `@corvidhq/client`, which composes `@corvidhq/rtc` and `@corvidhq/chat`
+ * for a *browser*. Out here `Raven` already does that composition in a
+ * way that suits mobile.
  */
 export type LiveStreamRole = 'HOST' | 'CO_HOST' | 'VIEWER';
 

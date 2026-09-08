@@ -35,7 +35,7 @@ describe('android', () => {
       camera: 'granted',
       microphone: 'granted',
     });
-    // check() must never prompt — that's the entire difference from request().
+    // check() must never prompt. That's the whole difference from request().
     expect(PermissionsAndroid.requestMultiple).not.toHaveBeenCalled();
   });
 
@@ -47,8 +47,8 @@ describe('android', () => {
 
     const result = await permissions.request();
 
-    // The distinction is the point: 'denied' can be re-prompted,
-    // 'blocked' can only be fixed in Settings.
+    // The distinction is the point. 'denied' can be re-prompted; 'blocked'
+    // can only be fixed in Settings.
     expect(result.camera).toBe('denied');
     expect(result.microphone).toBe('blocked');
   });
@@ -72,8 +72,8 @@ describe('android', () => {
 
     await expect(permissions.require(['camera'])).rejects.toBeInstanceOf(RavenPermissionError);
 
-    // `require()` resolves to void on success, so narrow through the
-    // error type rather than casting a union that includes it.
+    // `require()` resolves to void on success, so narrow through the error
+    // type instead of casting a union that includes it.
     let captured: RavenPermissionError | undefined;
     try {
       await permissions.require(['camera']);
@@ -102,8 +102,8 @@ describe('ios', () => {
   beforeEach(() => __setPlatform('ios'));
 
   it('reports undetermined from check() rather than guessing', async () => {
-    // iOS exposes no authorization status to JS. Claiming 'granted' would
-    // make a developer skip request() and hit a silent black frame.
+    // iOS exposes no authorization status to JS. Claim 'granted' and a
+    // developer skips request() and hits a silent black frame.
     await expect(permissions.check()).resolves.toEqual({
       camera: 'undetermined',
       microphone: 'undetermined',
@@ -116,7 +116,7 @@ describe('ios', () => {
     await expect(permissions.request(['camera'])).resolves.toEqual(
       expect.objectContaining({ camera: 'granted' }),
     );
-    // Leaving the probe stream open would leave the camera light on.
+    // Leave the probe stream open and the camera light stays on.
     expect(stopped).toEqual(['stopped']);
   });
 
@@ -132,12 +132,12 @@ describe('ios', () => {
     );
   });
 
-  it('reports unavailable — not denied — when the globals were never registered', async () => {
+  it('reports unavailable; not denied; when the globals were never registered', async () => {
     clearNavigator();
 
-    // Misreporting this as a permission problem sends the developer
-    // hunting through Info.plist for a bug that is actually a missing
-    // bootstrap call.
+    // Misreport this as a permission problem and the developer goes
+    // hunting through Info.plist for what's really a missing bootstrap
+    // call.
     await expect(permissions.request(['camera'])).resolves.toEqual(
       expect.objectContaining({ camera: 'unavailable' }),
     );
@@ -169,8 +169,8 @@ describe('toPermissionError', () => {
   });
 
   it('leaves unrelated failures alone', () => {
-    // A camera that is physically busy is not a permission problem, and
-    // reporting it as one would send the user to Settings for nothing.
+    // A camera that's physically busy isn't a permission problem, and
+    // reporting it as one sends the user to Settings for nothing.
     const busy = Object.assign(new Error('Device in use'), { name: 'NotReadableError' });
     expect(toPermissionError('camera', busy)).toBeUndefined();
   });

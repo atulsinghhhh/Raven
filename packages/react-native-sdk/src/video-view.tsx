@@ -4,48 +4,49 @@ import { RTCView } from 'react-native-webrtc';
 import type { LocalParticipant, RemoteParticipant, Room, Track, TrackKind } from '@corvidhq/rtc';
 
 export interface RavenVideoViewProps {
-  /** Whose video to show. Local or remote — the component doesn't care which. */
+  /** Whose video to show. Local or remote; the component doesn't care. */
   participant?: LocalParticipant | RemoteParticipant;
   /**
-   * The room, if you want the view to update by itself as tracks are
+   * The room, if you want the view keeping itself up to date as tracks get
    * published, unpublished, muted or resubscribed. Without it the view
-   * renders whatever the participant holds at mount and won't follow
-   * changes — which is fine for a static thumbnail and wrong for a call.
+   * renders whatever the participant held at mount and never follows
+   * changes. Fine for a static thumbnail, wrong for a call.
    */
   room?: Room;
   /** `'camera'` (default) or `'screenShare'`. */
   source?: Extract<TrackKind, 'camera' | 'screenShare'>;
   style?: ViewStyle;
-  /** `'cover'` (default) crops to fill; `'contain'` letterboxes. */
+  /** `'cover'` (default) crops to fill, `'contain'` letterboxes. */
   objectFit?: 'cover' | 'contain';
   /**
-   * Mirrors horizontally. Defaults to true for the local camera, which is
-   * what a user expects of their own preview, and false for everyone else.
+   * Mirrors horizontally. True by default for the local camera, since
+   * that's what people expect of their own preview, false for everyone
+   * else.
    */
   mirror?: boolean;
   /** Stacking hint. Use 1 for a local preview floating over remote video. */
   zOrder?: number;
-  /** Rendered when there is no video to show — muted, not yet published, or camera off. */
+  /** Rendered when there's no video: muted, not published yet, or camera off. */
   placeholder?: React.ReactNode;
 }
 
 /**
  * Renders a participant's video.
  *
- * This is the one part of the SDK that could not be shared with web.
- * A browser attaches a track to a `<video>` element; React Native has no
- * DOM, and video has to reach a native `SurfaceView` (Android) or
- * `UIView` (iOS). So `RavenVideoView` takes the same `participant` object
- * a web app would hand to `<ParticipantView>` and routes it to the native
- * renderer instead.
+ * The one part of the SDK that couldn't be shared with web. A browser
+ * attaches a track to a `<video>` element; React Native has no DOM, and
+ * video has to end up in a native `SurfaceView` on Android or `UIView` on
+ * iOS. So `RavenVideoView` takes the very same `participant` object a web
+ * app would hand `<ParticipantView>` and routes it to the native renderer
+ * instead.
  *
  * ```tsx
  * <RavenVideoView participant={remote} room={room} style={{ flex: 1 }} />
  * <RavenVideoView participant={local} room={room} style={styles.pip} zOrder={1} />
  * ```
  *
- * No WebRTC types appear in the props, and none need to appear in your
- * code (spec §2).
+ * No WebRTC types in the props, and none needed in your code either
+ * (spec §2).
  */
 export function RavenVideoView({
   participant,
@@ -57,10 +58,10 @@ export function RavenVideoView({
   zOrder,
   placeholder,
 }: RavenVideoViewProps) {
-  // A counter, not the track itself. Track objects are mutated in place
-  // by the SDK, so storing one in state and comparing references would
-  // miss updates; bumping a version on every relevant room event forces
-  // the re-read below to run again.
+  // A counter, not the track itself. The SDK mutates track objects in
+  // place, so storing one in state and comparing references misses updates.
+  // Bumping a version on every relevant room event forces the re-read
+  // below to run again.
   const [revision, setRevision] = useState(0);
 
   useEffect(() => {
@@ -70,9 +71,9 @@ export function RavenVideoView({
 
     const rerender = () => setRevision((value) => value + 1);
 
-    // Every event that can change what should be on screen. Missing one
-    // shows a frozen or blank tile that only fixes itself on the next
-    // unrelated render — the classic mobile video bug.
+    // Every event that can change what ought to be on screen. Miss one and
+    // you get a frozen or blank tile that only fixes itself on the next
+    // unrelated render. The classic mobile video bug.
     room.on('trackSubscribed', rerender);
     room.on('trackUnsubscribed', rerender);
     room.on('trackPublished', rerender);
@@ -85,7 +86,7 @@ export function RavenVideoView({
     room.on('participantLeft', rerender);
 
     return () => {
-      // Unsubscribing on unmount is what stops a scrolled-away tile from
+      // Unsubscribing on unmount is what stops a scrolled-away tile
       // holding the participant alive and re-rendering forever (spec §19).
       room.off('trackSubscribed', rerender);
       room.off('trackUnsubscribed', rerender);
@@ -106,13 +107,13 @@ export function RavenVideoView({
       return undefined;
     }
     return toStreamUrl(track);
-    // `revision` is the dependency that matters — see the comment above.
+    // `revision` is the dependency that matters. See the comment above.
   }, [participant, source, revision]);
 
-  // Identity against the room, not a type check: LocalParticipant and
-  // RemoteParticipant are structurally identical, and `instanceof` is
-  // unreliable in a monorepo where Metro can resolve two copies of
-  // @corvidhq/rtc. Without a room we can't know, so we don't guess.
+  // Identity against the room, not a type check. LocalParticipant and
+  // RemoteParticipant are structurally identical, and `instanceof` can't be
+  // trusted in a monorepo where Metro might resolve two copies of
+  // @corvidhq/rtc. With no room we can't know, so we don't guess.
   const shouldMirror = mirror ?? (source === 'camera' && room?.localParticipant === participant);
 
   if (!streamUrl) {
@@ -121,9 +122,9 @@ export function RavenVideoView({
 
   return (
     <RTCView
-      // Keyed by the stream so a participant swapping cameras (or a track
-      // being replaced on reconnect) tears down the native view rather
-      // than trying to rebind a surface that's already gone.
+      // Keyed by the stream, so a participant swapping cameras, or a track
+      // being replaced on reconnect, tears the native view down instead of
+      // trying to rebind a surface that's already gone.
       key={streamUrl}
       streamURL={streamUrl}
       style={[styles.container, style]}
@@ -145,10 +146,10 @@ function findVideoTrack(
  * Bridges a Raven track to the native renderer.
  *
  * `track.mediaStream` is public API on `@corvidhq/rtc`, and under React
- * Native it holds a `react-native-webrtc` `MediaStream` — which carries a
- * `toURL()` the native view can bind to. Going through the public surface
- * is what keeps `@corvidhq/rtc` unmodified; the cast covers the one method
- * React Native adds that the DOM type doesn't declare.
+ * Native it holds a `react-native-webrtc` `MediaStream`, which carries the
+ * `toURL()` the native view binds to. Going through the public surface is
+ * what keeps `@corvidhq/rtc` unmodified. The cast covers the one method
+ * React Native adds that the DOM type never declares.
  */
 function toStreamUrl(track: Track): string | undefined {
   const stream = track.mediaStream as (MediaStream & { toURL?: () => string }) | undefined;

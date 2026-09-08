@@ -6,10 +6,11 @@ import { __appState, PermissionsAndroid, __setPlatform } from './mocks/react-nat
 
 /**
  * Drives `RavenLiveStream` against the same fake `@corvidhq/rtc` client
- * `raven.spec.ts` uses — this class is a thin wrapper around `Raven`, so
- * what's worth testing here is the *translation* (credentials -> Raven
- * config, role -> isHost, reactions) rather than re-testing join/leave
- * mechanics `Raven` already covers.
+ * `raven.spec.ts` uses.
+ *
+ * The class is a thin wrapper round `Raven`, so what's worth testing is the
+ * *translation*: credentials -> Raven config, role -> isHost, reactions.
+ * Not the join/leave mechanics `Raven` already covers.
  */
 const rtcState = {
   joins: [] as string[],

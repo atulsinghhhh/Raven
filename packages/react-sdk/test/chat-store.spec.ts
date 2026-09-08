@@ -1,9 +1,11 @@
 import { RavenChatStore } from '../src/chat/chat-store';
 
 /**
- * Drives the store against a hand-rolled fake `ChatClient`. That's the
- * point of the store existing at all: the translation from event stream
- * to React snapshots is testable without a socket, a server, or a DOM.
+ * Drives the store against a hand-rolled fake `ChatClient`.
+ *
+ * Which is rather the point of the store existing at all: the translation
+ * from event stream to React snapshots is testable with no socket, no
+ * server and no DOM.
  */
 class FakeChatClient {
   readonly userId = 'alice';
@@ -78,7 +80,7 @@ function message(id: string, overrides: Record<string, unknown> = {}) {
   };
 }
 
-/** Wires a store to a fake client, skipping createChatClient. */
+/** Wires a store to a fake client, going round createChatClient. */
 async function connectedStore(client: FakeChatClient) {
   const store = new RavenChatStore();
   (store as unknown as { client: unknown }).client = client;
@@ -177,8 +179,8 @@ describe('RavenChatStore', () => {
       client.emit('typing', { userId: 'bob', roomId: 'conv_1', isTyping: true });
       expect(store.getSnapshot().typing).toEqual(['bob']);
 
-      // No typing.stopped ever comes — a dropped frame must not leave
-      // "Bob is typing…" on screen permanently.
+      // No typing.stopped ever arrives. A dropped frame mustn't leave
+      // "Bob is typing…" on screen forever.
       jest.advanceTimersByTime(10_000);
       expect(store.getSnapshot().typing).toEqual([]);
     } finally {
@@ -235,7 +237,7 @@ describe('RavenChatStore', () => {
     client.emit('message', message('msg_1'));
     client.emit('message', message('msg_2'));
 
-    // Each notification must carry a different object, or
+    // Every notification has to carry a different object, or
     // useSyncExternalStore's Object.is check never fires a re-render.
     expect(seen[0]).not.toBe(seen[1]);
   });

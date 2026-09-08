@@ -3,11 +3,12 @@ import { LocalTrack } from '@corvidhq/rtc';
 import type { LocalTrackDelegate } from '@corvidhq/rtc';
 
 /**
- * This suite runs under `testEnvironment: node` (see package.json) — there
- * is genuinely no `document`/DOM here, exactly like the real React Native
- * JS runtime. It exists to prove the §31 "no fake implementation" claim
- * for real: attachEffects() must degrade to the original track rather than
- * throwing a raw ReferenceError or silently pretending to process frames.
+ * Runs under `testEnvironment: node` (see package.json), so there really is
+ * no `document` or DOM here, exactly like the real React Native JS runtime.
+ *
+ * It exists to prove the §31 "no fake implementation" claim properly:
+ * attachEffects() has to degrade to the original track, not throw a raw
+ * ReferenceError and not quietly pretend to process frames.
  */
 describe('Raven Effects on React Native (Phase 16 architecture)', () => {
   it('reports the native engine as planned, not production', () => {
@@ -41,7 +42,8 @@ describe('Raven Effects on React Native (Phase 16 architecture)', () => {
 
     await track.attachEffects(pipeline);
 
-    // No native engine yet, so the pipeline never swapped the published track.
+    // No native engine yet, so the pipeline never swapped the published
+    // track.
     expect(delegate.replaceTrack).not.toHaveBeenCalled();
     expect(errors).toHaveLength(1);
     expect(errors[0]).toMatchObject({ code: 'RAVEN_EFFECT_UNSUPPORTED' });

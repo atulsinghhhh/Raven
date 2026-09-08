@@ -17,13 +17,13 @@ export interface RavenLiveStreamOptions {
 /**
  * Raven Live Streaming on React Native (Phase 14).
  *
- * Deliberately a thin wrapper around `Raven`, not a parallel
- * implementation: a stream's host and viewers are ordinary RTC
- * participants of one room, and its chat is an ordinary `@corvidhq/chat`
- * conversation — exactly what `Raven` already joins and connects to. That
- * means every mobile-only concern `Raven.join()` already handles
- * (permissions, audio session, app lifecycle, network recovery) applies
- * to a live stream unchanged, instead of being re-solved here.
+ * A thin wrapper round `Raven` on purpose, not a parallel implementation.
+ * A stream's host and viewers are ordinary RTC participants in one room,
+ * and its chat is an ordinary `@corvidhq/chat` conversation. Both are
+ * exactly what `Raven` already joins and connects to. So every mobile-only
+ * concern `Raven.join()` handles already, permissions, audio session, app
+ * lifecycle, network recovery, applies to a live stream untouched rather
+ * than being solved a second time here.
  *
  * ```ts
  * const stream = await joinLiveStream(credentials);
@@ -60,7 +60,7 @@ export class RavenLiveStream {
     });
   }
 
-  /** `true` for HOST and CO_HOST — never inferred, only ever what the credentials said. */
+  /** `true` for HOST and CO_HOST. Never inferred; only ever what the credentials said. */
   get isHost(): boolean {
     return this.role === 'HOST' || this.role === 'CO_HOST';
   }
@@ -70,7 +70,7 @@ export class RavenLiveStream {
     return this.raven.room;
   }
 
-  /** Present only when the stream has a chat conversation attached. */
+  /** Only here when the stream has a chat conversation attached. */
   get chat(): RavenChatHandle | undefined {
     return this.raven.chat;
   }
@@ -80,11 +80,11 @@ export class RavenLiveStream {
   }
 
   /**
-   * Joins the stream's room and connects its chat (if attached).
+   * Joins the stream's room and connects its chat, if there is one.
    *
-   * Defaults `requestPermissions` to whether this credential can publish
-   * at all — prompting a VIEWER for camera access would draw a dialog for
-   * a permission their token can never use.
+   * `requestPermissions` defaults to whether this credential can publish at
+   * all. Prompting a VIEWER for camera access would put a dialog in front
+   * of them for a permission their token can never use.
    */
   async join(options: { requestPermissions?: boolean } = {}): Promise<Room> {
     return this.raven.join(this.streamId, {
@@ -93,9 +93,9 @@ export class RavenLiveStream {
   }
 
   /**
-   * Reacts to the stream — the same reaction model as web/CLI/server,
-   * attached to the chat message every viewer's reaction lands on.
-   * Throws if this stream has no chat conversation attached.
+   * Reacts to the stream. Same reaction model as web, CLI and server, hung
+   * off the chat message every viewer's reaction lands on. Throws if this
+   * stream has no chat conversation attached.
    */
   async react(emoji: string): Promise<void> {
     if (!this.chat || !this.chatRootMessageId) {
@@ -107,13 +107,13 @@ export class RavenLiveStream {
     await this.chat.messages.addReaction(this.chatRootMessageId, emoji);
   }
 
-  /** Leaves the room and closes the chat connection. Safe to call more than once. */
+  /** Leaves the room and closes the chat connection. Safe to call twice. */
   async leave(): Promise<void> {
     await this.raven.dispose();
   }
 }
 
-/** `RavenLiveStream.join()` in one call — the common case. */
+/** `RavenLiveStream.join()` in a single call, which is the common case. */
 export async function joinLiveStream(
   credentials: LiveStreamCredentials,
   options: RavenLiveStreamOptions = {},

@@ -14,12 +14,12 @@ import type { RavenChatSnapshot } from './chat-store';
 /**
  * Chat hooks for `@corvidhq/react`.
  *
- * Each hook reads exactly one slice of the store's snapshot, so a
- * component that only renders typing indicators doesn't re-render on
- * every incoming message (spec §59). That's why these aren't one big
- * `useChat()` returning everything — `useChat()` exists for the cases
- * that genuinely need the whole picture, and the narrow hooks are what
- * you should reach for otherwise.
+ * Every hook reads exactly one slice of the store's snapshot, so a
+ * component that only renders typing indicators doesn't re-render on every
+ * incoming message (spec §59). That's why this isn't one big `useChat()`
+ * handing back everything. `useChat()` is there for the cases that
+ * genuinely need the whole picture; the narrow hooks are what you should
+ * reach for the rest of the time.
  */
 
 export interface UseChatResult extends RavenChatSnapshot {
@@ -29,7 +29,7 @@ export interface UseChatResult extends RavenChatSnapshot {
   disconnect(): Promise<void>;
 }
 
-/** The full snapshot plus actions. Prefer the narrower hooks where you can. */
+/** The full snapshot plus actions. Use the narrower hooks where you can. */
 export function useChat(): UseChatResult {
   const store = useRavenChatStore();
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
@@ -46,7 +46,7 @@ export function useChat(): UseChatResult {
   );
 }
 
-/** The underlying `ChatClient`, for anything the hooks don't cover. */
+/** The underlying `ChatClient`, for whatever the hooks don't cover. */
 export function useChatClient(): ChatClient | undefined {
   const store = useRavenChatStore();
   return useSyncExternalStore(store.subscribe, () => store.getSnapshot().client, () => store.getSnapshot().client);
@@ -67,7 +67,7 @@ export function useChatError(): RavenChatError | undefined {
 }
 
 export interface UseMessagesResult {
-  /** Oldest-first — render order. */
+  /** Oldest-first, which is render order. */
   messages: ChatMessage[];
   send(text: string, options?: { replyTo?: string }): Promise<void>;
   loadMore(limit?: number): Promise<void>;
@@ -75,7 +75,7 @@ export interface UseMessagesResult {
   hasMore: boolean;
 }
 
-/** The message list and the two things you do with it: send, and page back. */
+/** The message list, plus the two things anyone does with it: send, and page back. */
 export function useMessages(): UseMessagesResult {
   const store = useRavenChatStore();
   const messages = useSyncExternalStore(
@@ -97,7 +97,7 @@ export function useMessages(): UseMessagesResult {
   return { messages, send: store.send, loadMore: store.loadMore, loading, hasMore };
 }
 
-/** Who is present, as `{ userId: status }`. Ephemeral — never durable state. */
+/** Who's present, as `{ userId: status }`. Ephemeral; never durable state. */
 export function usePresence(): Record<string, PresenceStatus> {
   const store = useRavenChatStore();
   return useSyncExternalStore(
@@ -111,9 +111,9 @@ export interface UseTypingResult {
   /** Everyone currently typing, excluding this user. */
   typingUsers: string[];
   /**
-   * Call on every keystroke. Throttled internally to one signal per
-   * second, and stops automatically after a pause — so a component can
-   * wire this straight to `onChange` without thinking about it (spec §21).
+   * Call this on every keystroke. It throttles internally to one signal a
+   * second and stops on its own after a pause, so a component can wire it
+   * straight to `onChange` and forget about it (spec §21).
    */
   onInput(): void;
   stop(): void;
@@ -134,9 +134,9 @@ export function useTyping(): UseTypingResult {
   const onInput = useCallback(() => {
     if (!client) return;
 
-    // Throttle: the server only broadcasts on the transition into
-    // "typing", but firing a frame per keystroke would still be one
-    // WebSocket write per character for no benefit.
+    // Throttled. The server only broadcasts on the transition into
+    // "typing" anyway, but a frame per keystroke is still one WebSocket
+    // write per character for nothing.
     const now = Date.now();
     if (now - lastSignalRef.current > 1_000) {
       lastSignalRef.current = now;
@@ -156,8 +156,8 @@ export function useTyping(): UseTypingResult {
     void client?.stopTyping().catch(() => undefined);
   }, [client]);
 
-  // A component unmounting mid-sentence must not leave the user showing
-  // as typing to everyone else.
+  // A component unmounting mid-sentence mustn't leave the user showing as
+  // typing to everybody else.
   useEffect(() => {
     return () => {
       if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
@@ -233,8 +233,8 @@ export function useReadReceipts(): UseReadReceiptsResult {
       const index = messages.findIndex((message) => message.id === messageId);
       if (index === -1) return [];
 
-      // "Read up to X" means everything at or before X, so a reader
-      // counts if their marker sits at this message or later in the list.
+      // "Read up to X" covers everything at or before X, so a reader counts
+      // if their marker sits at this message or later in the list.
       return Object.entries(receipts)
         .filter(([userId, lastReadId]) => {
           if (userId === client?.userId || !lastReadId) return false;
