@@ -5,16 +5,16 @@ import type {
   RemoteParticipant,
   Room,
   RTCError,
-} from '@corvidhq/rtc';
+} from '@ravenkash/rtc';
 import type { Raven } from './raven';
 import type { RavenLiveStream } from './live-stream';
 
 /**
  * Hooks for React Native.
  *
- * These mirror `@corvidhq/react`'s hooks in name and in meaning, so the
+ * These mirror `@ravenkash/react`'s hooks in name and in meaning, so the
  * same component code reads the same on both platforms. They are *not*
- * re-exported from that package. `@corvidhq/react` is built around a
+ * re-exported from that package. `@ravenkash/react` is built around a
  * `<RavenRoom>` provider that owns the client and joins on mount, which
  * suits the web's one-page-one-call model. On mobile the `Raven` instance
  * usually outlives any single screen, held by a navigator or a store, so
@@ -41,7 +41,7 @@ export function useConnectionState(room: Room | undefined): ConnectionState {
 
     const onChange = (next: ConnectionState) => setState(next);
     room.on('connectionStateChanged', onChange);
-    // Block body, not a concise arrow. @corvidhq/rtc's `off()` is chainable
+    // Block body, not a concise arrow. @ravenkash/rtc's `off()` is chainable
     // and returns the room, which React would take for a cleanup function.
     return () => {
       room.off('connectionStateChanged', onChange);

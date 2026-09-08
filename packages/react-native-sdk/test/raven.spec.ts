@@ -4,9 +4,9 @@ import { __calls as audioCalls, __resetCalls as resetAudioCalls } from './mocks/
 import { __appState, __emitAppState, PermissionsAndroid, __setPlatform } from './mocks/react-native';
 
 /**
- * Drives `Raven` against a fake `@corvidhq/rtc` client.
+ * Drives `Raven` against a fake `@ravenkash/rtc` client.
  *
- * Not here to re-test RTC. `@corvidhq/rtc` has its own 102 tests for that,
+ * Not here to re-test RTC. `@ravenkash/rtc` has its own 102 tests for that,
  * and re-testing it here would only assert that the mock works. What
  * matters is the mobile-only behaviour layered on top: audio-session
  * lifecycle, permission prompting, OS listener cleanup, and not leaving
@@ -19,7 +19,7 @@ const rtcState = {
   connectionState: 'connected' as string,
 };
 
-jest.mock('@corvidhq/rtc', () => ({
+jest.mock('@ravenkash/rtc', () => ({
   createRTCClient: () => ({
     join: async (roomId: string) => {
       rtcState.joins.push(roomId);
@@ -51,7 +51,7 @@ jest.mock('@corvidhq/rtc', () => ({
 /**
  * A syntactically valid chat token.
  *
- * @corvidhq/chat decodes the payload on construction to get the user id and
+ * @ravenkash/chat decodes the payload on construction to get the user id and
  * expiry, so a placeholder string gets rejected. Which is itself proof the
  * chat handle builds a real client rather than a stub.
  */

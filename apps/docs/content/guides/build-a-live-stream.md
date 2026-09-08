@@ -12,7 +12,7 @@ credentials, one stream.
 ## Prerequisites
 
 - A project and an API key.
-- `npm install @corvidhq/client` — the `LiveStream` facade lives there.
+- `npm install @ravenkash/client` — the `LiveStream` facade lives there.
 
 ## Implementation
 
@@ -58,7 +58,7 @@ await raven.liveStreams.start(stream.id);   // CREATED → LIVE
 <Tab title="Web">
 
 ```ts
-import { LiveStream } from '@corvidhq/client';
+import { LiveStream } from '@ravenkash/client';
 
 const live = await LiveStream.join(credentials);
 
@@ -83,7 +83,7 @@ every API on those works here.
 
 ```tsx
 'use client';
-import { RavenLiveStream, useLiveStreamRole, useCamera } from '@corvidhq/react';
+import { RavenLiveStream, useLiveStreamRole, useCamera } from '@ravenkash/react';
 
 function StreamPage({ credentials }) {
   return (

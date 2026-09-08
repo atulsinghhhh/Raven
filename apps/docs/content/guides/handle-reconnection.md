@@ -40,7 +40,7 @@ room.on('connectionStateChanged', (state) => {
 <Tab title="React">
 
 ```tsx
-import { useConnectionState } from '@corvidhq/react';
+import { useConnectionState } from '@ravenkash/react';
 
 function Banner() {
   const state = useConnectionState();
@@ -98,6 +98,12 @@ room.on('connectionStateChanged', async (state) => {
 
 **Mint a new token.** A call that dropped for five minutes may be holding a
 token that has since expired, and rejoining with it fails immediately.
+
+On **Flutter** you can avoid this path entirely: `Raven(refreshToken: …)`
+hands the signaling client a fresh token before each reconnect attempt. The
+web and React Native SDKs do not expose that hook, so mint-and-rejoin is
+the route there. See
+[Known limitations](/reference/known-limitations).
 
 ### 4. Wait for a connection when you need one
 

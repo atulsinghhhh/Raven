@@ -5,7 +5,7 @@ import { join } from 'node:path';
 const distDir = join(import.meta.dirname, '..', 'dist');
 const files = ['index.js', 'index.cjs'];
 
-console.log('@corvidhq/rtc bundle size (own code only — no media-plane SDK is bundled; the browser supplies WebRTC):\n');
+console.log('@ravenkash/rtc bundle size (own code only — no media-plane SDK is bundled; the browser supplies WebRTC):\n');
 
 for (const file of files) {
   const path = join(distDir, file);

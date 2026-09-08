@@ -1,13 +1,13 @@
 # CLI workflow: zero to a joined room
 
-The canonical path through `@corvidhq/cli`, exactly as verified end-to-end
+The canonical path through `@ravenkash/cli`, exactly as verified end-to-end
 against a real local Raven deployment (`docker compose up`, `apps/api`
 on `:4100`, dashboard on `:3000`). Every command below is real — no
 placeholders elided for brevity beyond your own project name.
 
 ```bash
 # 1. Install (local build, this phase doesn't publish to npm)
-cd packages/cli && pnpm install && pnpm build
+cd packages/cli && npm install && npm run build
 # expose ./dist/index.js as `raven` on your PATH
 
 # 2. Authenticate — opens your browser, no password in the terminal
@@ -83,7 +83,7 @@ open http://localhost:8900/index.html
   `raven rooms create` all hit the same Control API the dashboard uses —
   there is no CLI-only backend.
 - The API key minted by the CLI mints a real, working RTC token from the
-  Control API, which a real browser SDK client (`@corvidhq/rtc`) can use to
+  Control API, which a real browser SDK client (`@ravenkash/rtc`) can use to
   join and connect to a real Raven SFU node — confirmed live via
   `Status: connected` and correct remote-participant discovery in both
   browser tabs, with real signaling frames visible in the browser

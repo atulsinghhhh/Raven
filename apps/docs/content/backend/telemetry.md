@@ -3,7 +3,7 @@ title: Telemetry & privacy
 description: What the client SDKs report, what they never report, and how to switch it off.
 ---
 
-`@corvidhq/rtc` reports connection telemetry so the dashboard, the CLI and
+`@ravenkash/rtc` reports connection telemetry so the dashboard, the CLI and
 [Diagnostics](/rtc/diagnostics) can show what happened on a call that has
 already ended.
 

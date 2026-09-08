@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "A video call with a chat panel — @corvidhq/rtc and @corvidhq/chat side by side, independent SDKs working together.",
+  "description": "A video call with a chat panel — @ravenkash/rtc and @ravenkash/chat side by side, independent SDKs working together.",
   "scripts": {
     "server": "node server.mjs",
     "dev": "vite",
@@ -11,10 +11,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@corvidhq/chat": "file:../../packages/chat-sdk",
-    "@corvidhq/react": "file:../../packages/react-sdk",
-    "@corvidhq/rtc": "file:../../packages/sdk",
-    "@corvidhq/server": "file:../../packages/server-sdk",
+    "@ravenkash/chat": "file:../../packages/chat-sdk",
+    "@ravenkash/react": "file:../../packages/react-sdk",
+    "@ravenkash/rtc": "file:../../packages/sdk",
+    "@ravenkash/server": "file:../../packages/server-sdk",
     "express": "^4.19.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

@@ -11,7 +11,7 @@ import {
   useParticipants,
   usePresence,
   useTyping,
-} from '@corvidhq/react';
+} from '@ravenkash/react';
 import './index.css';
 
 /**

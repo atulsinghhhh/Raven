@@ -1,11 +1,11 @@
 ---
 title: Raven Client
-description: '@corvidhq/client — RTC and chat behind one object, plus the LiveStream facade.'
+description: '@ravenkash/client — RTC and chat behind one object, plus the LiveStream facade.'
 ---
 
-`@corvidhq/client` is a facade, not a third implementation. `raven.rtc` is
-a genuine `RTCClient` from `@corvidhq/rtc`, and `raven.chat` a genuine
-`ChatClient` from `@corvidhq/chat`. Every method, event and type documented
+`@ravenkash/client` is a facade, not a third implementation. `raven.rtc` is
+a genuine `RTCClient` from `@ravenkash/rtc`, and `raven.chat` a genuine
+`ChatClient` from `@ravenkash/chat`. Every method, event and type documented
 for those packages applies here untouched — because they *are* those
 objects.
 
@@ -15,7 +15,7 @@ Use the individual packages when you need only one.
 ## Install
 
 ```bash
-npm install @corvidhq/client
+npm install @ravenkash/client
 ```
 
 ## Initialize
@@ -24,7 +24,7 @@ Both halves of the config are independent. Supply whichever planes your app
 actually uses:
 
 ```ts
-import { Raven } from '@corvidhq/client';
+import { Raven } from '@ravenkash/client';
 
 const raven = new Raven({ token, endpoint });                          // calls only
 const raven = new Raven({ chatToken, chatApiUrl });                    // messaging only
@@ -97,7 +97,7 @@ unsubscribe function. See [RTC events](/rtc/events) and
 composes a room and a conversation:
 
 ```ts
-import { LiveStream } from '@corvidhq/client';
+import { LiveStream } from '@ravenkash/client';
 
 const live = await LiveStream.join(credentials);   // from addHost() or createViewerToken()
 
@@ -130,8 +130,8 @@ a chat connection there is nowhere to put one.
 Errors come from the underlying packages, so use their guards:
 
 ```ts
-import { isRTCError } from '@corvidhq/rtc';
-import { isRavenChatError } from '@corvidhq/chat';
+import { isRTCError } from '@ravenkash/rtc';
+import { isRavenChatError } from '@ravenkash/chat';
 
 try {
   await raven.join('room_123');

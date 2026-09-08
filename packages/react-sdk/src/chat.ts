@@ -1,11 +1,11 @@
-// Chat-only entry point (`@corvidhq/react/chat`).
+// Chat-only entry point (`@ravenkash/react/chat`).
 //
-// `src/chat/*` depends on `react` and `@corvidhq/chat` and nothing else. No
+// `src/chat/*` depends on `react` and `@ravenkash/chat` and nothing else. No
 // coupling to RTC, effects or live.
 //
 // This file exists so anyone who only wants Chat, a text-channel feature
-// with no video or voice say, never needs `@corvidhq/rtc`,
-// `@corvidhq/effects` or `@corvidhq/client` to be resolvable. That's what
+// with no video or voice say, never needs `@ravenkash/rtc`,
+// `@ravenkash/effects` or `@ravenkash/client` to be resolvable. That's what
 // `package.json`'s `peerDependenciesMeta` already promises, and the single
 // `index.ts` barrel breaks it: it re-exports from all four integrations
 // unconditionally, so a bundler demands every peer be installed just to
@@ -48,5 +48,5 @@ export type {
   PresenceStatus,
   ReadState,
   SendMessageOptions,
-} from '@corvidhq/chat';
-export { isRavenChatError, RavenChatError } from '@corvidhq/chat';
+} from '@ravenkash/chat';
+export { isRavenChatError, RavenChatError } from '@ravenkash/chat';

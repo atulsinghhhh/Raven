@@ -93,11 +93,11 @@ will not parse here.
 
 ```bash
 cd apps/api
-pnpm prisma:migrate:deploy   # applies prisma/migrations/ over DIRECT_URL
-pnpm prisma:seed             # optional: demo developer, project, key, room
+npm run prisma:migrate:deploy   # applies prisma/migrations/ over DIRECT_URL
+npm run prisma:seed             # optional: demo developer, project, key, room
 ```
 
-or `pnpm db:migrate` / `pnpm db:seed` from the repo root.
+or `npm run db:migrate` / `npm run db:seed` from the repo root.
 
 Use `migrate deploy`, never `migrate dev`, against Supabase. `migrate dev`
 wants a **shadow database** it can create and drop in order to diff your
@@ -132,20 +132,20 @@ SCRATCH="postgresql://postgres:scratch@localhost:5455/raven"
 
 cd apps/api
 DIRECT_URL="$SCRATCH" DATABASE_URL="$SCRATCH" \
-  pnpm prisma:migrate:dev --name add_the_thing
+  npm run prisma:migrate:dev -- --name add_the_thing
 
 docker rm -f raven-migrate-scratch
 ```
 
 That writes a new directory under `prisma/migrations/`. Commit it, then
-apply it to Supabase with `pnpm db:migrate` like any other.
+apply it to Supabase with `npm run db:migrate` like any other.
 
 `prisma.config.ts` also reads an optional `SHADOW_DATABASE_URL`, which is
 what `prisma migrate diff --from-migrations` needs — useful for checking
 that the migrations directory and `schema.prisma` still agree:
 
 ```bash
-SHADOW_DATABASE_URL="$SCRATCH" pnpm exec prisma migrate diff \
+SHADOW_DATABASE_URL="$SCRATCH" npm exec prisma migrate diff \
   --from-migrations prisma/migrations \
   --to-schema prisma/schema.prisma --exit-code
 ```
@@ -195,7 +195,7 @@ deliberately unreachable placeholder, present only because
 ### Running the e2e suite locally
 
 A developer's terminal has the same problem CI does, without CI's rewritten
-URL: `.env`'s `DATABASE_URL` now points at Supabase, and `pnpm test:e2e`
+URL: `.env`'s `DATABASE_URL` now points at Supabase, and `npm run test:e2e`
 would write dozens of `signaling-e2e-*` users, projects and rooms straight
 into it. Nothing about that fails loudly — the connection succeeds and the
 tests pass.
@@ -209,8 +209,8 @@ refuses:
 docker run --rm -d --name raven-e2e-db   -p 5455:5432 -e POSTGRES_PASSWORD=scratch -e POSTGRES_DB=raven   postgres:16-alpine
 
 E2E_DB="postgresql://postgres:scratch@localhost:5455/raven"
-DATABASE_URL="$E2E_DB" DIRECT_URL="$E2E_DB" pnpm --filter @raven/api prisma:migrate:deploy
-DATABASE_URL="$E2E_DB" DIRECT_URL="$E2E_DB" pnpm --filter @raven/api test:e2e
+DATABASE_URL="$E2E_DB" DIRECT_URL="$E2E_DB" npm run prisma:migrate:deploy --workspace=@raven/api
+DATABASE_URL="$E2E_DB" DIRECT_URL="$E2E_DB" npm run test:e2e --workspace=@raven/api
 
 docker rm -f raven-e2e-db
 ```
@@ -237,7 +237,7 @@ and replays every migration) is the blunt instrument, and it goes over
 `DIRECT_URL` like every other CLI command:
 
 ```bash
-cd apps/api && pnpm exec prisma migrate reset   # destroys all data
+cd apps/api && npm exec prisma migrate reset   # destroys all data
 ```
 
 If you want per-developer scratch data instead, use the throwaway container
@@ -246,7 +246,7 @@ from the authoring section above.
 ## Verifying
 
 ```bash
-pnpm infra:verify
+npm run infra:verify
 ```
 
 The database check there is not a container check: it opens a connection

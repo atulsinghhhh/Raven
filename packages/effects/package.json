@@ -1,5 +1,5 @@
 {
-  "name": "@corvidhq/effects",
+  "name": "@ravenkash/effects",
   "version": "0.1.0",
   "description": "Raven Effects \u2014 a reusable real-time video effects pipeline (filters, presets) shared by Raven RTC and Raven Live Streaming. Provider-agnostic: takes a MediaStreamTrack, returns a processed MediaStreamTrack.",
   "license": "MIT",

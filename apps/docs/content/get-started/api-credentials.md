@@ -35,13 +35,18 @@ rvk_dev_8Kd2nQxwYtLm.aG9wZXlvdWFyZWhhdmluZ2Fsb3ZlbHlkYXk
 └─┬─┘└┬┘└─────┬─────┘ └────────────────┬────────────────┘
   │   │       │                        │
   │   │       └ public id              └ secret — hashed server-side
-  │   └ environment
+  │   └ environment label (for you to read)
   └ prefix
 ```
 
-The environment is **inside the key**. A development key cannot reach
-production data however it is asked, because the environment is not
-something a request can specify.
+A development key cannot reach production data however it is asked, because
+**the environment is a property of the key's record** and is never something
+a request can specify. Authentication looks the key up by its public id and
+reads the environment off the row.
+
+The `dev`/`stg`/`prod` segment is a label so you can tell keys apart at a
+glance. It is not what is checked — editing it changes nothing, and a key
+minted without one (the seed script does this) authenticates normally.
 
 ## Use it
 
@@ -54,7 +59,7 @@ Both server SDKs require the key passed explicitly — neither scans the
 environment for you:
 
 ```ts
-import { Raven } from '@corvidhq/server';
+import { Raven } from '@ravenkash/server';
 
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
 ```

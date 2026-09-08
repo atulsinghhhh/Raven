@@ -37,8 +37,8 @@ canonical there and arguing with it costs more than it settles.
 
 ```bash
 # TypeScript / JavaScript / JSON
-pnpm format                       # write
-pnpm format:check                 # check (this is what CI runs)
+npm run format                    # write
+npm run format:check              # check (this is what CI runs)
 
 # Go
 cd services/sfu && gofmt -w .
@@ -62,7 +62,7 @@ save.
 > **fails until someone lands the pass**:
 >
 > ```bash
-> pnpm format
+> npm run format
 > git commit -am "style: adopt Prettier across the repo"
 > ```
 >
@@ -95,8 +95,8 @@ were fine.
 | `sdks/flutter/*` | `flutter analyze` + `flutter_lints` | `analysis_options.yaml` per package |
 
 ```bash
-pnpm lint                         # root config: apps/api + packages/*
-pnpm -r --if-present run lint     # each Next.js app's own config
+npm run lint                                # root config: apps/api + packages/*
+npm run lint --workspaces --if-present      # each Next.js app's own config
 
 cd services/sfu && golangci-lint run ./...
 cd sdks/python && ruff check . && mypy src
@@ -123,7 +123,7 @@ says why for each.
 
 ```bash
 # TypeScript — apps/api plus all eight packages
-pnpm -r --if-present run test
+npm run test --workspaces --if-present
 
 # The SFU: real Pion peers, real ICE/DTLS/SRTP, real RTP forwarding
 cd services/sfu && go test -race ./...
@@ -136,7 +136,7 @@ cd sdks/python && pytest
 cd sdks/flutter/raven_rtc && flutter test
 
 # End-to-end — needs a scratch Postgres and Chromium; see the README
-pnpm test:e2e
+npm run test:e2e
 ```
 
 Every Flutter and Python test runs headless. No emulator, no device, no
@@ -150,13 +150,13 @@ plainly in [rtc/test-matrix.md](./rtc/test-matrix.md).
 ## Running everything CI runs
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm --filter @raven/api run prisma:generate
-pnpm format:check
-pnpm lint && pnpm -r --if-present run lint
-pnpm --filter "./packages/*" run build
-pnpm -r --if-present run typecheck
-pnpm -r --if-present run test
+pnpm install --frozen-lockfile     # setup — npm can't reify this pnpm workspace's node_modules
+npm run prisma:generate --workspace=@raven/api
+npm run format:check
+npm run lint && npm run lint --workspaces --if-present
+npm run build --workspaces --if-present
+npm run typecheck --workspaces --if-present
+npm run test --workspaces --if-present
 
 cd services/sfu && gofmt -l . && go vet ./... && golangci-lint run ./... && go test -race ./...
 

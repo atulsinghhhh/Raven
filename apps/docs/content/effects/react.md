@@ -1,17 +1,17 @@
 ---
 title: Effects in React
-description: useCameraEffects() — Raven Effects for @corvidhq/react, built on the same store/hook pattern as every other hook in the package.
+description: useCameraEffects() — Raven Effects for @ravenkash/react, built on the same store/hook pattern as every other hook in the package.
 ---
 
-`@corvidhq/react` doesn't implement a separate effects engine — it
-consumes `@corvidhq/effects` and `@corvidhq/rtc`'s `LocalTrack.attachEffects()`
-exactly like the rest of the package wraps `@corvidhq/rtc`.
+`@ravenkash/react` doesn't implement a separate effects engine — it
+consumes `@ravenkash/effects` and `@ravenkash/rtc`'s `LocalTrack.attachEffects()`
+exactly like the rest of the package wraps `@ravenkash/rtc`.
 
 ## `useCameraEffects()`
 
 ```tsx
 'use client';
-import { useCameraEffects, effectFilters, effectPresets } from '@corvidhq/react';
+import { useCameraEffects, effectFilters, effectPresets } from '@ravenkash/react';
 
 function EffectsPanel() {
   const effects = useCameraEffects();
@@ -67,12 +67,12 @@ prop, or read `effects.pipeline` from a parent).
 
 ## Building configs without a hook
 
-`effectFilters`/`effectPresets` (re-exports of `@corvidhq/effects`'s
+`effectFilters`/`effectPresets` (re-exports of `@ravenkash/effects`'s
 `filters`/`presets`) work outside React too — useful for validating a
 saved user preference before rendering:
 
 ```ts
-import { effectFilters, isEffectsError } from '@corvidhq/react';
+import { effectFilters, isEffectsError } from '@ravenkash/react';
 
 try {
   effectFilters.brightness({ value: userSavedValue });

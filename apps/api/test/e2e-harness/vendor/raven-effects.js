@@ -82,13 +82,13 @@ var TypedEventEmitter = class {
 
 // src/security.ts
 var EFFECT_SECURITY_LIMITS = {
-  /** Max bytes for an effect asset (e.g. an AR overlay image) — see §18/§20. */
+  /** Max bytes for an effect asset, an AR overlay image say. See §18/§20. */
   MAX_ASSET_BYTES: 5 * 1024 * 1024,
   /** Max width/height for an effect asset, to bound GPU texture memory. */
   MAX_ASSET_DIMENSION: 4096,
-  /** Effect asset MIME types Raven Effects will decode. Never SVG (script risk) or arbitrary binary. */
+  /** Asset MIME types Raven Effects will decode. Never SVG (script risk), never arbitrary binary. */
   ALLOWED_ASSET_TYPES: ["image/png", "image/jpeg", "image/webp"],
-  /** A pipeline is real-time infrastructure, not a compositor — cap the chain length. */
+  /** A pipeline is real-time infrastructure, not a compositor. Cap the chain length. */
   MAX_PIPELINE_LENGTH: 16
 };
 function validateParam(name, value, spec) {
@@ -414,9 +414,10 @@ var beautySmoothDefinition = {
   },
   op: {
     kind: "spatial",
-    // Real GLSL work happens in engine/webgl-engine.ts, which maps `amount` to
-    // an equivalent blur radius and reuses its separable blur pass — see the
-    // module doc there for why blur and beautySmooth share one code path.
+    // The real GLSL work happens in engine/webgl-engine.ts, which maps
+    // `amount` onto an equivalent blur radius and reuses its separable blur
+    // pass. The module doc there explains why blur and beautySmooth share
+    // one code path.
     renderGL() {
     },
     applyToImageData(imageData, params) {
@@ -996,7 +997,7 @@ var EffectsPipeline = class extends TypedEventEmitter {
   get isEnabled() {
     return this._isEnabled;
   }
-  /** Adds a filter (from `raven.effects.filters.*`) or preset entry to the end of the pipeline. */
+  /** Appends a filter from `raven.effects.filters.*`, or a preset entry, to the pipeline. */
   add(config) {
     assertPipelineNotFull(this._effects.length);
     const definition = FILTER_DEFINITIONS[config.type];
@@ -1018,10 +1019,11 @@ var EffectsPipeline = class extends TypedEventEmitter {
     return instance;
   }
   /**
-   * Registers a trusted, in-process custom effect (Phase 16 §19). Raven
-   * Effects never loads effects from a URL or executes untrusted code —
-   * `effect` must already be a real object in the host application's own
-   * bundle. See security.ts.
+   * Registers a trusted, in-process custom effect (Phase 16 §19).
+   *
+   * Raven Effects never loads an effect from a URL and never executes
+   * untrusted code. `effect` has to already be a real object in the host
+   * application's own bundle. See security.ts.
    */
   addCustomEffect(effect, initialParams = {}) {
     assertPipelineNotFull(this._effects.length);
@@ -1045,7 +1047,7 @@ var EffectsPipeline = class extends TypedEventEmitter {
     this.emit("effectAdded", instance);
     return instance;
   }
-  /** Adds every filter in a preset (e.g. `raven.effects.presets.cinematic()`), in order. */
+  /** Adds every filter in a preset, in order. `raven.effects.presets.cinematic()`, say. */
   applyPreset(preset) {
     return preset().map((config) => this.add(config));
   }
@@ -1062,7 +1064,7 @@ var EffectsPipeline = class extends TypedEventEmitter {
     this.engine?.rebuild();
     this.emit("effectRemoved", id);
   }
-  /** Updates one effect's parameters (partial merge) — e.g. `effects.update(id, { value: 0.5 })`. */
+  /** Updates one effect's parameters, merging partially. `effects.update(id, { value: 0.5 })`. */
   update(effectId, params) {
     const instance = this.require(effectId);
     const registration = this.customRegistrations.get(effectId);
@@ -1081,7 +1083,7 @@ var EffectsPipeline = class extends TypedEventEmitter {
     this.engine?.rebuild();
     this.emit("effectUpdated", instance);
   }
-  /** Moves an effect to a new index in the chain — order matters for how effects compose. */
+  /** Moves an effect to a new index. Order matters for how effects compose. */
   reorder(effectId, toIndex) {
     const fromIndex = this._effects.findIndex((e) => e.id === effectId);
     if (fromIndex === -1) return;
@@ -1094,7 +1096,7 @@ var EffectsPipeline = class extends TypedEventEmitter {
       this._effects.map((e) => e.id)
     );
   }
-  /** With no id: enables the whole pipeline (bypass off). With an id: enables just that effect. */
+  /** No id enables the whole pipeline (bypass off). An id enables just that effect. */
   enable(effectId) {
     if (effectId) {
       this.require(effectId).enabled = true;
@@ -1104,7 +1106,7 @@ var EffectsPipeline = class extends TypedEventEmitter {
     }
     this.emit("enabled", effectId);
   }
-  /** With no id: disables the whole pipeline (camera publishes unmodified). With an id: disables just that effect. */
+  /** No id disables the whole pipeline, so the camera publishes unmodified. An id disables just that effect. */
   disable(effectId) {
     if (effectId) {
       this.require(effectId).enabled = false;
@@ -1131,9 +1133,9 @@ var EffectsPipeline = class extends TypedEventEmitter {
     return instance;
   }
   /**
-   * @internal Called by `@corvidhq/rtc`'s `LocalTrack.attachEffects()` —
-   * not part of the public surface a developer calls directly. Starts
-   * processing `sourceTrack` and returns the live output track to publish.
+   * @internal Called by `@ravenkash/rtc`'s `LocalTrack.attachEffects()`.
+   * Nobody calls this directly. Starts processing `sourceTrack` and returns
+   * the live output track to publish.
    */
   async attachToTrack(sourceTrack, engineOverride) {
     if (this.engine) {
@@ -1142,7 +1144,7 @@ var EffectsPipeline = class extends TypedEventEmitter {
     if (!hasDocument()) {
       this.emit(
         "error",
-        new EffectsError("RAVEN_EFFECT_UNSUPPORTED", "Raven Effects has no DOM to render into in this environment \u2014 the camera track is unmodified.")
+        new EffectsError("RAVEN_EFFECT_UNSUPPORTED", "Raven Effects has no DOM to render into in this environment; the camera track is unmodified.")
       );
       return sourceTrack;
     }
@@ -1245,7 +1247,7 @@ var UnsupportedFaceDetector = class {
   async detect() {
     throw new EffectsError(
       "RAVEN_EFFECT_UNSUPPORTED",
-      "Face detection is planned but not implemented in this Raven Effects release. isSupported() reports this \u2014 check it before calling detect()."
+      "Face detection is planned but not implemented in this Raven Effects release. isSupported() reports this; check it before calling detect()."
     );
   }
   onFacesChanged() {
@@ -1265,7 +1267,7 @@ var UnsupportedBackgroundProcessor = class {
   configure() {
     throw new EffectsError(
       "RAVEN_EFFECT_UNSUPPORTED",
-      "Background blur/replacement is planned but not implemented in this Raven Effects release \u2014 it requires a segmentation model this release does not ship."
+      "Background blur/replacement is planned but not implemented in this Raven Effects release; it requires a segmentation model this release does not ship."
     );
   }
 };
@@ -1284,7 +1286,7 @@ var UnsupportedAROverlay = class {
   attach() {
     throw new EffectsError(
       "RAVEN_EFFECT_UNSUPPORTED",
-      "AR overlays are planned but not implemented in this Raven Effects release \u2014 they require face tracking, which this release does not ship."
+      "AR overlays are planned but not implemented in this Raven Effects release; they require face tracking, which this release does not ship."
     );
   }
   detach() {

@@ -44,7 +44,7 @@ DATABASE_URL="$E2E_DB" DIRECT_URL="$E2E_DB" pnpm --filter @raven/api test:e2e
 pnpm --filter @raven/api exec playwright install chromium
 
 # The web SDK against a fake RTCPeerConnection.
-pnpm --filter @corvidhq/rtc test
+pnpm --filter @ravenkash/rtc test
 
 # The media-plane scale script, which drives the Go tests above.
 scripts/rtc-load-test.sh --with-100

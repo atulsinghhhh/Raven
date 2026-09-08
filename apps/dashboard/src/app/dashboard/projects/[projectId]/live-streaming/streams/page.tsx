@@ -73,7 +73,7 @@ export default async function LiveStreamsPage({
           description={
             status
               ? 'Try a different status, or view all streams.'
-              : 'Streams are created from your backend — POST /v1/live-streams via @corvidhq/server or raven-sdk — and appear here the moment they exist.'
+              : 'Streams are created from your backend — POST /v1/live-streams via @ravenkash/server or raven-sdk — and appear here the moment they exist.'
           }
           action={
             status ? (

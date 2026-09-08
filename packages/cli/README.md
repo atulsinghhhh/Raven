@@ -1,4 +1,4 @@
-# @corvidhq/cli
+# @ravenkash/cli
 
 Raven from the terminal — manage projects, API keys, rooms and live
 streams, and wire up a local app for RTC development.
@@ -8,13 +8,13 @@ Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time co
 ## Install
 
 ```bash
-npm install -g @corvidhq/cli
+npm install -g @ravenkash/cli
 ```
 
 Or run it without installing:
 
 ```bash
-npx @corvidhq/cli --help
+npx @ravenkash/cli --help
 ```
 
 ## Use

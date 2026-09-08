@@ -1,18 +1,18 @@
-# @corvidhq/react-native
+# @ravenkash/react-native
 
 Raven for React Native — real-time video, voice and messaging on iOS and
 Android, with the same API as Raven Web.
 
 Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
 
-Reuses [`@corvidhq/rtc`](https://www.npmjs.com/package/@corvidhq/rtc)
+Reuses [`@ravenkash/rtc`](https://www.npmjs.com/package/@ravenkash/rtc)
 unmodified: the protocol, reconnection and track handling are the same
 code that runs in the browser, not a parallel implementation that drifts.
 
 ## Install
 
 ```bash
-npm install @corvidhq/react-native @corvidhq/rtc @corvidhq/chat @corvidhq/effects
+npm install @ravenkash/react-native @ravenkash/rtc @ravenkash/chat @ravenkash/effects
 npm install react-native-webrtc react-native-incall-manager
 ```
 
@@ -26,7 +26,7 @@ Camera and microphone permissions must be declared in `Info.plist` and
 ## Use
 
 ```tsx
-import { Raven, RavenVideoView } from '@corvidhq/react-native';
+import { Raven, RavenVideoView } from '@ravenkash/react-native';
 
 const raven = new Raven({ token, endpoint, iceServers });
 
@@ -42,7 +42,7 @@ await room.enableMicrophone();
 ### Live streaming
 
 ```tsx
-import { joinLiveStream } from '@corvidhq/react-native';
+import { joinLiveStream } from '@ravenkash/react-native';
 
 const stream = await joinLiveStream(credentials);
 ```

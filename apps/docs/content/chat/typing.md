@@ -68,9 +68,9 @@ defenses, because relying on any one alone is how the bug gets back in:
 
 1. **Server-side TTL** — the Redis key expires after 7 seconds
    regardless of what any client sends.
-2. **Client-side timeout** — `@corvidhq/chat` arms a local timer on
+2. **Client-side timeout** — `@ravenkash/chat` arms a local timer on
    `startTyping()` and stops automatically after a pause.
-3. **Receiver-side expiry** — `@corvidhq/react`'s store expires a typing
+3. **Receiver-side expiry** — `@ravenkash/react`'s store expires a typing
    user locally after 8 seconds even if the stop frame is lost in transit.
 
 You never see your own typing event echoed back — there's no reason a

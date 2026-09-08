@@ -151,7 +151,7 @@ const ERROR_CODE_ALLOWLIST = new Set([
 
 function checkErrorCodes(files, gt) {
   const known = new Set(gt.vocabularies.ravenErrorCodes.map((c) => c.value));
-  const effects = new Set(gt.vocabularies.sdkErrorCodes['@corvidhq/effects'] ?? []);
+  const effects = new Set(gt.vocabularies.sdkErrorCodes['@ravenkash/effects'] ?? []);
 
   for (const slug of files) {
     const text = readSlug(slug);
@@ -193,7 +193,7 @@ function checkTsImports(files, gt) {
       if (!['ts', 'tsx', 'js', 'jsx'].includes(block.lang)) continue;
 
       for (const m of block.body.matchAll(
-        /import\s+(?:type\s+)?\{([\s\S]*?)\}\s*from\s*'(@corvidhq\/[a-z-]+(?:\/[a-z]+)?)'/g,
+        /import\s+(?:type\s+)?\{([\s\S]*?)\}\s*from\s*'(@ravenkash\/[a-z-]+(?:\/[a-z]+)?)'/g,
       )) {
         const specifier = m[2];
         const known = symbols.get(specifier);

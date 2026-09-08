@@ -4,7 +4,7 @@ description: How to use Raven's SDKs today, before they're published to npm and 
 ---
 
 None of Raven's SDKs are published to a package registry yet. Every
-`npm install @corvidhq/...` and `pip install` command in these docs shows
+`npm install @ravenkash/...` and `pip install` command in these docs shows
 what installation *will* look like once they are. Raven's source isn't
 public — this page is for a checkout your Raven contact has already
 given you access to, not something to clone from a public URL.
@@ -18,8 +18,8 @@ given you access to, not something to clone from a public URL.
 
 ```bash
 cd <your Raven checkout>
-pnpm install
-pnpm --filter "./packages/*" run build
+pnpm install                              # setup — this is a pnpm workspace
+npm run build --workspaces --if-present
 ```
 
 The build step matters: every package's `package.json` points at
@@ -36,12 +36,12 @@ version:
 ```json
 {
   "dependencies": {
-    "@corvidhq/rtc": "file:../Raven/packages/sdk",
-    "@corvidhq/chat": "file:../Raven/packages/chat-sdk",
-    "@corvidhq/client": "file:../Raven/packages/client",
-    "@corvidhq/react": "file:../Raven/packages/react-sdk",
-    "@corvidhq/react-native": "file:../Raven/packages/react-native-sdk",
-    "@corvidhq/server": "file:../Raven/packages/server-sdk"
+    "@ravenkash/rtc": "file:../Raven/packages/sdk",
+    "@ravenkash/chat": "file:../Raven/packages/chat-sdk",
+    "@ravenkash/client": "file:../Raven/packages/client",
+    "@ravenkash/react": "file:../Raven/packages/react-sdk",
+    "@ravenkash/react-native": "file:../Raven/packages/react-native-sdk",
+    "@ravenkash/server": "file:../Raven/packages/server-sdk"
   }
 }
 ```
@@ -51,18 +51,18 @@ Adjust the relative paths to wherever you cloned Raven, then
 show them:
 
 ```ts
-import { createRTCClient } from '@corvidhq/rtc';
+import { createRTCClient } from '@ravenkash/rtc';
 ```
 
 | Package | Path in the repo |
 |---|---|
-| `@corvidhq/rtc` | `packages/sdk` |
-| `@corvidhq/chat` | `packages/chat-sdk` |
-| `@corvidhq/client` | `packages/client` |
-| `@corvidhq/react` | `packages/react-sdk` |
-| `@corvidhq/react-native` | `packages/react-native-sdk` |
-| `@corvidhq/server` | `packages/server-sdk` |
-| `@corvidhq/cli` | `packages/cli` |
+| `@ravenkash/rtc` | `packages/sdk` |
+| `@ravenkash/chat` | `packages/chat-sdk` |
+| `@ravenkash/client` | `packages/client` |
+| `@ravenkash/react` | `packages/react-sdk` |
+| `@ravenkash/react-native` | `packages/react-native-sdk` |
+| `@ravenkash/server` | `packages/server-sdk` |
+| `@ravenkash/cli` | `packages/cli` |
 
 ### The CLI
 
@@ -112,10 +112,10 @@ The SDKs need a Raven control plane to talk to. To run one locally:
 
 ```bash
 cp .env.example .env
-pnpm infra:up       # Redis, the media server, TURN, the API
-pnpm infra:verify   # confirms everything is healthy
-pnpm db:migrate     # apply migrations to your Postgres
-pnpm db:seed        # optional: a demo developer, project, key, and room
+npm run infra:up       # Redis, the media server, TURN, the API
+npm run infra:verify   # confirms everything is healthy
+npm run db:migrate     # apply migrations to your Postgres
+npm run db:seed        # optional: a demo developer, project, key, and room
 ```
 
 `.env` needs a `DATABASE_URL` and `DIRECT_URL` before any of this works —
@@ -131,5 +131,5 @@ The API is then at `http://localhost:4100`, with interactive docs at
 
 Once the packages are published to a registry, every install command in
 these docs becomes literally correct and this page is deleted. Until
-then, treat any `npm install @corvidhq/...` you see as aspirational —
+then, treat any `npm install @ravenkash/...` you see as aspirational —
 this page is the one that reflects reality.

@@ -373,7 +373,7 @@ export interface RtcFleetMetrics {
 //
 // Inspection only, same rule as Rooms and Chat. This dashboard never
 // creates, starts, updates or ends a stream. Those are calls your own
-// backend makes with @corvidhq/server or raven-sdk. The dashboard shows what
+// backend makes with @ravenkash/server or raven-sdk. The dashboard shows what
 // already exists, the same way `rooms` shows rooms nobody clicked "create"
 // for in here.
 // ---------------------------------------------------------------------------

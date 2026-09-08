@@ -44,5 +44,5 @@ export type { LogLevel } from './logger';
 export { CHAT_SDK_VERSION } from './version';
 
 // Pointedly not exported: SocketTransport, RestClient, the frame
-// vocabulary, every other internal. Nobody using @corvidhq/chat should ever
+// vocabulary, every other internal. Nobody using @ravenkash/chat should ever
 // need to know a WebSocket is involved (spec §57).

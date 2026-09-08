@@ -1,7 +1,7 @@
 {
-  "name": "@corvidhq/client",
+  "name": "@ravenkash/client",
   "version": "0.1.0",
-  "description": "Raven for the browser \u2014 RTC and chat behind one object. A thin facade over @corvidhq/rtc and @corvidhq/chat.",
+  "description": "Raven for the browser \u2014 RTC and chat behind one object. A thin facade over @ravenkash/rtc and @ravenkash/chat.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -38,8 +38,8 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@corvidhq/chat": "workspace:*",
-    "@corvidhq/rtc": "workspace:*"
+    "@ravenkash/chat": "workspace:*",
+    "@ravenkash/rtc": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

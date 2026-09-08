@@ -7,7 +7,7 @@ import {
   type PresenceStatus,
   type RavenChatError,
   type ReadState,
-} from '@corvidhq/chat';
+} from '@ravenkash/chat';
 
 export interface RavenChatSnapshot {
   connectionState: ChatConnectionState;
@@ -50,7 +50,7 @@ const INITIAL_SNAPSHOT: RavenChatSnapshot = {
  * anyone using both learns one pattern instead of two (spec §43, extend
  * the existing React ecosystem, not building a parallel one).
  *
- * The actual chat logic all lives in `@corvidhq/chat`. This class only
+ * The actual chat logic all lives in `@ravenkash/chat`. This class only
  * translates. It never touches a WebSocket.
  */
 export class RavenChatStore {

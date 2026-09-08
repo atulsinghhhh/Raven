@@ -6,7 +6,7 @@ description: Browser support, common failure modes, and what to check first.
 ## Checking browser support
 
 ```ts
-import { isBrowserSupported, getBrowserSupportDetails } from '@corvidhq/rtc';
+import { isBrowserSupported, getBrowserSupportDetails } from '@ravenkash/rtc';
 
 if (!isBrowserSupported()) {
   const { missing } = getBrowserSupportDetails(); // e.g. ['RTCPeerConnection']

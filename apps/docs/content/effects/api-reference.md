@@ -1,13 +1,13 @@
 ---
 title: Effects API Reference
-description: Full type signatures for @corvidhq/effects — pipeline, filters, presets, errors, security, and the foundations for face/beauty/background/AR.
+description: Full type signatures for @ravenkash/effects — pipeline, filters, presets, errors, security, and the foundations for face/beauty/background/AR.
 ---
 
 ## `effects`
 
-The top-level object (`import { effects } from '@corvidhq/effects'`, or
+The top-level object (`import { effects } from '@ravenkash/effects'`, or
 `raven.effects` if you're composing it yourself alongside
-`@corvidhq/client`):
+`@ravenkash/client`):
 
 ```ts
 const effects = {

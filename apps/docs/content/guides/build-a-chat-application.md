@@ -11,7 +11,7 @@ is online, typing indicators, and history that pages backwards.
 ## Prerequisites
 
 - A project and an API key — [API credentials](/get-started/api-credentials).
-- `npm install @corvidhq/chat` (add `@corvidhq/react` for the hooks).
+- `npm install @ravenkash/chat` (add `@ravenkash/react` for the hooks).
 
 ## Implementation
 
@@ -21,7 +21,7 @@ A client cannot invent a conversation or add itself to one. Your backend
 does both:
 
 ```ts
-import { Raven } from '@corvidhq/server';
+import { Raven } from '@ravenkash/server';
 
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
 
@@ -55,7 +55,7 @@ app.post('/chat-token', async (req, res) => {
 <Tab title="Web">
 
 ```ts
-import { createChatClient } from '@corvidhq/chat';
+import { createChatClient } from '@ravenkash/chat';
 
 const minted = await fetch('/chat-token', { method: 'POST' }).then((r) => r.json());
 
@@ -87,7 +87,7 @@ and one that silently stops at the hour mark.
 
 ```tsx
 'use client';
-import { RavenChat, useMessages, useTyping, usePresence } from '@corvidhq/react/chat';
+import { RavenChat, useMessages, useTyping, usePresence } from '@ravenkash/react/chat';
 
 function Panel({ minted }) {
   return (

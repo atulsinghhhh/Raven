@@ -31,7 +31,7 @@ Your backend calls Raven with its API key:
 Raven mints a short-lived, narrowly scoped token
         │
         ▼
-Client uses that token with @corvidhq/rtc or @corvidhq/chat — never the API key
+Client uses that token with @ravenkash/rtc or @ravenkash/chat — never the API key
 ```
 
 The critical property: **a client can never request its own token.**

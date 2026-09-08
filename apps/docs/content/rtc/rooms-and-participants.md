@@ -26,7 +26,7 @@ room.on('participantLeft', (participant) => {});
 
 ```tsx
 'use client';
-import { useLocalParticipant, useRemoteParticipants, useParticipants } from '@corvidhq/react';
+import { useLocalParticipant, useRemoteParticipants, useParticipants } from '@ravenkash/react';
 
 function Roster() {
   const local = useLocalParticipant();
@@ -43,7 +43,7 @@ Each hook re-renders only when its own slice changes — `useRemoteParticipants(
 <Tab title="React Native">
 
 ```tsx
-import { useParticipants, useRemoteParticipants } from '@corvidhq/react-native';
+import { useParticipants, useRemoteParticipants } from '@ravenkash/react-native';
 
 function Roster({ room }) {
   const everyone = useParticipants(room);
@@ -160,7 +160,7 @@ room.on('trackUnsubscribed', (track) => {
 <Tab title="React">
 
 ```tsx
-import { ParticipantView } from '@corvidhq/react';
+import { ParticipantView } from '@ravenkash/react';
 <ParticipantView participant={participant} />
 ```
 
@@ -172,7 +172,7 @@ instead.
 <Tab title="React Native">
 
 ```tsx
-import { RavenVideoView } from '@corvidhq/react-native';
+import { RavenVideoView } from '@ravenkash/react-native';
 <RavenVideoView participant={participant} room={room} style={{ flex: 1 }} />
 ```
 

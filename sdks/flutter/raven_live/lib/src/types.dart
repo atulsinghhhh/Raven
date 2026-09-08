@@ -82,10 +82,10 @@ class RavenLiveStreamChatCredentials {
 }
 
 /// Everything [RavenLiveStream.join] needs, minted server-side by
-/// `@corvidhq/server`'s `addHost()`/`createViewerToken()` (or the
+/// `@ravenkash/server`'s `addHost()`/`createViewerToken()` (or the
 /// equivalent `raven-sdk` call): never construct one of these by hand.
 ///
-/// Mirrors `@corvidhq/client`'s `LiveStreamCredentials` field-for-field,
+/// Mirrors `@ravenkash/client`'s `LiveStreamCredentials` field-for-field,
 /// which is the reason [RavenLiveStreamCredentials.fromJson] accepts
 /// exactly the JSON your backend forwards without any translation.
 class RavenLiveStreamCredentials {

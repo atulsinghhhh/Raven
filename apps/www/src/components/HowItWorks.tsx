@@ -21,7 +21,7 @@ const STEPS = [
   },
   {
     title: 'Connect from the client',
-    body: 'Hand that token to @corvidhq/rtc, @corvidhq/chat, or @corvidhq/client — plus @corvidhq/effects for filters on the camera track. The SDK never sees your API key, and can only do what the token explicitly grants.',
+    body: 'Hand that token to @ravenkash/rtc, @ravenkash/chat, or @ravenkash/client — plus @ravenkash/effects for filters on the camera track. The SDK never sees your API key, and can only do what the token explicitly grants.',
   },
   {
     title: 'Build the feature, not the plumbing',

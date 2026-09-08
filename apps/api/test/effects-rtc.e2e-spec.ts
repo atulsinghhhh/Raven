@@ -16,7 +16,7 @@ import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics'
  * Real-browser end-to-end test of Phase 16 (Raven Effects) on RTC: a real
  * Chromium instance, a real SFU connection (`docker compose up -d`,
  * same as every other suite in this file's family), and the actual
- * `@corvidhq/rtc`/`@corvidhq/effects` browser builds. Chrome's fake camera
+ * `@ravenkash/rtc`/`@ravenkash/effects` browser builds. Chrome's fake camera
  * device stands in for real hardware; the pipeline runs against it exactly
  * as it would against a real feed.
  *

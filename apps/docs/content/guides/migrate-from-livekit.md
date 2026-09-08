@@ -27,7 +27,7 @@ from having done it rather than from reading a comparison table.
 | Track | [Track](/concepts/track) | Raven declares the *source* — `camera`, `microphone`, `screenShare`. |
 | Access token | [Token](/concepts/token) | Minted server-side. Max 6 hours; no non-expiring option. |
 | API key / secret | [API key](/concepts/api-key) | One `rvk_<env>_id.secret` string rather than a key/secret pair. |
-| Server SDK | `@corvidhq/server`, `raven-sdk` | Same job. |
+| Server SDK | `@ravenkash/server`, `raven-sdk` | Same job. |
 | Egress / Ingress | — | **No equivalent.** Raven has no recording and no RTMP ingest. |
 | Webhooks | [Webhooks](/webhooks) | Raven's fire for chat and live-stream events, not RTC lifecycle. |
 
@@ -57,7 +57,7 @@ Two differences that matter:
 ### Client connection
 
 ```ts
-import { createRTCClient } from '@corvidhq/rtc';
+import { createRTCClient } from '@ravenkash/rtc';
 
 const client = createRTCClient(credentials);
 const room = await client.join(credentials.roomId);

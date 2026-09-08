@@ -162,7 +162,7 @@ and the media server forwards the layer a subscriber can use.
 
 Explicit per-participant layer selection is exposed on **Flutter only**
 today — `RavenRoom.requestLayer(participant, kind, layer)`. The signaling
-protocol carries the frame, but `@corvidhq/rtc` neither sends it nor offers
+protocol carries the frame, but `@ravenkash/rtc` neither sends it nor offers
 a method. On the web, control what you render and `detach()` what you hide.
 See [Known limitations](/reference/known-limitations).
 

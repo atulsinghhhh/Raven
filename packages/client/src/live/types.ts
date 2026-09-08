@@ -16,7 +16,7 @@ export interface LiveStreamCredentials {
   /** The stream's id (`stream_...`), which doubles as the RTC room this joins. */
   streamId: string;
   role: LiveStreamRole;
-  /** The `rtc` field from the mint response. Forward it untouched, like any other `@corvidhq/rtc` token. */
+  /** The `rtc` field from the mint response. Forward it untouched, like any other `@ravenkash/rtc` token. */
   rtc: {
     token: string;
     endpoint: string;

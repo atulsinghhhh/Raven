@@ -11,10 +11,10 @@ well.
 | Vocabulary | Where you see it | Count |
 |---|---|---|
 | [`RAVEN_*`](#http-error-codes) | The `code` field of any HTTP error body | 29 |
-| [`RTCErrorCode`](#rtc-sdk-errors) | `@corvidhq/rtc` throws and `error` events | 13 |
-| [`ChatErrorCode`](#chat-errors) | The chat WebSocket `error` frame and `@corvidhq/chat` | 26 |
+| [`RTCErrorCode`](#rtc-sdk-errors) | `@ravenkash/rtc` throws and `error` events | 13 |
+| [`ChatErrorCode`](#chat-errors) | The chat WebSocket `error` frame and `@ravenkash/chat` | 26 |
 | [`SignalingErrorCode`](#signaling-errors) | The RTC signaling WebSocket `error` frame | 15 |
-| [`EffectsErrorCode`](#effects-errors) | `@corvidhq/effects` | 5 |
+| [`EffectsErrorCode`](#effects-errors) | `@ravenkash/effects` | 5 |
 
 Plus [RTC error *categories*](#rtc-error-categories), which are a
 server-side classification of a failure that already happened — not a
@@ -109,7 +109,7 @@ until you know which limit you crossed.
 
 ### Server-SDK-local codes
 
-Raised by `@corvidhq/server` and `raven-sdk` before a request leaves the
+Raised by `@ravenkash/server` and `raven-sdk` before a request leaves the
 process, so they never appear in an HTTP body — but they share the
 namespace so one `switch` covers everything:
 
@@ -140,7 +140,7 @@ information the old ones did not. It is deprecated and will be removed.
 
 ## RTC SDK errors
 
-`RTCError` is the only error type `@corvidhq/rtc` throws or emits. Never a
+`RTCError` is the only error type `@ravenkash/rtc` throws or emits. Never a
 raw browser `DOMException`.
 
 | Code | Cause | Fix |
@@ -164,7 +164,7 @@ permanent fact about the device that a UI should act on, the other is a
 failure worth retrying.
 
 ```ts
-import { isRTCError } from '@corvidhq/rtc';
+import { isRTCError } from '@ravenkash/rtc';
 
 room.on('error', (error) => {
   if (!isRTCError(error)) return;
@@ -203,7 +203,7 @@ claim of certainty a server cannot back up.
 
 ## Chat errors
 
-26 codes on the `@corvidhq/chat` side, 22 of which the gateway can put on
+26 codes on the `@ravenkash/chat` side, 22 of which the gateway can put on
 an `error` frame. They map one-to-one onto SDK error classes so you can
 branch on the class rather than string-matching.
 
@@ -255,7 +255,7 @@ violation or a Redis timeout is logged server-side and surfaces as
 | `4440` | Token expired | Yes, with a **fresh** token |
 | `4500` | Server shutting down | Yes, after backing off — a deploy, not a fault |
 
-`@corvidhq/chat` treats `4401` and `4403` as terminal and reports `failed`
+`@ravenkash/chat` treats `4401` and `4403` as terminal and reports `failed`
 rather than retrying forever.
 
 ## Signaling errors

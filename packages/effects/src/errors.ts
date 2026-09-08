@@ -1,6 +1,6 @@
 /**
  * Stable typed error codes Raven Effects raises. Never a raw DOMException
- * or WebGL error. @corvidhq/rtc's RTCError is the sibling convention this
+ * or WebGL error. @ravenkash/rtc's RTCError is the sibling convention this
  * mirrors.
  */
 export type EffectsErrorCode =

@@ -162,14 +162,14 @@ Prisma migrations live in `apps/api/prisma/migrations/`. Locally:
 
 ```bash
 cd apps/api
-pnpm prisma:migrate:dev --name <description>   # create + apply a new migration
-pnpm prisma:generate                            # regenerate the client after schema changes
-pnpm prisma:studio                              # browse the database
+npm run prisma:migrate:dev -- --name <description>   # create + apply a new migration
+npm run prisma:generate                               # regenerate the client after schema changes
+npm run prisma:studio                                 # browse the database
 ```
 
 In Docker, a one-shot `migrate` service runs `prisma migrate deploy`
 (apply-only, never generates new migrations) and the `api` container waits
-for it to finish — so `pnpm infra:up` still needs no manual migrate step.
+for it to finish — so `npm run infra:up` still needs no manual migrate step.
 The API image itself does not migrate: production scales it to N
 instances, and N of them migrating at once through a transaction pooler
 contend for one advisory lock. See `docker-compose.yml`'s `migrate`
@@ -259,9 +259,9 @@ never become a source of infrastructure reconnaissance.
 
 ## Testing
 
-Root-level shortcuts: `pnpm test` (unit), `pnpm test:e2e` (e2e), `pnpm dev`
-(hot-reload API on the host), `pnpm db:migrate` (create + apply a
-migration), `pnpm db:seed` (seed a demo developer/project/key/room).
+Root-level shortcuts: `npm test` (unit), `npm run test:e2e` (e2e), `npm run dev`
+(hot-reload API on the host), `npm run db:migrate` (create + apply a
+migration), `npm run db:seed` (seed a demo developer/project/key/room).
 
 - **Unit** (30 tests): permission-mapping logic, password hashing, API
   key verification (including that the pepper is actually load-bearing,

@@ -1,10 +1,10 @@
-# @corvidhq/chat — Browser SDK
+# @ravenkash/chat — Browser SDK
 
-`@corvidhq/chat` is Raven's browser SDK for real-time messaging. Connect, send,
+`@ravenkash/chat` is Raven's browser SDK for real-time messaging. Connect, send,
 listen — without writing a line of WebSocket code, a reconnect loop, a
 heartbeat, or message-ordering logic.
 
-It is separate from `@corvidhq/rtc` on purpose. Media and messaging have almost
+It is separate from `@ravenkash/rtc` on purpose. Media and messaging have almost
 nothing in common at the transport layer, and one SDK doing both would force
 every video app to ship a message store and every chat app to ship WebRTC.
 They compose cleanly when you want both — see
@@ -13,7 +13,7 @@ They compose cleanly when you want both — see
 ## Installation
 
 ```bash
-npm install @corvidhq/chat
+npm install @ravenkash/chat
 ```
 
 Chrome, Firefox, Safari, Edge (current versions). Native mobile is out of
@@ -37,7 +37,7 @@ for a token scoped to that one user:
 
 ```js
 // backend
-import { Raven } from '@corvidhq/server';
+import { Raven } from '@ravenkash/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 const token = await raven.chat.createToken({
@@ -53,7 +53,7 @@ receives an already-minted token.
 ## Quick start
 
 ```js
-import { createChatClient } from '@corvidhq/chat';
+import { createChatClient } from '@ravenkash/chat';
 
 const chat = createChatClient({
   token: session.token,
@@ -145,7 +145,7 @@ chat.on('reconnected', async () => {
 });
 ```
 
-`@corvidhq/react`'s store does this automatically.
+`@ravenkash/react`'s store does this automatically.
 
 ## Messages
 
@@ -236,7 +236,7 @@ import {
   RavenRoomError,
   RavenAttachmentError,
   isRavenChatError,
-} from '@corvidhq/chat';
+} from '@ravenkash/chat';
 
 try {
   await chat.sendMessage({ text });
@@ -257,10 +257,10 @@ errors fire the `error` event.
 
 ## React
 
-`@corvidhq/react` ships chat hooks alongside the existing RTC ones:
+`@ravenkash/react` ships chat hooks alongside the existing RTC ones:
 
 ```jsx
-import { RavenChat, useMessages, useTyping, usePresence } from '@corvidhq/react';
+import { RavenChat, useMessages, useTyping, usePresence } from '@ravenkash/react';
 
 function App({ session }) {
   return (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
-import type { RTCClientConfig, RTCError } from '@corvidhq/rtc';
+import type { RTCClientConfig, RTCError } from '@ravenkash/rtc';
 import { RavenStoreContext } from './context';
 import { RavenStore } from './store';
 
@@ -21,7 +21,7 @@ export interface RavenRoomProps extends RTCClientConfig {
 }
 
 /**
- * The provider every `@corvidhq/react` hook and component needs. Also
+ * The provider every `@ravenkash/react` hook and component needs. Also
  * usable directly as the "RavenRoom" primitive from the Phase 11 spec.
  *
  * Owns exactly one `RTCClient` and `Room` for its whole lifetime, and
@@ -42,7 +42,7 @@ export function RavenRoom({ room: roomId, autoConnect = true, fallback, onError,
 
   // `room`, token and the rest are read once at mount and pointedly not
   // re-applied on change. An RTC token is minted for exactly one join, the
-  // same one-shot model @corvidhq/rtc itself uses. To swap the token,
+  // same one-shot model @ravenkash/rtc itself uses. To swap the token,
   // remount <RavenRoom key={token}> with a fresh one.
   useEffect(() => {
     if (!autoConnect) return undefined;

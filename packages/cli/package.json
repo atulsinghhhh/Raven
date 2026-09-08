@@ -1,5 +1,5 @@
 {
-  "name": "@corvidhq/cli",
+  "name": "@ravenkash/cli",
   "version": "0.1.0",
   "description": "Raven CLI \u2014 manage projects, API keys, and rooms from the terminal; wire up a local app for RTC development.",
   "license": "MIT",

@@ -20,7 +20,7 @@ Raven has two planes, and they stay separate on purpose:
 | | RTC | Chat |
 | --- | --- | --- |
 | What it carries | audio, video, screen share | messages |
-| SDK | `@corvidhq/rtc` | `@corvidhq/chat` |
+| SDK | `@ravenkash/rtc` | `@ravenkash/chat` |
 | Transport | WebRTC via Raven's SFU | WebSocket |
 | Credential | RTC token | chat token |
 | Storage | none — media is live or gone | Postgres |
@@ -50,7 +50,7 @@ Three steps, and the first two are yours:
 **1. Create a conversation** (once, from your backend):
 
 ```js
-import { Raven } from '@corvidhq/server';
+import { Raven } from '@ravenkash/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 const conversation = await raven.chat.createConversation({
@@ -73,7 +73,7 @@ const token = await raven.chat.createToken({
 **3. Connect** (in the browser):
 
 ```js
-import { createChatClient } from '@corvidhq/chat';
+import { createChatClient } from '@ravenkash/chat';
 
 const chat = createChatClient({ token: token.token, apiUrl: token.apiUrl });
 await chat.connect({ room: conversation.publicId });
@@ -191,4 +191,4 @@ Exceeding a limit returns a structured error, never a silent truncation:
 | [threads.md](threads.md) | Replies and threads |
 | [attachments.md](attachments.md) | Signed uploads and downloads |
 | [webhooks.md](webhooks.md) | Events, signatures, retries |
-| [../sdk/chat.md](../sdk/chat.md) | The full `@corvidhq/chat` API reference |
+| [../sdk/chat.md](../sdk/chat.md) | The full `@ravenkash/chat` API reference |

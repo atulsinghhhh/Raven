@@ -60,7 +60,7 @@ no secret in their response, so those are safe from a terminal.
 `addHost()`/`createViewerToken()` mint a real, usable RTC + chat
 credential — putting that behind a CLI command would mean a credential
 capable of joining a live stream as its host could appear in shell
-history or a CI log. That capability stays on `@corvidhq/server` and
+history or a CI log. That capability stays on `@ravenkash/server` and
 `raven-sdk`, run from your own backend, exactly like `raven chat send`
 and chat token minting never gained a CLI equivalent.
 

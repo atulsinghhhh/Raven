@@ -6,4 +6,4 @@ Initial release (Raven Phase 14).
   composing `raven_rtc` and `raven_chat` rather than reimplementing either.
 * `role` / `isHost`, `room`, `chat`, `react()`, `leave()`.
 * Typed credentials (`RavenLiveStreamCredentials.fromJson`) mirroring
-  `@corvidhq/client`'s `LiveStreamCredentials` field-for-field.
+  `@ravenkash/client`'s `LiveStreamCredentials` field-for-field.

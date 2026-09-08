@@ -66,10 +66,10 @@ for secrets on every push.
 ### Bring the stack up
 
 ```bash
-pnpm infra:up        # Redis, the SFU, coturn, MinIO, api
-pnpm db:migrate
-pnpm infra:verify    # confirms every dependency is actually healthy
-pnpm db:seed         # optional: demo developer, project, key, room
+npm run infra:up        # Redis, the SFU, coturn, MinIO, api
+npm run db:migrate
+npm run infra:verify    # confirms every dependency is actually healthy
+npm run db:seed         # optional: demo developer, project, key, room
 ```
 
 Interactive API docs land at <http://localhost:4100/docs>.
@@ -86,7 +86,7 @@ These are not obvious, they are not your fault, and everyone hits them.
 **1. Generate the Prisma client before linting or typechecking.**
 
 ```bash
-pnpm --filter @raven/api run prisma:generate
+npm run prisma:generate --workspace=@raven/api
 ```
 
 `prisma.config.ts` resolves `DATABASE_URL` eagerly, so this needs the
@@ -95,13 +95,13 @@ variable set even though generating a client never opens a connection.
 **2. Build `packages/*` before typechecking or testing.**
 
 ```bash
-pnpm --filter "./packages/*" run build
+npm run build --workspaces --if-present
 ```
 
-`@corvidhq/react`, `@corvidhq/react-native` and the CLI resolve their
+`@ravenkash/react`, `@ravenkash/react-native` and the CLI resolve their
 siblings through `dist/`, which a fresh checkout does not have. Skip this
 and the errors look like missing dependencies (`Cannot find module
-'@corvidhq/rtc'`) when they are really build ordering.
+'@ravenkash/rtc'`) when they are really build ordering.
 
 ---
 
@@ -127,7 +127,7 @@ One tool per ecosystem. Full detail in
 [docs/development.md](./docs/development.md).
 
 ```bash
-pnpm format                                   # TS/JS/JSON (Prettier)
+npm run format                                # TS/JS/JSON (Prettier)
 cd services/sfu && gofmt -w . && golangci-lint run ./...
 cd sdks/python && ruff format . && ruff check . && mypy src
 cd sdks/flutter/raven_rtc && dart format lib test && flutter analyze --fatal-infos
@@ -136,11 +136,11 @@ cd sdks/flutter/raven_rtc && dart format lib test && flutter analyze --fatal-inf
 ### 4. Test what you changed
 
 ```bash
-pnpm -r --if-present run test                 # TypeScript
+npm run test --workspaces --if-present        # TypeScript
 cd services/sfu && go test -race ./...        # real Pion peers, real ICE/DTLS/SRTP
 cd sdks/python && pytest
 cd sdks/flutter/raven_rtc && flutter test
-pnpm test:e2e                                 # needs a scratch Postgres + Chromium
+npm run test:e2e                              # needs a scratch Postgres + Chromium
 ```
 
 **Do not weaken a test to make it pass.** If a test is wrong, fix the test
@@ -154,10 +154,10 @@ gaps, update it.
 ### 5. Add a changeset — if you touched a published package
 
 ```bash
-pnpm changeset
+npm run changeset
 ```
 
-Pick the affected `@corvidhq/*` packages, pick `patch`/`minor`/`major`,
+Pick the affected `@ravenkash/*` packages, pick `patch`/`minor`/`major`,
 and write one line aimed at a release note:
 
 > Bad: `fix bug in adapter`
@@ -217,7 +217,7 @@ at the end of
 apps/api/           Control plane + signaling gateway + chat (NestJS, Prisma)
 apps/dashboard/     Developer console (Next.js)
 services/sfu/       The SFU. Go, Pion. The only place media is touched.
-packages/           The eight published @corvidhq/* npm packages
+packages/           The eight published @ravenkash/* npm packages
 sdks/flutter/       raven_rtc, raven_chat, raven_live
 sdks/python/        raven-sdk
 examples/           A runnable app per integration path

@@ -1,4 +1,4 @@
-import { RTCError } from '@corvidhq/rtc';
+import { RTCError } from '@ravenkash/rtc';
 import { createDefaultAudioAdapter, type NativeAudioAdapter } from './internal/native-audio';
 
 /** Where call audio is playing. */

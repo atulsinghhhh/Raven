@@ -1,5 +1,5 @@
 /**
- * Every error `@corvidhq/chat` raises is one of these. Nobody using it ever
+ * Every error `@ravenkash/chat` raises is one of these. Nobody using it ever
  * sees a raw `CloseEvent`, a Postgres constraint name or a Redis timeout.
  * That's the infrastructure Raven is supposed to be hiding (Phase 12
  * spec §42).

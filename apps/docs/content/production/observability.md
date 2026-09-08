@@ -27,7 +27,7 @@ dependency's error vocabulary to understand their own application.
 
 ## How connection data arrives
 
-`@corvidhq/rtc` best-effort POSTs telemetry events to `/v1/telemetry/events`,
+`@ravenkash/rtc` best-effort POSTs telemetry events to `/v1/telemetry/events`,
 authenticated with the same RTC token the client already holds. This is
 deliberately never able to affect the call it's describing:
 

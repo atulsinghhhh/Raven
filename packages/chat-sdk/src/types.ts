@@ -89,7 +89,7 @@ export interface MessageDeletedEvent {
 }
 
 /**
- * Connection states, using `@corvidhq/rtc`'s vocabulary so anyone on both
+ * Connection states, using `@ravenkash/rtc`'s vocabulary so anyone on both
  * doesn't have to learn two.
  *
  * `failed` is terminal: either reconnect attempts ran out, or the failure

@@ -30,7 +30,7 @@ could drive. So the claim "RTC works" is not yet earned.
 ## How to verify
 
 `examples/media-demo/` is the existing harness — real camera and microphone
-through `@corvidhq/rtc`. It must be served over HTTP, not `file://`, since
+through `@ravenkash/rtc`. It must be served over HTTP, not `file://`, since
 browsers block camera access on `file://`.
 
 1. Mint a token against `https://api.ravenstack.online`

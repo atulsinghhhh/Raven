@@ -18,7 +18,7 @@ packages, and neither can do the other's job.
 <Tab title="Node.js">
 
 ```bash
-npm install @corvidhq/server
+npm install @ravenkash/server
 ```
 
 </Tab>
@@ -37,20 +37,20 @@ pip install raven-sdk
 <Tab title="Web">
 
 ```bash
-npm install @corvidhq/rtc          # calls
-npm install @corvidhq/chat         # messaging
-npm install @corvidhq/client       # both, behind one object
+npm install @ravenkash/rtc          # calls
+npm install @ravenkash/chat         # messaging
+npm install @ravenkash/client       # both, behind one object
 ```
 
 </Tab>
 <Tab title="React">
 
 ```bash
-npm install @corvidhq/rtc @corvidhq/react
+npm install @ravenkash/rtc @ravenkash/react
 ```
 
-Add `@corvidhq/chat` for a chat panel, `@corvidhq/effects` for camera
-filters. `@corvidhq/react` takes its Raven siblings as peer dependencies, so
+Add `@ravenkash/chat` for a chat panel, `@ravenkash/effects` for camera
+filters. `@ravenkash/react` takes its Raven siblings as peer dependencies, so
 your application chooses the versions and there is exactly one copy of each
 in the tree.
 
@@ -58,7 +58,7 @@ in the tree.
 <Tab title="React Native">
 
 ```bash
-npm install @corvidhq/react-native @corvidhq/rtc \
+npm install @ravenkash/react-native @ravenkash/rtc \
             react-native-webrtc react-native-incall-manager
 
 cd ios && pod install   # iOS only
@@ -89,16 +89,16 @@ Not on pub.dev yet — see
 
 | Package | Runs in | Holds |
 |---|---|---|
-| `@corvidhq/server` | Your backend | The API key |
+| `@ravenkash/server` | Your backend | The API key |
 | `raven-sdk` (Python) | Your backend | The API key |
-| `@corvidhq/rtc` | Browser | An RTC token |
-| `@corvidhq/chat` | Browser | A chat token |
-| `@corvidhq/client` | Browser | Both, behind one `Raven` object |
-| `@corvidhq/react` | Browser | Hooks over `rtc`/`chat`/`effects` |
-| `@corvidhq/react-native` | iOS, Android | The same `Room` class as the web |
+| `@ravenkash/rtc` | Browser | An RTC token |
+| `@ravenkash/chat` | Browser | A chat token |
+| `@ravenkash/client` | Browser | Both, behind one `Raven` object |
+| `@ravenkash/react` | Browser | Hooks over `rtc`/`chat`/`effects` |
+| `@ravenkash/react-native` | iOS, Android | The same `Room` class as the web |
 | `raven_rtc`, `raven_chat`, `raven_live` | iOS, Android | The same concepts, in Dart |
-| `@corvidhq/effects` | Browser | Nothing — no credential needed |
-| `@corvidhq/cli` | Your terminal | A dashboard session |
+| `@ravenkash/effects` | Browser | Nothing — no credential needed |
+| `@ravenkash/cli` | Your terminal | A dashboard session |
 
 Full per-SDK reference in [SDKs](/sdk).
 

@@ -3,7 +3,7 @@ title: Signaling Protocol
 description: The RTC signaling wire contract — for a client where Raven ships no SDK, or for reading what is actually on the socket.
 ---
 
-You do not need this page to use Raven. `@corvidhq/rtc`, the React Native
+You do not need this page to use Raven. `@ravenkash/rtc`, the React Native
 SDK and `raven_rtc` all speak this protocol so you do not have to, and the
 SDK is the supported interface.
 

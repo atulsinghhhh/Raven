@@ -20,25 +20,25 @@ are minted with it, server-side, and never in a browser or app.
 <Tab title="Web">
 
 ```bash
-npm install @corvidhq/chat
+npm install @ravenkash/chat
 ```
 
 </Tab>
 <Tab title="React">
 
 ```bash
-npm install @corvidhq/chat @corvidhq/react
+npm install @ravenkash/chat @ravenkash/react
 ```
 
 </Tab>
 <Tab title="React Native">
 
 ```bash
-npm install @corvidhq/react-native @corvidhq/chat
+npm install @ravenkash/react-native @ravenkash/chat
 ```
 
 Chat is optional on React Native — install it alongside
-`@corvidhq/react-native` only if your app sends messages. See
+`@ravenkash/react-native` only if your app sends messages. See
 [React Native SDK](/sdk/react-native).
 
 </Tab>
@@ -62,7 +62,7 @@ WebRTC stack.
 <Tab title="Node.js">
 
 ```ts
-import { Raven } from '@corvidhq/server';
+import { Raven } from '@ravenkash/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 const conversation = await raven.chat.createConversation({
@@ -116,7 +116,7 @@ token = raven.chat.create_token(
 <Tab title="Web">
 
 ```ts
-import { createChatClient } from '@corvidhq/chat';
+import { createChatClient } from '@ravenkash/chat';
 
 const chat = createChatClient({ token: token.token, apiUrl: token.apiUrl });
 await chat.connect({ room: conversation.publicId });
@@ -127,7 +127,7 @@ await chat.connect({ room: conversation.publicId });
 
 ```tsx
 'use client';
-import { RavenChat, useChatConnectionState } from '@corvidhq/react';
+import { RavenChat, useChatConnectionState } from '@ravenkash/react';
 
 function ChatPanel({ chatToken, apiUrl, room }) {
   return (
@@ -151,7 +151,7 @@ equivalent of `<RavenRoom>`, and nests with it for a call with a chat panel.
 <Tab title="React Native">
 
 ```ts
-import { Raven } from '@corvidhq/react-native';
+import { Raven } from '@ravenkash/react-native';
 
 const raven = new Raven({ chatToken: token.token, chatApiUrl: token.apiUrl });
 await raven.chat!.connect('support-room-42');
@@ -190,7 +190,7 @@ await chat.sendMessage({ text: 'Hello everyone!' });
 
 ```tsx
 'use client';
-import { useMessages } from '@corvidhq/react';
+import { useMessages } from '@ravenkash/react';
 
 function Composer() {
   const { send } = useMessages();
@@ -235,7 +235,7 @@ chat.on('message', (message) => console.log(message.senderId, message.text));
 
 ```tsx
 'use client';
-import { useMessages } from '@corvidhq/react';
+import { useMessages } from '@ravenkash/react';
 
 function MessageList() {
   const { messages } = useMessages(); // oldest-first — render order
@@ -317,7 +317,7 @@ session, and the UI around messages/typing/presence.
 ## Production notes
 
 - Never call `raven.chat.createConversation()`/`createToken()` (or any
-  `@corvidhq/server`/`raven-sdk` method) from a browser or app.
+  `@ravenkash/server`/`raven-sdk` method) from a browser or app.
 - Derive `userId` from your own authenticated session — a chat token
   minted for the wrong user lets them send as someone else.
 - `clientMessageId` is attached automatically if you don't supply one,

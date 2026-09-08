@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@corvidhq/react": "file:../../packages/react-sdk",
-    "@corvidhq/rtc": "file:../../packages/sdk",
+    "@ravenkash/react": "file:../../packages/react-sdk",
+    "@ravenkash/rtc": "file:../../packages/sdk",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

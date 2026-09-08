@@ -1,5 +1,5 @@
 /**
- * The fixed vocabulary of events @corvidhq/rtc may ingest (Phase 9 spec
+ * The fixed vocabulary of events @ravenkash/rtc may ingest (Phase 9 spec
  * §5-7). Deliberately one flat list, not per-entity enums: a single
  * ingest endpoint handles connection, participant, and error events
  * alike, distinguished only by `type`. See docs/telemetry.md#event-types.
@@ -21,7 +21,7 @@ export const CONNECTION_EVENT_TYPES = [
   'track_published',
   'track_unpublished',
   'error',
-  /** Periodic media-quality snapshot: see Room.getConnectionStats() in @corvidhq/rtc. */
+  /** Periodic media-quality snapshot: see Room.getConnectionStats() in @ravenkash/rtc. */
   'stats',
 ] as const;
 

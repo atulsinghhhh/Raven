@@ -55,14 +55,14 @@ apps/
   community       @raven-community/web  GITIGNORED WIP scaffold — untracked
   community-api   @raven-community/api  GITIGNORED WIP scaffold — untracked
 packages/
-  sdk             @corvidhq/rtc           browser RTC SDK
-  chat-sdk        @corvidhq/chat          browser chat SDK
-  client          @corvidhq/client        Raven facade (rtc + chat) + LiveStream
-  effects         @corvidhq/effects       video effects pipeline
-  react-sdk       @corvidhq/react         React hooks/components (+ ./chat entry)
-  react-native-sdk @corvidhq/react-native React Native SDK
-  server-sdk      @corvidhq/server        Node server SDK
-  cli             @corvidhq/cli           `raven` binary
+  sdk             @ravenkash/rtc           browser RTC SDK
+  chat-sdk        @ravenkash/chat          browser chat SDK
+  client          @ravenkash/client        Raven facade (rtc + chat) + LiveStream
+  effects         @ravenkash/effects       video effects pipeline
+  react-sdk       @ravenkash/react         React hooks/components (+ ./chat entry)
+  react-native-sdk @ravenkash/react-native React Native SDK
+  server-sdk      @ravenkash/server        Node server SDK
+  cli             @ravenkash/cli           `raven` binary
 services/
   sfu             Go 1.26 / Pion WebRTC v4 SFU (no README)
 sdks/
@@ -73,7 +73,7 @@ infrastructure/  azure, docker, k8s
 scripts/  load tests, k6, infra verify, TURN cert/relay tests
 ```
 
-**Published package scope is `@corvidhq/*`, not `@raven/*`.** `@raven/*`
+**Published package scope is `@ravenkash/*`, not `@raven/*`.** `@raven/*`
 names are internal, private workspace apps only. The product docs get this
 right everywhere.
 
@@ -226,10 +226,10 @@ consecutive failures. **All of these numbers match the published doc.**
 | Vocabulary | Where | Count | Source |
 |---|---|---|---|
 | `RAVEN_*` | HTTP error bodies | 29 | `shared/errors/error-codes.ts` |
-| `RTCErrorCode` | `@corvidhq/rtc` | 13 | `packages/sdk/src/errors.ts` |
-| `ChatErrorCode` | chat WS frames + `@corvidhq/chat` | 22 (server) / 26 (SDK) | `chat.constants.ts` / `chat-sdk/src/errors.ts` |
+| `RTCErrorCode` | `@ravenkash/rtc` | 13 | `packages/sdk/src/errors.ts` |
+| `ChatErrorCode` | chat WS frames + `@ravenkash/chat` | 22 (server) / 26 (SDK) | `chat.constants.ts` / `chat-sdk/src/errors.ts` |
 | `SignalingErrorCode` | RTC signaling WS frames | 15 | `signaling.constants.ts` |
-| `EffectsErrorCode` | `@corvidhq/effects` | 5 | `packages/effects/src/errors.ts` |
+| `EffectsErrorCode` | `@ravenkash/effects` | 5 | `packages/effects/src/errors.ts` |
 
 Plus server-SDK-local codes (`RAVEN_TIMEOUT`, `RAVEN_NETWORK_ERROR`,
 `RAVEN_INVALID_CONFIG`, `RAVEN_UNKNOWN_ERROR`) and
@@ -395,7 +395,7 @@ TTLs, `getReadReceipts()` 500-row cap.
 
 **Missing from this section entirely:** the CLI is a separate top-level
 nav item rather than an SDK row, and there is no page for
-`@corvidhq/client` (the `Raven` facade + `LiveStream`) even though
+`@ravenkash/client` (the `Raven` facade + `LiveStream`) even though
 `examples.md` and the live-streaming quickstart both use it.
 
 #### Cross-cutting
@@ -417,7 +417,7 @@ nav item rather than an SDK row, and there is no page for
 | `production/security.md` | Security | Correct | "Four credentials, none of which can mint another" — verified: separate secrets for JWT / RTC / chat / SFU registration, distinct `aud` claims | Keep |
 | `production/observability.md` | Observability | Correct | — | Keep |
 | `reference/errors.md` | Error Codes | **Incomplete** | Opens "Raven has three error vocabularies" — there are five. Omits 5 shipped `RAVEN_*` codes; omits the Effects and signaling vocabularies entirely (see §4.6) | Add the missing codes and two vocabularies |
-| `reference/events.md` | Event Catalogue | **Incorrect + Incomplete** | (a) Says RTC events are available in `@corvidhq/react` "as `useRoomEvent`" — **no such export exists** anywhere in the repo. (b) Claims to catalogue "Every event Raven emits" but the webhook table has 8 of 15 rows — all 7 `live_stream.*` events are missing | Fix the hook reference; add the 7 live-stream events |
+| `reference/events.md` | Event Catalogue | **Incorrect + Incomplete** | (a) Says RTC events are available in `@ravenkash/react` "as `useRoomEvent`" — **no such export exists** anywhere in the repo. (b) Claims to catalogue "Every event Raven emits" but the webhook table has 8 of 15 rows — all 7 `live_stream.*` events are missing | Fix the hook reference; add the 7 live-stream events |
 
 **Link hygiene:** all 73 internal `](/…)` links resolve to a real content
 file. All 32 in-page anchors resolve to a real heading. No broken links
@@ -485,7 +485,7 @@ Things a developer would reasonably need, where **no page exists**.
    reference: no request/response schemas, no per-route error tables, no
    pagination contract per endpoint. Swagger at `/docs` is generated and
    good, but it is not linked from any page except one sentence.
-5. **`@corvidhq/client` SDK page.** The `Raven` facade and `LiveStream`
+5. **`@ravenkash/client` SDK page.** The `Raven` facade and `LiveStream`
    class are used in `examples.md` and `live-streaming/quickstart.md` with
    no reference page behind them.
 
@@ -518,7 +518,7 @@ Things a developer would reasonably need, where **no page exists**.
 
 ### 3.3 Worth having
 
-14. Telemetry & privacy — what `@corvidhq/rtc` reports and how to disable
+14. Telemetry & privacy — what `@ravenkash/rtc` reports and how to disable
     it (`telemetry: false`). Only in `docs/telemetry.md`.
 15. Browser support matrix as its own page (currently a section of
     `rtc/troubleshooting.md`; `getBrowserSupportDetails()` is exported and
@@ -835,14 +835,14 @@ Effects
   Performance · Troubleshooting · API Reference
 
 SDKs
-  Web (@corvidhq/rtc, @corvidhq/chat)
-  Raven Client (@corvidhq/client)    ← NEW (facade + LiveStream)
-  React (@corvidhq/react)            ← + useRavenClient/useRavenError/useChatError
-  React Native (@corvidhq/react-native)
+  Web (@ravenkash/rtc, @ravenkash/chat)
+  Raven Client (@ravenkash/client)    ← NEW (facade + LiveStream)
+  React (@ravenkash/react)            ← + useRavenClient/useRavenError/useChatError
+  React Native (@ravenkash/react-native)
   Flutter (raven_rtc / raven_chat / raven_live)
-  Node.js (@corvidhq/server)
+  Node.js (@ravenkash/server)
   Python (raven-sdk)
-  CLI (@corvidhq/cli)                ← + the 8 missing commands
+  CLI (@ravenkash/cli)                ← + the 8 missing commands
   Browser Support                    ← NEW
 
 Backend
@@ -942,7 +942,7 @@ than typical for its age. Shipped and verified in source:
 - **Effects** — 9 filters + beauty smoothing, 5 presets, WebGL/Canvas2D/
   passthrough engines, face/background/AR foundations.
 - **Webhooks** — 15 events, HMAC-signed, retried, environment-scoped.
-- **7 SDKs + CLI** — `@corvidhq/{rtc,chat,client,effects,react,react-native,server,cli}`,
+- **7 SDKs + CLI** — `@ravenkash/{rtc,chat,client,effects,react,react-native,server,cli}`,
   `raven_rtc/raven_chat/raven_live` (Dart), `raven-sdk` (Python).
 - **Docs infrastructure** — a real Next.js site with product-aware
   sidebar, search index, sitemap, MDX tabs, and a build-time nav↔content
@@ -972,7 +972,7 @@ than typical for its age. Shipped and verified in source:
 
 **Critical:** RTC signaling protocol reference (exists internally, not
 published) · environment variable reference · self-hosting/deployment
-guide · a real REST reference with schemas · `@corvidhq/client` page.
+guide · a real REST reference with schemas · `@ravenkash/client` page.
 
 **Significant:** dashboard walkthrough · account/team auth flows (email
 verification, password reset, OAuth, onboarding) · live-stream webhooks ·

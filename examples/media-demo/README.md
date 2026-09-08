@@ -1,6 +1,6 @@
 # Media Demo
 
-A minimal static page proving real WebRTC media through `@corvidhq/rtc` —
+A minimal static page proving real WebRTC media through `@ravenkash/rtc` —
 actual camera/microphone, not a mock — plus a small FastAPI backend
 using `raven-sdk` to mint tokens and surface project diagnostics.
 
@@ -53,7 +53,7 @@ call.
 
 ## What this proves
 
-- Publishing camera/microphone through `@corvidhq/rtc`
+- Publishing camera/microphone through `@ravenkash/rtc`
 - Subscribing to another participant's tracks
 - Group calls (3-4 participants) via one SFU rather than a full mesh
 - Connection state transitions (connecting → connected → disconnected)
@@ -77,11 +77,11 @@ watch `iceServers` do its job, or see `docs/turn.md`.
 Every other JS example in this repo (`examples/rtc-chat`,
 `examples/video-call`) is plain static HTML/JS with vendored
 dependencies — no build step. This example follows the same
-convention: `raven-rtc.js` (`@corvidhq/rtc`'s own ESM build) is
+convention: `raven-rtc.js` (`@ravenkash/rtc`'s own ESM build) is
 vendored here — one file, since the SDK has no runtime dependency to
 vendor alongside it — and an
 [import map](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap)
-in `index.html` resolves the bare `@corvidhq/rtc` specifier `app.js`
+in `index.html` resolves the bare `@ravenkash/rtc` specifier `app.js`
 imports — so `app.js` is exactly what a real app's code would look
 like after a bundler (Vite, webpack, esbuild) resolves that import;
 only the resolution mechanism differs.
@@ -89,11 +89,11 @@ only the resolution mechanism differs.
 To refresh the vendored files after an SDK change:
 
 ```bash
-pnpm --filter @corvidhq/rtc build
+pnpm --filter @ravenkash/rtc build
 cp ../../packages/sdk/dist/index.js ./raven-rtc.js
 cp ../../packages/sdk/dist/index.js.map ./raven-rtc.js.map
 ```
 
-In a real project, you would simply `npm install @corvidhq/rtc` and let
+In a real project, you would simply `npm install @ravenkash/rtc` and let
 your own bundler handle resolution — you would not vendor or copy any
 files.

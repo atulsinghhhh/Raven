@@ -59,7 +59,7 @@ the rest of its body.
 ## React
 
 ```jsx
-import { useReactions, useChatClient } from '@corvidhq/react';
+import { useReactions, useChatClient } from '@ravenkash/react';
 
 function Reactions({ message }) {
   const { add, remove, pending } = useReactions();

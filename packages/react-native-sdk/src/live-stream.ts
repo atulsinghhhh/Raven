@@ -1,4 +1,4 @@
-import { RTCError, type LogLevel, type Room } from '@corvidhq/rtc';
+import { RTCError, type LogLevel, type Room } from '@ravenkash/rtc';
 import { Raven } from './raven';
 import type { RavenAppState } from './internal/lifecycle';
 import type { RavenChatHandle, LiveStreamCredentials, LiveStreamRole } from './types';
@@ -19,7 +19,7 @@ export interface RavenLiveStreamOptions {
  *
  * A thin wrapper round `Raven` on purpose, not a parallel implementation.
  * A stream's host and viewers are ordinary RTC participants in one room,
- * and its chat is an ordinary `@corvidhq/chat` conversation. Both are
+ * and its chat is an ordinary `@ravenkash/chat` conversation. Both are
  * exactly what `Raven` already joins and connects to. So every mobile-only
  * concern `Raven.join()` handles already, permissions, audio session, app
  * lifecycle, network recovery, applies to a live stream untouched rather

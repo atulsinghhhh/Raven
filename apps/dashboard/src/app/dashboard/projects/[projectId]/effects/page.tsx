@@ -197,7 +197,7 @@ await camera.attachEffects(effects);
             <span className="font-medium text-fg">Face detection, background blur/replacement, AR overlays.</span> The
             extension points exist (<span className="font-mono text-xs">FaceDetector</span>,{' '}
             <span className="font-mono text-xs">BackgroundProcessor</span>,{' '}
-            <span className="font-mono text-xs">AROverlay</span> in <span className="font-mono text-xs">@corvidhq/effects</span>
+            <span className="font-mono text-xs">AROverlay</span> in <span className="font-mono text-xs">@ravenkash/effects</span>
             ), and every one of them reports itself unsupported rather than faking a result.
           </li>
           <li>

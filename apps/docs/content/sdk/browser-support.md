@@ -16,7 +16,7 @@ Three platform APIs:
 ## Check before you render
 
 ```ts
-import { getBrowserSupportDetails, isBrowserSupported } from '@corvidhq/rtc';
+import { getBrowserSupportDetails, isBrowserSupported } from '@ravenkash/rtc';
 
 if (!isBrowserSupported()) {
   showUnsupportedNotice();
@@ -38,7 +38,7 @@ without. Optional capabilities are not part of it and need their own test:
 |---|---|---|
 | Screen sharing | `typeof navigator.mediaDevices?.getDisplayMedia === 'function'` | Mobile browsers |
 | Speaker selection | `'setSinkId' in HTMLMediaElement.prototype` | Safari |
-| Camera effects | `detectCapabilities()` from `@corvidhq/effects` | Anything without WebGL |
+| Camera effects | `detectCapabilities()` from `@ravenkash/effects` | Anything without WebGL |
 
 Calling an unsupported operation throws `NOT_SUPPORTED` — deliberately
 distinct from `MEDIA_ERROR`, because "this device cannot do this" is
@@ -83,7 +83,7 @@ Real constraints of the platforms, not Raven bugs:
 
 ## Server-side rendering
 
-`@corvidhq/rtc`, `@corvidhq/chat` and every `@corvidhq/react` hook are
+`@ravenkash/rtc`, `@ravenkash/chat` and every `@ravenkash/react` hook are
 browser-only. In Next.js, mark the component:
 
 ```tsx

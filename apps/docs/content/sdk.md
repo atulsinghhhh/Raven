@@ -11,16 +11,16 @@ Those are different packages and neither can do the other's job.
 
 | Package | Runs in | Holds | Reference |
 |---|---|---|---|
-| `@corvidhq/server` | Your Node backend | API key | [Node.js](/sdk/node) |
+| `@ravenkash/server` | Your Node backend | API key | [Node.js](/sdk/node) |
 | `raven-sdk` | Your Python backend | API key | [Python](/sdk/python) |
-| `@corvidhq/rtc` | Browser | RTC token | [Web](/sdk/web) |
-| `@corvidhq/chat` | Browser | Chat token | [Web](/sdk/web) |
-| `@corvidhq/client` | Browser | Both, behind one object | [Raven Client](/sdk/client) |
-| `@corvidhq/react` | Browser | Hooks over the above | [React](/sdk/react) |
-| `@corvidhq/react-native` | iOS, Android | RTC + chat | [React Native](/sdk/react-native) |
+| `@ravenkash/rtc` | Browser | RTC token | [Web](/sdk/web) |
+| `@ravenkash/chat` | Browser | Chat token | [Web](/sdk/web) |
+| `@ravenkash/client` | Browser | Both, behind one object | [Raven Client](/sdk/client) |
+| `@ravenkash/react` | Browser | Hooks over the above | [React](/sdk/react) |
+| `@ravenkash/react-native` | iOS, Android | RTC + chat | [React Native](/sdk/react-native) |
 | `raven_rtc`, `raven_chat`, `raven_live` | iOS, Android | RTC / chat / streaming | [Flutter](/sdk/flutter) |
-| `@corvidhq/effects` | Browser | Nothing — no credential | [Effects](/effects) |
-| `@corvidhq/cli` | Your terminal | Dashboard session | [CLI](/sdk/cli) |
+| `@ravenkash/effects` | Browser | Nothing — no credential | [Effects](/effects) |
+| `@ravenkash/cli` | Your terminal | Dashboard session | [CLI](/sdk/cli) |
 
 ## Stability
 

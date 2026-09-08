@@ -4,7 +4,7 @@ description: Every event a ChatClient emits, with its payload and when it fires.
 ---
 
 `ChatClient` is a typed event emitter. These 14 events are its whole
-surface — from `ChatEventMap` in `@corvidhq/chat`.
+surface — from `ChatEventMap` in `@ravenkash/chat`.
 
 ```ts
 const unsubscribe = chat.on('message', (message) => {
@@ -15,7 +15,7 @@ unsubscribe();      // idempotent — calling it twice is safe
 ```
 
 `chat.on()` returns an **unsubscribe function**, which is deliberately
-different from `room.on()` in `@corvidhq/rtc` (that one returns the room so
+different from `room.on()` in `@ravenkash/rtc` (that one returns the room so
 calls chain). Chat handlers are usually registered inside a component
 effect, where cleanup is the common path and a mismatched
 `off(event, handler)` is the classic way to leak one. `chat.off()` still
@@ -79,7 +79,7 @@ You do **not** receive an echo of your own `read`. Use the value
 | `error` | `error: RavenChatError` |
 
 ```ts
-import { isRavenChatError } from '@corvidhq/chat';
+import { isRavenChatError } from '@ravenkash/chat';
 
 chat.on('error', (error) => {
   if (!isRavenChatError(error)) return;

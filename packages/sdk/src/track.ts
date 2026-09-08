@@ -1,4 +1,4 @@
-import type { EffectsPipeline } from '@corvidhq/effects';
+import type { EffectsPipeline } from '@ravenkash/effects';
 import { normalizeTrackStats, pickBestLayer, type RawTrackStats, type TrackStats } from './internal/telemetry/track-stats';
 import { RTCError } from './errors';
 
@@ -111,7 +111,7 @@ export class LocalTrack extends Track {
   }
 
   /**
-   * Where Raven Effects (`@corvidhq/effects`) plugs in. The chain is
+   * Where Raven Effects (`@ravenkash/effects`) plugs in. The chain is
    * Camera → Raven Video Track → Effects Pipeline → Processed Video Track →
    * Raven RTC.
    *

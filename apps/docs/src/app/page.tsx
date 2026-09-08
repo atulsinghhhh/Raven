@@ -129,7 +129,7 @@ export default function DocsHome() {
                 <span className="mono-label text-[11px] text-muted">Your backend — mint a token</span>
               </div>
               <pre className="overflow-x-auto px-4 py-3.5 text-[12.5px] leading-relaxed">
-                <code>{`import { Raven } from '@corvidhq/server';
+                <code>{`import { Raven } from '@ravenkash/server';
 
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
 const room = await raven.rooms.create({ name: 'demo' });
@@ -144,7 +144,7 @@ const credentials = await raven.tokens.create({
                 <span className="mono-label text-[11px] text-muted">Your frontend — join and publish</span>
               </div>
               <pre className="overflow-x-auto px-4 py-3.5 text-[12.5px] leading-relaxed">
-                <code>{`import { createRTCClient } from '@corvidhq/rtc';
+                <code>{`import { createRTCClient } from '@ravenkash/rtc';
 
 const client = createRTCClient(credentials);
 const room = await client.join(credentials.roomId);

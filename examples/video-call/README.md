@@ -1,10 +1,10 @@
 # Raven video-call example
 
-A minimal two-participant video call built entirely on `@corvidhq/rtc`'s public
+A minimal two-participant video call built entirely on `@ravenkash/rtc`'s public
 API — `app.js` never touches SDP, ICE candidates, or `RTCPeerConnection`.
 
 ```js
-import { createRTCClient } from '@corvidhq/rtc';
+import { createRTCClient } from '@ravenkash/rtc';
 
 const client = createRTCClient({ token, endpoint, iceServers });
 const room = await client.join(roomName);
@@ -22,7 +22,7 @@ room.on('trackSubscribed', (track, participant) => {
 1. Bring up Raven's infrastructure (from the repo root) and build the SDK:
    ```bash
    pnpm infra:up
-   pnpm --filter @corvidhq/rtc build
+   pnpm --filter @ravenkash/rtc build
    ```
 2. Copy the freshly-built SDK into this folder (this example loads it via
    a browser import map, not a bundler — see below for why):
@@ -30,7 +30,7 @@ room.on('trackSubscribed', (track, participant) => {
    cp ../../packages/sdk/dist/index.js ./raven-rtc.js
    cp ../../packages/sdk/dist/index.js.map ./raven-rtc.js.map
    ```
-   One file is all it takes now: `@corvidhq/rtc` has no runtime
+   One file is all it takes now: `@ravenkash/rtc` has no runtime
    dependency to vendor alongside it. WebRTC comes from the browser.
 3. Serve this folder statically, e.g.:
    ```bash
@@ -49,12 +49,12 @@ Every other example in this repo (`examples/media-demo`,
 dependency — no build step. This example follows the same convention:
 `raven-rtc.js` (the SDK's own ESM build) is vendored here, and an
 [import map](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap)
-in `index.html` resolves the bare `@corvidhq/rtc` specifier
+in `index.html` resolves the bare `@ravenkash/rtc` specifier
 `app.js` imports — so `app.js` is exactly what a real app's code would look
 like after a bundler (Vite, webpack, esbuild) resolves those same imports;
 only the resolution mechanism differs. Import maps are supported in all
 current Chrome, Firefox, Safari, and Edge versions (Phase 6 spec §4's
 target browsers).
 
-In a real project, you would simply `npm install @corvidhq/rtc` and let your
+In a real project, you would simply `npm install @ravenkash/rtc` and let your
 own bundler handle resolution — you would not vendor or copy any files.

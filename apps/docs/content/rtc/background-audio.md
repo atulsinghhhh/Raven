@@ -3,7 +3,7 @@ title: Background Audio
 description: Keeping a call's audio alive when a mobile app moves to the background — React Native only; not yet on Flutter.
 ---
 
-**React Native only.** `@corvidhq/react-native` manages an audio session
+**React Native only.** `@ravenkash/react-native` manages an audio session
 around every call; Flutter has no equivalent yet, and web has no
 "background" concept in the same sense (a browser tab keeps running
 audio when unfocused, subject to the OS's own power-management, which

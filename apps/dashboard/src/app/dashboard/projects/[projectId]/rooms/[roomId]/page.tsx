@@ -106,7 +106,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ pro
           <EmptyState
             icon={<IconParticipants className="size-7" />}
             title="No one is connected right now"
-            description="The room exists and is reachable, but nobody is in it. Participants appear here as soon as a client joins with @corvidhq/rtc."
+            description="The room exists and is reachable, but nobody is in it. Participants appear here as soon as a client joins with @ravenkash/rtc."
           />
         ) : (
           <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -143,7 +143,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ pro
         ) : connections.length === 0 ? (
           <EmptyState
             title="No connections recorded for this room"
-            description="Connection telemetry is written when a client joins with @corvidhq/rtc. A room created by your backend but never joined has no records."
+            description="Connection telemetry is written when a client joins with @ravenkash/rtc. A room created by your backend but never joined has no records."
           />
         ) : (
           <>

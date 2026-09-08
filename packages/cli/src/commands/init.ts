@@ -37,7 +37,7 @@ export function registerInitCommand(program: Command): void {
 
         const manager = await detectPackageManager();
         process.stdout.write(
-          `\n${chalk.bold('Next: install the SDK')}\n  ${chalk.cyan(installCommand(manager, '@corvidhq/rtc'))}\n` +
+          `\n${chalk.bold('Next: install the SDK')}\n  ${chalk.cyan(installCommand(manager, '@ravenkash/rtc'))}\n` +
             `  ${chalk.dim('(or run `raven sdk install`)')}\n`,
         );
       }),

@@ -208,7 +208,7 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
   }
 
   /**
-   * @internal Called by `@corvidhq/rtc`'s `LocalTrack.attachEffects()`.
+   * @internal Called by `@ravenkash/rtc`'s `LocalTrack.attachEffects()`.
    * Nobody calls this directly. Starts processing `sourceTrack` and returns
    * the live output track to publish.
    */

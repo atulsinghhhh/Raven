@@ -44,7 +44,7 @@ Manual, following the 13 steps in order.
 | `example.com` / `.example` hosts | 13 | all RFC 2606 reserved names, used for *the reader's* domain |
 | `localhost:4100` | 24 | correct — matches `API_PORT` in `.env.example` and `docker-compose.yml` |
 | `rvk_` literals | 13 | all non-functional; the example secret base64-decodes to `hopeyouarehavingalovelyd` |
-| Old package scope `@corvidhq/*` | 0 in docs | see HIGH-4 — stragglers remain in build artifacts |
+| Old package scope `@ravenkash/*` | 0 in docs | see HIGH-4 — stragglers remain in build artifacts |
 | `livekit` | 9 | all in the migration guide, where it is the subject |
 
 ---
@@ -174,14 +174,14 @@ label, and a key without one is valid.
 **Severity:** HIGH
 **Page:** `examples` (and every guide that points at `examples/*`)
 **Problem:** `examples.md` tells readers each example is "a real, runnable
-app". The repo-wide rename from `@corvidhq/*` to `@ravenkash/*` updated each
+app". The repo-wide rename from `@ravenkash/*` to `@ravenkash/*` updated each
 example's `package.json` but **not** its `package-lock.json`:
 
 | Example | `package.json` | `package-lock.json` |
 |---|---|---|
-| `examples/node-server` | `@ravenkash/server` | 3 × `@corvidhq/*` |
-| `examples/chat` | `@ravenkash/*` | 15 × `@corvidhq/*` |
-| `examples/react-video-call` | `@ravenkash/*` | 19 × `@corvidhq/*` |
+| `examples/node-server` | `@ravenkash/server` | 3 × `@ravenkash/*` |
+| `examples/chat` | `@ravenkash/*` | 15 × `@ravenkash/*` |
+| `examples/react-video-call` | `@ravenkash/*` | 19 × `@ravenkash/*` |
 
 `npm ci` fails outright when a lockfile disagrees with its manifest.
 Vendored SDK bundles under `examples/*/raven-*.js` and

@@ -15,8 +15,9 @@ and deployment notes, not from guesswork.
 | **RTMP ingest / egress** | No path in or out for external broadcast tooling. |
 | **Usage metering and billing** | No quota accounting. The [limits](/reference/limits) are technical ceilings, not plan limits. |
 | **Active-speaker detection** | No event. Per-track statistics are available and can approximate it. |
-| **Web-side simulcast layer selection** | The signaling protocol carries a `subscription.update` frame and `raven_rtc` exposes `RavenRoom.requestLayer(...)`, but `@corvidhq/rtc` neither sends the frame nor offers a method. Flutter only, today. |
+| **Web-side simulcast layer selection** | The signaling protocol carries a `subscription.update` frame and `raven_rtc` exposes `RavenRoom.requestLayer(...)`, but `@ravenkash/rtc` neither sends the frame nor offers a method. Flutter only, today. |
 | **Chat token revocation endpoint** | The service can revoke a token and the gateway checks for it, but no REST route, CLI command or SDK method triggers it. `TOKEN_REVOKED` is therefore reachable in principle and unreachable in practice. |
+| **Web-side RTC token refresh** | The signaling client accepts a `refreshToken` callback and calls it before a reconnect, but `RTCClientConfig` does not expose it — so it is unreachable from `@ravenkash/rtc` and `@ravenkash/react-native`. `raven_rtc`'s `Raven` constructor **does** take it. On the web, handle a `failed` connection by minting a fresh token and rejoining. |
 | **Early RTC token revocation** | By design — the short lifetime is the control, not a revocation list. |
 | **Email change** | The address is the account key. |
 

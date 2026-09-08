@@ -111,7 +111,7 @@ downloadable and inspectable.
 Flutter app
     │  your own authenticated request
     ▼
-Your backend  ──(@corvidhq/server or raven-sdk)──►  Raven
+Your backend  ──(@ravenkash/server or raven-sdk)──►  Raven
     │                                              │
     │◄──────────── short-lived token ──────────────┘
     ▼
@@ -367,7 +367,7 @@ raven_rtc                        raven_chat
 
 `raven_rtc` ships no native code of its own — the iOS and Android WebRTC
 implementation arrives through `flutter_webrtc`, exactly as
-`@corvidhq/rtc` gets it from the browser on the web. A second native layer
+`@ravenkash/rtc` gets it from the browser on the web. A second native layer
 would mean two implementations competing for the same camera.
 
 What `raven_rtc` *does* own, and previously did not, is the signaling

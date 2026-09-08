@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /** Reads package.json deps and devDeps directly. Not node_modules, which can be stale, or gitignored and never installed. */
-export async function isSdkInPackageJson(cwd: string = process.cwd(), packageName = '@corvidhq/rtc'): Promise<boolean> {
+export async function isSdkInPackageJson(cwd: string = process.cwd(), packageName = '@ravenkash/rtc'): Promise<boolean> {
   try {
     const raw = await readFile(join(cwd, 'package.json'), 'utf8');
     const pkg = JSON.parse(raw) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };

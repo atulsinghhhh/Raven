@@ -19,7 +19,7 @@ not fine for a product.
 
 ### Which SDK do I install?
 
-One for your backend (`@corvidhq/server` or `raven-sdk`) and one for your
+One for your backend (`@ravenkash/server` or `raven-sdk`) and one for your
 client, by platform. [Install an SDK](/get-started/install-an-sdk) has the
 table.
 

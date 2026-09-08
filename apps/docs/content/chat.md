@@ -21,7 +21,7 @@ product:
 | | RTC | Chat |
 |---|---|---|
 | Carries | audio, video, screen share | messages |
-| SDK | `@corvidhq/rtc` | `@corvidhq/chat` |
+| SDK | `@ravenkash/rtc` | `@ravenkash/chat` |
 | Transport | WebRTC | WebSocket |
 | Credential | RTC token | chat token |
 | Storage | none — media is live or gone | PostgreSQL |
@@ -46,7 +46,7 @@ Your backend  ──(project API key)──►  Raven control plane
 **1. Create a conversation** (once, from your backend):
 
 ```ts
-import { Raven } from '@corvidhq/server';
+import { Raven } from '@ravenkash/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 const conversation = await raven.chat.createConversation({
@@ -68,7 +68,7 @@ const token = await raven.chat.createToken({
 **3. Connect** (in the browser):
 
 ```ts
-import { createChatClient } from '@corvidhq/chat';
+import { createChatClient } from '@ravenkash/chat';
 
 const chat = createChatClient({ token: token.token, apiUrl: token.apiUrl });
 await chat.connect({ room: conversation.publicId });

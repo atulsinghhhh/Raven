@@ -1,10 +1,10 @@
-jest.mock('@corvidhq/rtc', () => require('./helpers/fake-rtc-client'));
+jest.mock('@ravenkash/rtc', () => require('./helpers/fake-rtc-client'));
 
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { FakeRoom, lastClient, resetFakeRtc } from './helpers/fake-rtc-client';
 import { RavenRoom } from '../src/raven-room';
 import { useCameraEffects } from '../src/hooks';
-import { filters } from '@corvidhq/effects';
+import { filters } from '@ravenkash/effects';
 
 async function renderJoined(children: React.ReactNode) {
   const room = new FakeRoom('room-1');

@@ -32,7 +32,7 @@ const diagnostics = room.getDiagnostics();
 // { connectionState, iceConnectionState, signalingState, reconnectCount, sdkVersion, platform, browser }
 ```
 
-This can **only** come from an actual running `@corvidhq/rtc` client with a
+This can **only** come from an actual running `@ravenkash/rtc` client with a
 live (or recently live) connection — a CLI process or a server has no
 way to know a specific browser's ICE state, and Raven never fabricates
 it. `raven diagnostics` explicitly does not attempt to show this data;

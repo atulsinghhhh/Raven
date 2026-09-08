@@ -1,10 +1,10 @@
 // Minimal backend for a frontend that joins Raven RTC rooms: the canonical
-// Phase 10 flow: Browser -> your backend -> @corvidhq/server -> Raven -> a
-// short-lived RTC token -> back to the browser -> @corvidhq/rtc.
+// Phase 10 flow: Browser -> your backend -> @ravenkash/server -> Raven -> a
+// short-lived RTC token -> back to the browser -> @ravenkash/rtc.
 //
 // RAVEN_API_KEY never leaves this process. Never send it to the browser.
 import express from 'express';
-import { Raven, RavenError } from '@corvidhq/server';
+import { Raven, RavenError } from '@ravenkash/server';
 
 const raven = new Raven({
   apiKey: process.env.RAVEN_API_KEY,

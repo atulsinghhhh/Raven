@@ -16,7 +16,7 @@ const SAMPLES = [
     id: 'rtc',
     label: 'RTC',
     filename: 'client.js',
-    code: `import { createRTCClient } from '@corvidhq/rtc';
+    code: `import { createRTCClient } from '@ravenkash/rtc';
 
 const client = createRTCClient({
   token: resp.token,
@@ -32,7 +32,7 @@ await room.enableMicrophone();`,
     id: 'chat',
     label: 'Chat',
     filename: 'chat.js',
-    code: `import { createChatClient } from '@corvidhq/chat';
+    code: `import { createChatClient } from '@ravenkash/chat';
 
 const chat = createChatClient({ token: resp.token });
 
@@ -45,7 +45,7 @@ chat.on('message', (msg) => console.log(msg.senderId, msg.text));`,
     id: 'live',
     label: 'Live streaming',
     filename: 'live.js',
-    code: `import { LiveStream } from '@corvidhq/client';
+    code: `import { LiveStream } from '@ravenkash/client';
 
 const stream = await LiveStream.join({
   streamId,
@@ -64,7 +64,7 @@ await stream.chat.sendMessage({ text: 'We\\'re live!' });`,
     id: 'effects',
     label: 'Effects',
     filename: 'effects.js',
-    code: `import { effects } from '@corvidhq/effects';
+    code: `import { effects } from '@ravenkash/effects';
 
 const pipeline = effects.createPipeline();
 pipeline.add(effects.filters.brightness({ value: 0.2 }));

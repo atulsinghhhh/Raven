@@ -13,7 +13,7 @@ export type { TrackKind, TrackStats } from './track';
  *
  * Exported so a platform SDK, or an application with an unusual media
  * source, can build a Raven track over something the browser never handed
- * it. `@corvidhq/react-native` needs these to bridge its Effects
+ * it. `@ravenkash/react-native` needs these to bridge its Effects
  * integration. They used to be internal, which left guessing at the shape
  * as the only way to satisfy them.
  */

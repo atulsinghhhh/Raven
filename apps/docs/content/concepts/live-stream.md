@@ -50,7 +50,7 @@ const viewer = await raven.liveStreams.createViewerToken(stream.id, 'user-2');
 ```
 
 ```ts
-import { LiveStream } from '@corvidhq/client';
+import { LiveStream } from '@ravenkash/client';
 
 const live = await LiveStream.join(hostCredentials);
 await live.room.enableCamera();

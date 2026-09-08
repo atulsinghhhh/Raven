@@ -193,14 +193,14 @@ source.
 
 | SDK | Page | Stability stated |
 |---|---|---|
-| `@corvidhq/rtc` | `sdk/web` | 0.1.0, unpublished |
-| `@corvidhq/chat` | `sdk/web` | 0.1.0, unpublished |
-| `@corvidhq/client` | `sdk/client` (new) | 0.1.0, unpublished |
-| `@corvidhq/react` | `sdk/react` | 0.1.0, unpublished |
-| `@corvidhq/react-native` | `sdk/react-native` | 0.1.0, unpublished |
-| `@corvidhq/effects` | `effects/*` (13 pages) | 0.1.0, unpublished |
-| `@corvidhq/server` | `sdk/node` | 0.1.0, unpublished |
-| `@corvidhq/cli` | `sdk/cli` | 0.1.0, unpublished |
+| `@ravenkash/rtc` | `sdk/web` | 0.1.0, unpublished |
+| `@ravenkash/chat` | `sdk/web` | 0.1.0, unpublished |
+| `@ravenkash/client` | `sdk/client` (new) | 0.1.0, unpublished |
+| `@ravenkash/react` | `sdk/react` | 0.1.0, unpublished |
+| `@ravenkash/react-native` | `sdk/react-native` | 0.1.0, unpublished |
+| `@ravenkash/effects` | `effects/*` (13 pages) | 0.1.0, unpublished |
+| `@ravenkash/server` | `sdk/node` | 0.1.0, unpublished |
+| `@ravenkash/cli` | `sdk/cli` | 0.1.0, unpublished |
 | `raven-sdk` (Python) | `sdk/python` | 0.1.0, unpublished |
 | `raven_rtc` / `raven_chat` / `raven_live` | `sdk/flutter` | 0.1.0, unpublished |
 
@@ -220,7 +220,7 @@ absent rather than silently avoided.
 
 1. **`room.requestLayer()` on the web.** The signaling protocol carries a
    `subscription.update` frame and Flutter exposes
-   `RavenRoom.requestLayer(...)`, but `@corvidhq/rtc` neither sends the
+   `RavenRoom.requestLayer(...)`, but `@ravenkash/rtc` neither sends the
    frame nor offers a method. I had drafted a group-call guide using it
    before checking. Now stated as Flutter-only in three places.
 2. **Chat token revocation.** `ChatTokenService.revoke()` exists and the

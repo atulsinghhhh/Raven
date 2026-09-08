@@ -56,7 +56,7 @@ stream.room.on('trackSubscribed', (track, participant) => {
 <Tab title="React">
 
 ```tsx
-import { RavenLiveStream, useLiveStreamViewer, useRemoteParticipants, ParticipantView } from '@corvidhq/react';
+import { RavenLiveStream, useLiveStreamViewer, useRemoteParticipants, ParticipantView } from '@ravenkash/react';
 
 function Viewer({ credentials }) {
   return (
@@ -76,7 +76,7 @@ function Stage() {
 <Tab title="React Native">
 
 ```ts
-import { joinLiveStream, useLiveStream, useRemoteParticipants, RavenVideoView } from '@corvidhq/react-native';
+import { joinLiveStream, useLiveStream, useRemoteParticipants, RavenVideoView } from '@ravenkash/react-native';
 
 const stream = await joinLiveStream(credentials); // role: 'VIEWER'
 const { room } = useLiveStream(stream);

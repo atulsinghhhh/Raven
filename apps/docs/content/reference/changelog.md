@@ -10,14 +10,14 @@ registry:
 
 | Package | Version | Registry |
 |---|---|---|
-| `@corvidhq/rtc` | 0.1.0 | Unpublished |
-| `@corvidhq/chat` | 0.1.0 | Unpublished |
-| `@corvidhq/client` | 0.1.0 | Unpublished |
-| `@corvidhq/effects` | 0.1.0 | Unpublished |
-| `@corvidhq/react` | 0.1.0 | Unpublished |
-| `@corvidhq/react-native` | 0.1.0 | Unpublished |
-| `@corvidhq/server` | 0.1.0 | Unpublished |
-| `@corvidhq/cli` | 0.1.0 | Unpublished |
+| `@ravenkash/rtc` | 0.1.0 | Unpublished |
+| `@ravenkash/chat` | 0.1.0 | Unpublished |
+| `@ravenkash/client` | 0.1.0 | Unpublished |
+| `@ravenkash/effects` | 0.1.0 | Unpublished |
+| `@ravenkash/react` | 0.1.0 | Unpublished |
+| `@ravenkash/react-native` | 0.1.0 | Unpublished |
+| `@ravenkash/server` | 0.1.0 | Unpublished |
+| `@ravenkash/cli` | 0.1.0 | Unpublished |
 | `raven_rtc`, `raven_chat`, `raven_live` | 0.1.0 | Unpublished (pub.dev) |
 | `raven-sdk` | 0.1.0 | Unpublished (PyPI) |
 
@@ -31,7 +31,7 @@ exist.
 ## How versioning will work
 
 Packages version **independently**. A patch to the CLI does not drag
-`@corvidhq/rtc` to a new version containing no changes — you install them
+`@ravenkash/rtc` to a new version containing no changes — you install them
 separately, so a shared version number would be a claim the project cannot
 back up.
 

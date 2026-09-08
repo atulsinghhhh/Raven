@@ -1,7 +1,7 @@
-// Raven media demo: built entirely on @corvidhq/rtc's public API. No SDP, no
+// Raven media demo: built entirely on @ravenkash/rtc's public API. No SDP, no
 // ICE candidates, and no RTCPeerConnection appear anywhere in this file. Run `server.py` alongside this
 // page: see the README.
-import { createRTCClient, isRTCError } from '@corvidhq/rtc';
+import { createRTCClient, isRTCError } from '@ravenkash/rtc';
 
 const TOKEN_ENDPOINT = 'http://localhost:8788/api/rtc/token';
 const DIAGNOSTICS_ENDPOINT = 'http://localhost:8788/api/diagnostics';

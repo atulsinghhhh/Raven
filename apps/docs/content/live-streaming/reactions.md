@@ -18,7 +18,7 @@ stream.chat.on('reactionAdded', (event) => {
 <Tab title="React">
 
 ```tsx
-import { useLiveStream } from '@corvidhq/react';
+import { useLiveStream } from '@ravenkash/react';
 
 const { react } = useLiveStream();
 <button onClick={() => react('❤️')}>❤️</button>

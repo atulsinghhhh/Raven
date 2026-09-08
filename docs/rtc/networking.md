@@ -217,7 +217,7 @@ surfacing only `relay` candidates, so every connectivity check, and
 therefore all media, goes through TURN even where a direct path would
 have worked.
 
-**`@corvidhq/rtc` does not expose it.** `RTCClientConfig` accepts
+**`@ravenkash/rtc` does not expose it.** `RTCClientConfig` accepts
 `iceServers`, not an arbitrary `RTCConfiguration`, and widening that to
 let an application reshape ICE is not a trade worth making for a test
 hook. Force it from outside the SDK instead:

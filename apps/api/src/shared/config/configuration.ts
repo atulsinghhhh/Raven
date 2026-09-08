@@ -3,7 +3,7 @@ export default () => ({
   port: parseInt(process.env.API_PORT ?? '4000', 10),
 
   // Host-facing URL of this API. Handed to RTC clients as `telemetryUrl`
-  // next to token/endpoint/iceServers, so @corvidhq/rtc can POST telemetry
+  // next to token/endpoint/iceServers, so @ravenkash/rtc can POST telemetry
   // events without an address hardcoded into the SDK.
   publicUrl: process.env.API_PUBLIC_URL ?? `http://localhost:${parseInt(process.env.API_PORT ?? '4000', 10)}`,
 

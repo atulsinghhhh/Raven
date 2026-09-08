@@ -338,7 +338,7 @@ export default async function ErrorsPage({
           ) : (
             <EmptyState
               title="No errors recorded"
-              description="That is either a good sign or a quiet one: nothing has failed, or nothing has connected yet. Errors appear here automatically once a client using @corvidhq/rtc reports one."
+              description="That is either a good sign or a quiet one: nothing has failed, or nothing has connected yet. Errors appear here automatically once a client using @ravenkash/rtc reports one."
               icon={<IconErrors className="size-6" />}
               action={
                 <>

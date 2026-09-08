@@ -21,11 +21,14 @@ naming convention — it is enforced at the credential level.
 
 ## How isolation works
 
-An [API key](/concepts/api-key) belongs to one environment, and the
-environment is part of the key itself (`rvk_prod_...`). Every
-[token](/concepts/token) that key mints carries the environment as a signed
-claim. So the environment is never something a request specifies, which
-means no client can reach production by editing a field.
+An [API key](/concepts/api-key) belongs to one environment, recorded on the
+key itself — not on the request. Every [token](/concepts/token) that key
+mints carries the environment as a **signed claim**. So the environment is
+never something a request specifies, which means no client can reach
+production by editing a field.
+
+The `rvk_prod_...` segment in a key is a human-readable label, not the
+mechanism; the authoritative value is the key's stored environment.
 
 | | Isolated |
 |---|---|

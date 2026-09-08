@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { joinLiveStream, type LiveStream, type LiveStreamCredentials } from '@corvidhq/client';
+import { joinLiveStream, type LiveStream, type LiveStreamCredentials } from '@ravenkash/client';
 import { RavenStoreContext } from '../context';
 import { RavenStore } from '../store';
 import { RavenChatStoreContext } from '../chat/chat-context';
@@ -24,7 +24,7 @@ export interface RavenLiveStreamProps {
  *
  * Mounts the *same* `RavenStoreContext` and `RavenChatStoreContext` that
  * `<RavenRoom>` and `<RavenChat>` use, on purpose. A stream's `room` and
- * `chat` are precisely a `@corvidhq/rtc` `Room` and a `@corvidhq/chat`
+ * `chat` are precisely a `@ravenkash/rtc` `Room` and a `@ravenkash/chat`
  * `ChatClient`, so every existing hook already works inside a
  * `<RavenLiveStream>`: `useParticipants`, `useCamera`, `useMicrophone`,
  * `useMessages`, `useReactions`, `useTyping`, the lot. Nothing here

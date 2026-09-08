@@ -1,4 +1,4 @@
-# Telemetry — what `@corvidhq/rtc` reports, and how
+# Telemetry — what `@ravenkash/rtc` reports, and how
 
 Best-effort connection telemetry from the browser SDK to the Control API,
 feeding the dashboard's Observability tabs and the `raven connections`/

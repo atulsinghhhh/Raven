@@ -63,7 +63,7 @@ is worse than no button:
 
 ```ts
 // Raven's own check covers the three APIs a call needs at all:
-import { getBrowserSupportDetails } from '@corvidhq/rtc';
+import { getBrowserSupportDetails } from '@ravenkash/rtc';
 
 const { supported, missing } = getBrowserSupportDetails();
 if (!supported) showUnsupportedBrowserNotice(missing);
@@ -94,7 +94,7 @@ room.on('trackSubscribed', (track, participant) => {
 <Tab title="React">
 
 ```tsx
-import { ParticipantView, useRemoteParticipants } from '@corvidhq/react';
+import { ParticipantView, useRemoteParticipants } from '@ravenkash/react';
 
 function Stage() {
   const remote = useRemoteParticipants();

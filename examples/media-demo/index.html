@@ -33,7 +33,7 @@
   <h1>Raven Media Demo</h1>
   <p class="hint">
     Real WebRTC media through Raven's managed RTC infrastructure — not a
-    mock. This page is built entirely on <code>@corvidhq/rtc</code>'s public
+    mock. This page is built entirely on <code>@ravenkash/rtc</code>'s public
     API; nothing here talks to the underlying media server directly (see
     <code>app.js</code>). A token is minted for you by the small backend
     in <code>server.py</code> — see the README for how to run it. Open
@@ -84,7 +84,7 @@
       an earlier version of this page instead reached into an
       undocumented, non-public part of the underlying media client to
       approximate this, which is exactly the kind of provider-specific
-      detail <code>@corvidhq/rtc</code> exists to make unnecessary.
+      detail <code>@ravenkash/rtc</code> exists to make unnecessary.
     </p>
     <div>Quality: <span id="connectionQuality">—</span></div>
     <table class="stats" id="statsTable">
@@ -116,7 +116,7 @@
   <script type="importmap">
     {
       "imports": {
-        "@corvidhq/rtc": "./raven-rtc.js"
+        "@ravenkash/rtc": "./raven-rtc.js"
       }
     }
   </script>

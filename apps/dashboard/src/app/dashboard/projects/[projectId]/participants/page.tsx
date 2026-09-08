@@ -99,7 +99,7 @@ export default async function ParticipantsPage({
           description={
             <>
               A participant appears here as soon as a client joins a room with{' '}
-              <code className="font-mono text-xs text-fg">@corvidhq/rtc</code> using a token minted by your backend. Until
+              <code className="font-mono text-xs text-fg">@ravenkash/rtc</code> using a token minted by your backend. Until
               then there are no connection records to derive one from.
             </>
           }

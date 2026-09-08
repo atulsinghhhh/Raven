@@ -3,6 +3,7 @@ title: Examples
 description: Real, runnable apps in the Raven repo — grouped by which product they exercise.
 ---
 
+
 Every example below is a real, runnable app at `examples/<name>` in the
 Raven repo — not a code snippet. Each has its own README with exact
 setup steps.
@@ -10,8 +11,8 @@ setup steps.
 ## RTC
 
 - **`video-call`** — a minimal two-participant call built entirely on
-  `@corvidhq/rtc`'s public API.
-- **`react-video-call`** — the same call built with `@corvidhq/react`:
+  `@ravenkash/rtc`'s public API.
+- **`react-video-call`** — the same call built with `@ravenkash/react`:
   join a room, camera/microphone, screen sharing, device selection.
 - **`mobile-rtc-chat`** — a real call on a phone (React Native).
 - **`flutter-rtc-chat`** — the same, in Flutter.
@@ -22,7 +23,7 @@ setup steps.
 token, join a room, and publish media:
 
 ```js
-import { createRTCClient } from '@corvidhq/rtc';
+import { createRTCClient } from '@ravenkash/rtc';
 
 const client = createRTCClient({
   token: resp.token,
@@ -40,16 +41,16 @@ this and the full room/track API.
 
 ## Chat
 
-- **`chat`** — a working chat client on `@corvidhq/chat` and
-  `@corvidhq/react` — every message really is round-tripping through
+- **`chat`** — a working chat client on `@ravenkash/chat` and
+  `@ravenkash/react` — every message really is round-tripping through
   Postgres and a WebSocket.
-- **`rtc-chat`** — `@corvidhq/rtc` and `@corvidhq/chat` on the same screen,
+- **`rtc-chat`** — `@ravenkash/rtc` and `@ravenkash/chat` on the same screen,
   doing separate jobs: a call with a chat panel.
 
 Connecting and sending a message is two calls once you have a token:
 
 ```js
-import { createChatClient } from '@corvidhq/chat';
+import { createChatClient } from '@ravenkash/chat';
 
 const chat = createChatClient({ token: resp.token });
 
@@ -66,14 +67,14 @@ the full event catalogue.
 
 - **`live-streaming-demo`** — a two-browser demo: one host tab
   publishing camera/microphone, one viewer tab receiving real media,
-  plus live chat and reactions, built entirely on `@corvidhq/client`'s
+  plus live chat and reactions, built entirely on `@ravenkash/client`'s
   `LiveStream` API.
 
 `LiveStream.join()` gets you both an RTC room and a chat conversation
 in one call — the host side looks like this:
 
 ```js
-import { LiveStream } from '@corvidhq/client';
+import { LiveStream } from '@ravenkash/client';
 
 const stream = await LiveStream.join({
   streamId,
@@ -94,7 +95,7 @@ viewer side and reactions.
 
 ## Effects
 
-- **`effects-demo`** — a single-browser demo of `@corvidhq/effects`:
+- **`effects-demo`** — a single-browser demo of `@ravenkash/effects`:
   one real camera track, one `EffectsPipeline`, "Original" vs
   "Processed" video side by side. No RTC room or signaling server
   needed — it exercises the same pipeline `camera.attachEffects()` uses
@@ -103,7 +104,7 @@ viewer side and reactions.
 Build a pipeline and attach it to any published camera track:
 
 ```js
-import { effects } from '@corvidhq/effects';
+import { effects } from '@ravenkash/effects';
 
 const pipeline = effects.createPipeline();
 pipeline.add(effects.filters.brightness({ value: 0.2 }));
@@ -119,13 +120,13 @@ React hook API.
 ## Server SDKs
 
 - **`node-server`** — a real Express server minting RTC tokens with
-  `@corvidhq/server`.
+  `@ravenkash/server`.
 - **`python-server`** — the same, with `raven-sdk` and FastAPI.
 
 ## RTC + Chat combined
 
 - **`media-demo`** — a minimal static page proving real WebRTC media
-  through `@corvidhq/rtc`, backed by a small FastAPI server using
+  through `@ravenkash/rtc`, backed by a small FastAPI server using
   `raven-sdk`.
 
 ## Next

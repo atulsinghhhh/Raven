@@ -48,9 +48,9 @@ Every variable, classified. No secret is present in any frontend project.
 | `NEXT_PUBLIC_DOCS_URL` | PUBLIC | docs URL |
 
 No API variable, because the landing app makes **no** backend calls. The
-`@corvidhq/*` and `createRTCClient` references in `src/components/` are
+`@ravenkash/*` and `createRTCClient` references in `src/components/` are
 inside template-literal code samples, not imports — no frontend has a
-`@corvidhq` dependency in its `package.json`.
+`@ravenkash` dependency in its `package.json`.
 
 ### `raven-dashboard`
 

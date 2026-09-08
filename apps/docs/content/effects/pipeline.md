@@ -54,7 +54,7 @@ pipeline.on('stats', (stats) => {});   // emitted every ~2s while attached
 ```
 
 `off()`/`once()`/`removeAllListeners()` work the same way as
-[`@corvidhq/rtc`'s `Room`](/rtc#events) — this is the same
+[`@ravenkash/rtc`'s `Room`](/rtc#events) — this is the same
 `TypedEventEmitter` convention, not a separate one.
 
 ## Ordering matters

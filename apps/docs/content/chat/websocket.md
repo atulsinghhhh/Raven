@@ -3,7 +3,7 @@ title: WebSocket Protocol
 description: For writing a client where Raven doesn't ship an SDK, or for debugging what's on the wire.
 ---
 
-You don't need this page to use Raven Chat — `@corvidhq/chat` speaks this
+You don't need this page to use Raven Chat — `@ravenkash/chat` speaks this
 protocol so you don't have to, and the SDK is the supported interface.
 This is for a client in a language Raven doesn't ship an SDK for, or for
 reading what's actually on the wire in devtools.
@@ -81,7 +81,7 @@ which plane produced it.
 | `4440` | Token expired | Yes, with a **fresh token** |
 | `4500` | Server shutting down | Yes, after backing off — a deploy, not a fault |
 
-`@corvidhq/chat` treats `4401` and `4403` as terminal and reports `failed`
+`@ravenkash/chat` treats `4401` and `4403` as terminal and reports `failed`
 rather than retrying forever.
 
 ## Frame format

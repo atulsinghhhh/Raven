@@ -3,7 +3,7 @@ title: CLI
 description: Install, authenticate (browser or headless CI), manage projects and keys, and inspect a live deployment from the terminal.
 ---
 
-`@corvidhq/cli` is a terminal workflow tool over the same control plane
+`@ravenkash/cli` is a terminal workflow tool over the same control plane
 every SDK uses — no direct database, Redis, media server, or TURN access.
 
 It authenticates with a **dashboard session**, not a project API key. That
@@ -17,13 +17,13 @@ credential is deliberately absent. See [Security](#security).
 > from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
 ```bash
-npm install -g @corvidhq/cli
+npm install -g @ravenkash/cli
 ```
 
 Or run it without installing anything, which is what you want in CI:
 
 ```bash
-npx @corvidhq/cli projects list
+npx @ravenkash/cli projects list
 ```
 
 ## Authenticate
@@ -65,7 +65,7 @@ A complete GitHub Actions step:
 - name: List Raven projects
   env:
     RAVEN_TOKEN: ${{ secrets.RAVEN_TOKEN }}
-  run: npx @corvidhq/cli projects list --json
+  run: npx @ravenkash/cli projects list --json
 ```
 
 If a machine has no browser but does have a writable home directory,
@@ -154,7 +154,7 @@ There is deliberately no `raven streams hosts add/remove` or
 `raven streams token host/viewer` — those mint real RTC + chat
 credentials, and the CLI holds a developer session (a JWT), not a
 project API key, same reason `raven chat send` doesn't exist. Run those
-from your own backend with `@corvidhq/server` or `raven-sdk`.
+from your own backend with `@ravenkash/server` or `raven-sdk`.
 
 ## RTC — the media plane
 

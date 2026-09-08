@@ -2,7 +2,7 @@
 
 A real two-browser demo of Raven Live Streaming — one host tab publishing
 camera/microphone, one viewer tab receiving real media, plus live chat and
-reactions — built entirely on `@corvidhq/client`'s `LiveStream` API
+reactions — built entirely on `@ravenkash/client`'s `LiveStream` API
 (`raven.live.join()` / `LiveStream.join()`). `app.js` never touches
 SDP or `RTCPeerConnection` directly.
 
@@ -18,7 +18,7 @@ This is deliberately not a polished product UI — see
 **3. Build the three SDK bundles this demo vendors** (no bundler, no CDN — same convention as `examples/media-demo` and `examples/video-call`):
 
 ```bash
-pnpm --filter @corvidhq/rtc --filter @corvidhq/chat --filter @corvidhq/client run build
+pnpm --filter @ravenkash/rtc --filter @ravenkash/chat --filter @ravenkash/client run build
 cd examples/live-streaming-demo
 cp ../../packages/sdk/dist/index.js{,.map} .
 mv index.js raven-rtc.js; mv index.js.map raven-rtc.js.map
@@ -52,12 +52,12 @@ the host's video should appear within a couple of seconds.
 
 - A host publishing real camera/microphone through `LiveStream.join()` →
   `stream.room.enableCamera()`/`enableMicrophone()` — ordinary
-  `@corvidhq/rtc` `Room` methods, not anything live-streaming-specific.
+  `@ravenkash/rtc` `Room` methods, not anything live-streaming-specific.
 - A viewer receiving that media over a real SFU connection, with
   publish permission denied server-side (the viewer's RTC token is
   always subscribe-only, regardless of anything the browser sends).
 - Chat both ways over the stream's auto-attached conversation, using
-  `@corvidhq/chat` exactly as documented elsewhere — no second chat
+  `@ravenkash/chat` exactly as documented elsewhere — no second chat
   implementation.
 - Reactions landing on the stream's `chatRootMessageId`, aggregated on
   the existing `Reaction` model.

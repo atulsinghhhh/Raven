@@ -1,11 +1,11 @@
 ---
 title: React SDK
-description: Hooks and optional components on top of @corvidhq/rtc — headless by default.
+description: Hooks and optional components on top of @ravenkash/rtc — headless by default.
 ---
 
-`@corvidhq/react` is React integration on top of `@corvidhq/rtc`. Headless by
+`@ravenkash/react` is React integration on top of `@ravenkash/rtc`. Headless by
 default — hooks work with any UI you build — plus a handful of
-genuinely optional components for a fast start. `@corvidhq/rtc` itself
+genuinely optional components for a fast start. `@ravenkash/rtc` itself
 wasn't rewritten to build this; see [Web SDK](/sdk/web) for what changed
 there (small, additive, non-breaking).
 
@@ -16,7 +16,7 @@ there (small, additive, non-breaking).
 > from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
 ```bash
-npm install @corvidhq/rtc @corvidhq/react
+npm install @ravenkash/rtc @ravenkash/react
 ```
 
 Peer dependency: `react` `^18 || ^19`.
@@ -28,7 +28,7 @@ Peer dependency: `react` `^18 || ^19`.
 import {
   RavenRoom, useConnectionState, useLocalParticipant,
   useRemoteParticipants, useCamera, ParticipantView,
-} from '@corvidhq/react';
+} from '@ravenkash/react';
 
 function CallPage({ token, endpoint, roomName }) {
   return (
@@ -107,7 +107,7 @@ The provider every hook needs, and the RTC lifecycle owner — one
 ```
 
 `token`/`endpoint` are read once, at mount — the same one-shot model
-`@corvidhq/rtc` itself uses, since an RTC token is minted for exactly one
+`@ravenkash/rtc` itself uses, since an RTC token is minted for exactly one
 join. To join with a fresh token, remount with a new `key`:
 `<RavenRoom key={token} token={token} .../>`.
 
@@ -137,12 +137,12 @@ function ManualJoin() {
 
 ## Chat
 
-`@corvidhq/react` gained matching hooks on top of `@corvidhq/chat` — same
+`@ravenkash/react` gained matching hooks on top of `@ravenkash/chat` — same
 pattern, same headless-by-default philosophy:
 
 ```tsx
 'use client';
-import { RavenChat, useMessages, useTyping } from '@corvidhq/react';
+import { RavenChat, useMessages, useTyping } from '@ravenkash/react';
 
 function ChatPanel({ chatToken, apiUrl, room }) {
   return (
@@ -187,7 +187,7 @@ alone.
 | `useReadReceipts()` | Read state — yours and everyone else's. |
 
 Full API — history, threads, attachments, delivery semantics — is
-`@corvidhq/chat`'s own surface underneath these hooks; see
+`@ravenkash/chat`'s own surface underneath these hooks; see
 [Chat Overview](/chat).
 
 ## Live Streaming
@@ -203,7 +203,7 @@ the SDK is built specifically to avoid.
 'use client';
 import {
   RavenLiveStream, useLiveStream, useLiveStreamHost, useParticipants, useMessages,
-} from '@corvidhq/react';
+} from '@ravenkash/react';
 
 function StreamPage({ credentials }) {
   return (
@@ -244,13 +244,13 @@ never construct it by hand.
 | `useLiveStreamRole()` | `{ role, isHost }`. |
 | `useLiveStreamHost()` | Everything `useLiveStream()` has, plus `camera`/`microphone` (`useCamera`/`useMicrophone` bundled in). Throws if called for a `VIEWER`-role stream. |
 | `useLiveStreamViewer()` | Everything `useLiveStream()` has. Throws if called for a `HOST`/`CO_HOST`-role stream. |
-| `useLiveStreamClient()` | The underlying `LiveStream` (from `@corvidhq/client`), for anything the hooks above don't cover. |
+| `useLiveStreamClient()` | The underlying `LiveStream` (from `@ravenkash/client`), for anything the hooks above don't cover. |
 
 `leave()` leaves the room and disconnects chat — it does not end the
 stream. Ending it (`LIVE → ENDED`) is a privileged, server-side call: see
 [Live Streaming → Streams & Lifecycle](/live-streaming/streams).
 
-Peer dependency: `@corvidhq/client` (optional — only needed if you use
+Peer dependency: `@ravenkash/client` (optional — only needed if you use
 `<RavenLiveStream>`).
 
 ## Next.js

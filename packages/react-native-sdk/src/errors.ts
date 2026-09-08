@@ -1,11 +1,11 @@
-import { RTCError, type RTCErrorCode } from '@corvidhq/rtc';
+import { RTCError, type RTCErrorCode } from '@ravenkash/rtc';
 
 /**
  * Mobile brings exactly one failure mode the web SDK doesn't have: an
  * operating system that can refuse camera or microphone access outright,
  * permanently, with no way for the app to ask again.
  *
- * Everything else already has a code in `@corvidhq/rtc`: expired tokens,
+ * Everything else already has a code in `@ravenkash/rtc`: expired tokens,
  * failed connections, missing rooms, unavailable devices. Reusing those is
  * the entire point. Someone moving from web to mobile should be catching
  * the same `RTCError` with the same `code`, not learning a second error
@@ -95,6 +95,6 @@ export function toPermissionError(
 }
 
 // Re-exported so a mobile app can catch everything Raven throws without
-// having to import @corvidhq/rtc as well.
-export { RTCError, isRTCError } from '@corvidhq/rtc';
+// having to import @ravenkash/rtc as well.
+export { RTCError, isRTCError } from '@ravenkash/rtc';
 export type { RTCErrorCode };

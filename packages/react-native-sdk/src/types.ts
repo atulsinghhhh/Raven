@@ -1,5 +1,5 @@
-import type { LogLevel } from '@corvidhq/rtc';
-import type { ChatClient } from '@corvidhq/chat';
+import type { LogLevel } from '@ravenkash/rtc';
+import type { ChatClient } from '@ravenkash/chat';
 import type { RavenAppState } from './internal/lifecycle';
 
 /**
@@ -71,7 +71,7 @@ export interface RavenConfig {
 /**
  * The chat surface hanging off `raven.chat`.
  *
- * Structurally it's `@corvidhq/chat`'s `ChatClient` with a mobile-shaped
+ * Structurally it's `@ravenkash/chat`'s `ChatClient` with a mobile-shaped
  * `connect(room)` bolted on the front. On web you construct a client and
  * connect it; here the client already exists and joining a room is the only
  * step left. Everything else is the identical API, because it *is* the
@@ -88,11 +88,11 @@ export interface RavenChatHandle extends Omit<ChatClient, 'connect'> {
 export type { RavenAppState };
 
 /**
- * Live Streaming (Phase 14). Mirrors `@corvidhq/client`'s
+ * Live Streaming (Phase 14). Mirrors `@ravenkash/client`'s
  * `LiveStreamCredentials` and `LiveStreamRole` field for field.
  *
  * This package keeps its own copy instead of depending on
- * `@corvidhq/client`, which composes `@corvidhq/rtc` and `@corvidhq/chat`
+ * `@ravenkash/client`, which composes `@ravenkash/rtc` and `@ravenkash/chat`
  * for a *browser*. Out here `Raven` already does that composition in a
  * way that suits mobile.
  */

@@ -1,7 +1,7 @@
 {
-  "name": "@corvidhq/react",
+  "name": "@ravenkash/react",
   "version": "0.1.0",
-  "description": "React hooks and optional UI primitives for @corvidhq/rtc \u2014 headless by default, no UI lock-in.",
+  "description": "React hooks and optional UI primitives for @ravenkash/rtc \u2014 headless by default, no UI lock-in.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -43,31 +43,31 @@
     "test:watch": "jest --watch"
   },
   "peerDependencies": {
-    "@corvidhq/chat": "*",
-    "@corvidhq/client": "*",
-    "@corvidhq/effects": "*",
-    "@corvidhq/rtc": "*",
+    "@ravenkash/chat": "*",
+    "@ravenkash/client": "*",
+    "@ravenkash/effects": "*",
+    "@ravenkash/rtc": "*",
     "react": "^18.0.0 || ^19.0.0"
   },
   "peerDependenciesMeta": {
-    "@corvidhq/chat": {
+    "@ravenkash/chat": {
       "optional": true
     },
-    "@corvidhq/client": {
+    "@ravenkash/client": {
       "optional": true
     },
-    "@corvidhq/effects": {
+    "@ravenkash/effects": {
       "optional": true
     },
-    "@corvidhq/rtc": {
+    "@ravenkash/rtc": {
       "optional": true
     }
   },
   "devDependencies": {
-    "@corvidhq/chat": "workspace:*",
-    "@corvidhq/client": "workspace:*",
-    "@corvidhq/effects": "workspace:*",
-    "@corvidhq/rtc": "workspace:*",
+    "@ravenkash/chat": "workspace:*",
+    "@ravenkash/client": "workspace:*",
+    "@ravenkash/effects": "workspace:*",
+    "@ravenkash/rtc": "workspace:*",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/jest": "^29.5.14",

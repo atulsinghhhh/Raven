@@ -147,7 +147,7 @@ const CONNECTION_QUALITY: Record<string, { tone: BadgeTone; label: string }> = {
 
 /**
  * The SFU's own read on a connection's media quality: see
- * `ConnectionQuality` in `@corvidhq/rtc`. `null` (no stats sample received
+ * `ConnectionQuality` in `@ravenkash/rtc`. `null` (no stats sample received
  * yet) renders nothing rather than a misleading "Unknown" badge, since
  * `'unknown'` is itself a value the SFU can report.
  */

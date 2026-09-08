@@ -4,8 +4,8 @@ description: Every event a Room emits, with its payload and when it fires. Ident
 ---
 
 `Room` is a typed event emitter. These 17 events are its whole surface —
-from `RoomEventMap` in `@corvidhq/rtc`, and the same set on
-`@corvidhq/react-native`, because it is the same class.
+from `RoomEventMap` in `@ravenkash/rtc`, and the same set on
+`@ravenkash/react-native`, because it is the same class.
 
 ```ts
 function onJoin(participant: RemoteParticipant) {
@@ -22,7 +22,7 @@ room.off('participantJoined', onJoin);      // keep the reference to unsubscribe
 room.on('connected', render).on('participantJoined', render).on('participantLeft', render);
 ```
 
-> **`@corvidhq/chat` differs here.** `chat.on()` returns an **unsubscribe
+> **`@ravenkash/chat` differs here.** `chat.on()` returns an **unsubscribe
 > function** rather than the client, because chat handlers are almost always
 > registered inside a component effect where cleanup is the common path.
 > `room.on()` chains; `chat.on()` hands you the teardown. See
@@ -88,7 +88,7 @@ and rebuilding it on unmute is the visible difference.
 without an attributable sender. Handle the undefined case.
 
 ```ts
-import { isRTCError } from '@corvidhq/rtc';
+import { isRTCError } from '@ravenkash/rtc';
 
 room.on('error', (error) => {
   if (isRTCError(error) && error.code === 'CAMERA_PERMISSION_DENIED') {

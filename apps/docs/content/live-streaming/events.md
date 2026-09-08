@@ -34,22 +34,41 @@ curl -X POST "$RAVEN_API_URL/v1/projects/$PROJECT_ID/webhooks" \
 
 ## Payloads
 
-Each arrives in the standard [webhook envelope](/webhooks#the-payload),
-with the stream's identity in `data`:
+Each arrives in the standard [webhook envelope](/webhooks#the-payload), with
+the stream's identity in `data`. The fields differ per event — these are the
+exact keys each one carries:
+
+| Event | `data` fields |
+|---|---|
+| `live_stream.created` | `streamId`, `title`, `visibility`, `hostIdentity`, `createdAt` |
+| `live_stream.started` | `streamId`, `startedAt` |
+| `live_stream.ended` | `streamId`, `endedAt`, `durationMs` (null if it never started) |
+| `live_stream.host_joined` | `streamId`, `identity`, `role`, `at` |
+| `live_stream.host_left` | `streamId`, `identity`, `at` |
+| `live_stream.viewer_joined` | `streamId`, `identity`, `at` |
+| `live_stream.viewer_left` | `streamId`, `identity`, `at` |
+
+Note that `title` is on `created` only. If you need it on the others, keep
+it from `created` or read it back with `liveStreams.get()`.
 
 ```json
 {
   "id": "evt_GSyoZrH7qF3tZms0QsW4Gw",
-  "type": "live_stream.started",
+  "type": "live_stream.created",
   "projectId": "3e48ccb1-...",
   "environment": "PRODUCTION",
   "createdAt": "2026-09-08T12:00:00.000Z",
-  "data": { "streamId": "stream_jRoD1T3EXh0PMJRGG4zYzQ", "title": "Friday Q&A" }
+  "data": {
+    "streamId": "stream_jRoD1T3EXh0PMJRGG4zYzQ",
+    "title": "Friday Q&A",
+    "visibility": "PUBLIC",
+    "hostIdentity": "user-1",
+    "createdAt": "2026-09-08T12:00:00.000Z"
+  }
 }
 ```
 
-Host and viewer events additionally carry the `identity` involved. Treat
-`data` as extensible: fields may be added, so ignore ones you do not
+Treat `data` as extensible: fields may be added, so ignore ones you do not
 recognise rather than failing.
 
 ## `viewer_left` depends on you

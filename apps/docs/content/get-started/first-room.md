@@ -11,7 +11,7 @@ Your backend has minted a token. This is everything the client does with it.
 <Tab title="Web">
 
 ```ts
-import { createRTCClient } from '@corvidhq/rtc';
+import { createRTCClient } from '@ravenkash/rtc';
 
 // Whatever your own endpoint returns from raven.tokens.create().
 const credentials = await fetch('/join-room', { method: 'POST' }).then((r) => r.json());
@@ -28,7 +28,7 @@ const room = await client.join(credentials.roomId);
 
 ```tsx
 'use client';
-import { RavenRoom, useConnectionState, useParticipants } from '@corvidhq/react';
+import { RavenRoom, useConnectionState, useParticipants } from '@ravenkash/react';
 
 function Call({ credentials }) {
   return (
@@ -54,7 +54,7 @@ function CallBody() {
 <Tab title="React Native">
 
 ```ts
-import { Raven } from '@corvidhq/react-native';
+import { Raven } from '@ravenkash/react-native';
 
 const raven = new Raven(credentials);
 const room = await raven.join(credentials.roomId);
@@ -144,7 +144,7 @@ remote track is actually available to play, which is later than
 <Tab title="React">
 
 ```tsx
-import { ParticipantView, useRemoteParticipants } from '@corvidhq/react';
+import { ParticipantView, useRemoteParticipants } from '@ravenkash/react';
 
 function Grid() {
   const remote = useRemoteParticipants();

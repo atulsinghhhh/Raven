@@ -29,7 +29,7 @@ await room.disableMicrophone();
 
 ```tsx
 'use client';
-import { useCamera, useMicrophone } from '@corvidhq/react';
+import { useCamera, useMicrophone } from '@ravenkash/react';
 
 function DeviceControls() {
   const camera = useCamera();
@@ -58,7 +58,7 @@ there specifically).
 <Tab title="React Native">
 
 ```tsx
-import { useCamera, useMicrophone } from '@corvidhq/react-native';
+import { useCamera, useMicrophone } from '@ravenkash/react-native';
 
 function DeviceControls({ room }) {
   const camera = useCamera(room);       // { enabled, busy, enable(), disable(), toggle(), error }
@@ -113,7 +113,7 @@ brightness, contrast, saturation, and presets like `cinematic`/`vivid`,
 without touching SDP, WebGL, or a canvas directly:
 
 ```ts
-import { effects } from '@corvidhq/effects';
+import { effects } from '@ravenkash/effects';
 
 const camera = await room.enableCamera();
 const pipeline = effects.createPipeline();
@@ -153,7 +153,7 @@ try {
 <Tab title="React Native">
 
 ```ts
-import { isRavenPermissionError } from '@corvidhq/react-native';
+import { isRavenPermissionError } from '@ravenkash/react-native';
 
 try {
   await room.enableCamera();

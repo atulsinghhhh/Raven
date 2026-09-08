@@ -9,6 +9,20 @@ project, and nothing crosses between them.
 
 You need one before you can mint a credential.
 
+## First, find your deployment
+
+Raven is self-hostable, so there is no single dashboard URL to send you to.
+Yours is one of:
+
+| Situation | Dashboard |
+|---|---|
+| Your team runs Raven | The deployment's own dashboard host — linked in the top bar of this site |
+| You are running it locally | `http://localhost:3000` (see [Docker Compose](/self-hosting/docker-compose)) |
+
+Running locally, `pnpm db:seed` creates a demo project **and prints an API
+key**, which skips this page entirely. See
+[Quickstart](/getting-started/quickstart#1-create-a-project-and-a-key).
+
 ## From the dashboard
 
 Register, then create a project from the projects screen. The project id
@@ -24,6 +38,9 @@ not create them and you cannot add a fourth.
 raven login
 raven projects create my-video-app
 ```
+
+The CLI is not published to a registry yet, so install it from a checkout
+first — [Installing from source](/getting-started/installing-from-source).
 
 `raven login` opens a browser and reuses the dashboard session you already
 have. On a machine with no browser, set `RAVEN_TOKEN` instead — see

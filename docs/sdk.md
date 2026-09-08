@@ -1,6 +1,6 @@
-# @corvidhq/rtc — Browser SDK
+# @ravenkash/rtc — Browser SDK
 
-`@corvidhq/rtc` is Raven's browser SDK: join a room, publish camera/microphone,
+`@ravenkash/rtc` is Raven's browser SDK: join a room, publish camera/microphone,
 subscribe to remote participants' media — without ever touching SDP, ICE
 candidates, `RTCPeerConnection`, STUN, or TURN directly. Internally it
 speaks Raven's own signaling protocol over a native `RTCPeerConnection`,
@@ -16,7 +16,7 @@ public API below did not change. See
 ## Installation
 
 ```bash
-npm install @corvidhq/rtc
+npm install @ravenkash/rtc
 ```
 
 Supported browsers: **Chrome, Firefox, Safari, Edge** (current versions).
@@ -52,7 +52,7 @@ then the media plane could not change without breaking that client.
 
 ```js
 // on your frontend, having fetched `resp` from your own backend:
-import { createRTCClient } from '@corvidhq/rtc';
+import { createRTCClient } from '@ravenkash/rtc';
 
 const client = createRTCClient({
   token: resp.token,
@@ -229,7 +229,7 @@ DEVICE_NOT_FOUND | NETWORK_ERROR | SIGNALING_ERROR | MEDIA_ERROR | TIMEOUT
 ```
 
 ```js
-import { isRTCError } from '@corvidhq/rtc';
+import { isRTCError } from '@ravenkash/rtc';
 
 try {
   await client.join('room-123');
@@ -332,7 +332,7 @@ attribution, and the `Room` model a developer actually uses.
 ## Browser compatibility
 
 ```js
-import { isBrowserSupported, getBrowserSupportDetails } from '@corvidhq/rtc';
+import { isBrowserSupported, getBrowserSupportDetails } from '@ravenkash/rtc';
 
 if (!isBrowserSupported()) {
   const { missing } = getBrowserSupportDetails(); // e.g. ['RTCPeerConnection']
@@ -361,7 +361,7 @@ either way in this environment):
 
 ## Bundle size
 
-Measured from a real build (`pnpm --filter @corvidhq/rtc build`):
+Measured from a real build (`pnpm --filter @ravenkash/rtc build`):
 
 | File | Raw | Gzip |
 |---|---|---|
@@ -375,7 +375,7 @@ attribution from a third-party client — which is a ~15 KB increase in
 Raven's own code in exchange for dropping a ~274 KB gzipped dependency.
 
 Re-measure rather than trusting this table:
-`pnpm --filter @corvidhq/rtc build && node packages/sdk/scripts/print-bundle-size.mjs`.
+`pnpm --filter @ravenkash/rtc build && node packages/sdk/scripts/print-bundle-size.mjs`.
 
 ## Known limitations
 

@@ -43,8 +43,8 @@ an ordinary RTC track underneath.
 ## Quickstart
 
 ```ts
-import { createRTCClient } from '@corvidhq/rtc';
-import { effects } from '@corvidhq/effects';
+import { createRTCClient } from '@ravenkash/rtc';
+import { effects } from '@ravenkash/effects';
 
 const client = createRTCClient({ token, endpoint, iceServers });
 const room = await client.join('room-123');

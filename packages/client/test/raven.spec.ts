@@ -1,11 +1,11 @@
 import { Raven, createRaven } from '../src/index';
 
 /**
- * `@corvidhq/client` is a facade, so the interesting behaviour is which
+ * `@ravenkash/client` is a facade, so the interesting behaviour is which
  * clients it constructs, which it doesn't, and whether it fails early with
  * a useful message when the credentials can't possibly work together.
  *
- * The underlying `@corvidhq/rtc` and `@corvidhq/chat` clients have suites
+ * The underlying `@ravenkash/rtc` and `@ravenkash/chat` clients have suites
  * of their own. Nothing here re-tests them.
  */
 
@@ -26,7 +26,7 @@ function fakeRtcToken(): string {
 }
 
 /**
- * @corvidhq/chat decodes the token client-side, never verifies it, purely
+ * @ravenkash/chat decodes the token client-side, never verifies it, purely
  * to fail fast on an expired one. So the fixture needs whatever that decode
  * actually reads: `sub`, `pid`, and a numeric `exp`.
  */

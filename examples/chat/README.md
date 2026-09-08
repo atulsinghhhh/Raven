@@ -1,6 +1,6 @@
 # Raven Chat example
 
-A working chat client built on `@corvidhq/chat` and `@corvidhq/react`. Every message you
+A working chat client built on `@ravenkash/chat` and `@ravenkash/react`. Every message you
 see came out of Postgres and arrived over a real WebSocket — there is no mock
 message array anywhere in this example.
 
@@ -20,7 +20,7 @@ It demonstrates:
 ## Architecture
 
 ```
-Browser (@corvidhq/chat)          Your backend (@corvidhq/server)         Raven
+Browser (@ravenkash/chat)          Your backend (@ravenkash/server)         Raven
         │                              │                              │
         │  POST /api/chat/token        │                              │
         ├─────────────────────────────►│  raven.chat.createToken()    │

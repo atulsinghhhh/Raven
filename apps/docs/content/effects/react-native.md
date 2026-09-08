@@ -9,11 +9,11 @@ same import.
 
 ## What's production today
 
-`@corvidhq/react-native` re-exports `@corvidhq/effects` unchanged —
+`@ravenkash/react-native` re-exports `@ravenkash/effects` unchanged —
 building and validating a pipeline works exactly like Web:
 
 ```ts
-import { createEffectsPipeline, filters, presets } from '@corvidhq/react-native';
+import { createEffectsPipeline, filters, presets } from '@ravenkash/react-native';
 
 const pipeline = createEffectsPipeline();
 pipeline.applyPreset(presets.cinematic);
@@ -27,7 +27,7 @@ look, or validating a saved preference before rendering.
 ## What's planned
 
 React Native's camera comes from `react-native-webrtc`, wrapped
-by the exact same `Room`/`LocalTrack` classes `@corvidhq/rtc` uses on
+by the exact same `Room`/`LocalTrack` classes `@ravenkash/rtc` uses on
 web (see [Architecture](/getting-started/architecture)). Because those
 classes are shared unmodified, `camera.attachEffects(pipeline)` **exists**
 on React Native — but there is no DOM, canvas, or WebGL in this JS

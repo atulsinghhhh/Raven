@@ -1,6 +1,6 @@
-# @corvidhq/rtc — Web SDK (Phase 11 notes)
+# @ravenkash/rtc — Web SDK (Phase 11 notes)
 
-`@corvidhq/rtc` is Raven's browser SDK — it already existed before Phase 11
+`@ravenkash/rtc` is Raven's browser SDK — it already existed before Phase 11
 (built in Phase 6, extended in Phases 8–10 with telemetry/diagnostics).
 **This document does not replace `docs/sdk.md`**, which remains the full
 API reference (installation, `createRTCClient`, joining, camera/
@@ -30,11 +30,11 @@ Phase 11. See `docs/sdk.md` for all of it.
 
 ## Browser support
 
-`@corvidhq/rtc` feature-detects what it needs rather than maintaining a
+`@ravenkash/rtc` feature-detects what it needs rather than maintaining a
 user-agent allowlist:
 
 ```ts
-import { isBrowserSupported, getBrowserSupportDetails } from '@corvidhq/rtc';
+import { isBrowserSupported, getBrowserSupportDetails } from '@ravenkash/rtc';
 
 if (!isBrowserSupported()) {
   const { missing } = getBrowserSupportDetails();
@@ -58,7 +58,7 @@ Chromium has been exercised with real media; see
 
 ## Next.js
 
-`@corvidhq/rtc` (and `@corvidhq/react`, see `docs/sdk/react.md`) only run in a
+`@ravenkash/rtc` (and `@ravenkash/react`, see `docs/sdk/react.md`) only run in a
 browser — never call `createRTCClient()` or construct anything from this
 package inside a Server Component, a Route Handler, or any code that
 could execute during server-side rendering. Always do so from a Client
@@ -76,9 +76,9 @@ export default function Page() {
 ```tsx
 // app/call/call-client.tsx
 'use client';
-import { createRTCClient } from '@corvidhq/rtc';
+import { createRTCClient } from '@ravenkash/rtc';
 // ...join inside a useEffect, never at module scope
 ```
 
-If you're using `@corvidhq/react`, this is handled for you — see
+If you're using `@ravenkash/react`, this is handled for you — see
 `docs/sdk/react.md#nextjs`.

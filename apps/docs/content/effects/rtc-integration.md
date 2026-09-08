@@ -39,7 +39,7 @@ await camera.detachEffects(); // reverts to the original, unmodified camera trac
 - One pipeline per track at a time. Calling `attachEffects()` again with
   a different pipeline detaches the first automatically.
 - Requires adapter support for `replaceTrack()` — every current
-  `@corvidhq/rtc` build has this; it's checked defensively so a future
+  `@ravenkash/rtc` build has this; it's checked defensively so a future
   adapter without it fails clearly (`MEDIA_ERROR`) instead of silently.
 
 ## What doesn't change

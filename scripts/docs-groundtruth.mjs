@@ -225,14 +225,14 @@ function extractDtos() {
 // ---------------------------------------------------------------------------
 
 const PACKAGES = [
-  { dir: 'packages/sdk', name: '@corvidhq/rtc' },
-  { dir: 'packages/chat-sdk', name: '@corvidhq/chat' },
-  { dir: 'packages/client', name: '@corvidhq/client' },
-  { dir: 'packages/effects', name: '@corvidhq/effects' },
-  { dir: 'packages/react-sdk', name: '@corvidhq/react', entries: ['index', 'chat'] },
-  { dir: 'packages/react-native-sdk', name: '@corvidhq/react-native' },
-  { dir: 'packages/server-sdk', name: '@corvidhq/server' },
-  { dir: 'packages/cli', name: '@corvidhq/cli' },
+  { dir: 'packages/sdk', name: '@ravenkash/rtc' },
+  { dir: 'packages/chat-sdk', name: '@ravenkash/chat' },
+  { dir: 'packages/client', name: '@ravenkash/client' },
+  { dir: 'packages/effects', name: '@ravenkash/effects' },
+  { dir: 'packages/react-sdk', name: '@ravenkash/react', entries: ['index', 'chat'] },
+  { dir: 'packages/react-native-sdk', name: '@ravenkash/react-native' },
+  { dir: 'packages/server-sdk', name: '@ravenkash/server' },
+  { dir: 'packages/cli', name: '@ravenkash/cli' },
 ];
 
 /**
@@ -473,9 +473,9 @@ function extractVocabularies() {
       ? collectWebhookEmitSites()
       : [],
     sdkErrorCodes: {
-      '@corvidhq/rtc': stringUnion(read('packages/sdk/src/errors.ts'), 'RTCErrorCode'),
-      '@corvidhq/chat': stringUnion(read('packages/chat-sdk/src/errors.ts'), 'ChatErrorCode'),
-      '@corvidhq/effects': stringUnion(read('packages/effects/src/errors.ts'), 'EffectsErrorCode'),
+      '@ravenkash/rtc': stringUnion(read('packages/sdk/src/errors.ts'), 'RTCErrorCode'),
+      '@ravenkash/chat': stringUnion(read('packages/chat-sdk/src/errors.ts'), 'ChatErrorCode'),
+      '@ravenkash/effects': stringUnion(read('packages/effects/src/errors.ts'), 'EffectsErrorCode'),
     },
     eventMaps: {
       RoomEventMap: eventMapKeys(read('packages/sdk/src/room.ts'), 'RoomEventMap'),

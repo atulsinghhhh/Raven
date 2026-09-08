@@ -1,9 +1,9 @@
-// Raven Live Streaming demo: built entirely on @corvidhq/client's
+// Raven Live Streaming demo: built entirely on @ravenkash/client's
 // LiveStream API (raven.live.join()). No SDP and no
 // RTCPeerConnection anywhere in this file: `stream.room` and
-// `stream.chat` are real @corvidhq/rtc/@corvidhq/chat objects, used exactly as
+// `stream.chat` are real @ravenkash/rtc/@ravenkash/chat objects, used exactly as
 // their own docs describe.
-import { LiveStream } from '@corvidhq/client';
+import { LiveStream } from '@ravenkash/client';
 
 const BACKEND = 'http://localhost:8790';
 const $ = (id) => document.getElementById(id);

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { RTCView } from 'react-native-webrtc';
-import type { LocalParticipant, RemoteParticipant, Room, Track, TrackKind } from '@corvidhq/rtc';
+import type { LocalParticipant, RemoteParticipant, Room, Track, TrackKind } from '@ravenkash/rtc';
 
 export interface RavenVideoViewProps {
   /** Whose video to show. Local or remote; the component doesn't care. */
@@ -113,7 +113,7 @@ export function RavenVideoView({
   // Identity against the room, not a type check. LocalParticipant and
   // RemoteParticipant are structurally identical, and `instanceof` can't be
   // trusted in a monorepo where Metro might resolve two copies of
-  // @corvidhq/rtc. With no room we can't know, so we don't guess.
+  // @ravenkash/rtc. With no room we can't know, so we don't guess.
   const shouldMirror = mirror ?? (source === 'camera' && room?.localParticipant === participant);
 
   if (!streamUrl) {
@@ -145,10 +145,10 @@ function findVideoTrack(
 /**
  * Bridges a Raven track to the native renderer.
  *
- * `track.mediaStream` is public API on `@corvidhq/rtc`, and under React
+ * `track.mediaStream` is public API on `@ravenkash/rtc`, and under React
  * Native it holds a `react-native-webrtc` `MediaStream`, which carries the
  * `toURL()` the native view binds to. Going through the public surface is
- * what keeps `@corvidhq/rtc` unmodified. The cast covers the one method
+ * what keeps `@ravenkash/rtc` unmodified. The cast covers the one method
  * React Native adds that the DOM type never declares.
  */
 function toStreamUrl(track: Track): string | undefined {

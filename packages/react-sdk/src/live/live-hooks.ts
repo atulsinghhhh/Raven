@@ -1,17 +1,17 @@
 'use client';
 
-import type { LiveStream, LiveStreamRole } from '@corvidhq/client';
+import type { LiveStream, LiveStreamRole } from '@ravenkash/client';
 import { useCamera, useMicrophone } from '../hooks';
 import { useRavenLiveStreamContext, type RavenLiveStreamStatus } from './live-context';
 
 /**
- * Live Streaming hooks for `@corvidhq/react`.
+ * Live Streaming hooks for `@ravenkash/react`.
  *
  * You'll notice there's no `useLiveStreamParticipants()` or
  * `useLiveStreamChat()`. That's deliberate. A stream's participants and
- * chat are a `@corvidhq/rtc` roster and a `@corvidhq/chat` conversation
+ * chat are a `@ravenkash/rtc` roster and a `@ravenkash/chat` conversation
  * like any other, so `useParticipants()`, `useMessages()`,
- * `useReactions()` and every other existing `@corvidhq/react` hook already
+ * `useReactions()` and every other existing `@ravenkash/react` hook already
  * work inside a `<RavenLiveStream>`. Adding parallel names for the same
  * data is exactly the "separate chat/RTC implementation for streaming" the
  * spec tells us not to build.

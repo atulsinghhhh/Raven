@@ -43,7 +43,7 @@ you want one source of truth:
 <Tab title="React">
 
 ```tsx
-import { ParticipantView, useRemoteParticipants, useLocalParticipant } from '@corvidhq/react';
+import { ParticipantView, useRemoteParticipants, useLocalParticipant } from '@ravenkash/react';
 
 function Grid() {
   const local = useLocalParticipant();
@@ -121,7 +121,7 @@ Audio has no equivalent problem — it is cheap, and you want all of it.
 > **Per-participant simulcast layer selection is not exposed on the web
 > SDK.** The signaling protocol carries a `subscription.update` frame and
 > the Flutter SDK exposes `RavenRoom.requestLayer(...)`, but
-> `@corvidhq/rtc` neither sends the frame nor offers a method for it. If
+> `@ravenkash/rtc` neither sends the frame nor offers a method for it. If
 > you need explicit layer control today, Flutter is the only SDK that has
 > it. Tracked in [Known limitations](/reference/known-limitations).
 

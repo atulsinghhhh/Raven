@@ -1,9 +1,9 @@
 ---
 title: Node.js SDK
-description: '@corvidhq/server — server-side RTC and chat for Node.js. Same resources as the Python SDK.'
+description: '@ravenkash/server — server-side RTC and chat for Node.js. Same resources as the Python SDK.'
 ---
 
-`@corvidhq/server` is the Node.js/TypeScript counterpart to
+`@ravenkash/server` is the Node.js/TypeScript counterpart to
 [the Python SDK](/sdk/python) — same resources, same guarantees,
 idiomatic to the runtime.
 
@@ -14,13 +14,13 @@ idiomatic to the runtime.
 > from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
 ```bash
-npm install @corvidhq/server
+npm install @ravenkash/server
 ```
 
 ## Initialization
 
 ```ts
-import { Raven } from '@corvidhq/server';
+import { Raven } from '@ravenkash/server';
 
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 ```
@@ -95,7 +95,7 @@ implements.
 ## Errors
 
 ```ts
-import { RavenError } from '@corvidhq/server';
+import { RavenError } from '@ravenkash/server';
 
 try {
   await raven.rooms.get('missing-room');

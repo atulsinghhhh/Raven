@@ -17,12 +17,12 @@ export {
 export type { UseCameraEffectsResult, UseRavenResult } from './hooks';
 
 // ---------------------------------------------------------------------------
-// Effects (Phase 16), the @corvidhq/effects integration.
+// Effects (Phase 16), the @ravenkash/effects integration.
 //
 // useCameraEffects() above is the ergonomic entry point. These re-exports
 // are so a component can build filter and preset configs, like
 // `raven.effects.filters.brightness(...)`, without importing
-// @corvidhq/effects directly. Same arrangement as the @corvidhq/rtc
+// @ravenkash/effects directly. Same arrangement as the @ravenkash/rtc
 // re-exports below.
 export {
   createEffectsPipeline,
@@ -30,7 +30,7 @@ export {
   filters as effectFilters,
   isEffectsError,
   presets as effectPresets,
-} from '@corvidhq/effects';
+} from '@ravenkash/effects';
 export type {
   ColorOpParams,
   EffectInstance,
@@ -39,15 +39,15 @@ export type {
   EffectsPipeline,
   FilterConfig,
   Preset,
-} from '@corvidhq/effects';
+} from '@ravenkash/effects';
 
 export { LocalParticipantView, ParticipantView, RavenAudio, RavenVideo } from './components';
 export type { ParticipantViewProps, RavenAudioProps, RavenVideoProps } from './components';
 
 export type { RavenConnectionState, RavenSnapshot } from './store';
 
-// Re-exported for convenience, so anyone building on @corvidhq/react
-// doesn't need a direct @corvidhq/rtc import just to name a common type.
+// Re-exported for convenience, so anyone building on @ravenkash/react
+// doesn't need a direct @ravenkash/rtc import just to name a common type.
 //
 // No media-plane type is ever re-exported (Phase 11 spec §27). Everything
 // here is Raven's own vocabulary, which is exactly what let the SFU
@@ -67,11 +67,11 @@ export type {
   RTCErrorCode,
   Track,
   TrackKind,
-} from '@corvidhq/rtc';
-export { isRTCError } from '@corvidhq/rtc';
+} from '@ravenkash/rtc';
+export { isRTCError } from '@ravenkash/rtc';
 
 // ---------------------------------------------------------------------------
-// Chat (Phase 12), the @corvidhq/chat integration.
+// Chat (Phase 12), the @ravenkash/chat integration.
 //
 // Its own provider and its own hooks, but sharing this package's existing
 // store/snapshot pattern instead of inventing a second one (spec §43).
@@ -103,7 +103,7 @@ export type {
 export type { RavenChatSnapshot } from './chat/chat-store';
 
 // Re-exported for convenience, same as the RTC types above, so a chat UI
-// doesn't need a direct @corvidhq/chat import for common types.
+// doesn't need a direct @ravenkash/chat import for common types.
 export type {
   ChatAttachment,
   ChatClientConfig,
@@ -115,11 +115,11 @@ export type {
   PresenceStatus,
   ReadState,
   SendMessageOptions,
-} from '@corvidhq/chat';
-export { isRavenChatError, RavenChatError } from '@corvidhq/chat';
+} from '@ravenkash/chat';
+export { isRavenChatError, RavenChatError } from '@ravenkash/chat';
 
 // ---------------------------------------------------------------------------
-// Live Streaming (Phase 14), the @corvidhq/client integration.
+// Live Streaming (Phase 14), the @ravenkash/client integration.
 //
 // A stream's room and chat are an ordinary Room and ChatClient, so
 // useParticipants, useCamera and useMicrophone from above, plus
@@ -137,7 +137,7 @@ export type { UseLiveStreamHostResult, UseLiveStreamResult } from './live/live-h
 export type { RavenLiveStreamContextValue, RavenLiveStreamStatus } from './live/live-context';
 
 // Re-exported for convenience, same as the RTC and Chat types above, so a
-// live-streaming UI doesn't need a direct @corvidhq/client import for
-// common types. @corvidhq/client's own discipline carries over unchanged:
+// live-streaming UI doesn't need a direct @ravenkash/client import for
+// common types. @ravenkash/client's own discipline carries over unchanged:
 // nothing transport- or media-plane-specific ever reaches this surface.
-export type { LiveStream, LiveStreamCredentials, LiveStreamRole } from '@corvidhq/client';
+export type { LiveStream, LiveStreamCredentials, LiveStreamRole } from '@ravenkash/client';
