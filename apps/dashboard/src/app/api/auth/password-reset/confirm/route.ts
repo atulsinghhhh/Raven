@@ -10,10 +10,7 @@ import { handleApiError } from '@/lib/route-helpers';
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => undefined);
   if (typeof body?.token !== 'string' || typeof body?.password !== 'string') {
-    return NextResponse.json(
-      { code: 'VALIDATION_ERROR', message: 'token and password are required' },
-      { status: 400 },
-    );
+    return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'token and password are required' }, { status: 400 });
   }
 
   try {

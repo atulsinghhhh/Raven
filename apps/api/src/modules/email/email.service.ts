@@ -233,9 +233,7 @@ export class EmailService {
       await delay(retryBaseMs * 2 ** (attempt - 1));
     }
 
-    this.logger.error(
-      `email failed after ${maxAttempts} attempts type=${input.type} recipientDomain=${domain}`,
-    );
+    this.logger.error(`email failed after ${maxAttempts} attempts type=${input.type} recipientDomain=${domain}`);
     this.metrics.recordFailure(input.type, 'transient_exhausted');
     return { status: 'failed', reason: 'transient_exhausted', error: lastError };
   }

@@ -28,7 +28,8 @@ export function renderVerificationEmail(input: VerificationEmailInput): Rendered
     ],
     cta: { label: 'Confirm email address', url: input.verifyUrl },
     ctaFootnote: `This link expires in ${expiry} and can be used once.`,
-    closing: 'If you did not create a Raven account, ignore this email — nothing was activated, and the link expires on its own.',
+    closing:
+      'If you did not create a Raven account, ignore this email — nothing was activated, and the link expires on its own.',
     brand: input.brand,
   });
 

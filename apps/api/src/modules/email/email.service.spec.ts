@@ -62,8 +62,7 @@ function build(options: {
 }) {
   const redis = options.redis ?? makeRedis();
   const send = options.send ?? ok;
-  const client =
-    options.client === undefined ? makeClient(send) : options.client;
+  const client = options.client === undefined ? makeClient(send) : options.client;
   const service = new EmailService(
     makeConfig(options.config),
     redis as unknown as RedisService,
@@ -328,12 +327,9 @@ describe('EmailService', () => {
 });
 
 describe('classifyResendError', () => {
-  it.each(['rate_limit_exceeded', 'internal_server_error', 'application_error'])(
-    'treats %s as transient',
-    (name) => {
-      expect(classifyResendError(name)).toBe('transient');
-    },
-  );
+  it.each(['rate_limit_exceeded', 'internal_server_error', 'application_error'])('treats %s as transient', (name) => {
+    expect(classifyResendError(name)).toBe('transient');
+  });
 
   it.each(['validation_error', 'invalid_api_key', 'invalid_from_address', 'not_found'])(
     'treats %s as permanent',
@@ -342,12 +338,9 @@ describe('classifyResendError', () => {
     },
   );
 
-  it.each(['daily_quota_exceeded', 'monthly_quota_exceeded'])(
-    'treats %s as the provider’s own quota',
-    (name) => {
-      expect(classifyResendError(name)).toBe('provider_quota');
-    },
-  );
+  it.each(['daily_quota_exceeded', 'monthly_quota_exceeded'])('treats %s as the provider’s own quota', (name) => {
+    expect(classifyResendError(name)).toBe('provider_quota');
+  });
 
   it('defaults an unknown code to permanent rather than retrying blindly', () => {
     expect(classifyResendError('something_new_resend_added')).toBe('permanent');

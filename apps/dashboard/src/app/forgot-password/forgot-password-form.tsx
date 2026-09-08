@@ -45,8 +45,8 @@ export function ForgotPasswordForm() {
       <div>
         <h2 className="text-base font-semibold tracking-tight text-fg">Check your inbox</h2>
         <p className="mt-1.5 text-sm leading-relaxed text-muted">
-          If an account exists for that address, a password-reset link is on its way. The link is
-          valid for a short time and can be used once.
+          If an account exists for that address, a password-reset link is on its way. The link is valid for a short time
+          and can be used once.
         </p>
       </div>
     );

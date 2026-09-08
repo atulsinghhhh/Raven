@@ -162,13 +162,7 @@ export function renderLayout(input: LayoutInput): { html: string; text: string }
   // The plain-text part is a real alternative, not a stripped-tags
   // afterthought: it is what a screen reader, a text-only client, and
   // most spam filters read.
-  const textParts = [
-    'Raven',
-    '',
-    input.heading,
-    '',
-    ...input.paragraphs.flatMap((paragraph) => [paragraph, '']),
-  ];
+  const textParts = ['Raven', '', input.heading, '', ...input.paragraphs.flatMap((paragraph) => [paragraph, ''])];
   if (input.cta) {
     textParts.push(`${input.cta.label}: ${input.cta.url}`, '');
   }

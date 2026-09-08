@@ -69,8 +69,7 @@ export function VerifyEmailPanel() {
         description={
           status === 'missing-token'
             ? 'Open the link from your verification email — it carries the token this page needs.'
-            : (message ??
-              'The link may have expired or already been used. Sign in and request a new one.')
+            : (message ?? 'The link may have expired or already been used. Sign in and request a new one.')
         }
       />
       <ButtonLink href="/login" className="w-full">
