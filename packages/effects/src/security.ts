@@ -101,7 +101,7 @@ export function validateAsset(asset: AssetDescriptor): void {
  * that fact is enforced at the type/runtime boundary rather than just
  * documented. See docs/effects/api-reference for the full trust model.
  */
-export function assertNoRemoteCodeExecution(source: unknown): asserts source is never {
+export function assertNoRemoteCodeExecution(_source: unknown): asserts _source is never {
   throw new EffectsError(
     'RAVEN_EFFECT_PERMISSION_DENIED',
     'Raven Effects does not support loading effects, shaders, or scripts from a URL. ' +

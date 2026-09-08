@@ -107,8 +107,23 @@ jobs:
       - name: Install Chromium for Playwright
         run: pnpm --filter @raven/api exec playwright install --with-deps chromium
 
+      # --no-deps is load-bearing. `sfu` depends_on `api`, which depends_on
+      # `migrate` completing, so without it compose also starts the
+      # containerised API and migration job. Neither belongs in CI: the e2e
+      # suite boots its own API in-process and applies migrations itself in
+      # the step below. Worse, neither can work here — those containers read
+      # DATABASE_URL from .env, which CI points at localhost:5432, and inside
+      # a container that is the container's own loopback rather than the
+      # runner host where the Postgres service container is published.
+      # `migrate` exits 1 with P1001 and takes the whole step down with it.
+      #
+      # The SFU is fine unlinked: it retries registration against api:4100 and
+      # logs warnings, but /healthz is liveness-only so --wait is satisfied,
+      # and the suite registers this node into its own scratch database via
+      # registerLocalSfu() instead of relying on the node's self-registration.
+      # See apps/api/test/helpers/register-local-sfu.ts.
       - name: Start infra (redis, sfu, coturn)
-        run: docker compose up -d --wait redis sfu coturn
+        run: docker compose up -d --wait --no-deps redis sfu coturn
 
       # Applies prisma/migrations to the service container above, over
       # DIRECT_URL — which CI points at the same database as DATABASE_URL,
