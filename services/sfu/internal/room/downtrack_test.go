@@ -31,9 +31,9 @@ func vp8Packet(seq uint16, timestamp uint32, keyframe bool) *rtp.Packet {
 }
 
 func TestLayerFromRID(t *testing.T) {
-	// Browsers do not agree on RID naming — Chrome sends f/h/q, other
-	// stacks send words. The SDK's public layer names must not change
-	// shape because of which browser is publishing.
+	// Browsers can't agree on RID naming. Chrome sends f/h/q, other stacks
+	// send whole words. The SDK's public layer names must not change shape
+	// depending on which browser happens to be publishing.
 	cases := map[string]LayerID{
 		"":       LayerNone,
 		"q":      LayerLow,
@@ -51,8 +51,8 @@ func TestLayerFromRID(t *testing.T) {
 		}
 	}
 
-	// An unrecognised RID still carries real media; treating it as the
-	// lowest layer means the subscriber gets something.
+	// An RID we don't recognise still carries real media. Call it the
+	// lowest layer and the subscriber at least gets something.
 	if got := layerFromRID("bizarre"); got != LayerLow {
 		t.Errorf("unknown RID = %q, want %q", got, LayerLow)
 	}
@@ -62,8 +62,8 @@ func TestResolveLayer(t *testing.T) {
 	all := []LayerID{LayerLow, LayerMedium, LayerHigh}
 
 	t.Run("auto picks the highest available", func(t *testing.T) {
-		// The right default for a desktop subscriber; congestion control
-		// corrects downward, rather than starting low and never recovering.
+		// Right default for a desktop subscriber. Congestion control walks
+		// it down; start low and there's nothing to walk you back up.
 		if got := resolveLayer(LayerAuto, all); got != LayerHigh {
 			t.Errorf("got %q, want %q", got, LayerHigh)
 		}
@@ -82,8 +82,8 @@ func TestResolveLayer(t *testing.T) {
 	})
 
 	t.Run("falls back below an unavailable request", func(t *testing.T) {
-		// Asking for high from a publisher sending only low/medium should
-		// yield medium, not silence.
+		// Ask for high from a publisher sending only low/medium and you
+		// should get medium, not silence.
 		if got := resolveLayer(LayerHigh, []LayerID{LayerLow, LayerMedium}); got != LayerMedium {
 			t.Errorf("got %q, want %q", got, LayerMedium)
 		}
@@ -106,8 +106,8 @@ func TestDownTrackDropsPacketsFromOtherLayers(t *testing.T) {
 	down := newTestDownTrack(t, "video/VP8")
 	down.RequestLayer(LayerLow, []LayerID{LayerLow, LayerHigh})
 
-	// A packet from the layer this subscriber is not on must not be
-	// forwarded — that is the whole point of selective forwarding.
+	// A packet from a layer this subscriber isn't on must not be forwarded.
+	// That's the entire point of selective forwarding.
 	needsKeyframe, err := down.WriteRTP(vp8Packet(1, 1000, false), LayerHigh)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -138,9 +138,9 @@ func TestDownTrackWaitsForKeyframeBeforeSwitching(t *testing.T) {
 
 	down.RequestLayer(LayerHigh, available)
 
-	// An interframe on the target layer must not commit the switch —
-	// handing the decoder a picture that references frames it never got is
-	// what produces seconds of green smear.
+	// An interframe on the target layer must not commit the switch. Hand
+	// the decoder a picture referencing frames it never got and you get
+	// seconds of green smear.
 	needsKeyframe, err := down.WriteRTP(vp8Packet(500, 90000, false), LayerHigh)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -162,10 +162,10 @@ func TestDownTrackWaitsForKeyframeBeforeSwitching(t *testing.T) {
 }
 
 func TestDownTrackRewritesSequenceContinuouslyAcrossLayerSwitch(t *testing.T) {
-	// Each simulcast layer has its own sequence space. Forwarding raw
-	// numbers across a switch looks to the subscriber's jitter buffer like
-	// tens of thousands of lost packets, which is worse than the switch
-	// was ever going to be.
+	// Every simulcast layer has its own sequence space. Forward the raw
+	// numbers across a switch and the subscriber's jitter buffer sees tens
+	// of thousands of lost packets, which is far worse than the switch was
+	// ever going to be.
 	down := newTestDownTrack(t, "video/VP8")
 	available := []LayerID{LayerLow, LayerHigh}
 	down.RequestLayer(LayerLow, available)
@@ -213,14 +213,15 @@ func TestDownTrackRewritesSequenceContinuouslyAcrossLayerSwitch(t *testing.T) {
 }
 
 func TestDownTrackDoesNotMutateTheSharedPacket(t *testing.T) {
-	// One packet is forwarded to every subscriber of a layer. Rewriting it
-	// in place would corrupt whatever writes after us — a bug that only
-	// shows up with more than one subscriber, which is every real call.
+	// One packet goes out to every subscriber of a layer. Rewrite it in
+	// place and you corrupt it for whoever writes after you. A bug that
+	// only appears with more than one subscriber, i.e. on every real
+	// call.
 	down := newTestDownTrack(t, "video/VP8")
 	down.RequestLayer(LayerLow, []LayerID{LayerLow})
 
 	packet := vp8Packet(7, 12345, true)
-	// Force a non-zero offset so a mutation would be visible.
+	// Force a non-zero offset so a mutation would actually show up.
 	down.mu.Lock()
 	down.started = true
 	down.seqOffset = 1000
@@ -255,8 +256,8 @@ func TestDownTrackMuteStopsForwardingWithoutTeardown(t *testing.T) {
 		t.Errorf("packets sent = %d, want 1 (muted packet should be dropped)", sent)
 	}
 
-	// Unmuting resumes immediately — no renegotiation, because the
-	// transceiver never went away.
+	// Unmuting resumes straight away. No renegotiation, since the
+	// transceiver never went anywhere.
 	down.SetMuted(false)
 	if _, err := down.WriteRTP(vp8Packet(3, 7000, false), LayerLow); err != nil {
 		t.Fatalf("write after unmute: %v", err)
@@ -280,9 +281,9 @@ func TestDownTrackClosedStopsForwarding(t *testing.T) {
 }
 
 func TestDownTrackReportsRequestedAndActualLayerSeparately(t *testing.T) {
-	// A UI showing a quality badge must be able to tell "you asked for
-	// high" from "you are receiving medium" — conflating them is how a
-	// quality indicator ends up lying.
+	// A UI with a quality badge has to tell "you asked for high" apart from
+	// "you're receiving medium". Conflate the two and the indicator starts
+	// lying to people.
 	down := newTestDownTrack(t, "video/VP8")
 	down.RequestLayer(LayerHigh, []LayerID{LayerLow, LayerMedium})
 

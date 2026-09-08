@@ -625,7 +625,7 @@ func (s *Server) sendError(sessionID, roomID, code, message string) {
 
 // send writes one frame on whichever link owns the session.
 //
-// If that link has gone, the frame is dropped rather than buffered. Every
+// If that link has gone, the frame is dropped instead of buffered. Every
 // frame here describes one moment in a negotiation, and replaying a stale
 // offer after a reconnect is worse than never sending it at all. A control
 // plane that reconnects catches up by asking for room state.

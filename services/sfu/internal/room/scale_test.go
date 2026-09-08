@@ -9,28 +9,26 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-// Scale tests for spec §39, which requires measured results at 2, 10, 50
-// and 100 participants — and forbids claiming a capacity that has not been
-// measured.
+// Scale tests for spec §39, which wants measured results at 2, 10, 50 and
+// 100 participants, and forbids claiming any capacity nobody measured.
 //
-// # What these do and do not prove
+// # What these do and don't prove
 //
-// They prove that N real PeerConnections can join one room on this node,
-// that the SFU builds the full N×(N-1) forwarding mesh, and that media
-// actually arrives at subscribers at that size. That is the thing most
-// likely to be quietly broken by a design mistake (a per-room lock held
-// across a network write, say), and it is worth knowing.
+// They prove N real PeerConnections can join one room on this node, that
+// the SFU builds the whole N×(N-1) forwarding mesh, and that media really
+// does reach subscribers at that size. That's the bit most easily broken in
+// silence by a design mistake, a per-room lock held across a network write
+// being the classic, and it's worth knowing about.
 //
-// They do not prove production capacity. Every participant here runs in
-// the same process as the SFU, on loopback, with a synthetic 100-packet-
-// per-second stream and no encoder, no jitter, no loss, and no NAT. Real
-// capacity depends on codec bitrates, CPU, and the network, and belongs
-// to a load test against a deployed node — see docs/rtc/scaling.md. The
-// numbers these tests print are wall-clock join times on loopback,
-// nothing more.
+// They prove nothing about production capacity. Every participant here runs
+// in the same process as the SFU, over loopback, pushing a synthetic
+// 100-packet-per-second stream with no encoder, no jitter, no loss and no
+// NAT. Real capacity comes down to codec bitrates, CPU and the network, and
+// belongs in a load test against a deployed node (docs/rtc/scaling.md). The
+// numbers printed here are wall-clock join times on loopback. Nothing more.
 //
-// Skipped under `-short` because the 50- and 100-participant cases take
-// long enough to be annoying in a normal run.
+// Skipped under -short, because the 50- and 100-participant cases take long
+// enough to be irritating in a normal run.
 
 func TestScaleParticipants(t *testing.T) {
 	if testing.Short() {
@@ -44,9 +42,9 @@ func TestScaleParticipants(t *testing.T) {
 	}
 }
 
-// TestScale100Participants is separate so it can be run (or skipped) on its
-// own: it is the slowest case by a wide margin, since the forwarding mesh
-// it builds has ~9,900 downtracks.
+// TestScale100Participants stands on its own so you can run or skip it
+// separately. It's the slowest case by a mile: the forwarding mesh it
+// builds runs to roughly 9,900 downtracks.
 func TestScale100Participants(t *testing.T) {
 	if testing.Short() {
 		t.Skip("scale tests are slow; run without -short")
@@ -63,9 +61,9 @@ func runScaleTest(t *testing.T, size int) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// One publisher, N-1 subscribers. This is the shape that stresses
-	// forwarding hardest per unit of inbound media: every subscriber needs
-	// its own downtrack, so the node does N-1 writes per received packet.
+	// One publisher, N-1 subscribers. Per unit of inbound media this is the
+	// shape that leans hardest on forwarding: every subscriber wants its
+	// own downtrack, so the node does N-1 writes for each packet it gets.
 	publisherTrack := newVideoTrack(t, "publisher-video", "publisher-camera")
 
 	joinStart := time.Now()
@@ -95,9 +93,9 @@ func runScaleTest(t *testing.T, size int) {
 		t.Fatalf("room size = %d, want %d", got, size)
 	}
 
-	// Every subscriber must actually receive media, not merely connect.
-	// A design that broke under fan-out would still pass a connection-only
-	// check.
+	// Every subscriber has to actually receive media, not just connect. A
+	// design that fell over under fan-out would breeze through a
+	// connection-only check.
 	mediaStart := time.Now()
 	for i, subscriber := range subscribers {
 		var received *webrtc.TrackRemote
@@ -124,7 +122,8 @@ func runScaleTest(t *testing.T, size int) {
 		t.Errorf("reported video tracks = %d, want 1", load.VideoTracks)
 	}
 
-	// One downtrack per subscriber — the forwarding mesh was built in full.
+	// One downtrack per subscriber, so the forwarding mesh got built in
+	// full.
 	stats := publisher.participant.Stats()
 	if len(stats.PublishedTracks) != 1 {
 		t.Fatalf("publisher tracks = %d, want 1", len(stats.PublishedTracks))
@@ -133,18 +132,18 @@ func runScaleTest(t *testing.T, size int) {
 		t.Errorf("downtracks = %d, want %d (one per subscriber)", got, size-1)
 	}
 
-	t.Logf("size=%d join=%s firstMedia=%s downtracks=%d — loopback, synthetic stream; not a capacity measurement",
+	t.Logf("size=%d join=%s firstMedia=%s downtracks=%d; loopback, synthetic stream; not a capacity measurement",
 		size, joinDuration.Round(time.Millisecond), mediaDuration.Round(time.Millisecond),
 		len(stats.PublishedTracks[0].DownTracks))
 }
 
-// TestScaleMeshRoom exercises the harder shape: everyone publishes, so the
-// node maintains N publishers × (N-1) subscribers of downtracks.
+// TestScaleMeshRoom takes the harder shape: everybody publishes, so the
+// node carries N publishers × (N-1) subscribers worth of downtracks.
 //
-// Kept smaller than the fan-out test above because the mesh grows
-// quadratically — at 20 participants this is already 380 downtracks and 20
-// inbound streams, which is a realistic large meeting and enough to catch
-// a locking mistake that only appears when many read loops contend.
+// Smaller than the fan-out test above, because the mesh grows
+// quadratically. At 20 participants that's already 380 downtracks and 20
+// inbound streams, which is a realistic large meeting and plenty to shake
+// out a locking mistake that only shows when lots of read loops contend.
 func TestScaleMeshRoom(t *testing.T) {
 	if testing.Short() {
 		t.Skip("scale tests are slow; run without -short")
@@ -182,10 +181,10 @@ func TestScaleMeshRoom(t *testing.T) {
 		t.Fatalf("room size = %d, want %d", got, size)
 	}
 
-	// Wait for the mesh to settle: every participant should end up with
-	// N-1 subscriptions. Polled rather than asserted immediately, because
-	// each publish triggers a renegotiation of every other participant and
-	// those complete asynchronously.
+	// Wait for the mesh to settle. Everyone should end up with N-1
+	// subscriptions. Polled instead of asserted on the spot, since each
+	// publish renegotiates every other participant and those finish
+	// whenever they finish.
 	deadline := time.Now().Add(45 * time.Second)
 	for {
 		complete := true
@@ -198,13 +197,13 @@ func TestScaleMeshRoom(t *testing.T) {
 			}
 		}
 		if complete {
-			// Subscriptions existing is not the same as media arriving.
-			// Under this much concurrent renegotiation Pion logs
-			// "incoming SSRC failed Simulcast probing" for some streams,
-			// so the question worth answering is whether every
-			// participant actually ends up receiving forwarded packets.
+			// Subscriptions existing isn't the same as media arriving.
+			// Under this much concurrent renegotiation Pion logs "incoming
+			// SSRC failed Simulcast probing" for some streams, so the
+			// question worth asking is whether every participant ends up
+			// receiving forwarded packets.
 			verifyMeshMediaFlows(t, clients, size)
-			t.Logf("size=%d join=%s totalSubscriptions=%d — loopback, synthetic streams; not a capacity measurement",
+			t.Logf("size=%d join=%s totalSubscriptions=%d; loopback, synthetic streams; not a capacity measurement",
 				size, joinDuration.Round(time.Millisecond), total)
 			return
 		}
@@ -215,12 +214,12 @@ func TestScaleMeshRoom(t *testing.T) {
 	}
 }
 
-// verifyMeshMediaFlows checks that every participant receives real RTP from
-// every other one.
+// verifyMeshMediaFlows checks every participant gets real RTP from every
+// other one.
 //
-// Each client should see N-1 inbound tracks and be able to read a packet
-// from each. Anything less means the SFU built a subscription it is not
-// actually feeding, which a subscription count alone would hide.
+// Each client should see N-1 inbound tracks and manage to read a packet off
+// each. Anything less means the SFU built a subscription it isn't actually
+// feeding, which a subscription count on its own would happily hide.
 func verifyMeshMediaFlows(t *testing.T, clients []*testClient, size int) {
 	t.Helper()
 

@@ -650,7 +650,7 @@ func TestSFUEvictsStaleSessionOnReconnect(t *testing.T) {
 func TestSFUEnforcesRoomCapacity(t *testing.T) {
 	h := newHarness(t)
 
-	// Build the room directly to shrink it, rather than reconfiguring the
+	// Build the room directly to shrink it, instead of reconfiguring the
 	// whole manager. Capacity is a property of the room.
 	small := NewRoom("room-8", 1, RoomEvents{}, slog.New(slog.NewTextHandler(io.Discard, nil)))
 

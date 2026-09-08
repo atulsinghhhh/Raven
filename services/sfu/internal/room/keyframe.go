@@ -2,18 +2,18 @@ package room
 
 import "strings"
 
-// isKeyframe reports whether an RTP payload begins a decodable frame.
+// isKeyframe reports whether an RTP payload starts a decodable frame.
 //
-// This matters for exactly one reason: switching a subscriber from one
-// simulcast layer to another mid-frame hands their decoder a picture that
-// references frames it never received, which shows up as several seconds
-// of green smear or a frozen image. Waiting for a keyframe is what makes a
-// layer switch invisible.
+// This matters for exactly one reason. Switch a subscriber between
+// simulcast layers mid-frame and their decoder gets a picture referencing
+// frames it never received, which comes out as several seconds of green
+// smear or a frozen image. Waiting for a keyframe is what makes the switch
+// invisible.
 //
-// Only the codecs Raven forwards video in are handled. Audio needs none of
-// this (every packet is independently decodable), and an unknown video
-// codec returns false, which is the safe answer: the layer switch simply
-// waits, and a PLI eventually forces a keyframe anyway.
+// Only covers the codecs Raven forwards video in. Audio needs none of this,
+// since every packet is independently decodable. An unrecognised video
+// codec returns false, which is the safe answer: the layer switch just
+// waits, and a PLI forces a keyframe out of the publisher eventually.
 func isKeyframe(mimeType string, payload []byte) bool {
 	switch {
 	case strings.EqualFold(mimeType, "video/VP8"):
@@ -28,11 +28,11 @@ func isKeyframe(mimeType string, payload []byte) bool {
 }
 
 // isVP8Keyframe parses just enough of the VP8 payload descriptor (RFC 7741
-// §4.2) to reach the frame header's keyframe bit.
+// §4.2) to get at the frame header's keyframe bit.
 //
-// The descriptor is variable-length: a bitmask byte says which optional
-// fields follow, so the payload header's offset has to be computed rather
-// than assumed.
+// The descriptor is variable-length. A bitmask byte says which optional
+// fields follow, so you have to compute where the payload header starts;
+// you can't assume it.
 func isVP8Keyframe(payload []byte) bool {
 	if len(payload) < 1 {
 		return false
@@ -43,8 +43,8 @@ func isVP8Keyframe(payload []byte) bool {
 	startOfPartition := payload[0]&0x10 != 0
 	partitionIndex := payload[0] & 0x07
 
-	// Only the first partition of a frame carries the frame header; a
-	// continuation packet has no keyframe bit to read.
+	// Only a frame's first partition carries the frame header. There's no
+	// keyframe bit to read on a continuation packet.
 	if !startOfPartition || partitionIndex != 0 {
 		return false
 	}
@@ -80,13 +80,13 @@ func isVP8Keyframe(payload []byte) bool {
 	return payload[offset]&0x01 == 0
 }
 
-// isH264Keyframe looks for an IDR slice (NAL type 5) or a parameter set
+// isH264Keyframe hunts for an IDR slice (NAL type 5) or a parameter set
 // (SPS 7 / PPS 8) in an RFC 6184 payload.
 //
-// Parameter sets count as a switch point because they immediately precede
-// the IDR they describe, and a decoder handed the IDR without them cannot
-// use it. STAP-A aggregation packets are unpacked, since browsers commonly
-// bundle SPS+PPS+IDR into one.
+// Parameter sets count as switch points. They come immediately before the
+// IDR they describe, and a decoder handed that IDR without them can't do
+// anything with it. We unpack STAP-A aggregation packets too, since
+// browsers love bundling SPS+PPS+IDR into a single one.
 func isH264Keyframe(payload []byte) bool {
 	if len(payload) < 1 {
 		return false
@@ -116,9 +116,9 @@ func isH264Keyframe(payload []byte) bool {
 		if len(payload) < 2 {
 			return false
 		}
-		// Only the first fragment (S bit) tells us what is being
-		// fragmented; a middle fragment is not a switch point even if the
-		// frame it belongs to is a keyframe.
+		// Only the first fragment (S bit) says what's being fragmented. A
+		// middle fragment isn't a switch point even when the frame it
+		// belongs to is a keyframe.
 		if payload[1]&0x80 == 0 {
 			return false
 		}
@@ -130,8 +130,8 @@ func isH264Keyframe(payload []byte) bool {
 }
 
 // isVP9Keyframe reads the VP9 payload descriptor's P bit (draft-ietf-
-// payload-vp9 §4.2): an unset P means the frame has no inter-picture
-// dependencies, and the B bit marks the start of the frame.
+// payload-vp9 §4.2). P unset means the frame has no inter-picture
+// dependencies; the B bit marks where the frame starts.
 func isVP9Keyframe(payload []byte) bool {
 	if len(payload) < 1 {
 		return false

@@ -1,9 +1,9 @@
-// Package config loads the SFU's settings from the environment.
+// Package config loads the SFU's settings out of the environment.
 //
 // Everything here has a working local default except the control-plane
-// credential: a node that cannot authenticate to the control plane would
-// register nowhere and serve nothing, so it refuses to start rather than
-// running as an island that looks healthy from the outside.
+// credential. A node that can't authenticate to the control plane registers
+// nowhere and serves nothing, so it refuses to boot instead of running as
+// an island that looks perfectly healthy from the outside.
 package config
 
 import (
@@ -14,49 +14,49 @@ import (
 )
 
 type Config struct {
-	// NodeID is this node's stable name across restarts. It is what the
-	// control plane keys its registry row on, so a redeploy reclaims the
-	// same row instead of leaving a phantom behind.
+	// NodeID is this node's name, stable across restarts. The control plane
+	// keys its registry row on it, so a redeploy reclaims the same row
+	// instead of leaving a phantom lying around.
 	NodeID string
 	Region string
 
 	// PublicHost is the address clients reach for media. PublicIP is what
-	// gets advertised in ICE candidates — separate because the host a
-	// client resolves and the address this process can actually bind or
-	// claim are not the same thing behind NAT or a load balancer.
+	// goes into ICE candidates. Two fields, because behind NAT or a load
+	// balancer the host a client resolves and the address this process can
+	// bind or claim are simply not the same thing.
 	PublicHost string
 	PublicIP   string
 
-	// HTTPAddr serves the node-link WebSocket, health, and metrics. Control
-	// traffic only; no media ever crosses it.
+	// HTTPAddr serves the node-link WebSocket, health and metrics. Control
+	// traffic only. No media ever crosses it.
 	HTTPAddr string
 
 	// ControlPlaneURL is the Raven API this node registers with.
 	ControlPlaneURL string
-	// RegistrationSecret authenticates this node to the control plane.
-	// Fleet membership, not a client credential.
+	// RegistrationSecret authenticates this node to the control plane. It's
+	// fleet membership, not a client credential.
 	RegistrationSecret string
 
 	HeartbeatIntervalSeconds int
-	// RoomCapacity is what this node advertises it can hold. The allocator
-	// treats it as a ceiling.
+	// RoomCapacity is what this node claims it can hold. The allocator
+	// treats it as a hard ceiling.
 	RoomCapacity int
 
-	// UDPPortMin/Max bound the range ICE binds media sockets in. A bounded
-	// range is what makes the firewall rule for a deployment writable at
-	// all — see docs/rtc/networking.md.
+	// UDPPortMin/Max bound the range ICE binds media sockets in. Bounding
+	// it is the only reason a deployment's firewall rule can be written
+	// down at all (docs/rtc/networking.md).
 	//
-	// Defaults to 51000-51200 rather than the more conventional 50000+ so
-	// the range does not collide with whatever a host already had bound
-	// there — two media processes contending for a port surfaces as
-	// unexplained connection failures rather than a clear bind error, and
-	// during the migration off LiveKit that was exactly 50000-50019.
+	// Defaults to 51000-51200 rather than the more conventional 50000+, to
+	// stay clear of whatever a host already had bound down there. Two media
+	// processes fighting over a port shows up as unexplained connection
+	// failures, not as an honest bind error. During the migration off
+	// LiveKit the thing sitting there was 50000-50019.
 	UDPPortMin uint16
 	UDPPortMax uint16
 
 	// ICEServers this node itself uses when gathering candidates. Usually
-	// empty: an SFU normally sits on a reachable address and does not need
-	// to relay its own traffic. Set when the node is itself behind NAT.
+	// empty, since an SFU normally sits on a reachable address and has no
+	// need to relay its own traffic. Set it when the node is behind NAT.
 	STUNServers []string
 
 	Version  string
@@ -96,21 +96,21 @@ func Load() (*Config, error) {
 
 func (c *Config) validate() error {
 	if c.RegistrationSecret == "" {
-		// Refusing to boot is the honest failure. A node that started
-		// without this would gather no rooms while still passing its own
-		// health check — the worst kind of broken.
-		return fmt.Errorf("SFU_REGISTRATION_SECRET is required — this node cannot register with the control plane without it")
+		// Refusing to boot is the honest failure here. A node that came up
+		// without this would collect no rooms at all while merrily passing
+		// its own health check. That's the worst kind of broken.
+		return fmt.Errorf("SFU_REGISTRATION_SECRET is required; this node cannot register with the control plane without it")
 	}
 	if c.UDPPortMin == 0 || c.UDPPortMax == 0 || c.UDPPortMax < c.UDPPortMin {
 		return fmt.Errorf("SFU_UDP_PORT_MIN/MAX must describe a non-empty range, got %d-%d", c.UDPPortMin, c.UDPPortMax)
 	}
-	// Two ports per participant is a rough floor (RTP mux keeps this low,
-	// but ICE gathers more than one candidate). A range that cannot hold
-	// the advertised capacity would fail as mysterious connection errors
-	// under load, which is exactly when nobody wants to debug it.
+	// Two ports per participant is a rough floor. RTP mux keeps it low, but
+	// ICE still gathers more than one candidate. A range too small for the
+	// advertised capacity fails as baffling connection errors under load,
+	// which is precisely when nobody wants to be debugging it.
 	if span := int(c.UDPPortMax-c.UDPPortMin) + 1; span < c.RoomCapacity {
 		return fmt.Errorf(
-			"UDP port range %d-%d has %d ports but SFU_ROOM_CAPACITY is %d — widen the range or lower the capacity",
+			"UDP port range %d-%d has %d ports but SFU_ROOM_CAPACITY is %d; widen the range or lower the capacity",
 			c.UDPPortMin, c.UDPPortMax, span, c.RoomCapacity,
 		)
 	}
@@ -120,9 +120,10 @@ func (c *Config) validate() error {
 	return nil
 }
 
-// InternalURL is the address the control plane calls this node back on.
-// Derived from the listen address and the container hostname, since a node
-// knows where it is listening and an operator should not have to restate it.
+// InternalURL is where the control plane calls this node back. Derived from
+// the listen address and the container hostname: the node already knows
+// where it's listening, so making an operator restate it is just a chance
+// for the two to disagree.
 func (c *Config) InternalURL() string {
 	if explicit := os.Getenv("SFU_INTERNAL_URL"); explicit != "" {
 		return explicit
@@ -154,9 +155,9 @@ func envIntOr(key string, fallback int) int {
 	return fallback
 }
 
-// defaultNodeID prefers the container hostname, which is stable for a
-// StatefulSet pod and unique for a Deployment one. Better than a random id,
-// which would orphan a registry row on every restart.
+// defaultNodeID prefers the container hostname. Stable for a StatefulSet
+// pod, unique for a Deployment one. Beats a random id, which would orphan a
+// registry row on every single restart.
 func defaultNodeID() string {
 	if host := os.Getenv("HOSTNAME"); host != "" {
 		return "sfu-" + host

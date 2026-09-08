@@ -15,10 +15,10 @@ var (
 
 // RoomEvents is how a room reports to the control plane.
 //
-// The room does not know what a WebSocket is; the node link supplies these
-// and translates them into frames. That separation is what makes the room
-// testable without a control plane at all — see room_test.go, which drives
-// real PeerConnections against a room with these stubbed.
+// The room has no idea what a WebSocket is. The node link supplies these
+// and turns them into frames. That separation is what makes a room
+// testable with no control plane in sight; see room_test.go, which drives
+// real PeerConnections against a room with all of these stubbed out.
 type RoomEvents struct {
 	OnOffer           func(p *Participant, sdp webrtc.SessionDescription)
 	OnICECandidate    func(p *Participant, candidate *webrtc.ICECandidate)
@@ -29,19 +29,19 @@ type RoomEvents struct {
 
 // Room is one live media session on this node.
 //
-// Every participant of a room is on the same node — allocation guarantees
-// it — so a room needs no cross-node coordination. That is deliberate:
-// forwarding media between SFU nodes to serve one room would double the
-// bandwidth and add a hop of latency for every packet, and the control
-// plane avoids the situation entirely by assigning a room once.
+// Everyone in a room is on the same node, guaranteed by allocation, so a
+// room needs no cross-node coordination whatsoever. That's not an accident.
+// Forwarding media between SFU nodes to serve a single room would double
+// the bandwidth and add a hop of latency to every packet. The control plane
+// sidesteps the whole problem by assigning a room exactly once.
 type Room struct {
 	ID              string
 	maxParticipants int
 
 	mu           sync.RWMutex
 	participants map[string]*Participant // keyed by session id
-	// bySessionForParticipant maps participant id → session id, so a
-	// reconnecting participant's stale session can be found and evicted.
+	// bySessionForParticipant maps participant id → session id, so we can
+	// find and evict a reconnecting participant's stale session.
 	sessionByParticipant map[string]string
 
 	events RoomEvents
@@ -62,12 +62,12 @@ func NewRoom(id string, maxParticipants int, events RoomEvents, logger *slog.Log
 }
 
 // AddParticipant creates a participant, subscribes them to everything
-// already being published, and returns the offer they should answer.
+// already being published, and hands back the offer they should answer.
 //
-// The initial offer includes every existing track, so a participant
-// joining a call in progress sees and hears everyone as soon as the
-// connection completes — rather than connecting to silence and then
-// receiving a renegotiation per existing participant.
+// That first offer carries every existing track. Someone joining a call
+// already in progress sees and hears the room the moment their connection
+// completes, instead of arriving to silence and then being renegotiated at
+// once per person already there.
 func (r *Room) AddParticipant(participantID, sessionID string, permissions Permissions, pc *webrtc.PeerConnection) (*Participant, error) {
 	r.mu.Lock()
 	if r.closed {
@@ -79,11 +79,11 @@ func (r *Room) AddParticipant(participantID, sessionID string, permissions Permi
 		return nil, ErrRoomFull
 	}
 
-	// A participant reconnecting (new network, refreshed tab) arrives with
-	// a new session id while the old one may still look alive to us. The
-	// old session is evicted rather than allowed to coexist: two sessions
-	// for one identity means the room shows a ghost, and the ghost holds a
-	// PeerConnection that is quietly forwarding media nowhere.
+	// Someone reconnecting (new network, refreshed tab) turns up with a new
+	// session id while the old one may still look perfectly alive to us.
+	// Evict the old one; don't let the two coexist. Two sessions for one
+	// identity puts a ghost in the room, and that ghost is sitting on a
+	// PeerConnection quietly forwarding media into the void.
 	staleSession, hasStale := r.sessionByParticipant[participantID]
 	r.mu.Unlock()
 
@@ -109,8 +109,8 @@ func (r *Room) AddParticipant(participantID, sessionID string, permissions Permi
 	existing := r.otherParticipantsLocked(sessionID)
 	r.mu.Unlock()
 
-	// Subscribe to everything already in the room before offering, so it
-	// is all in the first SDP.
+	// Subscribe to everything already in the room before we offer, so it
+	// all lands in the first SDP.
 	if permissions.Subscribe {
 		for _, other := range existing {
 			for _, track := range other.PublishedTracks() {
@@ -137,24 +137,24 @@ func (r *Room) RemoveParticipant(sessionID string) bool {
 		return false
 	}
 	delete(r.participants, sessionID)
-	// Only clear the reverse mapping if it still points at this session —
-	// a reconnect may already have claimed it.
+	// Only clear the reverse mapping if it still points at this session. A
+	// reconnect may have claimed it already.
 	if r.sessionByParticipant[participant.ID] == sessionID {
 		delete(r.sessionByParticipant, participant.ID)
 	}
 	r.mu.Unlock()
 
-	// Close triggers OnClosed → handleParticipantClosed, which does the
-	// unsubscribe fan-out.
+	// Close fires OnClosed → handleParticipantClosed, which does the
+	// unsubscribe fan-out for us.
 	participant.Close()
 	return true
 }
 
-// handleParticipantClosed removes a departed participant's tracks from
+// handleParticipantClosed strips a departed participant's tracks out of
 // everyone else and renegotiates them.
 //
-// Reached both from an explicit removal and from a PeerConnection failing
-// on its own, which is why it is idempotent at every step.
+// Gets here from an explicit removal *and* from a PeerConnection falling
+// over by itself, which is why every step is idempotent.
 func (r *Room) handleParticipantClosed(participant *Participant) {
 	r.mu.Lock()
 	if r.participants[participant.SessionID] == participant {
@@ -222,10 +222,10 @@ func (r *Room) handleTrackUnpublished(publisher *Participant, track *PublishedTr
 
 // renegotiate offers a participant their updated track set.
 //
-// Silently does nothing when a negotiation is already in flight —
-// `CreateOffer` has recorded that another round is needed, and the answer
-// handler will start it. That is the whole glare-avoidance strategy: never
-// two offers on one PeerConnection, never a lost change.
+// Does nothing at all, quietly, if a negotiation is already in flight.
+// CreateOffer has already noted that another round is needed and the answer
+// handler will kick it off. That's the entire glare-avoidance strategy:
+// never two offers on one PeerConnection, never a lost change.
 func (r *Room) renegotiate(participant *Participant) {
 	if participant.Closed() {
 		return
@@ -243,16 +243,16 @@ func (r *Room) renegotiate(participant *Participant) {
 	}
 }
 
-// Renegotiate is the exported entry point for the node link, used after an
-// answer completes a round that had a pending change.
+// Renegotiate is the exported entry point for the node link. Used after an
+// answer finishes a round that had a change queued behind it.
 func (r *Room) Renegotiate(participant *Participant) { r.renegotiate(participant) }
 
-// broadcastData fans a data-channel message to the rest of the room.
+// broadcastData fans a data-channel message out to the rest of the room.
 //
-// Sent over each recipient's own data channel rather than the WebSocket:
-// spec §18 is explicit that room data should ride the transport it was
-// designed for. It arrives with the same NAT traversal and encryption as
-// media, and does not compete with signaling for the control connection.
+// Goes over each recipient's own data channel, not the WebSocket. Spec §18
+// is explicit that room data should ride the transport built for it. It
+// picks up the same NAT traversal and encryption media gets, and it isn't
+// elbowing signaling out of the way on the control connection.
 func (r *Room) broadcastData(sender *Participant, payload []byte) {
 	for _, other := range r.otherParticipants(sender.SessionID) {
 		if err := other.SendData(payload); err != nil {
@@ -335,7 +335,7 @@ func (r *Room) Size() int {
 	return len(r.participants)
 }
 
-// TrackCount counts published tracks across the room, for metrics.
+// TrackCount totals published tracks across the room. Feeds the metrics.
 func (r *Room) TrackCount() (audio, video int) {
 	for _, participant := range r.Participants() {
 		for _, track := range participant.PublishedTracks() {
@@ -350,7 +350,8 @@ func (r *Room) TrackCount() (audio, video int) {
 	return audio, video
 }
 
-// State is the snapshot that replaced polling LiveKit's RoomServiceClient.
+// State is the snapshot that put an end to polling LiveKit's
+// RoomServiceClient.
 func (r *Room) State() State {
 	participants := r.Participants()
 	result := State{
@@ -380,7 +381,7 @@ func (r *Room) State() State {
 	return result
 }
 
-// Close evicts everyone. Used for an admin room close and for node
+// Close evicts everyone. Used by an admin room close and by node
 // shutdown.
 func (r *Room) Close() {
 	r.mu.Lock()

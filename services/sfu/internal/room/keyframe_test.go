@@ -21,9 +21,9 @@ func TestIsVP8Keyframe(t *testing.T) {
 			want:    false,
 		},
 		{
-			// A continuation packet carries no frame header, so there is no
-			// keyframe bit to read — switching on it would hand the decoder
-			// the middle of a picture.
+			// A continuation packet has no frame header, so there's no
+			// keyframe bit to read. Switch on it and the decoder gets
+			// handed the middle of a picture.
 			name:    "not start of partition",
 			payload: []byte{0x00, 0x00, 0x00, 0x00},
 			want:    false,
@@ -55,8 +55,9 @@ func TestIsVP8Keyframe(t *testing.T) {
 		},
 		{name: "empty payload", payload: nil, want: false},
 		{
-			// Truncated after the descriptor: there is no frame header, and
-			// guessing "keyframe" would commit a layer switch on nothing.
+			// Truncated right after the descriptor, so there's no frame
+			// header. Guess "keyframe" here and you commit a layer switch
+			// on nothing at all.
 			name:    "descriptor with no frame header",
 			payload: []byte{0x10},
 			want:    false,
@@ -83,9 +84,9 @@ func TestIsH264Keyframe(t *testing.T) {
 		{name: "PPS", payload: []byte{0x68, 0x00}, want: true},
 		{name: "non-IDR slice", payload: []byte{0x61, 0x00}, want: false},
 		{
-			// Browsers commonly bundle SPS+PPS+IDR into one STAP-A, so a
-			// parser that only looked at the outer NAL type would miss
-			// every keyframe Chrome sends.
+			// Browsers love bundling SPS+PPS+IDR into a single STAP-A, so a
+			// parser that only checked the outer NAL type would miss every
+			// keyframe Chrome ever sends.
 			name:    "STAP-A containing SPS then PPS",
 			payload: []byte{0x78, 0x00, 0x02, 0x67, 0x42, 0x00, 0x02, 0x68, 0xCE},
 			want:    true,
@@ -107,8 +108,8 @@ func TestIsH264Keyframe(t *testing.T) {
 			want:    true,
 		},
 		{
-			// A middle fragment is not a switch point even though the frame
-			// it belongs to is a keyframe — the decoder needs the start.
+			// A middle fragment isn't a switch point, even though the frame
+			// it belongs to is a keyframe. The decoder needs the start.
 			name:    "FU-A middle fragment of IDR",
 			payload: []byte{0x7C, 0x05},
 			want:    false,
@@ -142,9 +143,9 @@ func TestIsVP9Keyframe(t *testing.T) {
 }
 
 func TestIsKeyframeUnknownCodec(t *testing.T) {
-	// The safe answer for an unrecognised codec is "no": a layer switch
-	// simply waits, and the periodic PLI forces a keyframe eventually. The
-	// unsafe answer would commit a switch mid-frame.
+	// "No" is the safe answer for a codec we don't recognise. The layer
+	// switch just waits, and the periodic PLI shakes a keyframe loose
+	// eventually. The unsafe answer commits a switch mid-frame.
 	if isKeyframe("video/AV1", []byte{0xFF, 0xFF}) {
 		t.Error("unknown codec must not be reported as a keyframe")
 	}
@@ -154,8 +155,8 @@ func TestIsKeyframeUnknownCodec(t *testing.T) {
 }
 
 func TestKeyframeDetectionIsCaseInsensitive(t *testing.T) {
-	// Pion reports "video/VP8"; SDP and some stacks use other casings.
-	// Getting this wrong would silently disable every layer switch.
+	// Pion says "video/VP8". SDP and some stacks use other casings. Get
+	// this wrong and every layer switch quietly stops working.
 	if !isKeyframe("video/vp8", []byte{0x10, 0x00}) {
 		t.Error("lowercase mime type should still be recognised")
 	}

@@ -2,16 +2,16 @@
 
 // Forced-TURN-relay media tests (spec §41).
 //
-// Behind a build tag, not an env-var skip, for two reasons: these need a
-// reachable coturn with a known shared secret, which `go test ./...` has
-// no way to provide, and the test matrix's "all passing with no skips"
-// claim should keep meaning what it says.
+// Behind a build tag, not an env-var skip, for two reasons. These
+// need a reachable coturn with a known shared secret, which `go test ./...`
+// has no way to hand them, and the test matrix's "all passing, no skips"
+// claim ought to keep meaning what it says.
 //
-// They must run somewhere every party — client, coturn, SFU — sees one
-// consistent address for every other party. On Docker Desktop for macOS
-// the host and the bridge network do not satisfy that (see
-// docs/turn.md#known-limitations), so the supported way to run this is
-// from inside a container attached to the same Docker network as coturn:
+// They have to run somewhere every party (client, coturn, SFU) sees one
+// consistent address for everyone else. Docker Desktop for macOS doesn't
+// manage that on either the host or the bridge network (see
+// docs/turn.md#known-limitations), so the supported way to run these is
+// from inside a container on the same Docker network as coturn:
 //
 //	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 \
 //	  go test -tags turnrelay -c -o /tmp/turnrelay.test ./internal/room/
@@ -19,7 +19,7 @@
 //	  -e TURN_HOST=coturn -e TURN_PORT=3478 -e TURN_SECRET="$TURN_SECRET" \
 //	  -v /tmp:/t alpine:3 /t/turnrelay.test -test.v
 //
-// What this proves and does not prove is spelled out in each test.
+// Each test spells out what it does and doesn't prove.
 package room
 
 import (
@@ -40,15 +40,15 @@ import (
 )
 
 const (
-	// relayCredentialTTL matches the order of the control plane's own
-	// default RTC token TTL. Long enough for a slow run, short enough that
-	// a credential left in a shell history is worthless.
+	// relayCredentialTTL is in the same ballpark as the control plane's own
+	// default RTC token TTL. Long enough to survive a slow run, short
+	// enough that one left in a shell history is worthless.
 	relayCredentialTTL = 10 * time.Minute
 
-	// latencySamples is how many forwarded packets a latency figure is
-	// computed from. At the pump's 10ms cadence that is a few seconds of
-	// media — enough for a stable median, short enough to keep the test
-	// honest about being a smoke test rather than a soak.
+	// latencySamples is how many forwarded packets go into a latency
+	// figure. At the pump's 10ms cadence that's a few seconds of media:
+	// enough for a stable median, short enough that nobody mistakes this
+	// for a soak test.
 	latencySamples = 300
 )
 
@@ -65,11 +65,10 @@ func loadTurnEnv(t *testing.T) turnEnv {
 
 	secret := os.Getenv("TURN_SECRET")
 	if secret == "" {
-		// Fatal rather than skip: the build tag already says the caller
-		// meant to run this, and silently passing a relay test that never
-		// touched a relay is the failure mode this whole file exists to
-		// avoid.
-		t.Fatal("TURN_SECRET is required — this test authenticates against a real coturn")
+		// Fatal, not skip. The build tag already says the caller meant to
+		// run this, and quietly passing a relay test that never went near a
+		// relay is the exact failure this whole file exists to prevent.
+		t.Fatal("TURN_SECRET is required; this test authenticates against a real coturn")
 	}
 
 	host := os.Getenv("TURN_HOST")
@@ -93,12 +92,12 @@ func loadTurnEnv(t *testing.T) turnEnv {
 }
 
 // relayOnlyConfig builds the client-side configuration a browser would get
-// from a minted RTC token, minus every non-relay option.
+// from a minted RTC token, with every non-relay option stripped out.
 //
-// ICETransportPolicyRelay is the whole point: with it the ICE agent
-// gathers *only* relay candidates, so a connection that comes up cannot
-// have taken a host or server-reflexive path. There is no way to pass this
-// test by accident.
+// ICETransportPolicyRelay is the whole point. With it the ICE agent gathers
+// *only* relay candidates, so a connection that comes up cannot have taken
+// a host or server-reflexive path. There's no accidentally passing this
+// one.
 func (e turnEnv) relayOnlyConfig(t *testing.T, label string) webrtc.Configuration {
 	t.Helper()
 
@@ -116,10 +115,10 @@ func (e turnEnv) relayOnlyConfig(t *testing.T, label string) webrtc.Configuratio
 	}
 }
 
-// credential mints coturn's time-limited REST credential — the same scheme
-// as apps/api/src/modules/rtc-tokens/turn-credential.util.ts, reimplemented
-// here rather than shared because a test that derives its credential from
-// the same code it is testing proves nothing about the wire format coturn
+// credential mints coturn's time-limited REST credential. Same scheme as
+// apps/api/src/modules/rtc-tokens/turn-credential.util.ts, by design
+// reimplemented here instead of shared: a test deriving its credential from
+// the very code under test proves nothing about the wire format coturn
 // actually accepts.
 func (e turnEnv) credential(label string) (username, credential string) {
 	expiry := time.Now().Add(relayCredentialTTL).Unix()
@@ -132,18 +131,18 @@ func (e turnEnv) credential(label string) (username, credential string) {
 
 // --- Timestamped media ---------------------------------------------------
 
-// vp8KeyframePrefix is the payload prefix pumpRTP uses: a VP8 descriptor
-// with the S bit set, followed by a keyframe header. Kept byte-identical so
-// the SFU's keyframe detection behaves exactly as it does elsewhere.
+// vp8KeyframePrefix is the payload prefix pumpRTP uses. VP8 descriptor with
+// the S bit set, then a keyframe header. Kept byte-identical so the SFU's
+// keyframe detection behaves here exactly as it does everywhere else.
 var vp8KeyframePrefix = []byte{0x10, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03}
 
-// stampedPayload carries a send timestamp inside the RTP payload.
+// stampedPayload tucks a send timestamp inside the RTP payload.
 //
-// Keyed on the payload rather than the sequence number because the SFU
-// rewrites sequence numbers for simulcast continuity, but never touches a
-// payload — TestDownTrackDoesNotMutateTheSharedPacket is the guarantee this
-// relies on. A packet therefore carries its own send time end to end, and
-// the latency below needs no shared map and no correlation guesswork.
+// Keyed on the payload, not the sequence number, because the SFU rewrites
+// sequence numbers for simulcast continuity and never touches a payload.
+// TestDownTrackDoesNotMutateTheSharedPacket is the guarantee we're leaning
+// on. Each packet therefore carries its own send time end to end, and the
+// latency maths below needs no shared map and no correlation guesswork.
 func stampedPayload(index uint32, sent time.Time) []byte {
 	payload := make([]byte, len(vp8KeyframePrefix)+12)
 	copy(payload, vp8KeyframePrefix)
@@ -200,10 +199,10 @@ type selectedPair struct {
 	rttSeconds float64
 }
 
-// selectedCandidatePair reads the nominated pair out of getStats().
+// selectedCandidatePair digs the nominated pair out of getStats().
 //
-// This is the assertion that matters. "The connection came up" is not
-// evidence of a relay path; the candidate types on the pair actually
+// This is the assertion that matters. "The connection came up" is no
+// evidence of a relay path. The candidate types on the pair actually
 // carrying media are.
 func selectedCandidatePair(t *testing.T, pc *webrtc.PeerConnection) selectedPair {
 	t.Helper()
@@ -220,10 +219,10 @@ func selectedCandidatePair(t *testing.T, pc *webrtc.PeerConnection) selectedPair
 		if stats.State != webrtc.StatsICECandidatePairStateSucceeded {
 			continue
 		}
-		// Prefer the nominated pair, but take a succeeded one if no pair
-		// is flagged nominated — Pion does not always set it, and a
+		// Prefer the nominated pair, but fall back to a succeeded one if
+		// nothing is flagged nominated. Pion doesn't always set it, and a
 		// succeeded pair on a connected transport is still the pair
-		// carrying media.
+		// carrying the media.
 		if stats.Nominated || !found {
 			pair = stats
 			found = true
@@ -233,7 +232,7 @@ func selectedCandidatePair(t *testing.T, pc *webrtc.PeerConnection) selectedPair
 		}
 	}
 	if !found {
-		t.Fatalf("no succeeded ICE candidate pair in stats — connection state %s", pc.ConnectionState())
+		t.Fatalf("no succeeded ICE candidate pair in stats; connection state %s", pc.ConnectionState())
 	}
 
 	local, ok := report[pair.LocalCandidateID].(webrtc.ICECandidateStats)
@@ -268,13 +267,12 @@ func (l latencyStats) String() string {
 }
 
 // measureForwardingLatency reads `want` forwarded packets and returns the
-// distribution of publish→receive times.
+// spread of publish→receive times.
 //
-// One-way, not a round trip: the send timestamp is written by the publisher
-// and read by the subscriber in the same process, off the same clock, so
-// there is no clock skew to correct for and no halving to fudge. The path
-// measured is WriteRTP → SRTP → (relay) → SFU forward → (relay) → SRTP →
-// ReadRTP.
+// One-way, not a round trip. Publisher writes the send timestamp and
+// subscriber reads it in the same process off the same clock, so there's no
+// skew to correct and no halving to fudge. The path measured is WriteRTP →
+// SRTP → (relay) → SFU forward → (relay) → SRTP → ReadRTP.
 func measureForwardingLatency(t *testing.T, track *webrtc.TrackRemote, want int) latencyStats {
 	t.Helper()
 
@@ -293,7 +291,7 @@ func measureForwardingLatency(t *testing.T, track *webrtc.TrackRemote, want int)
 		}
 		_, sent, ok := readStamp(packet.Payload)
 		if !ok {
-			t.Fatalf("forwarded packet %d carried a %d-byte payload — the timestamp did not survive forwarding", len(deltas)+1, len(packet.Payload))
+			t.Fatalf("forwarded packet %d carried a %d-byte payload; the timestamp did not survive forwarding", len(deltas)+1, len(packet.Payload))
 		}
 		deltas = append(deltas, time.Since(sent))
 	}
@@ -308,8 +306,8 @@ func measureForwardingLatency(t *testing.T, track *webrtc.TrackRemote, want int)
 }
 
 // runForwardingCase joins a publisher and a subscriber with the given
-// client configuration, waits for media, and reports what path it took and
-// how long forwarding cost.
+// client config, waits for media, then reports which path it took and what
+// forwarding cost.
 func runForwardingCase(t *testing.T, roomID string, clientConfig webrtc.Configuration) (publisher, subscriber selectedPair, latency latencyStats) {
 	t.Helper()
 
@@ -338,23 +336,23 @@ func runForwardingCase(t *testing.T, roomID string, clientConfig webrtc.Configur
 
 	latency = measureForwardingLatency(t, received, latencySamples)
 
-	// Read stats after media has flowed: a pair's RTT is unpopulated until
-	// connectivity checks have actually run on it.
+	// Read stats only after media has flowed. A pair's RTT stays empty
+	// until connectivity checks have actually run against it.
 	return selectedCandidatePair(t, alice.pc), selectedCandidatePair(t, bob.pc), latency
 }
 
 // --- Tests ---------------------------------------------------------------
 
-// TestTURNRelayOnlyForwardsMedia closes the largest gap in the RTC test
+// TestTURNRelayOnlyForwardsMedia closes the biggest gap in the RTC test
 // matrix (§5, "Relay-only has never been exercised").
 //
-// Both clients are relay-only, so both legs of the path — publisher→SFU
-// and SFU→subscriber — are TURN-relayed, and coturn handles the media in
-// both directions. The SFU itself is not relay-only and is not meant to be:
-// it holds no TURN credential by design (Manager.iceServers), because an
-// SFU relaying its own traffic would put a third hop in every packet's
-// path. So the pair this asserts on is relay(client)↔host(SFU), which is
-// exactly the topology a real client behind symmetric NAT produces.
+// Both clients are relay-only, so both legs, publisher→SFU and
+// SFU→subscriber, go through TURN and coturn carries the media each way.
+// The SFU itself isn't relay-only and shouldn't be. It holds no TURN
+// credential by design (Manager.iceServers), since an SFU relaying its own
+// traffic adds a third hop to every packet. So the pair asserted on here is
+// relay(client)↔host(SFU), which is precisely what a real client behind
+// symmetric NAT produces.
 func TestTURNRelayOnlyForwardsMedia(t *testing.T) {
 	env := loadTurnEnv(t)
 
@@ -364,7 +362,7 @@ func TestTURNRelayOnlyForwardsMedia(t *testing.T) {
 
 	for name, pair := range map[string]selectedPair{"publisher": publisher, "subscriber": subscriber} {
 		if pair.localType != webrtc.ICECandidateTypeRelay {
-			t.Errorf("%s local candidate type = %s, want relay — media did not go through coturn, so this run proves nothing about the relay path",
+			t.Errorf("%s local candidate type = %s, want relay; media did not go through coturn, so this run proves nothing about the relay path",
 				name, pair.localType)
 		}
 		t.Logf("%s pair: local=%s(%s, relay proto %q) remote=%s rtt=%v",
@@ -375,17 +373,17 @@ func TestTURNRelayOnlyForwardsMedia(t *testing.T) {
 	t.Logf("relay-only forwarding latency: %s", latency)
 }
 
-// TestDirectPathForwardingBaseline is the comparison the relay number needs
-// to mean anything: the same media, the same SFU, the same machine, with no
-// relay in the path.
+// TestDirectPathForwardingBaseline is the comparison that gives the relay
+// number meaning. Same media, same SFU, same machine, no relay anywhere in
+// the path.
 //
 // It duplicates TestSFUForwardsMediaBetweenTwoParticipants' coverage on
-// purpose — its output is the baseline, not the assertion.
+// purpose. The output is the point here, not the assertion.
 func TestDirectPathForwardingBaseline(t *testing.T) {
 	publisher, subscriber, latency := runForwardingCase(t, "direct-room", webrtc.Configuration{})
 
 	if publisher.localType == webrtc.ICECandidateTypeRelay || subscriber.localType == webrtc.ICECandidateTypeRelay {
-		t.Errorf("baseline took a relay path (publisher=%s subscriber=%s) — it is not a baseline",
+		t.Errorf("baseline took a relay path (publisher=%s subscriber=%s); it is not a baseline",
 			publisher.localType, subscriber.localType)
 	}
 

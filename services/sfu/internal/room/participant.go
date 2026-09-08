@@ -15,30 +15,29 @@ import (
 
 // dataChannelLabel is the one channel Raven's `room.sendData()` rides on.
 //
-// A single negotiated channel rather than one per peer pair: this is an
-// SFU, so the node is the only peer any client has, and room-wide delivery
-// is the node fanning out on the clients' behalf. That also means data
-// messages get the same "works behind any NAT" property as media, which a
-// peer-to-peer data mesh would not.
+// One negotiated channel, not one per peer pair. This is an SFU: the node
+// is the only peer any client ever has, and "room-wide delivery" is really
+// just the node fanning out on their behalf. Nice side effect is that data
+// gets the same works-behind-any-NAT property media does, which a
+// peer-to-peer data mesh never would.
 const dataChannelLabel = "raven-data"
 
 // ParticipantEvents is how a participant tells the room and the control
-// plane what its PeerConnection is doing.
+// plane what its PeerConnection is up to.
 //
-// Callbacks rather than a channel because every one of these has exactly
-// one consumer and must be handled in order relative to the others — an
-// OnTrackPublished that raced ahead of the OnNegotiationNeeded that
-// carries it would produce a subscriber offer for a track the room does
-// not know about yet.
+// Callbacks, not a channel. Each of these has exactly one consumer, and
+// the ordering between them matters: let an OnTrackPublished race ahead of
+// the OnNegotiationNeeded carrying it and you get a subscriber offer for a
+// track the room has never heard of.
 type ParticipantEvents struct {
-	// OnNegotiationNeeded fires when the SFU must send a new offer, which
-	// happens whenever this participant's subscribed track set changes.
+	// OnNegotiationNeeded fires when the SFU owes the client a new offer.
+	// Happens any time this participant's subscribed track set changes.
 	OnNegotiationNeeded func(p *Participant)
 	OnICECandidate      func(p *Participant, candidate *webrtc.ICECandidate)
 	OnTrackPublished    func(p *Participant, track *PublishedTrack)
 	OnTrackUnpublished  func(p *Participant, track *PublishedTrack)
 	OnStateChange       func(p *Participant, iceState, peerState string)
-	// OnClosed fires once, when the participant is gone for good.
+	// OnClosed fires exactly once, when the participant is gone for good.
 	OnClosed func(p *Participant)
 	// OnData carries a data-channel message for the room to fan out.
 	OnData func(p *Participant, payload []byte)
@@ -48,13 +47,13 @@ type ParticipantEvents struct {
 //
 // # One PeerConnection, both directions
 //
-// Some SFUs give each client two PeerConnections, one for publishing and
-// one for subscribing, to keep renegotiation on the subscriber side from
-// disturbing the publisher side. Raven uses one, because a single
-// connection means one ICE negotiation, one DTLS handshake, one set of
-// candidates to get through a firewall, and one thing to reconnect — and
-// the renegotiation problem it avoids is handled instead by the
-// negotiation serialisation below.
+// Plenty of SFUs hand each client two PeerConnections, one to publish on
+// and one to subscribe on, so subscriber-side renegotiation can't disturb
+// the publisher side. Raven uses one. That buys a single ICE negotiation,
+// a single DTLS handshake, one set of candidates to shove through a
+// firewall, and one thing to reconnect when it all falls over. The
+// renegotiation mess two connections would have dodged gets handled by the
+// negotiation serialisation further down instead.
 type Participant struct {
 	ID        string
 	SessionID string
@@ -69,39 +68,39 @@ type Participant struct {
 	joinedAt time.Time
 
 	mu sync.RWMutex
-	// published is keyed by track id — the tracks this participant sends.
+	// published is keyed by track id: the tracks this participant sends.
 	published map[string]*PublishedTrack
-	// subscriptions is keyed by "publisherID/trackID" — this
-	// participant's copies of other people's tracks.
+	// subscriptions is keyed by "publisherID/trackID". This participant's
+	// copies of everyone else's tracks.
 	subscriptions map[string]*DownTrack
-	// declaredSources holds what the client said each track it is about to
-	// publish is *of*, keyed by track id. Populated before the media
-	// arrives (see TypeTrackSource) and consulted when it does.
+	// declaredSources is what the client claims each track it's about to
+	// publish is *of*, keyed by track id. Filled in before the media shows
+	// up (see TypeTrackSource) and read back when it does.
 	declaredSources map[string]TrackSource
 
 	dataChannel atomic.Pointer[webrtc.DataChannel]
 
-	// Negotiation state. Guarded by negMu, and held across the whole
-	// offer→answer round trip rather than just offer creation.
+	// Negotiation state, guarded by negMu. The lock is held across the
+	// whole offer→answer round trip, not just offer creation.
 	//
-	// Covering only creation is not enough: two participants joining at
-	// once each change everyone else's subscribed track set, so two
-	// renegotiations start moments apart. If the second creates an offer
-	// while the first is still awaiting its answer, the PeerConnection's
-	// local description is replaced and the first answer no longer
-	// applies. This is the "perfect negotiation" rule — never a second
-	// offer while one is outstanding — and the SFU resolves the glare it
-	// cannot avoid by being the impolite peer (see AcceptOffer).
+	// Covering creation alone isn't enough. Two participants joining at the
+	// same moment both change everyone else's subscribed track set, so two
+	// renegotiations kick off seconds apart. If the second builds an offer
+	// while the first is still waiting on its answer, the PeerConnection's
+	// local description gets replaced and that first answer no longer
+	// applies to anything. This is the "perfect negotiation" rule: never a
+	// second offer while one is outstanding. The glare we can't dodge gets
+	// settled by the SFU playing the impolite peer (see AcceptOffer).
 	negMu sync.Mutex
-	// offerInFlight is true from creating an offer until its answer is
-	// applied (or the round trip is abandoned).
+	// offerInFlight: true from the moment we create an offer until its
+	// answer is applied, or until we give up on the round trip.
 	offerInFlight bool
-	// pendingRenegotiation records that the track set changed while an
-	// offer was already in flight, so the change is not silently lost.
+	// pendingRenegotiation remembers that the track set moved while an
+	// offer was already out, so the change doesn't just vanish.
 	pendingRenegotiation bool
-	// negotiationDeadline abandons a round trip whose answer never
-	// arrives. Without it, a client that vanishes mid-negotiation would
-	// leave this participant unable to ever renegotiate again.
+	// negotiationTimer abandons a round trip whose answer never turns up.
+	// Without it, one client disappearing mid-negotiation leaves this
+	// participant unable to renegotiate ever again.
 	negotiationTimer *time.Timer
 
 	closed atomic.Bool
@@ -127,10 +126,10 @@ func newParticipant(id, sessionID, roomID string, permissions Permissions, pc *w
 
 func (p *Participant) wire() {
 	p.pc.OnICECandidate(func(candidate *webrtc.ICECandidate) {
-		// A nil candidate is end-of-gathering. Not forwarded: the SDK
-		// treats the absence of further candidates the same way, and an
-		// explicit end-of-candidates frame would be one more thing for
-		// three client implementations to agree on.
+		// A nil candidate means gathering finished. We don't forward it.
+		// The SDK reads "no more candidates" the same way, and an explicit
+		// end-of-candidates frame is one more thing three client
+		// implementations would have to agree on.
 		if candidate == nil {
 			return
 		}
@@ -146,12 +145,12 @@ func (p *Participant) wire() {
 		}
 		switch state {
 		case webrtc.PeerConnectionStateFailed, webrtc.PeerConnectionStateClosed:
-			// Failed is terminal for this PeerConnection. The client's
-			// reconnect logic establishes a new session rather than trying
-			// to revive this one — ICE restart on a failed connection is
-			// less reliable than starting clean, and the client has to be
-			// able to handle a fresh session anyway (it might have moved
-			// networks).
+			// Failed is the end of the road for this PeerConnection. The
+			// client's reconnect logic builds a whole new session instead
+			// of trying to resuscitate this one. ICE restart on a failed
+			// connection is flakier than starting clean, and the client has
+			// to cope with a fresh session anyway (it may well have changed
+			// networks in the meantime).
 			p.Close()
 		}
 	})
@@ -166,10 +165,10 @@ func (p *Participant) wire() {
 			return
 		}
 		if !p.permissions.PublishData {
-			// The token did not grant data. Closing the channel rather
-			// than silently dropping messages means the client gets a
-			// clear signal instead of wondering why nothing arrives.
-			p.logger.Warn("data channel rejected — token does not grant publishData")
+			// Token didn't grant data. Close the channel instead of
+			// quietly binning messages, so the client gets a real signal
+			// rather than wondering why nothing ever arrives.
+			p.logger.Warn("data channel rejected: token does not grant publishData")
 			_ = channel.Close()
 			return
 		}
@@ -183,15 +182,15 @@ func (p *Participant) wire() {
 	})
 }
 
-// handleIncomingTrack takes a track the publisher started sending.
+// handleIncomingTrack takes a track the publisher has started sending.
 //
-// Called once per simulcast layer, and the layers of one track share a
-// track id — so the first arrival creates the PublishedTrack and announces
-// it, and subsequent ones only add a layer. Announcing once is what keeps
-// subscribers from being told about the same camera three times.
+// Fires once per simulcast layer, and every layer of a track shares one
+// track id. So the first arrival builds the PublishedTrack and announces
+// it; later ones just bolt on another layer. Announcing once is what stops
+// subscribers being told about the same camera three times over.
 func (p *Participant) handleIncomingTrack(remote *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 	if !p.canPublishKind(remote.Kind()) {
-		p.logger.Warn("track rejected — token does not grant this kind",
+		p.logger.Warn("track rejected: token does not grant this kind",
 			"kind", remote.Kind().String(), "trackId", remote.ID())
 		return
 	}
@@ -214,9 +213,9 @@ func (p *Participant) handleIncomingTrack(remote *webrtc.TrackRemote, receiver *
 		}
 	}
 
-	// Drain RTCP from the publisher's sender-side reports. Pion needs
-	// these read for its interceptors (NACK, TWCC, receiver reports) to
-	// function; an unread RTCP stream stalls congestion feedback.
+	// Drain RTCP from the publisher's sender-side reports. Pion needs these
+	// read for its interceptors (NACK, TWCC, receiver reports) to work at
+	// all. Leave the stream unread and congestion feedback stalls.
 	go p.drainRTCP(receiver)
 }
 
@@ -251,10 +250,10 @@ func (p *Participant) CanPublishData() bool { return p.permissions.PublishData }
 
 // Subscribe attaches one of someone else's tracks to this participant.
 //
-// Does not renegotiate: the caller batches subscriptions and renegotiates
-// once, because a participant joining a busy room subscribes to a dozen
-// tracks at once and a dozen offer/answer round trips would make joining
-// take seconds.
+// Doesn't renegotiate. The caller batches subscriptions and renegotiates
+// once at the end, because somebody joining a busy room subscribes to a
+// dozen tracks at once, and a dozen offer/answer round trips would turn
+// "join" into a multi-second wait.
 func (p *Participant) Subscribe(track *PublishedTrack) error {
 	if p.closed.Load() {
 		return errors.New("participant is closed")
@@ -263,8 +262,8 @@ func (p *Participant) Subscribe(track *PublishedTrack) error {
 		return errors.New("token does not grant subscribe")
 	}
 	if track.ParticipantID == p.ID {
-		// Subscribing to your own track would echo your microphone back at
-		// you. Callers filter this, but it is cheap to be certain.
+		// Subscribing to your own track echoes your microphone back at you.
+		// Callers already filter this out; belt and braces.
 		return nil
 	}
 
@@ -276,8 +275,8 @@ func (p *Participant) Subscribe(track *PublishedTrack) error {
 		return nil
 	}
 
-	// The subscriber's copy carries the *publisher's* track and stream ids,
-	// so the client can match an incoming track to the participant it
+	// The subscriber's copy keeps the *publisher's* track and stream ids,
+	// so the client can work out which participant an incoming track
 	// belongs to without a side-channel lookup.
 	local, err := webrtc.NewTrackLocalStaticRTP(
 		webrtc.RTPCodecCapability{MimeType: track.MimeType},
@@ -301,24 +300,23 @@ func (p *Participant) Subscribe(track *PublishedTrack) error {
 
 	track.AddSubscriber(down)
 
-	// Read this sender's RTCP so subscriber feedback reaches the
-	// publisher's encoder. Without it, a subscriber's PLI (its decoder
-	// asking for a keyframe after loss) is never seen and the picture
-	// stays broken until the next scheduled keyframe.
+	// Read this sender's RTCP so subscriber feedback actually reaches the
+	// publisher's encoder. Skip it and a subscriber's PLI (its decoder
+	// asking for a keyframe after loss) goes unseen, leaving the picture
+	// broken until the next scheduled keyframe wanders past.
 	go p.forwardSubscriberFeedback(sender, track)
 
 	p.logger.Debug("subscribed", "publisher", track.ParticipantID, "trackId", track.ID)
 	return nil
 }
 
-// forwardSubscriberFeedback relays a subscriber's keyframe requests to the
-// publisher.
+// forwardSubscriberFeedback relays a subscriber's keyframe requests up to
+// the publisher.
 //
-// This is the RTCP path that makes recovery work end to end: the
-// subscriber's decoder notices it cannot decode, sends a PLI to the SFU,
-// and the SFU asks the publisher for a keyframe. Dropping these on the
-// floor is a common SFU bug whose symptom is "video sometimes never
-// recovers after a network blip".
+// This is the RTCP path that makes recovery work end to end. Subscriber's
+// decoder gives up, fires a PLI at the SFU, SFU asks the publisher for a
+// keyframe. Dropping these on the floor is a classic SFU bug, and the
+// symptom is always "video sometimes just never comes back after a blip".
 func (p *Participant) forwardSubscriberFeedback(sender *webrtc.RTPSender, track *PublishedTrack) {
 	for {
 		packets, _, err := sender.ReadRTCP()
@@ -333,14 +331,14 @@ func (p *Participant) forwardSubscriberFeedback(sender *webrtc.RTPSender, track 
 			case *rtcp.PictureLossIndication, *rtcp.FullIntraRequest:
 				track.RequestKeyframeNow()
 			}
-			// NACK is handled by Pion's own interceptor against its send
-			// buffer, which can retransmit the exact packet — better than
-			// anything this layer could do, since we no longer hold it.
+			// NACK is Pion's own interceptor's job, worked against its send
+			// buffer. It can retransmit the exact packet, which beats
+			// anything we could manage now we've let go of it.
 		}
 	}
 }
 
-// Unsubscribe detaches a track. Like Subscribe, it does not renegotiate.
+// Unsubscribe detaches a track. Same as Subscribe: no renegotiation.
 func (p *Participant) Unsubscribe(publisherID, trackID string) bool {
 	key := subscriptionKey(publisherID, trackID)
 
@@ -365,7 +363,7 @@ func (p *Participant) SetSubscriptionLayer(publisherID, trackID string, layer La
 	return track.SetSubscriberLayer(p.ID, layer)
 }
 
-// PublishedTracks is what this participant is sending.
+// PublishedTracks is everything this participant is currently sending.
 func (p *Participant) PublishedTracks() []*PublishedTrack {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -386,9 +384,9 @@ func (p *Participant) PublishedTrack(trackID string) (*PublishedTrack, bool) {
 // DeclareTrackSource records what a track the client is about to publish
 // is *of*.
 //
-// Applied to an already-published track too, because the declaration and
-// the media race: both are handled on their own goroutines, and the media
-// arriving first is entirely normal.
+// Applied to already-published tracks as well, because the declaration and
+// the media race each other. They land on separate goroutines and the
+// media getting there first is completely normal.
 func (p *Participant) DeclareTrackSource(trackID string, source TrackSource) {
 	if !source.valid() {
 		p.logger.Warn("ignoring unknown declared track source", "trackId", trackID, "source", source)
@@ -417,11 +415,11 @@ func (p *Participant) SetTrackMuted(trackID string, muted bool) bool {
 	return true
 }
 
-// SendData delivers a payload over this participant's data channel.
+// SendData pushes a payload down this participant's data channel.
 //
-// Best-effort by design: a participant whose channel is not open yet (or
-// who never opened one) is skipped rather than failing the whole broadcast
-// for everyone else.
+// Best-effort on purpose. Someone whose channel isn't open yet, or who
+// never opened one at all, gets skipped instead of failing the broadcast
+// for everybody else.
 func (p *Participant) SendData(payload []byte) error {
 	channel := p.dataChannel.Load()
 	if channel == nil || channel.ReadyState() != webrtc.DataChannelStateOpen {
@@ -430,27 +428,27 @@ func (p *Participant) SendData(payload []byte) error {
 	return channel.Send(payload)
 }
 
-// answerTimeout abandons a negotiation whose answer never arrives.
+// answerTimeout gives up on a negotiation whose answer never shows.
 //
-// Long enough that a slow client on a bad network still completes, short
-// enough that a vanished client does not block this participant's
-// renegotiations for the rest of the call. When it fires, the round trip
-// is abandoned and another is started if anything changed meanwhile.
+// Long enough for a slow client on a rough network to finish, short enough
+// that a client which simply vanished won't block this participant's
+// renegotiations for the rest of the call. On expiry we drop the round
+// trip, then start another if anything changed in the meantime.
 const answerTimeout = 15 * time.Second
 
-// ErrNegotiationInProgress means an offer is already in flight.
+// ErrNegotiationInProgress means an offer is already out there.
 //
-// For a renegotiation the caller should do nothing: the change was
-// recorded, and whoever completes the current round will start another.
-// For a client-initiated offer it means genuine glare, and the client
-// should retry once it has answered the offer already on its way.
+// On a renegotiation the caller should do nothing at all. The change is
+// recorded, and whoever finishes the current round kicks off another. On a
+// client-initiated offer it's genuine glare, and the client should retry
+// once it has answered the offer already heading its way.
 var ErrNegotiationInProgress = errors.New("negotiation already in progress")
 
 // beginNegotiation claims the offer/answer round trip.
 //
-// Returns false when one is already in flight, having recorded that
-// another round is needed — so a burst of track changes collapses into one
-// follow-up offer rather than a backlog of stale ones.
+// False means one is already in flight; we've noted that another round is
+// needed. A burst of track changes therefore collapses into a single
+// follow-up offer instead of a backlog of stale ones.
 func (p *Participant) beginNegotiation() bool {
 	p.negMu.Lock()
 	defer p.negMu.Unlock()
@@ -464,8 +462,8 @@ func (p *Participant) beginNegotiation() bool {
 	return true
 }
 
-// endNegotiation releases the round trip and reports whether the track set
-// changed while it was in flight.
+// endNegotiation releases the round trip and says whether the track set
+// moved while it was in flight.
 func (p *Participant) endNegotiation() (needsAnotherRound bool) {
 	p.negMu.Lock()
 	defer p.negMu.Unlock()
@@ -485,22 +483,21 @@ func (p *Participant) endNegotiation() (needsAnotherRound bool) {
 	return false
 }
 
-// abandonNegotiation gives up on an unanswered offer.
+// abandonNegotiation gives up on an offer nobody answered.
 func (p *Participant) abandonNegotiation() {
 	if p.closed.Load() {
 		return
 	}
-	p.logger.Warn("negotiation abandoned — no answer within timeout", "timeout", answerTimeout)
+	p.logger.Warn("negotiation abandoned: no answer within timeout", "timeout", answerTimeout)
 	if p.endNegotiation() && p.events.OnNegotiationNeeded != nil {
 		go p.events.OnNegotiationNeeded(p)
 	}
 }
 
-// CreateOffer produces an offer for this participant and sets it locally.
+// CreateOffer builds an offer for this participant and sets it locally.
 //
-// The round trip stays claimed until `AcceptAnswer` applies the answer —
-// see the note on `negMu` for why covering only offer creation is not
-// enough.
+// The round trip stays claimed until AcceptAnswer applies the answer. See
+// the note on negMu for why covering offer creation alone doesn't cut it.
 func (p *Participant) CreateOffer() (*webrtc.SessionDescription, error) {
 	if p.closed.Load() {
 		return nil, errors.New("participant is closed")
@@ -522,25 +519,25 @@ func (p *Participant) CreateOffer() (*webrtc.SessionDescription, error) {
 	return &offer, nil
 }
 
-// releaseAfterFailure hands the round trip back when an offer could not be
-// produced, so one failure does not wedge negotiation permanently.
+// releaseAfterFailure hands the round trip back when we couldn't produce
+// an offer, so one failure doesn't wedge negotiation forever.
 func (p *Participant) releaseAfterFailure() {
 	if p.endNegotiation() && p.events.OnNegotiationNeeded != nil {
 		go p.events.OnNegotiationNeeded(p)
 	}
 }
 
-// AcceptAnswer applies the client's answer to our offer, and runs another
-// negotiation round if the track set changed while we were waiting.
+// AcceptAnswer applies the client's answer to our offer, then runs another
+// negotiation round if the track set moved while we were waiting.
 func (p *Participant) AcceptAnswer(sdp string) error {
 	err := p.pc.SetRemoteDescription(webrtc.SessionDescription{
 		Type: webrtc.SDPTypeAnswer,
 		SDP:  sdp,
 	})
 
-	// The round trip is over either way. Holding it after a failed answer
-	// would leave this participant permanently unable to renegotiate,
-	// which is a worse outcome than retrying against a bad answer.
+	// Round trip is over either way. Hanging on to it after a failed answer
+	// leaves this participant permanently unable to renegotiate, which is a
+	// good deal worse than retrying against a bad answer.
 	needsAnother := p.endNegotiation()
 
 	if err != nil {
@@ -548,23 +545,23 @@ func (p *Participant) AcceptAnswer(sdp string) error {
 	}
 
 	if needsAnother && p.events.OnNegotiationNeeded != nil {
-		// Deferred to a goroutine so the frame handler that delivered this
-		// answer is not the thing that also builds the next offer — that
-		// path holds the node link's read loop.
+		// Punted to a goroutine so the frame handler that just delivered
+		// this answer isn't also the thing building the next offer. That
+		// path is holding the node link's read loop.
 		go p.events.OnNegotiationNeeded(p)
 	}
 	return nil
 }
 
-// AcceptOffer handles a client-initiated offer — what a client sends when
-// it starts publishing — and returns the answer.
+// AcceptOffer handles a client-initiated offer, which is what a client
+// sends when it starts publishing, and returns the answer.
 //
 // Rejected with ErrNegotiationInProgress if one of our own offers is
-// already in flight. That is real glare, and the SFU resolves it by being
-// the impolite peer: its offer stands, and the client retries after
-// answering it. Rolling back our own offer instead would be more polite
-// and considerably harder to get right, since our offer may already have
-// added tracks the client is about to be told about.
+// already in flight. That's real glare, and the SFU settles it by being
+// the impolite peer: our offer stands, the client retries once it has
+// answered it. Rolling our own offer back would be politer and a great
+// deal harder to get right, since it may already have added tracks the
+// client is about to be told about.
 func (p *Participant) AcceptOffer(sdp string) (*webrtc.SessionDescription, error) {
 	if p.closed.Load() {
 		return nil, errors.New("participant is closed")
@@ -573,8 +570,8 @@ func (p *Participant) AcceptOffer(sdp string) (*webrtc.SessionDescription, error
 	if !p.beginNegotiation() {
 		return nil, ErrNegotiationInProgress
 	}
-	// A client-initiated round trip completes here, synchronously, rather
-	// than awaiting a separate frame — so it releases before returning.
+	// A client-initiated round trip finishes right here, synchronously,
+	// instead of waiting on a separate frame. So release before returning.
 	defer p.releaseAfterFailure()
 
 	if err := p.pc.SetRemoteDescription(webrtc.SessionDescription{
@@ -604,12 +601,13 @@ func (p *Participant) ConnectionState() (iceState, peerState string) {
 
 func (p *Participant) JoinedAt() time.Time { return p.joinedAt }
 
-// Stats reports what this node has measured about this participant.
+// ParticipantStats is what this node has actually measured about a
+// participant.
 //
-// Only what is measured. `Stats` deliberately has no "quality" verdict:
-// deriving one belongs to whoever has both this and the client's own
-// numbers, and inventing one here would be the fabricated metric spec §19
-// forbids.
+// Measured, and nothing more. There's no "quality" verdict here on
+// purpose. Working one out is the job of whoever holds both these numbers
+// and the client's own, and inventing one at this layer would be exactly
+// the fabricated metric spec §19 rules out.
 type ParticipantStats struct {
 	ParticipantID    string
 	SessionID        string
@@ -652,8 +650,8 @@ func (p *Participant) Stats() ParticipantStats {
 	}
 }
 
-// Close tears the participant down. Idempotent — the connection-state
-// handler and an explicit removal both call it, and either may be first.
+// Close tears the participant down. Idempotent: the connection-state
+// handler and an explicit removal both call it, and either can win.
 func (p *Participant) Close() {
 	if !p.closed.CompareAndSwap(false, true) {
 		return

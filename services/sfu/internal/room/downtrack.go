@@ -10,29 +10,30 @@ import (
 
 // LayerID names a simulcast spatial layer.
 //
-// Raven's own vocabulary, not the RIDs a browser happens to use — Chrome
-// sends "f"/"h"/"q", other stacks send "high"/"low", and the SDK's public
-// API should not change shape because a browser did. `layerFromRID` does
-// the mapping.
+// Raven's own vocabulary, not whatever RIDs a browser feels like sending.
+// Chrome says "f"/"h"/"q", other stacks say "high"/"low", and the SDK's
+// public API shouldn't change shape because a browser did. layerFromRID
+// handles the translation.
 type LayerID string
 
 const (
 	LayerLow    LayerID = "low"
 	LayerMedium LayerID = "medium"
 	LayerHigh   LayerID = "high"
-	// LayerAuto asks the SFU to choose. The default: a subscriber usually
-	// wants "the best layer my connection can carry", not a fixed one.
+	// LayerAuto lets the SFU choose, and is the default. What a subscriber
+	// usually wants is "the best layer my connection can carry", not some
+	// specific one.
 	LayerAuto LayerID = "auto"
-	// LayerNone is a non-simulcast track's single layer. Distinct from
-	// LayerAuto so "there is nothing to choose between" and "choose for me"
-	// are not the same state.
+	// LayerNone is a non-simulcast track's one and only layer. Kept apart
+	// from LayerAuto so "there's nothing to choose between" and "choose for
+	// me" don't collapse into the same state.
 	LayerNone LayerID = ""
 )
 
 // layerFromRID maps a publisher's RID onto Raven's layer names.
 //
-// Empty RID means the publisher is not simulcasting at all, which is the
-// common case for audio and for video from a client that disabled it.
+// An empty RID means no simulcast at all. That's the common case for audio,
+// and for video from a client that turned it off.
 func layerFromRID(rid string) LayerID {
 	switch rid {
 	case "":
@@ -44,9 +45,9 @@ func layerFromRID(rid string) LayerID {
 	case "f", "high":
 		return LayerHigh
 	default:
-		// An unrecognised RID is still a real layer carrying real media —
-		// treating it as the lowest means a subscriber gets *something*
-		// rather than nothing while the mapping gets fixed.
+		// An RID we don't recognise is still a real layer carrying real
+		// media. Call it the lowest and a subscriber gets *something* while
+		// somebody gets round to fixing the mapping.
 		return LayerLow
 	}
 }
@@ -67,24 +68,24 @@ func layerRank(layer LayerID) int {
 
 // DownTrack is one subscriber's copy of one published track.
 //
-// # Why one per subscriber rather than one shared output
+// # Why one per subscriber, not one shared output
 //
-// An SFU that shares a single output track across subscribers cannot give
-// them different simulcast layers, which is the entire reason simulcast
-// exists: the participant on a phone over 4G and the one on a desktop
-// looking at a full-screen tile should not receive the same bitrate. So
-// each subscriber gets its own DownTrack, its own layer choice, and its
-// own sequence-number space. The cost is a per-subscriber write of every
-// packet, which is inherent to selective forwarding.
+// Share a single output track across subscribers and you can't give them
+// different simulcast layers, which is the entire reason simulcast exists.
+// Someone on a phone over 4G and someone on a desktop staring at a
+// full-screen tile should not be getting the same bitrate. So every
+// subscriber gets its own DownTrack, its own layer choice, its own
+// sequence-number space. The price is writing every packet once per
+// subscriber, and that's just what selective forwarding costs.
 //
 // # Sequence rewriting
 //
-// Each simulcast layer is a separate RTP stream with its own sequence
-// numbers and timestamps. Switching layers therefore produces a
-// discontinuity that a subscriber's jitter buffer reads as massive packet
-// loss. DownTrack keeps its own monotonic sequence counter and a timestamp
-// offset, so from the subscriber's perspective it is receiving one
-// continuous stream that happens to change resolution at keyframes.
+// Every simulcast layer is a separate RTP stream with its own sequence
+// numbers and timestamps, so switching layers hands the subscriber a
+// discontinuity their jitter buffer reads as catastrophic packet loss.
+// DownTrack keeps a monotonic sequence counter and a timestamp offset of
+// its own. As far as the subscriber can tell they're receiving one
+// continuous stream that occasionally changes resolution at a keyframe.
 type DownTrack struct {
 	// SubscriberID is the participant receiving this copy.
 	SubscriberID string
@@ -98,13 +99,13 @@ type DownTrack struct {
 	mu sync.Mutex
 	// currentLayer is the layer being forwarded right now.
 	currentLayer LayerID
-	// targetLayer is where we want to be. They differ while waiting for a
-	// keyframe on the target layer.
+	// targetLayer is where we want to be. The two differ while we're
+	// waiting on a keyframe from the target.
 	targetLayer LayerID
-	// requestedLayer is what the subscriber asked for, which may be more
-	// than their connection can carry. Kept separately so that when
-	// conditions improve we know what to return to, rather than being
-	// stuck at whatever congestion control last allowed.
+	// requestedLayer is what the subscriber asked for, which may well be
+	// more than their connection can carry. Kept separately so we know what
+	// to climb back to when conditions improve, instead of being stuck at
+	// whatever congestion control last let us have.
 	requestedLayer LayerID
 
 	// Sequence/timestamp rewriting state.
@@ -114,15 +115,15 @@ type DownTrack struct {
 	seqOffset       uint16
 	timestampOffset uint32
 	lastTimestamp   uint32
-	// switching is true between asking for a layer and seeing its keyframe.
+	// switching: true from asking for a layer until its keyframe shows up.
 	switching bool
 
-	// muted drops packets without tearing anything down, so a publisher
-	// un-muting does not cost a renegotiation.
+	// muted drops packets without tearing anything down, so un-muting
+	// doesn't cost a renegotiation.
 	muted atomic.Bool
 
-	// Counters for telemetry. Atomic rather than mutex-guarded because
-	// stats collection must never contend with the forwarding path.
+	// Telemetry counters. Atomic, not mutex-guarded: stats collection must
+	// never contend with the forwarding path.
 	packetsSent atomic.Uint64
 	bytesSent   atomic.Uint64
 	packetsDrop atomic.Uint64
@@ -143,20 +144,20 @@ func newDownTrack(subscriberID string, local *webrtc.TrackLocalStaticRTP, sender
 	}
 }
 
-// SetMuted stops or resumes forwarding without changing the negotiated
-// track set. A muted publisher's subscribers keep their transceivers, so
-// unmuting is immediate rather than another offer/answer round trip.
+// SetMuted stops or resumes forwarding without touching the negotiated
+// track set. Subscribers of a muted publisher keep their transceivers, so
+// unmuting is instant instead of another offer/answer round trip.
 func (d *DownTrack) SetMuted(muted bool) {
 	d.muted.Store(muted)
 }
 
-// RequestLayer records the subscriber's preference and, if that layer is
-// available, begins switching to it.
+// RequestLayer records the subscriber's preference and starts switching to
+// that layer, if it exists.
 //
-// The switch is not immediate: `WriteRTP` completes it at the next
-// keyframe on the target layer. Callers get no confirmation here because
-// there is nothing honest to confirm yet — the layer actually in use is
-// reported by `CurrentLayer`.
+// The switch isn't immediate. WriteRTP finishes it at the next keyframe on
+// the target layer. Callers get no confirmation here because there's
+// nothing honest to confirm yet; CurrentLayer reports what's really in
+// use.
 func (d *DownTrack) RequestLayer(layer LayerID, available []LayerID) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -172,9 +173,9 @@ func (d *DownTrack) RequestLayer(layer LayerID, available []LayerID) {
 
 // resolveLayer turns a preference into a layer that actually exists.
 //
-// "auto" means the highest available, which is the right default for a
-// desktop subscriber and gets corrected downward by congestion control
-// rather than by guessing low and never recovering.
+// "auto" means highest available. That's the right default for a desktop
+// subscriber, and congestion control walks it back down as needed. Guessing
+// low instead leaves you stuck there with nothing to walk you back up.
 func resolveLayer(requested LayerID, available []LayerID) LayerID {
 	if len(available) == 0 {
 		return LayerNone
@@ -193,9 +194,9 @@ func resolveLayer(requested LayerID, available []LayerID) LayerID {
 			return requested
 		}
 	}
-	// Asked for a layer the publisher is not sending. Fall back to the
-	// closest one below it, so a request for "high" from a publisher
-	// sending only low/medium yields medium rather than silence.
+	// They asked for a layer the publisher isn't sending. Drop to the
+	// closest one below it, so asking for "high" from a publisher sending
+	// only low/medium gets you medium instead of silence.
 	best := LayerNone
 	for _, candidate := range available {
 		if layerRank(candidate) <= layerRank(requested) && layerRank(candidate) > layerRank(best) {
@@ -208,31 +209,31 @@ func resolveLayer(requested LayerID, available []LayerID) LayerID {
 	return best
 }
 
-// CurrentLayer is the layer being forwarded right now — not the one that
-// was requested. Reported to telemetry so a quality readout reflects what
-// the subscriber is receiving.
+// CurrentLayer is the layer being forwarded right now, which is not
+// necessarily the one that was asked for. Goes to telemetry so a quality
+// readout reflects what the subscriber is genuinely receiving.
 func (d *DownTrack) CurrentLayer() LayerID {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	return d.currentLayer
 }
 
-// RequestedLayer is what the subscriber asked for, which may not be what
-// they are getting.
+// RequestedLayer is what the subscriber asked for. Not necessarily what
+// they're getting.
 func (d *DownTrack) RequestedLayer() LayerID {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	return d.requestedLayer
 }
 
-// WriteRTP forwards one packet from one layer, if that layer is the one
-// this subscriber should be receiving.
+// WriteRTP forwards one packet from one layer, provided that layer is the
+// one this subscriber ought to be receiving.
 //
-// Returns whether a keyframe is needed: true when the track is waiting to
-// switch layers and has not yet seen a keyframe on the target. The caller
-// turns that into a PLI toward the publisher, which is what makes a layer
-// switch take milliseconds rather than however long until the encoder's
-// next scheduled keyframe.
+// Returns whether a keyframe is needed: true when we're waiting to switch
+// layers and haven't seen a keyframe on the target yet. The caller turns
+// that into a PLI aimed at the publisher, which is the difference between a
+// layer switch taking milliseconds and it taking however long the encoder
+// feels like waiting before its next scheduled keyframe.
 func (d *DownTrack) WriteRTP(packet *rtp.Packet, layer LayerID) (needsKeyframe bool, err error) {
 	if d.closed.Load() {
 		return false, nil
@@ -244,8 +245,8 @@ func (d *DownTrack) WriteRTP(packet *rtp.Packet, layer LayerID) (needsKeyframe b
 
 	d.mu.Lock()
 
-	// Not this subscriber's layer. If we are trying to switch *to* it, a
-	// keyframe is what we are waiting for.
+	// Not this subscriber's layer. If we're trying to switch *to* it, a
+	// keyframe is exactly what we're waiting on.
 	if layer != d.currentLayer {
 		if d.switching && layer == d.targetLayer {
 			if !isKeyframe(d.mimeType, packet.Payload) {
@@ -253,10 +254,10 @@ func (d *DownTrack) WriteRTP(packet *rtp.Packet, layer LayerID) (needsKeyframe b
 				d.packetsDrop.Add(1)
 				return true, nil
 			}
-			// Keyframe on the target layer: commit the switch. The new
-			// layer's sequence numbers and timestamps are unrelated to the
-			// old one's, so re-anchor both to keep the subscriber's stream
-			// continuous.
+			// Keyframe on the target layer, so commit the switch. The new
+			// layer's sequence numbers and timestamps have nothing to do
+			// with the old one's, so re-anchor both and keep the
+			// subscriber's stream looking continuous.
 			d.currentLayer = layer
 			d.switching = false
 			d.inboundSeqBase = packet.SequenceNumber
@@ -276,9 +277,9 @@ func (d *DownTrack) WriteRTP(packet *rtp.Packet, layer LayerID) (needsKeyframe b
 		d.timestampOffset = 0
 	}
 
-	// Rewrite in place on a shallow copy: the packet is shared across every
-	// subscriber of this layer, so mutating the original would corrupt
-	// whatever writes after us.
+	// Rewrite in place on a shallow copy. This packet is shared by every
+	// subscriber of the layer, so mutating the original corrupts it for
+	// whoever writes after us.
 	outbound := *packet
 	outbound.SequenceNumber = packet.SequenceNumber + d.seqOffset
 	outbound.Timestamp = packet.Timestamp + d.timestampOffset
@@ -295,7 +296,7 @@ func (d *DownTrack) WriteRTP(packet *rtp.Packet, layer LayerID) (needsKeyframe b
 	return false, nil
 }
 
-// Stats is a snapshot of what this DownTrack has forwarded.
+// Stats snapshots what this DownTrack has forwarded so far.
 type DownTrackStats struct {
 	SubscriberID   string
 	PacketsSent    uint64
