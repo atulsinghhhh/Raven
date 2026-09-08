@@ -8,20 +8,20 @@ export interface ChatClientConfig {
    */
   token: string;
   /**
-   * WebSocket URL — the `chatUrl` field from the same mint response.
-   * Optional: the SDK derives it from the token's issuer when omitted, so
-   * the common case is just `createChatClient({ token })`.
+   * WebSocket URL, i.e. the `chatUrl` field from the same mint response.
+   * Optional: leave it out and the SDK derives it from the token's issuer,
+   * so the common case really is just `createChatClient({ token })`.
    */
   chatUrl?: string;
-  /** REST base for history and attachments — the `apiUrl` from the same response. */
+  /** REST base for history and attachments. The `apiUrl` from the same response. */
   apiUrl?: string;
   logLevel?: LogLevel;
   /** Defaults to true. Set false to handle reconnection yourself. */
   autoReconnect?: boolean;
   /**
-   * Cap on reconnect attempts before giving up and going `failed`.
-   * Defaults to 10. Delay is exponential with jitter, capped at
-   * `maxReconnectDelayMs` — never an unbounded retry loop (spec §11).
+   * How many reconnect attempts before giving up and going `failed`.
+   * Defaults to 10. The delay is exponential with jitter, capped at
+   * `maxReconnectDelayMs`. Never an unbounded retry loop (spec §11).
    */
   maxReconnectAttempts?: number;
   initialReconnectDelayMs?: number;
@@ -29,10 +29,10 @@ export interface ChatClientConfig {
   /** How long to wait for a server ack before rejecting a send. Defaults to 15s. */
   requestTimeoutMs?: number;
   /**
-   * Called when the token is about to expire, so the app can fetch a
-   * fresh one from its own backend. Return the new token and the SDK
-   * reconnects with it — without this, the socket simply closes at expiry
-   * and the developer has to notice.
+   * Called when the token is about to expire, so the app can fetch a fresh
+   * one from its own backend. Hand back the new token and the SDK
+   * reconnects with it. Without this the socket just closes at expiry, and
+   * somebody has to notice.
    */
   onTokenExpiring?: () => Promise<string> | string;
 }
@@ -60,9 +60,9 @@ export interface ChatTokenPayload {
 }
 
 /**
- * Reads the token's payload. Does not verify it — the server is the only
- * thing whose opinion counts. This exists so the SDK can fail fast on an
- * already-expired token and know its own user id without a round-trip.
+ * Reads the token's payload. Doesn't verify it; the server's opinion is the
+ * only one that counts. This exists so the SDK can fail fast on an
+ * already-expired token, and know its own user id without a round trip.
  */
 export function decodeChatToken(token: string): ChatTokenPayload {
   const parts = token.split('.');
@@ -87,7 +87,7 @@ export function validateConfig(config: ChatClientConfig): ResolvedChatClientConf
   }
   if (!config.token || typeof config.token !== 'string') {
     throw new RavenChatAuthenticationError(
-      'config.token is required — the chat token your backend minted via POST /v1/chat/tokens',
+      'config.token is required; the chat token your backend minted via POST /v1/chat/tokens',
     );
   }
 
@@ -99,7 +99,7 @@ export function validateConfig(config: ChatClientConfig): ResolvedChatClientConf
   const chatUrl = config.chatUrl ?? deriveChatUrl(config.apiUrl);
   if (!chatUrl) {
     throw new RavenChatAuthenticationError(
-      'config.chatUrl is required — the "chatUrl" field from the same response as config.token',
+      'config.chatUrl is required; the "chatUrl" field from the same response as config.token',
     );
   }
 
@@ -124,7 +124,7 @@ function deriveChatUrl(apiUrl?: string): string | undefined {
   return `${ws}/v1/chat/ws`;
 }
 
-/** The inverse, so passing only `chatUrl` still gets you working REST calls. */
+/** The inverse, so passing only `chatUrl` still leaves REST calls working. */
 function deriveApiUrl(chatUrl: string): string {
   return chatUrl
     .replace(/^ws:/, 'http:')

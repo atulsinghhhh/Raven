@@ -1,10 +1,11 @@
 import type { WebSocketLike } from '../../src/internal/socket-transport';
 
 /**
- * A controllable stand-in for the browser's WebSocket. Lets the tests
- * drive open/close/message deterministically instead of standing up a
- * real server, which is what makes the reconnect and timeout paths
- * testable at all.
+ * A controllable stand-in for the browser's WebSocket.
+ *
+ * Lets tests drive open, close and message deterministically rather than
+ * standing up a real server. It's what makes the reconnect and timeout
+ * paths testable at all.
  */
 export class FakeSocket implements WebSocketLike {
   static instances: FakeSocket[] = [];
@@ -39,18 +40,18 @@ export class FakeSocket implements WebSocketLike {
     this.readyState = 3; // CLOSED
   }
 
-  /** Simulates the server accepting the upgrade. */
+  /** Pretends the server accepted the upgrade. */
   open(): void {
     this.readyState = 1;
     this.onopen?.({});
   }
 
-  /** Simulates a frame arriving from the server. */
+  /** Pretends a frame arrived from the server. */
   emit(frame: Record<string, unknown>): void {
     this.onmessage?.({ data: JSON.stringify(frame) });
   }
 
-  /** Simulates the connection dropping. */
+  /** Pretends the connection dropped. */
   serverClose(code = 1006, reason = 'abnormal'): void {
     this.readyState = 3;
     this.onclose?.({ code, reason });
@@ -68,7 +69,7 @@ export class FakeSocket implements WebSocketLike {
     });
   }
 
-  /** Acks the most recent frame that carried a correlation id. */
+  /** Acks the last frame that carried a correlation id. */
   ackLast(data: unknown = {}): void {
     const last = [...this.sent].reverse().find((frame) => typeof frame.id === 'string');
     this.emit({ type: 'ack', id: last?.id, ok: true, data });

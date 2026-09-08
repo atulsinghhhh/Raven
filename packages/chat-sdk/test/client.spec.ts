@@ -19,7 +19,7 @@ function makeClient(overrides: Record<string, unknown> = {}): ChatClient {
   return new ChatClient(config, (url) => new FakeSocket(url));
 }
 
-/** connect() resolves only on the server hello, so every test needs this dance. */
+/** connect() only resolves on the server hello, so every test does this dance. */
 async function connected(client: ChatClient, room = 'room_123'): Promise<FakeSocket> {
   const promise = client.connect({ room });
   const socket = FakeSocket.latest;
@@ -67,7 +67,7 @@ describe('connect', () => {
     expect(FakeSocket.latest.url).toContain('sdkVersion=');
   });
 
-  it('does not resolve on socket open alone — it waits for the server hello', async () => {
+  it('does not resolve on socket open alone; it waits for the server hello', async () => {
     const client = makeClient();
     let settled = false;
     void client.connect({ room: 'room_123' }).then(() => {
@@ -127,8 +127,8 @@ describe('events', () => {
 
     unsubscribe();
     unsubscribe();
-    // The second registration is the same handler in a Set, so one
-    // release removes it; releasing again must not throw.
+    // The second registration is the same handler in a Set, so one release
+    // removes it. Releasing again mustn't throw.
     expect(() => second()).not.toThrow();
   });
 
@@ -262,8 +262,8 @@ describe('disconnect', () => {
       const socketCount = FakeSocket.instances.length;
 
       await client.disconnect();
-      // disconnect() detaches the handlers first, so even a close event
-      // arriving afterwards must not start the reconnect ladder.
+      // disconnect() detaches the handlers first, so a close event arriving
+      // afterwards still mustn't kick off the reconnect ladder.
       socket.serverClose(1006, 'late');
       jest.advanceTimersByTime(120_000);
 
@@ -288,7 +288,7 @@ describe('typing', () => {
 
   it('drops ephemeral frames while disconnected instead of queueing stale ones', async () => {
     const client = makeClient();
-    // Never connected — startTyping must not throw, and must not buffer.
+    // Never connected. startTyping mustn't throw, and mustn't buffer.
     await expect(client.joinRoom('room_123')).resolves.toBeUndefined();
     await expect(client.startTyping('room_123')).resolves.toBeUndefined();
     await client.stopTyping('room_123');

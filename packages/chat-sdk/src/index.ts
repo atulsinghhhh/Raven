@@ -43,6 +43,6 @@ export type { Unsubscribe } from './events';
 export type { LogLevel } from './logger';
 export { CHAT_SDK_VERSION } from './version';
 
-// Deliberately not exported: SocketTransport, RestClient, the frame
-// vocabulary, and every other internal. A developer using @corvidhq/chat
-// should never need to know a WebSocket is involved (spec §57).
+// Pointedly not exported: SocketTransport, RestClient, the frame
+// vocabulary, every other internal. Nobody using @corvidhq/chat should ever
+// need to know a WebSocket is involved (spec §57).

@@ -51,7 +51,7 @@ describe('backoffDelayMs', () => {
     const low = backoffDelayMs(5, 100, 10_000, () => 0);
     const high = backoffDelayMs(5, 100, 10_000, () => 1);
     expect(low).toBeLessThan(high);
-    // Floored at a quarter of the target — a jittered delay must not
+    // Floored at a quarter of the target, so a jittered delay can't
     // collapse to zero and burn an attempt instantly.
     expect(low).toBeGreaterThan(0);
   });
@@ -76,7 +76,7 @@ describe('reconnection', () => {
     }
   });
 
-  it('re-joins its rooms on the new socket — the server knows nothing about the old one', async () => {
+  it('re-joins its rooms on the new socket; the server knows nothing about the old one', async () => {
     jest.useFakeTimers();
     try {
       const client = makeClient();
@@ -113,7 +113,7 @@ describe('reconnection', () => {
         FakeSocket.latest.serverClose(1006, 'abnormal');
       }
 
-      // 1 original + at most 2 retries. Never an unbounded ladder.
+      // One original plus at most two retries. Never an unbounded ladder.
       expect(FakeSocket.instances.length).toBeLessThanOrEqual(3);
       expect(errors.some((e) => (e as { code: string }).code === 'CONNECTION_FAILED')).toBe(true);
     } finally {
@@ -121,7 +121,7 @@ describe('reconnection', () => {
     }
   });
 
-  it('does not retry an auth rejection — retrying a revoked token is pointless', async () => {
+  it('does not retry an auth rejection; retrying a revoked token is pointless', async () => {
     jest.useFakeTimers();
     try {
       const client = makeClient();

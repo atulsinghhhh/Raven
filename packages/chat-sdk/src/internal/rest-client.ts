@@ -1,13 +1,15 @@
 import { RavenChatConnectionError, toRavenChatError } from '../errors';
 
 /**
- * The HTTP half of the SDK. Real-time delivery rides the socket; history,
- * attachments, and one-off reads go through here, because asking a
- * WebSocket for a paginated list is the wrong shape and would block the
- * frame the next message is waiting on.
+ * The HTTP half of the SDK.
  *
- * Authenticated with the same chat token as the socket — one credential,
- * two transports.
+ * Real-time delivery rides the socket. History, attachments and one-off
+ * reads come through here, because asking a WebSocket for a paginated list
+ * is the wrong shape entirely and would block the frame the next message is
+ * waiting on.
+ *
+ * Authenticated with the same chat token as the socket. One credential, two
+ * transports.
  */
 export class RestClient {
   private token: string;
@@ -45,8 +47,8 @@ export class RestClient {
         body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
       });
     } catch (error) {
-      // fetch only rejects on a genuine network failure — DNS, offline,
-      // CORS. An HTTP error status is a resolved promise, handled below.
+      // fetch only rejects on a genuine network failure: DNS, offline,
+      // CORS. An HTTP error status resolves, and gets handled below.
       throw new RavenChatConnectionError('Could not reach Raven', 'NETWORK_ERROR', error);
     }
 
@@ -59,9 +61,9 @@ export class RestClient {
       | undefined;
 
     if (!response.ok) {
-      // The server's own Raven error code, not the HTTP status — so a
-      // caller can distinguish MESSAGE_TOO_LARGE from ATTACHMENT_TOO_LARGE
-      // even though both are 413.
+      // The server's own Raven error code, not the HTTP status, so a caller
+      // can tell MESSAGE_TOO_LARGE from ATTACHMENT_TOO_LARGE even though
+      // both come back 413.
       throw toRavenChatError(payload?.code, payload?.message ?? `Request failed with status ${response.status}`, {
         retryAfterSeconds: payload?.retryAfterSeconds,
       });

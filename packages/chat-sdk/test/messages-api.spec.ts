@@ -2,7 +2,7 @@ import { RestClient } from '../src/internal/rest-client';
 import { MessagesApi } from '../src/messages-api';
 import { RavenMessageError, RavenRateLimitError } from '../src/errors';
 
-/** Captures the request the SDK would have made, so we can assert on the URL it builds. */
+/** Captures whatever request the SDK would have made, so we can assert on the URL it builds. */
 function stubFetch(response: { status?: number; body?: unknown } = {}) {
   const calls: Array<{ url: string; init: RequestInit }> = [];
   const fetchMock = jest.fn(async (url: string, init: RequestInit) => {
@@ -30,7 +30,7 @@ describe('messages.list', () => {
     const url = new URL(calls[0].url);
     expect(url.searchParams.get('limit')).toBe('50');
     expect(url.searchParams.get('before')).toBe('CURSOR_A');
-    // Offset pagination is not offered at all — it can't be, there is no
+    // Offset pagination isn't offered at all. It can't be; there's no
     // parameter for it.
     expect(url.searchParams.get('offset')).toBeNull();
   });

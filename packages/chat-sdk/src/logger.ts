@@ -11,7 +11,7 @@ export interface Logger {
 
 /**
  * Console-backed logger, prefixed and level-gated. Nothing here redacts
- * for you — don't pass a raw RTC token or API key into these.
+ * anything for you, so don't hand it a raw RTC token or an API key.
  */
 export function createLogger(level: LogLevel = 'silent'): Logger {
   const rank = LEVELS.indexOf(level);

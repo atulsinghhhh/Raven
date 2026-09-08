@@ -1,4 +1,4 @@
-/** Builds a syntactically valid chat token. The signature is never checked client-side. */
+/** Builds a syntactically valid chat token. Nothing checks the signature client-side. */
 export function fakeToken(overrides: Record<string, unknown> = {}): string {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const payload = btoa(

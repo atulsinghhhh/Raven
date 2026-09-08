@@ -28,7 +28,7 @@ import type {
 import { CHAT_SDK_VERSION } from './version';
 
 export interface ChatEventMap {
-  /** A message arrived — including your own, echoed back with its canonical id. */
+  /** A message arrived, your own included, echoed back with its canonical id. */
   message: (message: ChatMessage) => void;
   messageUpdated: (message: ChatMessage) => void;
   messageDeleted: (event: MessageDeletedEvent) => void;
@@ -61,16 +61,16 @@ interface PendingRequest {
 /**
  * The Raven Chat client.
  *
- * A developer never constructs a `WebSocket`, never reconnects by hand,
- * never sees a frame type, and never learns which gateway instance is
- * holding their socket (spec §2, §12). What's here is the whole API:
- * connect, send, listen, and the `messages` namespace for history and
- * per-message operations.
+ * Nobody using this constructs a `WebSocket`, reconnects by hand, sees a
+ * frame type, or ever finds out which gateway instance is holding their
+ * socket (spec §2, §12). What you see here is the whole API: connect,
+ * send, listen, plus the `messages` namespace for history and per-message
+ * operations.
  */
 export class ChatClient extends TypedEventEmitter<ChatEventMap> {
-  /** History, editing, reactions, threads. Grouped so the top level stays small. */
+  /** History, editing, reactions, threads. Grouped to keep the top level small. */
   readonly messages: MessagesApi;
-  /** Signed uploads and downloads. Bytes never touch the WebSocket. */
+  /** Signed uploads and downloads. Bytes never go near the WebSocket. */
   readonly attachments: AttachmentsApi;
 
   private readonly config: ResolvedChatClientConfig;
@@ -85,17 +85,17 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
   private tokenExpiresAt: number;
   private tokenRefreshTimer?: ReturnType<typeof setTimeout>;
 
-  /** Rooms the caller asked to be in, re-joined automatically after a reconnect. */
+  /** Rooms the caller asked to be in. Re-joined automatically after a reconnect. */
   private readonly desiredRooms = new Set<string>();
   private readonly pending = new Map<string, PendingRequest>();
   private requestCounter = 0;
-  /** Resolves on the first `connected` frame, so `await connect()` means "really connected". */
+  /** Resolves on the first `connected` frame, so `await connect()` genuinely means connected. */
   private connectPromise?: { resolve: () => void; reject: (error: unknown) => void };
   private hasConnectedBefore = false;
-  /** Local stop-typing timers, so a dropped `typing.stop` can't leave one stuck. */
+  /** Local stop-typing timers, so a dropped `typing.stop` can't leave someone stuck typing. */
   private readonly typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-  /** @internal use `createChatClient(config)`. The second parameter only exists so tests can inject a fake socket. */
+  /** @internal Use `createChatClient(config)`. The second parameter exists purely so tests can inject a fake socket. */
   constructor(config: ResolvedChatClientConfig, socketFactory?: WebSocketFactory) {
     super();
     this.config = config;
@@ -110,7 +110,7 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     this.tokenExpiresAt = payload.exp * 1000;
   }
 
-  /** The user this client speaks as, from the token. Never settable from here. */
+  /** Who this client speaks as, read from the token. You can't set it from here. */
   get userId(): string {
     return this.currentUserId;
   }
@@ -119,7 +119,7 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     return this.state;
   }
 
-  /** Stable for the life of one socket; changes on reconnect. Quote it in bug reports. */
+  /** Stable for the life of one socket, changes on reconnect. Worth quoting in a bug report. */
   get id(): string | undefined {
     return this.connectionId;
   }
@@ -134,9 +134,9 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
   // -------------------------------------------------------------------------
 
   /**
-   * Opens the connection and joins the requested rooms. Resolves once the
-   * server has authenticated the socket — not merely when TCP opened, so
-   * a resolved `connect()` genuinely means you can send.
+   * Opens the connection and joins the rooms you asked for. Resolves once
+   * the server has authenticated the socket, not merely when TCP came up,
+   * so a resolved `connect()` really does mean you can send.
    */
   async connect(options: ConnectOptions = {}): Promise<void> {
     for (const room of [...(options.room ? [options.room] : []), ...(options.rooms ?? [])]) {
@@ -144,7 +144,7 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     }
 
     if (this.state === 'connected') {
-      // Already up — just make sure the newly-requested rooms are joined.
+      // Already up. Just make sure the newly-requested rooms get joined.
       await this.syncRooms();
       return;
     }
@@ -183,14 +183,14 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     await this.syncRooms();
   }
 
-  /** Closes the connection. Does not reconnect; call `connect()` again to come back. */
+  /** Closes the connection. No reconnect; call `connect()` again to come back. */
   async disconnect(): Promise<void> {
     this.clearTokenRefreshTimer();
     for (const timer of this.typingTimers.values()) clearTimeout(timer);
     this.typingTimers.clear();
 
-    // Reject anything still waiting rather than leaving callers hanging
-    // on a promise that can no longer resolve.
+    // Reject anything still waiting, rather than leave callers hanging on
+    // a promise that can never resolve now.
     for (const [, request] of this.pending) {
       clearTimeout(request.timer);
       request.reject(new RavenChatConnectionError('Connection closed before the server replied', 'CONNECTION_CLOSED'));
@@ -204,9 +204,9 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
   }
 
   /**
-   * Force a reconnect now. Rarely needed — the SDK reconnects on its own
-   * — but useful after the app knows the network changed (a `online`
-   * event, say) and doesn't want to wait out the backoff.
+   * Force a reconnect right now. Rarely needed, since the SDK reconnects
+   * on its own, but handy when the app knows the network changed (an
+   * `online` event, say) and doesn't fancy waiting out the backoff.
    */
   async reconnect(): Promise<void> {
     this.transport?.disconnect();
@@ -238,20 +238,19 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
   // -------------------------------------------------------------------------
 
   /**
-   * Sends a message and resolves with the stored message — canonical
-   * server id, canonical timestamp. It resolves only after Raven has
-   * durably stored it, so a resolved promise really does mean "saved"
-   * (spec §15).
+   * Sends a message and resolves with the stored one: canonical server id,
+   * canonical timestamp. It only resolves after Raven has durably stored
+   * it, so a resolved promise really does mean saved (spec §15).
    *
-   * A `clientMessageId` is attached automatically if you don't supply
-   * one, which is what makes a retry after a reconnect safe (spec §16).
+   * If you don't supply a `clientMessageId` we attach one, and that's what
+   * makes retrying after a reconnect safe (spec §16).
    */
   async sendMessage(options: SendMessageOptions): Promise<SendMessageResult> {
     const room = options.room ?? this.defaultRoom();
 
-    // Over HTTP when the socket isn't up: the message still gets stored
-    // and fanned out to everyone else. Losing a connection shouldn't
-    // silently lose the thing the user just typed.
+    // Falls back to HTTP when the socket is down. The message still gets
+    // stored and fanned out to everyone else. Losing a connection should
+    // not quietly lose whatever the user just typed.
     if (this.state !== 'connected') {
       return this.rest.request<SendMessageResult>(
         `/v1/chat/conversations/${encodeURIComponent(room)}/messages`,
@@ -278,10 +277,11 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
   // -------------------------------------------------------------------------
 
   /**
-   * Signals that this user is typing. Safe to call on every keystroke —
-   * the server only broadcasts on the transition into "typing", and this
-   * arms a local timer that stops it automatically, so a user who wanders
-   * off mid-sentence doesn't stay "typing…" forever (spec §21).
+   * Signals that this user is typing. Call it on every keystroke; it's
+   * fine. The server only broadcasts on the transition *into* typing, and
+   * this arms a local timer to stop it automatically, so someone who
+   * wanders off mid-sentence doesn't sit there "typing…" forever
+   * (spec §21).
    */
   async startTyping(room?: string): Promise<void> {
     const target = room ?? this.defaultRoom();
@@ -305,7 +305,7 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     this.send('typing.stop', { room: target });
   }
 
-  /** Marks this message — and everything before it — as read. */
+  /** Marks this message, and everything before it, as read. */
   async markAsRead(messageId: string): Promise<ReadState> {
     if (this.state === 'connected') {
       return this.request<ReadState>('read.mark', { messageId });
@@ -315,7 +315,7 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     });
   }
 
-  /** Sets presence across every room this connection holds. */
+  /** Sets presence across every room this connection is holding. */
   async setPresence(status: PresenceStatus): Promise<void> {
     this.send('presence.set', { status });
   }
@@ -332,7 +332,7 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     return this.rest.request(`/v1/chat/conversations/${encodeURIComponent(target)}/read-state`);
   }
 
-  /** Everyone's read position — what a "seen by" row is built from. */
+  /** Everyone's read position. This is what a "seen by" row is built from. */
   async getReadReceipts(room?: string): Promise<ReadState[]> {
     const target = room ?? this.defaultRoom();
     return this.rest.request(`/v1/chat/conversations/${encodeURIComponent(target)}/read-receipts`);
@@ -346,7 +346,7 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     const first = this.desiredRooms.values().next();
     if (first.done) {
       throw new RavenRoomError(
-        'No room selected — pass { room } to connect(), or a `room` option on this call',
+        'No room selected; pass { room } to connect(), or a `room` option on this call',
         'NOT_IN_ROOM',
       );
     }
@@ -361,10 +361,10 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
 
   private send(type: string, payload: Record<string, unknown>): void {
     if (!this.transport?.isOpen) {
-      // Typing and presence are ephemeral by nature. Queuing them to
-      // replay after a reconnect would deliver stale signals, so they're
-      // dropped on purpose rather than buffered.
-      this.logger.debug(`dropped ${type} — not connected`);
+      // Typing and presence are ephemeral by nature. Queue them up to
+      // replay after a reconnect and you deliver stale signals, so they get
+      // dropped on purpose instead of buffered.
+      this.logger.debug(`dropped ${type}; not connected`);
       return;
     }
     this.transport.send({ type, ...payload });
@@ -374,7 +374,7 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
   private request<T = unknown>(type: string, payload: Record<string, unknown>): Promise<T> {
     if (!this.transport?.isOpen) {
       return Promise.reject(
-        new RavenChatConnectionError('Not connected — call connect() first', 'CONNECTION_CLOSED'),
+        new RavenChatConnectionError('Not connected; call connect() first', 'CONNECTION_CLOSED'),
       );
     }
 
@@ -416,8 +416,8 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
         });
         const request = this.takePending(frame.id);
         if (request) {
-          // Correlated to a call the developer made — reject their
-          // promise rather than firing a global error they can't tie back.
+          // This correlates to a call the developer made, so reject their
+          // promise instead of firing a global error they can't trace back.
           request.reject(error);
           return;
         }
@@ -493,9 +493,9 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
         return;
 
       default:
-        // Forward compatibility: a newer server may send frames this
-        // version doesn't know. Ignoring them beats throwing on an
-        // upgrade the developer didn't ask for.
+        // Forward compatibility. A newer server may send frames this
+        // version has never heard of, and ignoring them beats throwing on
+        // an upgrade nobody asked for.
         this.logger.debug(`ignoring unknown frame "${type}"`);
     }
   }
@@ -512,8 +512,8 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     this.connectPromise = undefined;
 
     if (wasReconnecting) {
-      // Re-join rooms the caller asked for; the new socket knows nothing
-      // about the old one's subscriptions.
+      // Re-join whatever rooms the caller asked for. The new socket knows
+      // nothing about the old one's subscriptions.
       void this.syncRooms().then(() => this.emit('reconnected'));
     } else {
       this.emit('connected');
@@ -536,13 +536,13 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
       return;
     }
 
-    // `failed` is reserved for "retrying cannot fix this" — a rejected
-    // token, or a reconnect ladder that ran out. An ordinary close is
-    // `disconnected`, which is a different thing to a developer.
+    // `failed` is reserved for "retrying can't fix this": a rejected token,
+    // or a reconnect ladder that ran out of rungs. An ordinary close is
+    // `disconnected`, and to a developer those are different things.
     this.setState(info.terminal ? 'failed' : 'disconnected');
     this.emit('disconnected');
-    // A connect() still in flight must not hang forever on a socket that
-    // is never coming up.
+    // A connect() still in flight mustn't hang forever on a socket that's
+    // never coming up.
     this.connectPromise?.reject(
       new RavenChatConnectionError(`Chat connection closed (${info.code})`, 'CONNECTION_CLOSED'),
     );
@@ -561,25 +561,24 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
       try {
         await this.request('room.join', { room });
       } catch (error) {
-        // One unauthorized room must not stop the others from joining.
+        // One unauthorized room mustn't stop the rest from joining.
         this.emit('error', error instanceof RavenChatError ? error : toRavenChatError(undefined, String(error)));
       }
     }
   }
 
   /**
-   * Refreshes the token shortly before it expires, if the app gave us a
-   * way to get a new one. Without `onTokenExpiring`, the socket simply
-   * closes at expiry — correct, but abrupt, so this exists to make the
-   * good path easy.
+   * Refreshes the token shortly before it expires, assuming the app gave us
+   * a way to fetch a new one. Without `onTokenExpiring` the socket just
+   * closes at expiry. Correct, but abrupt, which is why this exists.
    */
   private scheduleTokenRefresh(expiresAt?: string): void {
     this.clearTokenRefreshTimer();
     if (!this.config.onTokenExpiring) return;
 
     const expiry = expiresAt ? Date.parse(expiresAt) : this.tokenExpiresAt;
-    // A minute of headroom, and never less than five seconds out, so a
-    // short-lived token can't schedule a refresh in the past.
+    // A minute of headroom, never less than five seconds out, so a
+    // short-lived token can't schedule its refresh in the past.
     const refreshAt = Math.max(expiry - 60_000, Date.now() + 5_000);
 
     this.tokenRefreshTimer = setTimeout(() => {
@@ -622,15 +621,15 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
 }
 
 /**
- * Creates a chat client from a token your backend minted. The token
- * carries the endpoint, the user identity, and the permissions — which is
- * why this is usually the only argument.
+ * Creates a chat client from a token your backend minted. The token already
+ * carries the endpoint, the user identity and the permissions, which is why
+ * it's usually the only argument you need.
  */
 export function createChatClient(config: ChatClientConfig): ChatClient {
   return new ChatClient(validateConfig(config));
 }
 
-/** Distinct enough to be a real idempotency key, cheap enough for the hot path. */
+/** Distinct enough to work as an idempotency key, cheap enough for the hot path. */
 function generateClientMessageId(): string {
   const random =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto

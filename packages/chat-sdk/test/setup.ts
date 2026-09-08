@@ -1,5 +1,5 @@
-// jsdom gives us `atob`/`fetch` but not `crypto.randomUUID`, which the SDK
-// uses to generate idempotency keys. Polyfill only what's actually needed.
+// jsdom hands us `atob` and `fetch` but not `crypto.randomUUID`, which the
+// SDK uses for idempotency keys. Polyfill only what's actually missing.
 import { webcrypto } from 'crypto';
 
 if (typeof globalThis.crypto === 'undefined') {

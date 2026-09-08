@@ -9,14 +9,16 @@ import type {
 } from './types';
 
 /**
- * `chat.messages.*` — everything that operates on messages rather than on
- * the connection. Grouped into a namespace so the top-level client stays
- * small enough to read in one screen, and so `chat.messages.list()`
- * reads the way the docs describe it (spec §17).
+ * `chat.messages.*`: everything that operates on messages, not on
+ * the connection.
  *
- * These go over HTTP, not the socket: paginating history through a frame
+ * Grouped into a namespace so the top-level client stays small enough to
+ * read in one screen, and so `chat.messages.list()` reads the way the docs
+ * describe it (spec §17).
+ *
+ * These go over HTTP, not the socket. Paginating history through a frame
  * queue would block real-time delivery behind a scroll, and history is
- * exactly the thing you need when the socket *isn't* up.
+ * precisely what you want when the socket *isn't* up.
  */
 export class MessagesApi {
   constructor(
@@ -28,9 +30,9 @@ export class MessagesApi {
   /**
    * Message history, newest first.
    *
-   * Pagination is cursor-based, never offset-based: pass the previous
+   * Pagination is cursor-based and never offset-based. Pass the previous
    * page's `nextCursor` as `before` to walk back through history, or its
-   * `previousCursor` as `after` to walk forward and catch up on what
+   * `previousCursor` as `after` to walk forward and catch up on whatever
    * arrived while you were away.
    *
    * ```ts
@@ -62,17 +64,17 @@ export class MessagesApi {
   }
 
   /**
-   * Every message in this message's thread, oldest first — the root plus
-   * its replies. Threads live in the same store as everything else; this
-   * is a filtered read, not a separate system (spec §26).
+   * Every message in this message's thread, oldest first: the root and its
+   * replies. Threads live in the same store as everything else, so this is
+   * a filtered read, not a separate system (spec §26).
    */
   thread(messageId: string): Promise<ChatMessage[]> {
     return this.rest.request<ChatMessage[]>(`/v1/chat/messages/${encodeURIComponent(messageId)}/thread`);
   }
 
   /**
-   * Edits a message. The result comes back with `edited: true` and an
-   * `editedAt` — Raven never silently rewrites history (spec §24).
+   * Edits a message. What comes back carries `edited: true` and an
+   * `editedAt`. Raven never quietly rewrites history (spec §24).
    */
   update(messageId: string, changes: { text?: string; metadata?: Record<string, unknown> }): Promise<ChatMessage> {
     return this.rest.request<ChatMessage>(`/v1/chat/messages/${encodeURIComponent(messageId)}`, {
@@ -82,9 +84,9 @@ export class MessagesApi {
   }
 
   /**
-   * Soft-deletes a message. The message keeps its position and id but
-   * loses its body, so clients can render a placeholder rather than
-   * having a hole appear in the middle of a conversation (spec §25).
+   * Soft-deletes a message. It keeps its position and its id but loses its
+   * body, so clients can render a placeholder instead of a hole opening up
+   * in the middle of a conversation (spec §25).
    */
   delete(messageId: string): Promise<ChatMessage> {
     return this.rest.request<ChatMessage>(`/v1/chat/messages/${encodeURIComponent(messageId)}`, {

@@ -1,4 +1,4 @@
-/** Message kinds Raven understands today. Widened, not broken, when new ones land. */
+/** Message kinds Raven understands today. New ones widen this; they don't break it. */
 export type ChatMessageType = 'text' | 'system' | 'event' | 'attachment';
 
 export interface ChatAttachment {
@@ -17,9 +17,11 @@ export interface ChatReaction {
 }
 
 /**
- * A message, exactly as the server stored it. `id` and `createdAt` are
- * always the server's — the SDK never invents either, which is what makes
- * ordering consistent across every client in a room.
+ * A message, exactly as the server stored it.
+ *
+ * `id` and `createdAt` are always the server's. The SDK never invents
+ * either, and that's what keeps ordering consistent across every client in
+ * a room.
  */
 export interface ChatMessage {
   /** Raven's canonical `msg_...` id. */
@@ -33,7 +35,7 @@ export interface ChatMessage {
   text: string | null;
   /** `msg_...` id of the message this replies to. */
   replyTo: string | null;
-  /** The thread this message belongs to; equals the root message's id. */
+  /** The thread this message belongs to. Same as the root message's id. */
   threadRootId: string | null;
   /** Whatever you passed as `clientMessageId`, echoed back. */
   clientMessageId: string | null;
@@ -87,11 +89,11 @@ export interface MessageDeletedEvent {
 }
 
 /**
- * Connection states, mirroring `@corvidhq/rtc`'s vocabulary so a developer
- * using both doesn't have to learn two.
+ * Connection states, using `@corvidhq/rtc`'s vocabulary so anyone on both
+ * doesn't have to learn two.
  *
- * `failed` is terminal: reconnect attempts are exhausted, or the failure
- * is one retrying can't fix (a revoked token). `disconnected` means the
+ * `failed` is terminal: either reconnect attempts ran out, or the failure
+ * is one retrying can't fix, like a revoked token. `disconnected` means the
  * connection ended and nothing is being retried.
  */
 export type ChatConnectionState =
@@ -112,7 +114,7 @@ export interface ReadState {
 
 export interface MessagePage {
   data: ChatMessage[];
-  /** Pass as `before` to fetch the next (older) page. `null` at the end of history. */
+  /** Pass as `before` to fetch the next, older page. `null` once history runs out. */
   nextCursor: string | null;
   /** Pass as `after` to walk forward toward newer messages. */
   previousCursor: string | null;
@@ -125,10 +127,9 @@ export interface SendMessageOptions {
   /** `msg_...` id to reply to. The reply joins that message's thread. */
   replyTo?: string;
   /**
-   * Your own idempotency key. Retrying a send with the same key returns
-   * the original message instead of creating a duplicate — set it if you
-   * retry sends yourself. The SDK sets one automatically for its own
-   * internal retries.
+   * Your own idempotency key. Retry a send with the same key and you get
+   * the original message back instead of a duplicate. Set it if you retry
+   * sends yourself; the SDK sets one automatically for its own retries.
    */
   clientMessageId?: string;
   /** `att_...` id from `chat.attachments.create()`, already uploaded. */
@@ -150,6 +151,6 @@ export interface ListMessagesOptions {
 
 /** What the server confirmed once a message was durably stored. */
 export interface SendMessageResult extends ChatMessage {
-  /** `true` when an idempotency key matched an existing message — nothing new was written. */
+  /** `true` when an idempotency key matched an existing message, so nothing new got written. */
   deduplicated?: boolean;
 }

@@ -1,8 +1,8 @@
 /**
- * Every error `@corvidhq/chat` raises is one of these. A developer never
- * sees a raw `CloseEvent`, a Postgres constraint name, or a Redis
- * timeout — those are infrastructure Raven is supposed to be hiding
- * (Phase 12 spec §42).
+ * Every error `@corvidhq/chat` raises is one of these. Nobody using it ever
+ * sees a raw `CloseEvent`, a Postgres constraint name or a Redis timeout.
+ * That's the infrastructure Raven is supposed to be hiding (Phase 12
+ * spec §42).
  */
 export type ChatErrorCode =
   | 'INVALID_TOKEN'
@@ -53,7 +53,7 @@ export class RavenChatConnectionError extends RavenChatError {
   }
 }
 
-/** The chat token is missing, malformed, expired, or revoked — mint a new one. */
+/** The chat token is missing, malformed, expired or revoked. Mint a new one. */
 export class RavenChatAuthenticationError extends RavenChatError {
   constructor(message: string, code: ChatErrorCode = 'INVALID_TOKEN', cause?: unknown) {
     super(code, message, cause);
@@ -61,7 +61,7 @@ export class RavenChatAuthenticationError extends RavenChatError {
   }
 }
 
-/** Authenticated, but not allowed to do this — wrong scope, or not a member. */
+/** Authenticated, but not allowed to do this. Wrong scope, or not a member. */
 export class RavenChatPermissionError extends RavenChatError {
   constructor(message: string, code: ChatErrorCode = 'PERMISSION_DENIED', cause?: unknown) {
     super(code, message, cause);
@@ -69,7 +69,7 @@ export class RavenChatPermissionError extends RavenChatError {
   }
 }
 
-/** A message operation failed — too large, not found, already deleted. */
+/** A message operation failed: too large, not found, already deleted. */
 export class RavenMessageError extends RavenChatError {
   constructor(message: string, code: ChatErrorCode = 'INVALID_MESSAGE', cause?: unknown) {
     super(code, message, cause);
@@ -109,10 +109,11 @@ export function isRavenChatError(value: unknown): value is RavenChatError {
 }
 
 /**
- * Turns a server error code into the most specific error class we have.
- * One mapping, used by both the WebSocket and REST paths, so
- * `catch (e) { if (e instanceof RavenRateLimitError) ... }` behaves the
- * same however the call was made.
+ * Turns a server error code into the most specific class we have.
+ *
+ * One mapping, shared by the WebSocket and REST paths, so
+ * `catch (e) { if (e instanceof RavenRateLimitError) ... }` behaves the same
+ * no matter how the call was made.
  */
 export function toRavenChatError(
   code: string | undefined,

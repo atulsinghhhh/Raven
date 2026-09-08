@@ -1,12 +1,11 @@
 /**
- * Minimal typed pub/sub — no external dependency, keeps the bundle small.
+ * Minimal typed pub/sub. No dependency, keeps the bundle small.
  *
- * Differs from `@corvidhq/rtc`'s emitter in one deliberate way: `on()`
- * returns an **unsubscribe function** rather than `this`. Chat handlers
- * are overwhelmingly registered inside component effects, where the
- * cleanup path is the common case and a mismatched `off(event, handler)`
- * is the classic way to leak one (spec §14). `off()` still exists for
- * code that prefers it.
+ * One deliberate difference from `@corvidhq/rtc`'s emitter: `on()` returns
+ * an **unsubscribe function** instead of `this`. Chat handlers get
+ * registered inside component effects almost every time, where cleanup is
+ * the common path and a mismatched `off(event, handler)` is the classic way
+ * to leak one (spec §14). `off()` is still there for code that prefers it.
  */
 export type Unsubscribe = () => void;
 
@@ -25,8 +24,8 @@ export class TypedEventEmitter<
 
     let released = false;
     return () => {
-      // Idempotent: calling the same unsubscribe twice must not remove a
-      // handler that was re-registered in between.
+      // Idempotent. Calling the same unsubscribe twice mustn't take out a
+      // handler that got re-registered in between.
       if (released) return;
       released = true;
       this.off(event, handler);
@@ -37,8 +36,8 @@ export class TypedEventEmitter<
     const set = this.listeners.get(event);
     if (!set) return;
     set.delete(handler as (...args: never[]) => void);
-    // Drop the empty set too, so a long-lived client doesn't accumulate
-    // one entry per event type it ever saw.
+    // Drop the empty set as well, or a long-lived client accumulates one
+    // entry per event type it ever saw.
     if (set.size === 0) {
       this.listeners.delete(event);
     }
@@ -61,7 +60,7 @@ export class TypedEventEmitter<
     }
   }
 
-  /** Test/diagnostic helper — how many handlers are attached to an event. */
+  /** Test and diagnostic helper: how many handlers are on an event. */
   listenerCount(event: keyof EventMap): number {
     return this.listeners.get(event)?.size ?? 0;
   }
@@ -69,8 +68,8 @@ export class TypedEventEmitter<
   protected emit<E extends keyof EventMap>(event: E, ...args: Parameters<EventMap[E]>): void {
     const set = this.listeners.get(event);
     if (!set) return;
-    // Copy before iterating — a handler may unsubscribe itself or another
-    // handler for this same event mid-dispatch.
+    // Copy before iterating: a handler may unsubscribe itself, or another
+    // handler for this same event, mid-dispatch.
     for (const handler of Array.from(set)) {
       (handler as (...args: unknown[]) => void)(...args);
     }

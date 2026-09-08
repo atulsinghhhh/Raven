@@ -18,14 +18,15 @@ export interface AttachmentUploadTicket {
 /**
  * `chat.attachments.*`.
  *
- * Bytes go straight from the browser to object storage using a
- * short-lived signed URL — they never pass through Raven's API and never
- * through the WebSocket (spec §30). Storage credentials stay server-side;
- * the browser only ever holds a URL that expires and addresses one object.
+ * Bytes go straight from the browser to object storage over a short-lived
+ * signed URL. They never pass through Raven's API and never touch the
+ * WebSocket (spec §30). Storage credentials stay server-side, and the
+ * browser only ever holds a URL that expires and addresses exactly one
+ * object.
  *
- * `upload()` wraps the whole three-step dance (ticket → PUT → confirm)
- * into one call, because getting that sequence right by hand is exactly
- * the kind of thing an SDK should absorb.
+ * `upload()` folds the whole three-step dance, ticket → PUT → confirm, into
+ * one call. Getting that sequence right by hand is precisely the sort of
+ * thing an SDK ought to absorb.
  */
 export class AttachmentsApi {
   constructor(
@@ -33,7 +34,7 @@ export class AttachmentsApi {
     private readonly defaultRoom: () => string,
   ) {}
 
-  /** Step 1 on its own, for callers that want to drive the upload themselves (progress bars, resumable transfers). */
+  /** Step 1 on its own, for callers driving the upload themselves: progress bars, resumable transfers. */
   createUploadTicket(input: {
     filename: string;
     mimeType: string;
@@ -82,9 +83,9 @@ export class AttachmentsApi {
     }
 
     if (!response.ok) {
-      // Don't confirm an upload that didn't happen — the attachment stays
-      // PENDING and can never be attached to a message, which is the
-      // correct end state for a failed upload.
+      // Don't confirm an upload that never happened. The attachment stays
+      // PENDING and can never be attached to a message, which is the right
+      // end state for a failed upload.
       throw new RavenAttachmentError(
         `Object storage rejected the upload (status ${response.status})`,
         'ATTACHMENT_NOT_FOUND',
@@ -104,8 +105,8 @@ export class AttachmentsApi {
 
   /**
    * A short-lived signed download URL. Mint one when the user actually
-   * clicks — don't cache these, they expire, and that expiry is what
-   * keeps a shared link from becoming permanent access.
+   * clicks. Don't cache them: they expire, and that expiry is exactly what
+   * stops a shared link turning into permanent access.
    */
   getDownloadUrl(attachmentId: string): Promise<{ url: string; expiresAt: string }> {
     return this.rest.request(`/v1/chat/attachments/${encodeURIComponent(attachmentId)}/download-url`);
