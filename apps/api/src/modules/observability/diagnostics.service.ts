@@ -41,13 +41,21 @@ export class DiagnosticsService {
    * Registry state alone would report "up" for a node sitting behind a
    * broken route; a bare probe would need an address the registry exists
    * to remove.
+   *
+   * Region-scoped and multi-candidate for the same reason readiness is —
+   * see `listHealthyForProbe`. A project's diagnostics should answer for
+   * the region its rooms would land in, not for whichever node the
+   * database happened to return first.
    */
   private async probeRtcFleet(): Promise<boolean> {
-    const server = await this.rtcServers.pickHealthyForProbe();
-    if (!server) {
-      return false;
+    const region = this.configService.get<string>('sfu.defaultRegion')!;
+    const candidates = await this.rtcServers.listHealthyForProbe(region);
+    for (const candidate of candidates) {
+      if (await checkSfuHttp(candidate.internalUrl)) {
+        return true;
+      }
     }
-    return checkSfuHttp(server.internalUrl);
+    return false;
   }
 
   async getDiagnostics(project: Project): Promise<ProjectDiagnostics> {
