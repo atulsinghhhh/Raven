@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+
 import coreWebVitals from 'eslint-config-next/core-web-vitals';
 import typescript from 'eslint-config-next/typescript';
 
@@ -14,6 +16,29 @@ const eslintConfig = [
   },
   ...coreWebVitals,
   ...typescript,
+
+  /**
+   * Pin the React version the plugin thinks it is looking at.
+   *
+   * eslint-config-next sets `settings.react.version: 'detect'`, and
+   * detection reads the filename off the rule context with
+   * `context.getFilename()`. ESLint 10 removed that method, so every rule
+   * touching the detector (react/display-name, for one) dies with
+   * "contextOrFilename.getFilename is not a function" before it lints
+   * anything. eslint-plugin-react 7.37.5 is the latest release and peers
+   * at eslint <=9.7, so there is no upgrade to move to yet.
+   *
+   * Handing it a concrete version skips detection altogether, which the
+   * plugin documents as the preferred setup regardless. Read from the
+   * installed react so it cannot drift out of step with the dependency.
+   */
+  {
+    settings: {
+      react: {
+        version: createRequire(import.meta.url)('react/package.json').version,
+      },
+    },
+  },
 ];
 
 export default eslintConfig;
