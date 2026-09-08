@@ -1,0 +1,77 @@
+# Gitleaks configuration for Raven.
+#
+# Extends the upstream rule set rather than replacing it — that is where
+# provider-specific detection (AWS, GitHub, Slack, Stripe, private keys,
+# JWTs, ...) is maintained, and re-deriving it here would only mean
+# shipping a stale copy.
+#
+# The allowlist below is deliberately narrow. Suppressing a *path* is a
+# standing promise that nothing secret will ever be committed there, so
+# each entry names a file whose whole purpose is to hold fake values, and
+# nothing is excluded merely because it is noisy.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Raven-specific false positives"
+
+paths = [
+  # The 89-variable template developers copy to .env. Every value in it is
+  # a placeholder; that is the file's entire job. Real values live in .env,
+  # which is gitignored and has never been committed (verified against the
+  # full history).
+  '''^\.env\.example$''',
+
+  # Lockfiles: integrity hashes, not credentials.
+  '''^pnpm-lock\.yaml$''',
+  '''(^|/)go\.sum$''',
+  '''(^|/)pubspec\.lock$''',
+
+  # Recorded k6/load-test output. Data produced by a run, not source, and
+  # the API keys in these runs were provisioned per-run against a scratch
+  # project.
+  '''^scripts/results/''',
+
+  # Prisma's generated client — machine-written, never hand-edited.
+  '''^apps/api/src/generated/''',
+
+  # Vendored SDK builds copied from packages/*/dist for the browser e2e
+  # harness. Build output, checked in so the harness can load it without a
+  # bundler.
+  '''^apps/api/test/e2e-harness/vendor/''',
+
+  # Build and dependency output that can appear in a dirty working tree.
+  '''(^|/)node_modules/''',
+  '''(^|/)dist/''',
+  '''(^|/)\.next/''',
+  '''(^|/)\.venv/''',
+]
+
+# Values that are obviously stand-ins wherever they appear. Kept to strings
+# that could not plausibly be a live credential.
+stopwords = [
+  "changeme",
+  "change-me",
+  "your-api-key",
+  "your_api_key",
+  "replace-me",
+  "placeholder",
+  "example.com",
+  "localhost",
+  "insecure",
+  "dummy",
+  "notreal",
+  "test-secret",
+  "fake",
+]
+
+regexes = [
+  # Documentation and test fixtures spell keys as an obvious shape rather
+  # than a real value: raven_sk_xxxxxxxx, sk_test_xxxx, <your-key-here>.
+  '''(?i)(x{6,}|<[a-z0-9_-]+>|\.{3}|\bREDACTED\b)''',
+
+  # The docs walk through `openssl rand -hex 32` as the way to mint the two
+  # required secrets. The literal command is not a secret.
+  '''openssl rand -hex 32''',
+]

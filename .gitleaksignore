@@ -1,0 +1,46 @@
+# Reviewed and accepted gitleaks findings, by fingerprint
+# (commit:path:rule:line).
+#
+# This file is for findings in *history*, which cannot be edited away
+# without rewriting every downstream clone. Each entry below was opened and
+# read before being listed. Nothing is here because it was inconvenient.
+#
+# A new finding on current code must be fixed, not appended here.
+
+# ---------------------------------------------------------------------------
+# infrastructure/k8s/base/api-secret.yaml
+#
+# A Kubernetes Secret manifest that has only ever held the literal strings
+# "REPLACE_ME" and "REPLACE_ME_min_32_chars". Verified at both commits:
+# every value is a placeholder, and the file's own header says in capitals
+# that it must not be deployed as-is. gitleaks' generic-api-key rule fires
+# on the shape (`SECRET: "..."`), not on the content.
+#
+# The file documents which env vars apps/api needs; the real values are
+# meant to come from an ExternalSecret or SealedSecret.
+# ---------------------------------------------------------------------------
+89e07ee548b2ae4f3f6c2fb468b265f82913b4be:infrastructure/k8s/base/api-secret.yaml:generic-api-key:40
+89e07ee548b2ae4f3f6c2fb468b265f82913b4be:infrastructure/k8s/base/api-secret.yaml:generic-api-key:44
+29865e70370041cbdfcc55d5201c5fe00ee26c48:infrastructure/k8s/base/api-secret.yaml:generic-api-key:29
+29865e70370041cbdfcc55d5201c5fe00ee26c48:infrastructure/k8s/base/api-secret.yaml:generic-api-key:30
+29865e70370041cbdfcc55d5201c5fe00ee26c48:infrastructure/k8s/base/api-secret.yaml:generic-api-key:31
+29865e70370041cbdfcc55d5201c5fe00ee26c48:infrastructure/k8s/base/api-secret.yaml:generic-api-key:33
+29865e70370041cbdfcc55d5201c5fe00ee26c48:infrastructure/k8s/base/api-secret.yaml:generic-api-key:34
+
+# ---------------------------------------------------------------------------
+# The Swagger example value for POST /v1/api-keys.
+#
+# An illustrative `rvk_<publicId>.<secret>` string in an @ApiResponse
+# example, so the docs show the shape of a key that is returned exactly
+# once. It authenticates nothing: it was never issued against a project,
+# and only a bcrypt hash of a real key is ever stored.
+#
+# It did look real enough to copy, which is its own problem, so the value
+# at HEAD has been replaced with an obviously-fake one. These two entries
+# cover the historical commits, which cannot be changed.
+#
+# .verify-dist is scratch build output that was committed once and is now
+# gitignored; it is the compiled copy of the same example.
+# ---------------------------------------------------------------------------
+c56f474195398e9b5971888c8f668d66bd24bb56:apps/api/.verify-dist/modules/api-keys/api-keys.controller.js:generic-api-key:64
+418a269ba2b48ca746acfcc9e719c40555b6e13e:apps/api/src/modules/api-keys/api-keys.controller.ts:generic-api-key:62

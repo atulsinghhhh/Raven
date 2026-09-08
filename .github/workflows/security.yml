@@ -1,0 +1,166 @@
+name: Security
+
+# Secret scanning and dependency vulnerability scanning, across every
+# ecosystem in the repo.
+#
+# What is NOT here, deliberately:
+#   - CodeQL lives in codeql.yml (its own schedule, its own permissions).
+#   - Trivy container scanning lives with the image builds it gates, in
+#     docker-publish.yml (apps/api) and sfu-publish.yml (services/sfu).
+#     A scan belongs next to the artefact it can block.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Mondays 05:00 UTC, an hour before CodeQL. Advisories are published
+    # against dependencies that have not changed, so a repo with no churn
+    # still needs to hear about them.
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  GO_VERSION: "1.26.6"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Secrets. Runs over history, not just the diff: a key committed three
+  # months ago and "removed" in a later commit is still in every clone.
+  # ---------------------------------------------------------------------------
+  gitleaks:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # gitleaks walks the commit graph. The default shallow clone would
+          # give it one commit and a clean bill of health that means nothing.
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+          # Findings are written as a SARIF artifact below rather than to the
+          # job log. A scanner that prints the secret it found has published
+          # it to anyone who can read the build.
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+          GITLEAKS_ENABLE_SUMMARY: "true"
+
+      - name: Upload gitleaks report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gitleaks-report
+          path: results.sarif
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # New dependencies entering the repo, blocked at the PR that adds them —
+  # cheaper than finding out after the merge. PR-only by nature: it diffs two
+  # commits.
+  # ---------------------------------------------------------------------------
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          # MIT project: flag copyleft arriving in the dependency tree, where
+          # it would change the terms Raven itself can be distributed under.
+          deny-licenses: AGPL-3.0, GPL-2.0, GPL-3.0
+
+  # ---------------------------------------------------------------------------
+  # Node / pnpm
+  # ---------------------------------------------------------------------------
+  pnpm-audit:
+    name: Dependency audit (pnpm)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Production dependencies are what ships to users, so they gate the
+      # build at a lower threshold than the toolchain does.
+      - name: Audit production dependencies (fails on high/critical)
+        run: pnpm audit --prod --audit-level high
+
+      # devDependencies reach a developer's machine and CI, not a user's
+      # browser. Worth seeing every week; not worth blocking a bugfix on a
+      # moderate advisory in a test runner.
+      - name: Audit all dependencies (report only)
+        if: always()
+        continue-on-error: true
+        run: pnpm audit --audit-level moderate
+
+  # ---------------------------------------------------------------------------
+  # Python
+  # ---------------------------------------------------------------------------
+  pip-audit:
+    name: Dependency audit (pip-audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdks/python
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - run: python -m pip install --upgrade pip pip-audit
+
+      # Audits the resolved dependency set the SDK actually installs, rather
+      # than the loose ranges declared in pyproject.toml.
+      - name: Audit raven-sdk dependencies
+        run: pip-audit --strict --progress-spinner off .
+
+  # ---------------------------------------------------------------------------
+  # Go
+  # ---------------------------------------------------------------------------
+  govulncheck:
+    name: Vulnerability scan (govulncheck)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/sfu
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: services/sfu/go.sum
+
+      # govulncheck is call-graph aware: it reports a CVE only when the SFU
+      # actually reaches the vulnerable symbol. That is what makes failing
+      # the build on its findings reasonable rather than noise.
+      #
+      # It covers the Go standard library too, which is the usual reason it
+      # goes red — GO_VERSION above is the fix for those, so bump it rather
+      # than suppressing the finding.
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Scan
+        run: govulncheck ./...
