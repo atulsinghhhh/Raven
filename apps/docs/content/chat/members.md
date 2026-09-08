@@ -75,7 +75,7 @@ Membership calls exist on `@corvidhq/server` and `raven-sdk` (Python) only.
 [Presence](/chat/presence), but none of them can add, remove, or list
 members — that's a backend operation, the same way creating a
 conversation is. The CLI doesn't currently have a `raven chat members`
-command; use the SDK or [REST API](/api-reference) directly.
+command; use the SDK or [REST API](/api) directly.
 
 ## Common errors
 

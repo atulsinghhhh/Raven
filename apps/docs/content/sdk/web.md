@@ -45,7 +45,7 @@ import { createRaven } from '@corvidhq/client';
 // Every value here comes from your backend's token-mint response.
 // Never mint a token in the browser.
 const raven = createRaven({
-  token: rtc.token,           // POST /v1/rtc/tokens
+  token: rtc.token,           // POST /v1/rooms/{roomId}/rtc-tokens
   endpoint: rtc.endpoint,
   iceServers: rtc.iceServers,
   chatToken: chat.token,      // POST /v1/chat/tokens

@@ -9,7 +9,7 @@ a client.
 
 ## 1. Create a project and a key
 
-From the [dashboard](/), register and create a project. Every project
+Register in the Raven dashboard and create a project. Every project
 starts with a development environment — safe to experiment in, isolated
 from staging and production. Create an API key scoped to it:
 

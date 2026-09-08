@@ -14,6 +14,8 @@ describe('productForSlug', () => {
     expect(productForSlug('chat/moderation')).toBe('chat');
     expect(productForSlug('live-streaming')).toBe('live-streaming');
     expect(productForSlug('live-streaming/filters')).toBe('live-streaming');
+    expect(productForSlug('effects')).toBe('effects');
+    expect(productForSlug('effects/filters')).toBe('effects');
   });
 
   it('returns undefined for a slug outside any product section', () => {
@@ -28,8 +30,11 @@ describe('productForSlug', () => {
 });
 
 describe('PRODUCTS', () => {
-  it('lists exactly the three products, each matching a real NAV section', () => {
-    expect(PRODUCTS.map((p) => p.id)).toEqual(['rtc', 'chat', 'live-streaming']);
+  // Effects is a product by every test that matters — its own package, its own
+  // error vocabulary, its own platform integrations — so it carries a product
+  // tag and appears in the switcher alongside the other three.
+  it('lists exactly the four products, each matching a real NAV section', () => {
+    expect(PRODUCTS.map((p) => p.id)).toEqual(['rtc', 'chat', 'live-streaming', 'effects']);
 
     for (const product of PRODUCTS) {
       const section = NAV.find((s) => s.product === product.id);

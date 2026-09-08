@@ -1,5 +1,5 @@
 ---
-title: React Native
+title: Effects on React Native
 description: Filter/preset configuration is real and shared with every other Raven SDK. Native frame processing is planned, not shipped, in this release.
 ---
 

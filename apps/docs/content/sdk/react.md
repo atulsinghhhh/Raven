@@ -57,6 +57,35 @@ function Call() {
 }
 ```
 
+## Escape hatches
+
+Three hooks exist for the cases the ergonomic ones do not cover:
+
+```tsx
+const client = useRavenClient();   // the RTCClient — devices, createCameraTrack
+const raven = useRaven();          // { client, room, state } — room.on() directly
+const error = useRavenError();     // the last RTCError this room emitted
+const chatError = useChatError();  // the last RavenChatError, inside <RavenChat>
+```
+
+`useRavenClient()` is what you want for device enumeration, since that is a
+client concern rather than a room one:
+
+```tsx
+const client = useRavenClient();
+const [cameras, setCameras] = useState<DeviceInfo[]>([]);
+
+useEffect(() => {
+  if (!client) return;
+  void client.getDevices('videoinput').then(setCameras);
+  return client.onDeviceChange(() => void client.getDevices('videoinput').then(setCameras));
+}, [client]);
+```
+
+`useRavenError()` and `useChatError()` surface the last typed error without
+you registering a handler — useful for a banner. For anything that needs to
+act per-error, use `onError` on the provider or `room.on('error', …)`.
+
 ## `<RavenRoom>`
 
 The provider every hook needs, and the RTC lifecycle owner — one

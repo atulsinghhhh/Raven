@@ -1,4 +1,4 @@
-import type { SearchRecord } from './search';
+import type { SearchRecord } from './search-wire';
 
 export interface RankedResult {
   record: SearchRecord;
@@ -29,7 +29,30 @@ const WEIGHT = {
    * phrase and "Screen Sharing" doesn't contain the substring "share ".
    */
   allTermsInTitle: 25,
+  /**
+   * The page's title *is* the query.
+   *
+   * A weaker signal would not do here. Searching "webhooks" put the
+   * generated Webhooks **API** page first, because its endpoint table repeats
+   * the word often enough to out-score the prose page actually titled
+   * "Webhooks". Containing the term and being named the term are different
+   * claims, and only the second one is nearly always the answer.
+   */
+  exactTitle: 30,
 } as const;
+
+/**
+ * Ceiling on how much one term's body-text occurrences can contribute.
+ *
+ * Without it, text weight is unbounded and a long page beats a precise
+ * title match purely by length: "screen share" ranked the 200-line
+ * Add screen sharing *guide* above the Screen Sharing *reference*, because
+ * the guide says the words twelve more times. A page that mentions a term
+ * forty times is not forty times more relevant than one that mentions it
+ * five times, so the signal saturates — the same reason real ranking
+ * functions use term-frequency saturation rather than a raw count.
+ */
+const MAX_TEXT_HITS_PER_TERM = 6;
 
 const MAX_RESULTS = 12;
 const EXCERPT_RADIUS = 90;
@@ -63,10 +86,48 @@ const MIN_STEM_LENGTH = 4;
  * ("no", "not", "off") stays in.
  */
 const STOPWORDS = new Set([
-  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'but', 'by', 'can', 'do', 'does', 'for', 'from',
-  'how', 'i', 'if', 'in', 'into', 'is', 'it', 'my', 'of', 'on', 'or', 'that', 'the', 'their',
-  'them', 'then', 'there', 'this', 'to', 'was', 'what', 'when', 'where', 'which', 'why', 'with',
-  'you', 'your',
+  'a',
+  'an',
+  'and',
+  'are',
+  'as',
+  'at',
+  'be',
+  'but',
+  'by',
+  'can',
+  'do',
+  'does',
+  'for',
+  'from',
+  'how',
+  'i',
+  'if',
+  'in',
+  'into',
+  'is',
+  'it',
+  'my',
+  'of',
+  'on',
+  'or',
+  'that',
+  'the',
+  'their',
+  'them',
+  'then',
+  'there',
+  'this',
+  'to',
+  'was',
+  'what',
+  'when',
+  'where',
+  'which',
+  'why',
+  'with',
+  'you',
+  'your',
 ]);
 
 /**
@@ -116,7 +177,7 @@ export function rank(records: SearchRecord[], query: string): RankedResult[] {
       if (title.includes(term)) score += WEIGHT.title;
       if (heading.includes(term)) score += WEIGHT.heading;
       if (description.includes(term)) score += WEIGHT.description;
-      score += countOccurrences(text, term) * WEIGHT.text;
+      score += Math.min(countOccurrences(text, term), MAX_TEXT_HITS_PER_TERM) * WEIGHT.text;
       // A title that *starts* with the term is a stronger signal than
       // one that merely contains it.
       if (title.startsWith(term)) score += WEIGHT.title * WEIGHT.prefix;
@@ -125,13 +186,29 @@ export function rank(records: SearchRecord[], query: string): RankedResult[] {
     // Phrase bonus uses the query as typed. A stemmed "phrase" isn't one.
     if (terms.length > 1 && haystack.includes(trimmed)) score += WEIGHT.exactPhrase;
     if (terms.every((term) => title.includes(term))) score += WEIGHT.allTermsInTitle;
+    if (title === trimmed) score += WEIGHT.exactTitle;
 
     results.push({ record, score, excerpt: excerptAround(record.text, terms[0]) });
   }
 
   return results
-    .sort((a, b) => b.score - a.score || a.record.slug.localeCompare(b.record.slug))
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        // A genuine tie goes to the shallower page. In this IA the canonical
+        // page for a concept sits at the top of its section — `/webhooks`,
+        // not `/api/webhooks` — so depth is a real signal about which page a
+        // bare term means. Falling through to an alphabetical compare instead
+        // silently handed "webhooks" to whichever slug sorted first.
+        slugDepth(a.record.slug) - slugDepth(b.record.slug) ||
+        a.record.slug.localeCompare(b.record.slug),
+    )
     .slice(0, MAX_RESULTS);
+}
+
+/** Path segments in a slug: `webhooks` is 1, `api/webhooks` is 2. */
+function slugDepth(slug: string): number {
+  return slug.split('/').length;
 }
 
 /**

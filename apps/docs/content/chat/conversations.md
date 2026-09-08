@@ -69,7 +69,7 @@ curl -X PATCH "$RAVEN_API_URL/v1/chat/conversations/support-room-42" \
   -d '{"retentionDays": 30}'
 ```
 
-See [REST API → Chat](/api-reference) for the full field list.
+See [REST API → Chat](/api) for the full field list.
 
 ## Common errors
 

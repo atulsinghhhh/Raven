@@ -3,18 +3,30 @@ title: Rate Limits
 description: Keyed by identity when one exists, IP only when it doesn't.
 ---
 
-Rate limits are a fixed-window counter, applied to a handful of routes
-with real abuse potential:
+Rate limits are a fixed-window counter, applied to the routes with real
+abuse potential. **16** routes carry a budget; the window defaults to 60
+seconds (`RATE_LIMIT_WINDOW_SECONDS`).
 
-| Route | Limit |
+| Route | Per window |
 |---|---|
-| Registration | 5 / window |
-| Login | 10 / window |
-| API key creation | 20 / window |
-| RTC token creation | 60 / window |
-| Telemetry ingest | 600 / window |
+| `POST /v1/auth/register` | 5 |
+| `POST /v1/auth/login` | 10 |
+| `POST /v1/auth/verify-email` | 10 |
+| `POST /v1/auth/verify-email/resend` | 3 |
+| `POST /v1/auth/password-reset` | 5 |
+| `POST /v1/auth/password-reset/confirm` | 5 |
+| `POST /v1/auth/oauth/{provider}/start` | 20 |
+| `POST /v1/auth/oauth/{provider}/exchange` | 10 |
+| `POST /v1/projects/{projectId}/api-keys` | 20 |
+| `POST /v1/rooms/{roomId}/rtc-tokens` | 60 |
+| `POST /v1/projects/{projectId}/rooms/{roomId}/test-token` | 30 |
+| `POST /v1/live-streams` | 30 |
+| `POST /v1/live-streams/{streamId}/hosts` | 60 |
+| `POST /v1/live-streams/{streamId}/viewer-tokens` | 120 |
+| `POST /v1/telemetry/events` | 600 |
 
-Window size defaults to 60 seconds.
+The generated [Limits & quotas](/reference/limits) page carries this same
+table straight from the decorators, so it cannot drift.
 
 ## What the budget is keyed on
 

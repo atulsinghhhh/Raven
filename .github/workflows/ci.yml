@@ -91,6 +91,32 @@ jobs:
       - run: pnpm --filter "./packages/*" run build
       - run: pnpm -r --if-present run typecheck
 
+  docs-drift:
+    name: Docs drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # verify-docs checks documented SDK imports against each package's built
+      # .d.ts, which is what a consumer's editor resolves. Without the build it
+      # would fall back to the barrel source and check a weaker claim.
+      - run: pnpm --filter "./packages/*" run build
+      - name: Compare the docs against the code they describe
+        run: |
+          node scripts/docs-groundtruth.mjs
+          node scripts/generate-api-reference.mjs
+          node scripts/verify-docs.mjs
+      # A regenerated reference that differs from what is committed means the
+      # controllers moved and the docs did not. Surfaced as a diff rather than
+      # as a silent overwrite, so the change lands in a reviewable commit.
+      - name: Fail if the generated API reference is stale
+        run: git diff --exit-code -- apps/docs/content/api/
+
   unit-test:
     name: Unit tests
     runs-on: ubuntu-latest

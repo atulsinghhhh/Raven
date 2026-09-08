@@ -16,19 +16,35 @@ see [Common errors](#common-errors) below rather than working around it.
 const info = room.getDiagnostics();
 // {
 //   connectionState, reconnectCount, sdkVersion, platform, browser,
-//   iceConnectionState, signalingState, // currently always undefined — see below
+//   iceConnectionState, signalingState,
+//   remoteIceConnectionState, remotePeerConnectionState,
 // }
 ```
 
 Safe to call anywhere, any time — attach it to a bug report as-is. It
-never contains a token or a secret.
+never contains a token or a secret. That is a design constraint on what
+may go in here, not a coincidence.
 
-`iceConnectionState`/`signalingState` are honestly `undefined` today:
-the underlying media client doesn't expose either publicly, and Raven
-doesn't reach into its unsupported internals to fake them — that
-surface could change on any minor version bump. If a future release
-exposes them, this will start reporting real values without a breaking
-change.
+| Field | What it tells you |
+|---|---|
+| `connectionState` | Raven's own state machine — the one to drive UI from |
+| `reconnectCount` | How many automatic reconnects this room has been through |
+| `iceConnectionState` | The browser's ICE state, as the local peer connection sees it |
+| `signalingState` | The browser's signaling state |
+| `remoteIceConnectionState` | ICE state **as the media server sees it** |
+| `remotePeerConnectionState` | Peer-connection state as the media server sees it |
+| `sdkVersion`, `platform`, `browser` | Environment, for a bug report |
+
+The local and remote pairs can disagree, and that is the point: "server
+says failed, browser says connected" is a diagnosis, not a contradiction.
+The remote values arrive on `connection.state` frames — real ICE and DTLS
+progress reported by the server, never inferred from the WebSocket's
+health.
+
+> `iceConnectionState` and `signalingState` were always `undefined` under
+> the previous third-party media client, which did not expose either
+> publicly. The native adapter does, so they now carry the states that
+> actually explain a failed connection.
 
 ## `getConnectionStats()` — real media-quality numbers
 

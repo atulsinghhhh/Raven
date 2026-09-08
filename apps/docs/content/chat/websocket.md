@@ -41,6 +41,7 @@ credential sitting in a URL.
   "jti": "ctk_7Qd2nF...",
   "sub": "user-123",
   "pid": "<project uuid>",
+  "env": "PRODUCTION",
   "cvs": ["<conversation uuid>"],
   "scopes": ["chat:read", "chat:send"],
   "iat": 1787054953,
@@ -49,6 +50,11 @@ credential sitting in a URL.
   "iss": "raven"
 }
 ```
+
+`env` is signed rather than sent, for the same reason `sub` is: a browser
+holding a development token must not be able to reach production data by
+editing a request field. Tokens minted before environments existed carry no
+`env` claim and resolve to development at the guard.
 
 `aud` is fixed at `raven-chat` — what stops a dashboard session JWT or an
 RTC token being replayed here even if a key were somehow shared.

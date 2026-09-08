@@ -1,5 +1,5 @@
 ---
-title: React
+title: Effects in React
 description: useCameraEffects() — Raven Effects for @corvidhq/react, built on the same store/hook pattern as every other hook in the package.
 ---
 
