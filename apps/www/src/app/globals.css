@@ -1,64 +1,77 @@
 @import 'tailwindcss';
 
 /*
- * Raven marketing-site design system.
+ * Raven marketing-site design system — the "signal" identity.
  *
- * Dark-only by design — this is the front door, not the dashboard, and
- * it commits to one look rather than toggling. Depth comes from three
- * near-black surface layers plus 1px hairline borders, not shadows; the
- * only saturated color on the page is the accent. Headings run light
- * (weight 300-400) instead of bold — the restraint is the point.
+ * Dark-only by design: this is infrastructure's front door and it
+ * commits to one look. The canvas is a deep indigo-cast near-black;
+ * depth comes from three layered surfaces, hairline borders, and a very
+ * low-alpha violet atmosphere — never from drop shadows. Exactly one
+ * saturated hue carries the brand (the electric iris accent); a second,
+ * hotter hue is reserved for LIVE/realtime states and nothing else.
+ * Headlines run in the display face (Space Grotesk), tight and
+ * confident, over Inter body text and mono console chrome.
  */
 
 :root {
   color-scheme: dark;
 
   /* Surfaces, back to front */
-  --canvas: #0b0b0e;
-  --surface: #111114;
-  --surface-raised: #17171b;
-  --surface-sunken: #08080a;
-  --overlay: #17171b;
-  --scrim: rgb(5 5 7 / 70%);
+  --canvas: #07070c;
+  --surface: #0d0d15;
+  --surface-raised: #13131e;
+  --surface-sunken: #04040a;
+  --overlay: #13131e;
+  --scrim: rgb(4 4 10 / 72%);
 
-  /* Text — warm cream, not pure white */
-  --fg: #f6f1e6;
-  --fg-muted: #8d8d95;
-  --fg-subtle: #64646c;
-  --fg-inverse: #0b0b0e;
+  /* Text — cool near-white, never pure #fff */
+  --fg: #eeeef6;
+  --fg-muted: #9494a8;
+  --fg-subtle: #62627a;
+  --fg-inverse: #07070c;
 
-  /* Lines — the structural skeleton; almost everything below reduces to this */
-  --line: #232328;
-  --line-strong: #35353c;
+  /* Lines — the structural skeleton; indigo-cast hairlines */
+  --line: #1b1b2b;
+  --line-strong: #2c2c44;
 
-  /* Accent — Raven's burnt orange, used alone (no complementary second CTA color) */
-  --accent: #e2672f;
-  --accent-hover: #ef7c47;
-  --accent-fg: #fff7ee;
-  --accent-subtle: #2a180f;
-  --accent-line: #6b3a20;
-  --accent-text: #f0925c;
+  /* Accent — Raven's electric iris. One brand hue, used for active
+     states, packets, buttons, and the one lit keyword per headline. */
+  --accent: #7b7bff;
+  --accent-hover: #9595ff;
+  --accent-fg: #0a0a1f;
+  --accent-subtle: #16163a;
+  --accent-line: #3a3a80;
+  --accent-text: #a6a6ff;
+  --accent-glow: rgb(123 123 255 / 40%);
+
+  /* Live/realtime — the only other saturated hue on the page. Reserved
+     for LIVE badges, streaming state, and on-air packets. */
+  --live: #ff4d7d;
+  --live-subtle: #2a0e1b;
+  --live-line: #67203e;
+  --live-text: #ff87ab;
+  --live-glow: rgb(255 77 125 / 40%);
 
   /* Semantic states */
-  --success: #59c98a;
-  --success-subtle: #12261c;
-  --success-line: #2c4a3a;
-  --success-text: #7ad6a3;
+  --success: #3ecf8e;
+  --success-subtle: #0c281c;
+  --success-line: #1f5a40;
+  --success-text: #6fe2b1;
 
-  --warning: #e0b34d;
-  --warning-subtle: #2a2313;
-  --warning-line: #4a3f24;
-  --warning-text: #e8c476;
+  --warning: #f0b455;
+  --warning-subtle: #2a2110;
+  --warning-line: #5c4722;
+  --warning-text: #f6c87f;
 
-  --danger: #e2564f;
-  --danger-subtle: #2a1414;
-  --danger-line: #4a2624;
-  --danger-text: #ea7972;
+  --danger: #ff6259;
+  --danger-subtle: #2c1213;
+  --danger-line: #642a29;
+  --danger-text: #ff8d86;
 
-  --info: #5aa8e0;
-  --info-subtle: #101f2a;
-  --info-line: #294a63;
-  --info-text: #7cbdea;
+  --info: #62b0ff;
+  --info-subtle: #0e1d30;
+  --info-line: #254b73;
+  --info-text: #8cc5ff;
 }
 
 @theme inline {
@@ -84,6 +97,11 @@
   --color-accent-line: var(--accent-line);
   --color-accent-text: var(--accent-text);
 
+  --color-live: var(--live);
+  --color-live-subtle: var(--live-subtle);
+  --color-live-line: var(--live-line);
+  --color-live-text: var(--live-text);
+
   --color-success: var(--success);
   --color-success-subtle: var(--success-subtle);
   --color-success-line: var(--success-line);
@@ -105,11 +123,11 @@
   --color-info-text: var(--info-text);
 
   --font-sans: var(--font-raven-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: var(--font-raven-display), var(--font-raven-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-raven-mono), ui-monospace, 'SF Mono', 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
 
   /* One near-sharp radius everywhere — panels, cards, inputs, and
-     buttons alike. Buttons used to break to a full pill; the reference
-     layout keeps every corner at the same 4px, so they don't anymore. */
+     buttons alike. Infrastructure is rectilinear. */
   --radius-panel: 0.25rem;
 }
 
@@ -219,21 +237,51 @@
     animation: raven-pulse 2s ease-in-out infinite;
   }
 
-  /* Display type. Every headline on the page runs light, tightly
-     tracked, and at near-zero leading — one utility rather than four
-     values restated on twenty elements. */
+  /* Display type. Every headline runs in the display face — medium
+     weight, tightly tracked, near-zero leading. Big type is the brand. */
   .display {
-    font-weight: 300;
-    letter-spacing: -0.03em;
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.035em;
     line-height: 1.02;
   }
 
-  /* The one or two words inside a headline that carry the accent.
-     Static, not scroll-triggered: a heading that changes color as it
-     passes is charming once and a flash-of-wrong-color risk on every
-     no-JS and slow paint, so the keyword just is accent-colored. */
+  /* The one or two words inside a headline that carry the accent. */
   .kw {
     color: var(--accent-text);
+  }
+
+  /* The violet/indigo atmosphere. Two very low-alpha radial washes over
+     the canvas — enough to make the black feel deep and lit from within,
+     never enough to read as a "gradient blob". Layer behind hero and
+     closing sections only; the middle of the page stays flat black so
+     the atmosphere marks beginnings and endings. */
+  .aurora {
+    background:
+      radial-gradient(52rem 30rem at 50% -12%, rgb(123 123 255 / 13%), transparent 68%),
+      radial-gradient(38rem 26rem at 82% 4%, rgb(90 70 210 / 8%), transparent 70%),
+      radial-gradient(30rem 22rem at 12% 12%, rgb(150 90 235 / 6%), transparent 70%);
+  }
+
+  .aurora-footer {
+    background:
+      radial-gradient(48rem 30rem at 50% 115%, rgb(123 123 255 / 11%), transparent 70%),
+      radial-gradient(34rem 24rem at 14% 100%, rgb(150 90 235 / 6%), transparent 70%);
+  }
+
+  /* The accent glow — for filled primary buttons and live infrastructure
+     elements. A tight ring plus a soft bloom; used sparingly, glow is a
+     signal that something is powered, not a decoration. */
+  .glow-accent {
+    box-shadow:
+      0 0 0 1px rgb(123 123 255 / 35%),
+      0 0 24px -4px var(--accent-glow);
+  }
+
+  .glow-live {
+    box-shadow:
+      0 0 0 1px rgb(255 77 125 / 35%),
+      0 0 24px -4px var(--live-glow);
   }
 
   /* Full-bleed graph paper. Two repeating gradients rather than an SVG

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
-import { Geist_Mono, Inter } from 'next/font/google';
+import { Geist_Mono, Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 
-const TITLE = 'Raven — Real-time infrastructure for developers';
+const TITLE = 'Raven — Infrastructure for real-time applications';
 const DESCRIPTION =
-  'Build audio, video, messaging, and live streaming experiences with Raven — a developer-first real-time platform with token-based auth, real diagnostics, and SDKs for web, mobile, and server.';
+  'Audio, video, chat, and live streaming infrastructure with the APIs and SDKs to build real-time applications — token-based auth, real diagnostics, and SDKs for web, mobile, and server.';
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -22,12 +22,21 @@ export const metadata: Metadata = {
   },
 };
 
-// Headlines run as light as weight 300 (see Hero): a variable font with
-// a real light cut, not a browser-synthesized fake bold-in-reverse.
+// Body text and UI copy. Headlines run in the display face below.
 const sans = Inter({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600'],
+  weight: ['400', '500', '600'],
   variable: '--font-raven-sans',
+  display: 'swap',
+});
+
+// Display face for headlines only — the geometric, slightly technical
+// cut that separates "Raven is infrastructure" from body copy. Wired to
+// the `.display` utility in globals.css; never applied to paragraphs.
+const displayFace = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['500', '600'],
+  variable: '--font-raven-display',
   display: 'swap',
 });
 
@@ -43,7 +52,7 @@ const mono = Geist_Mono({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dark" className={`${sans.variable} ${mono.variable}`}>
+    <html lang="en" data-theme="dark" className={`${sans.variable} ${displayFace.variable} ${mono.variable}`}>
       <body className="font-sans antialiased">{children}</body>
     </html>
   );

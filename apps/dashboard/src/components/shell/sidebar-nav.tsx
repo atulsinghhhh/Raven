@@ -113,7 +113,7 @@ export function SidebarNav({ projectId, onNavigate }: { projectId: string; onNav
                     aria-current={active ? 'page' : undefined}
                     className={`group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors ${
                       active
-                        ? 'bg-accent-subtle font-medium text-accent-text'
+                        ? 'bg-accent-subtle font-medium text-accent-text shadow-[inset_2px_0_0_0_var(--accent)]'
                         : 'text-muted hover:bg-surface-raised hover:text-fg'
                     }`}
                   >

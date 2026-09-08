@@ -200,7 +200,7 @@ function StatusFilter({ base, current }: { base: string; current?: LiveStreamSta
 }
 
 function StreamStatusBadge({ status }: { status: LiveStreamSummary['status'] }) {
-  if (status === 'LIVE') return <Badge tone="success">Live</Badge>;
+  if (status === 'LIVE') return <Badge tone="live">Live</Badge>;
   if (status === 'ENDED') return <Badge tone="neutral">Ended</Badge>;
   if (status === 'CREATED') return <Badge tone="info">Created</Badge>;
   return <Badge tone="warning">{status.toLowerCase()}</Badge>;

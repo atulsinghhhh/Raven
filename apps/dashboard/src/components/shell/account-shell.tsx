@@ -77,7 +77,7 @@ export function AccountShell({
             onClick={() => setDrawerOpen(false)}
             className={`flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors ${
               active
-                ? 'bg-accent-subtle font-medium text-accent-text'
+                ? 'bg-accent-subtle font-medium text-accent-text shadow-[inset_2px_0_0_0_var(--accent)]'
                 : 'text-muted hover:bg-surface-raised hover:text-fg'
             } ${compact ? 'justify-center px-0' : ''}`}
           >
@@ -101,7 +101,7 @@ export function AccountShell({
     <div className="flex h-14 items-center px-4">
       <Link href="/dashboard" className="flex items-center gap-2" aria-label="Raven home">
         <RavenMark className="size-6" />
-        <span className="text-sm font-semibold tracking-tight text-fg">Raven</span>
+        <span className="mono-label text-[13px] font-medium text-fg">Raven</span>
       </Link>
     </div>
   );
@@ -116,14 +116,14 @@ export function AccountShell({
       </a>
 
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-line bg-surface lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-line bg-surface-sunken lg:flex">
         {sidebarHeader}
         <div className="flex-1 overflow-y-auto pb-4 pt-1">{navList(false)}</div>
         {bottomLinks(false)}
       </aside>
 
       {/* Tablet icon rail */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-14 flex-col border-r border-line bg-surface md:flex lg:hidden">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-14 flex-col border-r border-line bg-surface-sunken md:flex lg:hidden">
         <div className="flex h-14 items-center justify-center">
           <Link href="/dashboard" aria-label="Raven home">
             <RavenMark className="size-6" />

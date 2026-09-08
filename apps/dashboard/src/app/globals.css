@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 /*
- * Raven design system.
+ * Raven console design system — the "signal" identity, dark-first.
  *
  * Two layers here:
  *   1. Raw palette + semantic tokens as CSS vars, redefined per theme.
@@ -9,10 +9,11 @@
  *      `bg-surface`, `text-muted`, `border-line` etc. all work and all
  *      re-theme automatically.
  *
- * Dark mode is driven by data-theme on <html>, not prefers-color-scheme
- * directly — that's what lets the toggle override the OS. The inline
- * script in layout.tsx resolves stored-choice-or-system before paint, so
- * data-theme is always set by the time anything renders.
+ * Dark is the flagship theme: a deep indigo-cast near-black canvas with
+ * the electric iris accent, matching apps/www. The light theme is a
+ * derived variant kept for the toggle, not a co-equal design. Dark mode
+ * is driven by data-theme on <html> — the inline script in layout.tsx
+ * resolves stored-choice-or-system (defaulting dark) before paint.
  */
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
@@ -21,31 +22,40 @@
 [data-theme='light'] {
   color-scheme: light;
 
-  /* Surfaces, back to front */
-  --canvas: oklch(0.985 0.002 265);
+  /* Surfaces, back to front — violet-cast neutrals */
+  --canvas: oklch(0.982 0.004 285);
   --surface: oklch(1 0 0);
-  --surface-raised: oklch(0.985 0.002 265);
-  --surface-sunken: oklch(0.968 0.003 265);
+  --surface-raised: oklch(0.975 0.005 285);
+  --surface-sunken: oklch(0.962 0.006 285);
   --overlay: oklch(1 0 0);
-  --scrim: oklch(0.2 0.01 265 / 0.4);
+  --scrim: oklch(0.2 0.02 285 / 0.4);
 
   /* Text */
-  --fg: oklch(0.22 0.012 265);
-  --fg-muted: oklch(0.49 0.012 265);
-  --fg-subtle: oklch(0.62 0.012 265);
+  --fg: oklch(0.23 0.02 285);
+  --fg-muted: oklch(0.49 0.02 285);
+  --fg-subtle: oklch(0.62 0.018 285);
   --fg-inverse: oklch(0.99 0 0);
 
   /* Lines */
-  --line: oklch(0.918 0.004 265);
-  --line-strong: oklch(0.86 0.006 265);
+  --line: oklch(0.916 0.008 285);
+  --line-strong: oklch(0.855 0.012 285);
 
-  /* Accent — Raven's burnt orange (matches the marketing site) */
-  --accent: oklch(0.62 0.19 45);
-  --accent-hover: oklch(0.56 0.2 45);
-  --accent-fg: oklch(0.99 0 0);
-  --accent-subtle: oklch(0.96 0.04 45);
-  --accent-line: oklch(0.83 0.1 45);
-  --accent-text: oklch(0.52 0.18 45);
+  /* Accent — Raven's electric iris, darkened for a light canvas so
+     filled controls hold contrast with white text. */
+  --accent: #5352e6;
+  --accent-hover: #4341d6;
+  --accent-fg: #ffffff;
+  --accent-subtle: #ebebff;
+  --accent-line: #b9b9f2;
+  --accent-text: #4644cf;
+  --accent-glow: rgb(83 82 230 / 25%);
+
+  /* Live/realtime — reserved for LIVE badges and streaming state. */
+  --live: #e5195f;
+  --live-subtle: #fde7ef;
+  --live-line: #f5b3ca;
+  --live-text: #c01353;
+  --live-glow: rgb(229 25 95 / 25%);
 
   /* Semantic states */
   --success: oklch(0.6 0.145 155);
@@ -68,70 +78,73 @@
   --info-line: oklch(0.86 0.07 245);
   --info-text: oklch(0.47 0.14 245);
 
-  --shadow-sm: 0 1px 2px oklch(0.2 0.01 265 / 0.05);
-  --shadow-md: 0 1px 3px oklch(0.2 0.01 265 / 0.08), 0 4px 12px oklch(0.2 0.01 265 / 0.06);
-  --shadow-lg: 0 8px 32px oklch(0.2 0.01 265 / 0.12), 0 2px 8px oklch(0.2 0.01 265 / 0.06);
+  --shadow-sm: 0 1px 2px oklch(0.2 0.02 285 / 0.05);
+  --shadow-md: 0 1px 3px oklch(0.2 0.02 285 / 0.08), 0 4px 12px oklch(0.2 0.02 285 / 0.06);
+  --shadow-lg: 0 8px 32px oklch(0.2 0.02 285 / 0.12), 0 2px 8px oklch(0.2 0.02 285 / 0.06);
 }
 
 [data-theme='dark'] {
   color-scheme: dark;
 
-  /* Raven's console palette: canvas #0e0e13, surface #18181b,
-     border #27272a, text #fffaea, muted #a1a1aa. Companions
-     (raised/sunken/hover/etc.) are derived to match, not independently
-     invented.
-     
-     The neutrals stay console-specific — this canvas is deliberately a
-     little lighter than the marketing site's, which is read in passing
-     rather than stared at for an afternoon. The accent is not: it's the
-     brand, and it had drifted (#e96b34 here vs #e2672f on the site,
-     with nothing pinning either). Both are now #e2672f. */
-  --canvas: #0e0e13;
-  --surface: #18181b;
-  --surface-raised: #1f1f23;
-  --surface-sunken: #0a0a0d;
-  --overlay: #1f1f23;
-  --scrim: rgb(5 5 7 / 70%);
+  /* The flagship console palette. Same identity as apps/www — deep
+     indigo-cast blacks and the electric iris accent — with the canvas a
+     step lighter than the marketing site's, because this surface is
+     stared at for an afternoon rather than read in passing. The accent
+     must not drift between the two apps: it's the brand. */
+  --canvas: #0a0a11;
+  --surface: #10101a;
+  --surface-raised: #171724;
+  --surface-sunken: #06060c;
+  --overlay: #171724;
+  --scrim: rgb(4 4 10 / 72%);
 
-  --fg: #fffaea;
-  --fg-muted: #a1a1aa;
-  --fg-subtle: #71717a;
-  --fg-inverse: #0e0e13;
+  --fg: #eeeef6;
+  --fg-muted: #9a9aae;
+  --fg-subtle: #67677f;
+  --fg-inverse: #0a0a11;
 
-  --line: #27272a;
-  --line-strong: #38383f;
+  --line: #1e1e2e;
+  --line-strong: #30304a;
 
-  --accent: #e2672f;
-  --accent-hover: #ef7c47;
-  --accent-fg: #fff7ee;
-  --accent-subtle: #2a190f;
-  --accent-line: #6b3a20;
-  --accent-text: #f0925c;
+  /* Electric iris; filled controls keep near-black text. */
+  --accent: #7b7bff;
+  --accent-hover: #9595ff;
+  --accent-fg: #0a0a1f;
+  --accent-subtle: #191944;
+  --accent-line: #3c3c86;
+  --accent-text: #a6a6ff;
+  --accent-glow: rgb(123 123 255 / 40%);
 
-  --success: oklch(0.7 0.15 155);
-  --success-subtle: oklch(0.27 0.05 155);
-  --success-line: oklch(0.4 0.08 155);
-  --success-text: oklch(0.8 0.13 155);
+  /* Live/realtime — the only other saturated hue in the console. */
+  --live: #ff4d7d;
+  --live-subtle: #2a0e1b;
+  --live-line: #67203e;
+  --live-text: #ff87ab;
+  --live-glow: rgb(255 77 125 / 40%);
 
-  --warning: oklch(0.79 0.15 78);
-  --warning-subtle: oklch(0.3 0.05 70);
-  --warning-line: oklch(0.43 0.08 72);
-  --warning-text: oklch(0.85 0.13 82);
+  --success: #3ecf8e;
+  --success-subtle: #0c281c;
+  --success-line: #1f5a40;
+  --success-text: #6fe2b1;
 
-  --danger: oklch(0.65 0.19 22);
-  --danger-subtle: oklch(0.29 0.07 22);
-  --danger-line: oklch(0.42 0.11 22);
-  --danger-text: oklch(0.79 0.14 22);
+  --warning: #f0b455;
+  --warning-subtle: #2a2110;
+  --warning-line: #5c4722;
+  --warning-text: #f6c87f;
 
-  --info: oklch(0.7 0.13 245);
-  --info-subtle: oklch(0.28 0.05 245);
-  --info-line: oklch(0.41 0.08 245);
-  --info-text: oklch(0.81 0.11 245);
+  --danger: #ff6259;
+  --danger-subtle: #2c1213;
+  --danger-line: #642a29;
+  --danger-text: #ff8d86;
+
+  --info: #62b0ff;
+  --info-subtle: #0e1d30;
+  --info-line: #254b73;
+  --info-text: #8cc5ff;
 
   /* Minimal shadows by design — depth comes from the surface/canvas
-     contrast and hairline borders, not elevation. Kept, not removed
-     outright, since a few overlays (menus, the command palette) still
-     need to read as "floating" over content. */
+     contrast and hairline borders, not elevation. Kept for the few
+     overlays (menus, the command palette) that must read as floating. */
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 25%);
   --shadow-md: 0 1px 2px rgb(0 0 0 / 30%);
   --shadow-lg: 0 4px 16px rgb(0 0 0 / 35%);
@@ -160,6 +173,11 @@
   --color-accent-line: var(--accent-line);
   --color-accent-text: var(--accent-text);
 
+  --color-live: var(--live);
+  --color-live-subtle: var(--live-subtle);
+  --color-live-line: var(--live-line);
+  --color-live-text: var(--live-text);
+
   --color-success: var(--success);
   --color-success-subtle: var(--success-subtle);
   --color-success-line: var(--success-line);
@@ -181,14 +199,16 @@
   --color-info-text: var(--info-text);
 
   --font-sans:
-    'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    sans-serif;
+    var(--font-raven-sans, 'Inter'), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  --font-display: var(--font-raven-display), var(--font-raven-sans, 'Inter'), ui-sans-serif, system-ui, sans-serif;
   --font-mono:
-    ui-monospace, 'SF Mono', 'SFMono-Regular', 'JetBrains Mono', 'Menlo', 'Consolas', 'Liberation Mono', monospace;
+    var(--font-raven-mono), ui-monospace, 'SF Mono', 'SFMono-Regular', 'JetBrains Mono', 'Menlo', 'Consolas',
+    'Liberation Mono', monospace;
 
   /* One radius, everywhere — the same 4px corner the marketing site
      uses, so the two halves of the product read as one thing.
-     
+
      The five names are kept rather than collapsed to a single token
      because ~80 `rounded-sm|md|lg|xl` call sites across the pages
      reference them; pointing them all at one value reshapes the whole
@@ -300,13 +320,28 @@
     letter-spacing: 0.08em;
   }
 
-  /* Display type for page titles. Lighter and more tightly tracked than
-     the old semibold heading — the same restraint as the marketing
-     site's headlines, one step heavier so it still holds at 22px on a
-     dense page. */
+  /* Display type for page titles — the marketing site's display face,
+     medium weight, tightly tracked. Big type is the brand; page titles
+     are where the console gets to say so. */
   .display {
-    font-weight: 300;
-    letter-spacing: -0.02em;
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.025em;
+  }
+
+  /* The accent glow — filled primary actions and live infrastructure
+     elements. A tight ring plus a soft bloom; glow is a signal that
+     something is powered, not a decoration, so use it sparingly. */
+  .glow-accent {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent),
+      0 0 20px -4px var(--accent-glow);
+  }
+
+  .glow-live {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--live) 35%, transparent),
+      0 0 20px -4px var(--live-glow);
   }
 
   /* Step transitions for the onboarding wizard: enough motion to signal
@@ -330,6 +365,24 @@
       radial-gradient(48rem 32rem at 85% -10%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 70%),
       radial-gradient(40rem 28rem at -10% 105%, color-mix(in oklab, var(--accent) 6%, transparent), transparent 70%),
       var(--canvas);
+  }
+
+  /* The brand panel's deeper wash — same idea, more presence, because the
+     panel is imagery rather than a form background. */
+  .auth-panel-backdrop {
+    background:
+      radial-gradient(42rem 30rem at 15% 12%, color-mix(in oklab, var(--accent) 13%, transparent), transparent 70%),
+      radial-gradient(34rem 26rem at 95% 95%, color-mix(in oklab, var(--accent) 8%, transparent), transparent 70%),
+      var(--surface-sunken);
+  }
+
+  /* Infrastructure-diagram dot grid, faded out radially so it reads as
+     texture, not wallpaper. Layer it inside a relatively-positioned parent. */
+  .auth-dot-grid {
+    background-image: radial-gradient(color-mix(in oklab, var(--fg) 10%, transparent) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(56rem 42rem at 30% 30%, black, transparent 78%);
+    -webkit-mask-image: radial-gradient(56rem 42rem at 30% 30%, black, transparent 78%);
   }
 
   .animate-fade-in {

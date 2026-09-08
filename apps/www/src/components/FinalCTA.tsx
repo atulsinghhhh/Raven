@@ -7,20 +7,22 @@ import { DASHBOARD_URL, DISCORD_URL, DOCS_ROUTES } from '../lib/links';
  */
 export function FinalCTA() {
   return (
-    <section className="border-t border-line py-24 md:py-32">
+    <section className="aurora-footer border-t border-line py-28 md:py-40">
       <div className="mx-auto max-w-6xl px-6">
-        <h2 className="display text-3xl text-fg md:text-4xl">
-          Ready to <span className="kw">build</span>?
+        <h2 className="display text-4xl text-fg md:text-6xl">
+          Your application.
+          <br />
+          <span className="kw">Raven&apos;s</span> infrastructure.
         </h2>
-        <p className="mt-5 max-w-lg text-base leading-relaxed text-muted">
+        <p className="mt-6 max-w-lg text-base leading-relaxed text-muted">
           Create a project, mint your first token, and join a room — RTC, messaging, live streaming, and effects through
           one API.
         </p>
 
-        <div className="mt-9 flex flex-wrap items-center gap-2.5">
+        <div className="mt-10 flex flex-wrap items-center gap-2.5">
           <a
             href={`${DASHBOARD_URL}/signup`}
-            className="rounded-(--radius-panel) bg-accent px-5 py-2.5 text-[13px] font-semibold text-accent-fg transition-colors hover:bg-accent-hover"
+            className="glow-accent rounded-(--radius-panel) bg-accent px-5 py-2.5 text-[13px] font-semibold text-accent-fg transition-colors hover:bg-accent-hover"
           >
             Start building
           </a>

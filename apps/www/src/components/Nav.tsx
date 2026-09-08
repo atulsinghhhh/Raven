@@ -70,7 +70,7 @@ export function Nav() {
           </a>
           <a
             href={`${DASHBOARD_URL}/signup`}
-            className="hidden rounded-(--radius-panel) bg-accent px-3 py-1.5 text-[13px] font-semibold text-accent-fg transition-colors hover:bg-accent-hover sm:inline-block"
+            className="glow-accent hidden rounded-(--radius-panel) bg-accent px-3 py-1.5 text-[13px] font-semibold text-accent-fg transition-colors hover:bg-accent-hover sm:inline-block"
           >
             Start building
           </a>

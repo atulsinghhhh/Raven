@@ -14,7 +14,7 @@ type Size = 'sm' | 'md';
  * thing on screen.
  */
 const VARIANT: Record<Variant, string> = {
-  primary: 'bg-accent text-accent-fg font-semibold hover:bg-accent-hover',
+  primary: 'glow-accent bg-accent text-accent-fg font-semibold hover:bg-accent-hover',
   secondary: 'border border-line bg-surface text-fg font-medium hover:bg-surface-raised hover:border-line-strong',
   ghost: 'text-muted font-medium hover:text-fg hover:bg-surface-raised',
   danger: 'bg-danger text-white font-semibold hover:opacity-90',

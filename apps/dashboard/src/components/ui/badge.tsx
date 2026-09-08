@@ -17,6 +17,7 @@ export type BadgeTone =
   | 'info'
   | 'neutral'
   | 'accent'
+  | 'live'
   | 'green'
   | 'red'
   | 'yellow'
@@ -25,6 +26,7 @@ export type BadgeTone =
 const TONE: Record<BadgeTone, string> = {
   success: 'bg-success-subtle text-success-text border-success-line',
   green: 'bg-success-subtle text-success-text border-success-line',
+  live: 'bg-live-subtle text-live-text border-live-line',
   danger: 'bg-danger-subtle text-danger-text border-danger-line',
   red: 'bg-danger-subtle text-danger-text border-danger-line',
   warning: 'bg-warning-subtle text-warning-text border-warning-line',
@@ -38,6 +40,7 @@ const TONE: Record<BadgeTone, string> = {
 const GLYPH: Record<BadgeTone, string> = {
   success: '●',
   green: '●',
+  live: '●',
   danger: '✕',
   red: '✕',
   warning: '▲',
