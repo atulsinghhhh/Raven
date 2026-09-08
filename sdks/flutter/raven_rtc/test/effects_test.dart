@@ -14,16 +14,22 @@ void main() {
     });
 
     test('rejects a value outside the documented range', () {
-      expect(() => RavenEffectFilters.brightness(value: 5), throwsA(isA<RavenEffectsException>()));
-      expect(() => RavenEffectFilters.saturation(value: -1), throwsA(isA<RavenEffectsException>()));
-      expect(() => RavenEffectFilters.blur(radius: -1), throwsA(isA<RavenEffectsException>()));
+      expect(() => RavenEffectFilters.brightness(value: 5),
+          throwsA(isA<RavenEffectsException>()));
+      expect(() => RavenEffectFilters.saturation(value: -1),
+          throwsA(isA<RavenEffectsException>()));
+      expect(() => RavenEffectFilters.blur(radius: -1),
+          throwsA(isA<RavenEffectsException>()));
     });
   });
 
   group('RavenEffectPresets', () {
-    test('cinematic composes contrast, saturation, and temperature in that order', () {
+    test(
+        'cinematic composes contrast, saturation, and temperature in that order',
+        () {
       final configs = RavenEffectPresets.cinematic();
-      expect(configs.map((c) => c.type).toList(), ['contrast', 'saturation', 'temperature']);
+      expect(configs.map((c) => c.type).toList(),
+          ['contrast', 'saturation', 'temperature']);
     });
 
     test('every preset composes only known filter types', () {
@@ -48,7 +54,8 @@ void main() {
     });
 
     test('rejects an out-of-range amount', () {
-      expect(() => RavenEffectBeauty.smooth(amount: 5), throwsA(isA<RavenEffectsException>()));
+      expect(() => RavenEffectBeauty.smooth(amount: 5),
+          throwsA(isA<RavenEffectsException>()));
     });
   });
 
@@ -69,7 +76,8 @@ void main() {
     test('applyPreset() adds every filter in the preset, in order', () {
       final pipeline = RavenEffectsPipeline();
       final instances = pipeline.applyPreset(RavenEffectPresets.cinematic);
-      expect(instances.map((i) => i.type).toList(), ['contrast', 'saturation', 'temperature']);
+      expect(instances.map((i) => i.type).toList(),
+          ['contrast', 'saturation', 'temperature']);
     });
 
     test('remove() removes by id', () {
@@ -90,7 +98,8 @@ void main() {
       pipeline.update(instance.id, {'value': 0.5});
 
       expect(pipeline.effects.first.params['value'], 0.5);
-      expect(() => pipeline.update(instance.id, {'value': 99}), throwsA(isA<RavenEffectsException>()));
+      expect(() => pipeline.update(instance.id, {'value': 99}),
+          throwsA(isA<RavenEffectsException>()));
     });
 
     test('reorder() moves an effect to the requested index', () {
@@ -104,7 +113,9 @@ void main() {
       expect(pipeline.effects.map((e) => e.id).toList(), [b.id, c.id, a.id]);
     });
 
-    test('enable()/disable() with no id toggle the whole pipeline; with an id, toggle one effect', () {
+    test(
+        'enable()/disable() with no id toggle the whole pipeline; with an id, toggle one effect',
+        () {
       final pipeline = RavenEffectsPipeline();
       final instance = pipeline.add(RavenEffectFilters.brightness());
 
@@ -134,12 +145,15 @@ void main() {
       for (var i = 0; i < 16; i++) {
         pipeline.add(RavenEffectFilters.brightness());
       }
-      expect(() => pipeline.add(RavenEffectFilters.brightness()), throwsA(isA<RavenEffectsException>()));
+      expect(() => pipeline.add(RavenEffectFilters.brightness()),
+          throwsA(isA<RavenEffectsException>()));
     });
   });
 
   group('ravenEffectsNativeEngineStatus', () {
-    test('reports planned, not production — no native engine ships in this release', () {
+    test(
+        'reports planned, not production — no native engine ships in this release',
+        () {
       expect(ravenEffectsNativeEngineStatus, RavenEffectsEngineStatus.planned);
     });
   });

@@ -98,7 +98,8 @@ class RavenEngine {
   final _published = <String, PublishedTrack>{};
   final _announced = <String, ServerTrack>{};
   final _announcedOwners = <String, String>{};
-  final _pendingMedia = <String, ({rtc.MediaStreamTrack track, rtc.MediaStream stream})>{};
+  final _pendingMedia =
+      <String, ({rtc.MediaStreamTrack track, rtc.MediaStream stream})>{};
   final _deferredPublishes = <Future<void> Function()>[];
 
   final _changes = StreamController<void>.broadcast();
@@ -316,8 +317,7 @@ class RavenEngine {
     final pc = _pc;
     if (pc == null) return;
 
-    if (pc.signalingState !=
-        rtc.RTCSignalingState.RTCSignalingStateStable) {
+    if (pc.signalingState != rtc.RTCSignalingState.RTCSignalingStateStable) {
       // The server has an offer in flight. Retry after we answer it,
       // rather than creating a competing offer.
       _deferredPublishes.add(_negotiatePublish);
@@ -387,7 +387,8 @@ class RavenEngine {
 
     final pending = _pendingMedia.remove(track.trackId);
     if (pending != null) {
-      _completeSubscription(participantId, track, pending.track, pending.stream);
+      _completeSubscription(
+          participantId, track, pending.track, pending.stream);
       return;
     }
     _notify();

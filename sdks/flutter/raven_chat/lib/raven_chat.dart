@@ -16,7 +16,7 @@
 /// Independent of `raven_rtc`: a messaging app never pulls in a WebRTC
 /// stack, and a video app never pulls in a message store. Use both
 /// together for a call with a chat panel.
-library raven_chat;
+library;
 
 export 'src/chat_client.dart' show RavenChat;
 export 'src/errors.dart' show RavenChatErrorCode, RavenChatException;

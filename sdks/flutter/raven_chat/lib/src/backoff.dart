@@ -27,7 +27,8 @@ Duration backoffDelay(
   // Clamped before the shift so a long-lived connection that has
   // reconnected many times can't overflow the exponent.
   final growth = pow(2, (attempt - 1).clamp(0, 30)).toInt();
-  final target = min(initialDelay.inMilliseconds * growth, maxDelay.inMilliseconds);
+  final target =
+      min(initialDelay.inMilliseconds * growth, maxDelay.inMilliseconds);
 
   // Floored at a quarter of the target so a jittered delay can't collapse
   // to near-zero and burn an attempt instantly.

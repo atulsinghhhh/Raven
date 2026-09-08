@@ -306,8 +306,8 @@ class RavenChat extends ChangeNotifier {
   /// body, so a client can render a placeholder instead of leaving a hole
   /// in the conversation.
   Future<RavenMessage> delete(String messageId) async {
-    final response =
-        await _rest.delete('/v1/chat/messages/${Uri.encodeComponent(messageId)}');
+    final response = await _rest
+        .delete('/v1/chat/messages/${Uri.encodeComponent(messageId)}');
     return RavenMessage.fromJson(response);
   }
 
@@ -356,8 +356,8 @@ class RavenChat extends ChangeNotifier {
   /// Who is present in a room right now. Ephemeral — never durable state.
   Future<List<RavenPresence>> getPresence({String? room}) async {
     final target = room ?? _defaultRoom();
-    final response = await _rest
-        .getList('/v1/chat/conversations/${Uri.encodeComponent(target)}/presence');
+    final response = await _rest.getList(
+        '/v1/chat/conversations/${Uri.encodeComponent(target)}/presence');
     return response
         .map((value) => RavenPresence.fromJson(value as Map<String, dynamic>))
         .toList(growable: false);
@@ -696,9 +696,8 @@ class RavenChat extends ChangeNotifier {
     // short-lived token must not schedule a refresh in the past.
     final target = expiry.subtract(const Duration(minutes: 1));
     final delay = target.difference(DateTime.now());
-    final wait = delay < const Duration(seconds: 5)
-        ? const Duration(seconds: 5)
-        : delay;
+    final wait =
+        delay < const Duration(seconds: 5) ? const Duration(seconds: 5) : delay;
 
     _tokenRefreshTimer = Timer(wait, () async {
       try {
@@ -749,8 +748,8 @@ class RavenChat extends ChangeNotifier {
 
   String _generateClientMessageId() {
     final random = Random();
-    final suffix = List.generate(8, (_) => random.nextInt(36).toRadixString(36))
-        .join();
+    final suffix =
+        List.generate(8, (_) => random.nextInt(36).toRadixString(36)).join();
     return 'cm_${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}$suffix';
   }
 }

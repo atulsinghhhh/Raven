@@ -166,9 +166,8 @@ class RavenRoom extends ChangeNotifier {
   }
 
   /// Everyone else currently in the room.
-  List<RavenParticipant> get remoteParticipants => _remoteIdentities
-      .map(_buildRemoteParticipant)
-      .toList(growable: false);
+  List<RavenParticipant> get remoteParticipants =>
+      _remoteIdentities.map(_buildRemoteParticipant).toList(growable: false);
 
   /// Local participant first, then remotes — the order a grid renders in.
   List<RavenParticipant> get participants =>
@@ -252,8 +251,7 @@ class RavenRoom extends ChangeNotifier {
       final stream = await rtc.navigator.mediaDevices
           .getUserMedia({'audio': _microphoneConstraints, 'video': false});
       final track = stream.getAudioTracks().first;
-      await _engine.publish(
-          source: 'microphone', stream: stream, track: track);
+      await _engine.publish(source: 'microphone', stream: stream, track: track);
     });
     _emitParticipants();
   }

@@ -4,7 +4,8 @@ import 'package:raven_live/raven_live.dart';
 void main() {
   group('ravenLiveStreamRoleFromJson', () {
     test('parses every known role', () {
-      expect(RavenLiveStreamCredentials.fromJson(_credentials(role: 'HOST')).role,
+      expect(
+          RavenLiveStreamCredentials.fromJson(_credentials(role: 'HOST')).role,
           RavenLiveStreamRole.host);
       expect(
           RavenLiveStreamCredentials.fromJson(_credentials(role: 'CO_HOST'))
@@ -16,8 +17,7 @@ void main() {
           RavenLiveStreamRole.viewer);
     });
 
-    test('throws on an unrecognised role rather than defaulting silently',
-        () {
+    test('throws on an unrecognised role rather than defaulting silently', () {
       expect(
         () => RavenLiveStreamCredentials.fromJson(_credentials(role: 'ADMIN')),
         throwsArgumentError,

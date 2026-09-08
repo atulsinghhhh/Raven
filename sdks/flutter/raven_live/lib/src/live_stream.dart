@@ -1,4 +1,5 @@
-import 'package:raven_chat/raven_chat.dart' show RavenChat, RavenChatErrorCode, RavenChatException;
+import 'package:raven_chat/raven_chat.dart'
+    show RavenChat, RavenChatErrorCode, RavenChatException;
 import 'package:raven_rtc/raven_rtc.dart' show Raven, RavenRoom;
 
 import 'types.dart';

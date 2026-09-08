@@ -218,7 +218,8 @@ Map<String, dynamic>? decodeTokenClaims(String token) {
   try {
     // base64Url tolerates the unpadded form the JWT spec mandates, so no
     // padding fix-up is needed — unlike plain `base64`, which throws.
-    final decoded = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+    final decoded =
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
     final parsed = jsonDecode(decoded);
     return parsed is Map<String, dynamic> ? parsed : null;
   } catch (_) {

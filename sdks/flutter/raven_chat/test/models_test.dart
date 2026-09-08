@@ -18,7 +18,11 @@ void main() {
         'createdAt': '2026-08-18T12:00:00.000Z',
         'editedAt': '2026-08-18T12:05:00.000Z',
         'reactions': [
-          {'emoji': '👍', 'count': 2, 'userIds': ['bob', 'carol']},
+          {
+            'emoji': '👍',
+            'count': 2,
+            'userIds': ['bob', 'carol']
+          },
         ],
       });
 

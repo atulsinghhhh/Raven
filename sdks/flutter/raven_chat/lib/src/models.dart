@@ -208,7 +208,8 @@ class RavenMessagePage {
   factory RavenMessagePage.fromJson(Map<String, dynamic> json) =>
       RavenMessagePage(
         messages: (json['data'] as List<dynamic>? ?? const [])
-            .map((value) => RavenMessage.fromJson(value as Map<String, dynamic>))
+            .map(
+                (value) => RavenMessage.fromJson(value as Map<String, dynamic>))
             .toList(growable: false),
         nextCursor: json['nextCursor'] as String?,
         previousCursor: json['previousCursor'] as String?,

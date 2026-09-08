@@ -78,8 +78,7 @@ class RavenChatException implements Exception {
       code == RavenChatErrorCode.internalError;
 
   @override
-  String toString() =>
-      'RavenChatException(${rawCode ?? code.name}): $message';
+  String toString() => 'RavenChatException(${rawCode ?? code.name}): $message';
 }
 
 /// Maps a server code string onto the enum.

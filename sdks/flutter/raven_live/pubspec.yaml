@@ -20,11 +20,20 @@ dependencies:
   # discipline the backend itself follows. This package owns lifecycle and
   # role bookkeeping on top of both; it never duplicates what raven_rtc or
   # raven_chat already does correctly.
+  # Declared as hosted version constraints, not paths: pub refuses to
+  # publish a package that depends on a path, and raven_live is meant to be
+  # published. The dependency_overrides below point both at the sibling
+  # packages in this repo, so local development and CI still resolve
+  # against the working tree — overrides are ignored on publish.
+  raven_rtc: ^0.1.0
+  raven_chat: ^0.1.0
+  meta: ^1.15.0
+
+dependency_overrides:
   raven_rtc:
     path: ../raven_rtc
   raven_chat:
     path: ../raven_chat
-  meta: ^1.15.0
 
 dev_dependencies:
   flutter_test:

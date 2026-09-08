@@ -17,7 +17,8 @@ void main() {
       };
 
       cases.forEach((raw, expected) {
-        final error = RavenChatException.fromServer({'code': raw, 'message': 'x'});
+        final error =
+            RavenChatException.fromServer({'code': raw, 'message': 'x'});
         expect(error.code, expected, reason: raw);
       });
     });

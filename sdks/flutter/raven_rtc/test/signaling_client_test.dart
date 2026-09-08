@@ -29,8 +29,7 @@ class FakeSocket implements RavenSocket {
   Future<int?> get closed => _closed.future;
 
   @override
-  void send(String data) =>
-      sent.add(jsonDecode(data) as Map<String, dynamic>);
+  void send(String data) => sent.add(jsonDecode(data) as Map<String, dynamic>);
 
   @override
   Future<void> close([int? code, String? reason]) async {
@@ -206,8 +205,8 @@ void main() {
 
         await expectLater(
           joining,
-          throwsA(isA<RavenException>().having(
-              (e) => e.code, 'code', RavenErrorCode.connectionFailed)),
+          throwsA(isA<RavenException>()
+              .having((e) => e.code, 'code', RavenErrorCode.connectionFailed)),
         );
         await client.dispose();
       }

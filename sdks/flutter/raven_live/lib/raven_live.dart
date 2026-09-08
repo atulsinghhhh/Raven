@@ -23,7 +23,7 @@
 /// either — `RavenLiveStream.room` is an ordinary [RavenRoom] and
 /// `RavenLiveStream.chat` is an ordinary [RavenChat], so every existing
 /// API on both packages already works on a stream.
-library raven_live;
+library;
 
 export 'package:raven_chat/raven_chat.dart' show RavenChat;
 export 'package:raven_rtc/raven_rtc.dart' show RavenRoom;

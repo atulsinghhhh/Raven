@@ -291,7 +291,8 @@ class SignalingClient {
 
   void send(Map<String, dynamic> message) {
     final socket = _socket;
-    if (socket == null || !_joined && message['type'] != ClientMessageType.roomJoin) {
+    if (socket == null ||
+        !_joined && message['type'] != ClientMessageType.roomJoin) {
       // Dropped rather than queued. Every message here describes a moment
       // in a negotiation, and replaying a stale answer after a reconnect
       // would be worse than never sending it — the reconnect re-joins and

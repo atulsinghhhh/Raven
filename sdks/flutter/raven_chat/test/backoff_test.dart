@@ -28,7 +28,8 @@ void main() {
     test('grows with each attempt', () {
       final random = _FloorRandom();
       final delays = [1, 2, 3, 4]
-          .map((attempt) => backoffDelay(attempt, random: random).inMilliseconds)
+          .map(
+              (attempt) => backoffDelay(attempt, random: random).inMilliseconds)
           .toList();
 
       for (var i = 1; i < delays.length; i++) {

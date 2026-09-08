@@ -14,7 +14,7 @@
 /// For messaging, add `raven_chat` — the two are independent packages, so
 /// a video app never carries a message store and a chat app never carries
 /// WebRTC.
-library raven_rtc;
+library;
 
 export 'src/effects.dart'
     show
@@ -31,7 +31,11 @@ export 'src/effects.dart'
         RavenPreset,
         ravenEffectsNativeEngineStatus;
 export 'src/errors.dart'
-    show RavenErrorCode, RavenException, RavenPermission, RavenPermissionException;
+    show
+        RavenErrorCode,
+        RavenException,
+        RavenPermission,
+        RavenPermissionException;
 export 'src/permissions.dart' show RavenPermissions;
 export 'src/raven.dart' show Raven, RavenIceServer;
 export 'src/room.dart' show RavenRoom;

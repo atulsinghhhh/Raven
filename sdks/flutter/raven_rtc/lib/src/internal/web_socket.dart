@@ -16,7 +16,8 @@ class ChannelSocket implements RavenSocket {
     // once — but the close future below also needs to know when it ends,
     // so completion is driven from that one listener rather than a second
     // subscription (which would throw).
-    _messages = _channel.stream.map((event) => event).handleError((Object error) {
+    _messages =
+        _channel.stream.map((event) => event).handleError((Object error) {
       if (!_closed.isCompleted) {
         _closed.complete(_channel.closeCode);
       }

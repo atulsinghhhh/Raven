@@ -81,8 +81,7 @@ class RavenParticipant {
   bool get isMicrophoneEnabled =>
       _liveSources.contains(RavenTrackKind.microphone);
 
-  bool get isScreenSharing =>
-      _liveSources.contains(RavenTrackKind.screenShare);
+  bool get isScreenSharing => _liveSources.contains(RavenTrackKind.screenShare);
 
   /// @internal Used by [RavenVideoView] to reach the renderable track.
   /// Not part of the public API — a developer never handles a WebRTC
