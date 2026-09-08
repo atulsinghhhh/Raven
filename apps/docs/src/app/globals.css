@@ -1,7 +1,8 @@
 @import 'tailwindcss';
 
 /*
- * Raven design system.
+ * Raven docs design system — the warm editorial identity, matching
+ * apps/www and the console.
  *
  * Two layers here:
  *   1. Raw palette + semantic tokens as CSS vars, redefined per theme.
@@ -21,109 +22,110 @@
 [data-theme='light'] {
   color-scheme: light;
 
-  /* Surfaces, back to front */
-  --canvas: oklch(0.985 0.002 265);
-  --surface: oklch(1 0 0);
-  --surface-raised: oklch(0.985 0.002 265);
-  --surface-sunken: oklch(0.968 0.003 265);
-  --overlay: oklch(1 0 0);
-  --scrim: oklch(0.2 0.01 265 / 0.4);
+  /* Surfaces, back to front — paper white over warm shell */
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --surface-raised: #fdf1ef;
+  --surface-sunken: #f8f0ed;
+  --overlay: #ffffff;
+  --scrim: rgb(25 26 27 / 40%);
 
-  /* Text */
-  --fg: oklch(0.22 0.012 265);
-  --fg-muted: oklch(0.49 0.012 265);
-  --fg-subtle: oklch(0.62 0.012 265);
-  --fg-inverse: oklch(0.99 0 0);
+  /* Text — warm ink, never pure #000 */
+  --fg: #191a1b;
+  --fg-muted: #5e5a5a;
+  --fg-subtle: #9d968f;
+  --fg-inverse: #ffffff;
 
-  /* Lines */
-  --line: oklch(0.918 0.004 265);
-  --line-strong: oklch(0.86 0.006 265);
+  /* Lines — warm hairlines */
+  --line: #ece4df;
+  --line-strong: #d8cec7;
 
-  /* Accent — Raven's burnt orange (matches the marketing site) */
-  --accent: oklch(0.62 0.19 45);
-  --accent-hover: oklch(0.56 0.2 45);
-  --accent-fg: oklch(0.99 0 0);
-  --accent-subtle: oklch(0.96 0.04 45);
-  --accent-line: oklch(0.83 0.1 45);
-  --accent-text: oklch(0.52 0.18 45);
+  /* Accent — ink fills with lime text for the rare filled control;
+     lavender hairlines and a muted violet for links and selected
+     states. Matches the marketing site exactly. */
+  --accent: #191a1b;
+  --accent-hover: #2e2f31;
+  --accent-fg: #d4ff4c;
+  --accent-subtle: #f0ecfa;
+  --accent-line: #cbc2ea;
+  --accent-text: #6d5a9e;
 
   /* Semantic states */
-  --success: oklch(0.6 0.145 155);
-  --success-subtle: oklch(0.96 0.035 155);
-  --success-line: oklch(0.86 0.08 155);
-  --success-text: oklch(0.46 0.12 155);
+  --success: #1a8354;
+  --success-subtle: #e4f4eb;
+  --success-line: #b5dfc9;
+  --success-text: #14683f;
 
-  --warning: oklch(0.75 0.16 75);
-  --warning-subtle: oklch(0.965 0.045 85);
-  --warning-line: oklch(0.87 0.09 80);
-  --warning-text: oklch(0.52 0.12 65);
+  --warning: #b07a1e;
+  --warning-subtle: #faf0dc;
+  --warning-line: #ead1a4;
+  --warning-text: #8a5f14;
 
-  --danger: oklch(0.58 0.21 22);
-  --danger-subtle: oklch(0.96 0.03 22);
-  --danger-line: oklch(0.87 0.075 22);
-  --danger-text: oklch(0.51 0.19 22);
+  --danger: #c2362f;
+  --danger-subtle: #fbe9e8;
+  --danger-line: #f0c4c1;
+  --danger-text: #a12c26;
 
-  --info: oklch(0.6 0.14 245);
-  --info-subtle: oklch(0.96 0.03 245);
-  --info-line: oklch(0.86 0.07 245);
-  --info-text: oklch(0.47 0.14 245);
+  --info: #2563a8;
+  --info-subtle: #e7f0fb;
+  --info-line: #bcd5f0;
+  --info-text: #1f5693;
 
-  --shadow-sm: 0 1px 2px oklch(0.2 0.01 265 / 0.05);
-  --shadow-md: 0 1px 3px oklch(0.2 0.01 265 / 0.08), 0 4px 12px oklch(0.2 0.01 265 / 0.06);
-  --shadow-lg: 0 8px 32px oklch(0.2 0.01 265 / 0.12), 0 2px 8px oklch(0.2 0.01 265 / 0.06);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 5%);
+  --shadow-md: 0 2px 8px rgb(0 0 0 / 7%), 0 3px 5px -4px rgb(0 0 0 / 5%);
+  --shadow-lg: 0 0 0 1px rgb(94 90 90 / 10%), 0 16px 40px -8px rgb(0 0 0 / 10%);
 }
 
 [data-theme='dark'] {
   color-scheme: dark;
 
-  /* Near-black, warm-tinted rather than blue-black — matches the
-     marketing site's void canvas + cream text, not the old cool-gray
-     dashboard dark mode. */
-  --canvas: oklch(0.12 0.006 265);
-  --surface: oklch(0.15 0.006 265);
-  --surface-raised: oklch(0.185 0.007 265);
-  --surface-sunken: oklch(0.095 0.005 265);
-  --overlay: oklch(0.185 0.007 265);
-  --scrim: oklch(0.08 0.01 265 / 0.7);
+  /* Derived dark variant: warm ink surfaces (never blue-black), with
+     the lime spark as the accent — lime belongs on dark fills. */
+  --canvas: #121213;
+  --surface: #1a1a1c;
+  --surface-raised: #222224;
+  --surface-sunken: #0d0d0e;
+  --overlay: #222224;
+  --scrim: rgb(8 8 8 / 72%);
 
-  --fg: oklch(0.94 0.02 90);
-  --fg-muted: oklch(0.68 0.015 90);
-  --fg-subtle: oklch(0.55 0.012 90);
-  --fg-inverse: oklch(0.14 0.006 265);
+  --fg: #f2efe9;
+  --fg-muted: #a5a099;
+  --fg-subtle: #6f6a64;
+  --fg-inverse: #121213;
 
-  --line: oklch(0.26 0.01 265);
-  --line-strong: oklch(0.34 0.012 265);
+  --line: #2a2927;
+  --line-strong: #3d3b38;
 
-  --accent: oklch(0.68 0.17 45);
-  --accent-hover: oklch(0.74 0.16 45);
-  --accent-fg: oklch(0.16 0.02 45);
-  --accent-subtle: oklch(0.26 0.07 45);
-  --accent-line: oklch(0.42 0.12 45);
-  --accent-text: oklch(0.78 0.14 45);
+  --accent: #d4ff4c;
+  --accent-hover: #e0ff75;
+  --accent-fg: #191a1b;
+  --accent-subtle: #262a14;
+  --accent-line: #55602a;
+  --accent-text: #d8e08a;
 
-  --success: oklch(0.7 0.15 155);
-  --success-subtle: oklch(0.27 0.05 155);
-  --success-line: oklch(0.4 0.08 155);
-  --success-text: oklch(0.8 0.13 155);
+  --success: #3ecf8e;
+  --success-subtle: #0c281c;
+  --success-line: #1f5a40;
+  --success-text: #6fe2b1;
 
-  --warning: oklch(0.79 0.15 78);
-  --warning-subtle: oklch(0.3 0.05 70);
-  --warning-line: oklch(0.43 0.08 72);
-  --warning-text: oklch(0.85 0.13 82);
+  --warning: #f0b455;
+  --warning-subtle: #2a2110;
+  --warning-line: #5c4722;
+  --warning-text: #f6c87f;
 
-  --danger: oklch(0.65 0.19 22);
-  --danger-subtle: oklch(0.29 0.07 22);
-  --danger-line: oklch(0.42 0.11 22);
-  --danger-text: oklch(0.79 0.14 22);
+  --danger: #ff6259;
+  --danger-subtle: #2c1213;
+  --danger-line: #642a29;
+  --danger-text: #ff8d86;
 
-  --info: oklch(0.7 0.13 245);
-  --info-subtle: oklch(0.28 0.05 245);
-  --info-line: oklch(0.41 0.08 245);
-  --info-text: oklch(0.81 0.11 245);
+  --info: #62b0ff;
+  --info-subtle: #0e1d30;
+  --info-line: #254b73;
+  --info-text: #8cc5ff;
 
-  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
-  --shadow-md: 0 1px 3px oklch(0 0 0 / 0.4), 0 4px 12px oklch(0 0 0 / 0.3);
-  --shadow-lg: 0 8px 32px oklch(0 0 0 / 0.5), 0 2px 8px oklch(0 0 0 / 0.3);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-md: 0 1px 3px rgb(0 0 0 / 40%), 0 4px 12px rgb(0 0 0 / 30%);
+  --shadow-lg: 0 8px 32px rgb(0 0 0 / 50%), 0 2px 8px rgb(0 0 0 / 30%);
 }
 
 @theme inline {
@@ -170,23 +172,25 @@
   --color-info-text: var(--info-text);
 
   --font-sans:
-    'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    sans-serif;
+    var(--font-raven-sans, 'Lexend'), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  --font-display: var(--font-raven-display), Georgia, 'Times New Roman', serif;
   --font-mono:
-    ui-monospace, 'SF Mono', 'SFMono-Regular', 'JetBrains Mono', 'Menlo', 'Consolas', 'Liberation Mono', monospace;
+    var(--font-raven-mono), ui-monospace, 'SF Mono', 'SFMono-Regular', 'JetBrains Mono', 'Menlo', 'Consolas',
+    'Liberation Mono', monospace;
 
-  /* One radius, everywhere — the same 4px corner the marketing site and
-     the console use, so all three read as one product. The five names
+  /* Soft rectangles — the same 8px corner the marketing site and the
+     console use, so all three read as one product. The five names
      are kept rather than collapsed to a single token because the
      components and the .prose rules below already reference them by
      name; pointing them all at one value reshapes the site without
      rewriting those call sites. Genuinely circular things use
      `rounded-full` and are unaffected. */
-  --radius-xs: 0.25rem;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.25rem;
-  --radius-lg: 0.25rem;
-  --radius-xl: 0.25rem;
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 1rem;
 
   --shadow-raven-sm: var(--shadow-sm);
   --shadow-raven-md: var(--shadow-md);
@@ -222,7 +226,7 @@
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: 4px;
   }
 
   ::-webkit-scrollbar {
@@ -286,10 +290,11 @@
     letter-spacing: 0.08em;
   }
 
-  /* Display type for page and section titles: lighter and more tightly
-     tracked than a semibold heading, matching the other two apps. */
+  /* Display type for page and section titles — the editorial serif
+     shared with the other two apps, regular weight at doc sizes. */
   .display {
-    font-weight: 300;
+    font-family: var(--font-display);
+    font-weight: 400;
     letter-spacing: -0.02em;
   }
 
@@ -337,7 +342,8 @@
 .prose h2,
 .prose h3,
 .prose h4 {
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-weight: 400;
   color: var(--fg);
   letter-spacing: -0.01em;
   scroll-margin-top: 5rem;

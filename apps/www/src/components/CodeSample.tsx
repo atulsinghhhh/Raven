@@ -111,7 +111,7 @@ export function CodeSample() {
   const sample = SAMPLES.find((s) => s.id === active)!;
 
   return (
-    <div className="overflow-hidden rounded-(--radius-panel) border border-line bg-surface">
+    <div className="overflow-hidden rounded-2xl bg-surface card-lift">
       {/* File tabs read as ordinary sans filenames rather than mono
           product labels — this is an editor chrome, not a nav. */}
       <div className="flex items-center gap-1 overflow-x-auto border-b border-line bg-surface-sunken px-1.5 py-1.5 text-[12px]">

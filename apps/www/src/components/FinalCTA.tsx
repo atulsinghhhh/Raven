@@ -28,7 +28,7 @@ export function FinalCTA() {
           </a>
           <a
             href={DOCS_ROUTES.quickstart}
-            className="rounded-(--radius-panel) border border-line px-4 py-2.5 text-[13px] font-medium text-fg transition-colors hover:border-line-strong hover:bg-surface"
+            className="rounded-(--radius-panel) border border-accent-line px-4 py-2.5 text-[13px] font-medium text-fg transition-colors hover:border-accent-text hover:bg-canvas"
           >
             Read the quickstart
           </a>
@@ -36,7 +36,7 @@ export function FinalCTA() {
             href={DISCORD_URL}
             target="_blank"
             rel="noreferrer noopener"
-            className="rounded-(--radius-panel) border border-line px-4 py-2.5 text-[13px] font-medium text-fg transition-colors hover:border-line-strong hover:bg-surface"
+            className="rounded-(--radius-panel) border border-accent-line px-4 py-2.5 text-[13px] font-medium text-fg transition-colors hover:border-accent-text hover:bg-canvas"
           >
             Ask in Discord
           </a>

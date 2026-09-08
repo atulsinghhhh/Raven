@@ -62,7 +62,7 @@ export function LogFilters({
             onChange={(e) => setText(e.target.value)}
             aria-label="Filter by event name or request ID"
             placeholder="Filter by event or request ID…"
-            className="h-8 w-full rounded-md border border-line bg-surface pl-8 pr-2.5 text-sm text-fg transition-colors placeholder:text-subtle hover:border-line-strong focus:border-accent"
+            className="h-8 w-full rounded-md border border-line bg-surface pl-8 pr-2.5 text-sm text-fg transition-colors placeholder:text-subtle hover:border-line-strong"
           />
         </div>
         {active && (

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { DASHBOARD_URL, DISCORD_URL, DOCS_ROUTES, DOCS_URL } from '../lib/links';
-import { DiscordIcon } from './icons';
+import { DiscordIcon, RavenMark } from './icons';
 
 const PRODUCT_LINKS = [
   { label: 'RTC', href: DOCS_ROUTES.rtc },
@@ -64,7 +64,7 @@ export function Nav() {
           </a>
           <a
             href={DASHBOARD_URL}
-            className="hidden rounded-(--radius-panel) border border-line px-3 py-1.5 text-[13px] font-medium text-fg transition-colors hover:border-line-strong hover:bg-surface sm:inline-block"
+            className="hidden rounded-(--radius-panel) border border-accent-line px-3 py-1.5 text-[13px] font-medium text-fg transition-colors hover:border-accent-text hover:bg-surface-raised sm:inline-block"
           >
             Sign in
           </a>
@@ -152,14 +152,6 @@ function MobileSection({ title, links }: { title: string; links: { label: string
         </a>
       ))}
     </div>
-  );
-}
-
-function RavenMark() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5 text-accent" fill="currentColor" aria-hidden="true">
-      <path d="M12 2 3 20h5.2l1.4-3.2h4.8L15.8 20H21L12 2Zm-1.3 11 1.3-3 1.3 3h-2.6Z" />
-    </svg>
   );
 }
 

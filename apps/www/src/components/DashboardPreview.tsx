@@ -40,7 +40,7 @@ export function DashboardPreview() {
         </Reveal>
 
         <Reveal delayMs={100}>
-          <div ref={ref} className="mt-12 overflow-hidden rounded-(--radius-panel) border border-line bg-surface">
+          <div ref={ref} className="mt-12 overflow-hidden rounded-2xl bg-surface card-lift">
             <div className="flex items-center justify-between border-b border-line px-6 py-4">
               <span className="text-sm font-medium text-fg">demo-project</span>
               <span className="mono-label rounded-(--radius-panel) border border-line bg-surface-raised px-2.5 py-1 text-[11px] text-muted">

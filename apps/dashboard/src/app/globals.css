@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 /*
- * Raven console design system — the "signal" identity, dark-first.
+ * Raven console design system — the warm editorial identity.
  *
  * Two layers here:
  *   1. Raw palette + semantic tokens as CSS vars, redefined per theme.
@@ -9,11 +9,14 @@
  *      `bg-surface`, `text-muted`, `border-line` etc. all work and all
  *      re-theme automatically.
  *
- * Dark is the flagship theme: a deep indigo-cast near-black canvas with
- * the electric iris accent, matching apps/www. The light theme is a
- * derived variant kept for the toggle, not a co-equal design. Dark mode
- * is driven by data-theme on <html> — the inline script in layout.tsx
- * resolves stored-choice-or-system (defaulting dark) before paint.
+ * Light is the flagship theme, matching apps/www: paper-white canvas,
+ * warm-shell surfaces, ink text, and the ink-filled/lime-text primary
+ * action with lavender carrying the quieter interactive signals. The
+ * dark theme is a derived variant kept for the toggle — warm ink
+ * surfaces where the lime spark becomes the accent, per the rule that
+ * lime only ever sits on dark fills. Theme is driven by data-theme on
+ * <html> — the inline script in layout.tsx resolves
+ * stored-choice-or-system (defaulting light) before paint.
  */
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
@@ -22,105 +25,114 @@
 [data-theme='light'] {
   color-scheme: light;
 
-  /* Surfaces, back to front — violet-cast neutrals */
-  --canvas: oklch(0.982 0.004 285);
-  --surface: oklch(1 0 0);
-  --surface-raised: oklch(0.975 0.005 285);
-  --surface-sunken: oklch(0.962 0.006 285);
-  --overlay: oklch(1 0 0);
-  --scrim: oklch(0.2 0.02 285 / 0.4);
+  /* Surfaces, back to front — paper white over warm shell */
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --surface-raised: #fdf1ef;
+  --surface-sunken: #f8f0ed;
+  --overlay: #ffffff;
+  --scrim: rgb(25 26 27 / 40%);
 
-  /* Text */
-  --fg: oklch(0.23 0.02 285);
-  --fg-muted: oklch(0.49 0.02 285);
-  --fg-subtle: oklch(0.62 0.018 285);
-  --fg-inverse: oklch(0.99 0 0);
+  /* Text — warm ink, never pure #000 */
+  --fg: #191a1b;
+  --fg-muted: #5e5a5a;
+  --fg-subtle: #9d968f;
+  --fg-inverse: #ffffff;
 
-  /* Lines */
-  --line: oklch(0.916 0.008 285);
-  --line-strong: oklch(0.855 0.012 285);
+  /* Lines — warm hairlines that harmonize with the shell surfaces */
+  --line: #ece4df;
+  --line-strong: #d8cec7;
 
-  /* Accent — Raven's electric iris, darkened for a light canvas so
-     filled controls hold contrast with white text. */
-  --accent: #5352e6;
-  --accent-hover: #4341d6;
-  --accent-fg: #ffffff;
-  --accent-subtle: #ebebff;
-  --accent-line: #b9b9f2;
-  --accent-text: #4644cf;
-  --accent-glow: rgb(83 82 230 / 25%);
+  /* Accent — the primary action is an ink fill with electric-lime text;
+     that pairing appears nowhere else. Lavender carries the quieter
+     interactive signals: outlined controls, active chips, tints. */
+  --accent: #191a1b;
+  --accent-hover: #2e2f31;
+  --accent-fg: #d4ff4c;
+  --accent-subtle: #f0ecfa;
+  --accent-line: #cbc2ea;
+  --accent-text: #6d5a9e;
+  --accent-glow: rgb(203 194 234 / 45%);
 
-  /* Live/realtime — reserved for LIVE badges and streaming state. */
-  --live: #e5195f;
-  --live-subtle: #fde7ef;
-  --live-line: #f5b3ca;
-  --live-text: #c01353;
-  --live-glow: rgb(229 25 95 / 25%);
+  /* Live/realtime — the one hot hue, a sunset rose. Reserved for LIVE
+     badges and streaming state. */
+  --live: #c73d85;
+  --live-subtle: #fbe7f2;
+  --live-line: #edc4dc;
+  --live-text: #a63070;
+  --live-glow: rgb(199 61 133 / 30%);
 
   /* Semantic states */
-  --success: oklch(0.6 0.145 155);
-  --success-subtle: oklch(0.96 0.035 155);
-  --success-line: oklch(0.86 0.08 155);
-  --success-text: oklch(0.46 0.12 155);
+  --success: #1a8354;
+  --success-subtle: #e4f4eb;
+  --success-line: #b5dfc9;
+  --success-text: #14683f;
 
-  --warning: oklch(0.75 0.16 75);
-  --warning-subtle: oklch(0.965 0.045 85);
-  --warning-line: oklch(0.87 0.09 80);
-  --warning-text: oklch(0.52 0.12 65);
+  --warning: #b07a1e;
+  --warning-subtle: #faf0dc;
+  --warning-line: #ead1a4;
+  --warning-text: #8a5f14;
 
-  --danger: oklch(0.58 0.21 22);
-  --danger-subtle: oklch(0.96 0.03 22);
-  --danger-line: oklch(0.87 0.075 22);
-  --danger-text: oklch(0.51 0.19 22);
+  --danger: #c2362f;
+  --danger-subtle: #fbe9e8;
+  --danger-line: #f0c4c1;
+  --danger-text: #a12c26;
 
-  --info: oklch(0.6 0.14 245);
-  --info-subtle: oklch(0.96 0.03 245);
-  --info-line: oklch(0.86 0.07 245);
-  --info-text: oklch(0.47 0.14 245);
+  --info: #2563a8;
+  --info-subtle: #e7f0fb;
+  --info-line: #bcd5f0;
+  --info-text: #1f5693;
 
-  --shadow-sm: 0 1px 2px oklch(0.2 0.02 285 / 0.05);
-  --shadow-md: 0 1px 3px oklch(0.2 0.02 285 / 0.08), 0 4px 12px oklch(0.2 0.02 285 / 0.06);
-  --shadow-lg: 0 8px 32px oklch(0.2 0.02 285 / 0.12), 0 2px 8px oklch(0.2 0.02 285 / 0.06);
+  /* Whisper elevation — the system never shouts with shadows. The lg
+     tier is the signature large-card lift: a 1px warm ring plus a wide
+     diffuse shadow. */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 5%);
+  --shadow-md: 0 2px 8px rgb(0 0 0 / 7%), 0 3px 5px -4px rgb(0 0 0 / 5%);
+  --shadow-lg: 0 0 0 1px rgb(94 90 90 / 10%), 0 16px 40px -8px rgb(0 0 0 / 10%);
+
+  /* Atmosphere washes for auth/onboarding backdrops — blossom and lilac
+     drifting in from the corners, the sunset atmosphere of the
+     marketing site's hero. */
+  --wash-a: rgb(245 221 238 / 55%);
+  --wash-b: rgb(215 229 254 / 40%);
 }
 
 [data-theme='dark'] {
   color-scheme: dark;
 
-  /* The flagship console palette. Same identity as apps/www — deep
-     indigo-cast blacks and the electric iris accent — with the canvas a
-     step lighter than the marketing site's, because this surface is
-     stared at for an afternoon rather than read in passing. The accent
-     must not drift between the two apps: it's the brand. */
-  --canvas: #0a0a11;
-  --surface: #10101a;
-  --surface-raised: #171724;
-  --surface-sunken: #06060c;
-  --overlay: #171724;
-  --scrim: rgb(4 4 10 / 72%);
+  /* The derived dark variant: warm ink surfaces (never blue-black), and
+     the electric-lime spark takes over as the accent — lime belongs on
+     dark fills, so this is the one place it fills controls. */
+  --canvas: #121213;
+  --surface: #1a1a1c;
+  --surface-raised: #222224;
+  --surface-sunken: #0d0d0e;
+  --overlay: #222224;
+  --scrim: rgb(8 8 8 / 72%);
 
-  --fg: #eeeef6;
-  --fg-muted: #9a9aae;
-  --fg-subtle: #67677f;
-  --fg-inverse: #0a0a11;
+  --fg: #f2efe9;
+  --fg-muted: #a5a099;
+  --fg-subtle: #6f6a64;
+  --fg-inverse: #121213;
 
-  --line: #1e1e2e;
-  --line-strong: #30304a;
+  --line: #2a2927;
+  --line-strong: #3d3b38;
 
-  /* Electric iris; filled controls keep near-black text. */
-  --accent: #7b7bff;
-  --accent-hover: #9595ff;
-  --accent-fg: #0a0a1f;
-  --accent-subtle: #191944;
-  --accent-line: #3c3c86;
-  --accent-text: #a6a6ff;
-  --accent-glow: rgb(123 123 255 / 40%);
+  /* Electric lime; filled controls keep ink text. */
+  --accent: #d4ff4c;
+  --accent-hover: #e0ff75;
+  --accent-fg: #191a1b;
+  --accent-subtle: #262a14;
+  --accent-line: #55602a;
+  --accent-text: #d8e08a;
+  --accent-glow: rgb(212 255 76 / 25%);
 
   /* Live/realtime — the only other saturated hue in the console. */
-  --live: #ff4d7d;
-  --live-subtle: #2a0e1b;
-  --live-line: #67203e;
-  --live-text: #ff87ab;
-  --live-glow: rgb(255 77 125 / 40%);
+  --live: #ff5f9e;
+  --live-subtle: #33141f;
+  --live-line: #6b2544;
+  --live-text: #ff9dc0;
+  --live-glow: rgb(255 95 158 / 30%);
 
   --success: #3ecf8e;
   --success-subtle: #0c281c;
@@ -142,12 +154,15 @@
   --info-line: #254b73;
   --info-text: #8cc5ff;
 
-  /* Minimal shadows by design — depth comes from the surface/canvas
-     contrast and hairline borders, not elevation. Kept for the few
-     overlays (menus, the command palette) that must read as floating. */
+  /* Depth on dark comes from the surface/canvas contrast and hairline
+     borders; shadows only for the few overlays that must read as
+     floating. */
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 25%);
   --shadow-md: 0 1px 2px rgb(0 0 0 / 30%);
   --shadow-lg: 0 4px 16px rgb(0 0 0 / 35%);
+
+  --wash-a: rgb(212 255 76 / 6%);
+  --wash-b: rgb(203 194 234 / 7%);
 }
 
 @theme inline {
@@ -199,27 +214,26 @@
   --color-info-text: var(--info-text);
 
   --font-sans:
-    var(--font-raven-sans, 'Inter'), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    var(--font-raven-sans, 'Lexend'), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
     Arial, sans-serif;
-  --font-display: var(--font-raven-display), var(--font-raven-sans, 'Inter'), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-raven-display), Georgia, 'Times New Roman', serif;
   --font-mono:
     var(--font-raven-mono), ui-monospace, 'SF Mono', 'SFMono-Regular', 'JetBrains Mono', 'Menlo', 'Consolas',
     'Liberation Mono', monospace;
 
-  /* One radius, everywhere — the same 4px corner the marketing site
-     uses, so the two halves of the product read as one thing.
+  /* Soft rectangles, matching the marketing site: 8px on buttons,
+     inputs, chips, and cards; 16px on the largest content panels.
 
      The five names are kept rather than collapsed to a single token
      because ~80 `rounded-sm|md|lg|xl` call sites across the pages
-     reference them; pointing them all at one value reshapes the whole
-     console without touching a page file. Genuinely circular things
-     (status dots, avatars, step numbers) use `rounded-full` and are
-     unaffected by this. */
-  --radius-xs: 0.25rem;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.25rem;
-  --radius-lg: 0.25rem;
-  --radius-xl: 0.25rem;
+     reference them; retuning them here reshapes the whole console
+     without touching a page file. Genuinely circular things (status
+     dots, avatars, step numbers) use `rounded-full` and are unaffected. */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 1rem;
 
   --shadow-raven-sm: var(--shadow-sm);
   --shadow-raven-md: var(--shadow-md);
@@ -234,7 +248,6 @@
   body {
     background: var(--canvas);
     color: var(--fg);
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-font-smoothing: antialiased;
   }
 
@@ -255,7 +268,7 @@
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: 4px;
   }
 
   ::-webkit-scrollbar {
@@ -320,28 +333,65 @@
     letter-spacing: 0.08em;
   }
 
-  /* Display type for page titles — the marketing site's display face,
-     medium weight, tightly tracked. Big type is the brand; page titles
-     are where the console gets to say so. */
+  /* Display type for page titles — the marketing site's editorial serif.
+     Regular weight here rather than the hero's whisper-thin 300, because
+     console titles render at a size where the thin cut loses its shape. */
   .display {
     font-family: var(--font-display);
-    font-weight: 500;
-    letter-spacing: -0.025em;
+    font-weight: 400;
+    letter-spacing: -0.02em;
   }
 
-  /* The accent glow — filled primary actions and live infrastructure
-     elements. A tight ring plus a soft bloom; glow is a signal that
-     something is powered, not a decoration, so use it sparingly. */
+  /* Button/live elevation — barely there by design. The old identity's
+     glow is retired; the class names stay because the components using
+     them still mean "this is the powered element on the page". */
   .glow-accent {
-    box-shadow:
-      0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent),
-      0 0 20px -4px var(--accent-glow);
+    box-shadow: var(--shadow-sm);
   }
 
   .glow-live {
-    box-shadow:
-      0 0 0 1px color-mix(in oklab, var(--live) 35%, transparent),
-      0 0 20px -4px var(--live-glow);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Step transitions for the onboarding wizard: enough motion to signal
+     "you moved forward", not enough to feel like a slideshow. */
+  @keyframes raven-step-in {
+    from {
+      opacity: 0;
+      transform: translateX(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* The quiet washes behind auth and onboarding — the marketing hero's
+     sunset atmosphere, painted from per-theme wash tokens so both themes
+     keep their own temperature. */
+  .auth-backdrop {
+    background:
+      radial-gradient(48rem 32rem at 85% -10%, var(--wash-a), transparent 70%),
+      radial-gradient(40rem 28rem at -10% 105%, var(--wash-b), transparent 70%),
+      var(--canvas);
+  }
+
+  /* The brand panel's deeper wash — same idea, more presence, because the
+     panel is imagery rather than a form background. */
+  .auth-panel-backdrop {
+    background:
+      radial-gradient(42rem 30rem at 15% 12%, var(--wash-a), transparent 70%),
+      radial-gradient(34rem 26rem at 95% 95%, var(--wash-b), transparent 70%),
+      var(--surface-raised);
+  }
+
+  /* Infrastructure-diagram dot grid, faded out radially so it reads as
+     texture, not wallpaper. Layer it inside a relatively-positioned parent. */
+  .auth-dot-grid {
+    background-image: radial-gradient(color-mix(in oklab, var(--fg) 10%, transparent) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(56rem 42rem at 30% 30%, black, transparent 78%);
+    -webkit-mask-image: radial-gradient(56rem 42rem at 30% 30%, black, transparent 78%);
   }
 
   /* Step transitions for the onboarding wizard: enough motion to signal
@@ -365,24 +415,6 @@
       radial-gradient(48rem 32rem at 85% -10%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 70%),
       radial-gradient(40rem 28rem at -10% 105%, color-mix(in oklab, var(--accent) 6%, transparent), transparent 70%),
       var(--canvas);
-  }
-
-  /* The brand panel's deeper wash — same idea, more presence, because the
-     panel is imagery rather than a form background. */
-  .auth-panel-backdrop {
-    background:
-      radial-gradient(42rem 30rem at 15% 12%, color-mix(in oklab, var(--accent) 13%, transparent), transparent 70%),
-      radial-gradient(34rem 26rem at 95% 95%, color-mix(in oklab, var(--accent) 8%, transparent), transparent 70%),
-      var(--surface-sunken);
-  }
-
-  /* Infrastructure-diagram dot grid, faded out radially so it reads as
-     texture, not wallpaper. Layer it inside a relatively-positioned parent. */
-  .auth-dot-grid {
-    background-image: radial-gradient(color-mix(in oklab, var(--fg) 10%, transparent) 1px, transparent 1px);
-    background-size: 22px 22px;
-    mask-image: radial-gradient(56rem 42rem at 30% 30%, black, transparent 78%);
-    -webkit-mask-image: radial-gradient(56rem 42rem at 30% 30%, black, transparent 78%);
   }
 
   .animate-fade-in {

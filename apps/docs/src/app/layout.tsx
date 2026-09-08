@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Fraunces, JetBrains_Mono, Lexend } from 'next/font/google';
 import './globals.css';
 import { assertNavMatchesContent } from '../lib/docs';
 import { SITE_URL } from '../lib/site';
@@ -26,6 +27,32 @@ export const metadata: Metadata = {
 // doesn't exist: a dead nav link is a bug, not a 404 to discover later.
 assertNavMatchesContent();
 
+// Body/UI text — shared with the marketing site and the console.
+const sans = Lexend({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-raven-sans',
+  display: 'swap',
+});
+
+// Display face for page titles and content headings — the editorial
+// serif that ties the three apps together.
+const displayFace = Fraunces({
+  subsets: ['latin'],
+  weight: ['300', '400'],
+  style: ['normal', 'italic'],
+  variable: '--font-raven-display',
+  display: 'swap',
+});
+
+// Code blocks, inline code, and mono chrome labels.
+const mono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-raven-mono',
+  display: 'swap',
+});
+
 const THEME_SCRIPT = `
 (function() {
   try {
@@ -42,7 +69,12 @@ const THEME_SCRIPT = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" suppressHydrationWarning>
+    <html
+      lang="en"
+      data-theme="light"
+      suppressHydrationWarning
+      className={`${sans.variable} ${displayFace.variable} ${mono.variable}`}
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>

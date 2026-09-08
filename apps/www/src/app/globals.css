@@ -1,77 +1,81 @@
 @import 'tailwindcss';
 
 /*
- * Raven marketing-site design system — the "signal" identity.
+ * Raven marketing-site design system — the warm editorial identity.
  *
- * Dark-only by design: this is infrastructure's front door and it
- * commits to one look. The canvas is a deep indigo-cast near-black;
- * depth comes from three layered surfaces, hairline borders, and a very
- * low-alpha violet atmosphere — never from drop shadows. Exactly one
- * saturated hue carries the brand (the electric iris accent); a second,
- * hotter hue is reserved for LIVE/realtime states and nothing else.
- * Headlines run in the display face (Space Grotesk), tight and
- * confident, over Inter body text and mono console chrome.
+ * Light-only by design: an off-white canvas warmed by the shell-pink
+ * hero gradient, ink-dark text, and a thin editorial serif carrying the
+ * headlines. Color is disciplined — the ink-filled primary button with
+ * electric-lime text is the one loud contrast on the page; lavender
+ * hairlines mark everything else that's interactive. Surfaces stay soft:
+ * modest radii, whisper shadows, and warm-shell bands instead of
+ * borders doing the sectioning.
  */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
   /* Surfaces, back to front */
-  --canvas: #07070c;
-  --surface: #0d0d15;
-  --surface-raised: #13131e;
-  --surface-sunken: #04040a;
-  --overlay: #13131e;
-  --scrim: rgb(4 4 10 / 72%);
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --surface-raised: #fdf1ef;
+  --surface-sunken: #fdf1ef;
+  --overlay: #ffffff;
+  --scrim: rgb(25 26 27 / 40%);
 
-  /* Text — cool near-white, never pure #fff */
-  --fg: #eeeef6;
-  --fg-muted: #9494a8;
-  --fg-subtle: #62627a;
-  --fg-inverse: #07070c;
+  /* Text — warm ink, never pure #000 */
+  --fg: #191a1b;
+  --fg-muted: #5e5a5a;
+  --fg-subtle: #9d968f;
+  --fg-inverse: #ffffff;
 
-  /* Lines — the structural skeleton; indigo-cast hairlines */
-  --line: #1b1b2b;
-  --line-strong: #2c2c44;
+  /* Lines — warm hairlines that harmonize with the shell canvas */
+  --line: #ece4df;
+  --line-strong: #d8cec7;
 
-  /* Accent — Raven's electric iris. One brand hue, used for active
-     states, packets, buttons, and the one lit keyword per headline. */
-  --accent: #7b7bff;
-  --accent-hover: #9595ff;
-  --accent-fg: #0a0a1f;
-  --accent-subtle: #16163a;
-  --accent-line: #3a3a80;
-  --accent-text: #a6a6ff;
-  --accent-glow: rgb(123 123 255 / 40%);
+  /* Accent — the primary action is an ink fill with electric-lime text;
+     that pairing appears nowhere else. Lavender carries the quieter
+     interactive signals: outlined buttons, active chips, focus rings. */
+  --accent: #191a1b;
+  --accent-hover: #2e2f31;
+  --accent-fg: #d4ff4c;
+  --accent-subtle: #f0ecfa;
+  --accent-line: #cbc2ea;
+  --accent-text: #6d5a9e;
+  --accent-glow: rgb(203 194 234 / 45%);
 
-  /* Live/realtime — the only other saturated hue on the page. Reserved
-     for LIVE badges, streaming state, and on-air packets. */
-  --live: #ff4d7d;
-  --live-subtle: #2a0e1b;
-  --live-line: #67203e;
-  --live-text: #ff87ab;
-  --live-glow: rgb(255 77 125 / 40%);
+  /* The lime brand spark — dark fills and small accent marks only;
+     never set it against a light background. */
+  --lime: #d4ff4c;
+
+  /* Live/realtime — the one hot hue, a sunset rose. Reserved for LIVE
+     badges, streaming state, and on-air packets. */
+  --live: #c73d85;
+  --live-subtle: #fbe7f2;
+  --live-line: #edc4dc;
+  --live-text: #a63070;
+  --live-glow: rgb(199 61 133 / 30%);
 
   /* Semantic states */
-  --success: #3ecf8e;
-  --success-subtle: #0c281c;
-  --success-line: #1f5a40;
-  --success-text: #6fe2b1;
+  --success: #1a8354;
+  --success-subtle: #e4f4eb;
+  --success-line: #b5dfc9;
+  --success-text: #14683f;
 
-  --warning: #f0b455;
-  --warning-subtle: #2a2110;
-  --warning-line: #5c4722;
-  --warning-text: #f6c87f;
+  --warning: #b07a1e;
+  --warning-subtle: #faf0dc;
+  --warning-line: #ead1a4;
+  --warning-text: #8a5f14;
 
-  --danger: #ff6259;
-  --danger-subtle: #2c1213;
-  --danger-line: #642a29;
-  --danger-text: #ff8d86;
+  --danger: #c2362f;
+  --danger-subtle: #fbe9e8;
+  --danger-line: #f0c4c1;
+  --danger-text: #a12c26;
 
-  --info: #62b0ff;
-  --info-subtle: #0e1d30;
-  --info-line: #254b73;
-  --info-text: #8cc5ff;
+  --info: #2563a8;
+  --info-subtle: #e7f0fb;
+  --info-line: #bcd5f0;
+  --info-text: #1f5693;
 }
 
 @theme inline {
@@ -96,6 +100,8 @@
   --color-accent-subtle: var(--accent-subtle);
   --color-accent-line: var(--accent-line);
   --color-accent-text: var(--accent-text);
+
+  --color-lime: var(--lime);
 
   --color-live: var(--live);
   --color-live-subtle: var(--live-subtle);
@@ -123,12 +129,12 @@
   --color-info-text: var(--info-text);
 
   --font-sans: var(--font-raven-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-display: var(--font-raven-display), var(--font-raven-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-raven-display), Georgia, 'Times New Roman', serif;
   --font-mono: var(--font-raven-mono), ui-monospace, 'SF Mono', 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
 
-  /* One near-sharp radius everywhere — panels, cards, inputs, and
-     buttons alike. Infrastructure is rectilinear. */
-  --radius-panel: 0.25rem;
+  /* Soft rectangles everywhere — 8px on buttons, chips, and panels;
+     large content cards step up to rounded-2xl in the markup. */
+  --radius-panel: 0.5rem;
 }
 
 @layer base {
@@ -143,7 +149,6 @@
   body {
     background: var(--canvas);
     color: var(--fg);
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-font-smoothing: antialiased;
   }
 
@@ -152,14 +157,14 @@
   }
 
   ::selection {
-    background: var(--accent-subtle);
-    color: var(--accent-text);
+    background: #f5ddee;
+    color: var(--fg);
   }
 
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: 4px;
   }
 
   ::-webkit-scrollbar {
@@ -237,51 +242,56 @@
     animation: raven-pulse 2s ease-in-out infinite;
   }
 
-  /* Display type. Every headline runs in the display face — medium
-     weight, tightly tracked, near-zero leading. Big type is the brand. */
+  /* Display type. Every headline runs in the editorial serif — thin
+     weight, gently tightened, generous size. The whisper-thin serif at
+     large size is the brand; never push it past weight 400. */
   .display {
     font-family: var(--font-display);
-    font-weight: 500;
-    letter-spacing: -0.035em;
-    line-height: 1.02;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
   }
 
-  /* The one or two words inside a headline that carry the accent. */
+  /* The one or two words inside a headline that carry the emphasis —
+     italic, not color. The serif does the talking. */
   .kw {
-    color: var(--accent-text);
+    font-style: italic;
+    font-weight: 400;
   }
 
-  /* The violet/indigo atmosphere. Two very low-alpha radial washes over
-     the canvas — enough to make the black feel deep and lit from within,
-     never enough to read as a "gradient blob". Layer behind hero and
-     closing sections only; the middle of the page stays flat black so
-     the atmosphere marks beginnings and endings. */
+  /* The sunset atmosphere. Warm shell into soft pink, with pastel
+     washes drifting in from the corners — the hero and the closing
+     section live in this light; the middle of the page stays white so
+     the warmth marks beginnings and endings. */
   .aurora {
     background:
-      radial-gradient(52rem 30rem at 50% -12%, rgb(123 123 255 / 13%), transparent 68%),
-      radial-gradient(38rem 26rem at 82% 4%, rgb(90 70 210 / 8%), transparent 70%),
-      radial-gradient(30rem 22rem at 12% 12%, rgb(150 90 235 / 6%), transparent 70%);
+      radial-gradient(42rem 26rem at 10% 4%, rgb(215 229 254 / 40%), transparent 70%),
+      radial-gradient(44rem 28rem at 90% 10%, rgb(245 221 238 / 55%), transparent 72%),
+      linear-gradient(180deg, #fdf1ef 0%, #fbe7e6 55%, #ffffff 100%);
   }
 
   .aurora-footer {
     background:
-      radial-gradient(48rem 30rem at 50% 115%, rgb(123 123 255 / 11%), transparent 70%),
-      radial-gradient(34rem 24rem at 14% 100%, rgb(150 90 235 / 6%), transparent 70%);
+      radial-gradient(40rem 26rem at 85% 110%, rgb(245 221 238 / 60%), transparent 72%),
+      linear-gradient(180deg, #ffffff 0%, #fdf1ef 60%, #f8e3e6 100%);
   }
 
-  /* The accent glow — for filled primary buttons and live infrastructure
-     elements. A tight ring plus a soft bloom; used sparingly, glow is a
-     signal that something is powered, not a decoration. */
+  /* Button elevation — barely there by design. The system never puts a
+     heavy drop shadow on an action. */
   .glow-accent {
-    box-shadow:
-      0 0 0 1px rgb(123 123 255 / 35%),
-      0 0 24px -4px var(--accent-glow);
+    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
   }
 
   .glow-live {
+    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+  }
+
+  /* Large-card elevation: a 1px warm ring plus a wide diffuse shadow —
+     the signature lift for product-UI mockups and showcase panels. */
+  .card-lift {
     box-shadow:
-      0 0 0 1px rgb(255 77 125 / 35%),
-      0 0 24px -4px var(--live-glow);
+      rgba(94, 90, 90, 0.1) 0px 0px 0px 1px,
+      rgba(0, 0, 0, 0.1) 0px 16px 40px -8px;
   }
 
   /* Full-bleed graph paper. Two repeating gradients rather than an SVG

@@ -1,16 +1,19 @@
 import { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { IconChevronDown } from './icons';
 
 /*
  * One control style for every input, select and textarea. Flat: a
- * hairline border that strengthens on hover and turns accent on focus,
- * and no inner shadow: same treatment as the buttons next to them.
+ * hairline border that strengthens on hover, no inner shadow — same
+ * treatment as the buttons next to them. Focus is the app-wide
+ * :focus-visible ring from globals.css and nothing else; a border
+ * change on top of it doubled the ring.
  *
  * Field labels are mono-uppercase to match the table headers and stat
  * labels, so every piece of chrome in the console speaks with one voice
  * and the sans text on a page is reliably content.
  */
 const CONTROL =
-  'w-full rounded-md border border-line bg-surface px-3 text-sm text-fg placeholder:text-subtle transition-colors hover:border-line-strong focus:border-accent disabled:opacity-60';
+  'w-full rounded-md border border-line bg-surface px-3 text-sm text-fg placeholder:text-subtle transition-colors hover:border-line-strong disabled:opacity-60';
 
 const LABEL = 'mono-label text-[11px] text-muted';
 
@@ -95,9 +98,15 @@ export function Select({
           {label}
         </label>
       )}
-      <select id={id} {...props} className={`${CONTROL} h-9 cursor-pointer appearance-none pr-8`}>
-        {children}
-      </select>
+      <div className="relative">
+        <select id={id} {...props} className={`${CONTROL} h-9 cursor-pointer appearance-none pr-8`}>
+          {children}
+        </select>
+        <IconChevronDown
+          aria-hidden="true"
+          className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted"
+        />
+      </div>
     </div>
   );
 }

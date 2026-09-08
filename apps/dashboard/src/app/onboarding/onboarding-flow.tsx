@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { CodeBlock } from '@/components/ui/code-block';
 import { CopyButton } from '@/components/ui/copy-button';
 import { Field, Select } from '@/components/ui/field';
-import { RavenMark } from '@/components/ui/icons';
+import { IconChat, IconLiveStreaming, IconRooms, RavenMark } from '@/components/ui/icons';
 import { ErrorState } from '@/components/ui/states';
 import type { OnboardingState } from '@/lib/api-client';
 
@@ -34,7 +34,11 @@ const EXPERIENCE_LEVELS = [
   { value: 'getting-started', label: 'Just getting started', description: 'New to realtime — we’ll keep it gentle.' },
   { value: 'some-experience', label: 'Some experience', description: 'Shipped a prototype or two.' },
   { value: 'experienced', label: 'Experienced', description: 'Comfortable with WebRTC, sockets, and tokens.' },
-  { value: 'production', label: 'Production realtime developer', description: 'Running realtime systems in production today.' },
+  {
+    value: 'production',
+    label: 'Production realtime developer',
+    description: 'Running realtime systems in production today.',
+  },
 ];
 
 const STACKS = [
@@ -111,20 +115,36 @@ export function OnboardingFlow({ initialState, hasProjects }: { initialState: On
     }
   }
 
+  async function signOut() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+    router.refresh();
+  }
+
   return (
-    <main className="auth-backdrop flex min-h-screen flex-col items-center px-4 py-10 sm:py-16">
-      <div className="flex w-full max-w-xl flex-1 flex-col">
-        <header className="flex items-center justify-between">
+    <main className="auth-backdrop relative flex min-h-screen flex-col items-center px-4 py-6 sm:py-10">
+      <div aria-hidden className="auth-dot-grid absolute inset-0" />
+
+      <div className="relative z-10 flex w-full max-w-2xl flex-1 flex-col">
+        <header className="flex h-10 items-center justify-between">
           <span className="flex items-center gap-2">
             <RavenMark className="size-6" />
             <span className="text-sm font-semibold tracking-tight text-fg">Raven</span>
           </span>
-          {step > 1 && <ProgressIndicator current={step - 1} total={TOTAL_PROGRESS_STEPS} />}
+          <div className="flex items-center gap-4">
+            {step > 1 && <ProgressIndicator current={step - 1} total={TOTAL_PROGRESS_STEPS} />}
+            <button type="button" onClick={signOut} className="text-xs text-subtle transition-colors hover:text-muted">
+              Sign out
+            </button>
+          </div>
         </header>
 
         {/* key={step} re-mounts the panel so each step gets its entry
             animation; reduced-motion users get an instant swap. */}
-        <div key={step} className="animate-step-in mt-10 flex flex-1 flex-col">
+        <section
+          key={step}
+          className="animate-step-in mt-6 flex flex-1 flex-col rounded-lg border border-line bg-surface/90 p-6 shadow-raven-md backdrop-blur-sm sm:p-10"
+        >
           {error && (
             <div className="mb-6">
               <ErrorState title="Something went wrong" description={error} />
@@ -134,6 +154,7 @@ export function OnboardingFlow({ initialState, hasProjects }: { initialState: On
           {step === 1 && <WelcomeStep busy={busy} onContinue={() => saveAndGo(2)} />}
           {step === 2 && (
             <ChoiceStep
+              eyebrow="About you"
               title="What are you building?"
               subtitle="Pick everything that applies — this shapes the examples we show you."
               options={USE_CASES}
@@ -150,6 +171,7 @@ export function OnboardingFlow({ initialState, hasProjects }: { initialState: On
           )}
           {step === 3 && (
             <ChoiceStep
+              eyebrow="Experience"
               title="What’s your experience with realtime technology?"
               subtitle="No wrong answer — nothing here gates anything."
               options={EXPERIENCE_LEVELS}
@@ -163,6 +185,7 @@ export function OnboardingFlow({ initialState, hasProjects }: { initialState: On
           )}
           {step === 4 && (
             <ChoiceStep
+              eyebrow="Your stack"
               title="What are you building with?"
               subtitle="We’ll put the right SDKs first."
               options={STACKS}
@@ -207,7 +230,7 @@ export function OnboardingFlow({ initialState, hasProjects }: { initialState: On
               onFinish={() => completeAndGo(project ? `/dashboard/projects/${project.id}/overview` : '/dashboard')}
             />
           )}
-        </div>
+        </section>
       </div>
     </main>
   );
@@ -233,6 +256,11 @@ function ProgressIndicator({ current, total }: { current: number; total: number 
   );
 }
 
+/** The mono accent line above a step title — the wizard's section label. */
+function StepEyebrow({ children }: { children: React.ReactNode }) {
+  return <p className="mono-label mb-3 text-xs text-accent-text">{children}</p>;
+}
+
 function StepActions({
   busy,
   onBack,
@@ -249,7 +277,7 @@ function StepActions({
   continueDisabled?: boolean;
 }) {
   return (
-    <div className="mt-10 flex items-center justify-between border-t border-line pt-6">
+    <div className="mt-auto flex items-center justify-between border-t border-line pt-6">
       <div>
         {onBack && (
           <Button variant="ghost" onClick={onBack} disabled={busy}>
@@ -279,38 +307,49 @@ function StepActions({
 
 function WelcomeStep({ busy, onContinue }: { busy: boolean; onContinue: () => void }) {
   return (
-    <div className="flex flex-1 flex-col justify-center">
+    <div className="flex flex-1 flex-col justify-center py-4">
+      <StepEyebrow>Getting started</StepEyebrow>
       <h1 className="display text-3xl text-fg sm:text-4xl">Welcome to Raven</h1>
       <p className="mt-3 max-w-md text-base leading-relaxed text-muted">
         Realtime infrastructure for your applications.
       </p>
 
-      <ul className="mt-10 flex flex-col gap-4">
-        <CapabilityRow glyph="🎥" label="RTC" description="Build voice and video experiences." />
-        <CapabilityRow glyph="💬" label="Chat" description="Add realtime messaging." />
-        <CapabilityRow glyph="📡" label="Live Streaming" description="Build scalable live experiences." />
-      </ul>
+      <div className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <CapabilityTile
+          icon={<IconRooms className="size-4" />}
+          label="RTC"
+          description="Build voice and video experiences."
+        />
+        <CapabilityTile icon={<IconChat className="size-4" />} label="Chat" description="Add realtime messaging." />
+        <CapabilityTile
+          icon={<IconLiveStreaming className="size-4" />}
+          label="Live Streaming"
+          description="Build scalable live experiences."
+        />
+      </div>
 
       <div className="mt-12">
         <Button onClick={onContinue} loading={busy} size="md">
           Get started
         </Button>
+        <p className="mt-3 text-xs text-subtle">Takes about a minute. You can change any answer later.</p>
       </div>
     </div>
   );
 }
 
-function CapabilityRow({ glyph, label, description }: { glyph: string; label: string; description: string }) {
+function CapabilityTile({ icon, label, description }: { icon: React.ReactNode; label: string; description: string }) {
   return (
-    <li className="flex items-center gap-4 rounded border border-line bg-surface px-4 py-3.5">
-      <span aria-hidden className="text-lg">
-        {glyph}
+    <div className="rounded-md border border-line bg-canvas p-4 transition-colors hover:border-line-strong">
+      <span
+        aria-hidden
+        className="flex size-8 items-center justify-center rounded-md border border-accent-line bg-accent-subtle text-accent-text"
+      >
+        {icon}
       </span>
-      <div>
-        <p className="text-sm font-medium text-fg">{label}</p>
-        <p className="text-sm text-muted">{description}</p>
-      </div>
-    </li>
+      <p className="mt-3 text-sm font-medium text-fg">{label}</p>
+      <p className="mt-1 text-sm leading-relaxed text-muted">{description}</p>
+    </div>
   );
 }
 
@@ -319,6 +358,7 @@ function CapabilityRow({ glyph, label, description }: { glyph: string; label: st
 // ---------------------------------------------------------------------------
 
 function ChoiceStep({
+  eyebrow,
   title,
   subtitle,
   options,
@@ -330,6 +370,7 @@ function ChoiceStep({
   onContinue,
   onSkip,
 }: {
+  eyebrow: string;
   title: string;
   subtitle: string;
   options: Array<{ value: string; label: string; description?: string }>;
@@ -342,7 +383,8 @@ function ChoiceStep({
   onSkip: () => void;
 }) {
   return (
-    <div>
+    <div className="flex flex-1 flex-col">
+      <StepEyebrow>{eyebrow}</StepEyebrow>
       <h1 className="text-2xl font-semibold tracking-tight text-fg">{title}</h1>
       <p className="mt-2 text-sm text-muted">{subtitle}</p>
 
@@ -358,14 +400,28 @@ function ChoiceStep({
               // "pressed or not".
               aria-pressed={active}
               onClick={() => onToggle(option.value)}
-              className={`rounded border px-4 py-3 text-left transition-colors ${
+              className={`flex items-start justify-between gap-3 rounded-md border px-4 py-3 text-left transition-all ${
                 active
-                  ? 'border-accent-line bg-accent-subtle text-fg'
-                  : 'border-line bg-surface text-fg hover:border-line-strong hover:bg-surface-raised'
+                  ? 'border-accent bg-accent-subtle shadow-raven-sm'
+                  : 'border-line bg-canvas hover:border-line-strong hover:bg-surface-raised'
               }`}
             >
-              <span className="block text-sm font-medium">{option.label}</span>
-              {option.description && <span className="mt-0.5 block text-xs leading-relaxed text-muted">{option.description}</span>}
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-fg">{option.label}</span>
+                {option.description && (
+                  <span className="mt-0.5 block text-xs leading-relaxed text-muted">{option.description}</span>
+                )}
+              </span>
+              <span
+                aria-hidden
+                className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border text-[9px] leading-none transition-colors ${
+                  active
+                    ? 'border-accent bg-accent text-accent-fg'
+                    : 'border-line-strong bg-transparent text-transparent'
+                }`}
+              >
+                ✓
+              </span>
             </button>
           );
         })}
@@ -373,6 +429,7 @@ function ChoiceStep({
 
       {multi && <p className="mt-3 text-xs text-subtle">Select one or more.</p>}
 
+      <div className="pt-8" />
       <StepActions busy={busy} onBack={onBack} onContinue={onContinue} onSkip={onSkip} />
     </div>
   );
@@ -451,14 +508,23 @@ function CreateProjectStep({
 
   if (project) {
     return (
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-fg">Project created</h1>
+      <div className="flex flex-1 flex-col">
+        <StepEyebrow>First project</StepEyebrow>
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden
+            className="animate-scale-in flex size-8 items-center justify-center rounded-full border border-success-line bg-success-subtle text-sm text-success-text"
+          >
+            ✓
+          </span>
+          <h1 className="text-2xl font-semibold tracking-tight text-fg">Project created</h1>
+        </div>
         <p className="mt-2 text-sm text-muted">
           <span className="font-medium text-fg">{project.name}</span> is ready.
         </p>
 
         {project.apiKey ? (
-          <div className="mt-8 rounded border border-line bg-surface p-4">
+          <div className="mt-8 rounded-md border border-line bg-canvas p-4">
             <p className="mono-label text-xs text-muted">{project.apiKey.environment} API key</p>
             <div className="mt-2 flex items-center gap-2">
               <code className="min-w-0 flex-1 truncate rounded bg-surface-sunken px-3 py-2 font-mono text-xs text-fg">
@@ -477,40 +543,42 @@ function CreateProjectStep({
           </p>
         )}
 
+        <div className="pt-8" />
         <StepActions busy={busy} onBack={onBack} onContinue={onContinue} />
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="flex flex-1 flex-col">
+      <StepEyebrow>First project</StepEyebrow>
       <h1 className="text-2xl font-semibold tracking-tight text-fg">Create your first Raven project</h1>
-      <p className="mt-2 text-sm text-muted">
-        A project holds your rooms, conversations, streams, keys, and usage.
-      </p>
+      <p className="mt-2 text-sm text-muted">A project holds your rooms, conversations, streams, keys, and usage.</p>
 
-      <form onSubmit={handleCreate} className="mt-8 flex flex-col gap-4">
-        <Field
-          id="project-name"
-          label="Project name"
-          placeholder="My realtime app"
-          required
-          minLength={2}
-          maxLength={80}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <Select
-          id="project-environment"
-          label="Environment for your first API key"
-          value={environment}
-          onChange={(e) => setEnvironment(e.target.value as 'DEVELOPMENT' | 'PRODUCTION')}
-        >
-          <option value="DEVELOPMENT">Development</option>
-          <option value="PRODUCTION">Production</option>
-        </Select>
+      <form onSubmit={handleCreate} className="mt-8 flex flex-1 flex-col">
+        <div className="flex flex-col gap-4">
+          <Field
+            id="project-name"
+            label="Project name"
+            placeholder="My realtime app"
+            required
+            minLength={2}
+            maxLength={80}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Select
+            id="project-environment"
+            label="Environment for your first API key"
+            value={environment}
+            onChange={(e) => setEnvironment(e.target.value as 'DEVELOPMENT' | 'PRODUCTION')}
+          >
+            <option value="DEVELOPMENT">Development</option>
+            <option value="PRODUCTION">Production</option>
+          </Select>
+        </div>
 
-        <div className="mt-6 flex items-center justify-between border-t border-line pt-6">
+        <div className="mt-auto flex items-center justify-between border-t border-line pt-6">
           <Button type="button" variant="ghost" onClick={onBack} disabled={busy}>
             Back
           </Button>
@@ -555,10 +623,13 @@ function ConnectStep({
   const installCommand = wantsServer ? 'npm install @corvidhq/server' : 'npm install @corvidhq/rtc';
   // The real key never renders here — it was shown exactly once on the
   // previous step. The placeholder keeps this snippet honest and paste-safe.
-  const keyPlaceholder = project?.apiKey ? `<your ${project.apiKey.environment.toLowerCase()} API key>` : '<your API key>';
+  const keyPlaceholder = project?.apiKey
+    ? `<your ${project.apiKey.environment.toLowerCase()} API key>`
+    : '<your API key>';
 
   return (
-    <div>
+    <div className="flex flex-1 flex-col">
+      <StepEyebrow>Connect</StepEyebrow>
       <h1 className="text-2xl font-semibold tracking-tight text-fg">Connect your app</h1>
       <p className="mt-2 text-sm text-muted">Three steps from zero to a live RTC session.</p>
 
@@ -578,11 +649,11 @@ function ConnectStep({
       </ol>
 
       <p className="mt-5 text-xs leading-relaxed text-subtle">
-        The full quickstart covers minting tokens from your backend and every SDK — it’s one click away in your
-        project.
+        The full quickstart covers minting tokens from your backend and every SDK — it’s one click away in your project.
       </p>
 
-      <div className="mt-10 flex items-center justify-between border-t border-line pt-6">
+      <div className="pt-8" />
+      <div className="mt-auto flex items-center justify-between border-t border-line pt-6">
         <Button variant="ghost" onClick={onBack} disabled={busy}>
           Back
         </Button>
@@ -610,7 +681,7 @@ function QuickstartItem({ index, title, children }: { index: number; title: stri
     <li className="flex gap-4">
       <span
         aria-hidden
-        className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface font-mono text-xs text-muted"
+        className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border border-accent-line bg-accent-subtle font-mono text-xs text-accent-text"
       >
         {index}
       </span>
@@ -628,19 +699,20 @@ function QuickstartItem({ index, title, children }: { index: number; title: stri
 
 function CompleteStep({ busy, onFinish }: { busy: boolean; onFinish: () => void }) {
   return (
-    <div className="flex flex-1 flex-col items-start justify-center">
+    <div className="flex flex-1 flex-col items-start justify-center py-4">
       <span
         aria-hidden
-        className="flex size-12 items-center justify-center rounded-full border border-success-line bg-success-subtle text-xl text-success-text"
+        className="animate-scale-in flex size-14 items-center justify-center rounded-full border border-success-line bg-success-subtle text-2xl text-success-text shadow-raven-sm"
       >
         ✓
       </span>
-      <h1 className="display mt-6 text-3xl text-fg sm:text-4xl">You’re ready to build.</h1>
+      <p className="mono-label mb-3 mt-6 text-xs text-accent-text">All set</p>
+      <h1 className="display text-3xl text-fg sm:text-4xl">You’re ready to build.</h1>
       <p className="mt-3 max-w-md text-base leading-relaxed text-muted">
         Your workspace is set up. Rooms, chat, streams, keys, and usage are all waiting in your dashboard.
       </p>
       <div className="mt-10">
-        <Button onClick={onFinish} loading={busy}>
+        <Button onClick={onFinish} loading={busy} size="md">
           Go to dashboard
         </Button>
       </div>

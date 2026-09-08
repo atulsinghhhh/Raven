@@ -63,7 +63,7 @@ export function ProductShowcase() {
   return (
     <section className="mx-auto max-w-6xl px-6 pb-28 md:pb-36">
       <div
-        className="mono-label inline-flex max-w-full gap-1 overflow-x-auto rounded-(--radius-panel) border border-line bg-surface p-1 text-[11px]"
+        className="mono-label inline-flex max-w-full gap-1 overflow-x-auto rounded-(--radius-panel) border border-line bg-surface-raised p-1 text-[11px]"
         role="tablist"
         aria-label="Raven products"
       >
@@ -84,7 +84,7 @@ export function ProductShowcase() {
         ))}
       </div>
 
-      <div className="mt-4 grid gap-10 rounded-(--radius-panel) border border-line bg-surface-sunken/40 p-8 md:grid-cols-2 md:items-center md:gap-12 md:p-10">
+      <div className="mt-4 grid gap-10 rounded-2xl bg-surface p-8 card-lift md:grid-cols-2 md:items-center md:gap-12 md:p-10">
         <div>
           <span className="mono-label inline-flex items-center gap-2 rounded-(--radius-panel) border border-accent-line bg-accent-subtle px-2.5 py-1 text-[10px] text-accent-text">
             {product.icon}
@@ -105,7 +105,7 @@ export function ProductShowcase() {
 
           <a
             href={product.href}
-            className="mt-8 inline-block rounded-(--radius-panel) border border-line bg-surface px-3.5 py-2 text-[13px] font-medium text-fg transition-colors hover:border-line-strong"
+            className="mt-8 inline-block rounded-(--radius-panel) border border-accent-line px-3.5 py-2 text-[13px] font-medium text-fg transition-colors hover:border-accent-text"
           >
             {product.label} documentation
           </a>

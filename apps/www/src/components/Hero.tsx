@@ -43,7 +43,7 @@ export function Hero() {
           </a>
           <a
             href={DOCS_URL}
-            className="inline-flex items-center gap-2.5 rounded-(--radius-panel) border border-line px-4 py-2.5 text-[13px] font-medium text-fg transition-colors hover:border-line-strong hover:bg-surface"
+            className="inline-flex items-center gap-2.5 rounded-(--radius-panel) border border-accent-line px-4 py-2.5 text-[13px] font-medium text-fg transition-colors hover:border-accent-text hover:bg-canvas"
           >
             <span className="mono-label rounded-sm border border-line bg-surface px-1.5 py-0.5 text-[10px] text-muted">
               docs

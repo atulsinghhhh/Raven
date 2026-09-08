@@ -68,9 +68,9 @@ export function HeroNetwork() {
       >
         <defs>
           <radialGradient id="raven-core-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
-            <stop offset="60%" stopColor="var(--accent)" stopOpacity="0.08" />
-            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--accent-line)" stopOpacity="0.28" />
+            <stop offset="60%" stopColor="var(--accent-line)" stopOpacity="0.08" />
+            <stop offset="100%" stopColor="var(--accent-line)" stopOpacity="0" />
           </radialGradient>
         </defs>
 
@@ -115,7 +115,7 @@ export function HeroNetwork() {
             cy={CORE.y}
             r="34"
             fill="none"
-            stroke="var(--accent)"
+            stroke="var(--accent-line)"
             className="raven-net-ring"
             opacity="0"
           />

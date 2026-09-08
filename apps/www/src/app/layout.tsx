@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist_Mono, Inter, Space_Grotesk } from 'next/font/google';
+import { Fraunces, JetBrains_Mono, Lexend } from 'next/font/google';
 import './globals.css';
 
 const TITLE = 'Raven — Infrastructure for real-time applications';
@@ -22,28 +22,30 @@ export const metadata: Metadata = {
   },
 };
 
-// Body text and UI copy. Headlines run in the display face below.
-const sans = Inter({
+// Body text and UI copy. Light weights keep the interface airy; 500-600
+// are reserved for buttons and labels. Headlines run in the serif below.
+const sans = Lexend({
   subsets: ['latin'],
-  weight: ['400', '500', '600'],
+  weight: ['300', '400', '500', '600'],
   variable: '--font-raven-sans',
   display: 'swap',
 });
 
-// Display face for headlines only — the geometric, slightly technical
-// cut that separates "Raven is infrastructure" from body copy. Wired to
-// the `.display` utility in globals.css; never applied to paragraphs.
-const displayFace = Space_Grotesk({
+// Display face for headlines only — the thin editorial serif that
+// carries the whole identity, with the italic cut for the one or two
+// emphasis words per headline. Wired to the `.display` utility in
+// globals.css; never applied to paragraphs.
+const displayFace = Fraunces({
   subsets: ['latin'],
-  weight: ['500', '600'],
+  weight: ['300', '400'],
+  style: ['normal', 'italic'],
   variable: '--font-raven-display',
   display: 'swap',
 });
 
-// Console-style microcopy (nav links, section eyebrows, code chrome);
-// Geist Mono is Vercel's open-source mono, not anything proprietary to
-// the sites that also happen to use it.
-const mono = Geist_Mono({
+// Console-style microcopy (section eyebrows, code chrome, technical
+// labels) and every code sample on the page.
+const mono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
   variable: '--font-raven-mono',
@@ -52,7 +54,7 @@ const mono = Geist_Mono({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dark" className={`${sans.variable} ${displayFace.variable} ${mono.variable}`}>
+    <html lang="en" data-theme="light" className={`${sans.variable} ${displayFace.variable} ${mono.variable}`}>
       <body className="font-sans antialiased">{children}</body>
     </html>
   );
