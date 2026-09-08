@@ -69,3 +69,4 @@ sdks/flutter/*/pubspec.lock
 # this file and silently un-tracks the 89-variable template every developer
 # copies to get started. The `.env` / `.env.*` pair up there already covers
 # every real env file.
+.env*

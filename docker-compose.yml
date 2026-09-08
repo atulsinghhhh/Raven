@@ -56,15 +56,28 @@ services:
       # the only connections that work are TURN relays.
       SFU_PUBLIC_IP: ${SFU_PUBLIC_IP:-127.0.0.1}
       SFU_HTTP_ADDR: ":7000"
-      # Container-to-container, not host-facing: the API is on
-      # this network, so "localhost" would point back at the SFU itself.
-      # Must track API_PORT. Hardcoded to :4000 previously, which the api
-      # container has never listened on — registration failed with
-      # "connection refused" on every retry, so no node ever reached the
-      # registry and /health reported sfu: down. config.go's own default is
-      # :4000 too; neither is the port this deployment uses.
-      SFU_CONTROL_PLANE_URL: http://api:${API_PORT:-4100}
-      SFU_INTERNAL_URL: http://sfu:7000
+      # Container-to-container by default, not host-facing: the api
+      # container is on this network, so "localhost" would point back at
+      # the SFU itself. Must track API_PORT. Hardcoded to :4000 previously,
+      # which the api container has never listened on — registration failed
+      # with "connection refused" on every retry, so no node ever reached
+      # the registry and /health reported sfu: down. config.go's own default
+      # is :4000 too; neither is the port this deployment uses.
+      #
+      # Overridable because the hot-reload workflow stops the api container
+      # (docs/local-development.md) — and a stopped container takes its DNS
+      # name with it, so this default then fails with "no such host", which
+      # reads like a broken SFU rather than a missing peer. Set
+      # SFU_CONTROL_PLANE_URL=http://host.docker.internal:4100 to reach an
+      # API running on the host instead.
+      SFU_CONTROL_PLANE_URL: ${SFU_CONTROL_PLANE_URL:-http://api:${API_PORT:-4100}}
+      # What the node advertises to the control plane as its own reachable
+      # address — the API's readiness probe fetches this, so it has to be
+      # resolvable from wherever the API runs, not from here. Same override
+      # story as SFU_CONTROL_PLANE_URL above: an API on the host needs
+      # http://localhost:7000 (the published port), because "sfu" is a name
+      # that only exists on this network.
+      SFU_INTERNAL_URL: ${SFU_INTERNAL_URL:-http://sfu:7000}
       SFU_REGISTRATION_SECRET: ${SFU_REGISTRATION_SECRET:?SFU_REGISTRATION_SECRET is required}
       SFU_HEARTBEAT_INTERVAL_SECONDS: ${SFU_HEARTBEAT_INTERVAL_SECONDS:-10}
       SFU_ROOM_CAPACITY: ${SFU_ROOM_CAPACITY:-100}

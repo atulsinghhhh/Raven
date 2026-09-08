@@ -187,6 +187,9 @@ host with `pnpm dev` gives you fast TypeScript hot-reload instead of
 rebuilding a Docker image on every change:
 
 ```bash
+# One-time: tell the containerised SFU where the host-run API lives.
+echo 'SFU_CONTROL_PLANE_URL=http://host.docker.internal:4100' >> .env
+
 pnpm infra:up                      # keep redis/sfu/coturn in Docker
 docker compose stop api            # avoid a port clash with the host-run copy
 pnpm dev                            # from the repo root — runs apps/api in watch mode
@@ -196,6 +199,21 @@ This works because `.env`'s `REDIS_URL` points at `localhost` + the
 host-mapped port (`6379`), which is exactly what a process running directly
 on your machine (not in a container) needs. `DATABASE_URL` needs no such
 distinction — Supabase is at the same address from everywhere.
+
+**Don't skip the `SFU_CONTROL_PLANE_URL` line.** The SFU stays in Docker
+and registers against `http://api:4100` by default — the *container*. Stop
+that container, as the second command does, and Docker's DNS drops the name
+with it, so the node retries forever against a host that no longer exists.
+Nothing about the SFU looks wrong when this happens: the container reports
+`(healthy)`, because its healthcheck is liveness on `/healthz` and knows
+nothing about registration. What you actually see is `sfu: down` in the
+API's `/health`, `unhealthy` next to the node in the dashboard, and joins
+failing with `NO_RTC_CAPACITY`. Set the variable and recreate the node:
+
+```bash
+docker compose up -d --force-recreate sfu
+docker compose logs sfu | grep -i registered
+```
 
 ## How the SFU fits in
 
@@ -285,6 +303,24 @@ The symptom is specific and worth recognising: `room.joined` arrives, an
 leaves `connecting`. Everything on the control plane works, because none
 of it depends on that address being reachable. `chrome://webrtc-internals`
 will show candidate pairs failing their connectivity checks.
+
+**SFU logs `registration failed, retrying` / `lookup api: no such host`**
+The node is trying to register against the `api` *container* while your API
+runs on the host. Docker resolves `api` only while that container is up, so
+`docker compose stop api` — which the hot-reload workflow above tells you to
+run — deletes the name the SFU depends on. Add
+`SFU_CONTROL_PLANE_URL=http://host.docker.internal:4100` to `.env` and
+`docker compose up -d --force-recreate sfu`.
+
+`connection refused` instead of `no such host` is the other half of the same
+problem: the name resolved, nothing was listening on that port. Check
+`API_PORT` matches on both sides.
+
+Either way, recovery is automatic once a heartbeat lands — a heartbeat from
+an `UNHEALTHY` node promotes it straight back to `HEALTHY`, so there is
+nothing to reset by hand. Worth knowing that `docker ps` showing the SFU as
+`(healthy)` is not evidence of registration; only
+`raven rtc servers list` and the API's `/health` are.
 
 **"Cannot create pid file" warning in coturn logs**
 Harmless — coturn falls back to `/var/tmp/turnserver.pid` inside the

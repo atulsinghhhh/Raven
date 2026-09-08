@@ -4,9 +4,9 @@
   "private": true,
   "description": "Raven developer dashboard \u2014 projects, API keys, rooms, usage, SDK quickstart.",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3001",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "jest",

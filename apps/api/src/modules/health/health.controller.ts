@@ -125,12 +125,22 @@ export class HealthController {
         // happily but sits behind a broken route from here. A bare HTTP
         // probe on its own needs a hardcoded address, which is the very
         // thing the registry exists to avoid.
-        const server = await this.rtcServers.pickHealthyForProbe();
-        if (!server) throw new Error('no healthy rtc server registered');
+        //
+        // Scoped to the region this instance allocates in, and tried in
+        // order rather than one-node-and-done. Probing the whole fleet
+        // meant readiness depended on nodes in other networks: a healthy
+        // node in another region advertises an address private to that
+        // network, so the probe failed and the instance took itself out of
+        // rotation over something it was never going to allocate anyway.
+        const region = this.configService.get<string>('sfu.defaultRegion')!;
+        const candidates = await this.rtcServers.listHealthyForProbe(region);
+        if (candidates.length === 0) throw new Error('no healthy rtc server registered');
         // internalUrl, not publicHost. This check runs inside the
         // deployment's network, not from a real client's vantage point.
-        const ok = await checkSfuHttp(server.internalUrl);
-        if (!ok) throw new Error('unreachable');
+        for (const candidate of candidates) {
+          if (await checkSfuHttp(candidate.internalUrl)) return;
+        }
+        throw new Error('unreachable');
       }),
       this.checkDependency(async () => {
         const ok = await checkStunBinding(
