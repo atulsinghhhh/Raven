@@ -1,0 +1,158 @@
+name: Release
+
+# Changesets-driven release for the eight public @corvidhq/* packages.
+#
+#   PR carrying a changeset
+#      ↓ merged to main
+#   this workflow opens/updates a "Version Packages" PR
+#      ↓ you review and merge that PR
+#   this workflow runs again, finds no changesets pending, and publishes
+#      ↓
+#   npm  →  git tags  →  GitHub Releases
+#
+# Nothing publishes on a normal merge. The version PR is the approval gate,
+# and it is a human action.
+#
+# The four apps (@raven/api, @raven/dashboard, @raven/docs, @raven/www) are
+# `private: true` and listed in .changeset/config.json's `ignore`. They are
+# deployed, never published; changesets will not touch them.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  # Never cancel a release mid-publish: a half-published set of
+  # interdependent packages is far worse than a queued run.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  release:
+    name: Version or publish
+    runs-on: ubuntu-latest
+    # Skip the version PR's own merge commit only if it carried nothing —
+    # changesets/action decides that itself, so no ref filtering here.
+    permissions:
+      # Push version-bump commits, create tags, create GitHub Releases.
+      contents: write
+      # Open and update the "Version Packages" PR.
+      pull-requests: write
+      # npm trusted publishing (OIDC). Harmless when NPM_TOKEN is used
+      # instead; see the note on authentication below.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # changesets needs history to work out what changed since the last
+          # release and to write changelog links.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          # Points npm at the public registry and wires up OIDC/token auth
+          # for the publish step.
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+
+      # Publishing a broken tarball cannot be undone — npm unpublish is
+      # heavily restricted. So the same gates that guard main run again
+      # here, on the exact tree about to be packed.
+      - name: Generate Prisma client
+        run: pnpm --filter @raven/api run prisma:generate
+
+      - name: Typecheck
+        run: |
+          pnpm --filter "./packages/*" run build
+          pnpm -r --if-present run typecheck
+
+      - name: Unit tests
+        run: pnpm -r --if-present run test
+
+      # Fails the release if any package about to be published is missing a
+      # README, a LICENSE, repository metadata or publishConfig.access, or
+      # if a private package has somehow become publishable.
+      - name: Verify package metadata
+        run: node scripts/verify-package-metadata.mjs
+
+      # Every publishable package is packed with the real packer and the
+      # contents inspected, without contacting the registry.
+      - name: npm pack dry-run
+        run: |
+          set -euo pipefail
+          for dir in packages/*/; do
+            name="$(node -p "require('./${dir}package.json').name")"
+            private="$(node -p "require('./${dir}package.json').private === true")"
+            if [ "$private" = "true" ]; then
+              echo "skip (private): $name"
+              continue
+            fi
+            echo "::group::pack $name"
+            ( cd "$dir" && npm publish --dry-run )
+            echo "::endgroup::"
+          done
+
+      - name: Changesets — version PR or publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          # Builds every package, then publishes only those whose version is
+          # not already on the registry, in dependency order.
+          publish: pnpm release
+          version: pnpm version-packages
+          commit: "chore(release): version packages"
+          title: "chore(release): version packages"
+          # One GitHub Release per published package, tagged
+          # <package>@<version>, with that package's changelog entry as the
+          # body. Written by changesets from the real changeset files — no
+          # release is ever invented.
+          createGithubReleases: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # ---------------------------------------------------------------
+          # Authentication.
+          #
+          # Preferred: npm **trusted publishing** — configure each package on
+          # npmjs.com to trust this repository and workflow, and the OIDC
+          # token from `id-token: write` above is exchanged for a short-lived
+          # credential. Nothing long-lived is stored in GitHub.
+          #
+          # NPM_TOKEN below is the fallback for packages not yet migrated to
+          # trusted publishing. It is read from repository secrets and never
+          # echoed; if it is unset the publish step fails loudly rather than
+          # publishing anonymously.
+          #
+          # See docs/releases.md for the one-time setup.
+          # ---------------------------------------------------------------
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: |
+          {
+            echo "### Release run"
+            echo
+            if [ "${{ steps.changesets.outputs.published }}" = "true" ]; then
+              echo "Published:"
+              echo '```json'
+              echo '${{ steps.changesets.outputs.publishedPackages }}'
+              echo '```'
+            elif [ -n "${{ steps.changesets.outputs.pullRequestNumber }}" ]; then
+              echo "Version PR: #${{ steps.changesets.outputs.pullRequestNumber }} — review and merge it to publish."
+            else
+              echo "No changesets pending. Nothing to version, nothing to publish."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

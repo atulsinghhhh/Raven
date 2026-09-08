@@ -2,7 +2,7 @@
   "name": "raven",
   "version": "0.0.0",
   "private": true,
-  "description": "Raven \u2014 open-source, developer-first real-time communication infrastructure (control plane + RTC plane).",
+  "description": "Raven — open-source, developer-first real-time communication infrastructure (control plane + RTC plane).",
   "packageManager": "pnpm@11.22.0",
   "engines": {
     "node": ">=20"
@@ -18,16 +18,25 @@
     "dashboard:dev": "pnpm --filter @raven/dashboard dev",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "pnpm --filter @raven/api test",
     "test:e2e": "pnpm --filter @raven/api test:e2e",
     "db:migrate": "pnpm --filter @raven/api prisma:migrate:deploy",
-    "db:seed": "pnpm --filter @raven/api prisma:seed"
+    "db:seed": "pnpm --filter @raven/api prisma:seed",
+    "changeset": "changeset",
+    "changeset:status": "changeset status --since=origin/main",
+    "version-packages": "changeset version && pnpm install --lockfile-only",
+    "release": "pnpm --filter \"./packages/*\" run build && changeset publish"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.2",
+    "@changesets/cli": "^2.31.1",
     "@eslint/js": "^9.39.5",
     "eslint": "^9.39.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^15.15.0",
+    "prettier": "^3.6.2",
     "typescript-eslint": "^8.69.0",
     "ws": "^8.18.0"
   }
