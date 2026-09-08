@@ -1,15 +1,15 @@
 /**
- * The documentation's table of contents, in the order it should read —
+ * The documentation's table of contents, in the order it should read;
  * not inferred from the filesystem, so a section can be reordered or a
  * page added without renaming files or fighting alphabetical sort.
  *
  * A slug not listed here still renders (any file under content/ is
  * reachable by its path), it just won't appear in the sidebar. Nothing
- * here links to a slug that doesn't have a corresponding .md file —
+ * here links to a slug that doesn't have a corresponding .md file;
  * `pnpm typecheck`-equivalent for content is `getNav()`'s own
  * `assertNavMatchesContent` check, run at build time.
  *
- * RTC, Chat, and Live Streaming are tagged with `product` — that tag is
+ * RTC, Chat, and Live Streaming are tagged with `product`: that tag is
  * what makes the sidebar context-aware (Sidebar.tsx renders only the
  * matching section under `/rtc/*`, `/chat/*`, `/live-streaming/*`) and
  * what drives the product switcher (ProductSwitcher.tsx). Every other
@@ -25,14 +25,14 @@ export interface NavItem {
 export interface NavSection {
   title: string;
   items: NavItem[];
-  /** Set only on the three product sections — see file header. */
+  /** Set only on the three product sections: see file header. */
   product?: ProductId;
 }
 
 /**
  * The three products, in the order the switcher and homepage show them.
  * Each product's landing page lives at the bare product slug (`rtc`,
- * not `rtc/overview`) — see `content/rtc.md` etc.
+ * not `rtc/overview`): see `content/rtc.md` etc.
  */
 export const PRODUCTS: { id: ProductId; label: string; slug: string }[] = [
   { id: 'rtc', label: 'RTC', slug: 'rtc' },
@@ -196,7 +196,7 @@ export function findNavItem(slug: string): { section: NavSection; item: NavItem 
   return undefined;
 }
 
-/** Which product's docs area a slug belongs to, if any — drives the context-aware sidebar. */
+/** Which product's docs area a slug belongs to, if any: drives the context-aware sidebar. */
 export function productForSlug(slug: string): ProductId | undefined {
   return findNavItem(slug)?.section.product;
 }

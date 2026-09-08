@@ -5,7 +5,7 @@ import { useRef, useState, type ComponentPropsWithoutRef } from 'react';
 /**
  * Replaces every `<pre>` MDX/rehype-pretty-code emits. Reads the code
  * back out via `innerText` at click time rather than trying to recover
- * plain text from the already-highlighted `<span>` tree — that works
+ * plain text from the already-highlighted `<span>` tree: that works
  * regardless of how Shiki tokenized the block, and needs no coordination
  * with the compiler.
  */

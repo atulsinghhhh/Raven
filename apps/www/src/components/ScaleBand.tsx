@@ -9,7 +9,7 @@ import { useInView } from '../lib/useInView';
  *
  * Deliberately counts, not benchmarks. Raven publishes no uptime,
  * latency, concurrency, or customer figures here, because none of them
- * have been measured — see the no-fake-enterprise-claims note this page
+ * have been measured: see the no-fake-enterprise-claims note this page
  * was built against. Every number below is something you can verify by
  * reading the SDK list or the docs, and the footnote says so out loud.
  */

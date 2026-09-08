@@ -14,7 +14,7 @@ export function Tab({ children }: TabProps) {
 
 /**
  * SDK/language switcher for a code example. Every panel is always
- * present in the DOM — only CSS visibility toggles on click — so the
+ * present in the DOM, only CSS visibility toggles on click, so the
  * page's static HTML (what the search indexer reads, what a reader with
  * JS disabled sees, what a crawler sees) already contains every SDK's
  * version of the example, not just whichever one loads active.

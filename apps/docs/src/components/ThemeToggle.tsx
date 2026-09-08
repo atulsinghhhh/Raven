@@ -6,7 +6,7 @@ type Theme = 'light' | 'dark';
 
 /**
  * Light mode already existed in the stylesheet and the boot script in
- * layout.tsx already resolved it — there was simply no control to reach
+ * layout.tsx already resolved it: there was simply no control to reach
  * it, so every reader got whatever their OS preferred with no way to
  * override. This is that control.
  *
@@ -14,7 +14,7 @@ type Theme = 'light' | 'dark';
  * the boot script sets it before first paint and this button reads it,
  * rather than keeping a parallel copy that could disagree with the page.
  * Modelled as an external store because that attribute genuinely is one
- * — it lives outside React. Same localStorage key as the dashboard, so
+ *: it lives outside React. Same localStorage key as the dashboard, so
  * a reader who picks a theme in one keeps it in the other.
  */
 const listeners = new Set<() => void>();
@@ -41,7 +41,7 @@ function setTheme(next: Theme) {
   try {
     localStorage.setItem('raven-theme', next);
   } catch {
-    // Private mode / storage disabled — the toggle still works for this session.
+    // Private mode / storage disabled: the toggle still works for this session.
   }
   listeners.forEach((notify) => notify());
 }

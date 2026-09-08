@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 /**
  * Counts up from 0 to `target` over ~900ms once `active` flips true,
- * then holds. Skips straight to `target` under reduced motion — the
+ * then holds. Skips straight to `target` under reduced motion: the
  * number itself is the content, the count-up is just polish.
  */
 export function useCountUp(target: number, active: boolean) {
@@ -13,7 +13,7 @@ export function useCountUp(target: number, active: boolean) {
   useEffect(() => {
     if (!active) return;
     if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      // Deferred a frame rather than set synchronously inline — keeps the
+      // Deferred a frame rather than set synchronously inline: keeps the
       // setState call inside a callback, not the effect body itself.
       const frame = requestAnimationFrame(() => setValue(target));
       return () => cancelAnimationFrame(frame);

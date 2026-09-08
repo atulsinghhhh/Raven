@@ -6,11 +6,11 @@ import { useEffect, useRef, type ReactNode } from 'react';
  * Fades and lifts its children in once they scroll into view.
  *
  * IntersectionObserver rather than the newer `animation-timeline: view()`
- * CSS — broader support today, and simple enough that reaching for a
+ * CSS: broader support today, and simple enough that reaching for a
  * library would be the wrong trade.
  *
  * Renders fully visible in React's own render output, on server and
- * client alike — the "start hidden, then reveal" state is applied by
+ * client alike: the "start hidden, then reveal" state is applied by
  * toggling classes on the DOM node directly inside the effect, never
  * through React state. That keeps a visitor with JS disabled, or a
  * crawler that doesn't execute it, seeing the content immediately (there

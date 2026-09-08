@@ -8,7 +8,7 @@ import { highlight, rank, type RankedResult } from '../lib/rank';
 /**
  * Search over every page, every heading.
  *
- * The index is fetched once, the first time the dialog opens — not on
+ * The index is fetched once, the first time the dialog opens: not on
  * page load. Someone reading a guide shouldn't pay for a feature they
  * haven't used, and the whole site is otherwise static HTML that needs
  * no JavaScript at all to read.
@@ -29,7 +29,7 @@ export function Search() {
   const results: RankedResult[] = index ? rank(index, query) : [];
 
   // Fetch on first open only. StrictMode double-invokes this in dev; the
-  // `index` guard makes the second run a no-op rather than a second GET.
+  // `index` guard makes the second run a no-op, not a second GET.
   useEffect(() => {
     if (!open || index || indexError) return;
 
@@ -73,7 +73,7 @@ export function Search() {
       }
 
       // `/` is a search shortcut on most docs sites, but it's also a
-      // character — never steal it from someone mid-word in a field.
+      // character: never steal it from someone mid-word in a field.
       if (event.key === '/' && !isTypingTarget(event.target)) {
         event.preventDefault();
         setOpen(true);
@@ -258,7 +258,7 @@ function Hint({ children }: { children: React.ReactNode }) {
   return <code className="rounded bg-surface-raised px-1 py-0.5 text-xs text-fg">{children}</code>;
 }
 
-/** True for inputs, textareas, and contenteditable — where `/` is a character, not a shortcut. */
+/** True for inputs, textareas, and contenteditable: where `/` is a character, not a shortcut. */
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return (

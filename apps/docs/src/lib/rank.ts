@@ -8,25 +8,25 @@ export interface RankedResult {
 }
 
 /**
- * Scoring weights. A match in a title beats a match in a heading, which
- * beats a match in body text — because someone typing "webhooks" wants
- * the Webhooks page, not the paragraph on some other page that mentions
- * webhooks in passing.
+ * Scoring weights. A match in a title beats one in a heading, which beats
+ * one in body text. Somebody typing "webhooks" wants the Webhooks page, not
+ * a paragraph on some other page that mentions webhooks in passing.
  */
 const WEIGHT = {
   title: 12,
   heading: 6,
-  /** Page-level context — real, but never as strong as the section's own words. */
+  /** Page-level context. Real, but never as strong a signal as the section's own words. */
   description: 3,
   text: 1,
   exactPhrase: 20,
   prefix: 0.5,
   /**
-   * A page whose *title* accounts for the entire query is almost always
-   * the one being looked for. Without this, "screen share" ranked a
-   * Flutter subheading above the Screen Sharing page, because the
-   * subheading contained the literal phrase and "Screen Sharing" does
-   * not contain the substring "share ".
+   * A page whose *title* accounts for the whole query is almost always the
+   * one somebody's after.
+   *
+   * Without this, "screen share" ranked a Flutter subheading above the
+   * Screen Sharing page, because the subheading contained the literal
+   * phrase and "Screen Sharing" doesn't contain the substring "share ".
    */
   allTermsInTitle: 25,
 } as const;
@@ -35,17 +35,17 @@ const MAX_RESULTS = 12;
 const EXCERPT_RADIUS = 90;
 
 /**
- * Suffixes stripped to get a term's stem, longest first.
+ * Suffixes we strip to get a term's stem, longest first.
  *
- * Without this, "screen share" misses the Screen Sharing page entirely —
- * "share" is not a substring of "sharing" — while matching a Flutter
- * subheading that happens to use the exact words. Developers type
- * "token" and "tokens", "reconnect" and "reconnection", interchangeably.
+ * Without this, "screen share" misses the Screen Sharing page completely,
+ * because "share" isn't a substring of "sharing", while happily matching a
+ * Flutter subheading that used the exact words. People type "token" and
+ * "tokens", "reconnect" and "reconnection", interchangeably.
  *
- * This is not a stemmer in the Porter sense and isn't trying to be. It
- * is four suffix rules with a length floor, which is the amount of
- * cleverness a 38-page site can justify: enough to close the plural and
- * gerund gap, not enough to start producing surprising matches.
+ * This is not a stemmer in the Porter sense and isn't trying to be. Four
+ * suffix rules with a length floor is about as much cleverness as a
+ * 38-page site can justify: enough to close the plural and gerund gap, not
+ * enough to start throwing up surprising matches.
  */
 const SUFFIXES = ['ing', 'ies', 'es', 'ed', 's', 'e'] as const;
 const MIN_STEM_LENGTH = 4;
@@ -54,12 +54,12 @@ const MIN_STEM_LENGTH = 4;
  * Words dropped from a query before matching.
  *
  * Search is an AND across terms, so without this a perfectly reasonable
- * question — "how do I mute a mic" — finds nothing: every word has to
- * appear on the same page, and "how" is on 15 of 38 pages while "mute"
- * is on 7. Dropping the connective tissue leaves the terms that carry
- * the question.
+ * question like "how do I mute a mic" finds absolutely nothing. Every word
+ * has to appear on the same page, and "how" is on 15 of 38 pages while
+ * "mute" is on 7. Dropping the connective tissue leaves the terms actually
+ * carrying the question.
  *
- * Deliberately short. Anything that could be part of a real query
+ * Kept short on purpose. Anything that could be part of a real query
  * ("no", "not", "off") stays in.
  */
 const STOPWORDS = new Set([
@@ -85,11 +85,12 @@ export function stem(term: string): string {
 }
 
 /**
- * Ranks the index against a query. Deliberately a plain function with no
- * index-time preprocessing and no dependency: 38 pages is a few hundred
- * records, which scans in well under a frame on any device that can run
- * a video call. A trie or an inverted index would be faster and would
- * also be code nobody here needs to maintain.
+ * Ranks the index against a query.
+ *
+ * A plain function on purpose: no index-time preprocessing, no dependency.
+ * 38 pages is a few hundred records, and that scans in well under a frame on
+ * any device capable of running a video call. A trie or an inverted index
+ * would be faster, and would also be code nobody here needs to maintain.
  */
 export function rank(records: SearchRecord[], query: string): RankedResult[] {
   const trimmed = query.trim().toLowerCase();
@@ -105,8 +106,8 @@ export function rank(records: SearchRecord[], query: string): RankedResult[] {
     const text = record.text.toLowerCase();
     const haystack = `${title} ${heading} ${description} ${text}`;
 
-    // Every term must appear somewhere, so "chat token" doesn't match a
-    // page that only says "chat" — an AND search, which is what people
+    // Every term has to appear somewhere, so "chat token" doesn't match a
+    // page that only says "chat". An AND search, which is what people
     // expect when they add a word to narrow things down.
     if (!terms.every((term) => haystack.includes(term))) continue;
 
@@ -121,7 +122,7 @@ export function rank(records: SearchRecord[], query: string): RankedResult[] {
       if (title.startsWith(term)) score += WEIGHT.title * WEIGHT.prefix;
     }
 
-    // Phrase bonus uses the query as typed — a stemmed "phrase" isn't one.
+    // Phrase bonus uses the query as typed. A stemmed "phrase" isn't one.
     if (terms.length > 1 && haystack.includes(trimmed)) score += WEIGHT.exactPhrase;
     if (terms.every((term) => title.includes(term))) score += WEIGHT.allTermsInTitle;
 
@@ -134,12 +135,12 @@ export function rank(records: SearchRecord[], query: string): RankedResult[] {
 }
 
 /**
- * A query as typed → the terms actually matched on: stopwords removed,
+ * A query as typed → the terms we actually match on: stopwords removed,
  * everything stemmed.
  *
- * When a query is nothing but stopwords ("how to"), the words are kept
- * rather than searching for nothing — a literal match is better than an
- * empty result list.
+ * When a query is nothing but stopwords, "how to" say, we keep the words
+ * instead of searching for nothing. A literal match beats an empty result
+ * list.
  */
 export function queryTerms(query: string): string[] {
   const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -174,14 +175,16 @@ function excerptAround(text: string, term: string): string {
 }
 
 /**
- * Splits a string into matched / unmatched runs so the caller can mark
- * the matches. Returning data rather than HTML keeps this testable and
- * keeps `dangerouslySetInnerHTML` out of the search results, where the
- * text comes from a file and the query comes from the user.
+ * Splits a string into matched and unmatched runs, so the caller can mark
+ * up the matches.
+ *
+ * Returning data rather than HTML keeps this testable, and keeps
+ * `dangerouslySetInnerHTML` out of the search results, where the text comes
+ * from a file and the query comes from a user.
  */
 export function highlight(text: string, query: string): { text: string; match: boolean }[] {
-  // The same terms rank() matched on — stopwords out, stemmed — so a
-  // result matched via "share" → "Sharing" shows the reader why, and a
+  // The same terms rank() matched on: stopwords out, everything stemmed. So
+  // a result matched via "share" → "Sharing" shows the reader why, and a
   // stopword doesn't light up half the excerpt.
   const terms = queryTerms(query).filter((term) => term.length >= 2);
 
@@ -200,10 +203,10 @@ export function highlight(text: string, query: string): { text: string; match: b
     }
   }
 
-  // A one-character whitespace gap between two matched runs is almost
-  // always the space inside the query itself — "rtc token" against
-  // "rtc tokens". Bridging it renders one highlight instead of two
-  // boxes with a sliver of unhighlighted space between them.
+  // A one-character whitespace gap between two matched runs is nearly
+  // always the space inside the query itself: "rtc token" against "rtc
+  // tokens". Bridging it renders one highlight instead of two boxes with a
+  // sliver of unhighlighted space wedged between them.
   for (let i = 1; i < marks.length - 1; i++) {
     if (!marks[i] && marks[i - 1] && marks[i + 1] && /\s/.test(text[i])) marks[i] = true;
   }

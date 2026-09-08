@@ -1,7 +1,7 @@
 import { DOCS_ROUTES } from '../lib/links';
 
 /**
- * The thin strip that sits above the nav — one centered link, nothing
+ * The thin strip that sits above the nav: one centered link, nothing
  * else. It points at whatever shipped most recently rather than
  * carrying a permanent tagline, so when the next product lands this is
  * the line that changes.

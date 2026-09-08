@@ -1,7 +1,7 @@
 import { DOCS_ROUTES } from '../lib/links';
 
 /**
- * The four-up card grid that sits directly under the code panel — no
+ * The four-up card grid that sits directly under the code panel: no
  * heading of its own, since CodeShowcase already carries one for the
  * whole block. Cards are hairline rectangles with an icon, a line of
  * copy, and a small button, in the reference's proportions.

@@ -1,5 +1,5 @@
 /**
- * The docs site's own public URL — same env-var convention DocsNav
+ * The docs site's own public URL: same env-var convention DocsNav
  * already uses for the marketing/dashboard URLs, falling back to the
  * local dev port (see package.json's `dev` script).
  */

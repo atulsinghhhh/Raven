@@ -32,18 +32,18 @@ export interface DocHeading {
 
 export interface DocPage extends DocFrontmatter {
   slug: string;
-  /** Compiled MDX, already rendered to a React element — render it directly, e.g. `{doc.content}`. */
+  /** Compiled MDX, already rendered to a React element: render it directly, e.g. `{doc.content}`. */
   content: ReactElement;
   headings: DocHeading[];
   /**
    * The page rendered to plain HTML once, purely for the search indexer
-   * (`search.ts`) — never sent to the browser. Built by a *separate*,
-   * React-free pipeline (remark/rehype only) rather than rendering
+   * (`search.ts`): never sent to the browser. Built by a *separate*,
+   * React-free pipeline (remark/rehype only) instead of rendering
    * `content` to a string: Next 16 refuses to let a Server Component's
    * module graph import `react-dom/server` at all. Instead `<Tabs>`/
    * `<Tab>` are unwrapped to their bare children at the AST level
    * (`remarkUnwrapJsx`) before the normal remark→rehype→HTML conversion
-   * — every SDK tab's code still gets indexed, its button label doesn't.
+   *: every SDK tab's code still gets indexed, its button label doesn't.
    */
   searchHtml: string;
 }
@@ -65,7 +65,7 @@ function filePath(slug: string): string {
   return path.join(CONTENT_DIR, `${slug}.md`);
 }
 
-/** Every slug that has a content file — the full set `generateStaticParams` renders. */
+/** Every slug that has a content file: the full set `generateStaticParams` renders. */
 export function getAllSlugs(): string[] {
   const slugs: string[] = [];
   const walk = (dir: string, prefix: string[]) => {
@@ -116,7 +116,7 @@ export async function getDoc(slug: string): Promise<DocPage | undefined> {
  * dropping the wrapper and its props (component name, `title="Web"`
  * attribute) entirely. `remark-mdx` parses the JSX into
  * `mdxJsxFlowElement`/`mdxJsxTextElement` nodes whose `children` are
- * still ordinary mdast — unwrapping just splices those children in the
+ * still ordinary mdast: unwrapping just splices those children in the
  * parent's place so plain remark-rehype can take it from there as if the
  * component had never been there.
  */
@@ -157,7 +157,7 @@ async function renderSearchHtml(content: string): Promise<string> {
 /**
  * Pulls h2/h3 out of the rendered HTML for the "On this page" rail.
  *
- * Regex over the compiled output rather than another tree traversal —
+ * Regex over the compiled output, not another tree traversal;
  * the ids are already there (rehype-slug added them), and the shape is
  * known and machine-generated.
  */
@@ -178,7 +178,7 @@ function extractHeadings(html: string): DocHeading[] {
 
 /**
  * Every slug NAV points to must have a content file, and vice versa is
- * not required (a file can exist without being in the sidebar yet) — but
+ * not required (a file can exist without being in the sidebar yet), but
  * a dead sidebar link is always a bug. Called once during the build; see
  * app/layout.tsx.
  */

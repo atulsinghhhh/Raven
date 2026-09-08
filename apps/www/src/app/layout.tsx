@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   },
 };
 
-// Headlines run as light as weight 300 (see Hero) — a variable font with
+// Headlines run as light as weight 300 (see Hero): a variable font with
 // a real light cut, not a browser-synthesized fake bold-in-reverse.
 const sans = Inter({
   subsets: ['latin'],
@@ -31,7 +31,7 @@ const sans = Inter({
   display: 'swap',
 });
 
-// Console-style microcopy (nav links, section eyebrows, code chrome) —
+// Console-style microcopy (nav links, section eyebrows, code chrome);
 // Geist Mono is Vercel's open-source mono, not anything proprietary to
 // the sites that also happen to use it.
 const mono = Geist_Mono({

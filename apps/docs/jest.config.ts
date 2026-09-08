@@ -4,7 +4,7 @@ const createJestConfig = nextJest({ dir: './' });
 
 const customJestConfig = {
   // Node, not jsdom: what's tested here is the content pipeline and the
-  // ranking function — both plain data transforms that read files from
+  // ranking function: both plain data transforms that read files from
   // disk. The one client component is UI over these, and testing the
   // logic directly is what catches a bad ranking change.
   testEnvironment: 'node',

@@ -32,7 +32,7 @@ const INDEX: SearchRecord[] = [
 
 describe('rank', () => {
   it('returns nothing for a query too short to be meaningful', () => {
-    // A single character matches most of the site — showing 12 arbitrary
+    // A single character matches most of the site: showing 12 arbitrary
     // pages is worse than showing none.
     expect(rank(INDEX, 'w')).toEqual([]);
     expect(rank(INDEX, '')).toEqual([]);
@@ -113,7 +113,7 @@ describe('stem', () => {
   });
 
   it('leaves a word alone when stripping would leave too little behind', () => {
-    // "mut" would match "mutation" and "mutual" — worse than missing
+    // "mut" would match "mutation" and "mutual": worse than missing
     // "muting".
     expect(stem('mute')).toBe('mute');
     expect(stem('used')).toBe('used');
@@ -220,8 +220,8 @@ describe('highlight', () => {
   });
 
   it('marks every occurrence, not just the first', () => {
-    // Asserted as coverage rather than run count, because two
-    // occurrences separated only by a space merge into one run — see
+    // Asserted as coverage instead of run count, because two
+    // occurrences separated only by a space merge into one run: see
     // the gap-bridging test below.
     const marked = highlight('token in a token list', 'token')
       .filter((p) => p.match)

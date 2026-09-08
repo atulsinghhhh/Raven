@@ -1,7 +1,7 @@
 /**
  * The horizontal marquee, in the slot the reference fills with customer
  * testimonials. Raven has none to show, and inventing quotes or logos
- * would be the one thing this page must never do — so the same
+ * would be the one thing this page must never do, so the same
  * two-row, opposite-direction rail carries what Raven is actually
  * built for instead.
  *
@@ -70,7 +70,7 @@ function MarqueeRow({
         <div
           key={`${useCase.title}-${i}`}
           className="w-72 shrink-0 rounded-(--radius-panel) border border-line bg-surface p-5"
-          // The second half is a visual duplicate of the first — hide it
+          // The second half is a visual duplicate of the first: hide it
           // from assistive tech so the list isn't read out four times.
           aria-hidden={i >= items.length ? true : undefined}
         >

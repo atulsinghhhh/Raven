@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 // Fails the build loudly if the sidebar ever points at a page that
-// doesn't exist — a dead nav link is a bug, not a 404 to discover later.
+// doesn't exist: a dead nav link is a bug, not a 404 to discover later.
 assertNavMatchesContent();
 
 const THEME_SCRIPT = `

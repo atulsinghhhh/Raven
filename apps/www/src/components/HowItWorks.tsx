@@ -11,7 +11,7 @@ import { useInView } from '../lib/useInView';
  * The reference drives the active step by pinning the section and
  * hijacking the scroll wheel. This advances on a timer once the card is
  * in view, and yields to a click or keypress the moment the reader
- * takes over — same reveal, without taking the scrollbar away from
+ * takes over: same reveal, without taking the scrollbar away from
  * someone who just wants to get past it.
  */
 const STEPS = [

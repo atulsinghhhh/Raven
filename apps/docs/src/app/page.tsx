@@ -5,13 +5,13 @@ import { NAV, type NavSection } from '../lib/nav';
 
 /**
  * The home page used to enumerate all 79 pages as fifteen lists of
- * links, which meant the two things a new reader actually needs — the
- * quickstart, and a sense of what Raven contains — were buried in a
+ * links, which meant the two things a new reader actually needs: the
+ * quickstart, and a sense of what Raven contains: were buried in a
  * wall of equally-weighted text.
  *
  * It now reads top to bottom as a path: start here, then the four
  * products, then everything else in one compact index. Nothing is
- * unreachable that was reachable before — the full tree is in the
+ * unreachable that was reachable before: the full tree is in the
  * sidebar on every page, including this one.
  *
  * Section titles, page counts and first-page links are all derived from
@@ -23,8 +23,8 @@ function section(title: string): NavSection {
   if (!found) {
     // NAV is a static module and layout.tsx already asserts every slug
     // in it resolves to a real file, so a miss here means this page
-    // names a section that no longer exists — a build-time typo, worth
-    // failing loudly rather than rendering a hole.
+    // names a section that no longer exists: a build-time typo, worth
+    // failing loudly instead of rendering a hole.
     throw new Error(`Docs home references a section that is not in NAV: ${title}`);
   }
   return found;

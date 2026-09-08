@@ -7,7 +7,7 @@ import { useCountUp } from '../lib/useCountUp';
  * standalone marketing sections so they can be swapped inside the
  * product tab strip and re-used as the code editor's preview pane.
  *
- * All four are scripted illustrations — no live data, no screen
+ * All four are scripted illustrations: no live data, no screen
  * recordings. Because they now mount on tab selection rather than
  * scroll into view, the entrance is a CSS fade on mount instead of an
  * IntersectionObserver stagger.
@@ -15,7 +15,7 @@ import { useCountUp } from '../lib/useCountUp';
 
 const PARTICIPANTS = ['Alice', 'Bob', 'Charlie'];
 
-/** RTC — a room with three participants, one of them speaking. */
+/** RTC: a room with three participants, one of them speaking. */
 export function RoomDemo() {
   return (
     <DemoPanel title="Raven Room · demo-room">
@@ -68,7 +68,7 @@ const RECEIPT_LABEL: Record<'sent' | 'delivered' | 'read', string> = {
   read: '✓✓',
 };
 
-/** Chat — a short thread with receipts, and one bubble still typing. */
+/** Chat: a short thread with receipts, and one bubble still typing. */
 export function ChatDemo() {
   return (
     <DemoPanel title="Raven Chat · support-room-42">
@@ -131,7 +131,7 @@ const REACTIONS = [
   { emoji: '🔥', target: 52 },
 ];
 
-/** Live Streaming — a host on air with viewer count, reactions, and chat. */
+/** Live Streaming: a host on air with viewer count, reactions, and chat. */
 export function LiveDemo() {
   const viewers = useCountUp(342, true);
 
@@ -173,12 +173,12 @@ export function LiveDemo() {
   );
 }
 
-// Real preset names from packages/effects/src/presets.ts — nothing here
+// Real preset names from packages/effects/src/presets.ts: nothing here
 // is invented, and each is a pure composition of the underlying
 // filters, not a separate implementation.
 const PRESETS = ['vivid', 'warm', 'cool', 'cinematic', 'vintage'] as const;
 
-/** Effects — the preset rail, not a rendered filter preview. */
+/** Effects: the preset rail, not a rendered filter preview. */
 export function EffectsDemo() {
   return (
     <DemoPanel title="Raven Effects · camera preview">
@@ -212,7 +212,7 @@ export function EffectsDemo() {
   );
 }
 
-/** Server — what the backend actually hands the client. No visual to fake. */
+/** Server: what the backend actually hands the client. No visual to fake. */
 export function TokenDemo() {
   return (
     <DemoPanel title="Raven API · POST /v1/tokens">

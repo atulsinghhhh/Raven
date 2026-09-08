@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { PRODUCTS, productForSlug } from '../lib/nav';
 
 /**
- * Three fixed products — an inline segmented control rather than a
+ * Three fixed products: an inline segmented control instead of a
  * dropdown, since a dropdown adds a click for a choice this small.
  * Server component: which segment is active is derived from
  * `activeSlug`, already known at render time, so no client-side

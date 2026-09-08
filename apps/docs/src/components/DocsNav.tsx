@@ -16,7 +16,7 @@ const DISCORD_URL = 'https://discord.com/invite/HSWd9qMC7';
 /**
  * The top bar: search, the theme toggle, the mobile sidebar drawer, and
  * the external links. One of the few client-side pieces of an otherwise
- * fully static, server-rendered site — every doc page is completely
+ * fully static, server-rendered site: every doc page is completely
  * readable with JavaScript disabled; search and the toggle simply won't
  * be available.
  *

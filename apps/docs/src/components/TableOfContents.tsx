@@ -11,7 +11,7 @@ export interface Heading {
 /**
  * The "On this page" rail.
  *
- * Headings are extracted server-side (see lib/docs.ts) rather than by
+ * Headings are extracted server-side (see lib/docs.ts) instead of by
  * querying the DOM here, so the list renders in the initial HTML instead
  * of popping in after hydration. This component's only client-side job
  * is tracking which heading is currently in view.
@@ -26,7 +26,7 @@ export function TableOfContents({ headings }: { headings: Heading[] }) {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        // The topmost heading currently intersecting wins — without the
+        // The topmost heading currently intersecting wins: without the
         // sort, whichever entry the observer happened to report last
         // would, which flickers when several cross the boundary together.
         const visible = entries

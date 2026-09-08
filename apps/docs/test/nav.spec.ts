@@ -1,5 +1,5 @@
 /**
- * Pure-data tests against the real NAV — the same style rank.spec.ts
+ * Pure-data tests against the real NAV: the same style rank.spec.ts
  * uses. This isn't testing fixtures; a change to nav.ts that breaks one
  * of these breaks the actual sidebar/switcher/breadcrumbs for a real
  * reader, so the real NAV is exactly what should be under test here.
@@ -34,7 +34,7 @@ describe('PRODUCTS', () => {
     for (const product of PRODUCTS) {
       const section = NAV.find((s) => s.product === product.id);
       expect(section).toBeDefined();
-      // The switcher links straight at the product's landing slug —
+      // The switcher links straight at the product's landing slug;
       // it must be that section's first item, or the switcher and the
       // sidebar would disagree about what "the product's home" is.
       expect(section!.items[0]?.slug).toBe(product.slug);

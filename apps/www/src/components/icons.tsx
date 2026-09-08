@@ -1,4 +1,4 @@
-/** Inline SVG icons — no icon font/library for two glyphs. */
+/** Inline SVG icons: no icon font/library for two glyphs. */
 
 export function GitHubIcon({ className = 'w-5 h-5' }: { className?: string }) {
   return (

@@ -1,7 +1,7 @@
 /**
  * The hero's brand animation: your app connects through Raven to its
  * three real-time products, which reach your users. Same technique as
- * Architecture.tsx — pure SVG + CSS `offset-path` for traveling packets,
+ * Architecture.tsx: pure SVG + CSS `offset-path` for traveling packets,
  * no canvas or animation library, so it plays from CSS alone before
  * hydration and respects prefers-reduced-motion via the global override
  * in globals.css.
@@ -133,7 +133,7 @@ function Node({
   );
 }
 
-/** RTC: three participant audio levels, one active — same idea as RTCSection's live room preview. */
+/** RTC, three participant audio levels, one active: same idea as RTCSection's live room preview. */
 function ActivityBars() {
   return (
     <g transform="translate(-10, 0)" aria-hidden="true">

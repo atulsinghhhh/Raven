@@ -6,7 +6,7 @@ import { DOCS_ROUTES, DOCS_URL } from '../lib/links';
  *
  * The diagram is the same node graph the old standalone Architecture
  * section drew head-on, re-projected with a CSS 3D transform rather
- * than redrawn as isometric SVG — one source of truth for what
+ * than redrawn as isometric SVG: one source of truth for what
  * connects to what, and the projection stays a presentation detail.
  *
  * Every line in the checklist is shipped and has a doc page behind it.
@@ -71,7 +71,7 @@ export function Platform() {
 }
 
 /**
- * The architecture graph, projected isometrically. Hidden below lg —
+ * The architecture graph, projected isometrically. Hidden below lg;
  * at tablet width there is no room beside the text column for it to
  * bleed into, and a squashed isometric diagram is worse than none.
  */

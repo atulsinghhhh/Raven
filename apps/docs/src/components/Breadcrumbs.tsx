@@ -4,7 +4,7 @@ import { findNavItem } from '../lib/nav';
 /**
  * Home / Section / Page. The section crumb links to that section's
  * first item rather than nowhere, so it's a real step back up, not a
- * label. Renders nothing beyond "Home" for a slug not in NAV — still
+ * label. Renders nothing beyond "Home" for a slug not in NAV: still
  * reachable by URL, just not part of the sidebar's hierarchy.
  */
 export function Breadcrumbs({ slug }: { slug: string }) {

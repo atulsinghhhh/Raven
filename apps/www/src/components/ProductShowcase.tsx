@@ -5,7 +5,7 @@ import { ChatDemo, EffectsDemo, LiveDemo, RoomDemo } from './ProductDemos';
 import { DOCS_ROUTES } from '../lib/links';
 
 /**
- * The product tab strip and the showcase card under it — one card at a
+ * The product tab strip and the showcase card under it: one card at a
  * time, switched by the strip, replacing what used to be four
  * full-height alternating sections (RTC / Chat / Live Streaming /
  * Effects). Same copy and same visuals, a quarter of the scroll.

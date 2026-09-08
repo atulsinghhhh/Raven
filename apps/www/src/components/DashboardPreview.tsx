@@ -17,7 +17,7 @@ const DEPENDENCIES = ['Control API', 'Authentication', 'Signaling', 'SFU', 'TURN
 /**
  * Mirrors the labels on the real project overview page
  * (apps/dashboard/.../overview/page.tsx) so this preview doesn't drift
- * from what a signed-in developer actually sees — but the numbers here
+ * from what a signed-in developer actually sees, but the numbers here
  * are a fixed illustration, never a live query.
  */
 export function DashboardPreview() {

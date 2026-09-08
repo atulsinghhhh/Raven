@@ -2,11 +2,11 @@ import { Reveal } from './Reveal';
 import { DOCS_ROUTES } from '../lib/links';
 
 /**
- * Formerly Features.tsx's catch-all grid — narrowed to reliability
+ * Formerly Features.tsx's catch-all grid: narrowed to reliability
  * claims specifically, now that ProductOverview/RTCSection/ChatSection/
  * LiveStreamingSection/SDKSection carry the product-feature copy this
  * used to hold. Every claim here links to the doc that backs it; no
- * uptime/scale numbers Raven hasn't measured — see the "no fake
+ * uptime/scale numbers Raven hasn't measured: see the "no fake
  * enterprise claims" note this page was built against.
  */
 const RELIABILITY = [

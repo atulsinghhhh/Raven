@@ -13,7 +13,7 @@ import { rank } from './rank';
 export interface SearchRecord {
   /** Page slug, e.g. `rtc/audio-and-video`. */
   slug: string;
-  /** Page title from frontmatter — the result's first line. */
+  /** Page title from frontmatter: the result's first line. */
   title: string;
   /** Sidebar section the page lives in, e.g. "RTC". Shown as a breadcrumb. */
   group: string;
@@ -31,7 +31,7 @@ export interface SearchRecord {
   heading?: string;
   /** Anchor id for `heading`, so a result links straight to it. */
   anchor?: string;
-  /** Plain text of the section, truncated — enough to match and to preview. */
+  /** Plain text of the section, truncated: enough to match and to preview. */
   text: string;
 }
 
@@ -40,11 +40,11 @@ const MAX_SECTION_CHARS = 1_200;
 /**
  * Builds the whole index at build time.
  *
- * It reads the *rendered* HTML rather than the Markdown source, for one
+ * It reads the *rendered* HTML, not the Markdown source, for one
  * specific reason: the heading ids are already in it, put there by
  * rehype-slug. Re-deriving them from the Markdown would mean
  * reimplementing github-slugger's rules and getting a subtly different
- * answer on some heading with a colon in it — producing a search result
+ * answer on some heading with a colon in it: producing a search result
  * that links to an anchor that doesn't exist.
  */
 export async function buildSearchIndex(): Promise<SearchRecord[]> {
@@ -67,7 +67,7 @@ export async function buildSearchIndex(): Promise<SearchRecord[]> {
 
     for (const section of splitByHeading(doc.searchHtml)) {
       const text = section.text.slice(0, MAX_SECTION_CHARS);
-      // An h2 with nothing under it is still worth a record — the
+      // An h2 with nothing under it is still worth a record: the
       // heading itself is what someone is searching for.
       if (!text && !section.heading) continue;
 
@@ -133,7 +133,7 @@ const ENTITIES: Record<string, string> = {
 };
 
 /**
- * HTML to searchable text. Code blocks are kept deliberately — people
+ * HTML to searchable text. Code blocks are kept on purpose: people
  * search for `enableCamera` and `RAVEN_TOKEN` far more often than for
  * the prose around them.
  */
@@ -186,7 +186,7 @@ export function assertIndexIsSound(
 
   // Queries a developer would plausibly type, each with the page it must
   // reach. This is the check that catches a ranking change or a content
-  // rewrite quietly making something unfindable — the failure mode
+  // rewrite quietly making something unfindable: the failure mode
   // nobody notices by hand.
   const MUST_FIND: [query: string, slug: string][] = [
     ['screen share', 'rtc/screen-sharing'],
@@ -208,7 +208,7 @@ export function assertIndexIsSound(
   }
 
   // Queries with one unambiguous answer, where being somewhere in the
-  // list isn't good enough — the top result is what people click.
+  // list isn't good enough: the top result is what people click.
   const MUST_RANK_FIRST: [query: string, slug: string][] = [
     ['screen share', 'rtc/screen-sharing'],
     ['webhooks', 'webhooks'],

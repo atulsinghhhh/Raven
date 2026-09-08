@@ -21,7 +21,7 @@ const DEVELOPER_LINKS = [
 
 /**
  * Nav links read as ordinary sentence-case sans, not the mono-uppercase
- * console labels used elsewhere on the page — the reference layout
+ * console labels used elsewhere on the page: the reference layout
  * reserves mono for section eyebrows and code chrome, and the nav is
  * quieter for it. Everything actionable on the right is the same 4px
  * rectangle, filled for the primary action and hairline for the rest.

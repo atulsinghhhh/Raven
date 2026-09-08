@@ -56,8 +56,8 @@ export function Hero() {
 
 /**
  * The framed dot lattice above the headline. One dot lights and travels
- * the grid — a nod to a packet crossing the network, at a size small
- * enough that it reads as a mark rather than an illustration.
+ * the grid: a nod to a packet crossing the network, at a size small
+ * enough that it reads as a mark instead of an illustration.
  */
 function DotMark() {
   const CELLS = 100;
