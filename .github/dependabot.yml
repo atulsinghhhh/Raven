@@ -1,22 +1,160 @@
 version: 2
+
+# Grouping is the point of this file. Ungrouped, six ecosystems on a weekly
+# cadence produce dozens of single-dependency PRs that nobody reviews and
+# everybody merges blind. Grouped, each ecosystem lands one or two PRs a
+# week with a readable diff.
+#
+# Majors are deliberately excluded from every group and left to arrive as
+# their own PR. A major is an API break by definition; batching one in
+# beside twelve patches is how a breaking change gets merged unread.
+
 updates:
+  # ---------------------------------------------------------------------------
+  # Node / pnpm. One entry at the root: the pnpm workspace has a single
+  # lockfile, and Dependabot reads it for every package under apps/*,
+  # packages/* and services/*.
+  # ---------------------------------------------------------------------------
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     open-pull-requests-limit: 10
     groups:
       dev-dependencies:
         dependency-type: "development"
+        update-types: ["minor", "patch"]
       production-dependencies:
         dependency-type: "production"
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
+  # ---------------------------------------------------------------------------
+  # Go — the SFU. Pion is the media stack, so its updates are the ones most
+  # worth seeing promptly and least worth taking blind: they are separated
+  # from the rest so a Pion bump is reviewed on its own merits against the
+  # SFU's Go tests.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "gomod"
+    directory: "/services/sfu"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      pion:
+        patterns:
+          - "github.com/pion/*"
+        update-types: ["minor", "patch"]
+      go-dependencies:
+        exclude-patterns:
+          - "github.com/pion/*"
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ---------------------------------------------------------------------------
+  # Python — the server SDK.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    directory: "/sdks/python"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ---------------------------------------------------------------------------
+  # Dart / Flutter. One entry per package — pub has a lockfile per package
+  # and Dependabot does not walk a workspace here.
+  #
+  # raven_live takes raven_rtc and raven_chat as hosted constraints with
+  # local dependency_overrides; Dependabot leaves overrides alone, so it
+  # will not try to bump a sibling in this repo.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "pub"
+    directory: "/sdks/flutter/raven_rtc"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    groups:
+      dart-dependencies:
+        patterns:
+          - "*"
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "pub"
+    directory: "/sdks/flutter/raven_chat"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    groups:
+      dart-dependencies:
+        patterns:
+          - "*"
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "pub"
+    directory: "/sdks/flutter/raven_live"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    groups:
+      dart-dependencies:
+        patterns:
+          - "*"
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ---------------------------------------------------------------------------
+  # GitHub Actions. Not grouped by major/minor: an action pin is a supply
+  # chain dependency running with repository credentials, and every bump
+  # deserves to be looked at.
+  # ---------------------------------------------------------------------------
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
+  # ---------------------------------------------------------------------------
+  # Base images.
+  # ---------------------------------------------------------------------------
   - package-ecosystem: "docker"
     directory: "/apps/api"
     schedule:
       interval: "weekly"
+      day: "monday"
+
+  - package-ecosystem: "docker"
+    directory: "/services/sfu"
+    schedule:
+      interval: "weekly"
+      day: "monday"
