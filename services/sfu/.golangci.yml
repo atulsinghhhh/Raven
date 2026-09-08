@@ -1,0 +1,114 @@
+# golangci-lint configuration for the Raven SFU.
+#
+# The SFU is the media plane: a bug here drops live calls rather than
+# returning a 500 someone can retry. The linter set below is chosen for
+# that, not for style points — every linter enabled catches a class of
+# defect that has a plausible runtime consequence in a long-lived,
+# highly concurrent process holding RTP state per participant.
+#
+# Deliberately NOT enabled: the opinionated-style family (gochecknoglobals,
+# funlen, gocognit, varnamelen, wsl, nlreturn, exhaustruct, ...). They
+# generate hundreds of findings on correct code, and a report nobody reads
+# is worse than no report. Add one only with a reason.
+#
+# misspell is also deliberately absent. This codebase writes British
+# English prose ("behaviour", "serialises", "cancelled") but keeps the
+# American spelling of technical vocabulary where that is the term of art
+# ("signaling" is what the WebRTC specs call it; `http.StatusUnauthorized`
+# is a Go constant). Neither locale is correct for the mixture, so either
+# setting produces a list of findings that should all be ignored.
+
+version: "2"
+
+run:
+  # Test files carry the Pion peers that prove media actually forwards, so
+  # they are as load-bearing as production code and are linted too.
+  tests: true
+  timeout: 5m
+
+linters:
+  # Start from nothing and opt in, so a golangci-lint upgrade cannot
+  # silently add a linter and turn CI red on unchanged code.
+  default: none
+
+  enable:
+    # --- correctness -------------------------------------------------
+    - errcheck # unchecked errors; the default reason this file exists
+    - govet # the same analyses `go vet` runs, in one pass
+    - staticcheck # the SA/S/ST/QF analysis suite
+    - ineffassign # assignments never read
+    - unused # dead identifiers
+
+    # --- error handling ----------------------------------------------
+    - errorlint # %v on an error, or == comparison instead of errors.Is
+    - nilerr # `if err != nil { return nil }` — swallowing a failure
+
+    # --- concurrency and resource safety ------------------------------
+    # The SFU opens HTTP responses to the control plane (registry client)
+    # and spawns a goroutine per track; both classes below have bitten
+    # real WebRTC servers.
+    - bodyclose # unclosed http.Response.Body leaks a connection
+    - noctx # HTTP request built without a context: no timeout, no cancel
+    - copyloopvar # loop-variable capture (still worth flagging pre-1.22 idioms)
+
+    # --- suspicious constructs ----------------------------------------
+    - durationcheck # multiplying two durations — almost always a unit bug
+    - makezero # append to a make()d slice with nonzero length
+    - unconvert # redundant type conversions
+
+  settings:
+    errcheck:
+      # Deferred Close on a reader and a best-effort write to a response
+      # are the two cases where ignoring the error is correct rather than
+      # lazy. Everything else must be handled.
+      check-type-assertions: true
+      check-blank: false
+
+    govet:
+      enable-all: true
+      disable:
+        # fieldalignment reorders struct fields for padding. The structs
+        # here are grouped by meaning (ids, then state, then locks) and
+        # that readability is worth more than a few bytes per room.
+        - fieldalignment
+        # shadow flags `if err := f(); err != nil` inside a function that
+        # already has an `err` — which is ordinary Go, not a defect. Every
+        # one of its findings here was that pattern.
+        - shadow
+
+    staticcheck:
+      checks:
+        - all
+        # ST1000: package comment on every package. internal/* packages
+        # are one-purpose and named for it; a mandated comment on each
+        # would be filler.
+        - -ST1000
+
+  exclusions:
+    # Presets keep the well-known false positives out without hand-writing
+    # them: e.g. errcheck on (*os.File).Close in a defer.
+    presets:
+      - comments
+      - std-error-handling
+
+    rules:
+      # Tests assert on the happy path and let a failed setup panic the
+      # test binary — that is a legible failure, and threading error
+      # checks through fixture code obscures what the test is proving.
+      - path: _test\.go
+        linters:
+          - errcheck
+          - noctx
+          - bodyclose
+
+formatters:
+  # In golangci-lint v2 the formatters moved out of `linters`. Both run in
+  # check mode under CI; `golangci-lint fmt` applies them locally.
+  enable:
+    - gofmt
+    - goimports
+
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/atulsinghhhh/Raven/services/sfu
