@@ -19,7 +19,7 @@
 # platform — minutes per architecture instead of seconds, for a compiler
 # that already cross-compiles natively. CGO is off, so there is no C
 # toolchain to cross for.
-FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS build
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS build
 
 WORKDIR /src
 
