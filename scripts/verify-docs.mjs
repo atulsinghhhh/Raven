@@ -10,7 +10,8 @@
 //   4. every `raven <command>` is registered on the CLI
 //   5. every `RAVEN_*`/config env var referenced is one the API reads
 //   6. internal links and heading anchors resolve
-//   7. the sidebar and the content tree agree
+//   7. every redirect points at a page, and shadows none
+//   8. the sidebar and the content tree agree
 //
 // Findings are errors, not warnings: a documented API that does not exist
 // costs a developer more than a broken build costs us. Where a check cannot
@@ -389,6 +390,62 @@ function checkLinks(files) {
 }
 
 // ---------------------------------------------------------------------------
+// 8. Redirects
+//
+// A redirect is invisible to every other check here: it lives in
+// next.config.ts, not in Markdown, so the link checker and the nav check
+// both pass while the deployed site sends readers to a 404.
+//
+// Two ways it goes wrong, and both had actually happened:
+//
+//   - `source` is also a live page. The redirect wins, so the page becomes
+//     unreachable. `/sdk/cli` → `/cli` did this the moment the CLI page moved
+//     into the SDKs section: the live path redirected to the dead one.
+//   - `destination` is not a page. `/server/rest-api` → `/api-reference`
+//     did this once `/api-reference` was replaced by the generated `/api` set.
+// ---------------------------------------------------------------------------
+
+function checkRedirects(files) {
+  const config = fs.readFileSync(path.join(ROOT, 'apps/docs/next.config.ts'), 'utf8');
+  const redirects = [...config.matchAll(/\{\s*source:\s*'([^']+)'\s*,\s*destination:\s*'([^']+)'/g)].map((m) => ({
+    source: m[1],
+    destination: m[2],
+  }));
+
+  if (!redirects.length) {
+    fail('redirects', 'next.config.ts', 'no redirects parsed — has the config shape changed?');
+    return;
+  }
+
+  const pages = new Set(files);
+  const sources = new Set(redirects.map((r) => r.source));
+
+  for (const { source, destination } of redirects) {
+    const sourceSlug = source.replace(/^\//, '');
+    if (pages.has(sourceSlug)) {
+      fail(
+        'redirects',
+        'next.config.ts',
+        `'${source}' is a redirect source AND a real page — the redirect shadows it, making the page unreachable`,
+      );
+      continue;
+    }
+
+    // Only internal destinations are ours to resolve.
+    if (!destination.startsWith('/')) {
+      bump('redirects');
+      continue;
+    }
+    const destSlug = destination.replace(/^\//, '');
+    if (!pages.has(destSlug) && !sources.has(destination)) {
+      fail('redirects', 'next.config.ts', `'${source}' redirects to '${destination}', which is not a page`);
+      continue;
+    }
+    bump('redirects');
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 7. Nav parity
 // ---------------------------------------------------------------------------
 
@@ -426,6 +483,7 @@ function main() {
   checkCliCommands(files, gt);
   checkEnvVars(files, gt);
   checkLinks(files);
+  checkRedirects(files);
   checkNav(files);
 
   if (process.argv.includes('--json')) {
