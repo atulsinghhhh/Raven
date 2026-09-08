@@ -53,7 +53,13 @@ def test_returns_none_for_204(mock_transport) -> None:
 
 def test_maps_401_to_raven_error_with_request_id(mock_transport) -> None:
     transport = mock_transport(
-        [{"status": 401, "body": {"message": "Invalid or missing credentials", "code": "UNAUTHORIZED"}, "headers": {"x-request-id": "req-123"}}]
+        [
+            {
+                "status": 401,
+                "body": {"message": "Invalid or missing credentials", "code": "UNAUTHORIZED"},
+                "headers": {"x-request-id": "req-123"},
+            }
+        ]
     )
     client = RavenHttpClient(api_key="bad-key", transport=transport)
 
@@ -67,7 +73,9 @@ def test_maps_401_to_raven_error_with_request_id(mock_transport) -> None:
 
 
 def test_retries_503_then_succeeds(mock_transport) -> None:
-    transport = mock_transport([{"status": 503, "body": {"message": "unavailable"}}, {"status": 200, "body": [{"id": "r1"}]}])
+    transport = mock_transport(
+        [{"status": 503, "body": {"message": "unavailable"}}, {"status": 200, "body": [{"id": "r1"}]}]
+    )
     client = RavenHttpClient(api_key="k", transport=transport)
 
     result = client.request("/v1/rooms")

@@ -148,9 +148,7 @@ class AsyncLiveStreamsResource:
         return cast(LiveStream, await self._http.request(f"/v1/live-streams/{stream_id}/end", method="POST"))
 
     async def add_host(self, stream_id: str, params: AddHostParams) -> IssuedStreamCredential:
-        result = await self._http.request(
-            f"/v1/live-streams/{stream_id}/hosts", method="POST", body=_host_body(params)
-        )
+        result = await self._http.request(f"/v1/live-streams/{stream_id}/hosts", method="POST", body=_host_body(params))
         return cast(IssuedStreamCredential, result)
 
     async def remove_host(self, stream_id: str, identity: str) -> None:

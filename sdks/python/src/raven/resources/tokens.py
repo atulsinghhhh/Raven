@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from .._http import RavenHttpClient
 from .._async_http import AsyncRavenHttpClient
+from .._http import RavenHttpClient
 from .._types import CreateTokenParams, IssuedToken
 
 
@@ -37,5 +37,7 @@ class AsyncTokensResource:
         self._http = http
 
     async def create(self, params: CreateTokenParams) -> IssuedToken:
-        result = await self._http.request(f"/v1/rooms/{params.room}/rtc-tokens", method="POST", body=_token_body(params))
+        result = await self._http.request(
+            f"/v1/rooms/{params.room}/rtc-tokens", method="POST", body=_token_body(params)
+        )
         return cast(IssuedToken, result)

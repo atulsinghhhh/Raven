@@ -80,9 +80,7 @@ def test_update_patches_only_given_fields() -> None:
 
     resource.update("stream_1", UpdateLiveStreamParams(title="New title"))
 
-    http.request.assert_called_once_with(
-        "/v1/live-streams/stream_1", method="PATCH", body={"title": "New title"}
-    )
+    http.request.assert_called_once_with("/v1/live-streams/stream_1", method="PATCH", body={"title": "New title"})
 
 
 def test_start_posts_to_the_start_endpoint() -> None:
@@ -114,9 +112,7 @@ def test_add_host_posts_identity_and_role() -> None:
 
     resource.add_host("stream_1", AddHostParams(identity="user-2"))
 
-    http.request.assert_called_once_with(
-        "/v1/live-streams/stream_1/hosts", method="POST", body={"identity": "user-2"}
-    )
+    http.request.assert_called_once_with("/v1/live-streams/stream_1/hosts", method="POST", body={"identity": "user-2"})
 
 
 def test_add_host_forwards_an_explicit_role() -> None:
@@ -155,9 +151,7 @@ def test_leave_posts_the_identity_as_a_clean_leave_signal() -> None:
 
     resource.leave("stream_1", "user-3")
 
-    http.request.assert_called_once_with(
-        "/v1/live-streams/stream_1/leave", method="POST", body={"identity": "user-3"}
-    )
+    http.request.assert_called_once_with("/v1/live-streams/stream_1/leave", method="POST", body={"identity": "user-3"})
 
 
 # ---------------------------------------------------------------------------

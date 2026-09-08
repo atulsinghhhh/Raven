@@ -38,7 +38,9 @@ async def test_async_client_sends_auth_header() -> None:
 
 
 async def test_async_client_retries_503_then_succeeds() -> None:
-    transport = _transport([{"status": 503, "body": {"message": "unavailable"}}, {"status": 200, "body": [{"id": "r1"}]}])
+    transport = _transport(
+        [{"status": 503, "body": {"message": "unavailable"}}, {"status": 200, "body": [{"id": "r1"}]}]
+    )
     client = AsyncRavenHttpClient(api_key="k", transport=transport)
 
     result = await client.request("/v1/rooms")

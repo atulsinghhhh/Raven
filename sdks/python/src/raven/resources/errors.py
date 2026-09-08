@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from .._http import RavenHttpClient
 from .._async_http import AsyncRavenHttpClient
+from .._http import RavenHttpClient
 from .._types import ErrorDetail, ErrorSummary, ListErrorsParams
 
 

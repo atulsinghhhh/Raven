@@ -1,8 +1,8 @@
 """Raven's async server SDK client — same surface as ``Raven``, awaited.
 
-    from raven import AsyncRaven
-    raven = AsyncRaven(api_key=os.environ["RAVEN_API_KEY"])
-    token = await raven.tokens.create(CreateTokenParams(room=room_id, identity="user-42"))
+from raven import AsyncRaven
+raven = AsyncRaven(api_key=os.environ["RAVEN_API_KEY"])
+token = await raven.tokens.create(CreateTokenParams(room=room_id, identity="user-42"))
 """
 
 from __future__ import annotations

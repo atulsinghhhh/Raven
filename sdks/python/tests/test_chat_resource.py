@@ -132,9 +132,7 @@ def test_add_member_omits_role_when_unset() -> None:
 
     resource.add_member("conv_1", "bob")
 
-    http.request.assert_called_once_with(
-        "/v1/chat/conversations/conv_1/members", method="POST", body={"userId": "bob"}
-    )
+    http.request.assert_called_once_with("/v1/chat/conversations/conv_1/members", method="POST", body={"userId": "bob"})
 
 
 def test_remove_member_is_a_delete() -> None:

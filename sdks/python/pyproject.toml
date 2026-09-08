@@ -18,7 +18,15 @@ dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
     "mypy>=1.10",
+    "ruff>=0.9",
+    "build>=1.2",
 ]
+
+[project.urls]
+Homepage = "https://github.com/atulsinghhhh/Raven"
+Documentation = "https://github.com/atulsinghhhh/Raven/blob/main/docs/sdk/server/python.md"
+Repository = "https://github.com/atulsinghhhh/Raven"
+Issues = "https://github.com/atulsinghhhh/Raven/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -30,3 +38,39 @@ asyncio_mode = "auto"
 [tool.mypy]
 python_version = "3.10"
 strict = true
+
+# Ruff does both jobs here — formatter and linter — so the SDK needs one
+# dev tool rather than black + flake8 + isort.
+#
+# line-length is 120 to match what this code already does (only 11 of its
+# lines exceed it) and to agree with Prettier's printWidth for the
+# TypeScript side, so the repo reads at one measure. Dropping to ruff's
+# default 88 would rewrite most of the SDK to no benefit.
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes — undefined names, unused imports
+    "I",   # isort — import ordering
+    "UP",  # pyupgrade — syntax modernisation within target-version
+    "B",   # bugbear — mutable defaults, shadowed loop vars, ...
+    "SIM", # flake8-simplify
+    "RUF", # ruff's own checks
+]
+ignore = [
+    # Long lines are left to the formatter. Flagging them as lint errors as
+    # well means a URL or a sentence in a docstring fails CI for something
+    # `ruff format` has already decided it cannot improve.
+    "E501",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests exercise error paths on purpose and re-bind fixtures freely.
+"tests/*" = ["B011"]
+# The public surface is deliberately re-exported here; that is what an
+# __init__ is for, and __all__ already states the intent explicitly.
+"src/raven/__init__.py" = ["F401"]

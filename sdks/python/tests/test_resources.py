@@ -77,7 +77,9 @@ def test_room_participants_none_means_sfu_unreachable_not_empty() -> None:
 
 
 def test_room_participants_get_finds_by_identity() -> None:
-    http = _fake_http([{"identity": "alice", "joinedAt": "t", "tracks": []}, {"identity": "bob", "joinedAt": "t", "tracks": []}])
+    http = _fake_http(
+        [{"identity": "alice", "joinedAt": "t", "tracks": []}, {"identity": "bob", "joinedAt": "t", "tracks": []}]
+    )
     resource = RoomsResource(http)
 
     assert resource.participants.get("r1", "bob")["identity"] == "bob"
@@ -90,7 +92,9 @@ def test_connections_list_passes_typed_filters() -> None:
 
     resource.list(ListConnectionsParams(room_id="room-1", state="CONNECTED", limit=25))
 
-    http.request.assert_called_once_with("/v1/connections", query={"roomId": "room-1", "state": "CONNECTED", "limit": 25})
+    http.request.assert_called_once_with(
+        "/v1/connections", query={"roomId": "room-1", "state": "CONNECTED", "limit": 25}
+    )
 
 
 def test_errors_list_passes_typed_filters() -> None:
@@ -99,7 +103,9 @@ def test_errors_list_passes_typed_filters() -> None:
 
     resource.list(ListErrorsParams(category="ICE_ERROR", connection_id="conn_abc", limit=10))
 
-    http.request.assert_called_once_with("/v1/errors", query={"category": "ICE_ERROR", "connectionId": "conn_abc", "limit": 10})
+    http.request.assert_called_once_with(
+        "/v1/errors", query={"category": "ICE_ERROR", "connectionId": "conn_abc", "limit": 10}
+    )
 
 
 def test_errors_get() -> None:

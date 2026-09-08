@@ -72,7 +72,9 @@ class RavenHttpClient:
                     time.sleep(backoff_delay_seconds(attempt))
                     attempt += 1
                     continue
-                raise RavenError(f"Request timed out after {self._timeout}s", code="RAVEN_TIMEOUT", details=None) from exc
+                raise RavenError(
+                    f"Request timed out after {self._timeout}s", code="RAVEN_TIMEOUT", details=None
+                ) from exc
             except httpx.HTTPError as exc:
                 if retryable and attempt < self._max_retries:
                     time.sleep(backoff_delay_seconds(attempt))
