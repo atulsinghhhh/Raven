@@ -1,5 +1,12 @@
-import { DASHBOARD_URL, DISCORD_URL, DOCS_ROUTES, DOCS_URL } from '../lib/links';
-import { DiscordIcon, RavenMark } from './icons';
+import {
+  DASHBOARD_URL,
+  DEVELOPER_GITHUB_URL,
+  DEVELOPER_X_URL,
+  DISCORD_URL,
+  DOCS_ROUTES,
+  DOCS_URL,
+} from '../lib/links';
+import { DiscordIcon, GitHubIcon, RavenMark, XIcon } from './icons';
 
 const COLUMNS = [
   {
@@ -69,7 +76,30 @@ export function Footer() {
           ))}
         </div>
 
-        <p className="mt-12 border-t border-line pt-6 text-sm text-muted">&copy; Raven. All rights reserved.</p>
+        <div className="mt-12 flex flex-col gap-3 border-t border-line pt-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
+          <p>&copy; Raven. All rights reserved.</p>
+          <p className="flex items-center gap-1.5">
+            Built by Atul
+            <a
+              href={DEVELOPER_GITHUB_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label="Atul on GitHub"
+              className="text-muted transition-colors hover:text-fg"
+            >
+              <GitHubIcon className="h-3.5 w-3.5" />
+            </a>
+            <a
+              href={DEVELOPER_X_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label="Atul on X"
+              className="text-muted transition-colors hover:text-fg"
+            >
+              <XIcon className="h-3.5 w-3.5" />
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   );

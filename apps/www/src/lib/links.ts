@@ -2,10 +2,17 @@
  * External links shown in the nav/footer. Centralized so the same URL
  * doesn't drift between the two places it's rendered.
  */
-// No public GitHub link: Raven is closed-source infrastructure, not an
-// open repository: see docs/production/readiness-audit.md's closed-source
-// note. Community support still goes through Discord.
+// No public GitHub link for the *repository*: Raven is closed-source
+// infrastructure, not an open repository: see
+// docs/production/readiness-audit.md's closed-source note. Community
+// support still goes through Discord. (DEVELOPER_GITHUB_URL below is a
+// personal profile, not the Raven repo — no conflict with that note.)
 export const DISCORD_URL = 'https://discord.com/invite/HSWd9qMC7';
+
+/** The developer behind Raven — credited in BuiltBy.tsx and the footer. */
+export const DEVELOPER_NAME = 'Atul';
+export const DEVELOPER_GITHUB_URL = 'https://github.com/atulsinghhhh/';
+export const DEVELOPER_X_URL = 'https://x.com/unfav_atul';
 
 /** Where the dashboard actually lives: a separate app in this monorepo (apps/dashboard). */
 export const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3000';

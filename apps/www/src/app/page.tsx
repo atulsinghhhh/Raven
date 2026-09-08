@@ -1,4 +1,5 @@
 import { AnnouncementBar } from '../components/AnnouncementBar';
+import { BuiltBy } from '../components/BuiltBy';
 import { CodeShowcase } from '../components/CodeShowcase';
 import { DashboardPreview } from '../components/DashboardPreview';
 import { FinalCTA } from '../components/FinalCTA';
@@ -30,6 +31,7 @@ export default function LandingPage() {
         <DashboardPreview />
         <UseCases />
         <FinalCTA />
+        <BuiltBy />
       </main>
       <Footer />
     </>

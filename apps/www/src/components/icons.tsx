@@ -8,6 +8,14 @@ export function GitHubIcon({ className = 'w-5 h-5' }: { className?: string }) {
   );
 }
 
+export function XIcon({ className = 'w-5 h-5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.62l-5.21-6.82-5.96 6.82H1.68l7.73-8.84L1.25 2.25h6.79l4.71 6.23 5.49-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12Z" />
+    </svg>
+  );
+}
+
 export function DiscordIcon({ className = 'w-5 h-5' }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
