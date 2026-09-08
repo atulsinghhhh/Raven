@@ -1,0 +1,237 @@
+name: SFU (test, lint, publish)
+
+# The media plane's own pipeline: Go quality gates, then a multi-arch image
+# to GHCR.
+#
+# Scoped to services/sfu by path so it does not run on every unrelated
+# commit. The Go unit tests also run in e2e.yml, on every push — that is
+# deliberate duplication, not an oversight: a publish must gate on its own
+# green tests rather than trust that another workflow happened to pass.
+#
+# Image: ghcr.io/atulsinghhhh/raven-sfu
+# (owner comes from ${{ github.repository_owner }}, lowercased, so a fork
+# publishes under its own name and never this one.)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/sfu/**"
+      - ".github/workflows/sfu-publish.yml"
+    tags:
+      # Namespaced so the SFU can be released independently of the npm
+      # packages, which changesets tags as <package>@<version>.
+      - "sfu-v*.*.*"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/sfu/**"
+      - ".github/workflows/sfu-publish.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: sfu-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Patched past the advisories govulncheck reports against 1.26.4
+  # (GO-2026-5856 in crypto/tls, GO-2026-5026 in net/http). Keep this in
+  # step with security.yml and e2e.yml.
+  GO_VERSION: "1.26.6"
+  IMAGE_NAME: raven-sfu
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Quality gates. Everything here must pass before an image is built, let
+  # alone pushed.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Go test & lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/sfu
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: services/sfu/go.sum
+
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::gofmt would reformat these files. Run: gofmt -w ."
+            echo "$unformatted"
+            exit 1
+          fi
+
+      # go.mod/go.sum must already be tidy. A drifting go.sum is how a
+      # dependency ends up in the build that nobody chose.
+      - name: go mod tidy is a no-op
+        run: |
+          cp go.mod go.mod.bak && cp go.sum go.sum.bak
+          go mod tidy
+          if ! diff -q go.mod go.mod.bak >/dev/null || ! diff -q go.sum go.sum.bak >/dev/null; then
+            echo "::error::go.mod/go.sum are not tidy. Run: cd services/sfu && go mod tidy"
+            diff -u go.mod.bak go.mod || true
+            diff -u go.sum.bak go.sum || true
+            exit 1
+          fi
+          rm -f go.mod.bak go.sum.bak
+
+      - name: go vet
+        run: go vet ./...
+
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.6.1
+          working-directory: services/sfu
+
+      # Real Pion peers, real ICE/DTLS/SRTP, real RTP forwarding. -race
+      # because the SFU runs a goroutine per track and the bugs that matter
+      # here are races.
+      - name: go test -race
+        run: go test -race ./...
+
+  # ---------------------------------------------------------------------------
+  # Build, scan, publish.
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Build, scan${{ (github.event_name != 'pull_request') && ' & publish' || '' }}
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compute lowercase image ref
+        id: image
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "ref=ghcr.io/${owner}/${{ env.IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      # PRs build and scan but never authenticate or push, so a fork cannot
+      # land an image under this repository's name.
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Tag strategy:
+      #   sfu-v0.1.0 tag  ->  v0.1.0, 0.1, 0, latest, sha-<commit>
+      #   push to main    ->  edge, sha-<commit>
+      #   pull request    ->  pr-<n>            (built and scanned, never pushed)
+      #
+      # `latest` is bound to a release tag only. A moving `latest` that
+      # tracks main would hand anyone running `docker pull` an untagged
+      # commit as though it were a release.
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ steps.image.outputs.ref }}
+          tags: |
+            type=match,pattern=sfu-v(\d+\.\d+\.\d+),group=1,prefix=v
+            type=match,pattern=sfu-v(\d+\.\d+)\.\d+,group=1
+            type=match,pattern=sfu-v(\d+)\.\d+\.\d+,group=1
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/sfu-v') }}
+            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=pr
+            type=sha,format=long
+          labels: |
+            org.opencontainers.image.title=Raven SFU
+            org.opencontainers.image.description=Raven's SFU — the media plane. Go, built on Pion.
+            org.opencontainers.image.vendor=Raven
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/blob/main/docs/rtc/sfu.md
+
+      # Single-arch amd64 first, loaded into the local daemon purely so
+      # Trivy has something to scan. A multi-platform build cannot be
+      # `load`ed — the daemon holds one architecture, not an index.
+      - name: Build (amd64) for scanning
+        uses: docker/build-push-action@v7
+        with:
+          context: services/sfu
+          file: services/sfu/Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:scan
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+          cache-from: type=gha,scope=sfu
+          cache-to: type=gha,mode=max,scope=sfu
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:scan
+          format: sarif
+          output: trivy-sfu-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "0"
+
+      # Advanced Security is what ingests SARIF into code scanning; until it
+      # is enabled the findings ship as an artifact rather than vanishing.
+      # Mirrors what docker-publish.yml does for apps/api.
+      - name: Upload scan results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: trivy-sfu-results
+          path: trivy-sfu-results.sarif
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Fail build on critical vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:scan
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      # Multi-arch for real. The Dockerfile cross-compiles via
+      # BUILDPLATFORM/TARGETARCH, so arm64 costs a second `go build` rather
+      # than a QEMU-emulated toolchain.
+      - name: Build and push (multi-arch)
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v7
+        with:
+          context: services/sfu
+          file: services/sfu/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=sfu
+          cache-to: type=gha,mode=max,scope=sfu
+
+      - name: Summary
+        if: github.event_name != 'pull_request'
+        run: |
+          {
+            echo "### SFU image published"
+            echo
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
