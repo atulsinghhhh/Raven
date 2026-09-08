@@ -11,7 +11,7 @@ export class RedisService implements OnModuleDestroy {
    * Built here, not in `onModuleInit()`. Nest's DI container guarantees a
    * dependency's *constructor* has finished before any consumer's
    * constructor runs (`ChatEventsService` et al. take `RedisService` as a
-   * constructor param) — but it makes no such guarantee across unrelated
+   * constructor param), but it makes no such guarantee across unrelated
    * modules for the separate `onModuleInit` lifecycle phase. That gap was
    * latent until adding a second import path to a consuming module
    * (Live Streaming importing ChatModule alongside AppModule already
@@ -19,7 +19,7 @@ export class RedisService implements OnModuleDestroy {
    * `ChatEventsService.onModuleInit()` ran before this service's own
    * `onModuleInit()` had, so `this.client` was still undefined.
    * Constructing the client synchronously in the constructor removes the
-   * ordering dependency entirely, for every current and future consumer —
+   * ordering dependency entirely, for every current and future consumer;
    * not a workaround scoped to the module that happened to trip it.
    */
   constructor(private readonly configService: ConfigService) {
@@ -28,8 +28,8 @@ export class RedisService implements OnModuleDestroy {
       lazyConnect: false,
       maxRetriesPerRequest: 3,
       // Bounds how long a single command may wait. Without this, a Redis
-      // that is *hung* rather than *down* — a network partition, a paused
-      // container, a server too busy to answer — accepts the TCP
+      // that is *hung*, not *down*: a network partition, a paused
+      // container, a server too busy to answer: accepts the TCP
       // connection and then never replies, and ioredis waits forever.
       //
       // That distinction matters a lot for chat: every caller here is
@@ -53,7 +53,7 @@ export class RedisService implements OnModuleDestroy {
     await this.client.quit();
   }
 
-  /** Used by the health module — throws if Redis is unreachable. */
+  /** Used by the health module: throws if Redis is unreachable. */
   async ping(): Promise<void> {
     const reply = await this.client.ping();
     if (reply !== 'PONG') {

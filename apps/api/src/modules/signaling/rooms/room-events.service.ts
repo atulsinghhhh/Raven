@@ -8,7 +8,7 @@ type EnvelopeHandler = (roomId: string, envelope: SignalingEventEnvelope) => voi
 
 /**
  * The distributed fan-out layer for signaling, ported 1:1 from
- * `chat/realtime/chat-events.service.ts` — same dedicated duplicated
+ * `chat/realtime/chat-events.service.ts`: same dedicated duplicated
  * subscriber, same ref-counted per-room subscribe, same fail-open publish.
  * A join/leave/relay on Gateway 1 reaches a participant parked on
  * Gateway 3 without the two knowing about each other.
@@ -17,7 +17,7 @@ type EnvelopeHandler = (roomId: string, envelope: SignalingEventEnvelope) => voi
  * only while it holds at least one local participant in that room, and
  * UNSUBSCRIBEs when the last one leaves.
  *
- * Note the dedicated connection — ioredis puts a client into subscriber
+ * Note the dedicated connection: ioredis puts a client into subscriber
  * mode exclusively, so reusing the shared RedisService client here would
  * break every other Redis call in the process.
  */
@@ -73,7 +73,7 @@ export class RoomEventsService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Publishes an event to every gateway holding a local participant in
-   * this room. Failures are logged, never thrown — a Redis blip should
+   * this room. Failures are logged, never thrown: a Redis blip should
    * degrade a relay/broadcast, not turn it into an error the caller has
    * to handle mid-signaling-flow (same fail-open posture as chat's
    * publish).
@@ -118,7 +118,7 @@ export class RoomEventsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  /** For the health/metrics surface — how many rooms this instance is watching. */
+  /** For the health/metrics surface: how many rooms this instance is watching. */
   getSubscribedChannelCount(): number {
     return this.refCounts.size;
   }

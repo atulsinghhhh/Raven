@@ -12,7 +12,7 @@ export interface RoomSubscription {
 
 /**
  * One authenticated chat WebSocket. Identity comes from the token, not
- * the connection — a reconnect produces a new `connectionId` but is still
+ * the connection: a reconnect produces a new `connectionId` but is still
  * the same `userId`, which is why presence survives a reconnect and read
  * state doesn't reset.
  */
@@ -22,7 +22,7 @@ export interface ChatSession {
   /** Database row id for the ChatConnection record, so disconnect can close it out. */
   connectionRowId?: string;
   projectId: string;
-  /** From the token's signed `env` claim — a socket cannot change environment. */
+  /** From the token's signed `env` claim: a socket cannot change environment. */
   environment: Environment;
   userId: string;
   scopes: ChatScope[];

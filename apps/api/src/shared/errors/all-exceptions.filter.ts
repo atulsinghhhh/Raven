@@ -13,7 +13,7 @@ import { LEGACY_ERROR_CODE, RavenErrorCode } from './error-codes';
  * Every error leaving the API passes through here. Known HttpExceptions
  * (our AppError subclasses included) keep their own status/message.
  * Anything else counts as an unexpected bug: gets logged in full on the
- * server, but the client only ever sees a generic 500 — no stack trace,
+ * server, but the client only ever sees a generic 500: no stack trace,
  * no DB error text, no file paths.
  *
  * Every body carries `requestId`. It is the single thing that turns "it

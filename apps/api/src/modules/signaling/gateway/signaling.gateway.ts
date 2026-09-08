@@ -39,18 +39,18 @@ const CLOSE_REPLACED = 4002;
 const CLOSE_RATE_LIMITED = 4029;
 
 /**
- * Our wire format (`{"type": "..."}`, flat fields) doesn't match what
+ * Our wire format is `{"type": "..."}` with flat fields, which isn't what
  * Nest's @SubscribeMessage/WsAdapter binding expects (`{"event": "...",
- * "data": {...}}`), so this gateway skips that binding layer and parses/
- * dispatches raw `message` events itself. handleConnection/handleDisconnect
- * still use Nest's normal gateway lifecycle hooks though.
+ * "data": {...}}`). So this gateway skips that binding layer entirely and
+ * parses and dispatches raw `message` events itself. handleConnection and
+ * handleDisconnect still use Nest's normal gateway lifecycle hooks.
  *
- * Multi-instance delivery works the same way as the chat gateway: this
- * gateway holds sockets and a local room index; `RoomRegistryService` and
- * `RoomEventsService` handle fleet-wide membership and fan-out over
- * Redis, so a room split across gateways still gets join/leave/relay
- * events delivered correctly (see
- * docs/rtc/scaling.md#a-room-split-across-api-instances).
+ * Multi-instance delivery works the same way it does in the chat gateway.
+ * This gateway holds sockets and a local room index; `RoomRegistryService`
+ * and `RoomEventsService` handle fleet-wide membership and fan-out over
+ * Redis. So a room split across gateways still gets its join, leave and
+ * relay events delivered properly. See
+ * docs/rtc/scaling.md#a-room-split-across-api-instances.
  */
 @WebSocketGateway({ path: SIGNALING_PATH })
 export class SignalingGateway
@@ -59,9 +59,9 @@ export class SignalingGateway
   private readonly logger = new Logger(SignalingGateway.name);
   private readonly sessions = new Map<WebSocket, ParticipantSession>();
   /**
-   * The same sessions, keyed by connection id — which is the session id on
-   * the node link. Frames from an SFU name a session, not a socket, so
-   * this is the index that resolves them.
+   * The same sessions, keyed by connection id, which is also the session id
+   * on the node link. Frames from an SFU name a session rather than a
+   * socket, so this is the index that resolves them.
    */
   private readonly sessionsByConnectionId = new Map<string, ParticipantSession>();
   private heartbeatTimer?: NodeJS.Timeout;
@@ -84,8 +84,8 @@ export class SignalingGateway
       this.handleRoomEvent(roomId, envelope),
     );
     // Frames from an SFU arrive on a link this instance owns, and the
-    // sessions on that link are this instance's own — so a session-
-    // targeted frame is always deliverable locally, with no Redis hop on
+    // sessions on that link belong to this instance. So a session-targeted
+    // frame is always deliverable locally, with no Redis hop anywhere on
     // the latency-sensitive negotiation path.
     this.sfuLink.onFrame((frame) => void this.handleSfuFrame(frame));
     this.heartbeatTimer = setInterval(() => this.runHeartbeat(), HEARTBEAT_INTERVAL_MS);
@@ -104,12 +104,11 @@ export class SignalingGateway
   }
 
   async handleConnection(client: WebSocket, request: IncomingMessage): Promise<void> {
-    // Auth below is async (Redis + JWT). Without pausing, a client that
-    // fires off room.join right on 'open' could have that frame delivered
-    // before our 'message' listener is even attached further down —
-    // EventEmitter doesn't buffer for late listeners, so it'd just get
-    // dropped silently. pause()/resume() holds incoming frames until
-    // we're ready for them.
+    // Auth below is async: Redis plus JWT. Without pausing, a client that
+    // fires room.join the instant the socket opens could have that frame
+    // delivered before our 'message' listener is even attached further
+    // down. EventEmitter doesn't buffer for late listeners, so the frame
+    // would just vanish. pause()/resume() holds them until we're ready.
     client.pause();
 
     const clientIp = this.extractClientIp(request);
@@ -214,8 +213,8 @@ export class SignalingGateway
       const message = this.messageValidator.parse(data as Buffer);
       const result = await this.messageRouter.route(session, message);
 
-      // Subscribe before publishing anything (including this join's own
-      // possible kick) so this instance never misses an event it caused.
+      // Subscribe before publishing anything, this join's own possible kick
+      // included, so this instance never misses an event it caused itself.
       if (message.type === ClientMessageType.ROOM_JOIN && session.joinedRoom && !session.roomEventsUnsubscribe) {
         session.roomEventsUnsubscribe = await this.roomEvents.subscribe(session.roomId);
       }
@@ -241,12 +240,13 @@ export class SignalingGateway
   }
 
   /**
-   * Carries out what the router decided. Everything beyond `toSender`
-   * goes through Redis — even when the target turns out to be on this
-   * same instance, delivery happens uniformly via the room-events
-   * subscription handler below (same trade-off chat makes: one code
-   * path, not a local/remote fork, at the cost of one Redis round trip
-   * per relay).
+   * Carries out whatever the router decided.
+   *
+   * Everything past `toSender` goes through Redis. Even when the target
+   * turns out to be on this very instance, delivery happens uniformly
+   * through the room-events subscription handler below. Same trade chat
+   * makes: one code path instead of a local/remote fork, at the cost of a
+   * Redis round trip per relay.
    */
   private async executeAction(session: ParticipantSession, result: SignalingActionResult): Promise<void> {
     if (result.toSender) {
@@ -271,13 +271,13 @@ export class SignalingGateway
   }
 
   /**
-   * Delivers what an SFU frame implies.
+   * Delivers whatever an SFU frame implies.
    *
-   * Session-targeted frames (offers, answers, candidates, connection
-   * state) go straight to the socket: the frame arrived on a link this
-   * instance owns, so the session is this instance's own. Room-wide
-   * frames (a track appearing or going away) go through Redis, because
-   * the room's other participants may be on any instance.
+   * Session-targeted frames, meaning offers, answers, candidates and
+   * connection state, go straight to the socket. The frame arrived on a
+   * link this instance owns, so the session is ours. Room-wide frames, a
+   * track appearing or going away, go through Redis, because the room's
+   * other participants could be on any instance.
    */
   private async handleSfuFrame(frame: NodeLinkFrame): Promise<void> {
     let action;
@@ -293,9 +293,9 @@ export class SignalingGateway
     if (action.toSession) {
       const session = this.sessionsByConnectionId.get(action.toSession.sessionId);
       if (!session) {
-        // The client disconnected while the SFU was answering. Expected
-        // often enough not to be a warning — the node cleans up its side
-        // when the PeerConnection dies.
+        // Client disconnected while the SFU was answering. Common enough
+        // not to warrant a warning; the node cleans up its side when the
+        // PeerConnection dies.
         this.logger.debug(
           `dropping ${frame.type} — session ${action.toSession.sessionId} is gone`,
         );
@@ -313,7 +313,7 @@ export class SignalingGateway
     }
   }
 
-  /** Called for every event on every room this instance subscribes to (own events included). */
+  /** Runs for every event on every room this instance subscribes to, our own included. */
   private handleRoomEvent(roomId: string, envelope: SignalingEventEnvelope): void {
     switch (envelope.kind) {
       case 'broadcast': {
@@ -373,7 +373,7 @@ export class SignalingGateway
     return request.socket.remoteAddress ?? 'unknown';
   }
 
-  /** For observability — not exposed over the wire protocol. Local-instance only; see RoomRegistryService.getMetrics. */
+  /** For observability, not exposed over the wire protocol. Local instance only; see RoomRegistryService.getMetrics. */
   getMetrics() {
     return {
       activeConnections: this.sessions.size,

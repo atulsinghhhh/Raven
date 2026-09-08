@@ -2,14 +2,14 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { LEGACY_ERROR_CODE, RavenErrorCode } from './error-codes';
 
 // Base for expected, domain-level errors. The global filter treats these
-// differently from unexpected exceptions — specific message here, generic
-// 500 for everything else — so we don't leak internals to callers.
+// differently from unexpected exceptions: specific message here, generic
+// 500 for everything else, so we don't leak internals to callers.
 export class AppError extends HttpException {
   readonly code: RavenErrorCode;
 
   /**
    * `details` merges extra, developer-facing fields into the response
-   * body alongside message/code — e.g. a rate limiter's
+   * body alongside message/code: e.g. a rate limiter's
    * `retryAfterSeconds`. Only put things here that are safe to hand a
    * client; the global filter forwards this verbatim.
    */
@@ -29,8 +29,8 @@ export class AppError extends HttpException {
 
 export class NotFoundError extends AppError {
   /**
-   * `code` lets a caller be specific — a missing room reports
-   * RAVEN_ROOM_NOT_FOUND rather than the generic code — without every
+   * `code` lets a caller be specific: a missing room reports
+   * RAVEN_ROOM_NOT_FOUND instead of the generic code: without every
    * resource needing its own subclass.
    */
   constructor(resource: string, code: RavenErrorCode = RavenErrorCode.NOT_FOUND) {

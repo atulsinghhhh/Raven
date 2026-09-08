@@ -13,7 +13,7 @@ import { ChatRateLimitService } from '../rate-limit/chat-rate-limit.service';
 import { ChatEventsService } from '../realtime/chat-events.service';
 import { ChatReactionSummary } from '../realtime/chat-event.interface';
 
-// Emoji are user-visible strings, not codepoints we want to police — but
+// Emoji are user-visible strings, not codepoints we want to police, but
 // an unbounded "emoji" field is just a second message body with no limit.
 const MAX_EMOJI_LENGTH = 32;
 
@@ -38,7 +38,7 @@ export class ReactionsService {
   ) {}
 
   /**
-   * Adding the same reaction twice is a no-op, not a duplicate row —
+   * Adding the same reaction twice is a no-op, not a duplicate row;
    * enforced by the `(messageId, userId, emoji)` unique index and made
    * idempotent here so a double-tap on a flaky connection is harmless
    * (spec §23).
@@ -77,7 +77,7 @@ export class ReactionsService {
         userId,
         emoji,
       },
-      // Nothing to change — the row existing is the whole state.
+      // Nothing to change: the row existing is the whole state.
       update: {},
     });
 
@@ -105,7 +105,7 @@ export class ReactionsService {
     return { messageId: message.publicId, roomId: conversation.publicId, userId, emoji, reactions };
   }
 
-  /** Removing a reaction that isn't there succeeds — same end state, no error. */
+  /** Removing a reaction that isn't there succeeds: same end state, no error. */
   async remove(actor: ChatActor, messagePublicId: string, emoji: string): Promise<ReactionResult> {
     const { message, conversation, scopes } = await this.messages.loadForActor(actor, messagePublicId);
     assertScope(scopes, 'chat:send', 'Removing a reaction');

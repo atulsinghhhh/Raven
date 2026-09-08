@@ -6,13 +6,13 @@ import { ClientMessageType, ServerMessageType, SignalingErrorCode } from '../sig
 
 export interface RoomJoinMessage {
   type: ClientMessageType.ROOM_JOIN;
-  /** Optional — if present, must match the room bound to the connection's RTC token. */
+  /** Optional. If it's there, it has to match the room bound to the connection's RTC token. */
   roomId?: string;
   /**
    * Preferred region for the RTC server. A preference, not a constraint:
-   * the allocator falls back to another region rather than failing a call
-   * that could otherwise happen. Ignored once the room already has an
-   * assigned server, since every participant must be on the same one.
+   * the allocator falls back to another region, not fail a call that
+   * could otherwise happen. Ignored once the room already has a server
+   * assigned, since everyone has to be on the same one.
    */
   region?: string;
 }
@@ -24,7 +24,7 @@ export interface RoomLeaveMessage {
 /**
  * Answering the SFU's offer.
  *
- * No `targetParticipantId`: the client has exactly one peer, the SFU node
+ * No `targetParticipantId`. The client has exactly one peer, the SFU node
  * serving its room. That field was the defining feature of the mesh
  * protocol this replaced.
  */
@@ -91,7 +91,7 @@ export type InboundSignalingMessage =
 export interface PublicTrack {
   trackId: string;
   kind: 'audio' | 'video';
-  /** `camera` / `microphone` / `screenShare` — what the track is *of*, which applications switch on. */
+  /** `camera`, `microphone` or `screenShare`: what the track is *of*, which is what applications switch on. */
   source: string;
   muted: boolean;
   simulcast: boolean;
@@ -104,10 +104,10 @@ export interface PublicParticipant {
   /**
    * What this participant is already publishing.
    *
-   * Included in `room.joined` so a client joining a call in progress can
-   * render the room in one pass, rather than showing an empty grid and
-   * filling it in from a stream of `track.published` events it has to
-   * distinguish from genuinely new ones.
+   * Included in `room.joined` so a client joining a call in progress renders
+   * the room in one pass, instead of showing an empty grid and filling it
+   * in from a stream of `track.published` events it then has to tell apart
+   * from genuinely new ones.
    */
   tracks?: PublicTrack[];
 }
@@ -118,9 +118,9 @@ export interface RoomJoinedMessage {
   participants: PublicParticipant[];
   /**
    * The RTC server serving this room. Its *name*, for support and
-   * diagnostics — never its address. A client that learned an SFU's
-   * address could connect to it directly, and then the media plane could
-   * no longer be changed without breaking that client.
+   * diagnostics, never its address. A client that learned an SFU's address
+   * could connect to it directly, and from then on the media plane couldn't
+   * change without breaking that client.
    */
   rtcServer?: string;
   region?: string;
@@ -154,10 +154,10 @@ export interface TrackUnpublishedMessage {
 }
 
 /**
- * A publisher muted or unmuted a track they are still publishing.
+ * A publisher muted or unmuted a track they're still publishing.
  *
- * Not an unpublish: nothing is renegotiated, so a subscriber keeps the
- * transceiver and the tile, and unmuting resumes immediately.
+ * Not an unpublish. Nothing gets renegotiated, so a subscriber keeps the
+ * transceiver and the tile, and unmuting resumes straight away.
  */
 export interface TrackMutedMessage {
   type: ServerMessageType.TRACK_MUTED | ServerMessageType.TRACK_UNMUTED;
@@ -186,12 +186,12 @@ export interface IceCandidateRelayMessage {
 }
 
 /**
- * ICE/DTLS state as the SFU observes it.
+ * ICE and DTLS state, as the SFU sees it.
  *
- * Worth having in addition to what the client can see locally: the two
- * sides of a connection can disagree about whether it is up, and knowing
- * that the SFU thinks it is `failed` while the browser thinks it is
- * `connected` is exactly the information a support engineer needs.
+ * Worth having alongside what the client sees locally. The two sides of a
+ * connection can disagree about whether it's up, and "the SFU says failed
+ * while the browser says connected" is precisely what a support engineer
+ * needs to know.
  */
 export interface ConnectionStateMessage {
   type: ServerMessageType.CONNECTION_STATE;

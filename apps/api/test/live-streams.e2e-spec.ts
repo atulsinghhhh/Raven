@@ -9,7 +9,7 @@ import { RedisService } from '../src/shared/redis/redis.service';
 /**
  * End-to-end test of Live Streaming: the real app, real Postgres/Redis
  * (`docker compose up -d` must be running), real token minting through the
- * real RTC/chat token services. Nothing here is mocked — this is what
+ * real RTC/chat token services. Nothing here is mocked: this is what
  * caught the module-registration ordering bug unit tests could not
  * (see redis.service.ts's class doc): only booting the real AppModule
  * exercises cross-module lifecycle-hook ordering.
@@ -157,7 +157,7 @@ describe('Live Streaming (e2e)', () => {
       expect(ended.body.status).toBe('ENDED');
       expect(ended.body.endedAt).not.toBeNull();
 
-      // Terminal — no ENDED → LIVE resurrection path.
+      // Terminal: no ENDED → LIVE resurrection path.
       await request(baseUrl)
         .post(`/v1/live-streams/${streamId}/start`)
         .set('Authorization', `Bearer ${apiKey}`)
@@ -270,7 +270,7 @@ describe('Live Streaming (e2e)', () => {
       // live against a real local receiver during development (see the
       // final report) rather than re-proven here. This confirms the
       // seven new event types this feature added are validated the same
-      // way every existing event type is — accepted here means a real
+      // way every existing event type is: accepted here means a real
       // endpoint really would be able to subscribe to them.
       const events = [
         'live_stream.created',

@@ -17,7 +17,7 @@ type EnvelopeHandler = (envelope: ChatEventEnvelope) => void;
  * and UNSUBSCRIBEs when the last one leaves. A thousand idle conversations
  * cost nothing.
  *
- * Note the dedicated connection — ioredis puts a client into subscriber
+ * Note the dedicated connection: ioredis puts a client into subscriber
  * mode exclusively, so reusing the shared RedisService client here would
  * break every other Redis call in the process.
  */
@@ -129,7 +129,7 @@ export class ChatEventsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  /** For the health/metrics surface — how many conversations this instance is watching. */
+  /** For the health/metrics surface: how many conversations this instance is watching. */
   getSubscribedChannelCount(): number {
     return this.refCounts.size;
   }

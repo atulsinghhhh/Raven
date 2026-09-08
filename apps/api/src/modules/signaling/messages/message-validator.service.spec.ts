@@ -71,7 +71,7 @@ describe('MessageValidatorService', () => {
   });
 
   it('accepts an sdp.offer with no target', () => {
-    // The client has exactly one peer — the SFU serving its room. A
+    // The client has exactly one peer: the SFU serving its room. A
     // `targetParticipantId` was the defining field of the mesh protocol
     // this replaced, and requiring one now would be wrong.
     const msg = validator.parse('{"type":"sdp.offer","sdp":"v=0..."}');

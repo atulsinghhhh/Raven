@@ -11,7 +11,7 @@ import { SignalingErrorCode } from '../signaling.constants';
 import { Environment } from '../../../shared/environment/environment.constants';
 
 export interface VerifiedRtcToken {
-  /** Token id (`jti`) — also the `rtc_tokens` row id. The correlation key for every RTC log line on this connection. */
+  /** Token id (`jti`): also the `rtc_tokens` row id. The correlation key for every RTC log line on this connection. */
   tokenId: string;
   participantId: string;
   projectId: string;
@@ -25,7 +25,7 @@ export interface VerifiedRtcToken {
 }
 
 /**
- * Verifies the same Raven RTC token the token endpoint mints — there's no
+ * Verifies the same Raven RTC token the token endpoint mints: there's no
  * separate signaling token format.
  *
  * The signed token is the only source of authorization. Anything the client
@@ -44,7 +44,7 @@ export class RtcTokenVerifierService {
   constructor(private readonly signer: RtcTokenSignerService) {}
 
   /**
-   * `async` even though verification is synchronous — the gateway awaits
+   * `async` even though verification is synchronous: the gateway awaits
    * this, and keeping the signature async leaves room for a Redis-backed
    * revocation check (as chat already does) without touching every caller.
    */

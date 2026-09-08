@@ -10,10 +10,10 @@ const execFileAsync = promisify(execFile);
  * Builds and runs a real Raven SFU as a child process, for e2e tests that
  * need the media plane to actually exist.
  *
- * # Why a real node rather than a fake one
+ * # Why a real node instead of a fake one
  *
  * `room.join` allocates an RTC server and asks it for a PeerConnection.
- * Without a registered node it fails with `NO_RTC_CAPACITY` — correctly,
+ * Without a registered node it fails with `NO_RTC_CAPACITY`: correctly,
  * and that path is worth testing, but it is not the path a call takes. A
  * stubbed node link would let the API's own frames be checked and nothing
  * else: not that Pion accepts them, not that the SDP coming back is a
@@ -24,7 +24,7 @@ const execFileAsync = promisify(execFile);
  * # Ordering
  *
  * The node registers itself with the control plane on boot, so the API
- * must be listening first — and because the e2e app binds port 0, its
+ * must be listening first, and because the e2e app binds port 0, its
  * address is not known until then. That rules out running the SFU from
  * docker-compose alongside Postgres and Redis: it has to be spawned by
  * the test, pointed at the port the app actually got.
@@ -34,7 +34,7 @@ export interface SfuProcessOptions {
   controlPlaneUrl: string;
   /** Must match the API's `SFU_REGISTRATION_SECRET`. */
   registrationSecret: string;
-  /** Unique per run, so a leftover row from a crashed run is reclaimed rather than duplicated. */
+  /** Unique per run, so a leftover row from a crashed run is reclaimed, not duplicated. */
   nodeId: string;
   region?: string;
   /** The node's own HTTP port: node link, health, metrics. */
@@ -79,7 +79,7 @@ export class SfuProcess {
    * Starts the node and resolves once the control plane has it registered.
    *
    * `isRegistered` is supplied by the caller rather than polled here
-   * because only the test knows how to ask the API under test — and
+   * because only the test knows how to ask the API under test: and
    * asking the API is the point: a node that thinks it registered but
    * does not appear in the registry is the failure this waits out.
    */
@@ -92,7 +92,7 @@ export class SfuProcess {
         SFU_NODE_ID: options.nodeId,
         SFU_REGION: options.region ?? 'local',
         SFU_HTTP_ADDR: `:${options.httpPort}`,
-        // Explicit, because the derived default uses $HOSTNAME — which on
+        // Explicit, because the derived default uses $HOSTNAME, which on
         // a developer's machine is a name the API cannot resolve.
         SFU_INTERNAL_URL: `http://127.0.0.1:${options.httpPort}`,
         SFU_PUBLIC_HOST: '127.0.0.1',
@@ -101,7 +101,7 @@ export class SfuProcess {
         SFU_REGISTRATION_SECRET: options.registrationSecret,
         SFU_UDP_PORT_MIN: String(options.udpPortMin),
         SFU_UDP_PORT_MAX: String(options.udpPortMax),
-        // Capacity may not exceed the UDP port span — the node's own
+        // Capacity may not exceed the UDP port span: the node's own
         // config validation refuses to boot otherwise.
         SFU_ROOM_CAPACITY: String(Math.min(20, options.udpPortMax - options.udpPortMin + 1)),
         SFU_HEARTBEAT_INTERVAL_SECONDS: '2',
@@ -149,7 +149,7 @@ export class SfuProcess {
     if (!child || child.exitCode !== null) {
       return;
     }
-    // SIGTERM rather than SIGKILL: the node closes its rooms and
+    // SIGTERM instead of SIGKILL: the node closes its rooms and
     // deregisters on the way out, and exercising that shutdown path is
     // better than skipping it.
     await new Promise<void>((resolve) => {
@@ -172,7 +172,7 @@ export class SfuProcess {
  *
  * Deliberately not 51000-51200: `docker compose` publishes exactly that
  * range for the local SFU, and two processes contending for a UDP port
- * surfaces as an unexplained ICE failure rather than a clear bind error.
+ * surfaces as an unexplained ICE failure, not a clear bind error.
  */
 export const E2E_SFU_HTTP_PORT = 17_431;
 export const E2E_SFU_UDP_MIN = 52_400;

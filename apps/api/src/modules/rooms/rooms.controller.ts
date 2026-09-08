@@ -20,7 +20,7 @@ import { IdempotencyInterceptor } from '../../shared/idempotency/idempotency.int
 import { CreateRoomDto } from './dto/create-room.dto';
 import { RoomsService } from './rooms.service';
 
-// Rooms are control-plane records only for now — creating one doesn't
+// Rooms are control-plane records only for now: creating one doesn't
 // start any WebRTC signaling. Authenticated with a project API key, not a
 // developer JWT: this is the endpoint a developer's own backend calls.
 @ApiTags('Rooms')

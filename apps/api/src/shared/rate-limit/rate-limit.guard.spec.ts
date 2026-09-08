@@ -67,7 +67,7 @@ describe('RateLimitGuard', () => {
 
   it('falls back to the window length when TTL is unavailable', async () => {
     // A key that raced past its own EXPIRE (or a Redis blip) should not
-    // crash the refusal — the window length is the best remaining guess.
+    // crash the refusal: the window length is the best remaining guess.
     redis.incr.mockResolvedValue(6);
     redis.ttl.mockResolvedValue(-1);
 

@@ -18,7 +18,7 @@ export interface ErrorClassification {
 
 /**
  * Maps an `@corvidhq/rtc` `RTCError` (plus a little connection context) onto
- * a Raven-facing error category and a plain-language explanation — never
+ * a Raven-facing error category and a plain-language explanation: never
  * a raw SFU or coturn error code. This is the one place that mapping
  * lives; both the ingest pipeline and any future re-classification pass
  * should go through it. See docs/error-codes.md.

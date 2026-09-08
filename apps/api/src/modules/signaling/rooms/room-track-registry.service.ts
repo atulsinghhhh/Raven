@@ -133,7 +133,7 @@ export class RoomTrackRegistryService {
     return byParticipant;
   }
 
-  /** Drops the whole room's track list — used when a room is closed. */
+  /** Drops the whole room's track list: used when a room is closed. */
   async clearRoom(roomId: string): Promise<void> {
     try {
       await this.redisService.client.del(trackKey(roomId));

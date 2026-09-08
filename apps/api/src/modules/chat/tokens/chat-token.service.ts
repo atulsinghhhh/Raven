@@ -9,24 +9,24 @@ import { ChatErrorCode, RedisKeys } from '../chat.constants';
 import { Environment } from '../../../shared/environment/environment.constants';
 import { ChatScope, isChatScope, narrowScopes, scopesForRole } from '../chat-permissions';
 
-/** What a minted chat token carries. Everything a gateway needs to authorize without a DB round-trip. */
+/** What a minted chat token carries: everything a gateway needs to authorize without a DB round trip. */
 export interface ChatTokenClaims {
-  /** Token id — the handle used to revoke it. */
+  /** Token id. The handle you revoke it by. */
   jti: string;
   /** Subject: the developer's own user identity string. */
   sub: string;
   /** Raven project id. */
   pid: string;
   /**
-   * Environment. Signed rather than sent, because a browser holding a
-   * development token must not be able to reach production data by
-   * changing a request field — the same reason `sub` is a claim.
+   * Environment. Signed, not sent, because a browser holding a
+   * development token mustn't be able to reach production data by editing a
+   * request field. Same reason `sub` is a claim.
    *
-   * Optional on the type so tokens minted before environments existed
-   * still verify; they resolve to development at the guard.
+   * Optional on the type so tokens minted before environments existed still
+   * verify. They resolve to development at the guard.
    */
   env?: Environment;
-  /** Conversations this token may touch. Empty = every conversation the user is a member of. */
+  /** Conversations this token may touch. Empty means every conversation the user belongs to. */
   cvs: string[];
   scopes: ChatScope[];
   iat: number;
@@ -45,23 +45,25 @@ export interface IssuedChatToken {
   scopes: ChatScope[];
   conversations: string[];
   expiresAt: Date;
-  /** Where the browser should point `@corvidhq/chat` — the SDK never hardcodes a host. */
+  /** Where the browser should point `@corvidhq/chat`. The SDK never hardcodes a host. */
   chatUrl: string;
   /** REST base for history/attachment calls made with this same token. */
   apiUrl: string;
 }
 
 /**
- * Mints and verifies the short-lived credential a browser uses to reach
- * the chat gateway (spec §10). Deliberately hand-rolled HS256 rather than
- * pulling in the RTC token machinery: chat has nothing to do with the
- * media plane, and reusing an RTC token here would mean one leaked
- * credential grants both media and messaging.
+ * Mints and verifies the short-lived credential a browser uses to reach the
+ * chat gateway (spec §10).
  *
- * The signing key is CHAT_TOKEN_SECRET, distinct from JWT_SECRET (the
+ * Hand-rolled HS256 on purpose, rather than reaching for the RTC token
+ * machinery. Chat has nothing to do with the media plane, and reusing an
+ * RTC token here would mean one leaked credential grants both media and
+ * messaging.
+ *
+ * The signing key is CHAT_TOKEN_SECRET, separate from JWT_SECRET (the
  * dashboard session key) and from RTC_TOKEN_SECRET. None of the three can
- * mint each other's tokens, and the `aud` claim means none of them
- * verifies as another even if a secret were shared by mistake.
+ * mint each other's tokens, and the `aud` claim means none of them verifies
+ * as another even if a secret got shared by mistake.
  */
 @Injectable()
 export class ChatTokenService {
@@ -73,8 +75,8 @@ export class ChatTokenService {
   ) {}
 
   /**
-   * @param role the member's role in the conversation(s); scopes are derived from it
-   * @param requestedScopes optional narrowing — can only ever remove permissions, never add
+   * @param role the member's role in the conversation(s); scopes come from it
+   * @param requestedScopes optional narrowing. Can only ever remove permissions, never add
    */
   issue(input: {
     projectId: string;
@@ -121,16 +123,18 @@ export class ChatTokenService {
   }
 
   /**
-   * Verifies signature, audience, and expiry, then checks the revocation
-   * list. Every rejection path throws a ChatError with a specific code —
-   * a client that got an expired token should be told to refresh it, not
-   * told "unauthorized" and left guessing.
+   * Verifies signature, audience and expiry, then checks the revocation
+   * list.
+   *
+   * Every rejection path throws a ChatError with a specific code. A client
+   * holding an expired token should be told to refresh it, not told
+   * "unauthorized" and left to work it out.
    */
   async verify(rawToken: string): Promise<ChatTokenClaims> {
     const claims = this.decodeAndVerifySignature(rawToken);
 
     if (claims.aud !== 'raven-chat' || claims.iss !== 'raven') {
-      // A dashboard session JWT or an RTC token would land here.
+      // A dashboard session JWT or an RTC token lands here.
       throw new ChatError(ChatErrorCode.INVALID_TOKEN, 'This token was not issued for Raven Chat');
     }
     if (claims.exp * 1000 <= Date.now()) {
@@ -144,9 +148,10 @@ export class ChatTokenService {
   }
 
   /**
-   * Revokes a token before its natural expiry. The tombstone only needs
-   * to outlive the token itself, so the TTL is the token's remaining
-   * lifetime — revocation state never accumulates in Redis.
+   * Revokes a token ahead of its natural expiry.
+   *
+   * The tombstone only has to outlive the token, so the TTL is whatever the
+   * token had left. Revocation state therefore never accumulates in Redis.
    */
   async revoke(tokenId: string, expiresAt: Date): Promise<void> {
     const ttlSeconds = Math.max(1, Math.ceil((expiresAt.getTime() - Date.now()) / 1000));
@@ -157,9 +162,9 @@ export class ChatTokenService {
     try {
       return (await this.redisService.client.exists(RedisKeys.revokedToken(tokenId))) === 1;
     } catch (err) {
-      // Redis being down must not turn every valid token into an auth
-      // failure — chat degrades to "revocation is delayed", not "nobody
-      // can connect". Logged so it's visible, never silent.
+      // Redis being down mustn't turn every valid token into an auth
+      // failure. Chat degrades to "revocation is delayed", not "nobody can
+      // connect". Logged so it's visible, never swallowed.
       this.logger.error(`revocation check unavailable, allowing token: ${(err as Error).message}`);
       return false;
     }
@@ -185,8 +190,8 @@ export class ChatTokenService {
     const [header, payload, signature] = parts;
     const expected = this.hmac(`${header}.${payload}`);
 
-    // Constant-time compare — a plain !== leaks signature bytes through
-    // timing to anyone willing to make enough attempts.
+    // Constant-time compare. A plain !== leaks signature bytes through
+    // timing to anybody willing to make enough attempts.
     const provided = Buffer.from(signature);
     const expectedBuffer = Buffer.from(expected);
     if (provided.length !== expectedBuffer.length || !timingSafeEqual(provided, expectedBuffer)) {
@@ -196,7 +201,7 @@ export class ChatTokenService {
     try {
       return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as ChatTokenClaims;
     } catch {
-      // Never echo the malformed input back — it's attacker-controlled.
+      // Never echo the malformed input back. It's attacker-controlled.
       throw new ChatError(ChatErrorCode.INVALID_TOKEN, 'Chat token payload could not be decoded');
     }
   }
@@ -206,7 +211,7 @@ export class ChatTokenService {
     return createHmac('sha256', secret).update(input).digest('base64url');
   }
 
-  /** Derives the wss:// URL from the API's own public URL so there's one address to configure, not two. */
+  /** Derives the wss:// URL from the API's own public URL, so there's one address to configure instead of two. */
   private chatUrl(): string {
     const publicUrl = this.configService.get<string>('publicUrl')!;
     const wsUrl = publicUrl.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:');

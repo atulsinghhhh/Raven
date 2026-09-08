@@ -13,12 +13,12 @@ import { UpdateLiveStreamDto } from './dto/update-live-stream.dto';
 import { LiveStreamsService } from './live-streams.service';
 
 /**
- * Dashboard/CLI-facing view of a project's live streams — guarded by
+ * Dashboard/CLI-facing view of a project's live streams: guarded by
  * developer session JWT, not the ApiKeyAuthGuard that LiveStreamsController
  * uses for a developer's backend. Same reuse discipline as
  * DashboardRoomsController: one LiveStreamsService, two auth entrypoints.
  *
- * Deliberately does NOT expose addHost/removeHost/createViewerToken here —
+ * Deliberately does NOT expose addHost/removeHost/createViewerToken here;
  * those mint privileged RTC + chat credentials, and this controller is
  * reachable with nothing but a developer's own login session. Minting
  * credentials stays API-key-only, exactly like chat's token issuance never

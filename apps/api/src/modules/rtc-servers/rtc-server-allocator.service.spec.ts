@@ -58,8 +58,8 @@ describe('RtcServerAllocatorService', () => {
   });
 
   it('reuses the room\'s existing assignment without consulting the fleet', async () => {
-    // Every participant in a room must land on the same SFU — that is what
-    // makes it an SFU rather than a mesh.
+    // Every participant in a room must land on the same SFU: that is what
+    // makes it an SFU, not a mesh.
     const assigned = server({ name: 'sfu-already' });
     prisma.room.findUnique.mockResolvedValue({ rtcServer: assigned });
 
@@ -159,7 +159,7 @@ describe('RtcServerAllocatorService', () => {
     });
 
     it('allocates anyway when Redis is unavailable', async () => {
-      // Correctness rests on the conditional write, not the lock — a room
+      // Correctness rests on the conditional write, not the lock: a room
       // join must not fail because Redis hiccuped.
       redis.client.set.mockRejectedValue(new Error('connection refused'));
       const chosen = server();

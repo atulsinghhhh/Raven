@@ -7,7 +7,7 @@ import { Prisma } from '../../generated/prisma/client';
  * arbitrary record. class-validator's `@IsObject()` has already ruled out
  * arrays and primitives by the time anything reaches here.
  *
- * One helper rather than a cast scattered across five services — so if
+ * One helper instead of a cast scattered across five services, so if
  * the bridge ever needs to do real work (size checks, key filtering),
  * there's one place to put it.
  */

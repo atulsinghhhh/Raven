@@ -18,7 +18,7 @@ const DEFAULT_TEST_IDENTITY = 'dashboard-test-user';
 /**
  * Mints a short-lived RTC token straight from the dashboard, using the
  * developer's session JWT instead of a project API key. Only exists so a
- * developer can smoke-test their own room from the dashboard — it's NOT
+ * developer can smoke-test their own room from the dashboard: it's NOT
  * how a real end-user app should get tokens. Those come from the
  * developer's own backend, through the API-key-guarded endpoint in
  * rtc-tokens.controller.ts.

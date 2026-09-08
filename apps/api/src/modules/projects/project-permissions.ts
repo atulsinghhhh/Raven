@@ -16,7 +16,7 @@ export const Capability = {
   ProjectRead: 'project:read',
   /** Rename it, change its settings. */
   ProjectWrite: 'project:write',
-  /** Archive/delete it. Owner only — it takes every key and room with it. */
+  /** Archive/delete it. Owner only: it takes every key and room with it. */
   ProjectDelete: 'project:delete',
 
   MembersRead: 'members:read',
@@ -35,7 +35,7 @@ export const Capability = {
   /** Conversation and presence metadata in the console. Never message bodies. */
   ChatRead: 'chat:read',
 
-  /** Create/update/end live streams from the dashboard or CLI. Never mints host/viewer credentials — that stays API-key-only. */
+  /** Create/update/end live streams from the dashboard or CLI. Never mints host/viewer credentials: that stays API-key-only. */
   LiveStreamsWrite: 'live-streams:write',
 
   UsageRead: 'usage:read',
@@ -119,7 +119,7 @@ export function capabilitiesFor(role: ProjectRole): readonly Capability[] {
  * Only an owner may create or remove another owner.
  *
  * Without this an admin could promote themselves to owner, which makes the
- * OWNER role decorative — and demote the actual owner out of their own
+ * OWNER role decorative, and demote the actual owner out of their own
  * project.
  */
 export function canAssignRole(actorRole: ProjectRole, targetRole: ProjectRole): boolean {

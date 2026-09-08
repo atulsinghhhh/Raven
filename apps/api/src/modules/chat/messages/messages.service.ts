@@ -35,12 +35,12 @@ import {
 import { MessageWithRelations, toMessageView } from './message.serializer';
 
 const MESSAGE_INCLUDE = { reactions: true, attachments: true } as const;
-/** Fast-path duplicate cache. Only needs to cover a reconnect-and-retry, not forever. */
+/** Fast-path duplicate cache. It only has to cover a reconnect-and-retry, not eternity. */
 const IDEMPOTENCY_CACHE_TTL_SECONDS = 600;
 
 export interface SendMessageResult {
   message: ChatMessageView;
-  /** True when an idempotency key matched an existing row — nothing new was written. */
+  /** True when an idempotency key matched an existing row, so nothing new got written. */
   deduplicated: boolean;
   /** Milliseconds from "request accepted" to "durably in Postgres". */
   persistLatencyMs: number;
@@ -49,16 +49,17 @@ export interface SendMessageResult {
 export interface MessagePage {
   data: ChatMessageView[];
   nextCursor: string | null;
-  /** Cursor for walking forward (newer) — used when catching up after a reconnect. */
+  /** Cursor for walking forward, toward newer. Used when catching up after a reconnect. */
   previousCursor: string | null;
   hasMore: boolean;
 }
 
 /**
- * The durable half of Raven Chat. Everything here writes to Postgres
- * first and only then publishes to Redis — a message is never reported as
- * stored before it actually is (spec §15/§18), and the WebSocket is never
- * the source of truth (spec §19).
+ * The durable half of Raven Chat.
+ *
+ * Everything here writes to Postgres first and publishes to Redis second. A
+ * message is never reported as stored before it genuinely is (spec §15,
+ * §18), and the WebSocket is never the source of truth (spec §19).
  */
 @Injectable()
 export class MessagesService {
@@ -90,13 +91,14 @@ export class MessagesService {
   // -------------------------------------------------------------------------
 
   /**
-   * Validate → rate limit → persist → publish. The ordering is the
-   * contract: the returned message carries the canonical server-generated
-   * id and timestamp, and by the time it's returned the row exists.
+   * Validate → rate limit → persist → publish. That ordering *is* the
+   * contract. The message that comes back carries the canonical
+   * server-generated id and timestamp, and by the time you have it, the row
+   * exists.
    *
-   * `originConnectionId` is only used to tag the fan-out envelope; the
-   * sender still receives its own message back over the socket, so every
-   * participant renders the same server-ordered row.
+   * `originConnectionId` only tags the fan-out envelope. The sender still
+   * gets its own message back over the socket, so everyone renders the same
+   * server-ordered row.
    */
   async send(
     actor: ChatActor,
@@ -108,8 +110,8 @@ export class MessagesService {
     this.conversations.assertWritable(conversation);
     assertScope(scopes, 'chat:send', 'Sending a message');
 
-    // The sender is derived from the authenticated actor. A client actor's
-    // `senderId` in the body is discarded outright (spec §39).
+    // The sender comes from the authenticated actor. A client actor's
+    // `senderId` in the body gets thrown away outright (spec §39).
     const senderId = resolveSubjectId(actor, dto.senderId);
     if (!senderId) {
       throw new ChatError(ChatErrorCode.INVALID_MESSAGE, 'senderId is required when sending with an API key');
@@ -123,9 +125,9 @@ export class MessagesService {
 
     await this.rateLimit.consume('send', actor.projectId, senderId);
 
-    // Cheap duplicate check before touching Postgres. The unique
-    // constraint below is what actually guarantees correctness — this
-    // only saves a round-trip on the common retry path.
+    // Cheap duplicate check before we touch Postgres. The unique constraint
+    // below is what actually guarantees correctness; this only saves a round
+    // trip on the common retry path.
     if (dto.clientMessageId) {
       const cached = await this.readIdempotencyCache(
         actor.projectId,
@@ -161,9 +163,9 @@ export class MessagesService {
           type,
           content: dto.text ?? null,
           replyToMessageId: replyTo?.id ?? null,
-          // A reply to a reply stays in the same thread rather than
-          // starting a nested one — that's what makes a thread a single
-          // indexed range scan (spec §26).
+          // A reply to a reply stays in the same thread instead of starting
+          // a nested one. That's what keeps a thread to a single indexed
+          // range scan (spec §26).
           threadRootId: replyTo ? (replyTo.threadRootId ?? replyTo.id) : null,
           clientMessageId: dto.clientMessageId ?? null,
           metadata: toJsonInput(dto.metadata),
@@ -172,9 +174,9 @@ export class MessagesService {
         include: MESSAGE_INCLUDE,
       });
     } catch (err) {
-      // P2002 on the idempotency index means a concurrent (or retried)
-      // send won the race. Return that message instead of failing —
-      // the caller's intent was satisfied exactly once (spec §16).
+      // P2002 on the idempotency index means a concurrent, or retried, send
+      // won the race. Return that message rather than fail: the caller's
+      // intent was satisfied exactly once (spec §16).
       if (isUniqueViolation(err) && dto.clientMessageId) {
         const existing = await this.prisma.message.findFirst({
           where: {
@@ -222,7 +224,7 @@ export class MessagesService {
     const view = await this.buildView(created, conversation, replyTo);
 
     // Durable first, real-time second. Fan-out and webhooks are both
-    // best-effort from here: the message already exists, and neither is
+    // best-effort from here on. The message already exists, and neither is
     // allowed to fail the send.
     await this.events.publish(actor.projectId, conversation.id, {
       type: ChatServerFrame.MESSAGE,
@@ -233,9 +235,9 @@ export class MessagesService {
     this.metrics.increment(actor.projectId, 'messages_sent');
     this.metrics.recordLatency(actor.projectId, 'persist', persistLatencyMs);
     if (dto.clientSentAt) {
-      // Wall-clock difference between two machines, so it's only as good
-      // as the client's clock. Recorded because it's the number a
-      // developer actually feels, and labelled honestly in the docs.
+      // A wall-clock difference between two machines, so it's only ever as
+      // good as the client's clock. Recorded anyway, because it's the number
+      // a developer actually feels, and labelled honestly in the docs.
       this.metrics.recordLatency(actor.projectId, 'end_to_end', Date.now() - dto.clientSentAt);
     }
 
@@ -249,9 +251,11 @@ export class MessagesService {
   // -------------------------------------------------------------------------
 
   /**
-   * Newest-first history with keyset pagination (spec §17). `before` walks
-   * back through history; `after` walks forward, which is what a client
-   * uses to catch up on what it missed while disconnected (spec §19).
+   * Newest-first history, keyset pagination (spec §17).
+   *
+   * `before` walks back through history. `after` walks forward, which is
+   * what a client uses to catch up on whatever it missed while disconnected
+   * (spec §19).
    */
   async list(actor: ChatActor, roomReference: string, dto: ListMessagesDto): Promise<MessagePage> {
     const { conversation, scopes } = await this.conversations.authorize(actor, roomReference);
@@ -273,14 +277,14 @@ export class MessagesService {
       Object.assign(where, cursorFilter(decodeCursor(dto.after), 'after'));
     }
 
-    // limit + 1 tells us whether another page exists without a second
+    // limit + 1 tells us whether another page exists, without a second
     // COUNT query over the same range.
     const rows = await this.prisma.message.findMany({
       where,
       include: MESSAGE_INCLUDE,
-      // Tiebreak on publicId, matching what the cursor compares — sorting
-      // by one column and paginating on another would silently drop rows
-      // that share a timestamp.
+      // Tiebreak on publicId, matching what the cursor compares. Sort by
+      // one column and paginate on another and you quietly drop rows that
+      // share a timestamp.
       orderBy: [{ createdAt: ascending ? 'asc' : 'desc' }, { publicId: ascending ? 'asc' : 'desc' }],
       take: limit + 1,
     });
@@ -289,8 +293,8 @@ export class MessagesService {
     const page = hasMore ? rows.slice(0, limit) : rows;
     const views = await this.buildViews(page, conversation);
 
-    // Always hand back newest-first, whichever direction we scanned, so a
-    // client never has to care which cursor it used.
+    // Always hand back newest-first, whichever direction we scanned, so no
+    // client ever has to care which cursor it used.
     const ordered = ascending ? [...views].reverse() : views;
     const orderedRows = ascending ? [...page].reverse() : page;
     const oldest = orderedRows[orderedRows.length - 1];
@@ -304,7 +308,7 @@ export class MessagesService {
     };
   }
 
-  /** Every message in a thread, oldest-first — the root plus its replies (spec §26). */
+  /** Every message in a thread, oldest-first: the root plus its replies (spec §26). */
   async listThread(actor: ChatActor, messagePublicId: string, limit = 100): Promise<ChatMessageView[]> {
     const { message, conversation, scopes } = await this.loadForActor(actor, messagePublicId);
     assertScope(scopes, 'chat:read', 'Reading a thread');
@@ -335,10 +339,11 @@ export class MessagesService {
   // -------------------------------------------------------------------------
 
   /**
-   * Edits are always recorded: `editedAt` is set and `edited: true` comes
-   * back on the message. History is never silently rewritten (spec §24).
-   * Only the author may edit — moderation can delete, not put words in
-   * someone's mouth.
+   * Every edit is recorded: `editedAt` gets set and `edited: true` comes
+   * back on the message. History is never quietly rewritten (spec §24).
+   *
+   * Only the author may edit. Moderation can delete; it can't put words in
+   * somebody's mouth.
    */
   async update(actor: ChatActor, messagePublicId: string, dto: UpdateMessageDto): Promise<ChatMessageView> {
     const { message, conversation, scopes } = await this.loadForActor(actor, messagePublicId);
@@ -383,23 +388,26 @@ export class MessagesService {
   }
 
   /**
-   * Soft delete (spec §25). The row survives with `deletedAt` set so the
-   * deletion event can name it, clients can render a placeholder in the
-   * right position, and moderation keeps an audit trail. Hard removal is
-   * the retention sweeper's job, not this one's.
+   * Soft delete (spec §25).
+   *
+   * The row survives with `deletedAt` set, so the deletion event can name
+   * it, clients can render a placeholder in the right position, and
+   * moderation keeps an audit trail. Hard removal is the retention
+   * sweeper's job, not this one's.
    */
   async delete(actor: ChatActor, messagePublicId: string): Promise<ChatMessageView> {
     const { message, conversation, scopes } = await this.loadForActor(actor, messagePublicId);
 
     if (message.deletedAt) {
-      // Idempotent: deleting twice is not an error, it's the same outcome.
+      // Idempotent. Deleting twice isn't an error; it's the same outcome.
       return this.buildView(message, conversation);
     }
 
     const deleterId = resolveSubjectId(actor, null);
     const isAuthor = deleterId !== null && deleterId === message.senderId;
     if (!isAuthor) {
-      // Deleting someone else's message is moderation, and needs the scope.
+      // Deleting somebody else's message is moderation, and needs the
+      // scope.
       assertScope(scopes, 'chat:moderate', 'Deleting another member\'s message');
     } else {
       assertScope(scopes, 'chat:send', 'Deleting your message');
@@ -434,14 +442,14 @@ export class MessagesService {
   // Internals
   // -------------------------------------------------------------------------
 
-  /** Resolves a `msg_...` id and checks the caller may touch its conversation. */
+  /** Resolves a `msg_...` id and checks the caller is allowed near its conversation. */
   async loadForActor(actor: ChatActor, messagePublicId: string) {
     const message = await this.prisma.message.findUnique({
       where: { publicId: messagePublicId },
       include: MESSAGE_INCLUDE,
     });
-    // Same "not found" for a wrong-project message as a missing one — an
-    // attacker must not be able to probe for valid ids across tenants.
+    // A wrong-project message gets the same "not found" as a missing one.
+    // Nobody should be able to probe for valid ids across tenants.
     if (!message || message.projectId !== actor.projectId) {
       throw new ChatError(ChatErrorCode.MESSAGE_NOT_FOUND, `Message "${messagePublicId}" not found`);
     }
@@ -469,9 +477,9 @@ export class MessagesService {
   }
 
   /**
-   * Batch variant. Resolves every reply/thread reference in the page with
-   * a single extra query instead of one per message — the difference
-   * between 1 and 51 queries on a 50-message page.
+   * Batch variant. Resolves every reply and thread reference in the page
+   * with one extra query, not one per message. That's the difference
+   * between 1 query and 51 on a 50-message page.
    */
   private async buildViews(
     messages: MessageWithRelations[],
@@ -533,8 +541,8 @@ export class MessagesService {
 
   private async loadReplyTarget(conversationId: string, replyToPublicId: string): Promise<Message> {
     const target = await this.prisma.message.findUnique({ where: { publicId: replyToPublicId } });
-    // Cross-conversation replies would let a message reference a thread
-    // the reader can't see — refuse rather than produce a dangling link.
+    // A cross-conversation reply would let a message reference a thread the
+    // reader can't see. Refuse it rather than produce a dangling link.
     if (!target || target.conversationId !== conversationId) {
       throw new ChatError(
         ChatErrorCode.MESSAGE_NOT_FOUND,
@@ -578,7 +586,8 @@ export class MessagesService {
         RedisKeys.idempotency(projectId, conversationId, senderId, clientMessageId),
       );
     } catch (err) {
-      // Falling through to the DB constraint is still correct, just slower.
+      // Falling through to the DB constraint is still correct. Just
+      // slower.
       this.logger.warn(`idempotency cache read failed: ${(err as Error).message}`);
       return null;
     }

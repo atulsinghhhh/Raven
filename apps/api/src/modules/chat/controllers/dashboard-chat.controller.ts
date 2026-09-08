@@ -16,10 +16,10 @@ const RANGE_MINUTES: Record<string, number> = { '15m': 15, '1h': 60, '24h': 1440
 
 /**
  * Dashboard-facing chat views. JWT-guarded and ownership-checked like
- * every other developer-facing controller here — the same shape as
+ * every other developer-facing controller here: the same shape as
  * DashboardObservabilityController, not a separate auth model.
  *
- * Message *contents* are deliberately absent from this surface. The
+ * Message *contents* are on purpose absent from this surface. The
  * dashboard shows metadata: counts, connections, rooms, error rates.
  * Reading a customer's messages is not a thing a Raven operator or a
  * project owner should be able to do casually from a metrics page
@@ -123,7 +123,7 @@ export class DashboardChatController {
           where: { deletedAt: null },
           orderBy: { createdAt: 'desc' },
           take: 1,
-          // Timestamp and sender only — the dashboard shows activity, not content.
+          // Timestamp and sender only: the dashboard shows activity, not content.
           select: { createdAt: true, senderId: true },
         },
       },
@@ -154,7 +154,7 @@ export class DashboardChatController {
   ) {
     await this.projectsService.authorize(projectId, user.id, Capability.ChatRead);
 
-    // findFirst rather than resolveConversation()'s findUnique: this is
+    // findFirst instead of resolveConversation()'s findUnique: this is
     // the one caller that also needs `include`, and Prisma's generated
     // types don't let a shared helper accept an arbitrary include and
     // still return a precisely-typed result.
@@ -251,7 +251,7 @@ export class DashboardChatController {
       },
       orderBy: { createdAt: 'desc' },
       take: Math.min(Number(limit) || 50, 200),
-      // Metadata only (spec §50) — `content` is never selected here, so a
+      // Metadata only (spec §50): `content` is never selected here, so a
       // future field added to this query can't accidentally leak it the
       // way a `...spread` of the whole row would.
       select: {
@@ -322,7 +322,7 @@ export class DashboardChatController {
 
   /**
    * Looks up a conversation by its public id and checks it belongs to
-   * this project — the same not-found-if-cross-project pattern
+   * this project: the same not-found-if-cross-project pattern
    * `presenceFor` already uses, shared here so the three new endpoints
    * above don't each re-derive it slightly differently.
    */

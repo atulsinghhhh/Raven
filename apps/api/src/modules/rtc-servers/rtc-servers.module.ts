@@ -9,8 +9,8 @@ import { RtcServersController } from './rtc-servers.controller';
  * The RTC control plane's view of the media plane: which SFUs exist, how
  * healthy they are, and which one serves a given room.
  *
- * Depends on nothing else in the application — Prisma and Redis are both
- * global — which is what lets signaling import it without a cycle.
+ * Depends on nothing else in the application. Prisma and Redis are both
+ * global, which is what lets signaling import it without a cycle.
  */
 @Module({
   controllers: [RtcServersController, DashboardRtcServersController],

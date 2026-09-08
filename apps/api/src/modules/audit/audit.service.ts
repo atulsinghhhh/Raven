@@ -42,7 +42,7 @@ export class AuditService {
    * is an incident.
    *
    * The failure is logged at error level precisely because it should never
-   * happen quietly — an audit trail that silently stops recording is worth
+   * happen quietly: an audit trail that silently stops recording is worth
    * less than no audit trail at all.
    */
   async record(entry: AuditEntry): Promise<void> {
@@ -73,8 +73,8 @@ export class AuditService {
   }
 
   /**
-   * Newest first, capped. There is deliberately no update or delete
-   * anywhere in this service — the table is append-only, and an audit log
+   * Newest first, capped. There is on purpose no update or delete
+   * anywhere in this service: the table is append-only, and an audit log
    * an administrator can edit is not an audit log.
    */
   async list(projectId: string, query: AuditQuery = {}): Promise<AuditLog[]> {

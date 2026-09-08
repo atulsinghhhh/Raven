@@ -9,7 +9,7 @@ import { RedisService } from '../src/shared/redis/redis.service';
 
 /**
  * End-to-end test of the Phase 12 chat plane: real WebSocket clients (the
- * `ws` package — indistinguishable from a browser at the protocol level)
+ * `ws` package: indistinguishable from a browser at the protocol level)
  * against the real running app, on the real Postgres and Redis
  * (`docker compose up -d` must be running).
  *
@@ -244,7 +244,7 @@ describe('Chat (e2e)', () => {
       const data = ack.data as { status: string; message: { id: string } };
       expect(data.status).toBe('stored');
 
-      // The ack claimed durability — prove it by reading the row back
+      // The ack claimed durability: prove it by reading the row back
       // through a completely separate HTTP request.
       const fetched = await request(baseUrl)
         .get(`/v1/chat/messages/${data.message.id}`)
@@ -350,7 +350,7 @@ describe('Chat (e2e)', () => {
       await alice.waitFor((f) => f.type === 'ack' && f.id === 'off1');
       alice.close();
 
-      // The WebSocket is not the source of truth — history is.
+      // The WebSocket is not the source of truth: history is.
       const history = await request(baseUrl)
         .get(`/v1/chat/conversations/${room}/messages?limit=1`)
         .set('Authorization', `Bearer ${bobToken}`)
@@ -441,7 +441,7 @@ describe('Chat (e2e)', () => {
       // Seeded under its own sender id, and with that sender's rate-limit
       // budget cleared first. The limiter is per-user and Redis-backed, so
       // reusing 'alice' here would collide with the sends the tests above
-      // already made — this seeds history without weakening a real limit.
+      // already made: this seeds history without weakening a real limit.
       const redis = app.get(RedisService);
       const limiterKeys = await redis.client.keys('raven:chat:ratelimit:send:*');
       if (limiterKeys.length > 0) await redis.client.del(...limiterKeys);
@@ -527,7 +527,7 @@ describe('Chat (e2e)', () => {
       const error = await client.waitFor((f) => f.type === 'error');
       expect(error.code).toBe('INVALID_MESSAGE');
 
-      // Still usable afterwards — one bad frame must not kill the session.
+      // Still usable afterwards: one bad frame must not kill the session.
       client.send({ type: 'ping', id: 'p1' });
       await client.waitFor((f) => f.type === 'pong');
       client.close();
@@ -594,7 +594,7 @@ describe('Chat (e2e)', () => {
 
       expect(conversation.body.type).toBe('ROOM');
 
-      // Resolvable by the RTC room's id — that's what lets a developer
+      // Resolvable by the RTC room's id: that's what lets a developer
       // hand both SDKs the same identifier.
       const byRoomId = await request(baseUrl)
         .get(`/v1/chat/conversations/${rtcRoom.body.id}`)

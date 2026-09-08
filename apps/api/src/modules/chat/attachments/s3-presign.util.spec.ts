@@ -14,7 +14,7 @@ const NOW = new Date('2026-08-18T12:00:00.000Z');
 /**
  * Independent reimplementation of SigV4's derived signing key, from the
  * AWS specification. Deriving the expected signature a second way is the
- * point — asserting our implementation against itself would prove
+ * point: asserting our implementation against itself would prove
  * nothing about correctness.
  */
 function expectedSignature(canonicalRequestHash: string, dateStamp: string, amzDate: string, region: string): string {
@@ -65,7 +65,7 @@ describe('presignS3Url', () => {
     const parsed = new URL(url);
 
     // Rebuild the canonical request independently and check our signature
-    // against it. If our canonicalisation is wrong, S3 rejects the URL —
+    // against it. If our canonicalisation is wrong, S3 rejects the URL;
     // this catches that here rather than in production.
     const query = [...parsed.searchParams.entries()]
       .filter(([key]) => key !== 'X-Amz-Signature')
@@ -92,7 +92,7 @@ describe('presignS3Url', () => {
     // Any other choice is impossible: the URL has to exist before the
     // browser has the file to hash.
     const url = presignS3Url({ ...BASE, method: 'PUT', key: 'k', expiresInSeconds: 60, now: NOW });
-    // Verified indirectly — the canonical-request test above only matches
+    // Verified indirectly: the canonical-request test above only matches
     // when UNSIGNED-PAYLOAD is what was signed.
     expect(url).toContain('X-Amz-Signature=');
   });

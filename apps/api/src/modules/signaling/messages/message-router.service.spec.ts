@@ -9,7 +9,7 @@ import { NodeLinkMessageType } from '../sfu/node-link.interface';
 import { makeSession, withPermissions } from '../testing/session.fixture';
 import { MessageRouterService } from './message-router.service';
 
-/** Same fake as room-registry.service.spec.ts — see that file's comment. */
+/** Same fake as room-registry.service.spec.ts: see that file's comment. */
 class FakeRedisClient {
   private readonly sets = new Map<string, Set<string>>();
   private readonly hashes = new Map<string, Map<string, string>>();
@@ -415,7 +415,7 @@ describe('MessageRouterService', () => {
       expect(frame.type).toBe(NodeLinkMessageType.TRACK_MUTE);
       expect(frame.payload).toEqual({ trackId: 'alice-cam', muted: true });
 
-      // A muted track is still published — the transceiver stays, so
+      // A muted track is still published: the transceiver stays, so
       // unmuting is immediate and the subscriber keeps the tile.
       expect(result.toRoom?.message).toEqual({
         type: ServerMessageType.TRACK_MUTED,

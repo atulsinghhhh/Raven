@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../../../shared/redis/redis.service';
 import { RedisKeys } from '../chat.constants';
 
-/** Counters the dashboard reads back. Kept short on purpose (spec §47 — "do not build excessive analytics"). */
+/** Counters the dashboard reads back. Kept short on purpose (spec §47: "do not build excessive analytics"). */
 export type ChatCounter =
   | 'messages_sent'
   | 'messages_failed'
@@ -23,13 +23,13 @@ const BUCKET_TTL_SECONDS = 2 * 60 * 60;
 /**
  * Rolling per-minute counters in Redis (spec §47/§48). Deliberately not
  * Postgres: these are high-frequency, low-value-per-row, and expiring
- * them is the whole point. Nothing here is on the message delivery path —
+ * them is the whole point. Nothing here is on the message delivery path;
  * every method fires and forgets, and a Redis failure costs a log line,
  * never a dropped message (spec §48: "do not block message delivery on
  * analytics").
  *
  * Latency is recorded as (sum, count) pairs so an average can be read
- * back cheaply. No histograms/percentiles in this phase — that's what a
+ * back cheaply. No histograms/percentiles in this phase: that's what a
  * real metrics backend is for, and claiming p99s from a pair of counters
  * would be dishonest.
  */
@@ -53,7 +53,7 @@ export class ChatMetricsService {
 
   /**
    * Sums the last `minutes` buckets. Returns real zeros for a quiet
-   * project rather than a fabricated number — same honesty rule the RTC
+   * project instead of a fabricated number: same honesty rule the RTC
    * MetricsService follows.
    */
   async readCounter(projectId: string, metric: string, minutes: number): Promise<number> {
@@ -71,7 +71,7 @@ export class ChatMetricsService {
     }
   }
 
-  /** Null when nothing was measured in the window — never a made-up average. */
+  /** Null when nothing was measured in the window: never a made-up average. */
   async readAverageLatency(
     projectId: string,
     stage: ChatLatencyStage,

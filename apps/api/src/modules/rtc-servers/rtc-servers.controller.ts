@@ -13,7 +13,7 @@ import { SfuRegistrationGuard } from './guards/sfu-registration.guard';
 import { RtcServerRegistryService } from './rtc-server-registry.service';
 
 /**
- * The SFU fleet's own endpoints — not part of the public developer API.
+ * The SFU fleet's own endpoints: not part of the public developer API.
  *
  * Excluded from the published OpenAPI document on purpose: these are an
  * internal contract between Raven's control plane and Raven's media

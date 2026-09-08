@@ -11,7 +11,7 @@ describe('ChatError', () => {
   describe('the WebSocket frame', () => {
     // docs/chat/websocket.md is a published protocol and @corvidhq/chat maps
     // these codes today. Adding canonical codes to the HTTP body must not
-    // reach the frame — every connected client would break at once.
+    // reach the frame: every connected client would break at once.
     it('still carries the chat code, not the canonical one', () => {
       const frame = new ChatError(ChatErrorCode.MESSAGE_TOO_LARGE, 'too big').toFrame();
 

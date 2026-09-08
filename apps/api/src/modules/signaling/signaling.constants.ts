@@ -1,22 +1,22 @@
-// Wire protocol constants for the signaling layer. Full contract is in
-// docs/rtc/signaling.md — this file is the source of truth for it.
+// Wire protocol constants for the signaling layer. The full contract lives
+// in docs/rtc/signaling.md, and this file is the source of truth behind it.
 //
 // # This protocol is SFU-oriented, not peer-to-peer
 //
-// It replaced a full-mesh relay, in which every SDP and ICE message named
-// a `targetParticipantId` and the server forwarded it between browsers.
-// That shape cannot express an SFU: there is exactly one peer for every
-// client (the SFU node serving their room), so a message needs no target,
-// and the server is a party to the negotiation rather than a courier.
+// It replaced a full-mesh relay, where every SDP and ICE message named a
+// `targetParticipantId` and the server shuttled it between browsers. That
+// shape simply can't express an SFU. Every client has exactly one peer, the
+// SFU node serving their room, so a message needs no target at all, and the
+// server is a party to the negotiation, not a courier.
 //
-// The consequence worth knowing when reading old code or old docs: a
-// message type whose name survived the change (`sdp.offer`, say) does not
-// mean the same thing it used to. See docs/migration/from-livekit.md.
+// The consequence, and it's worth knowing before reading old code or old
+// docs: a message type whose *name* survived the change, `sdp.offer` say,
+// does not mean what it used to. See docs/migration/from-livekit.md.
 
 export enum ClientMessageType {
   ROOM_JOIN = 'room.join',
   ROOM_LEAVE = 'room.leave',
-  /** Answering an offer the SFU sent. The common case — the SFU offers first. */
+  /** Answering an offer the SFU sent. The common case, since the SFU offers first. */
   SDP_ANSWER = 'sdp.answer',
   /** A client-initiated offer, sent when the client starts publishing. */
   SDP_OFFER = 'sdp.offer',
@@ -24,14 +24,14 @@ export enum ClientMessageType {
   /** Mute/unmute a track this client publishes, without unpublishing it. */
   TRACK_MUTE = 'track.mute',
   /**
-   * Declares what a track being published is *of* — camera, microphone,
-   * or screen share.
+   * Declares what a track being published is *of*: camera, microphone, or
+   * screen share.
    *
-   * Needed because WebRTC carries no notion of source and a browser page
-   * cannot choose the `MediaStream` or `MediaStreamTrack` id that ends up
-   * in the SDP — both are read-only. Without this declaration the SFU can
-   * only infer source from codec kind, which cannot tell a screen share
-   * from a camera, and spec §16 requires that distinction.
+   * Needed because WebRTC has no notion of a source, and a browser page
+   * can't choose the `MediaStream` or `MediaStreamTrack` id that lands in
+   * the SDP; both are read-only. Without this declaration the SFU can only
+   * guess the source from codec kind, and that can't tell a screen share
+   * from a camera. Spec §16 requires the distinction.
    */
   TRACK_PUBLISH = 'track.publish',
   /** Ask for a different simulcast layer of someone else's video. */
@@ -48,20 +48,20 @@ export enum ServerMessageType {
   TRACK_PUBLISHED = 'track.published',
   TRACK_UNPUBLISHED = 'track.unpublished',
   /**
-   * A publisher muted or unmuted a track they are still publishing.
+   * A publisher muted or unmuted a track they're still publishing.
    *
-   * Distinct from unpublish on purpose: the track and its transceivers
-   * stay in place, so unmuting is immediate and a subscriber's UI keeps
-   * the participant's tile rather than tearing it down and rebuilding it.
+   * Kept distinct from unpublish on purpose. The track and its transceivers
+   * stay put, so unmuting is instant and a subscriber's UI keeps the
+   * participant's tile instead of tearing it down and rebuilding it.
    */
   TRACK_MUTED = 'track.muted',
   TRACK_UNMUTED = 'track.unmuted',
-  /** An offer from the SFU — on join, and again whenever the room's track set changes. */
+  /** An offer from the SFU. Sent on join, and again whenever the room's track set changes. */
   SDP_OFFER = 'sdp.offer',
   /** The SFU's answer to a client-initiated offer. */
   SDP_ANSWER = 'sdp.answer',
   ICE_CANDIDATE = 'ice.candidate',
-  /** Real ICE/DTLS progress as the SFU observes it — not inferred from this WebSocket's health. */
+  /** Real ICE and DTLS progress, as the SFU sees it. Not inferred from this WebSocket's health. */
   CONNECTION_STATE = 'connection.state',
   ERROR = 'error',
   PONG = 'pong',
@@ -86,31 +86,33 @@ export enum SignalingErrorCode {
   /** Negotiation failed in a way that is not retryable without rejoining. */
   NEGOTIATION_FAILED = 'NEGOTIATION_FAILED',
   /**
-   * The server already has an offer in flight, so a client-initiated
-   * offer cannot be applied yet. Distinct from NEGOTIATION_FAILED because
-   * it *is* retryable: answer the offer already on its way, then retry.
+   * The server already has an offer in flight, so a client-initiated offer
+   * can't be applied yet. Kept apart from NEGOTIATION_FAILED because this
+   * one *is* retryable: answer the offer already on its way, then retry.
    */
   NEGOTIATION_GLARE = 'NEGOTIATION_GLARE',
 }
 
-// Not in .env on purpose — these are wire-protocol/operational constants,
-// not per-deployment config. Stuff that actually varies by deployment
-// (max participants, message rate) lives under `signaling` in
+// Not in .env on purpose. These are wire-protocol and operational
+// constants, not per-deployment config. The things that genuinely vary by
+// deployment, max participants and message rate, live under `signaling` in
 // configuration.ts instead.
 export const SIGNALING_PATH = '/v1/rtc';
 export const HEARTBEAT_INTERVAL_MS = 30_000;
 export const HEARTBEAT_TIMEOUT_MS = 60_000; // one missed cycle before termination
 
 /**
- * Redis key namespace for fleet-wide room state, mirroring
- * chat.constants.ts's `RedisKeys` convention. Every key here carries a
- * TTL — same reasoning as chat's presence/connection keys — so a gateway
- * that dies mid-heartbeat doesn't leave phantom participants behind.
+ * Redis key namespace for fleet-wide room state, following
+ * chat.constants.ts's `RedisKeys` convention.
+ *
+ * Every key here carries a TTL, same reasoning as chat's presence and
+ * connection keys, so a gateway dying mid-heartbeat doesn't leave phantom
+ * participants lying about.
  */
 export const SignalingRedisKeys = {
   /** Set of participantIds currently in the room, fleet-wide. */
   roomParticipants: (roomId: string) => `raven:signaling:room:${roomId}:participants`,
-  /** participantId -> {gatewayId}. Lets any instance locate who holds a target's socket. */
+  /** participantId -> {gatewayId}. Lets any instance find who's holding a target's socket. */
   participant: (roomId: string, participantId: string) =>
     `raven:signaling:room:${roomId}:participant:${participantId}`,
   /** Pub/sub channel for this room, one per room, subscribed to on demand. */
@@ -118,9 +120,9 @@ export const SignalingRedisKeys = {
 } as const;
 
 /**
- * Outlives one full missed heartbeat cycle plus a safety margin, so a
- * gateway that dies mid-cycle doesn't leave a fleet-wide phantom
- * participant around much longer than a live one would take to be
- * cleaned up locally by the heartbeat sweep.
+ * Outlives one full missed heartbeat cycle plus a safety margin. So a
+ * gateway dying mid-cycle doesn't leave a fleet-wide phantom participant
+ * hanging around much longer than the local heartbeat sweep would take to
+ * clear a live one.
  */
 export const SIGNALING_PARTICIPANT_TTL_SECONDS = Math.ceil((HEARTBEAT_TIMEOUT_MS * 2) / 1000);

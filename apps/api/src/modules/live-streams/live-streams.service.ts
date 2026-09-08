@@ -43,11 +43,11 @@ export interface LiveStreamView {
   metadata: Record<string, unknown> | null;
   status: LiveStreamStatus;
   hosts: LiveStreamHostView[];
-  /** Live participants of the underlying room who are not registered hosts. `null` means the SFU could not be reached — distinct from a genuinely empty 0. */
+  /** Live participants of the underlying room who aren't registered hosts. `null` means the SFU was unreachable, which isn't the same as a genuine 0. */
   viewerCount: number | null;
   peakViewerCount: number;
   conversationId: string | null;
-  /** The chat message viewer reactions attach to — see docs/live-streaming/overview.md#reactions. */
+  /** The chat message viewer reactions hang off. See docs/live-streaming/overview.md#reactions. */
   chatRootMessageId: string | null;
   scheduledAt: string | null;
   startedAt: string | null;
@@ -64,13 +64,17 @@ export interface IssuedStreamCredential {
 }
 
 /**
- * Live Streaming's entire media/messaging model is reuse: a stream is one
- * RTC Room (host/co-hosts/viewers are ordinary participants of it, given
- * different permission grants by which endpoint minted their token — see
- * createHostCredential/createViewerToken) plus one Chat Conversation
- * (attached exactly the way a video call's chat panel already is). This
- * service owns the lifecycle and role bookkeeping on top of both; it never
- * duplicates what RoomsService, RtcTokensService, ConversationsService, or
+ * Live Streaming's whole media and messaging model is reuse.
+ *
+ * A stream is one RTC Room plus one Chat Conversation. Hosts, co-hosts and
+ * viewers are ordinary participants of that room, and what separates them is
+ * which endpoint minted their token and therefore which permission grant
+ * they got (see createHostCredential and createViewerToken). The
+ * conversation is attached exactly the way a video call's chat panel
+ * already is.
+ *
+ * This service owns lifecycle and role bookkeeping on top of both. It never
+ * duplicates what RoomsService, RtcTokensService, ConversationsService or
  * ChatTokenService already do correctly.
  */
 @Injectable()
@@ -87,18 +91,19 @@ export class LiveStreamsService {
   ) {}
 
   async create(scope: ProjectScope, dto: CreateLiveStreamDto): Promise<LiveStreamView> {
-    // One generated id is reused as both the Room's and the Conversation's
-    // name — a stream never asks the developer to think about either.
-    // generateId's alphabet (base64url) is already a subset of the
-    // room/conversation name pattern, so no further sanitizing is needed.
+    // One generated id serves as both the Room's and the Conversation's
+    // name, so a stream never makes the developer think about either.
+    // generateId's alphabet is base64url, already a subset of the
+    // room/conversation name pattern, so there's nothing to sanitize.
     const publicId = generateId('stream');
 
     const room = await this.roomsService.create(scope, { name: publicId });
     const conversation = await this.conversationsService.create(scope, { name: publicId, roomId: room.id });
 
-    // A system message every viewer reaction attaches to (see toJsonInput
-    // note in the class doc) — reuses the existing Reaction model instead
-    // of inventing a second realtime primitive for "someone tapped ❤️".
+    // A system message for every viewer reaction to hang off (see the
+    // toJsonInput note in the class doc). Reuses the existing Reaction model
+    // rather than inventing a second realtime primitive purely for
+    // "somebody tapped ❤️".
     const systemActor: ChatActor = {
       kind: 'server',
       projectId: scope.projectId,
@@ -158,9 +163,9 @@ export class LiveStreamsService {
       take: 200,
     });
 
-    // Live state (viewer count) is skipped on the list endpoint — one SFU
-    // round trip per row would make "list my streams" as slow as the
-    // slowest room in it. Fetch a single stream to see its live count.
+    // The list endpoint skips live state, i.e. viewer count. One SFU round
+    // trip per row would make "list my streams" as slow as the slowest room
+    // in it. Fetch a single stream if you want its live count.
     return Promise.all(
       streams.map(async (stream) => this.toView(stream, await this.activeHosts(stream.id), false)),
     );
@@ -188,14 +193,17 @@ export class LiveStreamsService {
   }
 
   /**
-   * CREATED → LIVE. There is no separate call for the STARTING state:
-   * nothing in this implementation has an async provisioning step to
-   * represent (no recording/transcoding setup exists yet), so start()
-   * both validates the transition and completes it in one request rather
-   * than making the developer poll a STARTING status that is honestly
-   * never observable. Rejects a repeat call rather than treating it as a
-   * no-op — a stream's startedAt must mean "actually started once", not
-   * "most recently asked to start".
+   * CREATED → LIVE.
+   *
+   * There's no separate call for the STARTING state, because nothing here
+   * has an async provisioning step to represent; no recording or
+   * transcoding setup exists yet. So start() validates the transition and
+   * completes it in one request, instead of making a developer poll a
+   * STARTING status that's never honestly observable.
+   *
+   * A repeat call is rejected, not treated as a no-op. A stream's startedAt
+   * has to mean "actually started, once", not "most recently asked to
+   * start".
    */
   async start(scope: ProjectScope, streamId: string): Promise<LiveStreamView> {
     const stream = await this.resolveRaw(scope, streamId);
@@ -221,12 +229,15 @@ export class LiveStreamsService {
   }
 
   /**
-   * LIVE → ENDED, terminal. Closes the underlying Room too (soft —
-   * RoomStatus.CLOSED, same as a developer calling `rooms.close()`
-   * directly), so a stream that has ended cannot be rejoined by minting a
-   * fresh RTC token against its room. There is no ENDED → LIVE transition
-   * — restarting an ended stream would need a real replay/restart model
-   * this phase does not implement; create a new stream instead.
+   * LIVE → ENDED, and that's terminal.
+   *
+   * Closes the underlying Room too, softly: RoomStatus.CLOSED, the same as a
+   * developer calling `rooms.close()` themselves. So an ended stream can't be
+   * rejoined by minting a fresh RTC token against its room.
+   *
+   * There's no ENDED → LIVE transition. Restarting an ended stream would
+   * need a real replay/restart model, which this phase doesn't implement.
+   * Create a new stream instead.
    */
   async end(scope: ProjectScope, streamId: string): Promise<LiveStreamView> {
     const stream = await this.resolveRaw(scope, streamId);
@@ -254,12 +265,14 @@ export class LiveStreamsService {
   }
 
   /**
-   * Registers (or re-registers) a host/co-host and mints their credentials
-   * in one call — an RTC token with full publish permissions and a chat
-   * token with a moderator-or-above role, both scoped to this stream's
-   * room/conversation. Never reads a role from anywhere but this
-   * endpoint's own DTO: there is no field anywhere a viewer token accepts
-   * that could turn it into a host token.
+   * Registers, or re-registers, a host or co-host and mints their
+   * credentials in one call: an RTC token with full publish permissions,
+   * and a chat token with a moderator-or-above role, both scoped to this
+   * stream's room and conversation.
+   *
+   * The role is only ever read from this endpoint's own DTO. There's no
+   * field anywhere that a viewer token accepts which could turn it into a
+   * host token.
    */
   async addHost(scope: ProjectScope, streamId: string, dto: AddHostDto): Promise<IssuedStreamCredential> {
     const stream = await this.resolveRaw(scope, streamId);
@@ -315,10 +328,11 @@ export class LiveStreamsService {
   }
 
   /**
-   * Mints a viewer's credentials. Always subscribe-only on the RTC side
-   * and MEMBER on the chat side, regardless of anything in the request —
-   * the only way an identity gets publish access is addHost() above,
-   * called by the developer's own backend, never by an untrusted client.
+   * Mints a viewer's credentials. Always subscribe-only on the RTC side and
+   * MEMBER on the chat side, whatever the request says.
+   *
+   * The only route to publish access is addHost() above, called from the
+   * developer's own backend and never by an untrusted client.
    */
   async createViewerToken(scope: ProjectScope, streamId: string, identity: string): Promise<IssuedStreamCredential> {
     const stream = await this.resolveRaw(scope, streamId);
@@ -339,14 +353,16 @@ export class LiveStreamsService {
   }
 
   /**
-   * Explicit viewer-leave signal for `live_stream.viewer_left`. This is
-   * the one honest limitation worth stating plainly: nothing yet turns a
-   * dropped media session into a stream-level event, so an abrupt
-   * disconnect (crash, lost network) is not detected server-side for
-   * streams — the SFU knows the peer connection failed, but that signal
-   * is not wired to live streams. Only a clean
-   * `stream.leave()` call from the SDK fires this event. Presence-style
-   * best-effort detection is real future work, not simulated here.
+   * Explicit viewer-leave signal for `live_stream.viewer_left`.
+   *
+   * Worth stating this limitation plainly: nothing yet turns a dropped media
+   * session into a stream-level event. An abrupt disconnect, a crash or a
+   * lost network, isn't detected server-side for streams. The SFU knows the
+   * peer connection failed; that signal simply isn't wired to live streams.
+   *
+   * So only a clean `stream.leave()` from the SDK fires this event.
+   * Presence-style best-effort detection is real future work, and nothing
+   * here pretends otherwise.
    */
   async leave(scope: ProjectScope, streamId: string, identity: string): Promise<void> {
     const stream = await this.resolveRaw(scope, streamId);
@@ -400,14 +416,14 @@ export class LiveStreamsService {
     return { rtc, chat };
   }
 
-  /** Public id (`stream_...`) or internal uuid — same dual-lookup convention as Room/Conversation. */
+  /** Public id (`stream_...`) or internal uuid. Same dual-lookup convention as Room and Conversation. */
   private async resolveRaw(scope: ProjectScope, streamId: string): Promise<LiveStream> {
     const stream = streamId.startsWith('stream_')
       ? await this.prisma.liveStream.findUnique({ where: { publicId: streamId } })
       : await this.prisma.liveStream.findUnique({ where: { id: streamId } });
 
-    // Cross-project and cross-environment lookups get the same "not
-    // found" as a genuinely missing row — same reasoning as Room/Conversation.
+    // Cross-project and cross-environment lookups get the same "not found"
+    // as a genuinely missing row. Same reasoning as Room and Conversation.
     if (!stream || stream.projectId !== scope.projectId || stream.environment !== scope.environment) {
       throw new NotFoundError('Live stream', RavenErrorCode.STREAM_NOT_FOUND);
     }
@@ -428,11 +444,13 @@ export class LiveStreamsService {
   }
 
   /**
-   * Viewer count is never stored — polled from the SFU on demand, exactly
-   * like `RoomsService`'s own live participant count, and for the same
-   * reason: a stored count would drift the moment anyone's connection
-   * changes without telling Postgres. `withLiveState=false` (list/create/
-   * update) skips the SFU round trip entirely.
+   * Viewer count is never stored. It's polled from the SFU on demand,
+   * exactly like `RoomsService`'s own live participant count, and for the
+   * same reason: a stored count drifts the instant anybody's connection
+   * changes without telling Postgres.
+   *
+   * `withLiveState=false`, which is list, create and update, skips the SFU
+   * round trip entirely.
    */
   private async toView(
     stream: LiveStream,
@@ -443,8 +461,8 @@ export class LiveStreamsService {
     let peakViewerCount = stream.peakViewerCount;
 
     if (withLiveState) {
-      // Addressed by room id, which the stream already holds — no name
-      // lookup needed since Raven's media plane is keyed by id.
+      // Addressed by room id, which the stream already holds. No name
+      // lookup needed; Raven's media plane is keyed by id.
       const liveParticipants = await this.roomState.listLiveParticipants(stream.roomId);
 
       if (liveParticipants) {
@@ -453,9 +471,9 @@ export class LiveStreamsService {
 
         if (viewerCount > peakViewerCount) {
           peakViewerCount = viewerCount;
-          // Best-effort high-water mark — a failed write here would only
-          // under-report a peak, never corrupt anything, so it's not
-          // awaited into the request's success/failure path.
+          // Best-effort high-water mark. A failed write here under-reports
+          // a peak and corrupts nothing, so it stays out of the request's
+          // success/failure path.
           void this.prisma.liveStream
             .update({ where: { id: stream.id }, data: { peakViewerCount } })
             .catch(() => undefined);

@@ -4,15 +4,15 @@ import { config } from 'dotenv';
 // app, and refuses to let the tests touch a database that is not local.
 //
 // This exists because Postgres stopped being a container. `.env`'s
-// DATABASE_URL now points at Supabase — the one database every environment
-// shares — and the e2e suites create users, projects, rooms and RTC server
+// DATABASE_URL now points at Supabase: the one database every environment
+// shares, and the e2e suites create users, projects, rooms and RTC server
 // registrations freely, then leave most of them behind. Run against
 // Supabase, a single `pnpm test:e2e` writes dozens of `signaling-e2e-*`
 // rows into real data, and two concurrent runs fail each other on top of
 // that. There is no warning from Prisma or Jest about any of it: the
 // connection succeeds and the tests pass.
 //
-// CI is already safe — .github/workflows/e2e.yml rewrites the URL to its own
+// CI is already safe: .github/workflows/e2e.yml rewrites the URL to its own
 // throwaway service container. This guard is what protects a developer's
 // terminal, where the failure mode is silent and the damage is to shared
 // state. See docs/deployment/managed-postgres.md.

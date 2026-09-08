@@ -18,7 +18,7 @@ import {
 } from 'class-validator';
 import { ChatMemberRole, ConversationType } from '../../../../generated/prisma/client';
 
-// Same character set as RTC room names — a conversation name shows up in
+// Same character set as RTC room names: a conversation name shows up in
 // URLs, logs, and `chat.connect({ room: "..." })`, so keep it boring.
 const CONVERSATION_NAME_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 

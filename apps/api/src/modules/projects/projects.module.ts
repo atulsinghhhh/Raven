@@ -10,7 +10,7 @@ import { ProjectsService } from './projects.service';
 @Module({
   imports: [AuthModule, AuditModule],
   // AuditController is a project-scoped route (it authorizes with
-  // ProjectsService), so it is registered here rather than in AuditModule.
+  // ProjectsService), so it is registered here instead of in AuditModule.
   controllers: [ProjectsController, ProjectMembersController, AuditController],
   providers: [ProjectsService, ProjectMembersService],
   exports: [ProjectsService],

@@ -75,7 +75,7 @@ describe('verifyWebhookSignature', () => {
 
   it('rejects a signature of the wrong length without throwing', () => {
     // timingSafeEqual throws on mismatched buffer lengths, so the length
-    // check has to come first — otherwise a short signature crashes the
+    // check has to come first: otherwise a short signature crashes the
     // receiver instead of being rejected.
     expect(() => verifyWebhookSignature(BODY, `t=${NOW},v1=short`, SECRET, NOW)).not.toThrow();
     expect(verifyWebhookSignature(BODY, `t=${NOW},v1=short`, SECRET, NOW)).toBe(false);

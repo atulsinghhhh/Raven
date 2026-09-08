@@ -8,10 +8,11 @@ import { RegisterRtcServerDto } from './dto/register-rtc-server.dto';
 import { RtcServerHeartbeatDto } from './dto/rtc-server-heartbeat.dto';
 
 /**
- * How often stale nodes are swept. Independent of the heartbeat timeout:
- * the timeout decides *whether* a node is late, this decides how quickly
- * we notice. A sweep this frequent means a dead node stops receiving
- * allocations within roughly one timeout plus one sweep.
+ * How often we sweep for stale nodes. Independent of the heartbeat timeout:
+ * that decides *whether* a node is late, this decides how fast we notice.
+ *
+ * At this frequency a dead node stops getting allocations within roughly
+ * one timeout plus one sweep.
  */
 const STALE_SWEEP_INTERVAL_MS = 10_000;
 
@@ -19,16 +20,15 @@ const STALE_SWEEP_INTERVAL_MS = 10_000;
  * The fleet's record of which RTC servers exist and how loaded they are
  * (spec §23, §26).
  *
- * Rows are created by the nodes themselves, on boot, and refreshed by
- * their heartbeats — the control plane never provisions them. A node
- * re-registering under a name it already used reclaims that row rather
- * than adding a second, so a restart or a redeploy doesn't accumulate
- * phantom entries.
+ * The nodes create their own rows on boot and refresh them by heartbeat;
+ * the control plane never provisions anything. A node re-registering under
+ * a name it's used before reclaims that row instead of adding a second, so
+ * restarts and redeploys don't leave phantom entries piling up.
  *
- * Everything here is a snapshot as of the last heartbeat. That is stated
- * rather than hidden, because an allocator reading these numbers is
- * always reading something slightly old, and a dashboard showing them
- * needs to say so (see `lastHeartbeatAt`).
+ * Everything in here is a snapshot as of the last heartbeat. Said out loud
+ * rather than hidden, because an allocator reading these numbers is always
+ * reading something slightly old, and a dashboard showing them needs to say
+ * so (see `lastHeartbeatAt`).
  */
 @Injectable()
 export class RtcServerRegistryService implements OnModuleInit, OnModuleDestroy {
@@ -41,10 +41,10 @@ export class RtcServerRegistryService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
-    // Every API instance runs this. The sweep is idempotent — it only ever
-    // moves a node whose heartbeat is already past the deadline into
-    // UNHEALTHY — so N instances racing costs N writes on the transition
-    // and nothing after that. Cheaper than electing a leader for it.
+    // Every API instance runs this. The sweep is idempotent: all it ever
+    // does is move a node whose heartbeat is already past the deadline into
+    // UNHEALTHY. So N instances racing costs N writes on the transition and
+    // nothing afterwards. Cheaper than electing a leader for it.
     this.sweepTimer = setInterval(() => void this.markStaleServersUnhealthy(), STALE_SWEEP_INTERVAL_MS);
   }
 
@@ -55,14 +55,14 @@ export class RtcServerRegistryService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Called by an SFU when it boots. Idempotent by `name`: a node that
-   * restarts reclaims its row, keeping its history and its id stable for
-   * anything that referenced it (a room's `rtcServerId`, a log line, a
-   * dashboard link).
+   * Called by an SFU when it boots. Idempotent by `name`, so a node that
+   * restarts reclaims its row and keeps its history and its id stable for
+   * anything referencing it: a room's `rtcServerId`, a log line, a dashboard
+   * link.
    *
-   * Registration resets the load counters to zero rather than trusting
-   * whatever the dead process last reported — a freshly booted SFU is
-   * serving nothing, whatever the old row said.
+   * Registration zeroes the load counters rather than trusting whatever the
+   * dead process last reported. A freshly booted SFU is serving nothing,
+   * whatever the old row claimed.
    */
   async register(dto: RegisterRtcServerDto): Promise<RtcServer> {
     const server = await this.prisma.rtcServer.upsert({
@@ -103,19 +103,20 @@ export class RtcServerRegistryService implements OnModuleInit, OnModuleDestroy {
   /**
    * Called by an SFU on its heartbeat interval, carrying its current load.
    *
-   * A heartbeat from a node marked UNHEALTHY promotes it back to HEALTHY —
-   * that is the recovery path spec §26 asks for, and it is why the sweep
-   * marks nodes unhealthy rather than deleting them. A node an operator
-   * has set to DRAINING stays draining: only an explicit undrain brings it
-   * back, since otherwise the next heartbeat would silently undo the
-   * operator's decision.
+   * A heartbeat from a node marked UNHEALTHY promotes it straight back to
+   * HEALTHY. That's the recovery path spec §26 asks for, and it's exactly
+   * why the sweep marks nodes unhealthy instead of deleting them.
+   *
+   * A node an operator set to DRAINING stays draining. Only an explicit
+   * undrain brings it back, because otherwise the next heartbeat quietly
+   * undoes the operator's decision.
    */
   async heartbeat(name: string, dto: RtcServerHeartbeatDto): Promise<RtcServer> {
     const existing = await this.prisma.rtcServer.findUnique({ where: { name } });
     if (!existing) {
-      // Tell the node to register rather than silently creating a row from
-      // a heartbeat: a heartbeat doesn't carry region/host/capacity, so the
-      // row it created would be unusable for allocation.
+      // Tell the node to register, rather than quietly conjure a row out of
+      // a heartbeat. A heartbeat carries no region, host or capacity, so the
+      // row it created would be useless for allocation anyway.
       throw new NotFoundError('RTC server', RavenErrorCode.RTC_SERVER_NOT_FOUND);
     }
 
@@ -143,11 +144,13 @@ export class RtcServerRegistryService implements OnModuleInit, OnModuleDestroy {
   /**
    * Moves nodes past their heartbeat deadline to UNHEALTHY.
    *
-   * Existing rooms on those nodes are deliberately left alone. Spec §26 is
-   * explicit that an unhealthy SFU must not have its active rooms killed
-   * without recovery logic — and a missed heartbeat is often a paused
-   * container or a brief network blip, not a dead process. What changes is
-   * only that the node stops being chosen for *new* rooms.
+   * Existing rooms on those nodes get left well alone. Spec §26 is explicit
+   * that an unhealthy SFU mustn't have its active rooms killed without
+   * recovery logic, and a missed heartbeat is very often a paused container
+   * or a brief network blip rather than a dead process.
+   *
+   * All that actually changes is that the node stops getting picked for
+   * *new* rooms.
    */
   async markStaleServersUnhealthy(): Promise<number> {
     const timeoutSeconds = this.configService.get<number>('sfu.heartbeatTimeoutSeconds')!;
@@ -169,14 +172,14 @@ export class RtcServerRegistryService implements OnModuleInit, OnModuleDestroy {
       }
       return count;
     } catch (err) {
-      // A sweep that can't reach the database must not take the API down
-      // with it; the next tick tries again.
+      // A sweep that can't reach the database mustn't take the API down
+      // with it. The next tick will try again.
       this.logger.error(`stale-server sweep failed: ${(err as Error).message}`);
       return 0;
     }
   }
 
-  /** Every server in the fleet, newest registration last. For the dashboard and CLI. */
+  /** Every server in the fleet, newest registration last. Feeds the dashboard and CLI. */
   async list(region?: string): Promise<RtcServer[]> {
     return this.prisma.rtcServer.findMany({
       where: region ? { region } : undefined,
@@ -195,10 +198,9 @@ export class RtcServerRegistryService implements OnModuleInit, OnModuleDestroy {
   /**
    * One healthy server, for the readiness probe.
    *
-   * The least-loaded healthy node, so a probe does not repeatedly hit the
-   * busiest one. `null` when the fleet has nothing healthy registered,
-   * which is itself the answer readiness needs — there is nowhere to put
-   * a new room.
+   * The least-loaded healthy node, so a probe doesn't keep landing on the
+   * busiest one. `null` when the fleet has nothing healthy registered, which
+   * is itself the answer readiness wants: there's nowhere to put a new room.
    */
   async pickHealthyForProbe(): Promise<RtcServer | null> {
     return this.prisma.rtcServer.findFirst({
@@ -214,9 +216,9 @@ export class RtcServerRegistryService implements OnModuleInit, OnModuleDestroy {
   /**
    * Takes a node out of the allocation pool without stopping it.
    *
-   * The operator-facing half of spec §26: a node being upgraded or
-   * investigated should stop taking new rooms and let its existing ones
-   * drain naturally, rather than being killed mid-call.
+   * The operator-facing half of spec §26. A node being upgraded or poked at
+   * should stop taking new rooms and let the ones it has drain naturally,
+   * instead of getting killed mid-call.
    */
   async setDraining(name: string, draining: boolean): Promise<RtcServer> {
     await this.findByName(name);
@@ -254,9 +256,9 @@ export class RtcServerRegistryService implements OnModuleInit, OnModuleDestroy {
       healthyServers: countFor(RtcServerStatus.HEALTHY),
       drainingServers: countFor(RtcServerStatus.DRAINING),
       unhealthyServers: countFor(RtcServerStatus.UNHEALTHY),
-      // Only counts rooms the fleet is *serving*. A room row in Postgres
-      // with no assigned server has no live media session, so counting it
-      // here would overstate load.
+      // Only counts rooms the fleet is actually *serving*. A room row in
+      // Postgres with no assigned server has no live media session, so
+      // counting it here overstates load.
       activeRooms: totals._sum.activeRooms ?? 0,
       activeParticipants: totals._sum.activeParticipants ?? 0,
       capacity: totals._sum.capacity ?? 0,

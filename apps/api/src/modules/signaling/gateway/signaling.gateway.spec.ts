@@ -5,7 +5,7 @@ import { SignalingGateway } from './signaling.gateway';
 
 /**
  * The heartbeat sweep runs on a real setInterval in production
- * (HEARTBEAT_INTERVAL_MS = 30s) — too slow to wait on in a test suite. So
+ * (HEARTBEAT_INTERVAL_MS = 30s): too slow to wait on in a test suite. So
  * here we call the sweep logic directly (private method, reached via a
  * cast) against mocked sockets, just to prove the ping/terminate
  * bookkeeping is correct. Wire-level connect/join/message behavior is
@@ -25,7 +25,7 @@ describe('SignalingGateway heartbeat', () => {
       {} as never, // sfuLink
       {} as never, // sfuFrames
     );
-    // Reach into the private sessions map — see the comment above.
+    // Reach into the private sessions map: see the comment above.
     const sessions = (gateway as unknown as { sessions: Map<unknown, ParticipantSession> }).sessions;
     return { gateway, sessions };
   }

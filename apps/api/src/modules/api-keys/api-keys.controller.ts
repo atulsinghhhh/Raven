@@ -31,7 +31,7 @@ import { AuditRequestContext, type AuditContext } from '../audit/audit-context.d
 import { AuditAction, AuditResource } from '../audit/audit.constants';
 import { AuditService } from '../audit/audit.service';
 
-// Management endpoints for a project's API keys — guarded by
+// Management endpoints for a project's API keys: guarded by
 // JwtAuthGuard, so the developer has to be logged in and own the project.
 // Not to be confused with ApiKeyAuthGuard, which authenticates *with* one
 // of these keys over on Rooms/RTC Tokens.

@@ -3,15 +3,15 @@ import { NotFoundError } from '../../../shared/errors/app-error';
 import { DashboardChatController } from './dashboard-chat.controller';
 
 /**
- * Covers the three conversation-detail endpoints — getConversation,
- * listConversationMembers, listConversationMessages — added so
+ * Covers the three conversation-detail endpoints: getConversation,
+ * listConversationMembers, listConversationMessages: added so
  * "click a conversation" has somewhere to go (the list page previously
  * linked nowhere).
  *
  * The one invariant worth a dedicated test, not just incidental
  * coverage: listConversationMessages must never be able to leak
  * `content`, per this controller's own documented rule (spec §50). The
- * Prisma `select` is what actually enforces that — this test exists so
+ * Prisma `select` is what actually enforces that: this test exists so
  * a future edit that widens the select trips a test, not a production
  * incident.
  */

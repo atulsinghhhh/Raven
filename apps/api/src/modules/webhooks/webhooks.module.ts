@@ -8,7 +8,7 @@ import { WebhooksService } from './webhooks.service';
 
 /**
  * Project-scoped webhook delivery. Chat is its only producer today, but
- * nothing here is chat-specific — later phases emit through the same
+ * nothing here is chat-specific: later phases emit through the same
  * WebhookEventsService rather than standing up a parallel pipeline
  * (spec §31).
  */

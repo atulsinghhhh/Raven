@@ -5,7 +5,7 @@ export { Environment };
 /**
  * What a request gets when nothing says otherwise.
  *
- * Development, deliberately. A wrong guess should land somewhere harmless:
+ * Development, on purpose. A wrong guess should land somewhere harmless:
  * a credential that silently defaulted to production would be the one
  * mistake here worth avoiding.
  */
@@ -19,7 +19,7 @@ export const ALL_ENVIRONMENTS: readonly Environment[] = [
 
 /**
  * The segment written into an API key's public id, so a developer can tell
- * a production credential from a development one by looking at it — in a
+ * a production credential from a development one by looking at it: in a
  * log line, a screenshot, or a pasted snippet.
  *
  * Nothing parses this back. The environment is read from the key's row,
@@ -37,10 +37,10 @@ export function isEnvironment(value: unknown): value is Environment {
 }
 
 /**
- * A project *and* the environment within it — the unit almost every query
+ * A project *and* the environment within it: the unit almost every query
  * should be scoped by.
  *
- * Deliberately an object rather than two string parameters: `(projectId,
+ * Deliberately an object, not two string parameters: `(projectId,
  * environment)` and `(environment, projectId)` are both `(string, string)`
  * to the compiler, and the failure mode of getting them the wrong way
  * round is reading another environment's data. `ChatActor` satisfies this

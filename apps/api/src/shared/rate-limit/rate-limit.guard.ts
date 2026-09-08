@@ -13,11 +13,11 @@ import { RATE_LIMIT_KEY } from './rate-limit.decorator';
  * Keyed by the most specific identity the request actually carries, in
  * this order:
  *
- *   1. API key public id (`ApiKeyAuthGuard` sets `apiProjectId` —
+ *   1. API key public id (`ApiKeyAuthGuard` sets `apiProjectId`;
  *      a key belongs to exactly one project and environment, so this is
  *      already scoped as tightly as an IP address never could be)
  *   2. JWT user id (`JwtAuthGuard`/passport sets `request.user`)
- *   3. Client IP — the only signal available pre-auth (login, register),
+ *   3. Client IP: the only signal available pre-auth (login, register),
  *      and the reason this guard cannot key on identity alone: a route
  *      with no identity yet still needs a limiter.
  *
@@ -25,10 +25,10 @@ import { RATE_LIMIT_KEY } from './rate-limit.decorator';
  * hypothetical: every legitimate user behind one corporate NAT shares a
  * single bucket, and a single authenticated actor can evade any limit
  * meant to cap them just by rotating IPs. Keying on identity when one
- * exists fixes both, since it follows the actor rather than their network
+ * exists fixes both, since it follows the actor instead of their network
  * path.
  *
- * Not composed with IP even when an identity is present — an
+ * Not composed with IP even when an identity is present: an
  * authenticated abuser rotating IPs is still one identity and should
  * still be capped as one; adding IP back in would only reopen the second
  * failure mode above for exactly the requests where identity is known.

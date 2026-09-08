@@ -8,7 +8,7 @@ describe('encodeCursor / decodeCursor', () => {
   });
 
   it('never encodes an internal database id', () => {
-    // base64 is encoding, not encryption — anyone can decode a cursor.
+    // base64 is encoding, not encryption: anyone can decode a cursor.
     // What comes out must be the public id, never a primary key.
     const encoded = encodeCursor({ createdAt: new Date('2026-01-01T00:00:00.000Z'), publicId: 'msg_public' });
     const decoded = Buffer.from(encoded, 'base64url').toString('utf8');
@@ -34,7 +34,7 @@ describe('encodeCursor / decodeCursor', () => {
 
   it('keeps ids containing a pipe intact', () => {
     // The separator is the *first* pipe, so an id containing one still
-    // round-trips rather than being silently truncated.
+    // round-trips, not being silently truncated.
     const cursor = { createdAt: new Date('2026-01-01T00:00:00.000Z'), publicId: 'msg_a|b' };
     expect(decodeCursor(encodeCursor(cursor))).toEqual(cursor);
   });

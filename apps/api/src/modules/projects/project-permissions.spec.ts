@@ -91,7 +91,7 @@ describe('project permissions', () => {
 
     it('stops an admin granting the owner role', () => {
       // Otherwise an admin promotes themselves and the OWNER role is
-      // decorative — they could then demote the real owner.
+      // decorative: they could then demote the real owner.
       expect(canAssignRole(ProjectRole.ADMIN, ProjectRole.OWNER)).toBe(false);
     });
 

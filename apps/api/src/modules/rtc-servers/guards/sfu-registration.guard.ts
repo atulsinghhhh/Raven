@@ -7,12 +7,12 @@ import { UnauthorizedError } from '../../../shared/errors/app-error';
 /**
  * Authenticates an SFU node to the control plane (spec §38).
  *
- * A shared bearer secret rather than a per-node credential, deliberately:
+ * A shared bearer secret rather than a per-node credential, by design:
  * nodes are created by the deployment, not by an operator clicking
  * "add server", so there is nowhere for a per-node secret to be issued
  * *from* without inventing a provisioning step the architecture explicitly
- * avoids. The secret is a fleet-membership credential — holding it means
- * "I am part of this deployment's media plane" — and it is scoped to
+ * avoids. The secret is a fleet-membership credential: holding it means
+ * "I am part of this deployment's media plane", and it is scoped to
  * exactly two endpoints (register, heartbeat), neither of which can read
  * project data or mint client credentials.
  *
@@ -34,8 +34,8 @@ export class SfuRegistrationGuard implements CanActivate {
 
     if (!expected) {
       // Never fail open. An unset secret in a non-production deploy still
-      // means nobody can register — which surfaces as a clear error at the
-      // node, rather than an open endpoint nobody notices.
+      // means nobody can register, which surfaces as a clear error at the
+      // node, instead of an open endpoint nobody notices.
       this.logger.error('SFU_REGISTRATION_SECRET is not configured — rejecting SFU registration');
       throw new UnauthorizedError('SFU registration is not configured on this deployment');
     }
@@ -52,7 +52,7 @@ export class SfuRegistrationGuard implements CanActivate {
 /**
  * Compares two secrets without leaking their contents through timing.
  *
- * Hashed first so the comparison is over fixed-length inputs —
+ * Hashed first so the comparison is over fixed-length inputs;
  * `timingSafeEqual` throws on a length mismatch, which would itself be a
  * length oracle if the raw strings were passed straight in.
  */

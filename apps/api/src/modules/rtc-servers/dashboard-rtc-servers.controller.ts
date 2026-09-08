@@ -6,11 +6,11 @@ import { RtcServerRegistryService } from './rtc-server-registry.service';
 /**
  * Dashboard/CLI view of the RTC fleet (spec §29 "Servers", §37).
  *
- * Guarded by developer session JWT and deliberately *not* project-scoped:
+ * Guarded by developer session JWT and on purpose *not* project-scoped:
  * an RTC server is deployment-level infrastructure shared by every
  * project, so there is no project whose membership could authorize it.
- * That also means it exposes no project data — only node identity, health
- * and aggregate load — so any authenticated developer of this deployment
+ * That also means it exposes no project data: only node identity, health
+ * and aggregate load, so any authenticated developer of this deployment
  * seeing it leaks nothing about anyone else's rooms.
  */
 @ApiTags('Dashboard — RTC Servers')

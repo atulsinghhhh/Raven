@@ -21,9 +21,9 @@ export function generateRequestId(): string {
  * Honouring an inbound `x-request-id` is what lets a developer correlate
  * their own logs with ours across a call they initiated. It is also
  * attacker-controlled input that ends up in log lines and error bodies,
- * so it is accepted only when it is short and alphanumeric — anything
+ * so it is accepted only when it is short and alphanumeric: anything
  * else (newlines, control characters, ANSI escapes, a megabyte of text)
- * is discarded in favour of a generated ID rather than sanitised, because
+ * is discarded in favour of a generated ID, not sanitised, because
  * a half-cleaned identifier is worth less than an honest new one.
  */
 export function resolveRequestId(headerValue: unknown): string {

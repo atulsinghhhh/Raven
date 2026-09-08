@@ -12,7 +12,7 @@ export const WEBHOOK_TOLERANCE_SECONDS = 300;
  *
  * The timestamp is inside the signed payload, not just alongside it, so a
  * captured delivery can't be replayed later with a fresher timestamp
- * bolted on — the signature wouldn't match. Receivers should reject
+ * bolted on: the signature wouldn't match. Receivers should reject
  * anything older than WEBHOOK_TOLERANCE_SECONDS (spec §39, replay
  * protection).
  *
@@ -27,7 +27,7 @@ export function signWebhookPayload(rawBody: string, secret: string, timestampSec
 }
 
 /**
- * Reference verifier — this is what we tell developers to implement on
+ * Reference verifier: this is what we tell developers to implement on
  * their side, and what the tests exercise. Constant-time compare, because
  * a naive `===` here leaks the expected signature one byte at a time.
  */

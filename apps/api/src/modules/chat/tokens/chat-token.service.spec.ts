@@ -49,7 +49,7 @@ describe('issue', () => {
     });
     expect(narrowed.scopes).toEqual(['chat:read']);
 
-    // A MEMBER asking for moderate rights does not get them — this is the
+    // A MEMBER asking for moderate rights does not get them: this is the
     // check that makes it safe to pass a caller's scope list straight
     // through without re-validating it.
     const escalated = service.issue({
@@ -200,7 +200,7 @@ describe('verify', () => {
   });
 
   it('still accepts a valid token when Redis is unreachable', async () => {
-    // Revocation is delayed rather than chat being unusable — a Redis
+    // Revocation is delayed instead of chat being unusable: a Redis
     // outage must not lock every user out (spec §52).
     const { service } = makeService({ exists: jest.fn().mockRejectedValue(new Error('redis down')) });
     const issued = service.issue({ projectId: 'p1', environment: Environment.DEVELOPMENT, userId: 'alice', conversations: [], role: ChatMemberRole.MEMBER });
@@ -219,7 +219,7 @@ describe('revoke', () => {
       expect.stringContaining('ctk_abc'),
       '1',
       'EX',
-      // ~300 seconds — never a permanent entry that accumulates in Redis.
+      // ~300 seconds: never a permanent entry that accumulates in Redis.
       expect.any(Number),
     );
     const ttl = client.set.mock.calls[0][3] as number;

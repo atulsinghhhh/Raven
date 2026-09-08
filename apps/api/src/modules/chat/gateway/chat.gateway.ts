@@ -44,28 +44,28 @@ import { DEFAULT_ENVIRONMENT } from '../../../shared/environment/environment.con
 /**
  * The Raven Chat WebSocket gateway.
  *
- * Separate from the RTC signaling gateway on purpose — different path,
+ * Kept separate from the RTC signaling gateway on purpose: different path,
  * different token, different protocol, different lifecycle. A media
- * connection dropping must not take chat down with it, and vice versa
- * (spec §64: RTC = media, Chat = messaging).
+ * connection dropping must not take chat down with it, or the other way
+ * round (spec §64, RTC is media and Chat is messaging).
  *
- * This instance holds sockets, nothing more. It owns no message state:
- * everything durable goes through the services into Postgres, and
- * everything ephemeral goes into Redis. That's what makes running three
- * of these behind a load balancer work without any of them knowing about
- * the others (spec §34) — a gateway can be killed and restarted and the
- * only casualty is the sockets it was holding, which reconnect.
+ * This instance holds sockets and nothing else. It owns no message state.
+ * Everything durable goes through the services into Postgres, everything
+ * ephemeral into Redis. That's what lets three of these run behind a load
+ * balancer without any of them knowing the others exist (spec §34). Kill a
+ * gateway and restart it and the only casualty is the sockets it was
+ * holding, which reconnect.
  *
- * Like the RTC gateway, this bypasses Nest's @SubscribeMessage binding:
- * our wire format is `{"type": "..."}` with flat fields, not Nest's
+ * Like the RTC gateway, this sidesteps Nest's @SubscribeMessage binding.
+ * Our wire format is `{"type": "..."}` with flat fields, not Nest's
  * `{"event": ..., "data": ...}`, so clients can use the browser's native
- * WebSocket rather than a framework-specific client.
+ * WebSocket instead of a framework-specific one.
  */
 @WebSocketGateway({ path: CHAT_PATH })
 export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy {
   private readonly logger = new Logger(ChatGateway.name);
   private readonly sessions = new Map<WebSocket, ChatSession>();
-  /** conversationId -> sockets in it on *this* instance. Makes fan-out a map lookup, not a scan. */
+  /** conversationId -> sockets in it on *this* instance. Turns fan-out into a map lookup rather than a scan. */
   private readonly roomIndex = new Map<string, Set<WebSocket>>();
   private heartbeatTimer?: NodeJS.Timeout;
   private unsubscribeFromEvents?: () => void;
@@ -96,9 +96,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     this.unsubscribeFromEvents?.();
 
-    // Close cleanly with a distinct code so clients know this was a
-    // deploy, not a network failure, and can reconnect without the full
-    // backoff ladder.
+    // Close cleanly with a distinct code, so clients know this was a deploy
+    // instead of a network failure and can reconnect without climbing the
+    // whole backoff ladder.
     for (const [socket, session] of this.sessions) {
       await this.teardownSession(session, 'server_shutdown');
       socket.close(CHAT_CLOSE_SERVER_SHUTDOWN, 'server shutting down');
@@ -112,10 +112,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   // -------------------------------------------------------------------------
 
   async handleConnection(socket: WebSocket, request: IncomingMessage): Promise<void> {
-    // Frames that arrive before our 'message' listener is attached would
-    // be dropped silently — EventEmitter doesn't buffer for late
-    // listeners. Pause until we're ready. (Same reasoning as the RTC
-    // signaling gateway.)
+    // Any frame arriving before our 'message' listener is attached gets
+    // dropped in silence, because EventEmitter doesn't buffer for late
+    // listeners. So pause until we're ready. Same reasoning as the RTC
+    // signaling gateway.
     socket.pause();
 
     const clientIp = extractClientIp(request);
@@ -130,8 +130,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       return;
     }
 
-    // Rate-limit by IP before verifying the token — otherwise an attacker
-    // gets free signature verifications, which is the expensive part.
+    // Rate-limit by IP *before* verifying the token. Otherwise an attacker
+    // gets free signature verifications, and that's the expensive part.
     try {
       await this.rateLimit.consume('connect', 'global', clientIp);
     } catch (err) {
@@ -146,8 +146,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     } catch (err) {
       const chatError =
         err instanceof ChatError ? err : new ChatError(ChatErrorCode.INVALID_TOKEN, 'Authentication failed');
-      // Never log the token, and never forward a raw verifier message —
-      // it can echo back parts of the malformed input.
+      // Never log the token, and never forward a raw verifier message. It
+      // can echo parts of the malformed input straight back.
       this.logger.warn(`chat authentication rejected from ${clientIp}: ${chatError.chatCode}`);
       this.rejectConnection(
         socket,
@@ -199,8 +199,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       connectionId,
       userId: session.userId,
       scopes: session.scopes,
-      // Told up front so the SDK can refresh before the socket is closed
-      // out from under it, rather than discovering expiry the hard way.
+      // Told up front, so the SDK can refresh before the socket gets closed
+      // out from under it, not discovering expiry the hard way.
       expiresAt: new Date(session.tokenExpiresAt).toISOString(),
       heartbeatIntervalMs: CHAT_HEARTBEAT_INTERVAL_MS,
     });
@@ -218,8 +218,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   /**
-   * Releases everything a socket owned: Redis subscriptions, presence,
-   * typing, the connection record. Runs on clean disconnects; the TTLs on
+   * Lets go of everything a socket owned: Redis subscriptions, presence,
+   * typing, the connection record. Runs on clean disconnects. The TTLs on
    * every Redis key cover the unclean ones (spec §35).
    */
   private async teardownSession(session: ChatSession, reason: string): Promise<void> {
@@ -349,8 +349,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       );
     }
 
-    // Authorization happens here, not at subscribe time in Redis — a
-    // socket must never be able to subscribe to a conversation it has no
+    // Authorization happens here, not at subscribe time in Redis. A socket
+    // must never be able to subscribe to a conversation it has no
     // membership in (spec §36).
     const { conversation } = await this.conversations.authorize(this.actorFor(session), reference);
 
@@ -376,8 +376,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       PresenceStatus.ONLINE,
     );
 
-    // Hand back the current ephemeral state so a client joining mid-
-    // conversation isn't blind until the next event fires.
+    // Hand back the current ephemeral state, so a client joining
+    // mid-conversation isn't blind until the next event fires.
     const [present, typingUsers] = await Promise.all([
       this.presence.list(session.projectId, conversation.id).catch(() => []),
       this.typing.list(session.projectId, conversation.id),
@@ -438,10 +438,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     session.messagesSent += 1;
 
-    // The ack is the *accepted/stored* signal (spec §15) — it is only
-    // sent once the row exists, and it carries the canonical server id.
-    // The message itself still arrives separately via fan-out, so the
-    // sender renders exactly what everyone else does.
+    // The ack is the *accepted and stored* signal (spec §15). It only goes
+    // out once the row exists, and it carries the canonical server id. The
+    // message itself still arrives separately through fan-out, so the sender
+    // renders exactly what everybody else does.
     this.ack(session, frame.id, {
       message: result.message,
       deduplicated: result.deduplicated,
@@ -485,7 +485,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       throw new ChatError(ChatErrorCode.INVALID_MESSAGE, 'status must be one of: online, away, offline');
     }
 
-    // Applies to every room this socket holds — presence is a property of
+    // Applies to every room this socket holds. Presence is a property of
     // the person, not of one conversation.
     for (const [conversationId, subscription] of session.rooms) {
       await this.presence.set(
@@ -507,10 +507,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   // -------------------------------------------------------------------------
 
   /**
-   * Called for every event on every conversation this instance subscribes
-   * to. Delivery is a map lookup against the local room index — never a
-   * scan over all sockets, which is what keeps a busy conversation from
-   * costing O(total connections) per message.
+   * Runs for every event on every conversation this instance subscribes to.
+   *
+   * Delivery is a map lookup against the local room index, never a scan over
+   * all sockets. That's what stops a busy conversation costing
+   * O(total connections) per message.
    */
   private deliverToLocalSockets(envelope: ChatEventEnvelope): void {
     const { event } = envelope;
@@ -519,9 +520,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       return;
     }
 
-    // Typing and presence echoes are noise to the person who caused them;
-    // messages are not — the sender needs the canonical, server-ordered
-    // row back (spec §15).
+    // Typing and presence echoes are just noise to whoever caused them.
+    // Messages aren't: the sender needs the canonical, server-ordered row
+    // back (spec §15).
     const skipOrigin =
       event.type === ChatServerFrame.TYPING_STARTED ||
       event.type === ChatServerFrame.TYPING_STOPPED ||
@@ -542,8 +543,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     if (delivered > 0 && event.type === ChatServerFrame.MESSAGE) {
       this.metrics.increment(envelope.projectId, 'messages_fanned_out', delivered);
-      // Redis publish -> local delivery. Isolates fan-out cost from
-      // storage cost when a developer asks why chat feels slow (spec §48).
+      // Redis publish -> local delivery. Separates fan-out cost from
+      // storage cost, for when somebody asks why chat feels slow
+      // (spec §48).
       this.metrics.recordLatency(envelope.projectId, 'fanout', Date.now() - envelope.publishedAt);
     }
   }
@@ -571,13 +573,13 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   // -------------------------------------------------------------------------
 
   /**
-   * One pass does three things: kills sockets that missed a pong, closes
-   * sockets whose token has expired, and refreshes the Redis TTLs behind
-   * presence and the connection registry.
+   * One pass, three jobs: kill sockets that missed a pong, close sockets
+   * whose token has expired, and refresh the Redis TTLs behind presence and
+   * the connection registry.
    *
-   * Refreshing on the same timer as the liveness check is deliberate — a
+   * Refreshing on the same timer as the liveness check is deliberate. A
    * connection that can still answer a ping is exactly the one whose
-   * presence should stay alive, and coupling them means the two can't
+   * presence should stay alive, and coupling them means the two can never
    * disagree.
    */
   private async runHeartbeat(): Promise<void> {
@@ -592,8 +594,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         continue;
       }
 
-      // A socket authenticated an hour ago must not stay open forever on
-      // a token that has since expired (spec §39).
+      // A socket that authenticated an hour ago mustn't stay open forever
+      // on a token that has since expired (spec §39).
       if (session.tokenExpiresAt <= now) {
         this.logger.log(`closing chat connection ${session.connectionId}: token expired`);
         this.send(socket, new ChatError(ChatErrorCode.TOKEN_EXPIRED, 'Chat token expired — reconnect with a new one').toFrame());
@@ -623,7 +625,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   // Helpers
   // -------------------------------------------------------------------------
 
-  /** A session is just a pre-authenticated client actor. */
+  /** A session is nothing more than a pre-authenticated client actor. */
   private actorFor(session: ChatSession): ChatActor {
     return {
       kind: 'client',
@@ -649,9 +651,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       return;
     }
 
-    // Anything unexpected is a bug on our side: logged in full here, and
-    // reduced to a generic code for the client. No stack traces, no
-    // Postgres error text, no Redis internals (spec §42).
+    // Anything unexpected is a bug on our side. Logged in full here,
+    // reduced to a generic code for the client. No stack traces, no Postgres
+    // error text, no Redis internals (spec §42).
     this.logger.error(`unhandled chat frame error: ${(err as Error)?.message}`, (err as Error)?.stack);
     this.metrics.increment(session.projectId, 'messages_failed');
     this.send(
@@ -673,11 +675,12 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   /**
-   * Origin check for the upgrade (spec §39). Browsers always send Origin;
-   * non-browser clients (a server-side bot, a load test) legitimately
-   * don't, so a missing Origin is allowed while a *wrong* one is not —
-   * the header can't be forged by page JavaScript, which is the attack
-   * this actually defends against.
+   * Origin check for the upgrade (spec §39).
+   *
+   * Browsers always send Origin. Non-browser clients, a server-side bot or a
+   * load test, legitimately don't. So a missing Origin is allowed while a
+   * *wrong* one isn't. Page JavaScript can't forge the header, and that's
+   * the attack this actually defends against.
    */
   private isOriginAllowed(request: IncomingMessage): boolean {
     const configured = this.configService.get<string>('cors.origin')!;
@@ -694,7 +697,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       .includes(origin);
   }
 
-  /** Live counts for /health and the dashboard. */
+  /** Live counts, for /health and the dashboard. */
   getMetrics() {
     return {
       gatewayId: this.registry.gatewayId,
@@ -706,10 +709,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 }
 
 function extractToken(request: IncomingMessage): string | null {
-  // Query param rather than a header: the browser WebSocket API can't set
-  // headers on an upgrade. Same trade-off the RTC signaling gateway
-  // makes, and why chat tokens are short-lived and revocable — a URL can
-  // end up in a proxy log.
+  // Query param rather than a header, because the browser WebSocket API
+  // can't set headers on an upgrade. The RTC signaling gateway makes the
+  // same trade, and it's why chat tokens are short-lived and revocable: a
+  // URL can end up in a proxy log.
   const url = new URL(request.url ?? '', 'http://localhost');
   return url.searchParams.get('token');
 }

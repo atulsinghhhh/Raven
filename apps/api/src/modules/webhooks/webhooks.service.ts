@@ -13,7 +13,7 @@ import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { UpdateWebhookDto } from './dto/update-webhook.dto';
 import { DEFAULT_ENVIRONMENT } from '../../shared/environment/environment.constants';
 
-/** The endpoint as a developer sees it — signingSecret is never included. */
+/** The endpoint as a developer sees it: signingSecret is never included. */
 export type WebhookEndpointSummary = Omit<WebhookEndpoint, 'signingSecret'>;
 
 export interface CreatedWebhookEndpoint extends WebhookEndpointSummary {
@@ -30,13 +30,13 @@ export class WebhooksService {
   ) {}
 
   /**
-   * The *deployment's* NODE_ENV — how this server was started — which is a
+   * The *deployment's* NODE_ENV, how this server was started, which is a
    * different thing from a project's Environment. Only the SSRF guard uses
    * it: loopback URLs are fine on a developer's laptop and never in a real
    * deployment, whichever project environment the endpoint belongs to.
    *
    * Resolved through ConfigService rather than read from `process.env`
-   * directly — configuration.ts is where the default lives, and a bare
+   * directly: configuration.ts is where the default lives, and a bare
    * `process.env.NODE_ENV` is undefined in a normal local run, which
    * would silently put dev into the strictest branch.
    */
@@ -113,7 +113,7 @@ export class WebhooksService {
 
   private async findOne(projectId: string, publicId: string): Promise<WebhookEndpoint> {
     const endpoint = await this.prisma.webhookEndpoint.findUnique({ where: { publicId } });
-    // Scoped to projectId, not just publicId — same cross-project rule as
+    // Scoped to projectId, not just publicId: same cross-project rule as
     // rooms and conversations.
     if (!endpoint || endpoint.projectId !== projectId) {
       throw new NotFoundError('Webhook endpoint');
@@ -132,10 +132,10 @@ function strip(endpoint: WebhookEndpoint): WebhookEndpointSummary {
  * developer-supplied URL: non-HTTP schemes, and loopback/link-local hosts
  * that would let a webhook reach services inside our own network.
  *
- * This is hostname-level only — it does not resolve DNS, so a hostname
+ * This is hostname-level only: it does not resolve DNS, so a hostname
  * pointing at a private IP still gets through. A production deployment
  * should also egress-filter the worker; noted in
- * docs/chat/webhooks.md#known-limitations rather than left implied.
+ * docs/chat/webhooks.md#known-limitations, not left implied.
  */
 function assertDeliverableUrl(rawUrl: string, deploymentEnv: string): void {
   let url: URL;

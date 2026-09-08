@@ -12,20 +12,20 @@ import { SIGNALING_PATH } from '../signaling/signaling.constants';
 export interface IssuedRtcToken {
   id: string;
   token: string;
-  /** Where the client SDK connects to run the call — a Raven-owned contract, not tied to whatever SFU sits behind it. */
+  /** Where the client SDK connects to run the call. A Raven-owned contract, not tied to whichever SFU sits behind it. */
   endpoint: string;
   roomId: string;
   roomName: string;
   participantIdentity: string;
   permissions: CreateRtcTokenDto['permissions'];
   /**
-   * STUN + TURN servers for the client's WebRTC RTCConfiguration. TURN
-   * creds are minted fresh per token and share its lifetime, so a client
-   * never holds a permanent relay credential (spec §11).
+   * STUN and TURN servers for the client's WebRTC RTCConfiguration. TURN
+   * credentials are minted fresh per token and share its lifetime, so no
+   * client ever holds a permanent relay credential (spec §11).
    */
   iceServers: IceServer[];
-  // Base URL for @corvidhq/rtc's telemetry — the SDK never hardcodes this,
-  // it just rides along in the same response as endpoint/iceServers.
+  // Base URL for @corvidhq/rtc's telemetry. The SDK never hardcodes it; it
+  // rides along in the same response as endpoint and iceServers.
   telemetryUrl: string;
   expiresAt: Date;
   createdAt: Date;
@@ -46,7 +46,7 @@ export class RtcTokensService {
     dto: CreateRtcTokenDto,
   ): Promise<IssuedRtcToken> {
     // Confirms the room exists and belongs to this project *and*
-    // environment — the same check we use everywhere else here.
+    // environment. The same check used everywhere else in here.
     const room = await this.roomsService.findOneForProject(roomId, scope);
 
     const ttlSeconds =
@@ -58,17 +58,17 @@ export class RtcTokensService {
       update: { metadata: dto.metadata },
     });
 
-    // Resolved once, here, so the row we persist and the claims we sign
-    // record exactly the same grant — rather than each re-deriving it from
-    // the request's optional flags and risking a drift between what the
-    // dashboard shows and what the signaling layer enforces.
+    // Resolved once, right here, so the row we persist and the claims we
+    // sign record exactly the same grant. Have each of them re-derive it
+    // from the request's optional flags and you invite a drift between what
+    // the dashboard shows and what the signaling layer enforces.
     const permissions = resolvePermissions(dto.permissions);
 
-    // Row first, then sign with its id as the token's `jti`. The other
-    // order would mean the credential and its record carry different
-    // identifiers, which is what makes revocation and log correlation
-    // awkward later — and it would change the shape of the `id` this
-    // endpoint has always returned.
+    // Row first, then sign with its id as the token's `jti`. Do it the other
+    // way round and the credential and its record end up carrying different
+    // identifiers, which is exactly what makes revocation and log
+    // correlation awkward later. It would also change the shape of the `id`
+    // this endpoint has always returned.
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
     const rtcToken = await this.prisma.rtcToken.create({
       data: {
@@ -118,15 +118,15 @@ export class RtcTokensService {
   /**
    * The `endpoint` clients connect to: Raven's own signaling WebSocket.
    *
-   * Derived from the API's public URL by default so there's one address to
-   * configure rather than two — the same approach `ChatTokenService.chatUrl()`
-   * takes. `RTC_SIGNALING_URL` overrides it for deployments that front
+   * Derived from the API's public URL by default, so there's one address to
+   * configure, not two. `ChatTokenService.chatUrl()` takes the same
+   * approach. `RTC_SIGNALING_URL` overrides it for deployments that front
    * signaling on a separate hostname or ingress.
    *
-   * Note what this is *not*: the address of an SFU. Clients never learn
-   * which SFU serves their room — the signaling layer allocates one and
-   * negotiates on their behalf, which is what allows the media plane to be
-   * re-shaped (or replaced) without an SDK release.
+   * Worth being clear about what this *isn't*: the address of an SFU.
+   * Clients never learn which SFU serves their room. The signaling layer
+   * allocates one and negotiates on their behalf, and that's what lets the
+   * media plane be re-shaped, or replaced outright, without an SDK release.
    */
   private signalingEndpoint(): string {
     const configured = this.configService.get<string>('rtc.signalingUrl');

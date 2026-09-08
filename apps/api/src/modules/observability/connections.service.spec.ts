@@ -213,7 +213,7 @@ describe('ConnectionsService', () => {
     });
 
     it('tolerates a malformed payload rather than throwing', async () => {
-      // Telemetry is best-effort and the wire payload is caller-supplied —
+      // Telemetry is best-effort and the wire payload is caller-supplied;
       // a shape that doesn't match must degrade to "nothing extracted",
       // not crash the ingest endpoint for every other event in flight.
       await expect(
@@ -225,7 +225,7 @@ describe('ConnectionsService', () => {
     });
 
     it('never lets a stats event drive the connection lifecycle state', async () => {
-      // 'stats' is metadata-only, same as ice_state_changed above — it
+      // 'stats' is metadata-only, same as ice_state_changed above: it
       // must not appear in the state-transition switch.
       await statsEvent({ local: [], remote: [] });
 

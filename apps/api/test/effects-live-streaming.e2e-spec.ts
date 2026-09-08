@@ -15,17 +15,17 @@ import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics'
 /**
  * Real-browser end-to-end test of Phase 16 (Raven Effects) on Live
  * Streaming. Reuses the exact same `e2e-harness/rtc-effects.html` page as
- * `effects-rtc.e2e-spec.ts` — deliberately: a live stream's host camera is
+ * `effects-rtc.e2e-spec.ts`, on purpose: a live stream's host camera is
  * an ordinary `@corvidhq/rtc` `Room` underneath (`stream.room` in
  * `@corvidhq/client`'s `LiveStream`), so nothing Live-Streaming-specific
  * needs to exist in the harness for effects to work. What differs here is
- * only how credentials are minted — through the real `/v1/live-streams`
- * host/viewer endpoints instead of `/v1/rooms/:id/rtc-tokens` — and that
+ * only how credentials are minted: through the real `/v1/live-streams`
+ * host/viewer endpoints instead of `/v1/rooms/:id/rtc-tokens`, and that
  * the stream lifecycle (create → start → end) is exercised for real
  * alongside it.
  *
  * The viewer-reception test was `.skip`ped for what turned out to be a
- * real bug rather than an environment quirk — see
+ * real bug, not an environment quirk: see
  * `effects-rtc.e2e-spec.ts`'s module doc for the diagnosis. Both run now.
  */
 jest.setTimeout(120_000);
@@ -65,7 +65,7 @@ interface RtcCredentials {
  * `API_PUBLIC_URL` names.
  *
  * The mint response's `endpoint` is derived from `API_PUBLIC_URL`, which
- * on a developer's machine is the compose API on :4100 — a different
+ * on a developer's machine is the compose API on :4100: a different
  * process reading a different database. A browser sent there would try to
  * join a stream whose room only exists in this suite's database and be
  * told `NO_RTC_CAPACITY`. Under LiveKit this never came up: every suite
@@ -185,10 +185,10 @@ describe('Raven Effects — Live Streaming (real browser e2e)', () => {
       .set('Authorization', `Bearer ${apiKey}`)
       .send({ identity })
       .expect(201);
-    // `rtc`-nested, exactly like the host response — a viewer credential
+    // `rtc`-nested, exactly like the host response: a viewer credential
     // carries chat alongside RTC. Reading the top level instead gave
     // `undefined` for every field, which surfaced in the browser as
-    // "RTC token is malformed" rather than as a failed assertion here.
+    // "RTC token is malformed" instead of as a failed assertion here.
     return {
       token: res.body.rtc.token,
       endpoint: res.body.rtc.endpoint,
@@ -220,7 +220,7 @@ describe('Raven Effects — Live Streaming (real browser e2e)', () => {
       expect(['webgl2', 'canvas2d']).toContain(state.engineKind);
       expect(state.effectsError).toBeUndefined();
 
-      // Switch presets mid-stream — the host's room/connection must be unaffected.
+      // Switch presets mid-stream: the host's room/connection must be unaffected.
       await hostPage.evaluate(() => (window as unknown as { __clearEffects: () => void }).__clearEffects());
       expect(
         await hostPage.evaluate(() => (window as unknown as { __state: { connectionState: string } }).__state.connectionState),
@@ -240,7 +240,7 @@ describe('Raven Effects — Live Streaming (real browser e2e)', () => {
     expect(ended.body.status).toBe('ENDED');
   });
 
-  // See the module doc — blocked on the same environment-level ICE/subscription
+  // See the module doc: blocked on the same environment-level ICE/subscription
   // issue as effects-rtc.e2e-spec.ts's skipped test, not anything Live
   // Streaming- or Effects-specific. Re-enable alongside that one.
   it('a viewer receives the host-processed video, and chat/reactions keep working throughout', async () => {

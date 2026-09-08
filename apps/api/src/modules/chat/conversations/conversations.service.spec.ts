@@ -6,8 +6,8 @@ import { WebhookEventsService } from '../../webhooks/webhook-events.service';
 import { ConversationsService } from './conversations.service';
 
 /**
- * Covers the webhook events this service is responsible for firing —
- * `room.created`, `participant.joined`, `participant.left` — the three
+ * Covers the webhook events this service is responsible for firing;
+ * `room.created`, `participant.joined`, `participant.left`: the three
  * the event catalogue (docs/reference/events.md) documents as delivered
  * but that, before this, no code path actually emitted.
  *
@@ -118,7 +118,7 @@ describe('ConversationsService — webhook events', () => {
     it('turns a concurrent duplicate-name race into a clean ConflictError, not a raw Prisma error', async () => {
       // The findUnique pre-check is a classic check-then-act race: two
       // concurrent requests for the same name can both pass it, then both
-      // reach prisma.conversation.create — the loser must see the same
+      // reach prisma.conversation.create: the loser must see the same
       // ConflictError the pre-check itself throws, not an unhandled 500.
       prisma.conversation.findUnique.mockResolvedValue(null);
       prisma.conversation.create.mockRejectedValue(

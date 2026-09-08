@@ -11,7 +11,7 @@ import { MetricsService } from '../observability/metrics.service';
 import { ProjectsService } from '../projects/projects.service';
 
 /**
- * The API-key-guarded twin of `DashboardObservabilityController` — same
+ * The API-key-guarded twin of `DashboardObservabilityController`: same
  * Phase 9 services, same data, different entrypoint (a backend/server
  * SDK authenticates with a permanent project API key, never a human JWT
  * session, so it can't call `/v1/projects/:projectId/...`). No

@@ -4,7 +4,7 @@ import { PrismaClient } from '../../generated/prisma/client';
 
 // Module-level, not a class field: `onPoolError` below is constructed as
 // an argument to `super()`, and a class field referencing `this` isn't
-// initialized until after `super()` returns — a closure created there
+// initialized until after `super()` returns: a closure created there
 // can't safely rely on `this.logger` existing yet.
 const logger = new Logger('PrismaService');
 
@@ -18,7 +18,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         {
           connectionString: process.env.DATABASE_URL,
           // Every pod's pool competes for the same Postgres
-          // max_connections — see configuration.ts's `database.poolMax`
+          // max_connections: see configuration.ts's `database.poolMax`
           // comment for the horizontal-scaling reasoning. Read directly
           // from env, same as DATABASE_URL above (Prisma 7 dropped the
           // datasource url from schema.prisma; this file and
@@ -29,7 +29,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         },
         {
           // Pool-level failures (e.g. every connection refused) don't
-          // otherwise surface anywhere — without this they'd be silent
+          // otherwise surface anywhere: without this they'd be silent
           // until the next query happened to hit them.
           onPoolError: (err) => logger.error(`pg pool error: ${err.message}`),
         },
@@ -46,7 +46,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     await this.$disconnect();
   }
 
-  /** Used by the health module — throws if the database is unreachable. */
+  /** Used by the health module: throws if the database is unreachable. */
   async ping(): Promise<void> {
     await this.$queryRaw`SELECT 1`;
   }

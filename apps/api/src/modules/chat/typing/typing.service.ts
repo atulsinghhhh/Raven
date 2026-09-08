@@ -5,11 +5,11 @@ import { ChatServerFrame, RedisKeys } from '../chat.constants';
 import { ChatEventsService } from '../realtime/chat-events.service';
 
 /**
- * Typing indicators (spec §21). Never persisted — a typing event is
+ * Typing indicators (spec §21). Never persisted: a typing event is
  * meaningless seven seconds after it happens, and writing one to Postgres
  * per keystroke would be the single most wasteful thing in this system.
  *
- * The stale-indicator problem is solved by TTL rather than by trusting
+ * The stale-indicator problem is solved by TTL, not by trusting
  * clients to send a stop: a browser that crashes mid-sentence, or whose
  * tab is closed, leaves a key that expires on its own. Clients also run
  * their own local timeout, so a dropped `typing.stopped` frame can't leave
@@ -80,7 +80,7 @@ export class TypingService {
       return;
     }
 
-    // Only announce a stop if there was a start to stop — otherwise a
+    // Only announce a stop if there was a start to stop: otherwise a
     // client that fires stop on every blur floods the conversation.
     if (wasTyping) {
       await this.publish(ChatServerFrame.TYPING_STOPPED, projectId, conversationId, conversationPublicId, userId, originConnectionId);

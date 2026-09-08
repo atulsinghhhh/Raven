@@ -28,8 +28,8 @@ function makeServer(overrides: Partial<RtcServer> = {}): RtcServer {
 }
 
 /**
- * The point of this service is a three-way answer — serving, idle, or
- * unknown — and most of these tests exist to pin that down. Collapsing
+ * The point of this service is a three-way answer: serving, idle, or
+ * unknown, and most of these tests exist to pin that down. Collapsing
  * "we could not find out" into "nobody is here" is the mistake it was
  * written to prevent: a dashboard reporting zero during a partition tells
  * an operator every call has ended.

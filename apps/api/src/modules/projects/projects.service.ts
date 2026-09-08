@@ -40,7 +40,7 @@ export class ProjectsService {
   }
 
   /**
-   * No ownership check — safe only when the caller's authorization
+   * No ownership check: safe only when the caller's authorization
    * already scopes them to exactly this project (e.g. `ApiKeyAuthGuard`,
    * which resolves `projectId` from the key itself, so there is no other
    * project this could ever resolve to). Never expose this to a route
@@ -102,7 +102,7 @@ export class ProjectsService {
 
   async archive(id: string, userId: string): Promise<void> {
     await this.authorize(id, userId, Capability.ProjectDelete);
-    // Soft delete — projects own api keys, rooms, and usage history that
+    // Soft delete: projects own api keys, rooms, and usage history that
     // are still worth keeping around for audit/billing even after this.
     await this.prisma.project.update({
       where: { id },

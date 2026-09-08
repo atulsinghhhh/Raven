@@ -1,4 +1,4 @@
-// Real-browser E2E harness for Phase 16 (Raven Effects) — driven by
+// Real-browser E2E harness for Phase 16 (Raven Effects), driven by
 // apps/api/test/effects-rtc.e2e-spec.ts via Playwright. Publishes/subscribes
 // through the actual @corvidhq/rtc build against a real Raven SFU;
 // nothing here is mocked. State is exposed on `window.__state` so the test
@@ -13,7 +13,7 @@ const endpoint = params.get('endpoint');
 // Host-candidate-only on purpose: both peers are on the same machine as
 // the SFU in this test, and routing ICE through the real
 // STUN/TURN servers the API mints (reachable over the public internet)
-// has been observed to be unstable in this specific sandboxed network —
+// has proved unstable in this specific sandboxed network, so
 // see the e2e-spec.ts module doc for the investigation.
 const iceServers = [];
 void params.get('iceServers');

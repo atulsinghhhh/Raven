@@ -11,9 +11,9 @@ import { checkSfuHttp, checkStunBinding } from './dependency-checks.util';
 type DependencyStatus = 'up' | 'down';
 
 /**
- * Upper bound on any single dependency probe. Matches the SFU/STUN
- * checks' own timeouts so every probe is bounded the same way and the
- * endpoint's worst-case response time is predictable.
+ * Ceiling on any single dependency probe. Matches the SFU and STUN checks'
+ * own timeouts, so every probe is bounded the same way and the endpoint's
+ * worst-case response time stays predictable.
  */
 const DEPENDENCY_CHECK_TIMEOUT_MS = 2000;
 
@@ -22,7 +22,7 @@ interface ReadinessResponse {
   dependencies: {
     database: DependencyStatus;
     redis: DependencyStatus;
-    /** The media server behind Raven's RTC plane — not named after whichever one it is today. */
+    /** The media server behind Raven's RTC plane. Not named after whichever one it happens to be today. */
     sfu: DependencyStatus;
     turn: DependencyStatus;
   };
@@ -33,9 +33,10 @@ interface ReadinessResponse {
   };
 }
 
-// Only reports up/down per dependency — no connection strings, hostnames,
-// versions, or error messages. This is usually unauthenticated (load
-// balancers/orchestrators hit it), so it can't leak infra details.
+// Reports up or down per dependency and nothing else. No connection
+// strings, hostnames, versions or error messages. This is usually
+// unauthenticated, since load balancers and orchestrators hit it, so it
+// can't be leaking infra details.
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {
@@ -48,13 +49,15 @@ export class HealthController {
   ) {}
 
   /**
-   * Liveness: "is this process able to answer at all". Deliberately makes
-   * no dependency calls — a database/Redis/SFU outage must not cause
-   * an orchestrator to conclude the *process* is broken and restart it,
-   * which would just replace a healthy pod that can't reach a dependency
-   * with another healthy pod that also can't reach that dependency. If
-   * this handler runs at all, the event loop isn't wedged, which is the
-   * one thing liveness is actually supposed to answer.
+   * Liveness: can this process answer at all?
+   *
+   * Makes no dependency calls, on purpose. A database, Redis or SFU outage
+   * must not let an orchestrator decide the *process* is broken and restart
+   * it, because that just swaps a healthy pod that can't reach a dependency
+   * for another healthy pod that also can't reach it.
+   *
+   * If this handler runs at all, the event loop isn't wedged. Which is the
+   * one thing liveness is actually meant to answer.
    */
   @Get('live')
   @ApiOperation({ summary: 'Liveness probe — no dependency calls, unauthenticated' })
@@ -64,11 +67,12 @@ export class HealthController {
   }
 
   /**
-   * Readiness: "should traffic be routed to this instance right now".
-   * This is the dependency-probing check that used to be the only thing
-   * `GET /health` did — kept under its own path so an orchestrator can
-   * stop routing to a degraded instance (readiness) without restarting
-   * it (liveness), which is a materially different action.
+   * Readiness: should traffic be routed to this instance right now?
+   *
+   * This is the dependency-probing check that used to be all `GET /health`
+   * did. It lives under its own path so an orchestrator can stop routing to
+   * a degraded instance without restarting it. Those are materially
+   * different actions.
    */
   @Get('ready')
   @ApiOperation({ summary: 'Readiness probe — checks dependencies, unauthenticated' })
@@ -96,10 +100,11 @@ export class HealthController {
   }
 
   /**
-   * Kept as an alias of `/health/ready` — this was the only health path
-   * before the liveness/readiness split, and existing dashboards/scripts
-   * (and load balancers already configured against it) shouldn't have to
-   * change on the same day this split ships.
+   * An alias of `/health/ready`.
+   *
+   * This was the only health path before the liveness/readiness split, and
+   * existing dashboards, scripts and already-configured load balancers
+   * shouldn't have to change on the day that split ships.
    */
   @Get()
   @ApiOperation({ summary: 'Alias of /health/ready, kept for backward compatibility — unauthenticated' })
@@ -112,17 +117,17 @@ export class HealthController {
       this.checkDependency(() => this.prisma.ping()),
       this.checkDependency(() => this.redis.ping()),
       this.checkDependency(async () => {
-        // Two things have to be true for RTC to work, and this checks
-        // both: the fleet registry has a healthy node, and that node is
-        // actually reachable from this process.
+        // Two things have to be true for RTC to work, and this checks both:
+        // the fleet registry holds a healthy node, and that node is actually
+        // reachable from this process.
         //
-        // Registry state alone would report "up" for a node that
-        // heartbeats but sits behind a broken route from here; a bare HTTP
-        // probe alone would need a hardcoded address, which the whole
-        // registry exists to avoid.
+        // Registry state on its own reports "up" for a node that heartbeats
+        // happily but sits behind a broken route from here. A bare HTTP
+        // probe on its own needs a hardcoded address, which is the very
+        // thing the registry exists to avoid.
         const server = await this.rtcServers.pickHealthyForProbe();
         if (!server) throw new Error('no healthy rtc server registered');
-        // internalUrl, not publicHost — this check runs inside the
+        // internalUrl, not publicHost. This check runs inside the
         // deployment's network, not from a real client's vantage point.
         const ok = await checkSfuHttp(server.internalUrl);
         if (!ok) throw new Error('unreachable');
@@ -139,7 +144,7 @@ export class HealthController {
     const status: ReadinessResponse['status'] =
       database === 'up' && redis === 'up' && sfu === 'up' && turn === 'up' ? 'ok' : 'degraded';
 
-    // Aggregate counts only, never room/participant IDs — same reasoning
+    // Aggregate counts only, never room or participant IDs. Same reasoning
     // as the class-level comment above.
     return {
       status,
@@ -149,20 +154,21 @@ export class HealthController {
   }
 
   /**
-   * Runs one probe and maps any failure — including taking too long — to
+   * Runs one probe and maps any failure, taking too long included, to
    * `down`.
    *
-   * The timeout is the important part. A dependency that is *hung* rather
-   * than *down* (a network partition, a paused container, a server too
-   * busy to answer) accepts the connection and then never replies, and a
-   * probe without a bound waits forever. A health endpoint that hangs is
-   * strictly worse than one reporting a fault: an orchestrator can act on
-   * "down", but a request that never returns just looks like the whole
-   * API is wedged.
+   * The timeout is the important bit. A dependency that's *hung* rather than
+   * *down*, whether that's a network partition, a paused container, or a
+   * server too busy to answer, accepts the connection and then never
+   * replies. An unbounded probe waits forever.
    *
-   * The SFU and STUN probes already bound themselves; this covers the
-   * database and Redis ones too, so the endpoint answers within a known
-   * time no matter which dependency is misbehaving.
+   * And a health endpoint that hangs is strictly worse than one reporting a
+   * fault. An orchestrator can act on "down"; a request that never returns
+   * just looks like the whole API is wedged.
+   *
+   * The SFU and STUN probes already bound themselves. This covers the
+   * database and Redis ones too, so the endpoint answers within a known time
+   * whichever dependency is misbehaving.
    */
   private async checkDependency(fn: () => Promise<void>): Promise<DependencyStatus> {
     let timer: NodeJS.Timeout | undefined;

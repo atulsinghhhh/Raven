@@ -4,7 +4,7 @@ import { LiveStreamVisibility } from '../../../generated/prisma/client';
 
 const VISIBILITY_VALUES = Object.values(LiveStreamVisibility);
 
-/** Everything about a stream you might change before or during it — never its status; use start()/end() for that. */
+/** Everything about a stream you might change before or during it: never its status; use start()/end() for that. */
 export class UpdateLiveStreamDto {
   @ApiPropertyOptional({ minLength: 1, maxLength: 200 })
   @IsOptional()

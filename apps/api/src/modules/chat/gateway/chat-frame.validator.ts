@@ -17,7 +17,7 @@ const CLIENT_FRAME_TYPES = new Set<string>(Object.values(ChatClientFrame));
  * bytes enter the chat plane, and everything downstream assumes a valid
  * envelope.
  *
- * The size check happens on the raw buffer, before JSON.parse — parsing a
+ * The size check happens on the raw buffer, before JSON.parse: parsing a
  * 50 MB frame to then reject it would be the denial of service.
  */
 export function parseClientFrame(data: RawData, maxBytes: number): ParsedFrame {
@@ -56,7 +56,7 @@ export function parseClientFrame(data: RawData, maxBytes: number): ParsedFrame {
   return frame as ParsedFrame;
 }
 
-/** Reads a required string field, with a specific error rather than a downstream type crash. */
+/** Reads a required string field, with a specific error, not a downstream type crash. */
 export function requireString(frame: ParsedFrame, field: string, maxLength = 256): string {
   const value = frame[field];
   if (typeof value !== 'string' || value.length === 0) {

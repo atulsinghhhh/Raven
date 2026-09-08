@@ -31,26 +31,28 @@ type ConnectionPatch = Partial<{
 }>;
 
 /**
- * Turns one 'stats' telemetry event — `Room.getConnectionStats()` on the
- * wire (see @corvidhq/rtc) — into the subset of `ConnectionPatch` it fills
- * in. Every other event type's `data` object simply lacks this shape, so
- * merging this in unconditionally (see the call site) is safe: there is
- * nothing here to extract, and this returns an empty patch.
+ * Turns one 'stats' telemetry event, which is `Room.getConnectionStats()` on
+ * the wire (see @corvidhq/rtc), into the subset of `ConnectionPatch` it can
+ * fill in.
  *
- * Multiple tracks collapse into one connection-level number per field,
- * since Connection is one row per participant, not per track:
+ * Every other event type's `data` object simply lacks this shape, so merging
+ * it in unconditionally at the call site is safe: there's nothing to
+ * extract and this returns an empty patch.
+ *
+ * Several tracks collapse into one connection-level number per field, since
+ * Connection is one row per participant instead of per track:
  *
  * - `rttMs`: the first send-direction reading. WebRTC never reports a
- *   receiver's own round-trip time, so this is the only direction it can
+ *   receiver's own round-trip time, so that's the only direction it can
  *   honestly come from.
- * - `jitterMs` / `packetLossPercent`: the worst (max) across every track —
- *   for a support engineer skimming a connection list, "how bad does this
- *   get" is more actionable than an average that hides one struggling track.
- * - `bitrateBps`: the sum across every track — total throughput over the
+ * - `jitterMs` and `packetLossPercent`: the worst reading across every
+ *   track. For a support engineer skimming a connection list, "how bad does
+ *   this get" beats an average that hides one struggling track.
+ * - `bitrateBps`: the sum across every track. Total throughput over the
  *   connection, both directions.
- * - `codec`: from a remote (receive-direction) track. `mimeType` is a
- *   receive-direction-video-only WebRTC stat, so a local/send entry never
- *   carries one — see `track-stats.ts` on the SDK side.
+ * - `codec`: taken from a remote, receive-direction track. `mimeType` is a
+ *   receive-direction-video-only WebRTC stat, so a local or send entry never
+ *   carries one. See `track-stats.ts` on the SDK side.
  */
 function extractStatsPatch(data: Record<string, unknown>): Partial<ConnectionPatch> {
   const asTrackList = (value: unknown): Record<string, unknown>[] =>
@@ -104,13 +106,14 @@ function extractStatsPatch(data: Record<string, unknown>): Partial<ConnectionPat
 }
 
 /**
- * Event-sources the `Connection`/`ConnectionEvent`/`ErrorEvent` tables from
- * best-effort telemetry POSTed by `@corvidhq/rtc` (Phase 9). One connection
- * row per `conn_...` ID, upserted as its events arrive — there is no
- * guarantee of delivery or ordering (telemetry is fire-and-forget by
- * design, see docs/telemetry.md#reliability), so every branch here is
- * written to tolerate a missing "connection_started" or out-of-order
- * events rather than assuming a clean lifecycle.
+ * Event-sources the `Connection`, `ConnectionEvent` and `ErrorEvent` tables
+ * from best-effort telemetry POSTed by `@corvidhq/rtc` (Phase 9).
+ *
+ * One connection row per `conn_...` ID, upserted as its events arrive.
+ * There's no guarantee of delivery or ordering; telemetry is fire-and-forget
+ * by design (docs/telemetry.md#reliability). So every branch in here is
+ * written to cope with a missing "connection_started" or events turning up
+ * out of order, rather than assume a clean lifecycle.
  */
 @Injectable()
 export class ConnectionsService {
@@ -156,9 +159,9 @@ export class ConnectionsService {
     patch.iceConnectionState = str('iceConnectionState');
     patch.signalingState = str('signalingState');
 
-    // Only ever populated by a 'stats' event — every other event type's
-    // `data` simply lacks these keys, so this merges in cleanly alongside
-    // the unconditional metadata fields above without a check on `type`.
+    // Only ever populated by a 'stats' event. Every other event type's
+    // `data` simply lacks these keys, so this merges in cleanly next to the
+    // unconditional metadata fields above with no check on `type`.
     Object.assign(patch, extractStatsPatch(data));
 
     let reconnectDelta = 0;
@@ -189,7 +192,8 @@ export class ConnectionsService {
         patch.disconnectedAt = timestamp;
         break;
       default:
-        // Metadata-only or participant/track events don't change lifecycle state.
+        // Metadata-only, participant and track events don't move lifecycle
+        // state.
         break;
     }
 
@@ -198,9 +202,9 @@ export class ConnectionsService {
       patch.durationMs = Math.max(0, timestamp.getTime() - new Date(start).getTime());
     }
 
-    // Strip undefined keys so a Prisma update doesn't overwrite existing
-    // values with `undefined` (Prisma treats an explicit `undefined` as
-    // "leave unset" only for `create`, not reliably for spread objects).
+    // Strip undefined keys, so a Prisma update doesn't overwrite existing
+    // values with `undefined`. Prisma treats an explicit `undefined` as
+    // "leave unset" reliably for `create` only, not for spread objects.
     const cleanPatch = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
 
     if (existing) {
@@ -281,17 +285,17 @@ export class ConnectionsService {
       throw new NotFoundError('Connection');
     }
 
-    // `ErrorEvent.connectionId` is an internal database uuid FK — every
-    // ID shown to a developer must be the public `conn_...` one (Phase 9
-    // spec §9), which for these embedded errors is trivially this same
-    // connection's own publicId.
+    // `ErrorEvent.connectionId` is an internal database uuid FK. Every ID a
+    // developer sees has to be the public `conn_...` one (Phase 9 spec §9),
+    // and for these embedded errors that's trivially this connection's own
+    // publicId.
     return {
       ...connection,
       errors: connection.errors.map((error) => ({ ...error, connectionId: connection.publicId })),
     };
   }
 
-  /** Connections currently in a non-terminal state — the basis for "active" counts. */
+  /** Connections in a non-terminal state. This is what "active" counts are built on. */
   async findActive(projectId?: string): Promise<Pick<Connection, 'roomId' | 'participantIdentity' | 'projectId'>[]> {
     return this.prisma.connection.findMany({
       where: {

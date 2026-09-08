@@ -18,7 +18,7 @@ async function bootstrap(): Promise<void> {
   app.useLogger(app.get(NativeLogger));
   const configService = app.get(ConfigService);
 
-  // Without this, Nest never calls onModuleDestroy on SIGTERM — the
+  // Without this, Nest never calls onModuleDestroy on SIGTERM: the
   // hooks that already exist to drain connections gracefully
   // (ChatGateway/SignalingGateway close every socket with a distinct
   // code instead of an unannounced drop; WebhookDeliveryWorker stops its
@@ -34,7 +34,7 @@ async function bootstrap(): Promise<void> {
 
 
   // Signaling shares this same HTTP server/port as a raw WebSocket gateway.
-  // Not using the platform-socket.io adapter here on purpose — it wraps
+  // Not using the platform-socket.io adapter here on purpose: it wraps
   // its own framing protocol, so clients would need a socket.io client
   // instead of just the browser's native WebSocket API.
   app.useWebSocketAdapter(new WsAdapter(app));

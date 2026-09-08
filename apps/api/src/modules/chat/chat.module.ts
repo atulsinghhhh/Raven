@@ -21,7 +21,7 @@ import { ChatTokenService } from './tokens/chat-token.service';
 import { TypingService } from './typing/typing.service';
 
 /**
- * Raven Chat — messaging, entirely separate from the RTC plane.
+ * Raven Chat: messaging, entirely separate from the RTC plane.
  *
  * Nothing in here imports SignalingModule or anything under it. The only link
  * between the two planes is `Conversation.roomId`, which lets a video
@@ -49,7 +49,7 @@ import { TypingService } from './typing/typing.service';
     ChatGateway,
   ],
   // ChatTokenService is also how Live Streaming mints viewer/host chat
-  // tokens for a stream's conversation — the same credential a plain chat
+  // tokens for a stream's conversation: the same credential a plain chat
   // integration gets, not a second implementation.
   exports: [ChatGateway, ChatMetricsService, ConversationsService, MessagesService, ChatTokenService],
 })

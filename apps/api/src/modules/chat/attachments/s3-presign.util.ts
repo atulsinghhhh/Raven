@@ -23,11 +23,11 @@ export interface PresignInput extends S3PresignConfig {
 /**
  * AWS Signature Version 4, query-string ("presigned URL") flavour.
  *
- * Hand-rolled rather than pulling in @aws-sdk/client-s3 +
+ * Hand-rolled instead of pulling in @aws-sdk/client-s3 +
  * @aws-sdk/s3-request-presigner: those add several megabytes and a large
  * transitive tree to the API image for what is, here, one signing
- * algorithm. Raven only ever needs presigned GET and PUT — no multipart,
- * no bucket management, no streaming — and this keeps the deployment to
+ * algorithm. Raven only ever needs presigned GET and PUT: no multipart,
+ * no bucket management, no streaming, and this keeps the deployment to
  * Postgres + Redis + object storage with nothing else bolted on (spec §60).
  *
  * Works unchanged against S3, MinIO, Cloudflare R2, and DigitalOcean
@@ -56,7 +56,7 @@ export function presignS3Url(input: PresignInput): string {
     'X-Amz-SignedHeaders': 'host',
   };
   if (input.contentType) {
-    // Not a signed header — S3 enforces it as a query condition on PUT,
+    // Not a signed header. S3 enforces it as a query condition on PUT,
     // which is enough to stop a client swapping in a different type.
     query['response-content-type'] = input.contentType;
   }
@@ -100,7 +100,7 @@ function resolveHost(input: PresignInput): { host: string; basePath: string } {
 
 /**
  * Object keys keep their `/` separators (S3 treats them as path
- * delimiters) but every other character is percent-encoded per RFC 3986 —
+ * delimiters) but every other character is percent-encoded per RFC 3986;
  * the encoding AWS's canonical request expects, which is stricter than
  * encodeURIComponent's.
  */
@@ -130,7 +130,7 @@ function sha256Hex(data: string): string {
   return createHash('sha256').update(data, 'utf8').digest('hex');
 }
 
-/** `YYYYMMDDTHHMMSSZ` — SigV4's basic-format ISO 8601. */
+/** `YYYYMMDDTHHMMSSZ`. SigV4's basic-format ISO 8601. */
 function toAmzDate(date: Date): string {
   return date.toISOString().replace(/[:-]|\.\d{3}/g, '');
 }

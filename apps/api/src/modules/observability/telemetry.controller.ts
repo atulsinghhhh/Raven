@@ -9,13 +9,13 @@ import { TelemetryIngestGuard } from './guards/telemetry-ingest.guard';
 import { VerifiedRtcToken } from '../signaling/authentication/rtc-token-verifier.service';
 
 /**
- * The Telemetry API from the Phase 9 architecture diagram — the one
+ * The Telemetry API from the Phase 9 architecture diagram: the one
  * ingestion point `@corvidhq/rtc` best-effort POSTs connection/participant/
  * error events to. Authenticated by the same RTC token the browser
  * already holds (see TelemetryIngestGuard), never a separate credential.
  * Deliberately tolerant: malformed individual events fail this one
  * request, but the SDK never lets that affect the RTC connection itself
- * (Phase 9 spec §11) — see docs/telemetry.md#reliability.
+ * (Phase 9 spec §11): see docs/telemetry.md#reliability.
  */
 @ApiTags('Telemetry')
 @ApiBearerAuth('rtcToken')

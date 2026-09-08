@@ -8,7 +8,7 @@ import { LiveParticipantInfo, SfuRoomStateService } from './sfu-room-state.servi
 import { ProjectScope } from '../../shared/environment/environment.constants';
 
 export interface RoomWithLiveState extends Room {
-  /** Participants actually connected to the room's SFU node right now. `null` means the node could not be reached — distinct from a genuinely idle 0. */
+  /** Participants actually connected to the room's SFU node right now. `null` means the node could not be reached: distinct from a genuinely idle 0. */
   liveParticipantCount: number | null;
 }
 
@@ -71,7 +71,7 @@ export class RoomsService {
    * counts from whichever SFU is serving each one.
    *
    * `liveParticipantCount` is `null` when the media plane could not be
-   * asked, and a number when it answered — including `0` for an idle
+   * asked, and a number when it answered: including `0` for an idle
    * room. The distinction is the point: rendering "unknown" as zero would
    * tell an operator every room is empty during a partition.
    */

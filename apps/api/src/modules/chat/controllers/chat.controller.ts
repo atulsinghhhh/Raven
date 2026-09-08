@@ -42,14 +42,14 @@ import { ChatError } from '../chat-error';
 import { ChatErrorCode } from '../chat.constants';
 
 /**
- * The chat REST surface. Every route accepts either credential —
+ * The chat REST surface. Every route accepts either credential;
  * a project API key (developer's backend) or a short-lived chat token
- * (browser) — resolved by ChatAuthGuard into a ChatActor. One surface,
+ * (browser): resolved by ChatAuthGuard into a ChatActor. One surface,
  * two callers; the actor is what decides who a write is attributed to.
  *
  * Real-time delivery is the WebSocket's job. These endpoints exist for
  * everything a socket is the wrong tool for: minting tokens, managing
- * conversations, and reading history — including the history a client
+ * conversations, and reading history: including the history a client
  * missed while it was disconnected (spec §19).
  */
 @ApiTags('Chat')

@@ -10,7 +10,7 @@ const DELETE_BATCH_SIZE = 1000;
 
 /**
  * Message retention (spec §41). The storage model supports it, and this
- * enforces it — but only where a retention window has actually been
+ * enforces it, but only where a retention window has actually been
  * configured. `CHAT_RETENTION_DAYS=0` (the default) means keep forever,
  * and this sweeper does nothing at all in that case.
  *
@@ -19,7 +19,7 @@ const DELETE_BATCH_SIZE = 1000;
  * change rather than a schema change later.
  *
  * Same interval-plus-Redis-lock shape as the observability RetentionService
- * and the webhook worker — no scheduler dependency, and safe to run on
+ * and the webhook worker: no scheduler dependency, and safe to run on
  * every instance in a fleet.
  */
 @Injectable()
@@ -106,7 +106,7 @@ export class ChatRetentionService implements OnModuleInit, OnModuleDestroy {
         return total;
       }
       // Reactions, read-state links, and attachment rows follow via the
-      // schema's cascade/SetNull rules — nothing is orphaned.
+      // schema's cascade/SetNull rules: nothing is orphaned.
       const result = await this.prisma.message.deleteMany({
         where: { id: { in: batch.map((row) => row.id) } },
       });

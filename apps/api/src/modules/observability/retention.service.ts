@@ -14,7 +14,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * `setInterval` (same pattern as `SignalingGateway`'s heartbeat) rather
  * than a new cron dependency. Deleting a `Connection` cascades its
  * `ConnectionEvent` rows and nulls out any `ErrorEvent.connectionId`
- * that pointed at it (see schema.prisma) — an error can outlive the
+ * that pointed at it (see schema.prisma): an error can outlive the
  * connection it happened on, up to its own (longer) retention window.
  */
 @Injectable()

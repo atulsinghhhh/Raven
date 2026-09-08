@@ -31,7 +31,7 @@ function isUniqueViolation(err: unknown): boolean {
 export interface AuthorizedConversation {
   conversation: Conversation;
   member: ChatMember | null;
-  /** Role scopes ∩ token scopes. This — not the token alone — is what services check. */
+  /** Role scopes ∩ token scopes. This, not the token alone, is what services check. */
   scopes: ChatScope[];
 }
 
@@ -151,7 +151,7 @@ export class ConversationsService {
    * Resolves whatever a developer typed into a conversation row. Accepts,
    * in order: a `conv_...` public id, a conversation/RTC-room uuid, or a
    * conversation name. That's why `chat.connect({ room: "support" })` and
-   * `chat.connect({ room: "conv_ab12..." })` both work — the SDK doesn't
+   * `chat.connect({ room, "conv_ab12..." })` both work: the SDK doesn't
    * have to know which one it was handed.
    */
   async resolve(scope: ProjectScope, reference: string): Promise<Conversation> {
@@ -175,7 +175,7 @@ export class ConversationsService {
     }
 
     // Cross-project and cross-environment lookups both get the same
-    // "not found" as a genuinely missing row — never a 403 that confirms
+    // "not found" as a genuinely missing row: never a 403 that confirms
     // the id exists somewhere the caller cannot reach.
     if (!conversation || conversation.projectId !== projectId || conversation.environment !== environment) {
       throw new ChatError(ChatErrorCode.ROOM_NOT_FOUND, `Conversation "${reference}" not found`);
@@ -250,7 +250,7 @@ export class ConversationsService {
         role: dto.role ?? ChatMemberRole.MEMBER,
         metadata: toJsonInput(dto.metadata),
       },
-      // Re-adding someone who left reactivates the same row rather than
+      // Re-adding someone who left reactivates the same row instead of
       // orphaning their history behind a second membership.
       update: {
         role: dto.role ?? ChatMemberRole.MEMBER,
@@ -278,7 +278,7 @@ export class ConversationsService {
     if (!member) {
       throw new ChatError(ChatErrorCode.NOT_A_MEMBER, 'That user is not a member of this conversation');
     }
-    // Soft removal — their messages keep a resolvable author.
+    // Soft removal: their messages keep a resolvable author.
     const removed = await this.prisma.chatMember.update({
       where: { id: member.id },
       data: { status: ChatMemberStatus.LEFT, leftAt: new Date() },
@@ -303,7 +303,7 @@ export class ConversationsService {
   /**
    * The role a user holds, for token minting. Non-members get MEMBER so a
    * developer's backend can mint a token and add the membership in either
-   * order — the membership check still happens at connect time.
+   * order: the membership check still happens at connect time.
    */
   async roleFor(conversationIds: string[], userId: string): Promise<ChatMemberRole> {
     if (conversationIds.length === 0) {

@@ -25,7 +25,7 @@ describe('WebhookEventsService', () => {
     it('only looks at endpoints in the emitting environment', async () => {
       await service.emit(PROD, 'message.created', { message: {} });
 
-      // The consequence of getting this wrong is not a missed delivery —
+      // The consequence of getting this wrong is not a missed delivery;
       // it is real customer messages posted to whatever URL someone
       // pointed at their laptop while testing.
       expect(prisma.webhookEndpoint.findMany).toHaveBeenCalledWith({

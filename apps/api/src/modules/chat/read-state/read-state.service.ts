@@ -17,18 +17,20 @@ export interface ReadStateView {
 }
 
 /**
- * Read receipts as a *position*, not a log (spec §22). One row per
- * (conversation, user) holding the furthest-read message — marking 500
- * messages read is one UPDATE, and unread counts are a single indexed
- * COUNT rather than a set difference over a receipts table.
+ * Read receipts as a *position*, not a log (spec §22).
+ *
+ * One row per (conversation, user), holding the furthest-read message. So
+ * marking 500 messages read is a single UPDATE, and an unread count is one
+ * indexed COUNT, not a set difference over a receipts table.
  *
  * Raven's delivery vocabulary, stated plainly:
- *   - **accepted** — the send ack, returned only after the row is durably
- *     in Postgres. This is the one Raven guarantees.
- *   - **delivered** — a recipient's live socket received the fan-out.
- *     Reported per-broadcast as a count, not stored, because a socket
- *     that received bytes is not proof a person saw them.
- *   - **read** — this table. Explicit, durable, client-driven.
+ *   - **accepted**: the send ack, returned only once the row is durably in
+ *     Postgres. This is the one Raven actually guarantees.
+ *   - **delivered**: a recipient's live socket received the fan-out.
+ *     Reported per broadcast as a count and never stored, because a socket
+ *     receiving bytes is no proof a person saw them.
+ *   - **read**: this table. Explicit, durable, client-driven.
+ *
  * See docs/chat/read-receipts.md.
  */
 @Injectable()
@@ -53,9 +55,9 @@ export class ReadStateService {
       where: { conversationId_userId: { conversationId: conversation.id, userId } },
     });
 
-    // Never move the marker backwards. Two tabs racing — one scrolled to
-    // the bottom, one at the top — must not un-read what the user has
-    // already seen.
+    // Never move the marker backwards. Two tabs racing, one scrolled to the
+    // bottom and one at the top, mustn't un-read what the user has already
+    // seen.
     if (existing && existing.lastReadAt >= message.createdAt) {
       return this.view(
         conversation.publicId,
@@ -120,9 +122,11 @@ export class ReadStateService {
   }
 
   /**
-   * Everyone's read position in a conversation — what a "seen by" row in
-   * the UI is built from. Capped, because a 10 000-member channel should
-   * not return 10 000 rows to render three avatars.
+   * Everyone's read position in a conversation. This is what a "seen by" row
+   * in the UI is built from.
+   *
+   * Capped, because a 10,000-member channel shouldn't return 10,000 rows to
+   * render three avatars.
    */
   async listForConversation(actor: ChatActor, roomReference: string, limit = 200): Promise<ReadStateView[]> {
     const { conversation, scopes } = await this.conversations.authorize(actor, roomReference);
@@ -140,8 +144,8 @@ export class ReadStateService {
       userId: state.userId,
       lastReadMessageId: state.lastReadMessage?.publicId ?? null,
       lastReadAt: state.lastReadAt.toISOString(),
-      // Skipped deliberately: computing per-user unread counts here would
-      // be one COUNT per member. The caller can ask for their own via get().
+      // Skipped on purpose. Computing per-user unread counts here would be
+      // one COUNT per member. A caller can ask for their own via get().
       unreadCount: 0,
     }));
   }

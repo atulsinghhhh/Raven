@@ -23,7 +23,7 @@ import {
 /**
  * End-to-end test of the signaling layer against a real media plane.
  *
- * Real WebSocket clients (the `ws` package — indistinguishable from a
+ * Real WebSocket clients (the `ws` package: indistinguishable from a
  * browser's native WebSocket at the protocol level) talk to the real
  * running app, backed by the real Postgres and Redis (`docker compose up
  * -d postgres redis`), which in turn talks to a **real Raven SFU** built
@@ -39,10 +39,10 @@ import {
  * The predecessor of this file tested a full-mesh relay: it asserted that
  * an `sdp.offer` carrying a `targetParticipantId` came out of another
  * participant's socket with a `fromParticipantId` attached. None of that
- * survives — a client has exactly one peer now, the node serving its
- * room, so the server is a party to the negotiation rather than a
+ * survives: a client has exactly one peer now, the node serving its
+ * room, so the server is a party to the negotiation instead of a
  * courier. The tests that checked forwarding between browsers were
- * deleted rather than adapted, because there is nothing left for them to
+ * deleted, not adapted, because there is nothing left for them to
  * describe; `PARTICIPANT_NOT_FOUND` for a cross-room SDP target went with
  * them, since a message no longer names a target to be wrong about.
  *
@@ -55,7 +55,7 @@ import {
  * credentials and a DTLS fingerprint in it.
  *
  * It does **not** prove media flows, because `ws` is not a WebRTC
- * endpoint — there is nothing here to answer the offer or gather
+ * endpoint: there is nothing here to answer the offer or gather
  * candidates. Forwarding, simulcast, keyframe gating and RTCP recovery
  * are covered against real Pion peers in `services/sfu/internal/room`
  * (`media_test.go`, `downtrack_test.go`, `keyframe_test.go`) and at
@@ -78,8 +78,8 @@ describe('Signaling (e2e)', () => {
    * A region nothing else can be in.
    *
    * Without this the suite is at the mercy of whatever else is registered
-   * on the machine — a `docker compose up sfu`, a node left over from a
-   * crashed run — because the allocator picks the least-loaded healthy
+   * on the machine: a `docker compose up sfu`, a node left over from a
+   * crashed run, because the allocator picks the least-loaded healthy
    * node in the requested region and an idle stranger looks like the best
    * choice. Every `room.join` below asks for this region, so allocation
    * lands on the node this suite started and no other. It also means the
@@ -113,7 +113,7 @@ describe('Signaling (e2e)', () => {
     baseUrl = `http://127.0.0.1:${port}`;
     wsBaseUrl = `ws://127.0.0.1:${port}/v1/rtc`;
     configService = app.get(ConfigService);
-    // Used only where a test needs a token the API would never mint — an
+    // Used only where a test needs a token the API would never mint: an
     // already-expired one. Everything else goes through the real endpoint.
     tokenSigner = app.get(RtcTokenSignerService);
 
@@ -184,7 +184,7 @@ describe('Signaling (e2e)', () => {
 
     // Delete this suite's registry row before closing the app.
     //
-    // A node that shuts down has no way to deregister — it just stops
+    // A node that shuts down has no way to deregister: it just stops
     // heartbeating, and the control plane sweeps it to UNHEALTHY after
     // `SFU_HEARTBEAT_TIMEOUT_SECONDS`. That is right for production (a
     // node dying is indistinguishable from a network blip) and wrong for
@@ -206,13 +206,13 @@ describe('Signaling (e2e)', () => {
    * Resets the per-IP connection budget between tests.
    *
    * The signaling upgrade allows 20 connections per minute per IP, and
-   * this suite opens roughly twice that from 127.0.0.1 — so without this,
+   * this suite opens roughly twice that from 127.0.0.1, so without this,
    * the tests that happen to run later fail with `RATE_LIMITED` for
    * reasons that have nothing to do with what they assert. Same problem
    * `maxWorkers: 1` exists to solve in `jest-e2e.json`, one level down.
    *
    * Clearing the budget does not drop coverage of the limiter: it is
-   * asserted deliberately in "rate limiting" below, and unit-tested in
+   * asserted on purpose in "rate limiting" below, and unit-tested in
    * `connection-rate-limit.service.spec.ts`.
    */
   beforeEach(async () => {
@@ -372,7 +372,7 @@ describe('Signaling (e2e)', () => {
       expect(node).toBeDefined();
       expect(node.status).toBe('HEALTHY');
       expect(node.region).toBe(sfuRegion);
-      // Registered by the node itself, not seeded by the test — this is
+      // Registered by the node itself, not seeded by the test: this is
       // the whole point of a self-registering fleet.
       expect(node.internalUrl).toBe(`http://127.0.0.1:${E2E_SFU_HTTP_PORT}`);
     });
@@ -679,13 +679,13 @@ describe('Signaling (e2e)', () => {
       await client.waitForType('room.joined');
 
       // The node creates a real RTCPeerConnection and offers as soon as
-      // the participant is added — it owns the subscriber side and, on
+      // the participant is added: it owns the subscriber side and, on
       // join, already knows every track the participant should receive.
       const offer = await client.waitForType('sdp.offer', 10_000);
       const sdp: string = offer.sdp;
 
       // Pion's own output, not a fixture. These lines are what make it a
-      // session description rather than a string the test agreed to
+      // session description instead of a string the test agreed to
       // accept: an origin, ICE credentials, and a DTLS fingerprint.
       expect(sdp).toMatch(/^v=0\r?\n/);
       expect(sdp).toContain('o=-');
@@ -730,9 +730,9 @@ describe('Signaling (e2e)', () => {
       await client.waitForType('room.joined');
       await client.waitForType('sdp.offer', 10_000);
 
-      // The node's own offer is unanswered — `ws` cannot answer it — so a
+      // The node's own offer is unanswered, `ws` cannot answer it, so a
       // client-initiated offer now collides. Glare is resolved by rule
-      // (the SFU is the impolite peer) rather than by luck, and the error
+      // (the SFU is the impolite peer), not by luck, and the error
       // is retryable: answer the offer already on its way, then retry.
       client.send({
         type: 'sdp.offer',
@@ -744,9 +744,9 @@ describe('Signaling (e2e)', () => {
       client.close();
     });
 
-    // `connection.state` is deliberately not asserted here. The node
+    // `connection.state` is not asserted here, on purpose. The node
     // emits it from Pion's `OnConnectionStateChange`, which does not fire
-    // until a remote description is set — and `ws` cannot answer an
+    // until a remote description is set, and `ws` cannot answer an
     // offer, so the PeerConnection stays in `new` for this suite's whole
     // life. Asserting it would mean waiting for something that correctly
     // never arrives. It is covered in
@@ -812,7 +812,7 @@ describe('Signaling (e2e)', () => {
       const unmuted = await listener.waitForType('track.unmuted');
       expect(unmuted.participantId).toBe('muter');
 
-      // The publisher is not told about its own mute — it already knows.
+      // The publisher is not told about its own mute: it already knows.
       await publisher.expectNo('track.muted');
 
       publisher.close();
@@ -844,9 +844,9 @@ describe('Signaling (e2e)', () => {
     });
 
     // `ROOM_FULL` is not exercised here. The limit is deployment-wide
-    // (`SIGNALING_MAX_PARTICIPANTS_PER_ROOM`, default 50) rather than a
+    // (`SIGNALING_MAX_PARTICIPANTS_PER_ROOM`, default 50) instead of a
     // per-room field, so provoking it would mean opening fifty sockets to
-    // re-test one comparison — see `room-registry.service.spec.ts`, which
+    // re-test one comparison: see `room-registry.service.spec.ts`, which
     // tests it directly, including that a reconnecting participant is not
     // counted twice against the cap.
   });
@@ -866,7 +866,7 @@ describe('Signaling (e2e)', () => {
         .set('Authorization', `Bearer ${jwtToken}`)
         .expect(200);
 
-      // Read from the node, not from the participants table — the two can
+      // Read from the node, not from the participants table: the two can
       // legitimately disagree, and only one of them knows who is on the
       // call right now.
       expect(res.body.liveParticipants).toEqual([
@@ -906,7 +906,7 @@ describe('Signaling (e2e)', () => {
       const { token } = await mintToken('ratelimit-room', 'flooder');
 
       // Up to the limit is allowed. Held open, because the limiter counts
-      // upgrades within a window rather than concurrent sockets — closing
+      // upgrades within a window, not concurrent sockets: closing
       // them would not give the budget back.
       const allowed: TestClient[] = [];
       for (let i = 0; i < limit; i++) {
@@ -1002,7 +1002,7 @@ describe('Signaling (e2e)', () => {
       expect(closeInfo.code).toBe(4002);
 
       // And the reconnected client gets a fresh offer, because there is no
-      // session resumption — the media session is rebuilt from scratch.
+      // session resumption: the media session is rebuilt from scratch.
       await second.waitForType('sdp.offer', 10_000);
 
       second.close();

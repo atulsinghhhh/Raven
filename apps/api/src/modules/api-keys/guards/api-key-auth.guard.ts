@@ -8,14 +8,14 @@ declare module 'express' {
   interface Request {
     apiProjectId?: string;
     apiEnvironment?: Environment;
-    /** The authenticating key's own public id — see RateLimitGuard for why
+    /** The authenticating key's own public id: see RateLimitGuard for why
      *  this, and not apiProjectId, is what rate limiting keys on. */
     apiKeyPublicId?: string;
   }
 }
 
 // Authenticates machine-to-machine requests (Rooms, RTC Tokens) with a
-// project-scoped API key — JwtAuthGuard is the other one, for a logged-in
+// project-scoped API key. JwtAuthGuard is the other one, for a logged-in
 // developer doing dashboard-style management (Projects, API Keys).
 @Injectable()
 export class ApiKeyAuthGuard implements CanActivate {

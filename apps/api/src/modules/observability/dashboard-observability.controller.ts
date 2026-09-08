@@ -13,7 +13,7 @@ import { MetricsService } from './metrics.service';
 import { Capability } from '../projects/project-permissions';
 
 /**
- * Developer-facing observability — connections, errors, metrics,
+ * Developer-facing observability: connections, errors, metrics,
  * diagnostics (Phase 9 spec §34). JWT-guarded and ownership-checked like
  * every other Dashboard/CLI-facing controller in this API; the same
  * `RavenApiClient`/`ravenApi` pattern used everywhere else, no separate

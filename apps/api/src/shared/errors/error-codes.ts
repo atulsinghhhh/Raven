@@ -6,7 +6,7 @@
  * The `RAVEN_` prefix exists so these never collide with an application's
  * own error codes once they have travelled through an SDK.
  *
- * Two wire contracts deliberately do *not* use these codes:
+ * Two wire contracts by design do *not* use these codes:
  *
  * - The chat WebSocket `error` frame keeps its `ChatErrorCode` vocabulary
  *   (docs/chat/websocket.md). A frame is a different contract from an HTTP
@@ -39,7 +39,7 @@ export const RavenErrorCode = {
   CONFLICT: 'RAVEN_CONFLICT',
   MESSAGE_ALREADY_EXISTS: 'RAVEN_MESSAGE_ALREADY_EXISTS',
   CONVERSATION_ARCHIVED: 'RAVEN_CONVERSATION_ARCHIVED',
-  /** A lifecycle operation that isn't valid from the stream's current status — e.g. starting an already-LIVE stream, or anything on an ENDED one. */
+  /** A lifecycle operation that isn't valid from the stream's current status: e.g. starting an already-LIVE stream, or anything on an ENDED one. */
   STREAM_INVALID_STATE: 'RAVEN_STREAM_INVALID_STATE',
 
   // --- Request problems ---------------------------------------------------
@@ -57,12 +57,12 @@ export const RavenErrorCode = {
   // --- Infrastructure -----------------------------------------------------
   CONNECTION_FAILED: 'RAVEN_CONNECTION_FAILED',
   /** No healthy RTC server had room for this call. An operator/capacity
-   *  problem, not a caller one — distinct from CONNECTION_FAILED so that a
+   *  problem, not a caller one: distinct from CONNECTION_FAILED so that a
    *  developer seeing it knows to look at the fleet, not at their code. */
   NO_RTC_CAPACITY: 'RAVEN_NO_RTC_CAPACITY',
   WEBHOOK_FAILED: 'RAVEN_WEBHOOK_FAILED',
-  /** A feature the deployment has not enabled — an operator fix, not a
-   *  caller one, and returned with 501 rather than 4xx. */
+  /** A feature the deployment has not enabled: an operator fix, not a
+   *  caller one, and returned with 501, not 4xx. */
   NOT_CONFIGURED: 'RAVEN_NOT_CONFIGURED',
   /** The only code an unexpected exception is ever allowed to surface as. */
   INTERNAL_ERROR: 'RAVEN_INTERNAL_ERROR',
@@ -75,7 +75,7 @@ export type RavenErrorCode = (typeof RavenErrorCode)[keyof typeof RavenErrorCode
  *
  * Emitted alongside `code` as `legacyCode` for one deprecation window, so
  * anything already switching on the old value keeps working while it
- * migrates. Nothing in this repository reads it — it exists purely for
+ * migrates. Nothing in this repository reads it: it exists purely for
  * callers we cannot see. See docs/error-codes.md for the removal plan.
  */
 export const LEGACY_ERROR_CODE: Record<RavenErrorCode, string> = {

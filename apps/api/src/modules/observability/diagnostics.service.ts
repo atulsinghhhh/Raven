@@ -20,7 +20,7 @@ export interface ProjectDiagnostics {
 }
 
 /**
- * Backs both `raven diagnostics` and the dashboard's Diagnostics view —
+ * Backs both `raven diagnostics` and the dashboard's Diagnostics view;
  * a project-scoped, authenticated superset of the public `/health` (Phase
  * 9 spec §22/§27). `api`/`authentication` are trivially 'up'/'ok' here:
  * reaching this method at all already proves both.

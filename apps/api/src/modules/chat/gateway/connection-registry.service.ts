@@ -17,13 +17,13 @@ import { Environment } from '../../../shared/environment/environment.constants';
  *
  * **Postgres** holds one durable row per session, mirroring the RTC
  * `Connection` model so the dashboard's connection views work the same
- * way on both planes. This is a session record, not a presence log —
+ * way on both planes. This is a session record, not a presence log;
  * one row per socket, not one per state change.
  */
 @Injectable()
 export class ConnectionRegistryService {
   private readonly logger = new Logger(ConnectionRegistryService.name);
-  /** Identifies this process in a fleet — the thing you need when one instance misbehaves. */
+  /** Identifies this process in a fleet: the thing you need when one instance misbehaves. */
   readonly gatewayId = `gw_${process.pid.toString(36)}_${randomBytes(3).toString('hex')}`;
 
   constructor(

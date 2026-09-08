@@ -5,7 +5,7 @@ import { ParticipantSession } from '../interfaces/participant-session.interface'
 /**
  * A believable authenticated session, for tests.
  *
- * Shared rather than redefined per spec file: `ParticipantSession` gained
+ * Shared instead of redefined per spec file: `ParticipantSession` gained
  * five fields during the SFU migration, and three near-identical copies of
  * this fixture all had to be found and updated. One copy means the next
  * field is added once.
@@ -43,8 +43,8 @@ export function makeSession(overrides: Partial<ParticipantSession> = {}): Partic
  * Narrows a session's permissions, keeping `permissions` and `grant` in
  * step.
  *
- * They are the same grant in two shapes — the public DTO and the
- * SFU-facing one — and a test that set only `permissions` would authorize
+ * They are the same grant in two shapes: the public DTO and the
+ * SFU-facing one, and a test that set only `permissions` would authorize
  * at the control plane while telling the node something different, which
  * is not a state the real system can be in.
  */

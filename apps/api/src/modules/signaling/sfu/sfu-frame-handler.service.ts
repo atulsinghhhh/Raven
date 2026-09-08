@@ -18,9 +18,9 @@ import {
 } from './node-link.interface';
 
 /**
- * What a frame from the SFU should cause. Returned rather than performed,
- * so the gateway remains the only thing that touches a socket or Redis —
- * the same split the message router follows for the client direction.
+ * What a frame from the SFU ought to cause. Returned instead of performed,
+ * so the gateway stays the only thing touching a socket or Redis. Same
+ * split the message router follows in the client direction.
  */
 export interface SfuFrameAction {
   /** Deliver to the one session this frame names. */
@@ -32,15 +32,14 @@ export interface SfuFrameAction {
 /**
  * Translates node-link frames into client-facing signaling messages.
  *
- * Two shapes of frame arrive here, and they fan out differently:
+ * Two shapes of frame turn up here, and they fan out differently:
  *
  * - **Negotiation** (`sdp.offer`, `sdp.answer.sfu`, `ice.candidate`,
- *   `connection.state`) concerns exactly one session, and goes only to it.
- * - **Track changes** (`track.published`, `track.unpublished`) are
- *   addressed to the *publisher's* session by the node, because that is
- *   the session whose PeerConnection produced them — but they are news for
- *   everyone else in the room. So they fan out, excluding the publisher,
- *   who already knows.
+ *   `connection.state`) concerns exactly one session and goes only there.
+ * - **Track changes** (`track.published`, `track.unpublished`) come
+ *   addressed to the *publisher's* session, because that's the session whose
+ *   PeerConnection produced them. But they're news for everybody else in
+ *   the room. So they fan out, minus the publisher, who already knows.
  */
 @Injectable()
 export class SfuFrameHandlerService {
@@ -67,8 +66,8 @@ export class SfuFrameHandlerService {
       case NodeLinkMessageType.PARTICIPANT_STATS:
       case NodeLinkMessageType.ROOM_STATE_RESULT:
         // Not client-facing. Stats feed telemetry and room state answers
-        // dashboard queries; both are handled where they are asked for,
-        // not relayed down a client's socket.
+        // dashboard queries. Both get handled where they're asked for, not
+        // relayed down some client's socket.
         return {};
       default:
         this.logger.warn(`unexpected node-link frame from SFU: ${frame.type}`);
@@ -139,9 +138,9 @@ export class SfuFrameHandlerService {
       layers: payload.layers,
     };
 
-    // Recorded before fanning out, so a client that joins a moment later
-    // sees this track in its `room.joined` rather than missing it until
-    // the next change.
+    // Recorded before we fan out, so a client joining a moment later finds
+    // this track in its `room.joined` instead of missing it until the next
+    // change.
     await this.trackRegistry.publish(frame.roomId, payload.participantId, track);
 
     this.logger.log(
@@ -152,7 +151,7 @@ export class SfuFrameHandlerService {
     return {
       toRoom: {
         roomId: frame.roomId,
-        // The publisher's own SDK already knows — it asked for this.
+        // The publisher's own SDK already knows. It asked for this.
         excludeParticipantId: payload.participantId,
         message: {
           type: ServerMessageType.TRACK_PUBLISHED,
@@ -189,12 +188,12 @@ export class SfuFrameHandlerService {
   }
 
   /**
-   * Passes an SFU-side failure to the client that caused it.
+   * Passes an SFU-side failure back to whichever client caused it.
    *
    * The node's error vocabulary is coarser than the client's, so this maps
-   * rather than forwards — and only forwards a *message* the node wrote,
-   * never one derived from client input, so there is nothing here that
-   * could reflect an attacker's payload back at them.
+   * rather than forwards. And the only *message* it ever forwards is one the
+   * node itself wrote, never one derived from client input, so there's
+   * nothing here that could reflect an attacker's payload back at them.
    */
   private relayError(frame: NodeLinkFrame): SfuFrameAction {
     const payload = frame.payload as NodeLinkErrorPayload | undefined;
@@ -231,10 +230,10 @@ function mapNodeErrorCode(code: string): SignalingErrorCode {
     case NodeLinkErrorCode.NEGOTIATION_FAILED:
       return SignalingErrorCode.NEGOTIATION_FAILED;
     case NodeLinkErrorCode.UNKNOWN_SESSION:
-      // The node has no PeerConnection for this session — the client's
-      // media session is gone even though its WebSocket is fine.
-      // Rejoining is the only way forward, so say that rather than
-      // "unknown session", which is not actionable.
+      // The node has no PeerConnection for this session. The client's media
+      // session is gone even though its WebSocket is perfectly fine.
+      // Rejoining is the only way out, so say that rather than "unknown
+      // session", which nobody can act on.
       return SignalingErrorCode.NOT_IN_ROOM;
     default:
       return SignalingErrorCode.NEGOTIATION_FAILED;
@@ -242,17 +241,17 @@ function mapNodeErrorCode(code: string): SignalingErrorCode {
 }
 
 /**
- * What the client is told.
+ * What the client actually gets told.
  *
- * Glare gets a specific, actionable message because the SDK is expected to
- * retry on it. Everything else gets a generic one: an SFU's internal
- * failure detail is operator information, and it lands in the log line
- * above rather than in a client's error handler.
+ * Glare gets a specific, actionable message, because the SDK is expected to
+ * retry on it. Everything else gets a generic one. An SFU's internal
+ * failure detail is operator information; it belongs in the log line above,
+ * not in somebody's error handler.
  */
 function clientMessageFor(code: string, nodeMessage: string): string {
   switch (code) {
     case NodeLinkErrorCode.NEGOTIATION_GLARE:
-      return 'An offer from the server is already in flight — answer it, then retry';
+      return 'An offer from the server is already in flight; answer it, then retry';
     case NodeLinkErrorCode.ROOM_FULL:
       return 'This room is full';
     case NodeLinkErrorCode.PERMISSION_DENIED:

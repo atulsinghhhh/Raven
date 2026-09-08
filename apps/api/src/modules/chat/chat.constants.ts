@@ -1,8 +1,9 @@
 // Wire protocol + shared vocabulary for Raven Chat. The full contract is
-// documented in docs/chat/websocket.md — this file is its source of truth,
+// documented in docs/chat/websocket.md: this file is its source of truth,
 // same arrangement as signaling.constants.ts for the RTC plane.
 //
-// Chat deliberately does NOT reuse the RTC signaling protocol. They ride
+// Chat does NOT reuse the RTC signaling protocol, and that's on purpose.
+// The two ride
 // different sockets, carry different payloads, and version independently.
 
 /** Frames a client may send. Anything else is rejected as INVALID_MESSAGE_TYPE. */
@@ -23,7 +24,7 @@ export enum ChatClientFrame {
 
 /** Frames the gateway may send. */
 export enum ChatServerFrame {
-  /** First frame after a successful upgrade — carries the connection id. */
+  /** First frame after a successful upgrade: carries the connection id. */
   CONNECTED = 'connected',
   /** Correlated reply to a client frame that carried an `id`. */
   ACK = 'ack',
@@ -44,7 +45,7 @@ export enum ChatServerFrame {
 
 /**
  * Stable, developer-facing error codes. Raw Postgres/Redis/ws failures
- * never reach a client — they are logged server-side and surface here as
+ * never reach a client: they are logged server-side and surface here as
  * INTERNAL_ERROR (spec §42).
  */
 export enum ChatErrorCode {
@@ -72,14 +73,14 @@ export enum ChatErrorCode {
   INTERNAL_ERROR = 'INTERNAL_ERROR',
 }
 
-/** Presence values. Ephemeral — never written to Postgres (spec §20). */
+/** Presence values. Ephemeral: never written to Postgres (spec §20). */
 export enum PresenceStatus {
   ONLINE = 'online',
   AWAY = 'away',
   OFFLINE = 'offline',
 }
 
-// Operational constants, not per-deployment config — anything that varies
+// Operational constants, not per-deployment config: anything that varies
 // by deployment (limits, TTLs, rates) lives under `chat` in configuration.ts.
 export const CHAT_PATH = '/v1/chat/ws';
 export const CHAT_API_VERSION = 'v1';
@@ -97,7 +98,7 @@ export const CHAT_CLOSE_TOKEN_EXPIRED = 4440;
 export const CHAT_CLOSE_SERVER_SHUTDOWN = 4500;
 
 /**
- * Redis key namespace. Every ephemeral key below carries a TTL — nothing
+ * Redis key namespace. Every ephemeral key below carries a TTL: nothing
  * in Redis is a permanent record (spec §33). Documented in
  * docs/chat/architecture.md#redis-key-conventions.
  */

@@ -20,7 +20,7 @@ export interface LocalSfuRegistration {
  * single configured `LIVEKIT_INTERNAL_URL`, so `docker compose up -d` was
  * enough to satisfy it. It is not enough now: the fleet is
  * self-registering, and a node registers with whichever control plane its
- * own `SFU_CONTROL_PLANE_URL` points at — the compose API, reading the
+ * own `SFU_CONTROL_PLANE_URL` points at: the compose API, reading the
  * compose database. An e2e suite running in-process against a scratch
  * database has no rows in it, so the health check correctly reports the
  * media plane as absent.
@@ -71,7 +71,7 @@ export async function registerLocalSfu(
       name,
       region: overrides.region ?? 'local',
       // What a browser would be handed by ICE. Not used by the health
-      // probe, which deliberately uses internalUrl instead.
+      // probe, which uses internalUrl on purpose.
       publicHost: '127.0.0.1',
       internalUrl,
       capacity: 100,

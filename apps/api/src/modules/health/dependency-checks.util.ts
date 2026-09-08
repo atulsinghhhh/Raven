@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto';
  * `/healthz`, not `/readyz`: readiness on a node reports whether it can
  * accept *new* participants, which depends on its control-plane link.
  * Asking that from the control plane would make the answer partly about
- * the question — what this check wants to know is whether the node
+ * the question: what this check wants to know is whether the node
  * process is alive and reachable from here.
  */
 export async function checkSfuHttp(internalUrl: string, timeoutMs = 2000): Promise<boolean> {

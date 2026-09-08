@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsObject, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
 
-// A permissive but bounded MIME check — enough to reject obvious junk and
+// A permissive but bounded MIME check: enough to reject obvious junk and
 // header-injection attempts, without maintaining an allow-list that would
 // break the first time someone uploads a format we didn't think of.
 const MIME_PATTERN = /^[a-zA-Z0-9!#$&^_.+-]+\/[a-zA-Z0-9!#$&^_.+-]+$/;

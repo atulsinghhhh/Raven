@@ -6,7 +6,7 @@ import { LiveStreamsService } from './live-streams.service';
 
 /**
  * Hand-rolled Prisma/service stubs, same style as
- * conversations.service.spec.ts — what's under test is LiveStreamsService's
+ * conversations.service.spec.ts: what's under test is LiveStreamsService's
  * own lifecycle/role logic, not Prisma or the services it reuses (those
  * have their own specs).
  */
@@ -57,7 +57,7 @@ describe('LiveStreamsService', () => {
 
   beforeEach(() => {
     prisma = {
-      // update() defaults to resolving with {} — the peak-viewer-count
+      // update() defaults to resolving with {}: the peak-viewer-count
       // write in toView() is a fire-and-forget background update that
       // most tests below never intend to exercise; only tests that
       // actually assert on update()'s behavior override this.
@@ -249,7 +249,7 @@ describe('LiveStreamsService', () => {
       expect(roomsService.close).toHaveBeenCalledWith('room-uuid', SCOPE);
       // durationMs is computed from the service's own freshly-taken
       // `endedAt` (real wall-clock time at the moment end() runs), not
-      // from the mocked update() return value — so this asserts it's a
+      // from the mocked update() return value, so this asserts it's a
       // real, positive duration against the fixed startedAt above,
       // rather than an exact number this test has no way to control.
       expect(webhooks.emit).toHaveBeenCalledWith(
@@ -417,7 +417,7 @@ describe('LiveStreamsService', () => {
 
     it('the DTO this endpoint accepts has no field that could request publish access', async () => {
       // Structural guarantee, not just a runtime one: createViewerToken's
-      // own signature takes a bare identity string — there is no
+      // own signature takes a bare identity string: there is no
       // "role"/"permissions" parameter anywhere in the call for an
       // untrusted client to influence, unlike addHost's dedicated DTO.
       await service.createViewerToken(SCOPE, 'stream_abc123', 'dave');

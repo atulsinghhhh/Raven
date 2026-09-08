@@ -7,12 +7,12 @@ import { ChatErrorCode, ChatServerFrame } from './chat.constants';
  * One error type for the whole chat plane, thrown by services and
  * translated at whichever edge caught it: the HTTP filter turns it into a
  * JSON body, the gateway turns it into an `error` frame. That's why it
- * extends AppError — a service doesn't need to know which transport it's
+ * extends AppError: a service doesn't need to know which transport it's
  * being called through.
  */
 export class ChatError extends AppError {
   readonly chatCode: ChatErrorCode;
-  /** Only set on RATE_LIMITED — seconds until the caller may retry. */
+  /** Only set on RATE_LIMITED: seconds until the caller may retry. */
   readonly retryAfterSeconds?: number;
 
   constructor(code: ChatErrorCode, message: string, retryAfterSeconds?: number) {
@@ -25,7 +25,7 @@ export class ChatError extends AppError {
       statusFor(code),
       ravenCodeFor(code),
       {
-        // The compat field reports exactly what this error used to emit —
+        // The compat field reports exactly what this error used to emit;
         // the chat code itself, not whatever the canonical code's generic
         // legacy name happens to be. Anything mid-migration was reading
         // `INVALID_CURSOR`, not `VALIDATION_FAILED`.
@@ -51,7 +51,7 @@ export class ChatError extends AppError {
 
 /**
  * ChatErrorCode is finer-grained than the canonical vocabulary, so this is
- * deliberately many-to-one: three distinct token failures all present as
+ * by design many-to-one: three distinct token failures all present as
  * RAVEN_TOKEN_EXPIRED or RAVEN_AUTH_ERROR over HTTP. The precise cause is
  * still in the message, and on the WebSocket the exact code survives.
  */

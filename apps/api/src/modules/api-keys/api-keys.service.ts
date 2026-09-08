@@ -31,7 +31,7 @@ export interface CreatedApiKey {
 export interface VerifiedApiKey {
   project: Project;
   environment: Environment;
-  /** The key's own public id — distinct from `project.id`, so two keys on
+  /** The key's own public id: distinct from `project.id`, so two keys on
    *  the same project can be rate-limited (and revoked) independently. */
   publicId: string;
 }
@@ -123,7 +123,7 @@ export class ApiKeysService {
       throw new UnauthorizedError('Invalid API key');
     }
 
-    // Best-effort — must never block the actual request if this fails.
+    // Best-effort: must never block the actual request if this fails.
     this.prisma.apiKey
       .update({ where: { id: apiKey.id }, data: { lastUsedAt: new Date() } })
       .catch(() => undefined);

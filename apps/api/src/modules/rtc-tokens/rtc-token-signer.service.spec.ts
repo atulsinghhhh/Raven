@@ -52,7 +52,7 @@ describe('resolvePermissions', () => {
   });
 
   it('denies everything for an undefined request', () => {
-    // The DTO's own defaults (join/subscribe true) still apply — the point
+    // The DTO's own defaults (join/subscribe true) still apply: the point
     // is that nothing *publishable* is granted by omission.
     const resolved = resolvePermissions(undefined);
     expect(resolved.publish).toBe(false);
@@ -98,7 +98,7 @@ describe('resolvePermissions', () => {
   });
 
   it('grants no publishing at all when sub-flags are set without publish', () => {
-    // A sub-flag was never independently sufficient — matching the old
+    // A sub-flag was never independently sufficient: matching the old
     // mapper, which left canPublishSources unset when publish was false.
     const resolved = resolvePermissions(
       permissions({ publish: false, publishAudio: true, publishVideo: true }),
@@ -239,7 +239,7 @@ describe('RtcTokenSignerService', () => {
 
     it('rejects a validly-signed token that is missing permissions', () => {
       // Structural completeness is checked after the signature, so this
-      // only fires for tokens we minted — i.e. an older build's format.
+      // only fires for tokens we minted: i.e. an older build's format.
       // "No perms" must not read as "grants nothing"; it must read as
       // "not a token".
       const signer = signerWith();

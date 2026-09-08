@@ -6,7 +6,7 @@ import type { Page } from 'playwright';
  *
  * The harness pages log every step of a join (`[harness:publisher]
  * joined, connectionState=…`) and every room error, but none of it
- * reaches the test runner by default — so a page that failed to connect
+ * reaches the test runner by default, so a page that failed to connect
  * and a page that connected and then stalled produce the identical
  * "Timeout 30000ms exceeded" message. That difference is the whole
  * diagnosis.
@@ -32,7 +32,7 @@ export function collectPageDiagnostics(page: Page, label: string): () => string 
 
 /**
  * Waits for a condition, and on timeout throws with the page's own log
- * attached rather than Playwright's message alone.
+ * attached, not Playwright's message alone.
  */
 export async function waitForPage(
   page: Page,

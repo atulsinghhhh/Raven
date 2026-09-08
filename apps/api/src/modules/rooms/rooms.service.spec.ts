@@ -191,7 +191,7 @@ describe('RoomsService', () => {
           environment: Environment.DEVELOPMENT,
           name: 'support',
           // Absent from the map means that room's node did not answer.
-          // Reported as unknown rather than 0 — the old service returned
+          // Reported as unknown, not 0: the old service returned
           // 0 here, which conflated "nobody is in this room" with "we
           // could not find out".
           liveParticipantCount: null,

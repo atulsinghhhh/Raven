@@ -15,6 +15,6 @@ export type SignalingEventEnvelope =
   | {
       kind: 'kick';
       participantId: string;
-      /** The connection that must NOT be kicked — the one that just replaced it. */
+      /** The connection that must NOT be kicked: the one that just replaced it. */
       exceptConnectionId: string;
     };

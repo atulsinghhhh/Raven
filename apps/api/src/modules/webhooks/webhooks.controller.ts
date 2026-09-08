@@ -13,10 +13,10 @@ import { AuditAction, AuditResource } from '../audit/audit.constants';
 import { AuditService } from '../audit/audit.service';
 
 /**
- * Webhook management, dashboard/CLI-facing — same JWT + ownership-check
+ * Webhook management, dashboard/CLI-facing: same JWT + ownership-check
  * shape as every other developer-facing controller here. Registering a
  * delivery target is a project-configuration action, not a runtime one,
- * so it lives behind the developer's session rather than an API key.
+ * so it lives behind the developer's session, not an API key.
  */
 @ApiTags('Webhooks')
 @ApiBearerAuth('jwt')

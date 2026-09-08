@@ -13,7 +13,7 @@ import { registerLocalSfu } from './helpers/register-local-sfu';
 import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics';
 
 /**
- * Real-browser end-to-end test of Phase 16 (Raven Effects) on RTC — a real
+ * Real-browser end-to-end test of Phase 16 (Raven Effects) on RTC: a real
  * Chromium instance, a real SFU connection (`docker compose up -d`,
  * same as every other suite in this file's family), and the actual
  * `@corvidhq/rtc`/`@corvidhq/effects` browser builds. Chrome's fake camera
@@ -25,11 +25,11 @@ import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics'
  * It was `.skip`ped for a long time, attributed to this sandbox's network
  * handling. That attribution was wrong, and the skip was hiding a real
  * bug: the adapter matched an arriving track to its announcement by
- * `RTCTrackEvent.track.id`, which is **not** the remote track id — Chrome
+ * `RTCTrackEvent.track.id`, which is **not** the remote track id. Chrome
  * mints a fresh local one and ignores the `msid` that carries the real
  * one. Every arriving track was therefore parked as "media arrived
  * early", and no subscription ever completed. It failed silently, as a
- * subscription that never finished rather than as an error, which is why
+ * subscription that never finished, not as an error, which is why
  * only a real browser caught it. Fixed by reading the id from the
  * remote SDP's `a=msid:` line, located by the transceiver's mid; pinned
  * in `packages/sdk/test/raven-adapter.spec.ts`.
@@ -76,7 +76,7 @@ interface RtcCredentials {
  * `API_PUBLIC_URL` names.
  *
  * The mint response's `endpoint` is derived from `API_PUBLIC_URL`, which
- * on a developer's machine is the compose API on :4100 — a different
+ * on a developer's machine is the compose API on :4100: a different
  * process reading a different database. A browser sent there would try to
  * join a room that only exists in this suite's database and be told
  * `NO_RTC_CAPACITY`, because the room row the allocator needs is not
@@ -137,9 +137,9 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
     if (stale.length > 0) await redis.client.del(...stale);
 
     // `room.join` allocates a *registered* SFU, and the compose node
-    // registers with the compose API's database rather than this suite's.
+    // registers with the compose API's database instead of this suite's.
     // Without this row the browser's join fails with NO_RTC_CAPACITY and
-    // the harness never reaches `__ready` — which reads as a timeout with
+    // the harness never reaches `__ready`, which reads as a timeout with
     // no obvious cause.
     await registerLocalSfu(app);
 
@@ -174,7 +174,7 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
     harnessServer = harness.server;
     harnessUrlBase = harness.url;
 
-    // Chrome's built-in synthetic camera — a moving color/gradient pattern,
+    // Chrome's built-in synthetic camera: a moving color/gradient pattern,
     // not a blank frame, so the effects pipeline has real pixel content to
     // transform (see below: `engineKind` must not be `passthrough`).
     browser = await chromium.launch({
@@ -224,7 +224,7 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
       expect(['webgl2', 'canvas2d']).toContain(initial.engineKind); // real fake-camera pixels went through a real engine, not passthrough
       expect(initial.effectsError).toBeUndefined();
 
-      // Disable the effect mid-call — RTC must keep running.
+      // Disable the effect mid-call. RTC must keep running.
       await publisherPage.evaluate(() => (window as unknown as { __disableEffects: () => void }).__disableEffects());
       await publisherPage.waitForFunction(() => (window as unknown as { __pipeline: { isEnabled: boolean } }).__pipeline.isEnabled === false);
       expect((await state()).connectionState).toBe('connected');
@@ -238,7 +238,7 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
       expect(effectsCountAfterClear).toBe(0);
       expect((await state()).connectionState).toBe('connected');
 
-      // Detach entirely — reverts to the unmodified camera track, room stays up.
+      // Detach entirely: reverts to the unmodified camera track, room stays up.
       await publisherPage.evaluate(() => (window as unknown as { __detachEffects: () => Promise<void> }).__detachEffects());
       await new Promise((r) => setTimeout(r, 500));
       expect((await state()).connectionState).toBe('connected');
@@ -249,7 +249,7 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
 
   // Real browser-to-browser media through Raven's SFU: two Chromium
   // contexts, a real camera-like track, a real GPU pipeline on the
-  // publisher, and the subscriber must actually decode frames — not
+  // publisher, and the subscriber must actually decode frames: not
   // merely receive a track object. See the module doc for why this was
   // skipped, and what the skip was hiding.
   it('a viewer receives the publisher-processed video, and effect changes never disconnect either side', async () => {

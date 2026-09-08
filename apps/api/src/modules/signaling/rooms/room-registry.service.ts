@@ -7,30 +7,31 @@ import { SignalingError } from '../signaling-error';
 import { SIGNALING_PARTICIPANT_TTL_SECONDS, SignalingErrorCode, SignalingRedisKeys } from '../signaling.constants';
 
 export interface JoinResult {
-  /** Fleet-wide, excluding the joining participant — ids only, since a remote one has no local socket to hand back. */
+  /** Fleet-wide, minus the joining participant. Ids only, since a remote one has no local socket to hand back. */
   existingParticipantIds: string[];
   /**
-   * True when this participantId was already present in the room
-   * (fleet-wide) before this join — i.e. a reconnect, possibly landing on
-   * a different instance than its stale session. The caller uses this to
-   * decide whether a fleet-wide kick of the stale session is needed.
+   * True when this participantId was already in the room fleet-wide before
+   * this join. In other words a reconnect, possibly landing on a different
+   * instance from its own stale session. The caller uses it to decide
+   * whether that stale session needs a fleet-wide kick.
    */
   wasReconnect: boolean;
 }
 
 /**
- * Room/participant state for the signaling plane, fleet-wide.
+ * Room and participant state for the signaling plane, fleet-wide.
  *
- * Two views are kept, same split as chat's connection registry:
- * a **local** `Map` for participants whose socket this exact instance
- * holds (used for zero-round-trip lookups when routing a message to a
- * target this instance already knows about), and a **Redis-backed fleet
- * view** (`SignalingRedisKeys.roomParticipants`/`participant`) so
- * participants are reachable regardless of which instance they connected
- * to. Every fleet key carries a TTL, refreshed on join, so a gateway that
- * dies without cleaning up doesn't leave phantom participants behind
- * (mirrors chat's connection-registry reasoning, spec-equivalent to
- * chat's spec §35).
+ * There are two views, the same split chat's connection registry uses. A
+ * **local** `Map` covers participants whose socket this exact instance
+ * holds, giving zero-round-trip lookups when routing to a target we already
+ * know about. A **Redis-backed fleet view**
+ * (`SignalingRedisKeys.roomParticipants`/`participant`) makes participants
+ * reachable whichever instance they connected to.
+ *
+ * Every fleet key carries a TTL, refreshed on join, so a gateway that dies
+ * without cleaning up doesn't leave phantom participants lying about. Same
+ * reasoning as chat's connection registry, and equivalent to chat's spec
+ * §35.
  *
  * See docs/rtc/scaling.md#a-room-split-across-api-instances.
  */
@@ -38,7 +39,7 @@ export interface JoinResult {
 export class RoomRegistryService {
   private readonly logger = new Logger(RoomRegistryService.name);
   private readonly rooms = new Map<string, Map<string, ParticipantSession>>();
-  /** Identifies this process in a fleet — same shape as chat's ConnectionRegistryService.gatewayId. */
+  /** Identifies this process within a fleet. Same shape as chat's ConnectionRegistryService.gatewayId. */
   readonly gatewayId = `gw_${process.pid.toString(36)}_${randomBytes(3).toString('hex')}`;
 
   constructor(
@@ -54,9 +55,10 @@ export class RoomRegistryService {
     try {
       fleetParticipantIds = await this.redisService.client.smembers(participantsKey);
     } catch (err) {
-      // Redis unreachable: fail open onto the local-only view rather than
-      // refusing every join in the fleet — a single-instance deployment
-      // (or a Redis blip) should behave like before this fix existed.
+      // Redis unreachable, so fail open onto the local-only view rather
+      // than refuse every join in the fleet. A single-instance deployment,
+      // or a Redis blip, should behave the way it did before this fix
+      // existed.
       this.logger.warn(
         `fleet membership read failed for room ${session.roomId}, falling back to local view: ${(err as Error).message}`,
       );
@@ -134,12 +136,12 @@ export class RoomRegistryService {
     return session;
   }
 
-  /** Local-only lookup — a target this instance can deliver to directly, no Redis round trip. */
+  /** Local-only lookup: a target this instance can deliver to directly, no Redis round trip. */
   get(roomId: string, participantId: string): ParticipantSession | undefined {
     return this.rooms.get(roomId)?.get(participantId);
   }
 
-  /** Local-only listing — used for local delivery and as the Redis-unavailable fallback above. */
+  /** Local-only listing. Used for local delivery, and as the Redis-unavailable fallback above. */
   listParticipants(roomId: string, excludingParticipantId?: string): ParticipantSession[] {
     const room = this.rooms.get(roomId);
     if (!room) {
@@ -149,8 +151,8 @@ export class RoomRegistryService {
   }
 
   /**
-   * Fleet-wide existence check, used only when a relay target (sdp/ice)
-   * isn't held locally — so a two-participant call on the same instance
+   * Fleet-wide existence check, used only when a relay target for sdp or ice
+   * isn't held locally. That way a two-participant call on one instance
    * never pays a Redis round trip to resolve its target.
    */
   async existsFleetWide(roomId: string, participantId: string): Promise<boolean> {
@@ -161,9 +163,9 @@ export class RoomRegistryService {
       );
       return result === 1;
     } catch (err) {
-      // Fail closed here, not open: the alternative is relaying an SDP
-      // offer/ICE candidate into the void because we guessed a target
-      // exists when we couldn't actually confirm it.
+      // Fail closed here, not open. The alternative is relaying an SDP
+      // offer or ICE candidate into the void, because we guessed a target
+      // existed when we couldn't actually confirm it.
       this.logger.warn(
         `fleet existence check failed for participant ${participantId} in room ${roomId}: ${(err as Error).message}`,
       );
@@ -174,14 +176,14 @@ export class RoomRegistryService {
   /**
    * How many participants the room holds fleet-wide.
    *
-   * Used to decide whether a departure emptied the room, which the local
-   * view cannot answer: the last participant on *this* instance is not
-   * necessarily the last in the room.
+   * Used to work out whether a departure emptied the room, which the local
+   * view can't answer: the last participant on *this* instance isn't
+   * necessarily the last one in the room.
    *
-   * Fails closed at 1 rather than 0 when Redis is unreachable. Reporting
-   * "empty" on a failed read would release a live room's RTC server
-   * assignment, and the next participant to join would be allocated a
-   * different node from the people already talking.
+   * When Redis is unreachable this fails closed at 1, not 0. Report "empty"
+   * off a failed read and you release a live room's RTC server assignment,
+   * and the next participant to join gets allocated a different node from
+   * the people already talking.
    */
   async countFleetWide(roomId: string): Promise<number> {
     try {
@@ -195,9 +197,9 @@ export class RoomRegistryService {
   }
 
   /**
-   * For /health — deliberately local-instance-only so a liveness/readiness
-   * probe stays cheap (no Redis round trip). Fleet-wide counts belong on
-   * the /metrics surface instead.
+   * For /health. Local-instance only, on purpose, so a liveness or readiness
+   * probe stays cheap and pays no Redis round trip. Fleet-wide counts belong
+   * on the /metrics surface instead.
    */
   getMetrics(): { activeRooms: number; activeParticipants: number } {
     let activeParticipants = 0;

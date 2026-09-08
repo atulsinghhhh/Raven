@@ -3,7 +3,7 @@
  * database has something to immediately explore (via /docs or curl)
  * instead of requiring a manual register→login→project→key round trip.
  *
- * Idempotent: re-running is safe — it upserts the demo user by email and
+ * Idempotent, so re-running is safe. It upserts the demo user by email and
  * leaves existing projects/keys alone rather than duplicating them.
  *
  * Usage: pnpm --filter @raven/api prisma:seed  (or: pnpm db:seed from repo root)

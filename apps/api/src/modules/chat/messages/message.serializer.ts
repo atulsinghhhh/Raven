@@ -8,7 +8,7 @@ export type MessageWithRelations = Message & {
 
 /**
  * The one place a database row becomes a public object. Internal uuids
- * (`Message.id`, `Conversation.id`) never appear in the output — only
+ * (`Message.id`, `Conversation.id`) never appear in the output: only
  * `msg_...` / `conv_...` public ids do, which is what keeps §57's "don't
  * expose internal database IDs" true by construction rather than by
  * everyone remembering.
@@ -64,7 +64,7 @@ export function toAttachmentView(attachment?: Attachment | null): ChatAttachment
 /**
  * Collapses raw reaction rows into per-emoji counts. Clients want
  * "👍 ×3 (alice, bob, carol)", not three rows they have to group
- * themselves — and doing it here means every transport agrees on the
+ * themselves, and doing it here means every transport agrees on the
  * shape.
  */
 export function summarizeReactions(reactions: Reaction[]): ChatReactionSummary[] {

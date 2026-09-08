@@ -10,7 +10,7 @@ export type TelemetryRequest = Request & { rtcContext?: VerifiedRtcToken };
 
 /**
  * Authenticates telemetry ingestion with the same RTC token the browser
- * already holds for its own connection — no separate telemetry
+ * already holds for its own connection: no separate telemetry
  * credential to mint, store, or leak. See docs/telemetry.md#authentication.
  */
 @Injectable()
@@ -25,7 +25,7 @@ export class TelemetryIngestGuard implements CanActivate {
     try {
       request.rtcContext = await this.tokenVerifier.verify(token ?? '');
     } catch {
-      // Never forward the verifier's own error detail — this endpoint is
+      // Never forward the verifier's own error detail: this endpoint is
       // reachable by any RTC client, so it gets the same generic message
       // every other auth failure in this API returns.
       throw new UnauthorizedError('Invalid or expired RTC token');

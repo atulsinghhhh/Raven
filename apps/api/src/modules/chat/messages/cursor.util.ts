@@ -3,7 +3,7 @@ import { ChatErrorCode } from '../chat.constants';
 
 export interface MessageCursor {
   createdAt: Date;
-  /** The message's PUBLIC id (`msg_...`), never the internal uuid — see below. */
+  /** The message's PUBLIC id (`msg_...`), never the internal uuid: see below. */
   publicId: string;
 }
 
@@ -14,12 +14,12 @@ export interface MessageCursor {
  * arriving mid-scroll can't shift rows across page boundaries the way an
  * offset would.
  *
- * The tiebreaker matters — two messages can share a millisecond, and
+ * The tiebreaker matters: two messages can share a millisecond, and
  * `createdAt` alone would silently skip or repeat one of them.
  *
  * The cursor is opaque base64 so the shape stays ours to change, and so
  * it doesn't read as something a caller should assemble by hand. It
- * carries the message's *public* id, not the internal uuid — base64 is
+ * carries the message's *public* id, not the internal uuid: base64 is
  * encoding, not encryption, and a cursor that decodes to a database
  * primary key would leak exactly the internal identifier §57 says never
  * to expose.

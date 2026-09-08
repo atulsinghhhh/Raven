@@ -5,8 +5,8 @@ import { RtcServer } from '../../../generated/prisma/client';
 import { NodeLinkFrame, NodeLinkMessageType } from './node-link.interface';
 
 /**
- * How long to wait for a link to open before giving up on this attempt.
- * A join is blocked behind it, so it cannot be generous.
+ * How long to wait for a link to open before giving up on the attempt.
+ * There's a join blocked behind it, so this can't be generous.
  */
 const CONNECT_TIMEOUT_MS = 5_000;
 
@@ -15,21 +15,21 @@ const RECONNECT_BASE_MS = 500;
 const RECONNECT_MAX_MS = 15_000;
 
 /**
- * How often live sessions are re-announced to their node.
+ * How often we re-announce live sessions to their node.
  *
- * Sessions on an SFU belong to the link that created them. Negotiation
- * traffic re-binds ownership on its own, but a settled call sends nothing
- * for minutes at a time — so an idle session would stay orphaned after a
- * link reconnect until the node swept it. This is the cheap fix.
+ * Sessions on an SFU belong to whichever link created them. Negotiation
+ * traffic re-binds ownership by itself, but a settled call sends nothing at
+ * all for minutes on end, so an idle session sits orphaned after a link
+ * reconnect until the node sweeps it up. This is the cheap fix.
  */
 const KEEPALIVE_INTERVAL_MS = 10_000;
 
 /**
  * How long a room-state query waits for its reply.
  *
- * Short, because a dashboard request is blocked behind it and a stale
- * "unknown" is a better answer than a hanging page. The caller reports
- * `null` on timeout, which the UI renders as "unknown" rather than zero.
+ * Kept short, because a dashboard request is stuck behind it and a stale
+ * "unknown" beats a hanging page. The caller reports `null` on timeout,
+ * which the UI renders as "unknown" instead of zero.
  */
 const REQUEST_TIMEOUT_MS = 3_000;
 
@@ -43,40 +43,42 @@ interface NodeLink {
 }
 
 /**
- * Maintains this API instance's WebSocket to each RTC server it has
+ * Keeps this API instance's WebSocket open to every RTC server it has
  * participants on.
  *
- * # Why per-instance rather than one link for the fleet
+ * # Why per-instance, rather than one link for the whole fleet
  *
- * A client's signaling WebSocket lands on one API instance, and that
- * instance is the only one that can deliver an offer to that client. So
- * that instance holds the link carrying its sessions' frames. The
- * alternative — one elected link holder for the fleet — would route every
- * SDP and ICE message through Redis to find the instance with the socket,
- * adding a hop to the latency-sensitive part of joining a call.
+ * A client's signaling WebSocket lands on exactly one API instance, and
+ * that instance is the only one that can deliver an offer to that client.
+ * So it holds the link carrying its sessions' frames.
  *
- * The SFU side accepts several links and remembers which one owns each
- * session; see `services/sfu/internal/signal/server.go`.
+ * The alternative, one elected link holder for the fleet, means routing
+ * every SDP and ICE message through Redis to find the instance holding the
+ * socket. That's an extra hop in the most latency-sensitive part of
+ * joining a call.
  *
- * # What this service is not
+ * The SFU side happily accepts several links and remembers which one owns
+ * each session. See `services/sfu/internal/signal/server.go`.
  *
- * It is not a place where signaling decisions are made. It opens links,
- * writes frames, reads frames, and hands them to a single registered
- * handler. Everything about rooms, permissions, and participants lives in
- * the router.
+ * # What this service isn't
+ *
+ * It isn't where signaling decisions get made. It opens links, writes
+ * frames, reads frames, and hands them to one registered handler.
+ * Everything about rooms, permissions and participants lives in the
+ * router.
  */
 @Injectable()
 export class SfuLinkService implements OnModuleDestroy {
   private readonly logger = new Logger(SfuLinkService.name);
   private readonly links = new Map<string, NodeLink>(); // by server id
   /**
-   * Sessions this instance holds on each node, kept outside the link
-   * object so it survives a link dropping and reconnecting — that set is
-   * exactly what a reconnect needs in order to re-claim its sessions.
+   * Sessions this instance holds on each node. Kept outside the link object
+   * so it survives a link dropping and reconnecting, because that set is
+   * precisely what a reconnect needs to re-claim its sessions.
    */
   private readonly sessionsByServer = new Map<string, Map<string, string>>(); // serverId → (sessionId → roomId)
   private readonly reconnectAttempts = new Map<string, number>();
-  /** In-flight connection attempts, so concurrent joins share one dial. */
+  /** Connection attempts in flight, so concurrent joins share a single dial. */
   private readonly connecting = new Map<string, Promise<NodeLink>>();
   private frameHandler?: FrameHandler;
   /** In-flight queries, by correlation id. */
@@ -110,25 +112,24 @@ export class SfuLinkService implements OnModuleDestroy {
   }
 
   /**
-   * Registers the single handler for inbound frames.
+   * Registers the one handler for inbound frames.
    *
-   * One handler, not an event emitter with many listeners: every frame has
-   * exactly one correct destination (the session it names), and a
-   * fan-out here would make it possible to handle the same negotiation
-   * frame twice.
+   * One handler, not an event emitter with a crowd of listeners. Every frame
+   * has exactly one correct destination, the session it names, and a fan-out
+   * here would make it possible to handle the same negotiation frame twice.
    */
   onFrame(handler: FrameHandler): void {
     this.frameHandler = handler;
   }
 
   /**
-   * Sends a frame to the node serving this room, opening the link if
-   * needed.
+   * Sends a frame to whichever node serves this room, opening the link if
+   * it isn't already.
    *
-   * Throws if the node cannot be reached. Callers on the join path turn
-   * that into `RTC_SERVER_UNREACHABLE` for the client, which is
-   * retryable — a client that cannot reach one node may be allocated a
-   * different one on its next attempt.
+   * Throws if the node can't be reached. Callers on the join path turn that
+   * into `RTC_SERVER_UNREACHABLE` for the client, and it's retryable: a
+   * client that couldn't reach one node may well get allocated a different
+   * one next attempt.
    */
   async send(server: RtcServer, frame: NodeLinkFrame): Promise<void> {
     const link = await this.linkFor(server);
@@ -148,9 +149,9 @@ export class SfuLinkService implements OnModuleDestroy {
   }
 
   /**
-   * Best-effort send, for frames whose loss is not worth failing a caller
-   * over — a mute, a subscription preference, a participant removal that
-   * the node will clean up on its own when the PeerConnection dies.
+   * Best-effort send, for frames not worth failing a caller over if they go
+   * missing. A mute, a subscription preference, a participant removal the
+   * node will clean up itself once the PeerConnection dies.
    */
   async trySend(server: RtcServer, frame: NodeLinkFrame): Promise<boolean> {
     try {
@@ -167,9 +168,9 @@ export class SfuLinkService implements OnModuleDestroy {
   /**
    * Sends a query and waits for its correlated reply.
    *
-   * Resolves to `null` rather than throwing when the node is unreachable
-   * or does not answer in time. Callers turn that into "unknown", which
-   * is the honest thing for a dashboard to show — distinct from "zero
+   * Resolves to `null` instead of throwing when the node is unreachable or
+   * doesn't answer in time. Callers turn that into "unknown", which is the
+   * honest thing for a dashboard to show. Quite different from "zero
    * participants", which is a fact about an idle room.
    */
   async request(
@@ -205,7 +206,7 @@ export class SfuLinkService implements OnModuleDestroy {
     return reply;
   }
 
-  /** Forgets a session, so keepalives stop naming it. */
+  /** Forgets a session, so the keepalives stop naming it. */
   releaseSession(sessionId: string): void {
     for (const sessions of this.sessionsByServer.values()) {
       sessions.delete(sessionId);
@@ -227,8 +228,8 @@ export class SfuLinkService implements OnModuleDestroy {
       return existing;
     }
 
-    // Several participants joining the same room at once would otherwise
-    // each dial the node. Sharing the in-flight promise means one dial.
+    // Without this, several participants joining the same room at once each
+    // dial the node. Sharing the in-flight promise means one dial.
     const inFlight = this.connecting.get(server.id);
     if (inFlight) {
       return inFlight;
@@ -266,8 +267,8 @@ export class SfuLinkService implements OnModuleDestroy {
         this.reconnectAttempts.delete(server.id);
         this.links.set(server.id, link);
         this.logger.log(`node link open: rtcServer=${server.name} region=${server.region}`);
-        // Re-claim any sessions this instance still holds on the node —
-        // after a reconnect they are orphaned there until something names
+        // Re-claim whatever sessions this instance still holds on the node.
+        // After a reconnect they sit orphaned there until something names
         // them again.
         this.reclaimSessions(link);
         resolve(link);
@@ -293,10 +294,10 @@ export class SfuLinkService implements OnModuleDestroy {
         this.logger.warn(
           `node link closed: rtcServer=${server.name} code=${code} reason=${reason.toString() || 'none'} sessions=${sessions.size}`,
         );
-        // Reconnect only while this instance still has sessions there.
-        // Otherwise the link is re-opened lazily on the next join, and a
-        // node that was drained or removed is not kept alive by a
-        // reconnect loop that has nothing to carry.
+        // Only reconnect while this instance still has sessions there.
+        // Otherwise the link re-opens lazily on the next join, and a node
+        // that was drained or removed doesn't get kept alive by a reconnect
+        // loop with nothing to carry.
         if (sessions.size > 0) {
           this.scheduleReconnect(server);
         }
@@ -318,7 +319,7 @@ export class SfuLinkService implements OnModuleDestroy {
         return;
       }
       if (this.sessionsFor(server.id).size === 0) {
-        // Everyone left while we were waiting. Nothing to carry, so stop.
+        // Everybody left while we were waiting. Nothing to carry; stop.
         this.reconnectAttempts.delete(server.id);
         return;
       }
@@ -330,12 +331,12 @@ export class SfuLinkService implements OnModuleDestroy {
   }
 
   /**
-   * Re-announces this instance's sessions after a link opens.
+   * Re-announces this instance's sessions once a link opens.
    *
-   * Necessary because the node orphans a session when the link that owned
-   * it drops, and sweeps it after a grace period. Naming the session again
-   * is what re-binds ownership — the node treats any frame mentioning a
-   * session as a claim on it.
+   * Needed because the node orphans a session the moment its owning link
+   * drops, then sweeps it after a grace period. Naming the session again is
+   * what re-binds ownership: the node treats any frame mentioning a session
+   * as a claim on it.
    */
   private reclaimSessions(link: NodeLink): void {
     const sessions = this.sessionsFor(link.serverId);
@@ -376,7 +377,7 @@ export class SfuLinkService implements OnModuleDestroy {
       return;
     }
 
-    // A correlated reply belongs to whoever is awaiting it, not to the
+    // A correlated reply belongs to whoever's awaiting it, not to the
     // general frame handler.
     if (frame.requestId) {
       const pending = this.pendingRequests.get(frame.requestId);
@@ -386,8 +387,9 @@ export class SfuLinkService implements OnModuleDestroy {
         pending.resolve(frame);
         return;
       }
-      // Arrived after the timeout fired. Logged rather than silently
-      // dropped: a node consistently answering slowly is worth seeing.
+      // Turned up after the timeout fired. Logged rather than quietly
+      // dropped, because a node that's consistently slow to answer is worth
+      // knowing about.
       this.logger.debug(`late reply for ${frame.requestId} from ${link.serverName}`);
       return;
     }
@@ -400,8 +402,8 @@ export class SfuLinkService implements OnModuleDestroy {
     try {
       this.frameHandler(frame);
     } catch (err) {
-      // One bad frame must not kill the link's read loop and with it every
-      // call on that node.
+      // One bad frame mustn't kill the link's read loop, and every call on
+      // that node with it.
       this.logger.error(
         `handling ${frame.type} from ${link.serverName} failed: ${(err as Error).message}`,
       );
@@ -411,10 +413,10 @@ export class SfuLinkService implements OnModuleDestroy {
   /**
    * The node link's URL, derived from the server's `internalUrl`.
    *
-   * `internalUrl` is an HTTP base because that is what a registry row
-   * naturally holds and what a health probe uses; the link is a WebSocket
-   * on the same host. Deriving it here rather than storing a second
-   * address keeps one thing for an operator to configure.
+   * `internalUrl` is an HTTP base, because that's what a registry row
+   * naturally holds and what a health probe wants. The link is a WebSocket
+   * on the same host. Deriving it here instead of storing a second address
+   * leaves an operator with one thing to configure instead of two.
    */
   private linkUrl(server: RtcServer): string {
     const base = server.internalUrl.replace(/\/$/, '');
@@ -422,7 +424,7 @@ export class SfuLinkService implements OnModuleDestroy {
     return `${ws}/internal/link`;
   }
 
-  /** For /health and metrics: which nodes this instance is linked to. */
+  /** For /health and metrics: which nodes this instance has links to. */
   getLinkedServers(): { name: string; sessions: number }[] {
     return Array.from(this.links.values()).map((link) => ({
       name: link.serverName,

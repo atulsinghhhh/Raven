@@ -17,7 +17,7 @@ const SCOPE_CONFIG: Record<ChatRateScope, { limitKey: string; windowSeconds: num
 /**
  * Per-subject rate limiting for the chat plane (spec §37). Redis-backed
  * rather than in-memory because chat runs behind a load balancer across
- * several gateway instances — an in-memory counter would let a client
+ * several gateway instances: an in-memory counter would let a client
  * multiply its budget by reconnecting to a different instance.
  *
  * Fixed-window INCR+EXPIRE, same approach as the HTTP RateLimitGuard.
@@ -35,7 +35,7 @@ export class ChatRateLimitService {
     private readonly configService: ConfigService,
   ) {}
 
-  /** Throws a structured RATE_LIMITED ChatError (spec §37) rather than returning a boolean. */
+  /** Throws a structured RATE_LIMITED ChatError (spec §37) instead of returning a boolean. */
   async consume(scope: ChatRateScope, projectId: string, subject: string): Promise<void> {
     const { limitKey, windowSeconds, label } = SCOPE_CONFIG[scope];
     const limit = this.configService.get<number>(limitKey)!;

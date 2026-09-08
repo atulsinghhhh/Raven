@@ -56,7 +56,7 @@ describe('ApiKeysService', () => {
       const rawSecret = result.key.split('.')[1];
 
       expect(persistedData.secretHash).not.toBe(rawSecret);
-      // Hashing the raw secret with no pepper must NOT match — proves the
+      // Hashing the raw secret with no pepper must NOT match: proves the
       // pepper actually factors into the stored hash, isn't just decorative.
       expect(await bcrypt.compare(rawSecret, persistedData.secretHash)).toBe(false);
       expect(
@@ -124,7 +124,7 @@ describe('ApiKeysService', () => {
     });
 
     it('reports the key’s own id, not the project id, as the rate-limit subject', async () => {
-      // Two keys on one project must not share a budget — that isolation
+      // Two keys on one project must not share a budget: that isolation
       // depends on this field surviving all the way to RateLimitGuard.
       const secretHash = await hashSecret('correctsecret');
       prisma.apiKey.findUnique.mockResolvedValue({

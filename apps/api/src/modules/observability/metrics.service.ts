@@ -23,10 +23,10 @@ export interface ObservabilityOverview {
 /**
  * Aggregates the `Connection`/`ErrorEvent` tables into the Raven-facing
  * numbers the dashboard Overview and `raven status`/`raven diagnostics`
- * show (Phase 9 spec §15/§26). Every number here comes from real rows —
+ * show (Phase 9 spec §15/§26). Every number here comes from real rows;
  * an empty project legitimately reports zeros/`null`, never a fabricated
  * percentage (spec §36). Uses plain `findMany` + in-memory dedup for
- * distinct room/participant counts rather than a `GROUP BY`, which is
+ * distinct room/participant counts, not a `GROUP BY`, which is
  * simple and correct at the connection volumes this phase targets; a
  * larger deployment would replace this with real SQL aggregation.
  */

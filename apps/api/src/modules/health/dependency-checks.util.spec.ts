@@ -20,8 +20,8 @@ describe('checkSfuHttp', () => {
   });
 
   it('probes /healthz, not the root or /readyz', async () => {
-    // /healthz, deliberately: readiness on a node reports whether it can
-    // accept new participants, which depends on its control-plane link —
+    // /healthz, by design: readiness on a node reports whether it can
+    // accept new participants, which depends on its control-plane link;
     // asking that from the control plane would make the answer partly
     // about the question.
     const paths: string[] = [];
@@ -69,7 +69,7 @@ describe('checkStunBinding', () => {
     try {
       socket?.close();
     } catch {
-      // already closed — fine, nothing left to clean up
+      // already closed: fine, nothing left to clean up
     }
     socket = undefined;
   });

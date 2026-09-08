@@ -30,19 +30,18 @@ export interface AttachmentUploadTicket {
 }
 
 /**
- * Attachment metadata + signed URLs (spec §30).
+ * Attachment metadata and signed URLs (spec §30).
  *
- * The bytes never touch this API or the WebSocket. The flow is: client
- * asks for a ticket → uploads straight to object storage with a
- * short-lived signed PUT → tells us it finished → references the
- * attachment id when sending a message. Storage credentials stay
- * server-side throughout; the browser only ever holds a URL that expires
- * and can only address one key.
+ * The bytes never touch this API or the WebSocket. The flow: client asks for
+ * a ticket, uploads straight to object storage with a short-lived signed
+ * PUT, tells us it finished, then references the attachment id when it
+ * sends a message. Storage credentials stay server-side the whole way, and
+ * the browser only ever holds a URL that expires and addresses exactly one
+ * key.
  *
- * If no bucket is configured, every method here fails with a clear
- * ATTACHMENTS_NOT_CONFIGURED rather than half-working — attachments are
- * optional infrastructure, and pretending otherwise would be worse than
- * saying so.
+ * With no bucket configured, every method here fails with a clear
+ * ATTACHMENTS_NOT_CONFIGURED instead of half-working. Attachments are
+ * optional infrastructure, and pretending otherwise is worse than saying so.
  */
 @Injectable()
 export class AttachmentsService {
@@ -82,10 +81,10 @@ export class AttachmentsService {
       );
     }
 
-    // Key layout is project/conversation/random — never the user-supplied
-    // filename, which would let a caller traverse into or overwrite
-    // another tenant's objects. The original name is kept as metadata and
-    // handed back at download time instead.
+    // Key layout is project/conversation/random. Never the user-supplied
+    // filename, which would let a caller traverse into, or overwrite,
+    // another tenant's objects. We keep the original name as metadata and
+    // hand it back at download time instead.
     const storageKey = `chat/${actor.projectId}/${conversation.id}/${randomBytes(16).toString('hex')}`;
     const ttl = this.configService.get<number>('storage.uploadUrlTtlSeconds')!;
 
@@ -121,11 +120,13 @@ export class AttachmentsService {
   }
 
   /**
-   * Marks an upload complete. Trusting the client here is a deliberate,
-   * bounded choice: verifying would mean a HEAD against object storage on
-   * every upload, and the worst case of a false "complete" is a message
-   * pointing at a key with no bytes behind it — visible immediately, and
-   * scoped to that one user's own attachment.
+   * Marks an upload complete.
+   *
+   * Trusting the client here is a deliberate, bounded choice. Verifying
+   * would mean a HEAD against object storage on every single upload, and
+   * the worst case of a false "complete" is a message pointing at a key with
+   * no bytes behind it. Visible straight away, and scoped to that one user's
+   * own attachment.
    */
   async complete(actor: ChatActor, attachmentPublicId: string): Promise<Attachment> {
     const attachment = await this.loadForActor(actor, attachmentPublicId);
@@ -142,9 +143,9 @@ export class AttachmentsService {
   }
 
   /**
-   * A short-lived signed GET. Access is checked here, on Raven's side —
-   * the object itself stays private in the bucket, so a leaked URL grants
-   * one file for a few minutes rather than the bucket forever.
+   * A short-lived signed GET. Access gets checked here, on Raven's side. The
+   * object itself stays private in the bucket, so a leaked URL grants one
+   * file for a few minutes, not the whole bucket forever.
    */
   async createDownloadUrl(actor: ChatActor, attachmentPublicId: string): Promise<{ url: string; expiresAt: string }> {
     const storage = this.requireStorage();
@@ -171,7 +172,7 @@ export class AttachmentsService {
     const conversation = await this.prisma.conversation.findUniqueOrThrow({
       where: { id: attachment.conversationId },
     });
-    // Membership check, not just project ownership — being in the project
+    // A membership check, not just project ownership. Being in the project
     // isn't the same as being in the conversation.
     const { scopes } = await this.conversations.authorize(actor, conversation.publicId);
     assertScope(scopes, 'chat:read', 'Accessing an attachment');
@@ -216,15 +217,16 @@ export class AttachmentsService {
 
 /**
  * Filenames only ever go back out in a Content-Disposition header or a UI
- * label, never into a storage key — but stripping path separators and
- * control characters here means a hostile name can't become a header
- * injection downstream either.
+ * label, never into a storage key. Stripping path separators and control
+ * characters here means a hostile name can't turn into a header injection
+ * downstream either.
  */
 function sanitizeFilename(filename: string): string {
   const cleaned = filename
     .replace(/[\\/]/g, '_')
-    // Control characters, CR/LF included — a filename ends up in a
-    // Content-Disposition header, and a newline there is header injection.
+    // Control characters, CR and LF included. A filename ends up in a
+    // Content-Disposition header, and a newline in one is header
+    // injection.
     // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u001f\u007f]/g, '')
     .slice(0, 255)

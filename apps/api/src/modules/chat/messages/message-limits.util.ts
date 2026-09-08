@@ -12,7 +12,7 @@ export interface ChatLimits {
 
 /**
  * Payload ceilings (spec §38), enforced in one place so the WebSocket and
- * HTTP paths can't drift apart — a limit that only one transport honours
+ * HTTP paths can't drift apart: a limit that only one transport honours
  * is not a limit. Everything here is configurable via env, so a
  * deployment that genuinely needs 16 KB messages can have them without a
  * code change.

@@ -4,7 +4,7 @@ import { ChatErrorCode } from './chat.constants';
 
 /**
  * Four coarse scopes, not a full RBAC system (spec §28). Roles are what
- * gets stored; scopes are derived. That indirection is the whole point —
+ * gets stored; scopes are derived. That indirection is the whole point;
  * adding `chat:pin` later is a change to this file, not a migration.
  */
 export const CHAT_SCOPES = ['chat:read', 'chat:send', 'chat:moderate', 'chat:manage'] as const;

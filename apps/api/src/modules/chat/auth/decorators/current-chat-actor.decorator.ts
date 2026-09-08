@@ -4,7 +4,7 @@ import { ChatActor } from '../chat-actor.interface';
 
 /**
  * The actor ChatAuthGuard resolved for this request. Controllers take
- * this instead of reading identity out of the body — which is what makes
+ * this instead of reading identity out of the body, which is what makes
  * "never trust client-provided sender_id" (spec §39) structural rather
  * than a rule everyone has to remember.
  */

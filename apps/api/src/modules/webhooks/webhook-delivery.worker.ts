@@ -35,14 +35,14 @@ interface DueDelivery {
 
 /**
  * Drains the delivery queue out-of-band (spec §32). Polls Postgres on an
- * interval rather than pulling in a job-queue dependency — same reasoning
+ * interval, not pulling in a job-queue dependency: same reasoning
  * as observability's RetentionService, and it keeps the deployment to
  * Postgres + Redis (spec §60).
  *
  * A Redis lock means only one API instance delivers at a time, so a
  * horizontally-scaled deployment doesn't send every webhook N times.
  * The lock has a TTL, so an instance dying mid-batch doesn't wedge the
- * queue — the worst case is one batch being retried, which is exactly why
+ * queue: the worst case is one batch being retried, which is exactly why
  * every event carries an idempotent `evt_...` id for receivers to dedupe on.
  */
 @Injectable()
@@ -90,7 +90,7 @@ export class WebhookDeliveryWorker implements OnModuleInit, OnModuleDestroy {
       return 0;
     } finally {
       // Released at the end of every pass, not left to expire. The TTL is
-      // only a crash guard — holding the lock for its full lifetime would
+      // only a crash guard: holding the lock for its full lifetime would
       // stall the queue for 30s after each empty poll.
       if (holdsLock) {
         await this.releaseLock();
@@ -159,7 +159,7 @@ export class WebhookDeliveryWorker implements OnModuleInit, OnModuleDestroy {
     const maxAttempts = this.configService.get<number>('webhooks.maxAttempts')!;
     const timeoutMs = this.configService.get<number>('webhooks.timeoutMs')!;
 
-    // The exact bytes that get signed. Serialize once — re-stringifying
+    // The exact bytes that get signed. Serialize once: re-stringifying
     // for the signature and again for the body risks key-order drift and
     // a signature the receiver can't verify.
     const body = JSON.stringify({
@@ -233,7 +233,7 @@ export class WebhookDeliveryWorker implements OnModuleInit, OnModuleDestroy {
         status: exhausted ? WebhookDeliveryStatus.FAILED : WebhookDeliveryStatus.PENDING,
         attempts,
         responseStatus,
-        // Truncated, and never the response body — a failing endpoint can
+        // Truncated, and never the response body: a failing endpoint can
         // return anything, including data we shouldn't be storing.
         lastError: failure.slice(0, MAX_ERROR_LENGTH),
         nextAttemptAt: exhausted ? undefined : new Date(Date.now() + this.backoffMs(attempts)),

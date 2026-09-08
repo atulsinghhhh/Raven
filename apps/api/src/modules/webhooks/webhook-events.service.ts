@@ -7,7 +7,7 @@ import { ProjectScope } from '../../shared/environment/environment.constants';
 /**
  * Event names Raven emits. Chat owns all of these today; the pipeline is
  * project-scoped so later phases (recording, streaming) publish through
- * the same machinery rather than inventing a second one (spec §31).
+ * the same machinery instead of inventing a second one (spec §31).
  */
 export const WEBHOOK_EVENT_TYPES = [
   'message.created',
@@ -31,7 +31,7 @@ export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number];
 
 /**
  * Records an event and queues one delivery row per subscribed endpoint.
- * That's all it does — the actual HTTP calls happen later, in
+ * That's all it does: the actual HTTP calls happen later, in
  * WebhookDeliveryWorker.
  *
  * This split is the point: the message path must never wait on a

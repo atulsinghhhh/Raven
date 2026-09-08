@@ -26,7 +26,7 @@ import { LiveStreamsService } from './live-streams.service';
 
 /**
  * Live Streaming's developer-facing surface. Every route is authenticated
- * with a project API key, same as Rooms and RTC Tokens — minting a host or
+ * with a project API key, same as Rooms and RTC Tokens: minting a host or
  * viewer credential is a server-to-server action your own backend takes
  * after authenticating its own user, never something a browser calls
  * directly (spec: "reuse the existing Raven token architecture").

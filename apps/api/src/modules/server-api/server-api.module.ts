@@ -7,7 +7,7 @@ import { ApiProjectController } from './api-project.controller';
 
 /**
  * The API-key-guarded routes that exist specifically for the Phase 10
- * server SDKs (`@corvidhq/server`, `raven-sdk`) — "which project am I" plus
+ * server SDKs (`@corvidhq/server`, `raven-sdk`): "which project am I" plus
  * the Phase 9 observability reads. Everything here delegates to services
  * already built and tested in earlier phases; nothing new is invented,
  * just a second, machine-to-machine entrypoint alongside the existing

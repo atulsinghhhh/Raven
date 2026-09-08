@@ -4,7 +4,7 @@ import { IsInt, IsNumber, IsOptional, Max, Min } from 'class-validator';
 /**
  * What an SFU reports on every heartbeat (spec §26).
  *
- * The load counters are required — a heartbeat that didn't carry them
+ * The load counters are required: a heartbeat that didn't carry them
  * would keep the node alive in the registry while leaving the allocator
  * with stale numbers, which is worse than no heartbeat at all. The
  * resource gauges are optional because a node that cannot read them (an

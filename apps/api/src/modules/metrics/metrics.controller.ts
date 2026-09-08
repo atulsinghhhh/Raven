@@ -6,7 +6,7 @@ import { MetricsService } from './metrics.service';
 /**
  * Prometheus scrape target. Excluded from the public Swagger docs (it's
  * an operations surface, not part of the developer-facing API) and meant
- * to stay off the public ingress entirely — see infrastructure/k8s, where
+ * to stay off the public ingress entirely: see infrastructure/k8s, where
  * this is scraped pod-internally, not exposed alongside /v1/*.
  */
 @ApiExcludeController()

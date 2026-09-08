@@ -5,7 +5,7 @@ import { Request } from 'express';
  * The request-shaped half of an audit entry: who was on the other end of
  * the connection, and which request it was.
  *
- * A decorator rather than reaching for the raw request inside services,
+ * A decorator instead of reaching for the raw request inside services,
  * so services stay transport-agnostic and testable without a fake Request.
  */
 export interface AuditContext {

@@ -9,7 +9,7 @@ export interface IceServer {
 /**
  * coturn's time-limited REST credential scheme (`use-auth-secret` in
  * turnserver.conf). username = "<unix-expiry>:<label>", credential =
- * base64(HMAC-SHA1(secret, username)) — coturn recomputes the same hash
+ * base64(HMAC-SHA1(secret, username)): coturn recomputes the same hash
  * to authenticate the ALLOCATE request, so nobody needs a permanent login.
  */
 export function generateTurnCredential(
@@ -26,13 +26,13 @@ export function generateTurnCredential(
 /**
  * Builds the ICE server list a WebRTC client needs: our own coturn
  * deployment, for both STUN and TURN, over whatever transports coturn's
- * configured for. Raven's SFU deliberately embeds no TURN of its own — an
+ * configured for. Raven's SFU embeds no TURN of its own, by design: an
  * SFU that also relays is two capacity problems sharing one process, and
  * coturn scales and fails independently of the media plane.
  *
  * The browser's ICE agent already picks the right order to try these in
  * (direct, STUN, TURN/UDP, TURN/TCP, TURN/TLS), so we don't enforce one
- * here. `turns:` only shows up when turnTlsPort is set — no cert on
+ * here. `turns:` only shows up when turnTlsPort is set: no cert on
  * coturn means no TLS listener to point at.
  */
 export function buildIceServers(opts: {
@@ -59,7 +59,7 @@ export function buildIceServers(opts: {
   if (opts.turnTlsPort) {
     // TURNS over TCP (TLS). coturn's --dtls flag also serves TURN-over-UDP
     // with DTLS on the same port, but the turns: URI scheme has no
-    // `?transport=` value for that, so TLS-over-TCP is what we advertise —
+    // `?transport=` value for that, so TLS-over-TCP is what we advertise;
     // it's the option every client actually supports.
     servers.push({
       urls: `turns:${opts.turnHost}:${opts.turnTlsPort}?transport=tcp`,

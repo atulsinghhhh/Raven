@@ -13,7 +13,7 @@ import { RoomsService } from './rooms.service';
   controllers: [RoomsController, DashboardRoomsController],
   providers: [RoomsService, SfuRoomStateService],
   // SfuRoomStateService is also how Live Streaming derives a live viewer
-  // count (SFU participants minus registered hosts) — same "ask the SFU,
+  // count (SFU participants minus registered hosts): same "ask the SFU,
   // never store live state" pattern Room itself already uses.
   exports: [RoomsService, SfuRoomStateService],
 })

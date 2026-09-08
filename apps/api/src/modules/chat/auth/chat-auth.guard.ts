@@ -14,7 +14,7 @@ declare module 'express' {
 }
 
 /**
- * One guard, two credentials — because the chat REST surface has to serve
+ * One guard, two credentials, because the chat REST surface has to serve
  * both a developer's backend and their users' browsers, and duplicating
  * every endpoint per credential type would double the API for no gain.
  *
@@ -24,7 +24,7 @@ declare module 'express' {
  * **client** actor: identity and scopes come from the signature, and the
  * request body can't widen either.
  *
- * The distinction is enforced downstream in resolveSubjectId() — this
+ * The distinction is enforced downstream in resolveSubjectId(): this
  * guard's only job is to say truthfully which one showed up.
  */
 @Injectable()
@@ -45,7 +45,7 @@ export class ChatAuthGuard implements CanActivate {
     const credential = header.slice('Bearer '.length).trim();
 
     // API keys are `publicId.secret` with a known prefix, so this is a
-    // shape check, not a guess — no chance of feeding a chat token into
+    // shape check, not a guess: no chance of feeding a chat token into
     // the API-key verifier or vice versa.
     if (credential.startsWith('rvk_')) {
       const { project, environment } = await this.apiKeysService.verify(credential);

@@ -7,7 +7,7 @@ import { RoomRegistryService } from './room-registry.service';
 /**
  * A minimal in-memory stand-in for the ioredis calls RoomRegistryService
  * makes (smembers/sismember/multi().sadd/srem/set/del/expire().exec()).
- * No TTL simulation — these tests cover routing/membership logic, not
+ * No TTL simulation: these tests cover routing/membership logic, not
  * expiry, which is exercised for real against real Redis in
  * test/signaling.e2e-spec.ts.
  */

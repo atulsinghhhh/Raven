@@ -1,7 +1,7 @@
 /**
  * Every administrative action Raven records.
  *
- * Kept as one flat list rather than composed from parts, because the value
+ * Kept as one flat list, not composed from parts, because the value
  * of an audit log is being able to answer "what can appear here?" without
  * reading the code that writes it.
  */

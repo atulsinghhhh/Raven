@@ -9,7 +9,7 @@ import { registerLocalSfu } from './helpers/register-local-sfu';
 
 /**
  * Runs the real control plane against the real Postgres/Redis/SFU/coturn
- * (`docker compose up -d` must be running — see
+ * (`docker compose up -d` must be running: see
  * docs/local-development.md). This is the "API -> Database -> Redis"
  * integration layer described in INFRASTRUCTURE_PHASES.md's testing
  * strategy, not a unit test.
@@ -34,7 +34,7 @@ describe('Control plane (e2e)', () => {
     await app.init();
 
     // Rate limits are IP-keyed in Redis and persist across test runs (and
-    // across manual curl testing against the same local Redis) — clear
+    // across manual curl testing against the same local Redis): clear
     // them so this suite starts from a known state instead of inheriting
     // whatever budget happened to be left over.
     const redis = app.get(RedisService);
@@ -247,7 +247,7 @@ describe('Control plane (e2e)', () => {
       expect(res.body.participantIdentity).toBe('alice');
 
       // iceServers: one STUN (no credentials) + TURN over UDP + TURN over
-      // TCP + TURNS/TLS (Phase 5) — all TURN entries share one credential
+      // TCP + TURNS/TLS (Phase 5): all TURN entries share one credential
       // pair. See turn-credential.util.ts.
       expect(res.body.iceServers).toHaveLength(4);
       const stun = res.body.iceServers.find((s: { urls: string }) => s.urls.startsWith('stun:'));
@@ -272,12 +272,12 @@ describe('Control plane (e2e)', () => {
 
       const requestedAt = Date.now();
       const expiresAt = new Date(res.body.expiresAt).getTime();
-      // Allow generous scheduling slack — the point is "~30s, not
+      // Allow generous scheduling slack: the point is "~30s, not
       // unbounded/permanent", not exact-to-the-millisecond timing.
       expect(expiresAt - requestedAt).toBeGreaterThan(20_000);
       expect(expiresAt - requestedAt).toBeLessThan(40_000);
 
-      // The claims actually inside the signed JWT must match, too — not
+      // The claims actually inside the signed JWT must match, too: not
       // just the control-plane's own bookkeeping of what it asked for.
       // `iat`/`exp`, not `nbf`: Raven's token format is its own, and the
       // signer never issues a not-before.
@@ -299,7 +299,7 @@ describe('Control plane (e2e)', () => {
 
     it('rejects minting a token for a room in a different project', async () => {
       // A second project's API key must not be able to mint tokens for
-      // the first project's room — this is the same cross-project
+      // the first project's room: this is the same cross-project
       // boundary enforced everywhere else in the control plane.
       const otherProjectRes = await request(app.getHttpServer())
         .post('/v1/projects')
@@ -380,7 +380,7 @@ describe('Control plane (e2e)', () => {
       });
 
       it('records connection-quality stats from a stats event, in the shape Room.getConnectionStats() actually sends', async () => {
-        // Mirrors what @corvidhq/rtc's periodic stats monitor posts — see
+        // Mirrors what @corvidhq/rtc's periodic stats monitor posts: see
         // ConnectionStats in packages/sdk/src/room.ts.
         await request(app.getHttpServer())
           .post('/v1/telemetry/events')
@@ -494,7 +494,7 @@ describe('Control plane (e2e)', () => {
           .set('Authorization', `Bearer ${apiKey}`)
           .expect(200);
 
-        // null (SFU unreachable) or an array — never a fabricated non-empty list.
+        // null (SFU unreachable) or an array: never a fabricated non-empty list.
         expect(res.body === null || Array.isArray(res.body)).toBe(true);
       });
 
@@ -578,7 +578,7 @@ describe('Control plane (e2e)', () => {
     //   ↓ owns Project
     //     ↓ owns Room
     //       ↓ can create/manage RTC tokens
-    // Every hop in that chain must reject a caller who isn't the owner —
+    // Every hop in that chain must reject a caller who isn't the owner;
     // this block tests each hop explicitly, beyond what the golden path
     // already covers incidentally.
     let ownerToken: string;
@@ -665,7 +665,7 @@ describe('Control plane (e2e)', () => {
         .set('Authorization', `Bearer ${intruderToken}`)
         .expect(404);
 
-      // Prove it's still usable — the revoke attempt must not have
+      // Prove it's still usable: the revoke attempt must not have
       // succeeded silently.
       await request(app.getHttpServer())
         .post('/v1/rooms')
@@ -755,7 +755,7 @@ describe('Control plane (e2e)', () => {
         .expect(201);
       expect(created.body).toMatchObject({ name: 'cli-created-room', projectId: ownerProjectId });
 
-      // It's a real, listable room — not a fire-and-forget no-op.
+      // It's a real, listable room: not a fire-and-forget no-op.
       const list = await request(app.getHttpServer())
         .get(`/v1/projects/${ownerProjectId}/rooms`)
         .set('Authorization', `Bearer ${ownerToken}`)
@@ -886,7 +886,7 @@ describe('Control plane (e2e)', () => {
         .set('Authorization', `Bearer ${devKey}`)
         .expect(404);
 
-      // Still reachable by the key that owns it — the room was not closed.
+      // Still reachable by the key that owns it: the room was not closed.
       await request(app.getHttpServer())
         .get(`/v1/rooms/${prodRoomId}`)
         .set('Authorization', `Bearer ${prodKey}`)
@@ -948,7 +948,7 @@ describe('Control plane (e2e)', () => {
     });
 
     it('hides the project entirely from a non-member', async () => {
-      // 404, not 403 — a 403 would confirm the id is real.
+      // 404, not 403: a 403 would confirm the id is real.
       const res = await request(app.getHttpServer())
         .get(`/v1/projects/${projectId}`)
         .set('Authorization', `Bearer ${viewerToken}`)
@@ -1055,8 +1055,8 @@ describe('Control plane (e2e)', () => {
         .delete(`/v1/projects/${projectId}/members/${ownerUserId}`)
         .set('Authorization', `Bearer ${ownerToken}`);
 
-      // A project with no owner cannot be administered by anyone — not
-      // even to appoint a replacement — so the last one is not removable.
+      // A project with no owner cannot be administered by anyone: not
+      // even to appoint a replacement, so the last one is not removable.
       expect(res.status).toBe(400);
       expect(res.body.code).toBe('RAVEN_VALIDATION_FAILED');
     });
@@ -1138,7 +1138,7 @@ describe('Control plane (e2e)', () => {
 
       // The secret is not in the audit trail for the same reason it is not
       // in the database: it was shown once and never stored. The public
-      // half is expected here — it is what makes the entry useful.
+      // half is expected here: it is what makes the entry useful.
       const serialised = JSON.stringify(res.body);
       const secretHalf = rawKey.split('.')[1];
 
@@ -1239,7 +1239,7 @@ describe('Control plane (e2e)', () => {
     });
 
     // Every error body shape a developer will actually meet, checked
-    // against the running app rather than a constructed exception.
+    // against the running app instead of a constructed exception.
 
     it('carries a canonical code, a request id, and the path', async () => {
       const res = await request(app.getHttpServer())

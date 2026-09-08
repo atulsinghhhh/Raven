@@ -7,11 +7,11 @@ import { RtcPermissions, RtcTokenClaims, RtcTokenError } from './rtc-token.claim
 
 export interface SignRtcTokenInput {
   /**
-   * Token id to sign as `jti`. Pass the persisted `rtc_tokens` row id so
-   * the credential and its record share one identifier — that's what makes
-   * a token revocable and makes an RTC log line traceable back to the mint
-   * that produced it. Generated if omitted, for callers that mint without
-   * persisting.
+   * Token id to sign as `jti`. Pass the persisted `rtc_tokens` row id, so
+   * the credential and its record share one identifier. That's what makes a
+   * token revocable, and what makes an RTC log line traceable back to the
+   * mint that produced it. Generated if you leave it out, for callers that
+   * mint without persisting.
    */
   tokenId?: string;
   projectId: string;
@@ -34,21 +34,23 @@ export interface SignedRtcToken {
 /**
  * Mints and verifies Raven's own RTC credential.
  *
- * Replaces `livekit-server-sdk`'s `AccessToken`/`TokenVerifier`. Raven now
- * owns the token format end to end, which is what lets the SFU behind it be
- * swapped without touching the public token API — the whole point of the
- * migration (see docs/architecture/native-rtc-migration-map.md).
+ * This replaced `livekit-server-sdk`'s `AccessToken` and `TokenVerifier`.
+ * Raven owns the token format end to end now, and that's what lets the SFU
+ * behind it be swapped without touching the public token API. Which was
+ * rather the point of the migration; see
+ * docs/architecture/native-rtc-migration-map.md.
  *
- * HS256, hand-rolled, mirroring `ChatTokenService` rather than pulling in a
- * JWT library: the format is small and fixed, the verification rules are
- * few, and the two services should be readable side by side since they
- * make the same security decisions (own secret, fixed `aud`, constant-time
- * signature compare, no error detail echoed back to the client).
+ * HS256, hand-rolled, mirroring `ChatTokenService` instead of pulling in a
+ * JWT library. The format is small and fixed, there are only a handful of
+ * verification rules, and the two services want to be readable side by
+ * side, since they make the same security decisions: own secret, fixed
+ * `aud`, constant-time signature compare, no error detail echoed back to
+ * the client.
  *
- * Signed with RTC_TOKEN_SECRET, distinct from JWT_SECRET (dashboard
+ * Signed with RTC_TOKEN_SECRET, separate from JWT_SECRET (dashboard
  * sessions) and CHAT_TOKEN_SECRET (chat). None of the three can mint each
  * other's tokens: different secrets, and different `aud` even if a secret
- * were ever shared by accident.
+ * somehow got shared by accident.
  */
 @Injectable()
 export class RtcTokenSignerService {
@@ -86,14 +88,17 @@ export class RtcTokenSignerService {
   }
 
   /**
-   * Verifies signature, audience/issuer, expiry, and claim completeness.
+   * Verifies signature, audience and issuer, expiry, and claim
+   * completeness.
    *
-   * Order matters: the signature is checked before anything in the payload
-   * is read, so no unverified attacker-controlled value ever reaches a
-   * decision. `TOKEN_EXPIRED` is distinguished from `INVALID_TOKEN`
-   * because a client whose token merely aged out should be told to refresh
-   * (spec §21), not left guessing — but only *after* the signature proves
-   * the expiry claim is ours to trust.
+   * The order matters. We check the signature before reading a single thing
+   * out of the payload, so no unverified attacker-controlled value ever
+   * reaches a decision.
+   *
+   * `TOKEN_EXPIRED` is kept apart from `INVALID_TOKEN` because a client
+   * whose token merely aged out should be told to refresh (spec §21) rather
+   * than left guessing. But only *after* the signature has proved the expiry
+   * claim is ours to trust in the first place.
    */
   verify(rawToken: string): RtcTokenClaims {
     if (!rawToken || typeof rawToken !== 'string') {
@@ -108,8 +113,8 @@ export class RtcTokenSignerService {
     const [header, payload, signature] = parts;
     const expected = this.hmac(`${header}.${payload}`);
 
-    // Constant-time compare — a plain !== leaks signature bytes through
-    // timing to anyone willing to make enough attempts.
+    // Constant-time compare. A plain !== leaks signature bytes through
+    // timing to anybody willing to make enough attempts.
     const provided = Buffer.from(signature);
     const expectedBuffer = Buffer.from(expected);
     if (provided.length !== expectedBuffer.length || !timingSafeEqual(provided, expectedBuffer)) {
@@ -121,18 +126,18 @@ export class RtcTokenSignerService {
     try {
       decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
     } catch {
-      // Never echo the malformed input back — it is attacker-controlled,
-      // even though the signature checked out (a valid signature over
-      // garbage means our own secret leaked, which is worth logging
-      // loudly and still not reflecting).
+      // Never echo the malformed input back. It's attacker-controlled even
+      // though the signature checked out, and a valid signature over
+      // garbage means our own secret leaked. Worth logging loudly, and
+      // still worth not reflecting.
       throw new RtcTokenError('INVALID_TOKEN', 'RTC token payload could not be decoded');
     }
 
     const claims = this.assertClaims(decoded);
 
     if (claims.aud !== 'raven-rtc' || claims.iss !== 'raven') {
-      // A chat token or a dashboard session JWT would land here — if it
-      // somehow shared our secret.
+      // A chat token or a dashboard session JWT lands here, if it somehow
+      // shared our secret.
       throw new RtcTokenError('INVALID_TOKEN', 'This token was not issued for Raven RTC');
     }
     if (claims.exp * 1000 <= Date.now()) {
@@ -143,12 +148,14 @@ export class RtcTokenSignerService {
   }
 
   /**
-   * Rejects a structurally incomplete token outright instead of letting a
-   * missing claim read as a falsy default downstream. A token without
-   * `perms` must not be treated as a token granting nothing — it must be
-   * treated as not a token at all, because the difference between those
-   * two is the difference between a confusing bug report and a silent
-   * authorization hole in whichever direction the defaults happen to fall.
+   * Rejects a structurally incomplete token outright, rather than let a
+   * missing claim read as a falsy default further downstream.
+   *
+   * A token without `perms` must not be treated as a token that grants
+   * nothing. It has to be treated as not a token at all. The difference
+   * between those two is the difference between a confusing bug report and
+   * a silent authorization hole, depending on which way the defaults happen
+   * to fall.
    */
   private assertClaims(decoded: unknown): RtcTokenClaims {
     if (!decoded || typeof decoded !== 'object') {

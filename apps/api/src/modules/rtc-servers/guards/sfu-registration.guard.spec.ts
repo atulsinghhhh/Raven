@@ -36,7 +36,7 @@ describe('SfuRegistrationGuard', () => {
 
   it('rejects a secret of a different length without throwing on the compare', () => {
     // timingSafeEqual throws on length mismatch, which would itself be a
-    // length oracle — the guard hashes first so both inputs are 32 bytes.
+    // length oracle: the guard hashes first so both inputs are 32 bytes.
     expect(() => guardWith(SECRET).canActivate(contextWith('Bearer a'))).toThrow(UnauthorizedError);
   });
 
@@ -48,7 +48,7 @@ describe('SfuRegistrationGuard', () => {
 
   it('fails closed when no secret is configured', () => {
     // An unconfigured deployment must not have an open registration
-    // endpoint — the node gets a clear error instead.
+    // endpoint: the node gets a clear error instead.
     expect(() => guardWith(undefined).canActivate(contextWith('Bearer anything'))).toThrow(
       UnauthorizedError,
     );

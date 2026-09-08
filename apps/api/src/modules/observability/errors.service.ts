@@ -8,10 +8,10 @@ type ErrorEventWithConnection = ErrorEvent & { connection: Connection | null };
 
 /**
  * Every ID this service hands back is the developer-facing one (Phase 9
- * spec §9: one `conn_...` ID, used everywhere) — `ErrorEvent.connectionId`
+ * spec §9, one `conn_...` ID, used everywhere): `ErrorEvent.connectionId`
  * is an internal database uuid FK, never the public ID, so every read
  * path here re-serializes it through the related `Connection.publicId`
- * rather than returning the raw column.
+ * instead of returning the raw column.
  */
 @Injectable()
 export class ErrorsService {

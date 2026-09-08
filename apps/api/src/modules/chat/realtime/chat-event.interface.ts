@@ -3,7 +3,7 @@ import { ChatServerFrame, PresenceStatus } from '../chat.constants';
 /**
  * A message as it appears to a developer. Nothing internal leaks: no
  * database uuid, no Prisma model, no transport type. `id` is the public
- * `msg_...` id, and `roomId` is the conversation's public id — the same
+ * `msg_...` id, and `roomId` is the conversation's public id: the same
  * string the developer passed to `chat.connect({ room })`.
  */
 export interface ChatMessageView {
@@ -104,7 +104,7 @@ export type ChatRealtimeEvent =
  * Wraps an event with the metadata a receiving gateway needs but a client
  * must never see. `originConnectionId` lets a gateway skip echoing an
  * event back to the socket that caused it where that's the right
- * behaviour (typing, presence) — messages are always echoed, so the
+ * behaviour (typing, presence): messages are always echoed, so the
  * sender sees the same canonical, server-ordered row everyone else does.
  */
 export interface ChatEventEnvelope {

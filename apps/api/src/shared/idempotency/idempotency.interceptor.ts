@@ -18,28 +18,29 @@ interface CachedResponse {
 }
 
 /**
- * Generalizes the dedup pattern already proven twice in this codebase —
- * chat's `Message.clientMessageId` and webhooks' `(eventId, endpointId)`
- * unique constraint — onto REST mutations that have no dedicated column
- * of their own to lean on: a client-supplied `Idempotency-Key` header,
- * scoped per route and per caller (`actorFor`, the same identity
- * RateLimitGuard keys on), gets its first response cached in Redis; a
- * retry with the same key inside the TTL replays that response instead
- * of re-executing the handler.
+ * Takes the dedup pattern this codebase has already proved twice, in chat's
+ * `Message.clientMessageId` and webhooks' `(eventId, endpointId)` unique
+ * constraint, and generalizes it onto REST mutations with no dedicated
+ * column of their own to lean on.
  *
- * This is a best-effort fast path, not a lock — same honesty as the
- * comment on `RedisKeys.idempotency` in chat.constants.ts ("fast-path
- * duplicate detection ahead of the DB's unique constraint"). Two
- * requests carrying the same key that arrive concurrently, before either
- * has cached a response yet, can both execute the handler. Routes where
- * that would be a real problem need their own DB-level uniqueness
- * constraint, the same way chat and webhooks already have theirs — this
- * layer catches the far more common case (a client retrying after a
- * timeout, one request at a time), not the concurrent race.
+ * A client-supplied `Idempotency-Key` header, scoped per route and per
+ * caller (`actorFor`, the same identity RateLimitGuard keys on), gets its
+ * first response cached in Redis. A retry with the same key inside the TTL
+ * replays that response rather than re-executing the handler.
  *
- * Opt-in via `@Idempotent()` + `@UseInterceptors(IdempotencyInterceptor)`
- * — see that decorator for why this isn't applied globally. Fails open
- * on Redis errors, same posture as every other Redis-backed concern here.
+ * Be clear that this is a best-effort fast path, not a lock. Same honesty as
+ * the note on `RedisKeys.idempotency` in chat.constants.ts: "fast-path
+ * duplicate detection ahead of the DB's unique constraint". Two requests
+ * carrying the same key that arrive concurrently, before either has cached
+ * a response, will both execute the handler. Routes where that's a genuine
+ * problem need their own DB-level uniqueness constraint, exactly as chat and
+ * webhooks already have. This layer catches the far commoner case, a client
+ * retrying after a timeout one request at a time, not the concurrent race.
+ *
+ * Opt in with `@Idempotent()` plus
+ * `@UseInterceptors(IdempotencyInterceptor)`; that decorator explains why
+ * this isn't global. Fails open on Redis errors, same posture as every other
+ * Redis-backed concern around here.
  */
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
@@ -57,9 +58,9 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest<Request>();
     const key = this.extractKey(request);
     if (!key) {
-      // No key supplied, or a client sent something we won't put in a
-      // Redis key — proceed without dedup rather than reject a request
-      // over what is an optional header.
+      // No key supplied, or a client sent something we won't put in a Redis
+      // key. Carry on without dedup rather than reject a request over what
+      // is, after all, an optional header.
       return next.handle();
     }
 
@@ -75,9 +76,9 @@ export class IdempotencyInterceptor implements NestInterceptor {
       return of(cached.body);
     }
 
-    // Not cached (or Redis was unreachable for the read above) — run the
-    // handler for real. A thrown error here propagates untouched: only a
-    // successful response gets cached, so a client is free to retry a
+    // Not cached, or Redis was unreachable for the read above. Either way,
+    // run the handler for real. An error thrown here propagates untouched:
+    // only a successful response gets cached, so a client is free to retry a
     // genuinely failed attempt with the same key.
     const response = await firstValueFrom(next.handle());
 
@@ -109,14 +110,14 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
   private async writeCached(redisKey: string, value: CachedResponse, ttlSeconds: number): Promise<void> {
     try {
-      // NX: if two concurrent requests both raced past the read above,
-      // whichever finishes first wins the cached slot — the second
-      // doesn't clobber it with its own (identical, since both hashed
-      // the same body) response.
+      // NX. If two concurrent requests both raced past the read above,
+      // whichever finishes first wins the cached slot, and the second
+      // doesn't clobber it with its own response. Which would be identical
+      // anyway, since both hashed the same body.
       await this.redisService.client.set(redisKey, JSON.stringify(value), 'EX', ttlSeconds, 'NX');
     } catch {
-      // A caller retrying within the window just re-executes the
-      // handler — not ideal, but not a reason to fail this request.
+      // A caller retrying inside the window just re-executes the handler.
+      // Not ideal, but no reason to fail this request over.
     }
   }
 }

@@ -25,7 +25,7 @@ function isNonEmptyString(value: unknown): value is string {
 
 /**
  * Every client message passes through here before any handler sees it.
- * Nothing gets forwarded blindly — unknown types, missing fields, wrong
+ * Nothing gets forwarded blindly: unknown types, missing fields, wrong
  * field types, oversized payloads all get rejected here, not downstream.
  *
  * SDP bodies are checked for presence and type but never parsed: the SFU's
@@ -101,7 +101,7 @@ export class MessageValidatorService {
       case ClientMessageType.SDP_OFFER:
       case ClientMessageType.SDP_ANSWER: {
         // No `targetParticipantId`. Requiring one was the defining
-        // feature of the mesh protocol this replaced — the client has
+        // feature of the mesh protocol this replaced: the client has
         // exactly one peer now, the SFU serving its room.
         if (!isNonEmptyString(candidate.sdp)) {
           throw this.missingField('sdp');
@@ -148,7 +148,7 @@ export class MessageValidatorService {
         if (!isNonEmptyString(candidate.trackId)) {
           throw this.missingField('trackId');
         }
-        // Rejected rather than defaulted: a source we do not recognise
+        // Rejected, not defaulted: a source we do not recognise
         // would be silently rendered as a camera, and a screen share
         // shown as somebody's face is a worse outcome than an error.
         if (!isNonEmptyString(candidate.source) || !TRACK_SOURCES.has(candidate.source)) {

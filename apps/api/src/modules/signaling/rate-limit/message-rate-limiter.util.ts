@@ -2,7 +2,7 @@ import { ParticipantSession } from '../interfaces/participant-session.interface'
 
 /**
  * Per-connection sliding-window message rate limit. In-memory, not
- * Redis — this state only means anything to the one process holding the
+ * Redis: this state only means anything to the one process holding the
  * live WebSocket, so there's nothing worth sharing across instances
  * (unlike the connection-level limit, which has to survive reconnects).
  */

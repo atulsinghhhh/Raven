@@ -10,7 +10,7 @@ declare module 'express' {
 
 /**
  * One JSON line per request, tagged with a correlation ID.
- * Deliberately skips headers/bodies — those can carry API keys, JWTs,
+ * Deliberately skips headers/bodies: those can carry API keys, JWTs,
  * passwords. This is the one log line guaranteed to fire for every
  * request no matter which handler (if any) ends up processing it.
  */
