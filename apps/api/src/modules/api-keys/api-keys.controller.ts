@@ -62,7 +62,7 @@ export class ApiKeysController {
         id: '15633d21-c086-4d30-b326-cc75518cf369',
         name: 'production-server',
         publicId: 'rvk_TugSAioScTjb',
-        key: 'rvk_TugSAioScTjb.roU60yZAdaa72T2tov2Mzf9E8aQ1gJL1gvdAESyMabA',
+        key: 'rvk_TugSAioScTjb.EXAMPLEONLYxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
         createdAt: '2026-08-17T15:09:48.859Z',
         warning: 'This is the only time the full key is shown. Store it securely — it cannot be retrieved again.',
       },
