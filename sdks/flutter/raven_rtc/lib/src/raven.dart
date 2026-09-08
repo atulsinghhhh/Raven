@@ -47,11 +47,11 @@ class Raven {
   /// The `endpoint` field from the same mint response.
   ///
   /// This is Raven's signaling address, not a media server's. Clients
-  /// never learn which SFU serves their room — that is what allows the
+  /// never learn which SFU serves their room: that is what allows the
   /// media plane to change without an SDK release.
   final String endpoint;
 
-  /// The `iceServers` array from the same response — forward it as-is.
+  /// The `iceServers` array from the same response: forward it as-is.
   /// Omitting it means the connection has no STUN or TURN, which fails
   /// for most clients behind a NAT.
   final List<RavenIceServer>? iceServers;
@@ -63,7 +63,7 @@ class Raven {
   ///
   /// Adaptive streaming asks the server for only the resolution a view is
   /// actually showing. On a phone that is the difference between decoding
-  /// a 1080p stream into a thumbnail and decoding a thumbnail — a direct
+  /// a 1080p stream into a thumbnail and decoding a thumbnail: a direct
   /// saving in CPU, battery and mobile data. It works here because
   /// [RavenVideoView] reports its size; the web SDK leaves it off because
   /// a browser tab has neither the battery constraint nor the metering.
@@ -84,7 +84,7 @@ class Raven {
   final bool dynacast;
 
   /// Preferred region for the RTC server. A preference, not a constraint:
-  /// the allocator falls back to another region rather than failing a call
+  /// the allocator falls back to another region instead of failing a call
   /// that could otherwise happen.
   final String? region;
 
@@ -101,7 +101,7 @@ class Raven {
   /// Joins a room.
   ///
   /// Completes once signaling has confirmed the join. Camera and
-  /// microphone are **not** started automatically — a user should see
+  /// microphone are **not** started automatically: a user should see
   /// their own preview and decide, and enabling them here would light up
   /// the camera before any UI explained why.
   Future<RavenRoom> join(String roomId) async {
@@ -185,7 +185,7 @@ class Raven {
 
 /// A STUN or TURN server, as returned by your backend alongside the token.
 ///
-/// A plain data class rather than a WebRTC type, so an application can
+/// A plain data class, not a WebRTC type, so an application can
 /// forward the mint response without importing `flutter_webrtc`.
 class RavenIceServer {
   const RavenIceServer({

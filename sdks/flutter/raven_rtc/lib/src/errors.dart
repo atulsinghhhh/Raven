@@ -1,6 +1,6 @@
 /// Stable, typed error codes this SDK can raise.
 ///
-/// These are the same codes `@raven/rtc` uses on the web, deliberately: a
+/// These are the same codes `@raven/rtc` uses on the web, by design: a
 /// team shipping both a web app and a Flutter app should be reading the
 /// same vocabulary in both places, and a support conversation shouldn't
 /// depend on which platform the user was on.
@@ -43,7 +43,7 @@ class RavenException implements Exception {
 /// Thrown when the operating system refuses camera or microphone access.
 ///
 /// Mobile's one genuinely new failure mode compared to the web. It's a
-/// subclass rather than a separate type so `on RavenException` still
+/// subclass instead of a separate type so `on RavenException` still
 /// catches it, while `on RavenPermissionException` can offer the "open
 /// Settings" path that a plain denial doesn't need.
 class RavenPermissionException extends RavenException {
@@ -65,7 +65,7 @@ class RavenPermissionException extends RavenException {
 
   /// True when re-prompting does nothing and only the system settings
   /// screen will help. The two cases need different UI, so the SDK
-  /// reports which one happened rather than making the app guess.
+  /// reports which one happened, not making the app guess.
   final bool permanentlyDenied;
 }
 

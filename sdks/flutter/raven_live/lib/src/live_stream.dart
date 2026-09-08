@@ -20,8 +20,8 @@ import 'types.dart';
 ///
 /// A thin composition, not a parallel implementation: [room] *is* a
 /// `raven_rtc` [RavenRoom] and [chat] *is* a `raven_chat` [RavenChat].
-/// Every method and stream documented for those packages — participant
-/// changes, camera/microphone, messages, reactions, typing, presence —
+/// Every method and stream documented for those packages: participant
+/// changes, camera/microphone, messages, reactions, typing, presence;
 /// works unchanged on what this class hands back. Host vs. viewer publish
 /// permission is enforced entirely server-side by the RTC token grant;
 /// this class never sends a role, only reflects one it was given.
@@ -77,7 +77,7 @@ class RavenLiveStream {
   /// Which stream this is.
   String get streamId => credentials.streamId;
 
-  /// This identity's role — never something inferred, only ever what the
+  /// This identity's role: never something inferred, only ever what the
   /// credentials said.
   RavenLiveStreamRole get role => credentials.role;
 
@@ -91,7 +91,7 @@ class RavenLiveStream {
   /// works on it unchanged.
   RavenChat? get chat => _chat;
 
-  /// Reacts to the stream — the same reaction model web, CLI, and the
+  /// Reacts to the stream: the same reaction model web, CLI, and the
   /// server SDKs use, attached to the chat message every viewer's
   /// reaction lands on.
   ///
@@ -111,7 +111,7 @@ class RavenLiveStream {
   }
 
   /// Leaves the room and disposes the chat connection. Ending the stream
-  /// itself (`LIVE` -> `ENDED`) is a separate, server-side call — see
+  /// itself (`LIVE` -> `ENDED`) is a separate, server-side call: see
   /// `@corvidhq/server`'s/`raven-sdk`'s `end_stream()`.
   Future<void> leave() async {
     await _raven.leave();

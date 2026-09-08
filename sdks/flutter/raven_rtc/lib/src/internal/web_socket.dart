@@ -13,8 +13,8 @@ import 'signaling_client.dart';
 class ChannelSocket implements RavenSocket {
   ChannelSocket._(this._channel) {
     // `stream` is single-subscription, and the signaling client listens
-    // once — but the close future below also needs to know when it ends,
-    // so completion is driven from that one listener rather than a second
+    // once, but the close future below also needs to know when it ends,
+    // so completion is driven from that one listener instead of a second
     // subscription (which would throw).
     _messages =
         _channel.stream.map((event) => event).handleError((Object error) {
@@ -44,8 +44,8 @@ class ChannelSocket implements RavenSocket {
   /// Connects, completing once the handshake succeeds.
   ///
   /// `ready` is what distinguishes "the server accepted the upgrade" from
-  /// "the socket object exists" — without awaiting it, a rejected
-  /// credential surfaces later as a close rather than as a failed connect,
+  /// "the socket object exists": without awaiting it, a rejected
+  /// credential surfaces later as a close, not as a failed connect,
   /// and the join times out instead of reporting the real reason.
   static Future<RavenSocket> connect(String url) async {
     final channel = WebSocketChannel.connect(Uri.parse(url));

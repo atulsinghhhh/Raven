@@ -1,4 +1,4 @@
-/// Raven Chat for Flutter — real-time messaging.
+/// Raven Chat for Flutter: real-time messaging.
 ///
 /// ```dart
 /// final chat = RavenChat(token: token, apiUrl: apiUrl);
@@ -9,7 +9,7 @@
 /// ```
 ///
 /// Talks to the same Raven Chat service as the web and React Native
-/// SDKs, over the same protocol — there is no mobile-specific backend.
+/// SDKs, over the same protocol: there is no mobile-specific backend.
 /// Durable history, presence, typing, reactions, read receipts and
 /// threads all behave identically across platforms.
 ///

@@ -11,7 +11,7 @@ import 'dart:math';
 /// Jitter is not decoration. When a gateway restarts, every client it was
 /// holding wakes at the same instant; without jitter they retry in
 /// lockstep and recreate the thundering herd on every attempt. Full
-/// jitter — a uniform pick inside the window — spreads them out.
+/// jitter, a uniform pick inside the window, spreads them out.
 ///
 /// This matters more on mobile than on the web: a cell handover or a lift
 /// disconnects thousands of clients simultaneously in a way a browser tab

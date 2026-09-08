@@ -13,7 +13,7 @@ enum RavenConnectionState {
 /// What a track carries.
 ///
 /// `unknown` exists because the SFU can in principle report a source this
-/// version doesn't know — treating that as an error would break an app on
+/// version doesn't know: treating that as an error would break an app on
 /// a server upgrade it didn't ask for.
 enum RavenTrackKind { camera, microphone, screenShare, unknown }
 
@@ -84,7 +84,7 @@ class RavenParticipant {
   bool get isScreenSharing => _liveSources.contains(RavenTrackKind.screenShare);
 
   /// @internal Used by [RavenVideoView] to reach the renderable track.
-  /// Not part of the public API — a developer never handles a WebRTC
+  /// Not part of the public API: a developer never handles a WebRTC
   /// object, and the doc comment keeps that intent explicit.
   RavenRenderableTrack? videoTrackFor(RavenTrackKind kind) =>
       _videoTracks[kind];

@@ -1,6 +1,6 @@
 import 'package:raven_rtc/raven_rtc.dart' show RavenIceServer;
 
-/// A stream identity's role — the same three values the backend, the
+/// A stream identity's role: the same three values the backend, the
 /// server SDKs, and the web/React/React Native SDKs all use. HOST and
 /// CO_HOST carry identical RTC/chat grants; the difference is bookkeeping,
 /// never something this SDK infers on its own.
@@ -13,7 +13,7 @@ extension RavenLiveStreamRoleX on RavenLiveStreamRole {
 }
 
 /// Parses the wire value (`"HOST"`, `"CO_HOST"`, `"VIEWER"`) your backend
-/// sends. Throws on anything else — silently defaulting an unrecognised
+/// sends. Throws on anything else: silently defaulting an unrecognised
 /// role would be the one place getting this wrong actually matters.
 RavenLiveStreamRole ravenLiveStreamRoleFromJson(String value) {
   switch (value) {
@@ -28,7 +28,7 @@ RavenLiveStreamRole ravenLiveStreamRoleFromJson(String value) {
   }
 }
 
-/// The RTC half of a stream credential — identical fields to what
+/// The RTC half of a stream credential: identical fields to what
 /// `Raven(token:, endpoint:)` already takes.
 class RavenLiveStreamRtcCredentials {
   const RavenLiveStreamRtcCredentials({
@@ -77,13 +77,13 @@ class RavenLiveStreamChatCredentials {
   final String? chatUrl;
 
   /// The conversation(s) this token may touch. [RavenLiveStream] connects
-  /// to the first one — a stream has exactly one chat conversation today.
+  /// to the first one: a stream has exactly one chat conversation today.
   final List<String> conversations;
 }
 
 /// Everything [RavenLiveStream.join] needs, minted server-side by
 /// `@corvidhq/server`'s `addHost()`/`createViewerToken()` (or the
-/// equivalent `raven-sdk` call) — never construct one of these by hand.
+/// equivalent `raven-sdk` call): never construct one of these by hand.
 ///
 /// Mirrors `@corvidhq/client`'s `LiveStreamCredentials` field-for-field,
 /// which is the reason [RavenLiveStreamCredentials.fromJson] accepts

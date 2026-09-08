@@ -12,12 +12,12 @@ import 'types.dart';
 /// RavenVideoView(participant: remote, room: room)
 /// ```
 ///
-/// Rebuilds by itself as tracks are published, muted, or resubscribed —
+/// Rebuilds by itself as tracks are published, muted, or resubscribed;
 /// pass [room] and the widget listens for you. Without a room it renders
 /// once and stays put, which is right for a static thumbnail and wrong
 /// for a call.
 ///
-/// A stateful widget rather than a plain builder, because the underlying
+/// A stateful widget instead of a plain builder, because the underlying
 /// renderer holds a native texture that has to be created and disposed in
 /// step with the widget's own lifecycle. Getting that wrong leaks a
 /// native view per rebuild (spec §19).
@@ -32,7 +32,7 @@ class RavenVideoView extends StatefulWidget {
     this.placeholder,
   });
 
-  /// Whose video to show. Local or remote — the widget doesn't care.
+  /// Whose video to show. Local or remote: the widget doesn't care.
   final RavenParticipant? participant;
 
   /// Pass the room to make the widget follow track changes.
@@ -47,7 +47,7 @@ class RavenVideoView extends StatefulWidget {
   /// is what a user expects of their own preview, and false otherwise.
   final bool? mirror;
 
-  /// Shown when there is no video — camera off, muted, or not yet
+  /// Shown when there is no video: camera off, muted, or not yet
   /// published. Defaults to a plain black surface.
   final Widget? placeholder;
 
@@ -61,7 +61,7 @@ class _RavenVideoViewState extends State<RavenVideoView> {
   RavenRenderableTrack? _track;
 
   /// The renderer owns a native texture, so it is created and disposed in
-  /// step with this State rather than per build. Rebuilding one per frame
+  /// step with this State, not per build. Rebuilding one per frame
   /// leaks a native view each time (spec §19).
   final _renderer = rtc.RTCVideoRenderer();
   bool _rendererReady = false;
@@ -92,7 +92,7 @@ class _RavenVideoViewState extends State<RavenVideoView> {
 
     // The room can change when a screen is reused across calls. Moving
     // the listener is what stops the widget listening to a disposed room
-    // — which throws on the next notification.
+    //, which throws on the next notification.
     if (oldWidget.room != widget.room) {
       oldWidget.room?.removeListener(_syncTrack);
       widget.room?.addListener(_syncTrack);
@@ -145,7 +145,7 @@ class _RavenVideoViewState extends State<RavenVideoView> {
             (widget.participant?.isLocal ?? false));
 
     // Reports its own size to the room so adaptive streaming can ask for
-    // a layer that matches what is actually on screen — the "viewport"
+    // a layer that matches what is actually on screen: the "viewport"
     // input spec §15 lists. A thumbnail asking for 1080p is the exact
     // waste this avoids.
     return LayoutBuilder(
@@ -169,7 +169,7 @@ class _RavenVideoViewState extends State<RavenVideoView> {
   /// Asks for the smallest layer that still covers this view.
   ///
   /// A preference, not a command: the SFU will not hand over a layer the
-  /// publisher is not sending. Only sent for remote tracks — asking for a
+  /// publisher is not sending. Only sent for remote tracks: asking for a
   /// layer of your own camera would be asking the server to change what
   /// you are sending.
   void _requestLayerFor(BoxConstraints constraints) {

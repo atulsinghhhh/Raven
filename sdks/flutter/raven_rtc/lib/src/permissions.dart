@@ -6,7 +6,7 @@ import 'errors.dart';
 /// Camera and microphone permissions.
 ///
 /// Flutter has no permissions API in the framework itself, and the usual
-/// answer — `permission_handler` — is one more plugin for every app to
+/// answer, `permission_handler`, is one more plugin for every app to
 /// add and configure. Raven doesn't require it: on both iOS and Android,
 /// asking for the device is what raises the OS prompt, so this asks for
 /// the device and reads the outcome.
@@ -19,18 +19,18 @@ import 'errors.dart';
 ///
 /// **Manifest entries the SDK cannot add for you:**
 ///
-/// * iOS `Info.plist` — `NSCameraUsageDescription` and
+/// * iOS `Info.plist`: `NSCameraUsageDescription` and
 ///   `NSMicrophoneUsageDescription`. Missing either one crashes the app
 ///   the instant it asks, which surfaces as an App Store review failure
 ///   rather than a bug report.
-/// * Android `AndroidManifest.xml` — `android.permission.CAMERA`,
+/// * Android `AndroidManifest.xml`: `android.permission.CAMERA`,
 ///   `android.permission.RECORD_AUDIO`, `android.permission.INTERNET`.
 class RavenPermissions {
   const RavenPermissions._();
 
   /// Prompts for the given permissions and reports what the user chose.
   ///
-  /// Never throws — inspect the map, or use [require] if you'd rather
+  /// Never throws: inspect the map, or use [require] if you'd rather
   /// have an exception.
   static Future<Map<RavenPermission, bool>> request([
     List<RavenPermission> permissions = const [
@@ -74,7 +74,7 @@ class RavenPermissions {
   /// Opens the device, then immediately closes it again.
   ///
   /// Acquiring the track is the only way to raise the permission dialog
-  /// from Dart. It's released straight away — this is a probe, not a
+  /// from Dart. It's released straight away: this is a probe, not a
   /// capture session, and holding it would leave the camera indicator lit
   /// on a screen that isn't showing video.
   static Future<bool> _probe(RavenPermission permission) async {
@@ -90,7 +90,7 @@ class RavenPermissions {
       );
       return true;
     } catch (error) {
-      // Logged rather than swallowed: a developer debugging a refused
+      // Logged instead of swallowed: a developer debugging a refused
       // camera needs to see the platform's own message, which is more
       // specific than anything this layer could reconstruct.
       debugPrint('[raven] ${permission.name} permission probe failed: $error');

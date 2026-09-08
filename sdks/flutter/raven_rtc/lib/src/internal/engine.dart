@@ -14,7 +14,7 @@ const _dataChannelLabel = 'raven-data';
 /// Simulcast ladder for a published camera (spec §15).
 ///
 /// Three spatial layers, each a quarter of the previous one's pixel count
-/// — the standard ladder, and the one native WebRTC implements well.
+///: the standard ladder, and the one native WebRTC implements well.
 const _simulcastEncodings = [
   ('low', 4.0, 150000),
   ('medium', 2.0, 500000),
@@ -61,7 +61,7 @@ class PublishedTrack {
 /// # Negotiation
 ///
 /// The SFU offers, this answers. That holds even for publishing: a track
-/// is added and the SFU's next offer carries it — except on the first
+/// is added and the SFU's next offer carries it: except on the first
 /// publish of a kind, where there is no transceiver yet and a
 /// client-initiated offer is unavoidable. The server resolves the
 /// resulting glare by refusing the client's offer with a retryable code,
@@ -70,7 +70,7 @@ class PublishedTrack {
 /// # What this replaced
 ///
 /// `livekit_client` owned all of this. The engine exists because Raven's
-/// SFU speaks Raven's protocol — and because that is the whole point of
+/// SFU speaks Raven's protocol, and because that is the whole point of
 /// the migration: no client library sits between the app and the media
 /// plane, so the media plane can change without an SDK release.
 class RavenEngine {
@@ -113,7 +113,7 @@ class RavenEngine {
   /// Fires whenever the track or participant set changed.
   Stream<void> get changes => _changes.stream;
 
-  /// Failures that arrive asynchronously rather than from a call.
+  /// Failures that arrive asynchronously instead of from a call.
   Stream<RavenException> get errors => _errors.stream;
 
   /// Payloads another participant sent over the data channel.
@@ -123,7 +123,7 @@ class RavenEngine {
   Iterable<PublishedTrack> get publishedTracks => _published.values;
 
   /// The SFU's own view of this connection, which can disagree with the
-  /// local one — and that disagreement is often the whole diagnosis.
+  /// local one, and that disagreement is often the whole diagnosis.
   ({String? iceState, String? peerState}) get remoteConnectionState =>
       (iceState: _remoteIceState, peerState: _remotePeerState);
 
@@ -141,7 +141,7 @@ class RavenEngine {
   ///
   /// Called on the first join and after every reconnect. On a reconnect
   /// the reported set is authoritative, so tracks nobody is publishing any
-  /// more are dropped rather than lingering.
+  /// more are dropped, not lingering.
   void applyJoinedState(JoinedPayload payload) {
     final present = <String>{};
     for (final participant in payload.participants) {
@@ -221,7 +221,7 @@ class RavenEngine {
 
     pc.onIceCandidate = (candidate) {
       if (candidate.candidate == null) {
-        // End of gathering. Not forwarded — the server treats the absence
+        // End of gathering. Not forwarded: the server treats the absence
         // of further candidates the same way, and an explicit
         // end-of-candidates message would be one more thing for three
         // client implementations to agree on.
@@ -296,7 +296,7 @@ class RavenEngine {
     } catch (_) {
       // Candidates commonly arrive just before a remote description is
       // set, or for a transceiver that has since gone. Neither is worth
-      // surfacing — the connection succeeds on the ones that do apply.
+      // surfacing: the connection succeeds on the ones that do apply.
     }
   }
 
@@ -310,7 +310,7 @@ class RavenEngine {
 
   /// Offers, so the server learns about a newly added track.
   ///
-  /// Needed only when adding a track created a new transceiver — the first
+  /// Needed only when adding a track created a new transceiver: the first
   /// publish of each kind. Later publishes of the same kind reuse it and
   /// ride the server's next offer.
   Future<void> _negotiatePublish() async {
@@ -347,7 +347,7 @@ class RavenEngine {
 
   /// Matches an arriving track to what signaling said about it.
   ///
-  /// `onTrack` and `track.published` race, and either can be first — so
+  /// `onTrack` and `track.published` race, and either can be first, so
   /// this completes the subscription only when both halves are present,
   /// and parks whichever arrived first. A path that only worked in one
   /// order would drop tracks nondeterministically.
@@ -426,7 +426,7 @@ class RavenEngine {
   void _setRemoteMuted(String participantId, String trackId, bool muted) {
     final subscription = _subscribed[_key(participantId, trackId)];
     if (subscription == null) return;
-    // The publisher's mute, reported by the SFU — not the platform's
+    // The publisher's mute, reported by the SFU: not the platform's
     // "no data arriving" flag, which flickers during ordinary jitter and
     // would flash a muted badge on a healthy connection.
     subscription.muted = muted;
@@ -473,7 +473,7 @@ class RavenEngine {
 
     // Declared over signaling, not inferred from the SDP: an application
     // cannot choose the stream or track id that reaches the wire, so
-    // codec kind is all the SFU could otherwise go on — and that cannot
+    // codec kind is all the SFU could otherwise go on, and that cannot
     // tell a screen share from a camera (spec §16). Sent before
     // negotiating so the source is known by the time the media arrives.
     signaling.send({
@@ -531,7 +531,7 @@ class RavenEngine {
     published.muted = muted;
 
     // The SFU is told separately so it can stop forwarding the silence to
-    // every subscriber rather than paying to relay it.
+    // every subscriber instead of paying to relay it.
     signaling.send({
       'type': ClientMessageType.trackMute,
       'trackId': published.track.id ?? '',
@@ -564,7 +564,7 @@ class RavenEngine {
       final parameters = sender.parameters;
       // Some platforms report no encodings until the first negotiation
       // completes. Setting them then fails; the SFU falls back to a single
-      // layer, which is correct rather than broken.
+      // layer, which is correct, not broken.
       if (parameters.encodings == null || parameters.encodings!.isEmpty) {
         return;
       }

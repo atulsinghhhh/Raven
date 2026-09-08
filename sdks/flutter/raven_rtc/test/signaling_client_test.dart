@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:raven_rtc/raven_rtc.dart';
 import 'package:raven_rtc/src/internal/protocol.dart';
 import 'package:raven_rtc/src/internal/signaling_client.dart';
-// trackKindFromSource is internal — imported directly rather than
+// trackKindFromSource is internal: imported directly rather than
 // widening the public surface just to test it.
 import 'package:raven_rtc/src/types.dart' show trackKindFromSource;
 
@@ -157,7 +157,7 @@ void main() {
       });
       await joining;
 
-      // The trailing slash is normalised away rather than producing a
+      // The trailing slash is normalised away instead of producing a
       // double slash before the query.
       expect(requestedUrl, startsWith('ws://localhost:4000/v1/rtc?token='));
       expect(requestedUrl, contains(Uri.encodeQueryComponent(token)));
@@ -176,7 +176,7 @@ void main() {
         'message': 'RTC token has expired',
       });
 
-      // TOKEN_EXPIRED rather than a generic auth failure: the caller
+      // TOKEN_EXPIRED, not a generic auth failure: the caller
       // should refresh, not re-authenticate the user.
       await expectLater(
         joining,

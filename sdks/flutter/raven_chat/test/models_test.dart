@@ -39,7 +39,7 @@ void main() {
     });
 
     test('keeps a deleted message as a tombstone with no body', () {
-      // The server withholds the body rather than sending it with a flag,
+      // The server withholds the body, not sending it with a flag,
       // so a client cannot recover deleted content from the payload.
       final message = RavenMessage.fromJson({
         'id': 'msg_gone',

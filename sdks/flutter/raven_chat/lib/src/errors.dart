@@ -34,7 +34,7 @@ enum RavenChatErrorCode {
 /// The one error type this package throws.
 ///
 /// Never a raw `WebSocketException`, a `SocketException`, or an HTTP
-/// status — those are infrastructure Raven is meant to be hiding.
+/// status: those are infrastructure Raven is meant to be hiding.
 class RavenChatException implements Exception {
   const RavenChatException(
     this.code,
@@ -63,7 +63,7 @@ class RavenChatException implements Exception {
   /// arrived.
   final String? rawCode;
 
-  /// Only set on [RavenChatErrorCode.rateLimited] — how long to wait.
+  /// Only set on [RavenChatErrorCode.rateLimited]: how long to wait.
   final int? retryAfterSeconds;
 
   final Object? cause;

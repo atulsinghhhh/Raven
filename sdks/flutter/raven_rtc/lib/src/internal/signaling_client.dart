@@ -27,7 +27,7 @@ typedef SocketFactory = Future<RavenSocket> Function(String url);
 
 /// The slice of a WebSocket this client needs.
 ///
-/// An interface rather than `dart:io`'s or `dart:html`'s type: Flutter
+/// An interface, not `dart:io`'s or `dart:html`'s type: Flutter
 /// runs on both, `package:web_socket_channel` abstracts them, and the
 /// reconnect logic is worth testing without any of that.
 abstract class RavenSocket {
@@ -45,7 +45,7 @@ typedef TokenRefresher = Future<String> Function();
 
 /// The SDK's signaling connection.
 ///
-/// Owns the socket, the join handshake, and reconnection — and nothing
+/// Owns the socket, the join handshake, and reconnection, and nothing
 /// else. It does not know what a peer connection is: every message is
 /// handed to a listener, which decides what to negotiate. Keeping that
 /// line clean is what makes reconnection testable without a WebRTC stack.
@@ -55,7 +55,7 @@ typedef TokenRefresher = Future<String> Function();
 /// A reconnect re-runs the whole join, because that is what the server
 /// expects: the previous session's peer connection is gone, and
 /// `room.join` allocates a fresh one. That is more work than resuming a
-/// session, and it is deliberate — an ICE restart on a connection that has
+/// session, and it is deliberate: an ICE restart on a connection that has
 /// already failed is less reliable than starting clean, and the client has
 /// to handle a fresh session anyway when the network changed underneath it
 /// (spec §20).
@@ -104,7 +104,7 @@ class SignalingClient {
 
   /// Opens the socket and joins the room.
   ///
-  /// Completes once `room.joined` arrives — not merely once the socket
+  /// Completes once `room.joined` arrives: not merely once the socket
   /// opens. A caller handed a completed future on socket-open would then
   /// have to await an event to know whether it was actually in the room,
   /// which is the same waiting with an extra step.
@@ -210,7 +210,7 @@ class SignalingClient {
     if (message['type'] == ServerMessageType.error) {
       final code = message['code'] as String? ?? '';
       if (SignalingErrorCode.fatal.contains(code)) {
-        // Nothing a reconnect can fix. Close deliberately so the
+        // Nothing a reconnect can fix. Close on purpose so the
         // reconnect path is not entered, and report it.
         _closedByCaller = true;
         _states.add(SignalingLifecycle.failed(_toException(message)));
@@ -293,9 +293,9 @@ class SignalingClient {
     final socket = _socket;
     if (socket == null ||
         !_joined && message['type'] != ClientMessageType.roomJoin) {
-      // Dropped rather than queued. Every message here describes a moment
+      // Dropped instead of queued. Every message here describes a moment
       // in a negotiation, and replaying a stale answer after a reconnect
-      // would be worse than never sending it — the reconnect re-joins and
+      // would be worse than never sending it: the reconnect re-joins and
       // negotiates afresh.
       return;
     }
@@ -338,7 +338,7 @@ class SignalingClient {
     // The token goes in a query parameter because a WebSocket handshake
     // cannot carry custom headers in a browser, and Flutter Web is a
     // supported target. It is short-lived by design for exactly this
-    // reason, and the connection must be wss:// in production — which the
+    // reason, and the connection must be wss:// in production, which the
     // server's own configuration validation enforces.
     return '$base?token=${Uri.encodeQueryComponent(_token)}';
   }
@@ -385,7 +385,7 @@ class SignalingClient {
 
 /// Transport lifecycle, separate from the media connection's state.
 ///
-/// Two sealed variants rather than an enum with a nullable error: a
+/// Two sealed variants, not an enum with a nullable error: a
 /// failure without its cause is not actionable, and the type makes it
 /// impossible to report one without the other.
 sealed class SignalingLifecycle {

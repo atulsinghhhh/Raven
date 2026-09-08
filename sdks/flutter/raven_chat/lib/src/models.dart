@@ -7,7 +7,7 @@ enum RavenPresenceStatus { online, away, offline }
 
 /// Connection lifecycle, matching `@raven/chat`'s vocabulary exactly.
 ///
-/// `failed` is terminal — reconnect attempts are exhausted, or the
+/// `failed` is terminal: reconnect attempts are exhausted, or the
 /// failure is one retrying cannot fix, like a revoked token.
 /// `disconnected` means the connection ended and nothing is being
 /// retried.
@@ -23,7 +23,7 @@ enum RavenChatConnectionState {
 /// A reaction, already grouped per emoji.
 ///
 /// Grouping happens server-side so every client renders "👍 ×3" the same
-/// way rather than each one regrouping raw rows.
+/// way instead of each one regrouping raw rows.
 class RavenReaction {
   const RavenReaction({
     required this.emoji,
@@ -77,7 +77,7 @@ class RavenAttachment {
 
 /// A message, exactly as the server stored it.
 ///
-/// [id] and [createdAt] are always the server's — the SDK never invents
+/// [id] and [createdAt] are always the server's: the SDK never invents
 /// either, which is what keeps ordering consistent across every client in
 /// a room.
 class RavenMessage {
@@ -105,7 +105,7 @@ class RavenMessage {
         roomId: json['roomId'] as String? ?? '',
         senderId: json['senderId'] as String? ?? '',
         type: _parseType(json['type'] as String?),
-        // Null for a deleted message — the server withholds the body
+        // Null for a deleted message: the server withholds the body
         // rather than sending it with a flag, so it can't be recovered
         // from the payload.
         text: json['text'] as String?,
@@ -131,7 +131,7 @@ class RavenMessage {
   /// Raven's canonical `msg_…` id.
   final String id;
 
-  /// The conversation's public id — the same string passed to `connect`.
+  /// The conversation's public id: the same string passed to `connect`.
   final String roomId;
   final String senderId;
   final RavenMessageType type;
@@ -222,7 +222,7 @@ class RavenMessagePage {
   final bool hasMore;
 }
 
-/// Someone's presence in a conversation. Ephemeral by design — this is
+/// Someone's presence in a conversation. Ephemeral by design: this is
 /// never read from durable storage.
 class RavenPresence {
   const RavenPresence({required this.userId, required this.status});

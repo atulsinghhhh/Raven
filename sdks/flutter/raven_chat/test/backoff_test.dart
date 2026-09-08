@@ -47,7 +47,7 @@ void main() {
 
     test('does not overflow at absurd attempt counts', () {
       // A long-lived connection can reconnect many times; the exponent is
-      // clamped so this stays a duration rather than becoming negative.
+      // clamped so this stays a duration instead of becoming negative.
       final delay = backoffDelay(1000);
       expect(delay.inMilliseconds, greaterThan(0));
     });

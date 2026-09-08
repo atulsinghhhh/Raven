@@ -21,7 +21,7 @@ import 'rest_client.dart';
 /// ```
 ///
 /// The same guarantees as every other Raven Chat client, because it talks
-/// to the same service over the same protocol (spec §9 — no
+/// to the same service over the same protocol (spec §9, no
 /// mobile-specific chat backend):
 ///
 /// * a message is only reported sent once it is durably stored;
@@ -91,7 +91,7 @@ class RavenChat extends ChangeNotifier {
   final _pending = <String, Completer<Map<String, dynamic>>>{};
 
   /// Rooms the caller asked to be in. Re-joined automatically after a
-  /// reconnect — the new socket knows nothing of the old one's
+  /// reconnect, since the new socket knows nothing of the old one's
   /// subscriptions.
   final _desiredRooms = <String>{};
 
@@ -106,7 +106,7 @@ class RavenChat extends ChangeNotifier {
   // Streams
   // ---------------------------------------------------------------------
 
-  /// Messages as they arrive — including your own, echoed back.
+  /// Messages as they arrive, your own included, echoed back.
   ///
   /// Receiving your own message is deliberate: the sender renders the
   /// same canonical, server-ordered row as everyone else instead of a
@@ -125,8 +125,8 @@ class RavenChat extends ChangeNotifier {
   Stream<RavenChatConnectionState> get connectionStateChanges =>
       _stateController.stream;
 
-  /// Errors that weren't tied to a call you made — a reconnect giving up,
-  /// for instance. Errors from a specific call reject that call's future.
+  /// Errors that weren't tied to a call you made, a reconnect giving up for
+  /// instance. An error from a specific call rejects that call's future.
   Stream<RavenChatException> get errors => _errorController.stream;
 
   RavenChatConnectionState get connectionState => _state;
@@ -140,9 +140,9 @@ class RavenChat extends ChangeNotifier {
 
   /// Connects and joins [room].
   ///
-  /// Completes once the server has authenticated the socket — not merely
-  /// when the TCP connection opened — so a completed future genuinely
-  /// means you can send.
+  /// Completes once the server has authenticated the socket, not merely once
+  /// the TCP connection opened, so a completed future genuinely means you
+  /// can send.
   Future<void> connect(String room) async {
     _desiredRooms.add(room);
 
@@ -228,7 +228,7 @@ class RavenChat extends ChangeNotifier {
     final idempotencyKey = clientMessageId ?? _generateClientMessageId();
 
     // Over HTTP when the socket is down. Losing connectivity shouldn't
-    // silently lose what the user just typed — the message still stores
+    // silently lose what the user just typed. The message still stores
     // and still fans out to everyone else.
     if (_state != RavenChatConnectionState.connected) {
       final response = await _rest.post(
@@ -259,7 +259,7 @@ class RavenChat extends ChangeNotifier {
   ///
   /// Pass [before] (a previous page's `nextCursor`) to page back through
   /// history, or [after] (its `previousCursor`) to catch up on what
-  /// arrived while disconnected. Cursors are opaque — pass back exactly
+  /// arrived while disconnected. Cursors are opaque, so pass back exactly
   /// what you were given.
   Future<RavenMessagePage> history({
     String? room,
@@ -281,7 +281,7 @@ class RavenChat extends ChangeNotifier {
     return RavenMessagePage.fromJson(response);
   }
 
-  /// Every message in a thread, oldest first — the root plus its replies.
+  /// Every message in a thread, oldest first: the root plus its replies.
   ///
   /// Works from any message in the thread, not just the root.
   Future<List<RavenMessage>> thread(String messageId) async {
@@ -293,7 +293,7 @@ class RavenChat extends ChangeNotifier {
   }
 
   /// Edits a message. The result carries `edited: true` and an
-  /// `editedAt` — Raven never silently rewrites history.
+  /// `editedAt`. Raven never quietly rewrites history.
   Future<RavenMessage> edit(String messageId, String text) async {
     final response = await _rest.patch(
       '/v1/chat/messages/${Uri.encodeComponent(messageId)}',
@@ -343,7 +343,7 @@ class RavenChat extends ChangeNotifier {
     _sendFrame({'type': 'typing.stop', 'room': room ?? _defaultRoom()});
   }
 
-  /// Marks this message — and everything before it — as read.
+  /// Marks this message, and everything before it, as read.
   Future<void> markAsRead(String messageId) async {
     if (_state == RavenChatConnectionState.connected) {
       await _request('read.mark', {'messageId': messageId});
@@ -353,7 +353,7 @@ class RavenChat extends ChangeNotifier {
         .post('/v1/chat/messages/${Uri.encodeComponent(messageId)}/read');
   }
 
-  /// Who is present in a room right now. Ephemeral — never durable state.
+  /// Who's present in a room right now. Ephemeral; never durable state.
   Future<List<RavenPresence>> getPresence({String? room}) async {
     final target = room ?? _defaultRoom();
     final response = await _rest.getList(
@@ -413,7 +413,7 @@ class RavenChat extends ChangeNotifier {
 
   Future<void> _teardownSocket() async {
     // Cancel the subscription before closing, so the close doesn't drive
-    // the reconnect path we're deliberately leaving.
+    // the reconnect path we're by design leaving.
     await _socketSubscription?.cancel();
     _socketSubscription = null;
 
@@ -522,8 +522,8 @@ class RavenChat extends ChangeNotifier {
     final error = RavenChatException.fromServer(frame);
     final id = frame['id'] as String?;
 
-    // Correlated to a call the developer made — reject that future rather
-    // than firing a global error they can't tie back to anything.
+    // This correlates to a call the developer made, so reject that future
+    // rather than fire a global error they can't tie back to anything.
     final pending = id == null ? null : _pending.remove(id);
     if (pending != null) {
       pending.completeError(error);
@@ -534,7 +534,7 @@ class RavenChat extends ChangeNotifier {
   }
 
   void _handleSocketClosed() {
-    // Read the close code *before* dropping the channel — reading it
+    // Read the close code *before* dropping the channel, because reading it
     // afterwards always yields null, which would silently turn a
     // terminal auth rejection into an endless reconnect loop.
     final closeCode = _channel?.closeCode;
@@ -655,7 +655,7 @@ class RavenChat extends ChangeNotifier {
 
   /// Fire-and-forget frames: typing and presence.
   ///
-  /// Dropped rather than queued when disconnected. Both are ephemeral by
+  /// Dropped instead of queued when disconnected. Both are ephemeral by
   /// nature, and replaying them after a reconnect would deliver signals
   /// that were true a minute ago.
   void _sendFrame(Map<String, dynamic> frame) {
@@ -692,8 +692,8 @@ class RavenChat extends ChangeNotifier {
     final expiry = DateTime.tryParse(expiresAt);
     if (expiry == null) return;
 
-    // A minute of headroom, never less than five seconds out — a
-    // short-lived token must not schedule a refresh in the past.
+    // A minute of headroom, never less than five seconds out, so a
+    // short-lived token can't schedule its refresh in the past.
     final target = expiry.subtract(const Duration(minutes: 1));
     final delay = target.difference(DateTime.now());
     final wait =

@@ -20,7 +20,7 @@
 /// Dart.
 ///
 /// Composes `raven_rtc` and `raven_chat` rather than reimplementing
-/// either — `RavenLiveStream.room` is an ordinary [RavenRoom] and
+/// either: `RavenLiveStream.room` is an ordinary [RavenRoom] and
 /// `RavenLiveStream.chat` is an ordinary [RavenChat], so every existing
 /// API on both packages already works on a stream.
 library;
@@ -40,5 +40,5 @@ export 'src/types.dart'
 // Deliberately not re-exported here: everything raven_rtc/raven_chat
 // themselves keep private (flutter_webrtc, the signaling client, the
 // peer-connection engine, the frame vocabulary). Import raven_rtc or
-// raven_chat directly for anything beyond RavenRoom/RavenChat — this
+// raven_chat directly for anything beyond RavenRoom/RavenChat: this
 // package only adds the stream-level composition on top.

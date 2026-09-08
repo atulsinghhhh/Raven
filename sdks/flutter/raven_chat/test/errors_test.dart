@@ -24,7 +24,7 @@ void main() {
     });
 
     test('keeps an unrecognised code visible instead of discarding it', () {
-      // A newer server must widen the model, not break an app — but the
+      // A newer server must widen the model, not break an app, but the
       // developer still needs to see what actually arrived.
       final error = RavenChatException.fromServer({
         'code': 'SOME_FUTURE_CODE',

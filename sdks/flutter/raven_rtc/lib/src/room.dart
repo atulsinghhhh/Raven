@@ -22,7 +22,7 @@ const _cameraConstraints = <String, dynamic>{
 };
 
 /// All three are on by default because a call without them sounds bad in
-/// the situations calls actually happen in — a phone speaker and mic in
+/// the situations calls actually happen in: a phone speaker and mic in
 /// the same room is an echo generator.
 const _microphoneConstraints = <String, dynamic>{
   'echoCancellation': true,
@@ -32,14 +32,14 @@ const _microphoneConstraints = <String, dynamic>{
 
 /// A joined room.
 ///
-/// Returned by `Raven.join()` — never constructed directly. Owns the
+/// Returned by `Raven.join()`: never constructed directly. Owns the
 /// participant roster and every room-scoped action. No SDP, ICE
 /// candidate, or peer connection reaches this API.
 ///
 /// Extends [ChangeNotifier], which is the idiomatic Flutter way to expose
 /// changing state: an `AnimatedBuilder`, `ListenableBuilder` or
 /// `provider` can rebuild from it directly. This is where the Flutter SDK
-/// deliberately diverges from the TypeScript one — the web SDK's
+/// diverges from the TypeScript one by design: the web SDK's
 /// `room.on('event', handler)` would work in Dart but would feel foreign.
 /// The *concepts* are identical; only the subscription mechanism follows
 /// the platform.
@@ -116,7 +116,7 @@ class RavenRoom extends ChangeNotifier {
   Stream<List<RavenParticipant>> get participantChanges =>
       _participantsController.stream;
 
-  /// Errors that arrive asynchronously rather than from a call you made —
+  /// Errors that arrive asynchronously rather than from a call you made;
   /// a reconnect giving up, for instance.
   Stream<RavenException> get errors => _errorController.stream;
 
@@ -124,7 +124,7 @@ class RavenRoom extends ChangeNotifier {
   ///
   /// No sender is attributed: the SFU fans data out on each recipient's
   /// own channel, so the transport carries no sender identity. Put the
-  /// sender in your own payload if you need it — and remember it is then
+  /// sender in your own payload if you need it, and remember it is then
   /// a claim, not a fact.
   Stream<List<int>> get data => _dataController.stream;
 
@@ -169,7 +169,7 @@ class RavenRoom extends ChangeNotifier {
   List<RavenParticipant> get remoteParticipants =>
       _remoteIdentities.map(_buildRemoteParticipant).toList(growable: false);
 
-  /// Local participant first, then remotes — the order a grid renders in.
+  /// Local participant first, then remotes: the order a grid renders in.
   List<RavenParticipant> get participants =>
       [localParticipant, ...remoteParticipants];
 
@@ -211,7 +211,7 @@ class RavenRoom extends ChangeNotifier {
   Future<void> enableCamera() async {
     final existing = _engine.publishedTrack('camera');
     if (existing != null) {
-      // Already publishing — unmute rather than capture again. A second
+      // Already publishing: unmute instead of capture again. A second
       // capture of the same device is slower and, on some platforms,
       // fails outright.
       await _engine.setMuted('camera', false);
@@ -268,7 +268,7 @@ class RavenRoom extends ChangeNotifier {
   ///
   /// Preferable to `disableMicrophone()` for a mute button: the track
   /// stays published, so unmuting is instant and other participants keep
-  /// the tile rather than seeing it disappear and come back.
+  /// the tile, not seeing it disappear and come back.
   Future<void> setMicrophoneMuted(bool muted) async {
     await _engine.setMuted('microphone', muted);
     _emitParticipants();
@@ -283,7 +283,7 @@ class RavenRoom extends ChangeNotifier {
   /// Starts screen sharing.
   ///
   /// Both platforms show a system consent dialog first, and both can have
-  /// it dismissed — that surfaces as a [RavenException], not a silent
+  /// it dismissed: that surfaces as a [RavenException], not a silent
   /// no-op. On iOS this additionally requires a Broadcast Upload
   /// Extension in the host app; see docs/sdk/flutter.md#screen-sharing.
   Future<void> enableScreenShare() async {
@@ -317,7 +317,7 @@ class RavenRoom extends ChangeNotifier {
   /// deserve a first-class method rather than device enumeration.
   ///
   /// Uses the platform's in-place switch where available, which keeps the
-  /// same track and sender — so nobody else in the room observes anything.
+  /// same track and sender, so nobody else in the room observes anything.
   Future<void> switchCamera() async {
     final published = _engine.publishedTrack('camera');
     if (published == null) {
@@ -341,7 +341,7 @@ class RavenRoom extends ChangeNotifier {
 
   /// Sends a payload to everyone else in the room over the data channel.
   ///
-  /// Rides WebRTC rather than the signaling socket, so it gets the same
+  /// Rides WebRTC instead of the signaling socket, so it gets the same
   /// NAT traversal and encryption as media and does not compete with
   /// negotiation for the control connection (spec §18).
   Future<void> sendData(List<int> payload) async {
@@ -403,7 +403,7 @@ class RavenRoom extends ChangeNotifier {
     _dataController.close();
 
     // Both teardowns are async and ChangeNotifier.dispose() is not, so
-    // they are explicitly unawaited rather than silently dropped — the
+    // they are explicitly unawaited, not silently dropped: the
     // teardown is fire-and-forget by design, and saying so keeps the
     // unawaited_futures lint meaningful everywhere else.
     unawaited(_engine.dispose());
@@ -454,7 +454,7 @@ class RavenRoom extends ChangeNotifier {
       switch (state) {
         case SignalingReconnecting():
           _setConnectionState(RavenConnectionState.reconnecting);
-          // The old peer connection is not reusable — the server
+          // The old peer connection is not reusable: the server
           // allocates a fresh session on rejoin.
           unawaited(_engine.resetPeerConnection());
         case SignalingClosed():
@@ -510,8 +510,8 @@ class RavenRoom extends ChangeNotifier {
 ///
 /// The native layer reports a denied permission as a `PlatformException`
 /// whose message varies by OS and OS version, so this matches on the
-/// substance rather than an exact code. Getting it wrong in the safe
-/// direction — reporting a generic media error — is better than telling a
+/// substance instead of an exact code. Getting it wrong in the safe
+/// direction, reporting a generic media error, is better than telling a
 /// user to visit Settings when the real problem is a camera another app is
 /// holding.
 RavenException translateMediaError(RavenPermission permission, Object error) {

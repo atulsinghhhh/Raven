@@ -8,7 +8,7 @@ import 'errors.dart';
 ///
 /// Real-time delivery rides the WebSocket; history, attachments and
 /// one-off reads go through here. Asking a socket for a paginated list is
-/// the wrong shape — it blocks the frame the next message is waiting on —
+/// the wrong shape: it blocks the frame the next message is waiting on;
 /// and history is exactly what you need when the socket *isn't* up.
 ///
 /// Authenticated with the same chat token as the socket: one credential,
@@ -101,7 +101,7 @@ class RavenRestClient {
       final streamed = await _http.send(request);
       return await http.Response.fromStream(streamed);
     } catch (error) {
-      // A genuine transport failure — DNS, offline, TLS. An HTTP error
+      // A genuine transport failure. DNS, offline, TLS. An HTTP error
       // status is not this; that arrives as a response and is handled in
       // _decode.
       throw RavenChatException(

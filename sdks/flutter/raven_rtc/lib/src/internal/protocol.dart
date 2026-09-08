@@ -7,7 +7,7 @@
 /// own in each language.
 ///
 /// If you change a message here, change it in the other two and in the
-/// server. Nothing at build time will catch a drift — only the
+/// server. Nothing at build time will catch a drift: only the
 /// integration tests will.
 library;
 
@@ -105,7 +105,7 @@ class ServerTrack {
 
   final String trackId;
 
-  /// `'audio'` or `'video'` — the codec kind, not the source.
+  /// `'audio'` or `'video'`: the codec kind, not the source.
   final String kind;
 
   /// `'camera'`, `'microphone'`, `'screenShare'`, or something this
@@ -137,7 +137,7 @@ class ServerParticipant {
   /// What this participant is already publishing.
   ///
   /// Present in `room.joined` so a client joining a call in progress can
-  /// render the room in one pass, rather than showing an empty grid and
+  /// render the room in one pass, instead of showing an empty grid and
   /// filling it in from a stream of events it has to distinguish from
   /// genuinely new ones.
   final List<ServerTrack> tracks;
@@ -166,7 +166,7 @@ class JoinedPayload {
   final String roomId;
   final List<ServerParticipant> participants;
 
-  /// The RTC server's *name*, for diagnostics. Never its address — a
+  /// The RTC server's *name*, for diagnostics. Never its address: a
   /// client that learned an SFU's address could connect to it directly,
   /// and then the media plane could not be changed without breaking that
   /// client.
@@ -207,7 +207,7 @@ class IceCandidatePayload {
 
 /// Reads the claims out of a Raven RTC token.
 ///
-/// The payload is readable, not secret — the same information the server
+/// The payload is readable, not secret: the same information the server
 /// will act on. It is decoded, never trusted: the server re-verifies the
 /// signature, so anything a client changed here only changes which room it
 /// *asks* for.
@@ -217,7 +217,7 @@ Map<String, dynamic>? decodeTokenClaims(String token) {
 
   try {
     // base64Url tolerates the unpadded form the JWT spec mandates, so no
-    // padding fix-up is needed — unlike plain `base64`, which throws.
+    // padding fix-up is needed: unlike plain `base64`, which throws.
     final decoded =
         utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
     final parsed = jsonDecode(decoded);

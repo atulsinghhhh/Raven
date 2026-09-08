@@ -1,23 +1,23 @@
 import 'package:flutter/foundation.dart';
 
-/// Raven Effects on Flutter — Phase 16 architecture, not a native engine
-/// yet.
+/// Raven Effects on Flutter. Phase 16 architecture; no native engine yet.
 ///
-/// [RavenEffectsPipeline] and the filter/preset builders below are real:
-/// plain, validated Dart, no native code involved, and they use the exact
-/// same parameter ranges and preset compositions as `@raven/effects` on
-/// web and `RavenEffects` on React Native — a team building all three
-/// should be reading one vocabulary.
+/// [RavenEffectsPipeline] and the filter and preset builders below are all
+/// real: plain validated Dart, no native code anywhere near them, using the
+/// exact same parameter ranges and preset compositions as `@raven/effects`
+/// on web and `RavenEffects` on React Native. A team building all three
+/// should be reading one vocabulary, not three.
 ///
-/// What is NOT implemented in this release is a native frame-processing
-/// engine, and — unlike web/React Native, which share `LocalTrack` and can
-/// at least degrade gracefully — `RavenRoom` does not yet expose a
-/// publish-time track handle to attach a processor to at all (`raven_rtc`
-/// only has `enableCamera()`, which captures and publishes in one native
-/// call; see room.dart). So this module intentionally stops at the
-/// pipeline/config layer: there is no `room.attachCameraEffects(...)` in
-/// this release, rather than a method that exists but silently does
-/// nothing. Planned:
+/// What this release does *not* have is a native frame-processing engine.
+/// And unlike web and React Native, which share `LocalTrack` and can at
+/// least degrade gracefully, `RavenRoom` doesn't yet expose a publish-time
+/// track handle to attach a processor to at all. `raven_rtc` only has
+/// `enableCamera()`, which captures and publishes in one native call; see
+/// room.dart.
+///
+/// So this module stops at the pipeline and config layer, deliberately.
+/// There's no `room.attachCameraEffects(...)` in this release, rather than
+/// a method that exists and quietly does nothing. Planned:
 ///
 ///   Flutter → Raven Effects API → Native Effects Engine → GPU → Raven RTC
 ///
@@ -27,7 +27,7 @@ import 'package:flutter/foundation.dart';
 /// docs/effects/flutter.
 
 /// Whether Raven Effects has a native frame-processing engine on this
-/// platform yet. Always `planned` in this release — never claim more.
+/// platform yet. Always `planned` in this release. Never claim more.
 enum RavenEffectsEngineStatus { production, planned }
 
 const RavenEffectsEngineStatus ravenEffectsNativeEngineStatus =
@@ -35,7 +35,7 @@ const RavenEffectsEngineStatus ravenEffectsNativeEngineStatus =
 
 enum RavenEffectsErrorCode { unsupported, invalidConfig, resourceLimit }
 
-/// The one error type Raven Effects throws on Flutter — never a raw
+/// The only error type Raven Effects throws on Flutter. Never a raw
 /// `ArgumentError` or platform exception.
 class RavenEffectsException implements Exception {
   const RavenEffectsException(this.code, this.message);
@@ -47,7 +47,7 @@ class RavenEffectsException implements Exception {
   String toString() => 'RavenEffectsException(${code.name}): $message';
 }
 
-/// A parameter's documented valid range — used for validation and for the
+/// A parameter's documented valid range. Used for validation, and by the
 /// dashboard/docs, exactly like `EffectParamSpec` on web.
 class RavenEffectParamSpec {
   const RavenEffectParamSpec({
@@ -78,7 +78,7 @@ class RavenEffectParamSpec {
   }
 }
 
-/// One filter's documented parameter set, keyed by parameter name — the
+/// One filter's documented parameter set, keyed by parameter name. It's the
 /// Dart mirror of web's `FILTER_DEFINITIONS[type].params`.
 const Map<String, Map<String, RavenEffectParamSpec>> _filterParams = {
   'brightness': {
@@ -170,7 +170,7 @@ const Map<String, Map<String, RavenEffectParamSpec>> _filterParams = {
   },
 };
 
-/// A validated, ready-to-add filter — returned by [RavenEffectFilters]'s
+/// A validated, ready-to-add filter. Comes back from [RavenEffectFilters]'s
 /// static builders, the Dart mirror of `raven.effects.filters.*` on web.
 class RavenFilterConfig {
   const RavenFilterConfig(this.type, this.name, this.params);
@@ -201,7 +201,7 @@ Map<String, double> _buildParams(String type, Map<String, double> overrides) {
   return merged;
 }
 
-/// Basic filters (Phase 16 §3) — `RavenEffectFilters.brightness(value: 0.2)`.
+/// Basic filters (Phase 16 §3). `RavenEffectFilters.brightness(value: 0.2)`.
 class RavenEffectFilters {
   const RavenEffectFilters._();
 
@@ -246,7 +246,7 @@ class RavenEffectFilters {
 }
 
 /// PRODUCTION: real-time whole-frame skin smoothing, same caveats as the
-/// web/React Native version — a plain adjustable blur, not face-aware or
+/// web and React Native version: a plain adjustable blur, not face-aware or
 /// detail-preserving. See beauty.ts on web for the full rationale.
 class RavenEffectBeauty {
   const RavenEffectBeauty._();
@@ -259,7 +259,7 @@ class RavenEffectBeauty {
 
 typedef RavenPreset = List<RavenFilterConfig> Function();
 
-/// Presets (Phase 16 §4) — pure composition over [RavenEffectFilters],
+/// Presets (Phase 16 §4). Pure composition over [RavenEffectFilters],
 /// identical ordering to web's `presets.ts`.
 class RavenEffectPresets {
   const RavenEffectPresets._();
@@ -309,12 +309,12 @@ class RavenEffectInstance {
 
 const int _maxPipelineLength = 16;
 
-/// Raven Effects' pipeline on Flutter — the ordered list of effects,
+/// Raven Effects' pipeline on Flutter: the ordered list of effects,
 /// mirroring `EffectsPipeline` on web. `ChangeNotifier` so a widget can
 /// `AnimatedBuilder`/`ListenableBuilder` off it exactly like [RavenRoom].
 ///
 /// There is no `attachToTrack`/native processing here yet (see the module
-/// doc) — this class owns configuration only until a native engine ships.
+/// doc). This class owns configuration only, until a native engine ships.
 class RavenEffectsPipeline extends ChangeNotifier {
   final List<RavenEffectInstance> _effects = [];
   bool _isEnabled = true;
