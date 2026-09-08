@@ -1,14 +1,5 @@
 import { plainToInstance } from 'class-transformer';
-import {
-  IsIn,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Max,
-  Min,
-  validateSync,
-} from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min, validateSync } from 'class-validator';
 
 class EnvironmentVariables {
   @IsString()
@@ -189,6 +180,41 @@ class EnvironmentVariables {
   @IsString()
   APP_URL?: string;
 
+  // OAuth sign-in (GitHub / Google). All optional: a provider is enabled by
+  // setting its client id, and validateOAuthConfig() below is what refuses
+  // a half-configured provider at boot. Secrets are checked, never echoed.
+  @IsOptional()
+  @IsString()
+  GITHUB_CLIENT_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  GITHUB_CLIENT_SECRET?: string;
+
+  // Where the provider sends the browser back. Defaults to a route on
+  // APP_URL (the dashboard) — see configuration.ts. Must match the callback
+  // URL registered in the provider's OAuth app settings exactly.
+  @IsOptional()
+  @IsString()
+  GITHUB_CALLBACK_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  GOOGLE_CLIENT_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  GOOGLE_CLIENT_SECRET?: string;
+
+  @IsOptional()
+  @IsString()
+  GOOGLE_CALLBACK_URL?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(60)
+  OAUTH_STATE_TTL_SECONDS?: number;
+
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -289,6 +315,76 @@ function validateEmailConfig(config: EnvironmentVariables): void {
 }
 
 /**
+ * Runs in every environment, same reasoning as validateEmailConfig(): a
+ * provider with an id but no secret would render a "Continue with GitHub"
+ * button that can never complete, and the failure would surface as a
+ * confusing provider-side error minutes later instead of at boot.
+ *
+ * Both unset is always valid — the provider is simply off and the dashboard
+ * hides its button.
+ */
+function validateOAuthConfig(config: EnvironmentVariables): void {
+  const problems: string[] = [];
+
+  const providers = [
+    {
+      name: 'GitHub',
+      id: config.GITHUB_CLIENT_ID,
+      secret: config.GITHUB_CLIENT_SECRET,
+      callback: config.GITHUB_CALLBACK_URL,
+      idVar: 'GITHUB_CLIENT_ID',
+      secretVar: 'GITHUB_CLIENT_SECRET',
+      callbackVar: 'GITHUB_CALLBACK_URL',
+    },
+    {
+      name: 'Google',
+      id: config.GOOGLE_CLIENT_ID,
+      secret: config.GOOGLE_CLIENT_SECRET,
+      callback: config.GOOGLE_CALLBACK_URL,
+      idVar: 'GOOGLE_CLIENT_ID',
+      secretVar: 'GOOGLE_CLIENT_SECRET',
+      callbackVar: 'GOOGLE_CALLBACK_URL',
+    },
+  ];
+
+  for (const p of providers) {
+    const id = p.id?.trim();
+    const secret = p.secret?.trim();
+    if (!id && !secret) {
+      continue; // provider off
+    }
+    if (!id) {
+      problems.push(
+        `${p.idVar} is required when ${p.secretVar} is set — set both, or neither to disable ${p.name} sign-in`,
+      );
+    }
+    if (!secret) {
+      problems.push(
+        `${p.secretVar} is required when ${p.idVar} is set — set both, or neither to disable ${p.name} sign-in`,
+      );
+    } else if (secret.includes('change-me') || secret.includes('your-')) {
+      problems.push(
+        `${p.secretVar} still holds a placeholder value — paste the real client secret from the ${p.name} OAuth app`,
+      );
+    }
+    if (config.NODE_ENV === 'production') {
+      const callback = p.callback ?? (config.APP_URL ? `${config.APP_URL}/api/auth/oauth/callback` : undefined);
+      if (!callback) {
+        problems.push(
+          `${p.callbackVar} (or APP_URL to derive it from) is required in production when ${p.name} sign-in is enabled`,
+        );
+      } else if (!callback.startsWith('https://')) {
+        problems.push(`${p.callbackVar} must use https:// in production — authorization codes travel on it`);
+      }
+    }
+  }
+
+  if (problems.length > 0) {
+    throw new Error(`Invalid OAuth configuration: ${problems.join('; ')}`);
+  }
+}
+
+/**
  * Extra checks that only apply once NODE_ENV=production. Local dev should
  * never crash on these. A misconfigured prod deploy should never start.
  */
@@ -317,14 +413,18 @@ function validateProductionConfig(config: EnvironmentVariables): void {
   } else if (config.RTC_TOKEN_SECRET === config.JWT_SECRET) {
     problems.push('RTC_TOKEN_SECRET must differ from JWT_SECRET — they authorize different things');
   } else if (config.RTC_TOKEN_SECRET === config.CHAT_TOKEN_SECRET) {
-    problems.push('RTC_TOKEN_SECRET must differ from CHAT_TOKEN_SECRET — a leaked chat key must not mint media credentials');
+    problems.push(
+      'RTC_TOKEN_SECRET must differ from CHAT_TOKEN_SECRET — a leaked chat key must not mint media credentials',
+    );
   }
   if (!config.SFU_REGISTRATION_SECRET) {
     problems.push(
       'SFU_REGISTRATION_SECRET is required in production — otherwise any host that can reach the API can register itself as an RTC server (see docs/rtc/security.md)',
     );
   } else if (config.SFU_REGISTRATION_SECRET === config.RTC_TOKEN_SECRET) {
-    problems.push('SFU_REGISTRATION_SECRET must differ from RTC_TOKEN_SECRET — a leaked client token key must not let an attacker join the SFU fleet');
+    problems.push(
+      'SFU_REGISTRATION_SECRET must differ from RTC_TOKEN_SECRET — a leaked client token key must not let an attacker join the SFU fleet',
+    );
   }
   if (config.RTC_SIGNALING_URL?.startsWith('ws://')) {
     problems.push('RTC_SIGNALING_URL must use wss:// (TLS) in production, not ws:// — RTC tokens travel on it');
@@ -342,7 +442,9 @@ function validateProductionConfig(config: EnvironmentVariables): void {
     );
   }
   if (config.STORAGE_ENDPOINT?.startsWith('http://')) {
-    problems.push('STORAGE_ENDPOINT must use https:// in production — signed upload URLs would otherwise travel in cleartext');
+    problems.push(
+      'STORAGE_ENDPOINT must use https:// in production — signed upload URLs would otherwise travel in cleartext',
+    );
   }
 
   if (problems.length > 0) {
@@ -359,13 +461,12 @@ export function validateEnv(config: Record<string, unknown>) {
   const errors = validateSync(validated, { skipMissingProperties: false });
 
   if (errors.length > 0) {
-    const messages = errors
-      .map((error) => Object.values(error.constraints ?? {}).join(', '))
-      .join('; ');
+    const messages = errors.map((error) => Object.values(error.constraints ?? {}).join(', ')).join('; ');
     throw new Error(`Invalid environment configuration: ${messages}`);
   }
 
   validateEmailConfig(validated);
+  validateOAuthConfig(validated);
   validateProductionConfig(validated);
 
   return validated;

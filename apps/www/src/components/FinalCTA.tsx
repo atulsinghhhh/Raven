@@ -13,13 +13,13 @@ export function FinalCTA() {
           Ready to <span className="kw">build</span>?
         </h2>
         <p className="mt-5 max-w-lg text-base leading-relaxed text-muted">
-          Create a project, mint your first token, and join a room — RTC, messaging, live streaming, and
-          effects through one API.
+          Create a project, mint your first token, and join a room — RTC, messaging, live streaming, and effects through
+          one API.
         </p>
 
         <div className="mt-9 flex flex-wrap items-center gap-2.5">
           <a
-            href={`${DASHBOARD_URL}/register`}
+            href={`${DASHBOARD_URL}/signup`}
             className="rounded-(--radius-panel) bg-accent px-5 py-2.5 text-[13px] font-semibold text-accent-fg transition-colors hover:bg-accent-hover"
           >
             Start building

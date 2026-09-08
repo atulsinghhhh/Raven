@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/states';
 import { Field } from '@/components/ui/field';
 
-export function RegisterForm() {
+export function SignupForm() {
   const router = useRouter();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string>();
@@ -22,7 +23,7 @@ export function RegisterForm() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, ...(name.trim() ? { name: name.trim() } : {}) }),
       });
       const payload = await res.json();
 
@@ -31,7 +32,9 @@ export function RegisterForm() {
         return;
       }
 
-      router.push('/dashboard/projects');
+      // A brand-new account always has onboarding ahead of it; the fallback
+      // covers an older API that doesn't report onboarding state.
+      router.push(payload.onboarding && !payload.onboarding.completed ? '/onboarding' : '/dashboard');
       router.refresh();
     } catch {
       setError('Could not reach the server. Check your connection and try again.');
@@ -47,13 +50,24 @@ export function RegisterForm() {
       {error && <ErrorState title="Could not create account" description={error} />}
 
       <Field
+        id="name"
+        name="name"
+        label="Name"
+        type="text"
+        autoComplete="name"
+        placeholder="Ada Lovelace"
+        maxLength={120}
+        hint="Optional — shown in your workspace and to teammates."
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <Field
         id="email"
         name="email"
         label="Email"
         type="email"
         inputMode="email"
         autoComplete="email"
-        autoFocus
         placeholder="you@example.com"
         required
         value={email}

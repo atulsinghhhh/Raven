@@ -87,7 +87,11 @@ enum ErrorCategory {
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
-  passwordHash String
+  /// Null for accounts created through an OAuth provider (GitHub, Google)
+  /// that never set a password. Email/password login answers these with the
+  /// same "invalid email or password" as a wrong password would — the
+  /// response must not reveal how an account signs in.
+  passwordHash String?
   name         String?
   /// Null until the address is proven. Nullable rather than a boolean
   /// because "when" answers support questions a "yes" cannot, and because
@@ -100,6 +104,8 @@ model User {
   projects    Project[]
   memberships ProjectMember[]
   tokens      UserToken[]
+  authAccounts AuthAccount[]
+  onboarding   UserOnboarding?
 
   @@map("users")
 }
@@ -137,6 +143,76 @@ model UserToken {
   @@index([userId, type])
   @@index([expiresAt])
   @@map("user_tokens")
+}
+
+enum AuthProvider {
+  GITHUB
+  GOOGLE
+}
+
+/// One external identity (a GitHub or Google account) linked to a Raven
+/// user. The unique (provider, providerAccountId) pair is what makes a
+/// returning OAuth login find the same user instead of minting a duplicate.
+///
+/// Deliberately token-free: Raven only needs the provider to prove who the
+/// person is at login time, so access/refresh tokens are used once during
+/// the callback exchange and discarded. A row here is a link, not a
+/// credential — a database leak yields no way into anyone's GitHub or
+/// Google account.
+model AuthAccount {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider AuthProvider
+  /// The provider's stable id for the account (GitHub numeric id, Google
+  /// `sub`) — never the email, which the person can change upstream.
+  providerAccountId String
+  /// The email the provider reported when this link was made. Display and
+  /// support only; identity is providerAccountId.
+  email String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("auth_accounts")
+}
+
+/// Where a user is in first-run onboarding, one row per user.
+///
+/// A separate table rather than columns on `users`: the hot login path
+/// reads `users` constantly and needs none of this, and the whole block
+/// becomes dead weight the moment onboarding completes. `completedAt` is a
+/// timestamp, not a boolean, for the same reason `emailVerifiedAt` is.
+///
+/// The migration backfills a completed row for every account that predates
+/// onboarding — a developer with six months of projects must never be
+/// marched through "What are you building?".
+model UserOnboarding {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// 1-based index of the step to resume at. Only meaningful while
+  /// `completedAt` is null.
+  step Int @default(1)
+  completedAt DateTime?
+
+  /// Self-reported answers. Free-form strings, validated at the API edge,
+  /// so adding an option is a DTO change rather than a migration.
+  useCases        String[] @default([])
+  experienceLevel String?
+  stack           String[] @default([])
+
+  /// Stamped when the project created during onboarding lands, so a resume
+  /// can skip straight past the create-project step.
+  createdFirstProject Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_onboarding")
 }
 
 model Project {

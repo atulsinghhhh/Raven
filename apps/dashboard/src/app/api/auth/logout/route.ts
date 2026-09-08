@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { ravenApi } from '@/lib/api-client';
-import { SESSION_COOKIE_NAME } from '@/lib/session';
+import { ONBOARDING_COOKIE_NAME, SESSION_COOKIE_NAME } from '@/lib/session';
 
 export async function POST() {
   const store = await cookies();
@@ -14,5 +14,6 @@ export async function POST() {
   }
 
   store.delete(SESSION_COOKIE_NAME);
+  store.delete(ONBOARDING_COOKIE_NAME);
   return NextResponse.json({ ok: true });
 }

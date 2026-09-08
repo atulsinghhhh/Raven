@@ -12,7 +12,14 @@ import { ChatMetricsService } from '../metrics/chat-metrics.service';
 import { PresenceService } from '../presence/presence.service';
 import { Capability } from '../../projects/project-permissions';
 
-const RANGE_MINUTES: Record<string, number> = { '15m': 15, '1h': 60, '24h': 1440 };
+const RANGE_MINUTES: Record<string, number> = {
+  '15m': 15,
+  '1h': 60,
+  '24h': 1440,
+  '7d': 10080,
+  '30d': 43200,
+  '90d': 129600,
+};
 
 /**
  * Dashboard-facing chat views. JWT-guarded and ownership-checked like

@@ -111,11 +111,11 @@ export function formatBitrate(bps: number | null | undefined): string | null {
   return `${bps} bps`;
 }
 
-export const RANGES = ['15m', '1h', '24h', '7d'] as const;
+export const RANGES = ['15m', '1h', '24h', '7d', '30d', '90d'] as const;
 export type Range = (typeof RANGES)[number];
 
 /**
- * Only these four windows exist server-side (MetricsService.RANGE_MS).
+ * Only these windows exist server-side (MetricsService.RANGE_MS).
  * Anything else silently falls back to 1h there, which would make the UI
  * lie about what it's showing, so unknown values are normalised here.
  */
@@ -128,6 +128,8 @@ export const RANGE_LABEL: Record<Range, string> = {
   '1h': 'Last hour',
   '24h': 'Last 24 hours',
   '7d': 'Last 7 days',
+  '30d': 'Last 30 days',
+  '90d': 'Last 90 days',
 };
 
 export const RANGE_SHORT: Record<Range, string> = {
@@ -135,6 +137,8 @@ export const RANGE_SHORT: Record<Range, string> = {
   '1h': '1h',
   '24h': '24h',
   '7d': '7d',
+  '30d': '30d',
+  '90d': '90d',
 };
 
 export const RANGE_MS: Record<Range, number> = {
@@ -142,4 +146,6 @@ export const RANGE_MS: Record<Range, number> = {
   '1h': 60 * 60 * 1000,
   '24h': 24 * 60 * 60 * 1000,
   '7d': 7 * 24 * 60 * 60 * 1000,
+  '30d': 30 * 24 * 60 * 60 * 1000,
+  '90d': 90 * 24 * 60 * 60 * 1000,
 };

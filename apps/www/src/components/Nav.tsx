@@ -41,10 +41,7 @@ export function Nav() {
           <Link href="/#reliability" className="rounded-(--radius-panel) px-3 py-1.5 transition-colors hover:text-fg">
             Reliability
           </Link>
-          <a
-            href={DOCS_URL}
-            className="rounded-(--radius-panel) px-3 py-1.5 transition-colors hover:text-fg"
-          >
+          <a href={DOCS_URL} className="rounded-(--radius-panel) px-3 py-1.5 transition-colors hover:text-fg">
             Docs
           </a>
         </nav>
@@ -72,7 +69,7 @@ export function Nav() {
             Sign in
           </a>
           <a
-            href={`${DASHBOARD_URL}/register`}
+            href={`${DASHBOARD_URL}/signup`}
             className="hidden rounded-(--radius-panel) bg-accent px-3 py-1.5 text-[13px] font-semibold text-accent-fg transition-colors hover:bg-accent-hover sm:inline-block"
           >
             Start building
@@ -130,7 +127,7 @@ function MobileNav() {
             Sign in
           </a>
           <a
-            href={`${DASHBOARD_URL}/register`}
+            href={`${DASHBOARD_URL}/signup`}
             className="rounded-(--radius-panel) bg-accent px-3 py-2 text-center text-sm font-semibold text-accent-fg hover:bg-accent-hover"
           >
             Start building
@@ -168,7 +165,14 @@ function RavenMark() {
 
 function ChevronDown({ className = '' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 12 12" className={`h-3 w-3 ${className}`} fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+    <svg
+      viewBox="0 0 12 12"
+      className={`h-3 w-3 ${className}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
       <path d="M2.5 4.5 6 8l3.5-3.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

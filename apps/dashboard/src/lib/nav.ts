@@ -98,3 +98,32 @@ export const NAV_GROUPS: NavGroup[] = [
  * control.
  */
 export const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL ?? 'http://localhost:3200';
+
+/**
+ * Account-level navigation — the sidebar you see before entering a
+ * project. Kept separate from NAV_GROUPS above: those slugs compose into
+ * /dashboard/projects/[projectId]/…, these are absolute routes.
+ */
+export interface AccountNavItem {
+  href: string;
+  label: string;
+  icon: 'overview' | 'projects' | 'developers' | 'analytics' | 'settings';
+  /** Match this href exactly instead of by prefix — for /dashboard, whose
+   *  prefix would otherwise swallow every other entry. */
+  exact?: boolean;
+}
+
+export const ACCOUNT_NAV: AccountNavItem[] = [
+  { href: '/dashboard', label: 'Overview', icon: 'overview', exact: true },
+  { href: '/dashboard/projects', label: 'Projects', icon: 'projects' },
+  { href: '/dashboard/developers', label: 'Developers', icon: 'developers' },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: 'analytics' },
+  { href: '/dashboard/settings', label: 'Settings', icon: 'settings' },
+];
+
+/** The public repository. Overridable for forks, same reasoning as DOCS_URL. */
+export const GITHUB_URL = process.env.NEXT_PUBLIC_GITHUB_URL ?? 'https://github.com/atulsinghhhh/Raven';
+
+/** Where "Support" goes. Issues by default — it's where an open-source
+ *  deployment can actually answer. */
+export const SUPPORT_URL = process.env.NEXT_PUBLIC_SUPPORT_URL ?? `${GITHUB_URL}/issues`;

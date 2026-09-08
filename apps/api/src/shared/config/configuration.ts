@@ -57,6 +57,34 @@ export default () => ({
     expiresIn: process.env.JWT_EXPIRES_IN ?? '12h',
   },
 
+  // OAuth sign-in. A provider is "enabled" when its client id is set;
+  // env.validation.ts has already refused a half-configured provider at
+  // boot, so enabled here implies a secret exists too. Callback URLs
+  // default to the dashboard's own OAuth callback route — the dashboard,
+  // not this API, is what the provider redirects the browser back to
+  // (mirrors how email links point at appUrl).
+  oauth: {
+    // How long an issued `state` value stays redeemable. One authorization
+    // round-trip through the provider, so minutes, not hours.
+    stateTtlSeconds: parseInt(process.env.OAUTH_STATE_TTL_SECONDS ?? '600', 10),
+    github: {
+      enabled: Boolean(process.env.GITHUB_CLIENT_ID),
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      callbackUrl:
+        process.env.GITHUB_CALLBACK_URL ??
+        `${process.env.APP_URL ?? 'http://localhost:3000'}/api/auth/oauth/github/callback`,
+    },
+    google: {
+      enabled: Boolean(process.env.GOOGLE_CLIENT_ID),
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackUrl:
+        process.env.GOOGLE_CALLBACK_URL ??
+        `${process.env.APP_URL ?? 'http://localhost:3000'}/api/auth/oauth/google/callback`,
+    },
+  },
+
   rtcToken: {
     defaultTtlSeconds: parseInt(process.env.RTC_TOKEN_DEFAULT_TTL_SECONDS ?? '600', 10),
     // Signing key for Raven's own RTC tokens (rtc-token-signer.service.ts).
@@ -181,10 +209,7 @@ export default () => ({
     // forever. The sweeper only runs when this, or a conversation override,
     // is actually set. See docs/chat/overview.md#retention.
     retentionDays: parseInt(process.env.CHAT_RETENTION_DAYS ?? '0', 10),
-    retentionSweepIntervalMs: parseInt(
-      process.env.CHAT_RETENTION_SWEEP_INTERVAL_MS ?? String(6 * 60 * 60 * 1000),
-      10,
-    ),
+    retentionSweepIntervalMs: parseInt(process.env.CHAT_RETENTION_SWEEP_INTERVAL_MS ?? String(6 * 60 * 60 * 1000), 10),
   },
 
   webhooks: {

@@ -14,6 +14,7 @@ import {
   renderVerificationEmail,
   renderWelcomeEmail,
 } from '../email/templates';
+import { OnboardingService, OnboardingStatus } from '../onboarding/onboarding.service';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -27,6 +28,10 @@ export interface AuthResult {
   accessToken: string;
   expiresIn: string;
   user: { id: string; email: string; name: string | null; emailVerified: boolean };
+  /** Where this account is in first-run onboarding, so the dashboard can
+   *  route a fresh login to /onboarding or /dashboard without a second
+   *  round-trip. */
+  onboarding: OnboardingStatus;
 }
 
 /**
@@ -34,8 +39,7 @@ export interface AuthResult {
  * account exists. The response cannot become an oracle for "is this
  * address registered": see requestPasswordReset().
  */
-const PASSWORD_RESET_ACCEPTED =
-  'If an account exists for that address, a password-reset link is on its way.';
+const PASSWORD_RESET_ACCEPTED = 'If an account exists for that address, a password-reset link is on its way.';
 
 @Injectable()
 export class AuthService {
@@ -48,6 +52,7 @@ export class AuthService {
     private readonly redisService: RedisService,
     private readonly userTokens: UserTokensService,
     private readonly emailService: EmailService,
+    private readonly onboardingService: OnboardingService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthResult> {
@@ -69,14 +74,23 @@ export class AuthService {
     // 500 on a registration that already wrote a user row is not. The
     // welcome email is not sent here: it goes out once the address is
     // proven, which is also the first moment we know it is deliverable.
+    // The account starts onboarding at step 1. Written here, not lazily on
+    // first dashboard load, so "where is this user in onboarding?" always
+    // has a row to answer from.
+    await this.onboardingService.ensureStarted(user.id);
+
     await this.sendVerificationEmail(user);
 
-    return this.issueToken(user);
+    return this.issueSessionForUser(user);
   }
 
   async login(dto: LoginDto): Promise<AuthResult> {
     const user = await this.usersService.findByEmail(dto.email);
-    if (!user) {
+    // A null passwordHash is an OAuth-only account. Same message as a wrong
+    // password on purpose: "this account signs in with GitHub" would
+    // confirm the address is registered, which "invalid email or password"
+    // exists to hide.
+    if (!user || !user.passwordHash) {
       throw new UnauthorizedError('Invalid email or password');
     }
 
@@ -89,7 +103,7 @@ export class AuthService {
     // mean an undelivered email locks a paying developer out of a working
     // account; `emailVerified` on the result is what lets the dashboard
     // nag instead.
-    return this.issueToken(user);
+    return this.issueSessionForUser(user);
   }
 
   /**
@@ -99,12 +113,7 @@ export class AuthService {
    */
   async logout(user: AuthenticatedUser): Promise<void> {
     const ttlSeconds = Math.max(user.exp - Math.floor(Date.now() / 1000), 1);
-    await this.redisService.client.set(
-      `${REVOCATION_KEY_PREFIX}${user.jti}`,
-      '1',
-      'EX',
-      ttlSeconds,
-    );
+    await this.redisService.client.set(`${REVOCATION_KEY_PREFIX}${user.jti}`, '1', 'EX', ttlSeconds);
   }
 
   async isRevoked(jti: string): Promise<boolean> {
@@ -195,11 +204,7 @@ export class AuthService {
 
     if (user) {
       const ttlMinutes = this.configService.get<number>('email.passwordResetTtlMinutes')!;
-      const { token } = await this.userTokens.issue(
-        user.id,
-        UserTokenType.PASSWORD_RESET,
-        ttlMinutes,
-      );
+      const { token } = await this.userTokens.issue(user.id, UserTokenType.PASSWORD_RESET, ttlMinutes);
 
       const result = await this.emailService.send({
         to: user.email,
@@ -258,11 +263,7 @@ export class AuthService {
 
   private async sendVerificationEmail(user: User): Promise<'sent' | 'skipped_cooldown' | 'other'> {
     const ttlMinutes = this.configService.get<number>('email.verificationTtlMinutes')!;
-    const { token } = await this.userTokens.issue(
-      user.id,
-      UserTokenType.EMAIL_VERIFICATION,
-      ttlMinutes,
-    );
+    const { token } = await this.userTokens.issue(user.id, UserTokenType.EMAIL_VERIFICATION, ttlMinutes);
 
     const result = await this.emailService.send({
       to: user.email,
@@ -301,12 +302,30 @@ export class AuthService {
     this.logger.warn(`auth email not sent type=${type} status=${status}`);
   }
 
-  private async issueToken(user: {
+  /**
+   * The one way a session comes into being, whatever proved the identity —
+   * password or an OAuth provider. Sessions are indistinguishable
+   * downstream: same claims, same jti revocation, same logout.
+   */
+  async issueSessionForUser(user: {
     id: string;
     email: string;
     name: string | null;
     emailVerifiedAt: Date | null;
   }): Promise<AuthResult> {
+    const onboarding = await this.onboardingService.getStatus(user.id);
+    return this.issueToken(user, onboarding);
+  }
+
+  private issueToken(
+    user: {
+      id: string;
+      email: string;
+      name: string | null;
+      emailVerifiedAt: Date | null;
+    },
+    onboarding: OnboardingStatus,
+  ): AuthResult {
     const payload: JwtPayload = { sub: user.id, email: user.email, jti: randomUUID() };
     const expiresIn = this.configService.get<string>('jwt.expiresIn')!;
     const accessToken = this.jwtService.sign(payload, { expiresIn });
@@ -323,6 +342,7 @@ export class AuthService {
         // must never read as verified because a field was absent.
         emailVerified: Boolean(user.emailVerifiedAt),
       },
+      onboarding,
     };
   }
 }

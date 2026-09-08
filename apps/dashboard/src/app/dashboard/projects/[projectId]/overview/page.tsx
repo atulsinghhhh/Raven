@@ -2,7 +2,9 @@ import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
 import { ApiError, ravenApi, type RtcFleetMetrics } from '@/lib/api-client';
 import { Badge, ConnectionStateBadge, ErrorCategoryBadge, StatusBadge } from '@/components/ui/badge';
+import { ButtonLink } from '@/components/ui/button';
 import { Card, CardHeader, SectionHeader, StatCard } from '@/components/ui/card';
+import { CopyButton } from '@/components/ui/copy-button';
 import { PageHeader } from '@/components/ui/page-header';
 import { RangeSelector } from '@/components/ui/range-selector';
 import { RateBar } from '@/components/ui/chart';
@@ -88,8 +90,33 @@ export default async function OverviewPage({
       <PageHeader
         title={project.name}
         description={project.description ?? undefined}
-        meta={<Badge tone={project.status === 'ACTIVE' ? 'success' : 'neutral'}>{project.status === 'ACTIVE' ? 'Active' : 'Archived'}</Badge>}
-        actions={<RangeSelector basePath={`${base}/overview`} current={range} />}
+        meta={
+          <span className="flex flex-wrap items-center gap-2">
+            <Badge tone={project.status === 'ACTIVE' ? 'success' : 'neutral'}>
+              {project.status === 'ACTIVE' ? 'Active' : 'Archived'}
+            </Badge>
+            {/* The raw project ID, one click from the clipboard: it goes in
+                every server SDK call, so it must never hide behind Settings. */}
+            <span className="flex items-center gap-1 text-xs text-subtle">
+              <span className="font-mono">{project.id}</span>
+              <CopyButton value={project.id} label="Copy project ID" iconOnly />
+            </span>
+          </span>
+        }
+        actions={
+          <>
+            <RangeSelector basePath={`${base}/overview`} current={range} />
+            <ButtonLink href={`${base}/api-keys`} variant="secondary">
+              API keys
+            </ButtonLink>
+            <ButtonLink href={`${base}/members`} variant="ghost">
+              Invite
+            </ButtonLink>
+            <ButtonLink href={`${base}/settings`} variant="ghost">
+              Settings
+            </ButtonLink>
+          </>
+        }
       />
 
       {!onboardingComplete && <OnboardingProgress steps={onboardingSteps} />}
@@ -97,9 +124,9 @@ export default async function OverviewPage({
       {!hasActivity ? (
         <Card>
           <p className="text-sm leading-relaxed text-muted">
-            No rooms or connections yet — telemetry appears here automatically the moment your backend mints a
-            token and a client joins with <code className="font-mono text-xs text-fg">@corvidhq/rtc</code>. Follow
-            the steps above, or open the{' '}
+            No rooms or connections yet — telemetry appears here automatically the moment your backend mints a token and
+            a client joins with <code className="font-mono text-xs text-fg">@corvidhq/rtc</code>. Follow the steps
+            above, or open the{' '}
             <a href={`${base}/quickstart`} className="text-accent-text hover:underline">
               quickstart
             </a>
@@ -388,7 +415,9 @@ function RecentErrors({
       </div>
       {errors.length === 0 ? (
         <div className="px-5 pb-5">
-          <p className="text-sm text-muted">No errors recorded. Either everything is healthy, or nothing has connected yet.</p>
+          <p className="text-sm text-muted">
+            No errors recorded. Either everything is healthy, or nothing has connected yet.
+          </p>
         </div>
       ) : (
         <ul className="divide-y divide-line border-t border-line">
@@ -416,4 +445,3 @@ function RecentErrors({
     </Card>
   );
 }
-

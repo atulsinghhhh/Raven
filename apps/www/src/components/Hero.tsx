@@ -22,13 +22,13 @@ export function Hero() {
         </h1>
 
         <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted md:text-lg">
-          A developer platform for real-time communication — calls, messaging, live streaming, and camera
-          effects behind one token model and one set of SDKs.
+          A developer platform for real-time communication — calls, messaging, live streaming, and camera effects behind
+          one token model and one set of SDKs.
         </p>
 
         <div className="mt-9 flex flex-wrap items-center justify-center gap-2.5">
           <a
-            href={`${DASHBOARD_URL}/register`}
+            href={`${DASHBOARD_URL}/signup`}
             className="rounded-(--radius-panel) bg-accent px-5 py-2.5 text-[13px] font-semibold text-accent-fg transition-colors hover:bg-accent-hover"
           >
             Start building
@@ -63,7 +63,10 @@ function DotMark() {
   const CELLS = 100;
 
   return (
-    <div className="mx-auto grid h-[104px] w-[104px] grid-cols-10 gap-[3px] rounded-(--radius-panel) border border-line p-3" aria-hidden="true">
+    <div
+      className="mx-auto grid h-[104px] w-[104px] grid-cols-10 gap-[3px] rounded-(--radius-panel) border border-line p-3"
+      aria-hidden="true"
+    >
       {Array.from({ length: CELLS }, (_, i) => (
         <span
           key={i}

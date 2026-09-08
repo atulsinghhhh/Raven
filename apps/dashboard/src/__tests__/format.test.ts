@@ -65,7 +65,7 @@ describe('normaliseRange', () => {
   });
 
   it('falls back to 1h for unsupported or absent ranges', () => {
-    expect(normaliseRange('30d')).toBe('1h');
+    expect(normaliseRange('60d')).toBe('1h');
     expect(normaliseRange('6h')).toBe('1h');
     expect(normaliseRange(undefined)).toBe('1h');
   });

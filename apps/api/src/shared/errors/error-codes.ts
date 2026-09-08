@@ -24,6 +24,20 @@ export const RavenErrorCode = {
   /** Distinct from AUTH_ERROR on purpose: the client should refresh, not re-login. */
   TOKEN_EXPIRED: 'RAVEN_TOKEN_EXPIRED',
 
+  /** An OAuth sign-in that could not be completed: bad or expired state,
+   *  a failed code exchange, or the person cancelling at the provider.
+   *  Always safe to retry from the start of the flow. */
+  OAUTH_ERROR: 'RAVEN_OAUTH_ERROR',
+  /** The provider returned no usable email address, and Raven accounts are
+   *  keyed by email. GitHub: no verified primary address; the fix is on the
+   *  provider side, so this is spelled out rather than folded into
+   *  OAUTH_ERROR. */
+  OAUTH_EMAIL_UNAVAILABLE: 'RAVEN_OAUTH_EMAIL_UNAVAILABLE',
+  /** A Raven account already exists for this email, but the provider has
+   *  not verified the address — linking would let anyone claiming an email
+   *  at the provider take over the Raven account that owns it. */
+  OAUTH_EMAIL_UNVERIFIED: 'RAVEN_OAUTH_EMAIL_UNVERIFIED',
+
   // --- Not found ----------------------------------------------------------
   /** Generic fallback when no resource-specific code applies. */
   NOT_FOUND: 'RAVEN_NOT_FOUND',
@@ -82,6 +96,9 @@ export const LEGACY_ERROR_CODE: Record<RavenErrorCode, string> = {
   [RavenErrorCode.AUTH_ERROR]: 'UNAUTHORIZED',
   [RavenErrorCode.PERMISSION_DENIED]: 'FORBIDDEN',
   [RavenErrorCode.TOKEN_EXPIRED]: 'UNAUTHORIZED',
+  [RavenErrorCode.OAUTH_ERROR]: 'UNAUTHORIZED',
+  [RavenErrorCode.OAUTH_EMAIL_UNAVAILABLE]: 'VALIDATION_FAILED',
+  [RavenErrorCode.OAUTH_EMAIL_UNVERIFIED]: 'FORBIDDEN',
   [RavenErrorCode.NOT_FOUND]: 'NOT_FOUND',
   [RavenErrorCode.ROOM_NOT_FOUND]: 'NOT_FOUND',
   [RavenErrorCode.CONVERSATION_NOT_FOUND]: 'NOT_FOUND',
