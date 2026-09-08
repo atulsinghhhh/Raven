@@ -65,7 +65,7 @@ export function ConnectionFilters({
             onChange={(e) => setText(e.target.value)}
             aria-label="Filter by connection ID, participant, or room"
             placeholder="Filter by ID, participant, room…"
-            className="h-8 w-full rounded-md border border-line bg-surface pl-8 pr-2.5 text-sm text-fg transition-colors placeholder:text-subtle hover:border-line-strong focus:border-accent"
+            className="h-8 w-full rounded-md border border-line bg-surface pl-8 pr-2.5 text-sm text-fg transition-colors placeholder:text-subtle hover:border-line-strong"
           />
         </div>
         {active && (

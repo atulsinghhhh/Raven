@@ -86,7 +86,7 @@ export function ChatDemo() {
             <span className="text-[11px] font-medium text-muted">{m.from}</span>
             <span
               className={`max-w-[80%] rounded-(--radius-panel) px-3.5 py-2 text-sm ${
-                m.from === 'Alice' ? 'bg-surface-raised text-fg' : 'bg-accent text-accent-fg'
+                m.from === 'Alice' ? 'bg-surface-raised text-fg' : 'bg-accent text-canvas'
               }`}
             >
               {m.text}
@@ -138,8 +138,8 @@ export function LiveDemo() {
   return (
     <DemoPanel title="Raven Live · stream-7" note="Preview — scripted demo, not live data.">
       <div className="flex items-center justify-between border-b border-line px-5 py-3">
-        <span className="mono-label inline-flex items-center gap-1.5 rounded-(--radius-panel) bg-danger px-2 py-1 text-[10px] text-accent-fg">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent-fg animate-pulse-dot" />
+        <span className="mono-label inline-flex items-center gap-1.5 rounded-(--radius-panel) bg-live px-2 py-1 text-[10px] text-canvas">
+          <span className="h-1.5 w-1.5 rounded-full bg-canvas animate-pulse-dot" />
           LIVE
         </span>
         <span className="tabular text-xs font-medium text-muted">{viewers.toLocaleString()} watching</span>

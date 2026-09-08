@@ -22,7 +22,7 @@ export function OnboardingProgress({ steps }: { steps: OnboardingStep[] }) {
             {i < steps.length - 1 && (
               <span
                 aria-hidden="true"
-                className={`absolute left-[0.6875rem] top-6 h-full w-px ${step.done ? 'bg-accent' : 'bg-line'}`}
+                className={`absolute left-[0.6875rem] top-6 h-full w-px ${step.done ? 'bg-line-strong' : 'bg-line'}`}
               />
             )}
             <span

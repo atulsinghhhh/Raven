@@ -11,9 +11,10 @@ export const metadata: Metadata = {
 /**
  * First-run onboarding. proxy.ts routes here off a cookie hint, but this
  * page re-checks the real state against the Control API: the cookie is
- * routing convenience, this is the authority. Completed accounts are sent
- * straight to the dashboard, which is also what breaks any redirect loop —
- * a stale "pending" cookie lands here once, sees the truth, and leaves.
+ * routing convenience, this is the authority. A completed account is sent
+ * through /api/onboarding/sync — not straight to /dashboard — because the
+ * stale "pending" cookie that brought it here must be rewritten (a server
+ * component can't set cookies), or proxy.ts would bounce it right back.
  */
 export default async function OnboardingPage() {
   const token = await getSessionToken();
@@ -37,7 +38,7 @@ export default async function OnboardingPage() {
   }
 
   if (state.completed) {
-    redirect('/dashboard');
+    redirect('/api/onboarding/sync');
   }
 
   return <OnboardingFlow initialState={state} hasProjects={hasProjects} />;

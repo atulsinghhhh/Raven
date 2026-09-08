@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist_Mono, Inter, Space_Grotesk } from 'next/font/google';
+import { Fraunces, JetBrains_Mono, Lexend } from 'next/font/google';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -7,25 +7,28 @@ export const metadata: Metadata = {
   description: 'Real-time communication infrastructure: rooms, connections, observability, and SDKs.',
 };
 
-// Body/UI text.
-const sans = Inter({
+// Body/UI text. Light weights keep the console airy; 500-600 carry
+// buttons and labels.
+const sans = Lexend({
   subsets: ['latin'],
-  weight: ['400', '500', '600'],
+  weight: ['300', '400', '500', '600'],
   variable: '--font-raven-sans',
   display: 'swap',
 });
 
-// Display face for page titles only — shared with the marketing site so
-// the console and the front door read as one product.
-const displayFace = Space_Grotesk({
+// Display face for page titles only — the editorial serif shared with
+// the marketing site, so the console and the front door read as one
+// product.
+const displayFace = Fraunces({
   subsets: ['latin'],
-  weight: ['500', '600'],
+  weight: ['300', '400'],
+  style: ['normal', 'italic'],
   variable: '--font-raven-display',
   display: 'swap',
 });
 
 // Console chrome: mono labels, code, keys, metrics.
-const mono = Geist_Mono({
+const mono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
   variable: '--font-raven-mono',
@@ -37,9 +40,9 @@ const mono = Geist_Mono({
  * the default theme for a frame and then snaps: the classic dark-mode
  * flash. Has to be inline and synchronous in <head> for that reason.
  *
- * Dark-first: an explicit stored choice wins, an explicit OS light
+ * Light-first: an explicit stored choice wins, an explicit OS dark
  * preference is honored, and everything else — no storage, no matchMedia,
- * script failure — lands on dark, the flagship theme.
+ * script failure — lands on light, the flagship theme.
  */
 const THEME_SCRIPT = `
 (function() {
@@ -47,10 +50,10 @@ const THEME_SCRIPT = `
     var stored = localStorage.getItem('raven-theme');
     var theme = stored === 'light' || stored === 'dark'
       ? stored
-      : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', theme);
   } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.setAttribute('data-theme', 'light');
   }
 })();
 `;
@@ -59,7 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      data-theme="dark"
+      data-theme="light"
       suppressHydrationWarning
       className={`${sans.variable} ${displayFace.variable} ${mono.variable}`}
     >

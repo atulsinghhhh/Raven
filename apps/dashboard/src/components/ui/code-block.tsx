@@ -77,13 +77,13 @@ function tokenize(code: string, lang: string): { text: string; type: TokenType }
 }
 
 const TOKEN_CLASS: Record<TokenType, string> = {
-  comment: 'text-[oklch(0.62_0.02_265)] italic',
+  comment: 'text-[#8a857e] italic',
   string: 'text-[oklch(0.78_0.13_150)]',
   keyword: 'text-[oklch(0.75_0.15_310)]',
   number: 'text-[oklch(0.8_0.12_60)]',
   function: 'text-[oklch(0.78_0.12_240)]',
   property: 'text-[oklch(0.85_0.06_200)]',
-  punct: 'text-[oklch(0.65_0.01_265)]',
+  punct: 'text-[#7d7872]',
   plain: '',
 };
 
@@ -113,17 +113,17 @@ export function CodeBlock({
   filename?: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-md border border-line bg-[oklch(0.19_0.01_265)]">
+    <div className="overflow-hidden rounded-md border border-line bg-[#191a1b]">
       <div className="flex items-center justify-between border-b border-white/8 px-3 py-1.5">
-        <span className="mono-label text-[11px] text-[oklch(0.68_0.01_265)]">{filename ?? language}</span>
+        <span className="mono-label text-[11px] text-[#a8a29b]">{filename ?? language}</span>
         <CopyButton
           value={code}
           iconOnly
-          className="border-white/12 bg-white/5 text-[oklch(0.72_0.01_265)] hover:border-white/25 hover:text-white"
+          className="border-white/12 bg-white/5 text-[#b5afa8] hover:border-white/25 hover:text-white"
         />
       </div>
       <pre className="overflow-x-auto p-3.5 text-xs leading-relaxed">
-        <code className="font-mono text-[oklch(0.92_0.005_265)]">
+        <code className="font-mono text-[#f3efe9]">
           <Highlighted code={code} language={language} />
         </code>
       </pre>

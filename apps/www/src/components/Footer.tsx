@@ -1,5 +1,5 @@
 import { DASHBOARD_URL, DISCORD_URL, DOCS_ROUTES, DOCS_URL } from '../lib/links';
-import { DiscordIcon } from './icons';
+import { DiscordIcon, RavenMark } from './icons';
 
 const COLUMNS = [
   {
@@ -37,7 +37,7 @@ export function Footer() {
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <span className="flex items-center gap-2 text-[15px] font-medium tracking-tight text-fg">
-              <RavenMark />
+              <RavenMark className="h-5 w-5" />
               RAVEN
             </span>
             <p className="mt-3 max-w-xs text-sm text-muted">
@@ -54,7 +54,9 @@ export function Footer() {
                     <a
                       href={link.href}
                       target={link.href.startsWith('http') && link.href !== DASHBOARD_URL ? '_blank' : undefined}
-                      rel={link.href.startsWith('http') && link.href !== DASHBOARD_URL ? 'noreferrer noopener' : undefined}
+                      rel={
+                        link.href.startsWith('http') && link.href !== DASHBOARD_URL ? 'noreferrer noopener' : undefined
+                      }
                       className="flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-fg"
                     >
                       {link.label === 'Discord' && <DiscordIcon className="h-4 w-4" />}
@@ -70,13 +72,5 @@ export function Footer() {
         <p className="mt-12 border-t border-line pt-6 text-sm text-muted">&copy; Raven. All rights reserved.</p>
       </div>
     </footer>
-  );
-}
-
-function RavenMark() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4 text-accent" fill="currentColor" aria-hidden="true">
-      <path d="M12 2 3 20h5.2l1.4-3.2h4.8L15.8 20H21L12 2Zm-1.3 11 1.3-3 1.3 3h-2.6Z" />
-    </svg>
   );
 }

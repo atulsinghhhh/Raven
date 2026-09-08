@@ -182,35 +182,40 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
           title="Create a key"
           subtitle="A key is a project-scoped backend credential. The full value is shown once, here, and never again."
         />
-        <form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <Field
-            id="key-name"
-            label="Name (optional)"
-            placeholder="production-server"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="flex-1"
-            hint="Only a label for this dashboard — it has no effect on what the key can do."
-          />
-          <Select
-            id="key-environment"
-            label="Environment"
-            value={environment}
-            onChange={(e) => setEnvironment(e.target.value as Environment)}
-            className="sm:w-40"
-          >
-            <option value="DEVELOPMENT">Development</option>
-            <option value="STAGING">Staging</option>
-            <option value="PRODUCTION">Production</option>
-          </Select>
-          <Button type="submit" loading={creating}>
-            Create key
-          </Button>
+        {/* Hints live below the row, not inside the fields: a hint under
+            one control pushes the others off its baseline and the row
+            reads crooked. */}
+        <form onSubmit={handleCreate} className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <Field
+              id="key-name"
+              label="Name (optional)"
+              placeholder="production-server"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="flex-1"
+            />
+            <Select
+              id="key-environment"
+              label="Environment"
+              value={environment}
+              onChange={(e) => setEnvironment(e.target.value as Environment)}
+              className="sm:w-40"
+            >
+              <option value="DEVELOPMENT">Development</option>
+              <option value="STAGING">Staging</option>
+              <option value="PRODUCTION">Production</option>
+            </Select>
+            <Button type="submit" loading={creating}>
+              Create key
+            </Button>
+          </div>
+          <p className="text-xs leading-relaxed text-subtle">
+            The name is only a dashboard label — it has no effect on what the key can do. The environment decides
+            where the key may act: set it correctly so a development credential can never be mistaken for one that
+            reaches production.
+          </p>
         </form>
-        <p className="mt-2 text-xs leading-relaxed text-subtle">
-          Which environment this key may act in. It has no effect on what the key can do beyond that — set it
-          correctly so a development credential can never be mistaken for one that reaches production.
-        </p>
         {error && (
           <div className="mt-4">
             <ErrorState description={error} />

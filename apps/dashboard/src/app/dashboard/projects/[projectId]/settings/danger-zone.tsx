@@ -66,19 +66,23 @@ export function DangerZone({ projectId, projectName }: { projectId: string; proj
           </div>
         )}
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <Field
-            id="confirm-delete"
-            label={`Type "${projectName}" to confirm`}
-            value={confirmText}
-            autoComplete="off"
-            onChange={(e) => setConfirmText(e.target.value)}
-            className="flex-1"
-            hint="Case-sensitive, and must match the project name exactly."
-          />
-          <Button variant="danger" disabled={!confirmed || deleting} onClick={handleDelete}>
-            {deleting ? 'Deleting…' : 'Delete project'}
-          </Button>
+        {/* The hint lives below the row, not inside the field: a hint
+            under only the input pushes it off the button's baseline. */}
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <Field
+              id="confirm-delete"
+              label={`Type "${projectName}" to confirm`}
+              value={confirmText}
+              autoComplete="off"
+              onChange={(e) => setConfirmText(e.target.value)}
+              className="flex-1"
+            />
+            <Button variant="danger" disabled={!confirmed || deleting} onClick={handleDelete}>
+              {deleting ? 'Deleting…' : 'Delete project'}
+            </Button>
+          </div>
+          <p className="text-xs leading-relaxed text-subtle">Case-sensitive, and must match the project name exactly.</p>
         </div>
       </div>
     </section>

@@ -300,20 +300,33 @@ export const IconEvents = (p: IconProps) => (
   </Svg>
 );
 
-/** Raven wordmark glyph: a stylised bird head in a rounded square. */
 export const IconGitHub = ({ className = 'size-4' }: IconProps) => (
   <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" className={className}>
     <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
   </svg>
 );
 
-export const RavenMark = ({ className = 'size-6' }: IconProps) => (
-  <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-    <rect width="24" height="24" rx="6" className="fill-accent" />
-    <path
-      d="M6.5 9.2c0-1.4 1.15-2.55 2.55-2.55h3.4c2.2 0 3.98 1.78 3.98 3.98 0 1.5-.83 2.8-2.05 3.48l1.62 2.24a.5.5 0 01-.4.8h-2.1a.9.9 0 01-.73-.38l-1.4-1.94H9.6v1.42a.9.9 0 01-.9.9H7.4a.9.9 0 01-.9-.9z"
-      className="fill-accent-fg"
-    />
-    <circle cx="12.6" cy="10.1" r="1.05" className="fill-accent" />
+/**
+ * The Raven glyph — the circuit-winged raven head, traced from the master
+ * artwork in `assests/logo.png`. A single path with `evenodd` fill, so the
+ * eye and the two wing-trace nodes stay punched out rather than needing
+ * their own shapes. The viewBox keeps the artwork's natural 32:20.5, so a
+ * square box letterboxes the mark instead of squashing it.
+ */
+export const RavenGlyph = ({ className = 'size-6' }: IconProps) => (
+  <svg viewBox="0 0 32 20.53" className={className} fill="currentColor" fillRule="evenodd" aria-hidden="true">
+    <path d="M18.52 0L20.21 0.03L22.03 0.38L23.34 0.82L25.06 1.75L25.88 2.37L26.78 3.24L27.65 4.36L28.32 4.7L29.28 5.36L30.49 6.46L31.38 7.7L31.86 8.7L32 9.16L31.94 9.2L31.34 8.89L30.07 8.41L28.15 7.93L26.48 7.79L25.45 8L24.8 8.38L24.45 8.7L24.14 9.11L23.86 9.66L23.48 10.93L23.31 12.4L23.31 13.14L23.25 13.15L17.58 5.67L16.93 4.85L16.4 4.36L15.89 4.05L15.06 3.81L10.51 3.8L11.03 3.26L12.16 2.37L13.02 1.79L14.33 1.06L16.28 0.34L17.42 0.1ZM21.69 3.12L21.67 3.18L23.46 5.29L25.58 4.66L25.57 4.6L25.09 4.39ZM0.21 5.53L15.2 5.53L16.79 7.42L23.45 15.8L24.21 16.97L24.86 18.17L25.51 19.61L25.82 20.52L18.19 15.28L8.94 15.28L8.8 15.18L6.94 13.07L6.94 12.94L14.24 12.94L14.57 13.32L14.94 13.56L15.29 13.67L15.79 13.67L16.37 13.42L16.79 13L16.93 12.73L17.03 12.32L17 11.89L16.86 11.51L16.62 11.17L16.3 10.92L15.92 10.75L15.36 10.71L14.77 10.92L14.27 11.43L5.33 11.43L4.29 10.33L3.4 9.3L3.36 9.18L9.81 9.17L10.1 9.51L10.58 9.79L11.25 9.85L11.73 9.68L12.19 9.3L12.36 9.02L12.5 8.54L12.43 7.94L12.26 7.6L11.77 7.14L11.29 6.97L10.55 7.04L10.14 7.28L9.85 7.66L1.86 7.66L0.03 5.66L0.01 5.56Z" />
   </svg>
+);
+
+/**
+ * The brand mark: the glyph in electric lime on an ink chip. That pairing
+ * is the one place the design system allows lime — never lime sitting on
+ * the light canvas — and it inverts with the theme, because `--accent` and
+ * `--accent-fg` swap in dark mode.
+ */
+export const RavenMark = ({ className = 'size-6' }: IconProps) => (
+  <span className={`inline-flex shrink-0 items-center justify-center rounded-md bg-accent text-accent-fg ${className}`}>
+    <RavenGlyph className="w-[70%]" />
+  </span>
 );

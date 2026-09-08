@@ -53,13 +53,13 @@ export function Platform() {
           <div className="mt-9 flex flex-wrap gap-2.5">
             <a
               href={DOCS_URL}
-              className="rounded-(--radius-panel) border border-line bg-surface px-3.5 py-2 text-[13px] font-medium text-fg transition-colors hover:border-line-strong"
+              className="rounded-(--radius-panel) border border-accent-line px-3.5 py-2 text-[13px] font-medium text-fg transition-colors hover:border-accent-text"
             >
               Explore the documentation
             </a>
             <a
               href={DOCS_ROUTES.quickstart}
-              className="rounded-(--radius-panel) border border-line bg-surface px-3.5 py-2 text-[13px] font-medium text-fg transition-colors hover:border-line-strong"
+              className="rounded-(--radius-panel) border border-accent-line px-3.5 py-2 text-[13px] font-medium text-fg transition-colors hover:border-accent-text"
             >
               Quickstart
             </a>
@@ -94,8 +94,8 @@ function ArchitectureDiagram() {
     <svg viewBox="0 0 480 380" className="w-full opacity-60" role="presentation">
       <defs>
         <radialGradient id="arch-glow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--accent-line)" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="var(--accent-line)" stopOpacity="0" />
         </radialGradient>
       </defs>
 

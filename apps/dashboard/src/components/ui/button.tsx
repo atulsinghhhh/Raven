@@ -20,13 +20,26 @@ const VARIANT: Record<Variant, string> = {
   danger: 'bg-danger text-white font-semibold hover:opacity-90',
 };
 
+/*
+ * Disabled swaps the fill for a quiet warm gray instead of fading the
+ * ink/lime pairing to mud; outlined variants just dim. Loading keeps the
+ * variant's full look — the spinner is the state, and a primary that
+ * grays out mid-submit reads as failure.
+ */
+const DISABLED: Record<Variant, string> = {
+  primary: 'disabled:bg-line disabled:text-subtle',
+  secondary: 'disabled:opacity-50',
+  ghost: 'disabled:opacity-50',
+  danger: 'disabled:opacity-50',
+};
+
 const SIZE: Record<Size, string> = {
   sm: 'h-7 px-2.5 text-xs gap-1.5 rounded-sm',
   md: 'h-9 px-3.5 text-sm gap-2 rounded-md',
 };
 
 const BASE =
-  'inline-flex items-center justify-center whitespace-nowrap transition-[background-color,border-color,color,opacity] duration-100 disabled:opacity-50 disabled:pointer-events-none';
+  'inline-flex items-center justify-center whitespace-nowrap transition-[background-color,border-color,color,opacity] duration-100 disabled:pointer-events-none';
 
 export function Button({
   variant = 'primary',
@@ -41,7 +54,7 @@ export function Button({
       {...props}
       disabled={props.disabled || loading}
       aria-busy={loading || undefined}
-      className={`${BASE} ${SIZE[size]} ${VARIANT[variant]} ${className}`}
+      className={`${BASE} ${SIZE[size]} ${VARIANT[variant]} ${loading ? '' : DISABLED[variant]} ${className}`}
     >
       {loading && <Spinner />}
       {children}

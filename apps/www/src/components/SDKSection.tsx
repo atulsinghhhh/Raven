@@ -13,7 +13,7 @@ const SDKS = [
 
 export function SDKSection() {
   return (
-    <section id="sdks" className="border-t border-line py-24 md:py-32">
+    <section id="sdks" className="border-t border-line bg-surface-sunken/40 py-24 md:py-32">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal>
           <div>

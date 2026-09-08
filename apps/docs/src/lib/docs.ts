@@ -167,7 +167,7 @@ function extractHeadings(html: string): DocHeading[] {
 
   for (const match of html.matchAll(pattern)) {
     const [, level, id, inner] = match;
-    const text = inner.replace(/<|>/g, '').trim();
+    const text = inner.replace(/<[^>]*>/g, '').trim();
     if (text) {
       headings.push({ id, text, level: Number(level) });
     }

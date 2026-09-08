@@ -175,7 +175,7 @@ export function MembersManager({
                 id="member-role"
                 value={role}
                 onChange={(e) => setRole(e.target.value as ProjectRole)}
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
+                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-fg"
               >
                 {ROLES.filter((r) => r !== 'OWNER' || viewerIsOwner).map((r) => (
                   <option key={r} value={r}>
@@ -228,7 +228,7 @@ export function MembersManager({
                     value={member.role}
                     disabled={busy || isLastOwner}
                     onChange={(e) => handleRoleChange(member, e.target.value as ProjectRole)}
-                    className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-fg focus:border-accent focus:outline-none disabled:opacity-50"
+                    className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-fg disabled:opacity-50"
                   >
                     {ROLES.filter((r) => r !== 'OWNER' || viewerIsOwner).map((r) => (
                       <option key={r} value={r}>
