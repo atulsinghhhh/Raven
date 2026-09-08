@@ -19,7 +19,7 @@ describe('HealthController', () => {
   let redis: { ping: jest.Mock };
   let signalingGateway: { getMetrics: jest.Mock };
   let configService: { get: jest.Mock };
-  let rtcServers: { pickHealthyForProbe: jest.Mock };
+  let rtcServers: { listHealthyForProbe: jest.Mock };
 
   beforeEach(() => {
     prisma = { ping: jest.fn().mockResolvedValue(undefined) };
@@ -31,13 +31,14 @@ describe('HealthController', () => {
       get: jest.fn((key: string) => {
         if (key === 'turn.internalHost') return 'coturn';
         if (key === 'turn.port') return 3478;
+        if (key === 'sfu.defaultRegion') return 'local';
         return undefined;
       }),
     };
     rtcServers = {
-      pickHealthyForProbe: jest
+      listHealthyForProbe: jest
         .fn()
-        .mockResolvedValue({ name: 'sfu-local-01', internalUrl: 'http://sfu:7000' }),
+        .mockResolvedValue([{ name: 'sfu-local-01', internalUrl: 'http://sfu:7000' }]),
     };
     mockCheckSfuHttp.mockReset().mockResolvedValue(true);
     mockCheckStunBinding.mockReset().mockResolvedValue(true);
@@ -87,6 +88,46 @@ describe('HealthController', () => {
         dependencies: { database: 'up', redis: 'up', sfu: 'down', turn: 'up' },
       }),
     );
+  });
+
+  it('probes only the region this instance allocates in', async () => {
+    const res = fakeResponse();
+
+    await controller.check(res as never);
+
+    // A node in another region advertises an address private to that
+    // network, so probing it would take this instance out of rotation over
+    // capacity it would never allocate.
+    expect(rtcServers.listHealthyForProbe).toHaveBeenCalledWith('local');
+  });
+
+  it('reports sfu: up when a later candidate answers after an unreachable one', async () => {
+    rtcServers.listHealthyForProbe.mockResolvedValue([
+      { name: 'sfu-local-01', internalUrl: 'http://10.10.1.4:7000' },
+      { name: 'sfu-local-02', internalUrl: 'http://sfu:7000' },
+    ]);
+    mockCheckSfuHttp.mockReset().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    const res = fakeResponse();
+
+    await controller.check(res as never);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(mockCheckSfuHttp).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports sfu: down when the region has no healthy node at all', async () => {
+    rtcServers.listHealthyForProbe.mockResolvedValue([]);
+    const res = fakeResponse();
+
+    await controller.check(res as never);
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dependencies: { database: 'up', redis: 'up', sfu: 'down', turn: 'up' },
+      }),
+    );
+    expect(mockCheckSfuHttp).not.toHaveBeenCalled();
   });
 
   it('reports turn: down when the STUN binding check fails', async () => {

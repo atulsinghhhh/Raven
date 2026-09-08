@@ -17,6 +17,16 @@ import { RtcServerHeartbeatDto } from './dto/rtc-server-heartbeat.dto';
 const STALE_SWEEP_INTERVAL_MS = 10_000;
 
 /**
+ * How many nodes a readiness probe will try before calling the region down.
+ *
+ * Bounded because readiness is on a hot path — orchestrators and load
+ * balancers poll it — and each attempt costs an HTTP round trip against a
+ * 2s timeout. Three is enough to ride out one node with a broken route
+ * without turning the probe into a fleet-wide scan.
+ */
+const PROBE_CANDIDATE_LIMIT = 3;
+
+/**
  * The fleet's record of which RTC servers exist and how loaded they are
  * (spec §23, §26).
  *
@@ -196,16 +206,30 @@ export class RtcServerRegistryService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * One healthy server, for the readiness probe.
+   * Healthy servers a readiness probe should try, least-loaded first.
    *
-   * The least-loaded healthy node, so a probe doesn't keep landing on the
-   * busiest one. `null` when the fleet has nothing healthy registered, which
-   * is itself the answer readiness wants: there's nowhere to put a new room.
+   * Scoped to one region, because that is the scope allocation works in:
+   * `RtcServerAllocatorService` only ever picks within a region, so an
+   * instance's readiness has to mean "the region I allocate in can serve a
+   * call", not "some node somewhere is alive". A node in another region is
+   * both unreachable from here and irrelevant to what this instance would
+   * hand out.
+   *
+   * Ordered by load and then by name. The tiebreak is the point: without
+   * it, a fleet whose nodes all sit at zero rooms leaves the order up to
+   * Postgres, and readiness flips between nodes — and so between up and
+   * down — on consecutive calls that nothing has changed between.
+   *
+   * Returns several candidates rather than one so the caller can survive a
+   * single node with a broken route instead of reporting the whole fleet
+   * down. Empty when the region has nothing healthy, which is itself the
+   * answer readiness wants: there is nowhere to put a new room.
    */
-  async pickHealthyForProbe(): Promise<RtcServer | null> {
-    return this.prisma.rtcServer.findFirst({
-      where: { status: RtcServerStatus.HEALTHY },
-      orderBy: [{ activeRooms: 'asc' }],
+  async listHealthyForProbe(region: string, limit = PROBE_CANDIDATE_LIMIT): Promise<RtcServer[]> {
+    return this.prisma.rtcServer.findMany({
+      where: { status: RtcServerStatus.HEALTHY, region },
+      orderBy: [{ activeRooms: 'asc' }, { name: 'asc' }],
+      take: limit,
     });
   }
 
