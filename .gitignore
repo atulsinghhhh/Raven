@@ -63,4 +63,9 @@ sdks/flutter/*/pubspec.lock
 
 # Vercel CLI project links (per-project, machine-local)
 .vercel
-.env*
+
+# NOTE: do not add a blanket `.env*` here. gitignore is last-match-wins, so
+# a trailing `.env*` overrides the `!.env.example` negation at the top of
+# this file and silently un-tracks the 89-variable template every developer
+# copies to get started. The `.env` / `.env.*` pair up there already covers
+# every real env file.

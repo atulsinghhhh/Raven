@@ -1,0 +1,43 @@
+# Prettier formats the TypeScript/JavaScript/JSON surface of this repo.
+# The other languages are formatted by their own ecosystem's tool, which is
+# canonical there and disagrees with Prettier: Go by gofmt, Dart by
+# `dart format`, Python by `ruff format`. See CONTRIBUTING.md.
+
+# --- not ours -------------------------------------------------------------
+node_modules/
+pnpm-lock.yaml
+**/dist/
+**/build/
+**/.next/
+**/coverage/
+**/.verify-dist/
+.vercel/
+sdks/python/.venv/
+
+# Prisma's generated client: hundreds of thousands of machine-written lines.
+apps/api/src/generated/
+
+# Vendored SDK builds copied from packages/*/dist so the browser e2e harness
+# can load them without a bundler. Nobody edits these by hand.
+apps/api/test/e2e-harness/vendor/
+
+# Recorded load-test output — data, not source.
+scripts/results/
+
+# Go, Dart and Python trees (formatted by gofmt / dart format / ruff).
+services/sfu/
+sdks/flutter/
+sdks/python/
+
+# --- deliberately excluded ------------------------------------------------
+# Markdown is hand-wrapped prose here. Every doc in this repo is written to a
+# deliberate measure, with line breaks chosen for how the sentence reads;
+# Prettier's reflow would rewrite all of it and settle nothing. Formatting
+# docs is a human judgement, not a lint.
+*.md
+
+# YAML carries the long explanatory comments that make the CI workflows and
+# compose stack legible. Prettier preserves comment text but moves it, which
+# is churn with no payoff on files that are already consistent.
+*.yml
+*.yaml

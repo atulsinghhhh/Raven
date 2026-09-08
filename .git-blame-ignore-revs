@@ -1,0 +1,26 @@
+# Commits that changed formatting only, and should be skipped by git blame.
+#
+# A repo-wide formatting pass rewrites thousands of lines without changing
+# a single behaviour, and without this file it would make `git blame`
+# useless — every line would attribute to the reformat instead of to the
+# change that actually introduced it.
+#
+# Enable it once, locally:
+#
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub honours this file automatically in its blame view.
+#
+# Add only pure-formatting commits. One full 40-character SHA per line,
+# with a comment saying what it was.
+
+# --- pending -----------------------------------------------------------
+# Prettier was adopted (.prettierrc.json, `pnpm format:check`, and the
+# Format job in .github/workflows/ci.yml) without reformatting the existing
+# tree. Roughly 345 files are not yet compliant, so that job fails until a
+# one-time pass lands:
+#
+#     pnpm format
+#     git commit -am "style: adopt Prettier across the repo"
+#
+# Then paste that commit's SHA below.
