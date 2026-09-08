@@ -10,11 +10,17 @@ import { Raven, createRaven } from '../src/index';
  */
 
 // A syntactically valid RTC token. createRTCClient decodes it client-side
-// (never verifies it), so it does at least have to parse as a JWT.
+// (never verifies it), so it does at least have to parse as a JWT and carry
+// the claims that decode reads: `rid`/`rnm` for the room check, `exp` to
+// fail fast on an already-expired token.
 function fakeRtcToken(): string {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const payload = Buffer.from(
-    JSON.stringify({ video: { room: 'room_123' }, exp: Math.floor(Date.now() / 1000) + 3600 }),
+    JSON.stringify({
+      rid: 'room_123',
+      rnm: 'demo-room',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    }),
   ).toString('base64url');
   return `${header}.${payload}.signature`;
 }

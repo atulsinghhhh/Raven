@@ -42,12 +42,23 @@ export interface ResolvedRTCClientConfig {
 }
 
 interface DecodedTokenPayload {
-  room?: string;
+  /** The `rid` claim: the room's `rooms.id` primary key. */
+  roomId?: string;
+  /** The `rnm` claim: the room's display name, carried next to `rid` so this check accepts either. */
+  roomName?: string;
   exp?: number;
   sub?: string;
 }
 
-/** Decodes the JWT payload. Doesn't verify it; the server is the source of truth. */
+/**
+ * Decodes the JWT payload. Doesn't verify it; the server is the source of truth.
+ *
+ * Reads Raven's own claim names (`rid`/`rnm`/`sub`/`exp`, see
+ * `RtcTokenClaims` in the control plane). It used to read `video.room`,
+ * which was LiveKit's claim shape and stopped existing when Raven's own
+ * token signer replaced it — so every field here came back `undefined` and
+ * `assertTokenMatchesRoom` below silently passed everything.
+ */
 export function decodeTokenPayload(token: string): DecodedTokenPayload {
   const parts = token.split('.');
   if (parts.length !== 3) {
@@ -57,7 +68,8 @@ export function decodeTokenPayload(token: string): DecodedTokenPayload {
     const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
     const json = JSON.parse(atob(base64));
     return {
-      room: json?.video?.room,
+      roomId: typeof json?.rid === 'string' ? json.rid : undefined,
+      roomName: typeof json?.rnm === 'string' ? json.rnm : undefined,
       exp: typeof json?.exp === 'number' ? json.exp : undefined,
       sub: typeof json?.sub === 'string' ? json.sub : undefined,
     };
@@ -100,10 +112,26 @@ export function validateConfig(config: RTCClientConfig): ResolvedRTCClientConfig
  * Bails out client-side, before any connection is attempted, if the token
  * was minted for a different room than the one being joined. Much clearer
  * than letting the connection fail and working backwards from that.
+ *
+ * Either the room id or the room name is accepted, because a token carries
+ * both (`rid` and `rnm`) and application code legitimately holds whichever
+ * one it happened to pass to its own backend.
+ *
+ * A token carrying neither claim passes. That's deliberate: this is a
+ * courtesy check, not authorization. The signaling gateway re-verifies the
+ * signed room on every join, so the only thing a missing claim costs is a
+ * later, less obvious error message.
  */
-export function assertTokenMatchesRoom(token: string, roomId: string): void {
-  const { room } = decodeTokenPayload(token);
-  if (room && room !== roomId) {
-    throw new RTCError('ROOM_NOT_FOUND', `This token was minted for room "${room}", not "${roomId}"`);
+export function assertTokenMatchesRoom(token: string, room: string): void {
+  const { roomId, roomName } = decodeTokenPayload(token);
+  if (!roomId && !roomName) {
+    return;
   }
+  if (room === roomId || room === roomName) {
+    return;
+  }
+  // Named by name where we have one: logs and error reports get read by
+  // humans, who know rooms by name rather than by primary key.
+  const minted = roomName ?? roomId;
+  throw new RTCError('ROOM_NOT_FOUND', `This token was minted for room "${minted}", not "${room}"`);
 }
