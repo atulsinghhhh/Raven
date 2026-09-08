@@ -32,11 +32,13 @@ let pipelineCounter = 0;
 let effectCounter = 0;
 
 /**
- * Raven Effects' pipeline — a reusable, ordered list of video effects that
- * can be attached to any Raven camera track (RTC or Live Streaming, they're
- * the same `LocalTrack`). The pipeline owns *what* to render; an
- * `EffectsEngine` (WebGL2 / Canvas2D / passthrough, picked automatically by
- * capability detection) owns *how*.
+ * Raven Effects' pipeline: a reusable, ordered list of video effects you can
+ * attach to any Raven camera track. RTC or Live Streaming, doesn't matter;
+ * they're the same `LocalTrack`.
+ *
+ * The pipeline owns *what* to render. An `EffectsEngine` owns *how*, and
+ * which one you get (WebGL2, Canvas2D, passthrough) is decided by
+ * capability detection.
  */
 export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> {
   readonly id: string;
@@ -60,7 +62,7 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
     return this._isEnabled;
   }
 
-  /** Adds a filter (from `raven.effects.filters.*`) or preset entry to the end of the pipeline. */
+  /** Appends a filter from `raven.effects.filters.*`, or a preset entry, to the pipeline. */
   add(config: FilterConfig): EffectInstance {
     assertPipelineNotFull(this._effects.length);
     const definition = FILTER_DEFINITIONS[config.type];
@@ -83,10 +85,11 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
   }
 
   /**
-   * Registers a trusted, in-process custom effect (Phase 16 §19). Raven
-   * Effects never loads effects from a URL or executes untrusted code —
-   * `effect` must already be a real object in the host application's own
-   * bundle. See security.ts.
+   * Registers a trusted, in-process custom effect (Phase 16 §19).
+   *
+   * Raven Effects never loads an effect from a URL and never executes
+   * untrusted code. `effect` has to already be a real object in the host
+   * application's own bundle. See security.ts.
    */
   addCustomEffect(effect: RavenEffect, initialParams: ColorOpParams = {}): EffectInstance {
     assertPipelineNotFull(this._effects.length);
@@ -111,7 +114,7 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
     return instance;
   }
 
-  /** Adds every filter in a preset (e.g. `raven.effects.presets.cinematic()`), in order. */
+  /** Adds every filter in a preset, in order. `raven.effects.presets.cinematic()`, say. */
   applyPreset(preset: Preset): EffectInstance[] {
     return preset().map((config) => this.add(config));
   }
@@ -130,7 +133,7 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
     this.emit('effectRemoved', id);
   }
 
-  /** Updates one effect's parameters (partial merge) — e.g. `effects.update(id, { value: 0.5 })`. */
+  /** Updates one effect's parameters, merging partially. `effects.update(id, { value: 0.5 })`. */
   update(effectId: string, params: Partial<ColorOpParams>): void {
     const instance = this.require(effectId);
     const registration = this.customRegistrations.get(effectId);
@@ -150,7 +153,7 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
     this.emit('effectUpdated', instance);
   }
 
-  /** Moves an effect to a new index in the chain — order matters for how effects compose. */
+  /** Moves an effect to a new index. Order matters for how effects compose. */
   reorder(effectId: string, toIndex: number): void {
     const fromIndex = this._effects.findIndex((e) => e.id === effectId);
     if (fromIndex === -1) return;
@@ -164,7 +167,7 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
     );
   }
 
-  /** With no id: enables the whole pipeline (bypass off). With an id: enables just that effect. */
+  /** No id enables the whole pipeline (bypass off). An id enables just that effect. */
   enable(effectId?: string): void {
     if (effectId) {
       this.require(effectId).enabled = true;
@@ -175,7 +178,7 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
     this.emit('enabled', effectId);
   }
 
-  /** With no id: disables the whole pipeline (camera publishes unmodified). With an id: disables just that effect. */
+  /** No id disables the whole pipeline, so the camera publishes unmodified. An id disables just that effect. */
   disable(effectId?: string): void {
     if (effectId) {
       this.require(effectId).enabled = false;
@@ -205,32 +208,34 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
   }
 
   /**
-   * @internal Called by `@corvidhq/rtc`'s `LocalTrack.attachEffects()` —
-   * not part of the public surface a developer calls directly. Starts
-   * processing `sourceTrack` and returns the live output track to publish.
+   * @internal Called by `@corvidhq/rtc`'s `LocalTrack.attachEffects()`.
+   * Nobody calls this directly. Starts processing `sourceTrack` and returns
+   * the live output track to publish.
    */
   async attachToTrack(sourceTrack: MediaStreamTrack, engineOverride?: EffectsEngine): Promise<MediaStreamTrack> {
     if (this.engine) {
       throw new EffectsError('RAVEN_EFFECT_INVALID_CONFIG', 'This pipeline is already attached to a track. Detach it first.');
     }
     if (!hasDocument()) {
-      // No DOM at all (React Native's JS runtime, a Node worker, ...) — there's
-      // no video element or canvas to build an engine on. Degrade to the
-      // original track rather than throwing a raw ReferenceError; native
-      // platforms get their own effects engine later (see docs/effects/react-native).
+      // No DOM whatsoever: React Native's JS runtime, a Node worker, that
+      // sort of thing. Nothing to build an engine on, no video element, no
+      // canvas. Fall back to the original track rather than throw a raw
+      // ReferenceError. Native platforms get their own effects engine later
+      // on (docs/effects/react-native).
       this.emit(
         'error',
-        new EffectsError('RAVEN_EFFECT_UNSUPPORTED', 'Raven Effects has no DOM to render into in this environment — the camera track is unmodified.'),
+        new EffectsError('RAVEN_EFFECT_UNSUPPORTED', 'Raven Effects has no DOM to render into in this environment; the camera track is unmodified.'),
       );
       return sourceTrack;
     }
     const video = document.createElement('video');
     video.muted = true;
     video.playsInline = true;
-    // Chrome (and others) throttle or never decode frames for a <video> that
-    // isn't in the document — `requestVideoFrameCallback` simply never fires
-    // on a detached element. Off-screen-but-attached (not `display: none`,
-    // which some engines also pause) is what actually keeps it decoding.
+    // Chrome, and others, throttle or flat-out never decode frames for a
+    // <video> that isn't in the document. `requestVideoFrameCallback` just
+    // never fires on a detached element. What actually keeps it decoding is
+    // off-screen but attached. Not `display: none`, which some engines also
+    // pause.
     video.setAttribute('aria-hidden', 'true');
     video.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:2px;height:2px;opacity:0;pointer-events:none;';
     document.body.appendChild(video);
@@ -239,15 +244,17 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
       const playResult = video.play() as unknown;
       if (playResult && typeof (playResult as Promise<void>).catch === 'function') {
         await (playResult as Promise<void>).catch(() => {
-          // Autoplay can reject in some embedding contexts even though muted+playsInline
-          // usually satisfies autoplay policies — playback still starts once the
-          // media element is attached to a live document; frames won't render until then.
+          // Autoplay can still reject in some embedding contexts, even
+          // though muted+playsInline normally satisfies autoplay policies.
+          // Playback starts once the media element is attached to a live
+          // document; nothing renders before that.
         });
       }
     } catch (error) {
-      // A runtime that can't even construct a video element from this track can't run
-      // effects — surface it as unsupported and let the caller keep the original track,
-      // rather than throwing out of an otherwise-optional feature.
+      // A runtime that can't even build a video element from this track
+      // can't run effects. Report it as unsupported and let the caller keep
+      // the original track, rather than throwing out of a feature that was
+      // optional to begin with.
       video.remove();
       this.emit(
         'error',
@@ -269,7 +276,8 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
       const effectsError =
         error instanceof EffectsError ? error : new EffectsError('RAVEN_EFFECT_PROCESSING_FAILED', 'Failed to start effects engine.', error);
       this.emit('error', effectsError);
-      // Graceful degradation (§9/§31): the call keeps working on the original track.
+      // Graceful degradation (§9/§31). The call carries on with the
+      // original track.
       return sourceTrack;
     }
   }

@@ -2,8 +2,8 @@ import type { EffectDefinition } from '../types';
 import { clamp01 } from './util';
 
 /**
- * Temperature — shifts the red/blue balance (warm/cool white balance).
- * `value`: -1 (cooler/blue) .. 1 (warmer/orange); 0 = no change.
+ * Temperature. Shifts the red/blue balance, i.e. warm/cool white balance.
+ * `value`: -1 (cooler, bluer) to 1 (warmer, more orange). 0 is no change.
  */
 export const temperatureDefinition: EffectDefinition = {
   type: 'temperature',

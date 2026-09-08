@@ -1,7 +1,8 @@
-// jsdom doesn't implement WebGL, OffscreenCanvas, captureStream(), or
-// requestVideoFrameCallback. Tests exercise pipeline/filter/security logic
-// against fakes (see test/helpers) rather than a real GPU — genuine GPU
-// rendering is verified manually via examples/effects-demo in a real browser.
+// jsdom implements none of WebGL, OffscreenCanvas, captureStream() or
+// requestVideoFrameCallback. So these tests drive pipeline, filter and
+// security logic against fakes (see test/helpers), not a real GPU.
+// Actual GPU rendering gets checked by hand through examples/effects-demo
+// in a real browser.
 if (typeof globalThis.MediaStream === 'undefined') {
   class FakeMediaStream {
     private tracks: MediaStreamTrack[];

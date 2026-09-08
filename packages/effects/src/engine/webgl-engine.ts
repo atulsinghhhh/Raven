@@ -77,12 +77,13 @@ interface RenderTarget {
 }
 
 /**
- * Real multi-pass WebGL2 pipeline: consecutive per-pixel color adjustments
- * are folded into one compiled shader pass; blur gets its own separable
- * (horizontal + vertical) pass. Passes ping-pong between two offscreen
- * render targets, with the final pass drawing straight to the canvas that
- * backs the published `MediaStreamTrack` (via `captureStream`) — no extra
- * copy after that.
+ * A real multi-pass WebGL2 pipeline.
+ *
+ * Consecutive per-pixel colour adjustments get folded into a single
+ * compiled shader pass. Blur gets its own separable pass, horizontal then
+ * vertical. Passes ping-pong between two offscreen render targets, and the
+ * final one draws straight to the canvas backing the published
+ * `MediaStreamTrack` through `captureStream`. No extra copy after that.
  */
 export class WebGLEngine implements EffectsEngine {
   readonly kind = 'webgl2' as const;

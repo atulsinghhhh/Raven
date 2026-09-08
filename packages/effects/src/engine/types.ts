@@ -11,16 +11,18 @@ export interface PipelineStats {
 
 /**
  * An EffectsEngine turns a live `HTMLVideoElement` into a processed
- * `MediaStreamTrack`. `EffectsPipeline` owns *what* to render (the effect
- * list); an engine owns *how* (WebGL2, Canvas2D, or passthrough). Swapping
- * engines never changes the public pipeline API — see capabilities.ts for
- * how one gets picked.
+ * `MediaStreamTrack`.
+ *
+ * `EffectsPipeline` owns *what* to render, i.e. the effect list. An engine
+ * owns *how*: WebGL2, Canvas2D, or passthrough. Swapping engines never
+ * changes the public pipeline API. capabilities.ts covers how one gets
+ * picked.
  */
 export interface EffectsEngine {
   readonly kind: EngineKind;
-  /** Starts the frame loop and returns the live output track immediately (it fills in as frames render). */
+  /** Starts the frame loop and returns the live output track right away. It fills in as frames render. */
   start(video: HTMLVideoElement, sourceTrack: MediaStreamTrack, getEffects: () => EffectInstance[]): MediaStreamTrack;
-  /** Effect list changed (add/remove/update/reorder/enable/disable) — recompute whatever the engine cached. */
+  /** The effect list changed (add, remove, update, reorder, enable, disable). Recompute whatever the engine cached. */
   rebuild(): void;
   stop(): void;
   getStats(): PipelineStats;

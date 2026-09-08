@@ -2,8 +2,8 @@ import type { EffectDefinition } from '../types';
 import { clamp01 } from './util';
 
 /**
- * Tint — shifts the green/magenta balance.
- * `value`: -1 (green) .. 1 (magenta); 0 = no change.
+ * Tint. Shifts the green/magenta balance.
+ * `value`: -1 (green) to 1 (magenta). 0 is no change.
  */
 export const tintDefinition: EffectDefinition = {
   type: 'tint',

@@ -47,7 +47,7 @@ describe('color op math (spot checks against the documented formulas)', () => {
     expect(g).toBeCloseTo(b, 5);
   });
 
-  it('saturation(0) is equivalent to grayscale(1) — both collapse to luma', () => {
+  it('saturation(0) is equivalent to grayscale(1); both collapse to luma', () => {
     const sat = FILTER_DEFINITIONS.saturation.op;
     const gray = FILTER_DEFINITIONS.grayscale.op;
     if (sat.kind !== 'color' || gray.kind !== 'color') throw new Error('expected color ops');

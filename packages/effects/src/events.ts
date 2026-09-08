@@ -1,7 +1,8 @@
 /**
- * Minimal typed pub/sub — no external dependency, keeps bundle size down.
+ * Minimal typed pub/sub. No dependency, and it keeps the bundle small.
+ *
  * Mirrors @corvidhq/rtc's TypedEventEmitter so the two packages feel like
- * one SDK to a developer, without effects depending on rtc (or vice versa).
+ * one SDK, without effects having to depend on rtc, or the other way round.
  */
 export class TypedEventEmitter<EventMap extends { [K in keyof EventMap]: (...args: never[]) => void }> {
   private listeners = new Map<keyof EventMap, Set<(...args: never[]) => void>>();
@@ -41,8 +42,8 @@ export class TypedEventEmitter<EventMap extends { [K in keyof EventMap]: (...arg
   protected emit<E extends keyof EventMap>(event: E, ...args: Parameters<EventMap[E]>): void {
     const set = this.listeners.get(event);
     if (!set) return;
-    // copy before iterating — a handler might call .off() on itself or
-    // another handler for this event mid-dispatch
+    // Copy before iterating: a handler might call .off() on itself, or on
+    // another handler for this event, mid-dispatch.
     for (const handler of Array.from(set)) {
       (handler as (...args: unknown[]) => void)(...args);
     }

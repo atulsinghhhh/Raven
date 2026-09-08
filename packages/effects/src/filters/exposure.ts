@@ -2,8 +2,9 @@ import type { EffectDefinition } from '../types';
 import { clamp01 } from './util';
 
 /**
- * Exposure — multiplicative brightness in photographic stops.
- * `stops`: -2 .. 2; 0 = no change. Each +1 stop doubles brightness (2^stops).
+ * Exposure. Multiplicative brightness, in photographic stops.
+ * `stops`: -2 to 2, 0 is no change. Every +1 stop doubles brightness
+ * (2^stops).
  */
 export const exposureDefinition: EffectDefinition = {
   type: 'exposure',

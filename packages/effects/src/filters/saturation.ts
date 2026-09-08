@@ -2,8 +2,8 @@ import type { EffectDefinition } from '../types';
 import { clamp01, luma } from './util';
 
 /**
- * Saturation — blends between grayscale and full color.
- * `value`: 0 (grayscale) .. 2 (double saturation); 1 = no change.
+ * Saturation. Blends between grayscale and full colour.
+ * `value`: 0 (grayscale) to 2 (double saturation). 1 is no change.
  */
 export const saturationDefinition: EffectDefinition = {
   type: 'saturation',

@@ -1,9 +1,9 @@
 import { filters, type FilterConfig } from './filters/index';
 
 /**
- * Presets are pure composition over the basic filters (Phase 16 §4) — no
- * preset defines its own pixel math. Each returns the ordered list of
- * filter configs `EffectsPipeline.applyPreset()` adds in sequence.
+ * Presets are pure composition over the basic filters (Phase 16 §4). Not
+ * one of them defines its own pixel maths. Each returns the ordered list of
+ * filter configs `EffectsPipeline.applyPreset()` adds, in sequence.
  */
 export type Preset = () => FilterConfig[];
 

@@ -1,7 +1,7 @@
 import type { EffectDefinition } from '../types';
 import { clamp01 } from './util';
 
-/** Classic sepia color matrix (same coefficients browsers use for CSS `filter: sepia()`). */
+/** The classic sepia colour matrix, same coefficients browsers use for CSS `filter: sepia()`. */
 function sepiaMatrix(r: number, g: number, b: number): [number, number, number] {
   return [
     r * 0.393 + g * 0.769 + b * 0.189,
@@ -11,8 +11,8 @@ function sepiaMatrix(r: number, g: number, b: number): [number, number, number] 
 }
 
 /**
- * Sepia — blends toward a classic sepia tone.
- * `amount`: 0 (unchanged) .. 1 (fully sepia).
+ * Sepia. Blends toward a classic sepia tone.
+ * `amount`: 0 (unchanged) to 1 (fully sepia).
  */
 export const sepiaDefinition: EffectDefinition = {
   type: 'sepia',

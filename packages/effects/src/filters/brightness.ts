@@ -2,8 +2,8 @@ import type { EffectDefinition } from '../types';
 import { clamp01 } from './util';
 
 /**
- * Brightness — additive shift applied equally to every channel.
- * `value`: -1 (fully dark) .. 1 (fully bright); 0 = no change.
+ * Brightness. An additive shift applied equally to every channel.
+ * `value`: -1 (fully dark) to 1 (fully bright). 0 is no change.
  */
 export const brightnessDefinition: EffectDefinition = {
   type: 'brightness',

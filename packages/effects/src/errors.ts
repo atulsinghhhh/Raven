@@ -1,7 +1,7 @@
 /**
- * Stable, typed error codes Raven Effects can raise. Never a raw
- * DOMException/WebGL error — see @corvidhq/rtc's RTCError for the sibling
- * convention this mirrors.
+ * Stable typed error codes Raven Effects raises. Never a raw DOMException
+ * or WebGL error. @corvidhq/rtc's RTCError is the sibling convention this
+ * mirrors.
  */
 export type EffectsErrorCode =
   | 'RAVEN_EFFECT_UNSUPPORTED'
@@ -10,7 +10,7 @@ export type EffectsErrorCode =
   | 'RAVEN_EFFECT_PERMISSION_DENIED'
   | 'RAVEN_EFFECT_RESOURCE_LIMIT';
 
-/** The one error type Raven Effects throws or emits on the `error` event. */
+/** The only error type Raven Effects throws, or emits on the `error` event. */
 export class EffectsError extends Error {
   readonly code: EffectsErrorCode;
   readonly cause?: unknown;

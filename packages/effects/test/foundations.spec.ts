@@ -4,7 +4,7 @@ import { createBackgroundProcessor } from '@/foundations/background';
 import { createAROverlay } from '@/foundations/ar';
 import { beauty, beautySmoothDefinition } from '@/foundations/beauty';
 
-describe('FaceDetector (§15 — planned, not implemented)', () => {
+describe('FaceDetector (§15; planned, not implemented)', () => {
   it('reports unsupported rather than pretending to detect faces', async () => {
     const detector = createFaceDetector();
     expect(detector.isSupported()).toBe(false);
@@ -12,7 +12,7 @@ describe('FaceDetector (§15 — planned, not implemented)', () => {
   });
 });
 
-describe('BackgroundProcessor (§17 — planned, no segmentation model)', () => {
+describe('BackgroundProcessor (§17; planned, no segmentation model)', () => {
   it('reports unsupported rather than compositing a fake background', () => {
     const processor = createBackgroundProcessor();
     expect(processor.isSupported()).toBe(false);
@@ -20,7 +20,7 @@ describe('BackgroundProcessor (§17 — planned, no segmentation model)', () => 
   });
 });
 
-describe('AROverlay (§18 — planned, depends on face tracking)', () => {
+describe('AROverlay (§18; planned, depends on face tracking)', () => {
   it('reports unsupported and refuses to attach an overlay', () => {
     const overlay = createAROverlay(createFaceDetector());
     expect(overlay.isSupported()).toBe(false);
@@ -34,7 +34,7 @@ describe('AROverlay (§18 — planned, depends on face tracking)', () => {
   });
 });
 
-describe('beauty.smooth (§16 — production, basic whole-frame smoothing)', () => {
+describe('beauty.smooth (§16; production, basic whole-frame smoothing)', () => {
   it('builds a valid config with the documented default', () => {
     const cfg = beauty.smooth();
     expect(cfg.type).toBe('beautySmooth');
@@ -46,7 +46,8 @@ describe('beauty.smooth (§16 — production, basic whole-frame smoothing)', () 
   });
 
   it('applyToImageData actually blurs pixels (not a no-op) at amount > 0', () => {
-    // 4x4 checkerboard: sharp edges before, softened after a real blur pass.
+    // 4x4 checkerboard. Sharp edges going in, softened coming out of a real
+    // blur pass.
     const width = 4;
     const height = 4;
     const data = new Uint8ClampedArray(width * height * 4);
@@ -65,7 +66,8 @@ describe('beauty.smooth (§16 — production, basic whole-frame smoothing)', () 
     if (beautySmoothDefinition.op.kind !== 'spatial') throw new Error('expected a spatial op');
     beautySmoothDefinition.op.applyToImageData(imageData, { amount: 1 });
     expect(Array.from(data)).not.toEqual(Array.from(before));
-    // A center pixel should move away from pure black/white toward gray once blurred.
+    // Once blurred, a centre pixel should drift off pure black or white
+    // toward grey.
     const centerIdx = (1 * width + 1) * 4;
     expect(data[centerIdx]).toBeGreaterThan(0);
     expect(data[centerIdx]).toBeLessThan(255);

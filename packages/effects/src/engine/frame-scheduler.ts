@@ -4,18 +4,18 @@ type RvfcVideo = HTMLVideoElement & {
 };
 
 /**
- * Drives a per-frame callback off `requestVideoFrameCallback` when
- * available, with a watchdog fallback to `requestAnimationFrame`.
+ * Drives a per-frame callback off `requestVideoFrameCallback` where it
+ * exists, with a watchdog that falls back to `requestAnimationFrame`.
  *
- * `requestVideoFrameCallback` being a function on the prototype does not
- * guarantee it actually fires — some embedded/automated browser contexts
- * expose the API but never present a frame through it (observed while
- * testing this pipeline against a canvas-`captureStream()` source in an
- * automated Chrome instance). Rather than trust feature detection alone,
+ * `requestVideoFrameCallback` existing on the prototype is no guarantee it
+ * ever fires. Some embedded and automated browser contexts expose the API
+ * and never present a frame through it. (Found this the hard way, testing
+ * this pipeline against a canvas-`captureStream()` source in an automated
+ * Chrome instance.) So, not trust feature detection on its own,
  * this scheduler arms a short watchdog on the very first callback and
- * permanently switches to `requestAnimationFrame` if it never fires —
- * this is what keeps the pipeline from silently rendering zero frames in
- * an environment where the "faster" API is present but non-functional.
+ * switches permanently to `requestAnimationFrame` if nothing fires. That's
+ * what stops the pipeline quietly rendering zero frames in an environment
+ * where the faster API is present but useless.
  */
 export class FrameScheduler {
   private readonly video: RvfcVideo;
@@ -61,7 +61,7 @@ export class FrameScheduler {
       }, 750);
 
       this.handle = this.video.requestVideoFrameCallback((now) => {
-        if (this.stopped || gen !== this.generation) return; // stale — a fallback switch already happened
+        if (this.stopped || gen !== this.generation) return; // stale; a fallback switch already happened
         if (this.watchdog !== undefined) clearTimeout(this.watchdog);
         this.onFrame(now);
         this.scheduleNext();

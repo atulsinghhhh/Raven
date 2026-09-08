@@ -68,7 +68,7 @@ describe('validateAsset', () => {
 });
 
 describe('assertNoRemoteCodeExecution', () => {
-  it('always throws RAVEN_EFFECT_PERMISSION_DENIED — Raven Effects never loads remote code', () => {
+  it('always throws RAVEN_EFFECT_PERMISSION_DENIED; Raven Effects never loads remote code', () => {
     try {
       assertNoRemoteCodeExecution('https://example.com/evil.js');
       throw new Error('expected throw');

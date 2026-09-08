@@ -2,8 +2,8 @@ import type { EffectDefinition } from '../types';
 import { clamp01, luma } from './util';
 
 /**
- * Grayscale — blends toward a fully desaturated image.
- * `amount`: 0 (unchanged) .. 1 (fully grayscale).
+ * Grayscale. Blends toward a fully desaturated image.
+ * `amount`: 0 (unchanged) to 1 (fully grayscale).
  */
 export const grayscaleDefinition: EffectDefinition = {
   type: 'grayscale',

@@ -1,8 +1,10 @@
 import type { EffectDefinition, SpatialOp } from '../types';
 
 /**
- * Gaussian blur (spatial op — gets its own render pass, see engine/webgl-engine.ts).
- * `radius`: 0 (unchanged) .. 20 pixels of blur radius at the frame's native resolution.
+ * Gaussian blur. A spatial op, so it gets its own render pass; see
+ * engine/webgl-engine.ts.
+ *
+ * `radius`: 0 (unchanged) to 20 pixels, at the frame's native resolution.
  */
 function gaussianWeights(radius: number): number[] {
   const sigma = Math.max(radius / 2, 0.0001);
@@ -18,10 +20,11 @@ function gaussianWeights(radius: number): number[] {
 const blurOp: SpatialOp = {
   kind: 'spatial',
   renderGL(gl, source, target, width, height, params) {
-    // Real separable-blur pass wiring lives in engine/webgl-engine.ts, which owns
-    // the shared blur program/framebuffers needed to ping-pong horizontal/vertical
-    // passes. This hook exists so the pipeline's op list stays engine-agnostic;
-    // the WebGL engine special-cases `type === 'blur'` when building its pass list.
+    // The real separable-blur wiring lives in engine/webgl-engine.ts, which
+    // owns the shared blur program and framebuffers needed to ping-pong the
+    // horizontal and vertical passes. This hook exists purely to keep the
+    // pipeline's op list engine-agnostic; the WebGL engine special-cases
+    // `type === 'blur'` when it builds its pass list.
     void gl;
     void source;
     void target;
@@ -36,7 +39,7 @@ const blurOp: SpatialOp = {
   },
 };
 
-/** Three-pass box blur — a standard, fast approximation of Gaussian blur for the CPU fallback path. */
+/** Three-pass box blur. The standard fast approximation of Gaussian blur, for the CPU fallback path. */
 function boxBlurApprox(imageData: ImageData, radius: number): void {
   const { width, height, data } = imageData;
   const passes = 3;

@@ -5,10 +5,11 @@ import { applyColorOpToImageData, FrameTimer } from './pixel-ops';
 import type { EffectsEngine, PipelineStats } from './types';
 
 /**
- * CPU fallback for browsers without WebGL2 — real pixel-buffer processing
- * (getImageData/putImageData), not a CSS-filter stand-in, so every filter
- * behaves identically to the GPU path. Slower per §9's "degrade
- * gracefully" contract, never faked.
+ * CPU fallback for browsers without WebGL2.
+ *
+ * Real pixel-buffer processing via getImageData/putImageData, not a
+ * CSS-filter stand-in, so every filter behaves exactly as it does on the
+ * GPU path. Slower, per §9's "degrade gracefully" contract. Never faked.
  */
 export class Canvas2DEngine implements EffectsEngine {
   readonly kind = 'canvas2d' as const;
@@ -52,7 +53,8 @@ export class Canvas2DEngine implements EffectsEngine {
   }
 
   rebuild(): void {
-    // Stateless per frame — getEffects() is re-read every render, nothing cached to invalidate.
+    // Stateless per frame. getEffects() is re-read every render, so there's
+    // no cache to invalidate.
   }
 
   stop(): void {

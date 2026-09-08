@@ -6,15 +6,17 @@ import type { ColorOpParams, EffectDefinition } from '../types';
 /**
  * PRODUCTION: real-time skin smoothing.
  *
- * This is a plain adjustable blur, not a detail-preserving (bilateral /
- * edge-aware) algorithm, and it applies to the whole frame rather than a
- * detected face region — see foundations/face-detector.ts, whose absence is
- * exactly why this can't target skin specifically yet. It is genuinely
- * real-time and GPU-accelerated where available, and does exactly what it
- * says: soften fine detail. A face-aware, detail-preserving version is
- * planned once FaceDetector ships.
+ * Be clear about what this is. A plain adjustable blur, not a
+ * detail-preserving bilateral or edge-aware algorithm, applied to the whole
+ * frame rather than a detected face region. See
+ * foundations/face-detector.ts; its absence is precisely why this can't
+ * target skin yet.
  *
- * `amount`: 0 (no smoothing) .. 1 (heavy smoothing, whole-frame blur).
+ * What it does do is genuinely real-time, GPU-accelerated where available,
+ * and exactly what it says on the tin: soften fine detail. A face-aware,
+ * detail-preserving version is planned for once FaceDetector ships.
+ *
+ * `amount`: 0 (no smoothing) to 1 (heavy, whole-frame blur).
  */
 export const beautySmoothDefinition: EffectDefinition = {
   type: 'beautySmooth',
@@ -24,9 +26,10 @@ export const beautySmoothDefinition: EffectDefinition = {
   },
   op: {
     kind: 'spatial',
-    // Real GLSL work happens in engine/webgl-engine.ts, which maps `amount` to
-    // an equivalent blur radius and reuses its separable blur pass — see the
-    // module doc there for why blur and beautySmooth share one code path.
+    // The real GLSL work happens in engine/webgl-engine.ts, which maps
+    // `amount` onto an equivalent blur radius and reuses its separable blur
+    // pass. The module doc there explains why blur and beautySmooth share
+    // one code path.
     renderGL() {
       /* handled by webgl-engine.ts's pass builder */
     },

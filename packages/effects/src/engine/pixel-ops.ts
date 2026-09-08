@@ -1,6 +1,6 @@
 import type { ColorOp, ColorOpParams } from '../types';
 
-/** Applies one color op to every pixel of an ImageData buffer in place — the Canvas2D fallback's per-pixel path. */
+/** Applies one color op to every pixel of an ImageData buffer, in place. The Canvas2D fallback's per-pixel path. */
 export function applyColorOpToImageData(imageData: ImageData, op: ColorOp, params: ColorOpParams): void {
   const { data } = imageData;
   for (let i = 0; i < data.length; i += 4) {
@@ -11,7 +11,7 @@ export function applyColorOpToImageData(imageData: ImageData, op: ColorOp, param
   }
 }
 
-/** Rolling window used by every engine to report honest, measured fps/latency — never a hardcoded number. */
+/** Rolling window every engine uses to report honest, measured fps and latency. Never a hardcoded number. */
 export class FrameTimer {
   private readonly windowSize: number;
   private intervals: number[] = [];

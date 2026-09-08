@@ -29,7 +29,7 @@ class FakeEngine implements EffectsEngine {
   }
 }
 
-describe('EffectsPipeline — lifecycle', () => {
+describe('EffectsPipeline; lifecycle', () => {
   it('add() appends an enabled effect and emits effectAdded', () => {
     const pipeline = createEffectsPipeline();
     const handler = jest.fn();
@@ -132,7 +132,7 @@ describe('EffectsPipeline — lifecycle', () => {
   });
 });
 
-describe('EffectsPipeline — custom effects (§19, trusted-only)', () => {
+describe('EffectsPipeline; custom effects (§19, trusted-only)', () => {
   function makeCustomEffect(): RavenEffect {
     return {
       id: 'my-custom',
@@ -183,7 +183,7 @@ describe('EffectsPipeline — custom effects (§19, trusted-only)', () => {
   });
 });
 
-describe('EffectsPipeline — attach/detach to a track', () => {
+describe('EffectsPipeline; attach/detach to a track', () => {
   it('attachToTrack() starts the given engine and returns its output track', async () => {
     const pipeline = createEffectsPipeline();
     const engine = new FakeEngine();
@@ -229,8 +229,9 @@ describe('EffectsPipeline — attach/detach to a track', () => {
 
     const output = await pipeline.attachToTrack(source);
 
-    // jsdom has neither WebGL2 nor HTMLCanvasElement.captureStream, so capability
-    // detection must choose the passthrough engine and hand back the original track.
+    // jsdom has neither WebGL2 nor HTMLCanvasElement.captureStream, so
+    // capability detection has to pick the passthrough engine and hand back
+    // the original track.
     expect(output).toBe(source);
   });
 

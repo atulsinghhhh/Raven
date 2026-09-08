@@ -2,8 +2,8 @@ import type { EffectDefinition } from '../types';
 import { clamp01 } from './util';
 
 /**
- * Contrast — scales each channel around mid-gray (0.5).
- * `value`: -1 (flat gray) .. 1 (maximum contrast); 0 = no change.
+ * Contrast. Scales each channel around mid-grey (0.5).
+ * `value`: -1 (flat grey) to 1 (maximum contrast). 0 is no change.
  */
 export const contrastDefinition: EffectDefinition = {
   type: 'contrast',

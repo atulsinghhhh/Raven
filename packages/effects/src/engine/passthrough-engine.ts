@@ -1,10 +1,10 @@
 import type { EffectsEngine, PipelineStats } from './types';
 
 /**
- * Used when this runtime can't run effects at all (§9/§31: a call must keep
- * working). Returns the original camera track completely unmodified —
- * never a fake "processed" copy — so publish quality/perf is identical to
- * not having Raven Effects installed.
+ * For when this runtime can't run effects at all (§9/§31, a call has to keep
+ * working). Hands back the original camera track completely untouched.
+ * Never a fake "processed" copy. Publish quality and performance are
+ * identical to not having Raven Effects installed at all.
  */
 export class PassthroughEngine implements EffectsEngine {
   readonly kind = 'passthrough' as const;
@@ -15,11 +15,12 @@ export class PassthroughEngine implements EffectsEngine {
   }
 
   rebuild(): void {
-    // Nothing to recompute — there is no processing.
+    // Nothing to recompute. There's no processing.
   }
 
   stop(): void {
-    // Nothing owned by this engine — the caller still owns sourceTrack's lifecycle.
+    // This engine owns nothing. sourceTrack's lifecycle is still the
+    // caller's problem.
   }
 
   getStats(): PipelineStats {

@@ -5,15 +5,16 @@ export interface EffectsCapabilities {
   offscreenCanvas: boolean;
   captureStream: boolean;
   requestVideoFrameCallback: boolean;
-  /** The engine Raven Effects will actually use, given what this browser supports. */
+  /** The engine Raven Effects will actually use, given what this browser can do. */
   recommendedEngine: EngineKind;
 }
 
 /**
- * Detects what this runtime can actually do — never assumed. `passthrough`
- * means Raven Effects will pass the original camera track through
- * unmodified rather than fail the call (§9/§31): a video call must keep
- * working even where effects can't run.
+ * Works out what this runtime can genuinely do. Nothing here is assumed.
+ *
+ * `passthrough` means Raven Effects hands the original camera track
+ * straight through, unmodified, instead of failing the call (§9/§31). A
+ * video call has to keep working even where effects can't run at all.
  */
 export function detectCapabilities(win: Window & typeof globalThis = globalThis as Window & typeof globalThis): EffectsCapabilities {
   const doc = (win as unknown as { document?: Document }).document;

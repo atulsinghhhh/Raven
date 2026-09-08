@@ -13,9 +13,9 @@ import { tintDefinition } from './tint';
 import { beautySmoothDefinition } from '../foundations/beauty';
 
 /**
- * Every filter Raven Effects can run, keyed by type — the 9 basic filters
- * (Phase 16 §3) plus `beautySmooth` (§16), all engines and the pipeline
- * resolve ops through this one registry.
+ * Every filter Raven Effects can run, keyed by type: the nine basic ones
+ * (Phase 16 §3) plus `beautySmooth` (§16). Every engine and the pipeline
+ * itself resolve ops through this single registry.
  */
 export const FILTER_DEFINITIONS: Record<string, EffectDefinition> = {
   brightness: brightnessDefinition,
@@ -36,7 +36,7 @@ export interface FilterConfig {
   params: ColorOpParams;
 }
 
-/** A filter factory validates its params up front — see `raven.effects.filters.brightness({...})`. */
+/** A filter factory validates its params up front. See `raven.effects.filters.brightness({...})`. */
 export function makeFilterFactory(type: string) {
   const definition = FILTER_DEFINITIONS[type];
   if (!definition) {

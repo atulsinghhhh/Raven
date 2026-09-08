@@ -6,8 +6,8 @@ import type { EffectsEngine } from './types';
 import { WebGLEngine } from './webgl-engine';
 
 /**
- * Picks the best engine this runtime actually supports (§8/§9: prefer GPU,
- * degrade gracefully, never fail the call). `onError` lets the caller learn
+ * Picks the best engine this runtime genuinely supports (§8/§9: prefer GPU,
+ * degrade gracefully, never fail the call). `onError` is how a caller hears
  * about a mid-stream processing failure without the video pipeline dying.
  */
 export function selectEngine(onError?: (error: EffectsError) => void, capabilities: EffectsCapabilities = detectCapabilities()): EffectsEngine {

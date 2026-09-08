@@ -2,27 +2,29 @@ import { EffectsError } from './errors';
 import type { EffectParamSpec } from './types';
 
 /**
- * Security limits for anything Raven Effects loads or accepts from a
- * developer. These exist because effects sit directly in the real-time
- * video path — an oversized asset or pathological parameter can stall a
- * call for every participant, not just the caller.
+ * Limits on anything Raven Effects loads or accepts from a developer.
+ *
+ * These exist because effects sit right in the real-time video path. An
+ * oversized asset or a pathological parameter doesn't just stall the
+ * caller; it stalls the call for everyone in it.
  */
 export const EFFECT_SECURITY_LIMITS = {
-  /** Max bytes for an effect asset (e.g. an AR overlay image) — see §18/§20. */
+  /** Max bytes for an effect asset, an AR overlay image say. See §18/§20. */
   MAX_ASSET_BYTES: 5 * 1024 * 1024,
   /** Max width/height for an effect asset, to bound GPU texture memory. */
   MAX_ASSET_DIMENSION: 4096,
-  /** Effect asset MIME types Raven Effects will decode. Never SVG (script risk) or arbitrary binary. */
+  /** Asset MIME types Raven Effects will decode. Never SVG (script risk), never arbitrary binary. */
   ALLOWED_ASSET_TYPES: ['image/png', 'image/jpeg', 'image/webp'] as const,
-  /** A pipeline is real-time infrastructure, not a compositor — cap the chain length. */
+  /** A pipeline is real-time infrastructure, not a compositor. Cap the chain length. */
   MAX_PIPELINE_LENGTH: 16,
 } as const;
 
 /**
- * Validates a numeric effect parameter against its documented range.
- * Raven Effects rejects invalid values rather than silently clamping them,
- * so a developer's bug surfaces immediately instead of shipping a
- * slightly-wrong filter to production.
+ * Checks a numeric effect parameter against its documented range.
+ *
+ * Raven Effects rejects an invalid value rather than quietly clamping it,
+ * so the bug surfaces there and then instead of shipping a slightly-wrong
+ * filter to production.
  */
 export function validateParam(name: string, value: number, spec: EffectParamSpec): void {
   if (typeof value !== 'number' || Number.isNaN(value) || !Number.isFinite(value)) {
@@ -65,9 +67,9 @@ export interface AssetDescriptor {
 }
 
 /**
- * Validates an asset (e.g. an AR sticker image) before it is decoded —
- * size/type/dimension checks happen before any bytes are handed to an
- * image decoder, never after.
+ * Validates an asset, an AR sticker image say, *before* it gets decoded.
+ * Size, type and dimension checks all happen before a single byte reaches
+ * an image decoder. Never after.
  */
 export function validateAsset(asset: AssetDescriptor): void {
   if (asset.byteLength <= 0 || asset.byteLength > EFFECT_SECURITY_LIMITS.MAX_ASSET_BYTES) {
@@ -94,12 +96,14 @@ export function validateAsset(asset: AssetDescriptor): void {
 }
 
 /**
- * Raven Effects never loads a shader, script, or WASM module from a
- * caller-supplied URL. Custom `RavenEffect`s (§19) must be registered as
- * in-memory objects the host application already trusts (its own bundle) —
- * there is no `loadEffectFromUrl()`-style API, and this function exists so
- * that fact is enforced at the type/runtime boundary rather than just
- * documented. See docs/effects/api-reference for the full trust model.
+ * Raven Effects never loads a shader, script or WASM module from a
+ * caller-supplied URL.
+ *
+ * Custom `RavenEffect`s (§19) have to be registered as in-memory objects
+ * the host application already trusts, meaning its own bundle. There's no
+ * `loadEffectFromUrl()`-style API at all, and this function exists so that
+ * fact is enforced at the type and runtime boundary instead of merely
+ * written down. docs/effects/api-reference has the full trust model.
  */
 export function assertNoRemoteCodeExecution(_source: unknown): asserts _source is never {
   throw new EffectsError(

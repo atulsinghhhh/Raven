@@ -2,12 +2,13 @@ import { EffectsError } from '../errors';
 import type { FaceDetector } from './face-detector';
 
 /**
- * PLANNED — no AR tracking/rendering ships in Phase 16. Face masks,
- * stickers, and overlays depend on FaceDetector (planned, see
- * face-detector.ts), so this module only defines the
- * Effect → Tracking → Anchor → Transform → Render extension point (§18).
- * Raven ships its own placeholder example assets when this lands — never
- * third-party proprietary art.
+ * PLANNED. No AR tracking or rendering ships in Phase 16.
+ *
+ * Face masks, stickers and overlays all depend on FaceDetector, which is
+ * itself planned (see face-detector.ts). So all this module does today is
+ * define the Effect → Tracking → Anchor → Transform → Render extension
+ * point (§18). When it does land, Raven ships its own placeholder example
+ * assets. Never third-party proprietary art.
  */
 
 export interface AnchorTransform {
@@ -25,7 +26,7 @@ export interface ARAnchor {
 
 export interface ARAsset {
   id: string;
-  /** Raven-owned placeholder art only — see security.ts for the size/type/dimension limits every asset must pass. */
+  /** Raven-owned placeholder art only. security.ts has the size, type and dimension limits every asset must clear. */
   image: ImageBitmap | HTMLImageElement;
 }
 
@@ -45,7 +46,7 @@ class UnsupportedAROverlay implements AROverlay {
   attach(): ARAnchor {
     throw new EffectsError(
       'RAVEN_EFFECT_UNSUPPORTED',
-      'AR overlays are planned but not implemented in this Raven Effects release — they require face tracking, which this release does not ship.',
+      'AR overlays are planned but not implemented in this Raven Effects release; they require face tracking, which this release does not ship.',
     );
   }
 

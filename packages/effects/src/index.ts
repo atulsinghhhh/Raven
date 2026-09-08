@@ -55,7 +55,7 @@ import { createAROverlay } from './foundations/ar';
 import { detectCapabilities } from './capabilities';
 
 /**
- * Raven Effects' public entry point, mirroring how `@corvidhq/client`'s
+ * Raven Effects' public entry point. Shaped the same way `@corvidhq/client`'s
  * `Raven` facade composes `@corvidhq/rtc` and `@corvidhq/chat`:
  *
  * ```ts

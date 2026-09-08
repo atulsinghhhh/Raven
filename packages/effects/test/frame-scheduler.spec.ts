@@ -31,7 +31,7 @@ describe('FrameScheduler', () => {
   });
 
   it('falls back to requestAnimationFrame if requestVideoFrameCallback never fires within the watchdog window', () => {
-    const rvfc = jest.fn(() => 1); // registers but never invokes its callback — the bug this guards against
+    const rvfc = jest.fn(() => 1); // registers but never invokes its callback; the bug this guards against
     const video = fakeVideo(rvfc);
     const onFrame = jest.fn();
     let rafCalls = 0;
