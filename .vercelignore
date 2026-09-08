@@ -11,3 +11,10 @@ node_modules
 **/.swc
 .git
 scripts/results
+
+# Gitignored, local-only WIP scaffold — never committed, so it's not a real
+# sibling workspace member. The CLI uploads the local disk regardless of git
+# tracking state, so without this it rides along into every deploy and its
+# incomplete package.json breaks the frozen-lockfile install for every app,
+# not just this one.
+apps/community-api
