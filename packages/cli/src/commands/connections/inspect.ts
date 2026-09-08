@@ -51,7 +51,7 @@ export function registerConnectionsInspectCommand(connections: Command): void {
         if (connection.errors.length > 0) {
           process.stdout.write(`\n${chalk.bold('Errors:')}\n\n`);
           for (const error of connection.errors) {
-            process.stdout.write(`${chalk.red(error.category)} — ${error.message}\n`);
+            process.stdout.write(`${chalk.red(error.category)}; ${error.message}\n`);
             if (error.suggestedAction) process.stdout.write(`  ${chalk.dim(`Suggestion: ${error.suggestedAction}`)}\n`);
           }
         }
@@ -72,10 +72,11 @@ function formatDuration(durationMs: number): string {
 }
 
 /**
- * Present only once a connection has been up long enough for the SDK's
- * periodic stats monitor to have reported at least once — a fresh
- * connection genuinely has nothing here yet, which is different from a
- * connection whose stats never arrived.
+ * Only here once a connection has been up long enough for the SDK's
+ * periodic stats monitor to have reported at least once.
+ *
+ * A fresh connection genuinely has nothing yet, which isn't the same thing
+ * as a connection whose stats never turned up.
  */
 function hasQualityStats(connection: {
   connectionQuality: string | null;
@@ -85,9 +86,9 @@ function hasQualityStats(connection: {
   bitrateBps: number | null;
   codec: string | null;
 }): boolean {
-  // Loose equality is deliberate: a field an older/mocked API response
-  // omits entirely (`undefined`) means exactly the same "nothing here yet"
-  // as one the current API sends back as an explicit `null`.
+  // Loose equality on purpose. A field an older or mocked API response
+  // omits entirely (`undefined`) means exactly the same "nothing yet" as
+  // one the current API returns as an explicit `null`.
   return (
     connection.connectionQuality != null ||
     connection.rttMs != null ||

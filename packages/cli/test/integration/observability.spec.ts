@@ -129,8 +129,8 @@ describe('raven connections / errors / diagnostics (integration)', () => {
 
     const result = await runCli(['connections', 'inspect', 'conn_fresh']);
 
-    // A brand-new connection genuinely has nothing here yet — showing an
-    // empty "Quality:" heading would read as a bug, not as "too soon".
+    // A brand-new connection genuinely has nothing yet. An empty
+    // "Quality:" heading reads as a bug, not as "too soon".
     expect(result.exitCode).toBe(0);
     expect(result.stdout).not.toContain('Quality:');
   });
@@ -220,8 +220,8 @@ describe('raven connections / errors / diagnostics (integration)', () => {
     expect(result.stdout).toContain('my-video-app');
     expect(result.stdout).toContain('TURN: Unhealthy');
     expect(result.stdout).toContain('SFU: Healthy');
-    // Client-side diagnostics require an active browser connection — the
-    // CLI must point to the SDK, never fabricate ICE/browser state itself.
+    // Client-side diagnostics need a live browser connection. The CLI has
+    // to point at the SDK, never invent ICE or browser state of its own.
     expect(result.stdout).toContain('getDiagnostics()');
   });
 

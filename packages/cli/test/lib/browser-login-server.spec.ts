@@ -6,10 +6,10 @@ describe('startBrowserLoginServer', () => {
     const actualPort = await port;
     expect(actualPort).toBeGreaterThan(0);
 
-    // Clean up: a matching-state callback is what actually closes the
-    // server and clears its 5-minute timeout — a mismatched state (tested
-    // separately below) does neither, and would otherwise leave the
-    // timer running for the rest of the test file.
+    // Clean up. A matching-state callback is what actually closes the
+    // server and clears its 5-minute timeout. A mismatched state, tested
+    // separately below, does neither, and would leave that timer running
+    // for the rest of the file.
     await fetch(`http://127.0.0.1:${actualPort}/callback`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

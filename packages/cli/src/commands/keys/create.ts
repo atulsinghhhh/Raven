@@ -10,7 +10,7 @@ import type { Environment } from '../../lib/types.js';
 export function registerKeysCreateCommand(keys: Command): void {
   keys
     .command('create')
-    .description('Create a new API key for a project — the secret is shown exactly once')
+    .description('Create a new API key for a project; the secret is shown exactly once')
     .option('-p, --project <project>', 'project ID (overrides the current project context)')
     .option('-n, --name <name>', 'a label for the key')
     .option(
@@ -31,19 +31,20 @@ export function registerKeysCreateCommand(keys: Command): void {
           return;
         }
 
-        // Defensive: an older API predating environments returns no such
-        // field, and a crash here would lose the one and only chance the
-        // developer has to copy their secret.
+        // Defensive. An older API from before environments returns no such
+        // field, and crashing here would burn the developer's one and only
+        // chance to copy their secret.
         const created_env = created.environment ?? 'DEVELOPMENT';
         printSuccess(`API key created for the ${created_env.toLowerCase()} environment.`);
         process.stdout.write(`\n${chalk.yellow('Save this key now. It will not be shown again.')}\n\n`);
         process.stdout.write(`${chalk.bold(created.key)}\n`);
 
         if (created_env === 'PRODUCTION') {
-          // Worth one line of friction: a production key in a browser
-          // bundle or a committed .env is the mistake that matters.
+          // Worth one line of friction. A production key in a browser
+          // bundle, or a committed .env, is the mistake that actually
+          // hurts.
           process.stdout.write(
-            `\n${chalk.dim('This is a production key. Keep it server-side — never in an app bundle or a committed file.')}\n`,
+            `\n${chalk.dim('This is a production key. Keep it server-side; never in an app bundle or a committed file.')}\n`,
           );
         }
         },
@@ -52,11 +53,12 @@ export function registerKeysCreateCommand(keys: Command): void {
 }
 
 /**
- * Accepts `prod`, `production`, `PRODUCTION` and the rest, because
- * requiring an exact enum spelling from a CLI is a papercut. An
- * unrecognised value is refused rather than quietly defaulting — silently
- * issuing a development key to someone who typed `--environment prd` is
- * the confusing outcome.
+ * Takes `prod`, `production`, `PRODUCTION` and the rest, because demanding
+ * an exact enum spelling from a CLI is a papercut.
+ *
+ * An unrecognised value gets refused, not quietly defaulting.
+ * Silently handing a development key to someone who typed
+ * `--environment prd` is the genuinely confusing outcome.
  */
 function parseEnvironment(value?: string): Environment | undefined {
   if (!value) return undefined;

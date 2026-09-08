@@ -8,11 +8,11 @@ const DEFAULT_MAX_RETRIES = 2;
 const BASE_RETRY_DELAY_MS = 300;
 
 export interface RavenClientOptions {
-  /** Required — a project API key (`rvk_....secret`). Never hardcode this in source; pass it from an environment variable your own code reads explicitly (e.g. `apiKey: process.env.RAVEN_API_KEY`). */
+  /** Required. A project API key (`rvk_....secret`). Never hardcode it; pass it from an environment variable your own code reads explicitly, e.g. `apiKey: process.env.RAVEN_API_KEY`. */
   apiKey: string;
   /** Defaults to http://localhost:4100 (local dev). Override for any real deployment. */
   baseUrl?: string;
-  /** Request timeout in milliseconds. Defaults to 10000. A request never hangs indefinitely. */
+  /** Request timeout in milliseconds, default 10000. Nothing here hangs forever. */
   timeout?: number;
   /** Max retry attempts for transient failures (network errors, 429/502/503/504). Defaults to 2. */
   maxRetries?: number;
@@ -22,17 +22,19 @@ interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   query?: Record<string, string | number | boolean | undefined>;
   body?: unknown;
-  /** Set false for requests that must never be retried even on a transient failure. */
+  /** Set false for requests that must never be retried, transient failure or not. */
   retryable?: boolean;
 }
 
 /**
- * The one place this SDK talks HTTP to the Control API — every resource
- * goes through this, never constructing a `fetch()` of its own (Phase 10
- * spec §8/§9). The API key lives only in a private class field: it is
- * never a property on `this` reachable via `Object.keys`/`JSON.stringify`/
- * `console.log`, and this class's own `toString`/inspect output never
- * includes it either (Phase 10 spec §7).
+ * The one place this SDK speaks HTTP to the Control API. Every resource goes
+ * through here; not one of them builds a `fetch()` of its own (Phase 10
+ * spec §8/§9).
+ *
+ * The API key lives in a private class field and nowhere else. It's never a
+ * property on `this` that `Object.keys`, `JSON.stringify` or `console.log`
+ * could reach, and this class's own `toString` and inspect output leave it
+ * out too (Phase 10 spec §7).
  */
 export class RavenHttpClient {
   readonly #apiKey: string;
@@ -45,7 +47,7 @@ export class RavenHttpClient {
       throw new RavenError('new Raven(options) requires a configuration object', { code: 'RAVEN_INVALID_CONFIG' });
     }
     if (!options.apiKey || typeof options.apiKey !== 'string') {
-      throw new RavenError('apiKey is required — pass your Raven project API key, e.g. apiKey: process.env.RAVEN_API_KEY', {
+      throw new RavenError('apiKey is required; pass your Raven project API key, e.g. apiKey: process.env.RAVEN_API_KEY', {
         code: 'RAVEN_INVALID_CONFIG',
       });
     }
@@ -56,7 +58,7 @@ export class RavenHttpClient {
     this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
   }
 
-  /** Never returns the API key — safe to log, inspect, or JSON.stringify this client itself. */
+  /** Never returns the API key, so this client is safe to log, inspect or JSON.stringify. */
   toString(): string {
     return `RavenHttpClient(${this.baseUrl})`;
   }
@@ -142,9 +144,9 @@ function mapErrorResponse(status: number, payload: unknown, requestId?: string):
 }
 
 function codeForStatus(status: number): string {
-  // Deliberately the same names the API returns, so a 401 surfaces as
-  // RAVEN_AUTH_ERROR whether the code came from the body or from this
-  // fallback. The fallback only fires when a proxy ate the JSON body.
+  // Same names the API returns, on purpose, so a 401 surfaces as
+  // RAVEN_AUTH_ERROR whether the code came from the body or from here. This
+  // fallback only fires when a proxy has eaten the JSON body.
   if (status === 401) return 'RAVEN_AUTH_ERROR';
   if (status === 403) return 'RAVEN_PERMISSION_DENIED';
   if (status === 404) return 'RAVEN_NOT_FOUND';

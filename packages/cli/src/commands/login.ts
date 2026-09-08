@@ -36,13 +36,13 @@ export function registerLoginCommand(program: Command): void {
 /**
  * Non-interactive login.
  *
- * The token is checked against the API before anything touches disk —
- * writing an unusable credential would only move the failure to the next
- * command, where the cause is much less obvious. `listProjects` is used
- * as the probe because it's the cheapest endpoint that requires a valid
- * session; there's no /v1/auth/me to ask instead.
+ * We check the token against the API before anything touches disk. Writing
+ * an unusable credential just moves the failure to the next command, where
+ * the cause is far less obvious. `listProjects` is the probe because it's
+ * the cheapest endpoint requiring a valid session; there's no /v1/auth/me
+ * to ask instead.
  *
- * The token is never echoed back, not even partially.
+ * The token is never echoed back. Not even partially.
  */
 async function loginWithToken(token: string, apiUrl: string): Promise<void> {
   const trimmed = token.trim();
@@ -58,7 +58,7 @@ async function loginWithToken(token: string, apiUrl: string): Promise<void> {
   } catch (error) {
     if (error instanceof CliError && error.kind === 'auth') {
       throw new CliError('auth', `${apiUrl} rejected that token.`, {
-        suggestion: 'Tokens expire — mint a fresh one from the dashboard, or run `raven login` on a machine with a browser',
+        suggestion: 'Tokens expire; mint a fresh one from the dashboard, or run `raven login` on a machine with a browser',
         cause: error,
       });
     }
@@ -69,7 +69,7 @@ async function loginWithToken(token: string, apiUrl: string): Promise<void> {
 
   await writeCredentials({
     token: trimmed,
-    // Only used for display. The server decides who this token is.
+    // Display only. The server decides who this token is.
     email: email ?? '(unknown)',
     apiUrl,
     createdAt: new Date().toISOString(),
@@ -77,7 +77,7 @@ async function loginWithToken(token: string, apiUrl: string): Promise<void> {
 
   printSuccess(email ? `Logged in as ${email}` : 'Logged in.');
   printInfo(
-    `In an ephemeral environment, set ${TOKEN_ENV_VAR} instead — it needs no writable home directory.`,
+    `In an ephemeral environment, set ${TOKEN_ENV_VAR} instead; it needs no writable home directory.`,
   );
 }
 
@@ -97,7 +97,7 @@ async function loginWithBrowser(apiUrl: string, shouldOpen: boolean): Promise<vo
 
   if (shouldOpen) {
     await open(loginUrl.toString()).catch(() => {
-      // Non-fatal — the printed URL above is always the fallback.
+      // Non-fatal. The printed URL above is always the fallback.
     });
   }
 
@@ -119,9 +119,9 @@ async function loginWithBrowser(apiUrl: string, shouldOpen: boolean): Promise<vo
 }
 
 /**
- * Dashboard origin derived from the Control API URL. Local dev: API on
- * :4100, dashboard on :3000. In a real deployment, set
- * RAVEN_DASHBOARD_URL explicitly — the two hosts won't necessarily match.
+ * Dashboard origin, derived from the Control API URL. In local dev that's
+ * API on :4100, dashboard on :3000. For a real deployment set
+ * RAVEN_DASHBOARD_URL explicitly; the two hosts won't necessarily match.
  */
 function dashboardUrlFor(apiUrl: string): string {
   if (process.env.RAVEN_DASHBOARD_URL) return process.env.RAVEN_DASHBOARD_URL;

@@ -14,14 +14,14 @@ import type {
 /**
  * Raven Chat, server-side (Phase 12).
  *
- * The important method here is `tokens.create()` — the whole security
- * model rests on it. Your backend authenticates the user *its* way, then
- * asks Raven for a short-lived token scoped to that one user, and only
- * that token reaches the browser. The project API key never does.
+ * `tokens.create()` is the method that matters; the whole security model
+ * rests on it. Your backend authenticates the user *its* way, then asks
+ * Raven for a short-lived token scoped to that one user, and only that
+ * token ever reaches the browser. The project API key never does.
  *
- * The rest exists for the things a backend genuinely needs to do:
- * provision conversations, manage membership, post system messages, and
- * read history for export or moderation.
+ * Everything else here exists for what a backend genuinely needs to do:
+ * provision conversations, manage membership, post system messages, read
+ * history for export or moderation.
  */
 export class ChatResource {
   constructor(private readonly http: RavenHttpClient) {}
@@ -29,9 +29,9 @@ export class ChatResource {
   /**
    * Mints a browser-safe chat token.
    *
-   * `scopes` can only ever *narrow* what the user's role already allows —
-   * listing `chat:moderate` here does not grant it. That makes it safe to
-   * pass through from a caller without re-checking.
+   * `scopes` can only ever *narrow* what the user's role already allows.
+   * Listing `chat:moderate` here doesn't grant it. Which is what makes it
+   * safe to pass straight through from a caller without re-checking.
    */
   createToken(params: CreateChatTokenParams): Promise<IssuedChatToken> {
     return this.http.request<IssuedChatToken>('/v1/chat/tokens', {
@@ -45,7 +45,7 @@ export class ChatResource {
     });
   }
 
-  /** Creates a conversation. Pass `roomId` to attach it to an RTC room, giving that call a chat panel. */
+  /** Creates a conversation. Pass `roomId` to attach it to an RTC room and give that call a chat panel. */
   createConversation(params: CreateConversationParams): Promise<ChatConversation> {
     return this.http.request<ChatConversation>('/v1/chat/conversations', {
       method: 'POST',
@@ -57,7 +57,7 @@ export class ChatResource {
     return this.http.request<ChatConversation[]>('/v1/chat/conversations');
   }
 
-  /** `room` accepts a `conv_...` id, the conversation name, or an attached RTC room id. */
+  /** `room` takes a `conv_...` id, the conversation name, or an attached RTC room id. */
   getConversation(room: string): Promise<ChatConversation> {
     return this.http.request<ChatConversation>(`/v1/chat/conversations/${encodeURIComponent(room)}`);
   }
@@ -81,9 +81,9 @@ export class ChatResource {
   }
 
   /**
-   * Posts a message as any user in the project — which is why this is
-   * server-only. `type: 'system'` is available here and nowhere else: a
-   * browser must never be able to fabricate a system announcement.
+   * Posts a message as any user in the project, which is precisely why it's
+   * server-only. `type: 'system'` exists here and nowhere else: a browser
+   * must never be able to fabricate a system announcement.
    */
   sendMessage(room: string, params: SendChatMessageParams): Promise<ChatMessage> {
     return this.http.request<ChatMessage>(`/v1/chat/conversations/${encodeURIComponent(room)}/messages`, {
@@ -92,7 +92,7 @@ export class ChatResource {
     });
   }
 
-  /** Cursor-paginated history. Use `before` to page back; never an offset. */
+  /** Cursor-paginated history. Use `before` to page back. Never an offset. */
   listMessages(room: string, params: ListChatMessagesParams = {}): Promise<ChatMessagePage> {
     const query = new URLSearchParams();
     if (params.limit !== undefined) query.set('limit', String(params.limit));
@@ -107,7 +107,7 @@ export class ChatResource {
     );
   }
 
-  /** Soft-deletes a message. Moderation action — the row survives with a `deletedAt`. */
+  /** Soft-deletes a message. A moderation action: the row survives, with a `deletedAt`. */
   deleteMessage(messageId: string): Promise<ChatMessage> {
     return this.http.request<ChatMessage>(`/v1/chat/messages/${encodeURIComponent(messageId)}`, {
       method: 'DELETE',

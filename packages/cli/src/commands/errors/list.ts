@@ -26,7 +26,7 @@ export function registerErrorsListCommand(errors: Command): void {
           }
 
           if (list.length === 0) {
-            printEmpty('No errors recorded.', 'Good sign — or no connections have been made yet.');
+            printEmpty('No errors recorded.', 'Good sign; or no connections have been made yet.');
             return;
           }
 

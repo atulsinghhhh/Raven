@@ -6,7 +6,7 @@ import { writeCliConfig } from '../../src/lib/cli-config.js';
 import { writeProjectConfig } from '../../src/lib/project-config.js';
 import { CliError } from '../../src/lib/errors.js';
 
-describe('resolveProjectId — precedence: --project flag > raven.json > global config', () => {
+describe('resolveProjectId; precedence: --project flag > raven.json > global config', () => {
   let configDir: string;
   let cwd: string;
   let originalCwd: string;

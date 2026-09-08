@@ -1,5 +1,5 @@
-// Every shape here mirrors the real Control API response 1:1 (see
-// apps/api's controllers/DTOs) — nothing here is speculative.
+// Every shape here mirrors a real Control API response 1:1; see apps/api's
+// controllers and DTOs. Nothing in this file is speculative.
 
 export type ProjectStatus = 'ACTIVE' | 'ARCHIVED';
 
@@ -43,7 +43,7 @@ export interface IceServer {
   credential?: string;
 }
 
-/** Raven's own permission vocabulary — see docs/control-plane.md#rtc-tokens. */
+/** Raven's own permission vocabulary. See docs/control-plane.md#rtc-tokens. */
 export interface TokenPermissions {
   join?: boolean;
   subscribe?: boolean;
@@ -54,12 +54,12 @@ export interface TokenPermissions {
 }
 
 export interface CreateTokenParams {
-  /** The room's ID (from `rooms.create()`/`rooms.list()`) — not its display name. */
+  /** The room's ID, from `rooms.create()` or `rooms.list()`. Not its display name. */
   room: string;
   /** Unique within the room. Letters, numbers, "-", "_", "." only. */
   identity: string;
   permissions?: TokenPermissions;
-  /** Token lifetime in seconds (30-21600). Defaults to the API's own default — always short-lived, never permanent. */
+  /** Token lifetime in seconds, 30 to 21600. Defaults to the API's own default. Always short-lived, never permanent. */
   expiresIn?: number;
   metadata?: string;
 }
@@ -67,7 +67,7 @@ export interface CreateTokenParams {
 export interface IssuedToken {
   id: string;
   token: string;
-  /** Where the client SDK connects to run the call. Forward this to `createRTCClient({ endpoint })` as-is. */
+  /** Where the client SDK connects to run the call. Forward it to `createRTCClient({ endpoint })` untouched. */
   endpoint: string;
   roomId: string;
   roomName: string;
@@ -202,11 +202,11 @@ export type ChatMessageType = 'text' | 'system' | 'event' | 'attachment';
 export interface CreateChatTokenParams {
   /** Your own user identity. Everything this token sends is attributed to it. */
   userId: string;
-  /** Conversations the token may touch. Omit for every conversation the user belongs to. */
+  /** Conversations the token may touch. Leave it out for every conversation the user belongs to. */
   conversations?: string[];
   /** Narrows the token below the user's role. Cannot grant anything the role lacks. */
   scopes?: ChatScope[];
-  /** Lifetime in seconds. There is no non-expiring chat token. */
+  /** Lifetime in seconds. There's no such thing as a non-expiring chat token. */
   expiresIn?: number;
 }
 
@@ -218,7 +218,7 @@ export interface IssuedChatToken {
   projectId: string;
   scopes: ChatScope[];
   conversations: string[];
-  /** Pass to `createChatClient({ chatUrl })` — the SDK never hardcodes a host. */
+  /** Pass it to `createChatClient({ chatUrl })`. The SDK never hardcodes a host. */
   chatUrl: string;
   apiUrl: string;
   expiresAt: string;
@@ -261,7 +261,7 @@ export interface ChatMember {
 
 export interface SendChatMessageParams {
   text?: string;
-  /** Required — a server-side send names the user it acts for. */
+  /** Required. A server-side send has to name the user it's acting for. */
   senderId: string;
   type?: ChatMessageType;
   replyTo?: string;
@@ -293,7 +293,7 @@ export interface ChatMessage {
 
 export interface ListChatMessagesParams {
   limit?: number;
-  /** Opaque cursor from a previous page's `nextCursor`. Cursor-based, never offset. */
+  /** Opaque cursor from a previous page's `nextCursor`. Cursor-based; never an offset. */
   before?: string;
   after?: string;
   senderId?: string;
@@ -308,8 +308,8 @@ export interface ChatMessagePage {
 }
 
 // ---------------------------------------------------------------------------
-// Live Streaming (Phase 14) — reuses Rooms + RTC Tokens + Chat under the
-// hood; a stream is never a third real-time system alongside them.
+// Live Streaming (Phase 14). Reuses Rooms, RTC Tokens and Chat underneath.
+// A stream is never a third real-time system sitting alongside them.
 // ---------------------------------------------------------------------------
 
 export type LiveStreamStatus = 'CREATED' | 'STARTING' | 'LIVE' | 'ENDING' | 'ENDED';
@@ -334,7 +334,7 @@ export interface LiveStream {
   metadata: Record<string, unknown> | null;
   status: LiveStreamStatus;
   hosts: LiveStreamHostView[];
-  /** Live participants who are not registered hosts. `null` means the SFU could not be reached — distinct from a genuinely empty 0. */
+  /** Live participants who aren't registered hosts. `null` means the SFU couldn't be reached, which is not the same as a genuine 0. */
   viewerCount: number | null;
   peakViewerCount: number;
   conversationId: string | null;
@@ -349,21 +349,21 @@ export interface LiveStream {
 
 export interface CreateLiveStreamParams {
   title: string;
-  /** Registered as this stream's HOST — the only identity a stream is created with. */
+  /** Registered as this stream's HOST, the only identity a stream is created with. */
   hostIdentity: string;
   description?: string;
-  /** A URL you host — Raven does not accept or store thumbnail uploads. */
+  /** A URL you host. Raven neither accepts nor stores thumbnail uploads. */
   thumbnailUrl?: string;
   category?: string;
   tags?: string[];
   language?: string;
   visibility?: LiveStreamVisibility;
   metadata?: Record<string, unknown>;
-  /** ISO 8601. Raven does not auto-transition status at this time — call `start()` yourself. */
+  /** ISO 8601. Raven won't auto-transition status at this time; call `start()` yourself. */
   scheduledAt?: string;
 }
 
-/** Everything about a stream you might change before or during it — never its status; use `start()`/`end()` for that. */
+/** Everything about a stream you might change before or during it. Never its status; `start()` and `end()` handle that. */
 export interface UpdateLiveStreamParams {
   title?: string;
   description?: string;
@@ -381,7 +381,7 @@ export interface ListLiveStreamsParams {
 
 export interface AddHostParams {
   identity: string;
-  /** HOST and CO_HOST get identical RTC/chat grants — the difference is bookkeeping, not permissions. Defaults to CO_HOST. */
+  /** HOST and CO_HOST get identical RTC and chat grants. The difference is bookkeeping, not permissions. Defaults to CO_HOST. */
   role?: LiveStreamHostRole;
 }
 

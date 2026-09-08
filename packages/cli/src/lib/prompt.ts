@@ -2,15 +2,15 @@ import { createInterface } from 'node:readline/promises';
 import chalk from 'chalk';
 import { CliError } from './errors.js';
 
-/** True when stdin isn't a real tty — CI, pipes, etc. Every interactive prompt checks this before doing anything. */
+/** True when stdin isn't a real tty: CI, pipes, that sort of thing. Every interactive prompt checks it first. */
 export function isNonInteractive(): boolean {
   return !process.stdin.isTTY || !process.stdout.isTTY;
 }
 
 /**
- * Confirmation gate for destructive actions. `--yes` skips it; without
- * `--yes` in a non-interactive shell we fail loudly instead of hanging
- * on a prompt nobody's there to answer.
+ * Confirmation gate for destructive actions. `--yes` skips it. Without
+ * `--yes` in a non-interactive shell we fail loudly instead of hang on a
+ * prompt nobody's there to answer.
  */
 export async function confirm(message: string, opts: { assumeYes?: boolean }): Promise<boolean> {
   if (opts.assumeYes) return true;
@@ -30,7 +30,7 @@ export async function confirm(message: string, opts: { assumeYes?: boolean }): P
   }
 }
 
-/** Minimal numbered-list picker. No extra dependency — just prints to scrollback instead of redrawing like a real TUI. */
+/** Minimal numbered-list picker. No extra dependency; it prints to scrollback, not redrawing like a real TUI. */
 export async function selectFromList<T>(
   message: string,
   items: T[],
@@ -38,7 +38,7 @@ export async function selectFromList<T>(
 ): Promise<T> {
   if (isNonInteractive()) {
     throw new CliError('usage', message, {
-      suggestion: 'Not running in an interactive terminal — pass the target explicitly instead',
+      suggestion: 'Not running in an interactive terminal; pass the target explicitly instead',
     });
   }
   if (items.length === 0) {

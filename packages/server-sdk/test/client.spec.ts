@@ -3,7 +3,7 @@ import { RavenError } from '../src/errors';
 
 describe('Raven', () => {
   it('throws synchronously when constructed without an apiKey', () => {
-    // @ts-expect-error deliberately omitting the required field
+    // @ts-expect-error leaving out the required field on purpose
     expect(() => new Raven({})).toThrow(RavenError);
   });
 
@@ -29,11 +29,11 @@ describe('Raven', () => {
     expect(String(raven)).not.toContain('topsecret');
   });
 
-  it('does not automatically read process.env.RAVEN_API_KEY — apiKey must be passed explicitly', () => {
+  it('does not automatically read process.env.RAVEN_API_KEY; apiKey must be passed explicitly', () => {
     const original = process.env.RAVEN_API_KEY;
     process.env.RAVEN_API_KEY = 'should-never-be-read-implicitly';
     try {
-      // @ts-expect-error deliberately omitting the required field to prove there's no implicit fallback
+      // @ts-expect-error omitting the required field on purpose, to prove there's no implicit fallback
       expect(() => new Raven({})).toThrow(RavenError);
     } finally {
       process.env.RAVEN_API_KEY = original;

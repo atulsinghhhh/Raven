@@ -2,9 +2,10 @@ import type { RavenHttpClient } from '../http-client';
 import type { LiveParticipantInfo, Room } from '../types';
 
 /**
- * Rooms are control-plane records, not persistent infrastructure —
- * `delete()` closes a room (soft-close, sets status to CLOSED) rather
- * than destroying history, matching the actual API (Phase 10 spec §18).
+ * Rooms are control-plane records, not persistent infrastructure. So
+ * `delete()` closes a room, a soft-close setting status to CLOSED, rather
+ * than destroying history. Matches what the API actually does (Phase 10
+ * spec §18).
  */
 export class RoomsResource {
   readonly participants: RoomParticipantsResource;
@@ -25,18 +26,20 @@ export class RoomsResource {
     return this.http.request<Room>('/v1/rooms', { method: 'POST', body: params });
   }
 
-  /** Soft-closes the room (sets status to CLOSED) — never a hard delete. */
+  /** Soft-closes the room, setting status to CLOSED. Never a hard delete. */
   delete(roomId: string): Promise<void> {
     return this.http.request<void>(`/v1/rooms/${roomId}`, { method: 'DELETE' });
   }
 }
 
 /**
- * Real join/leave participant *history* isn't wired up in the Control
- * API yet — this always reflects the SFU's current live state (Phase 10
- * spec §19), never a stored roster. `null` means the SFU couldn't be
- * reached, distinct from a genuinely empty room (`[]`) — never coerced
- * to one number.
+ * Real join/leave participant *history* isn't wired up in the Control API
+ * yet. This always reflects the SFU's current live state (Phase 10 §19),
+ * never a stored roster.
+ *
+ * `null` means the SFU couldn't be reached. That's a different thing from a
+ * genuinely empty room (`[]`), and the two never get collapsed into one
+ * number.
  */
 export class RoomParticipantsResource {
   constructor(private readonly http: RavenHttpClient) {}

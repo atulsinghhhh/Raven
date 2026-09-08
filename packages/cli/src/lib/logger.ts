@@ -13,8 +13,8 @@ export function isDebugEnabled(): boolean {
 const SENSITIVE_KEYS = /^(token|accesstoken|secret|key|password|credential|authorization)$/i;
 
 /**
- * Deep-redacts an object before it hits a debug log. Every debug print
- * goes through this so nobody has to remember to redact manually at the
+ * Deep-redacts an object before it reaches a debug log. Every debug print
+ * goes through here, so nobody has to remember to redact by hand at the
  * call site.
  */
 export function redact(value: unknown): unknown {
@@ -29,7 +29,7 @@ export function redact(value: unknown): unknown {
   return value;
 }
 
-/** Structured debug logging — only prints with --debug, always redacted first. */
+/** Structured debug logging. Only prints under --debug, and always redacted first. */
 export function debugLog(message: string, data?: unknown): void {
   if (!debugEnabled) return;
   const suffix = data !== undefined ? ` ${JSON.stringify(redact(data))}` : '';

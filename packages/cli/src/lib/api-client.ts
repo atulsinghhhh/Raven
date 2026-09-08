@@ -35,23 +35,27 @@ const BASE_RETRY_DELAY_MS = 300;
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
-  /** Statuses that must never trigger a retry — auth/authz/validation/not-found are never transient. */
+  /** Statuses that must never trigger a retry. Auth, authz, validation and not-found are never transient. */
   retryable?: boolean;
   /**
-   * Overrides which HTTP statuses count as "return the body" vs. "throw".
-   * Only /health needs this: the Control API deliberately returns 503 for
-   * a *structured, still-parseable* degraded report (some dependency is
-   * down), not a failed request — treating that as an error would discard
-   * the very information `raven status` exists to show.
+   * Overrides which HTTP statuses mean "return the body" rather than
+   * "throw".
+   *
+   * Only /health needs it. The Control API returns 503 for a *structured,
+   * still-parseable* degraded report, meaning some dependency is down, not
+   * a failed request. Treat that as an error and you throw away the exact
+   * information `raven status` exists to show.
    */
   isSuccess?: (status: number) => boolean;
 }
 
 /**
- * The one place that knows how to talk HTTP to the Control API — every
- * command goes through this, never constructing a fetch() of its own
- * (Phase 8 spec §36). Centralizes auth, versioned paths, error mapping,
- * limited retries, and per-request correlation IDs for --debug tracing.
+ * The one place that knows how to talk HTTP to the Control API. Every
+ * command goes through it, and none of them builds a fetch() of its own
+ * (Phase 8 spec §36).
+ *
+ * Handles auth, versioned paths, error mapping, limited retries, and
+ * per-request correlation IDs for --debug tracing.
  */
 export class RavenApiClient {
   constructor(
@@ -113,10 +117,10 @@ export class RavenApiClient {
   /**
    * The RTC fleet.
    *
-   * Not project-scoped, unlike everything above it: an RTC server is
-   * deployment-level infrastructure shared by every project, so there is
-   * no project whose membership could authorize it. It exposes no project
-   * data either — only node identity, health and aggregate load.
+   * Not project-scoped, unlike everything above. An RTC server is
+   * deployment-level infrastructure shared by every project, so there's no
+   * project whose membership could authorize it. It exposes no project data
+   * either: node identity, health, aggregate load, and that's all.
    */
   async listRtcServers(region?: string): Promise<RtcServer[]> {
     const query = region ? `?region=${encodeURIComponent(region)}` : '';
@@ -313,7 +317,7 @@ export class RavenApiClient {
 
       if (isSuccess(response.status)) return payload as T;
 
-      // 5xx is the only class worth retrying — 4xx errors are never transient.
+      // 5xx is the only class worth retrying. A 4xx is never transient.
       if (retryable && response.status >= 500 && attempt < MAX_RETRIES) {
         await sleep(BASE_RETRY_DELAY_MS * 2 ** attempt);
         attempt++;
@@ -340,7 +344,7 @@ function mapErrorResponse(status: number, payload: unknown): CliError {
     return new CliError('not_found', message);
   }
   if (status === 429) {
-    return new CliError('network', 'Rate limit exceeded — try again shortly.');
+    return new CliError('network', 'Rate limit exceeded; try again shortly.');
   }
   if (status >= 500) {
     return new CliError('network', message, { suggestion: 'Try again in a moment' });

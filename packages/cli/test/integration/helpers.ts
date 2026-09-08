@@ -14,11 +14,12 @@ export interface CliRunResult {
 }
 
 /**
- * Runs the real commander program in-process — same command tree, same
- * action handlers, same error handling — with process.exit intercepted
- * (so a real exit-code path doesn't kill the test worker) and
- * stdout/stderr captured for assertions. `global.fetch` must be mocked by
- * the caller before invoking this.
+ * Runs the real commander program in-process: same command tree, same
+ * action handlers, same error handling.
+ *
+ * process.exit is intercepted, so a genuine exit-code path doesn't kill the
+ * test worker, and stdout/stderr are captured for assertions. The caller
+ * has to mock `global.fetch` before invoking this.
  */
 export async function runCli(args: string[]): Promise<CliRunResult> {
   const stdoutChunks: string[] = [];
@@ -55,7 +56,7 @@ export async function runCli(args: string[]): Promise<CliRunResult> {
 
 type FetchHandler = (url: string, init: RequestInit) => { status: number; body?: unknown } | Promise<{ status: number; body?: unknown }>;
 
-/** Routes mocked fetch calls by "METHOD path" — keeps integration tests declarative instead of positional-call-order-dependent. */
+/** Routes mocked fetch calls by "METHOD path", which keeps integration tests declarative, not dependent on call order. */
 export function mockApi(routes: Record<string, FetchHandler>) {
   global.fetch = jest.fn(async (url: unknown, init?: RequestInit) => {
     const method = init?.method ?? 'GET';

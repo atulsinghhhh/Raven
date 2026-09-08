@@ -71,9 +71,9 @@ describe('raven rtc (integration)', () => {
       expect(result.stdout).toContain('asia-south');
       expect(result.stdout).toContain('12/100');
       expect(result.stdout).toContain('2 healthy, 0 draining, 1 unhealthy');
-      // The staleness disclaimer is not decoration: every load figure is
-      // a heartbeat-old snapshot, and an operator reading them needs to
-      // know that.
+      // The staleness disclaimer isn't decoration. Every load figure is a
+      // heartbeat-old snapshot, and whoever's reading them needs to know
+      // that.
       expect(result.stdout).toContain('not live truth');
     });
 
@@ -108,9 +108,9 @@ describe('raven rtc (integration)', () => {
     });
 
     it('renders an unmeasured gauge as unknown, not as zero', async () => {
-      // A node that registered but has not heartbeated has no reading.
-      // Printing 0% would read as "idle", which is the opposite of the
-      // truth when you are deciding whether to scale.
+      // A node that registered but never heartbeated has no reading at
+      // all. Print 0% and it reads as "idle", which is the opposite of the
+      // truth when you're deciding whether to scale.
       mockApi({
         'GET /v1/rtc/servers/sfu-new': async () => ({
           status: 200,
@@ -134,8 +134,8 @@ describe('raven rtc (integration)', () => {
     });
 
     it('warns that an unhealthy node keeps its existing rooms', async () => {
-      // Spec §26: an unhealthy SFU must not have its active rooms killed.
-      // The CLI says so, because "unhealthy" otherwise reads as "dead".
+      // Spec §26. An unhealthy SFU mustn't have its active rooms killed,
+      // and the CLI says so, because "unhealthy" otherwise reads as "dead".
       mockApi({
         'GET /v1/rtc/servers/sfu-sick': async () => ({
           status: 200,
@@ -266,8 +266,8 @@ describe('raven rtc (integration)', () => {
     });
 
     it('says the call may still be running when the server is unreachable', async () => {
-      // "Unavailable" alone would read as "the room is gone", which is a
-      // much stronger and possibly wrong claim.
+      // "Unavailable" on its own reads as "the room is gone", which is a
+      // much stronger claim, and possibly a wrong one.
       mockApi({
         'GET /v1/projects/proj-1/rooms/room-1': async () => ({
           status: 200,
@@ -371,14 +371,14 @@ describe('raven rtc (integration)', () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('1 audio · 1 video · 1 screen');
       expect(result.stdout).toContain('2 healthy of 3');
-      // A participant publishing nothing is called out — it is the usual
+      // A participant publishing nothing gets called out. It's the usual
       // symptom of a permission or capture problem.
       expect(result.stdout).toContain('publishing nothing');
     });
 
     it('stops at the fleet when nothing healthy is registered', async () => {
       // No point reporting a room's participants when no server could be
-      // serving it — the fleet is the actual problem.
+      // serving it. The fleet is the actual problem.
       mockApi({
         'GET /v1/projects/proj-1/rooms/room-1': async () => ({
           status: 200,

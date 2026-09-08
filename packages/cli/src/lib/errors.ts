@@ -1,6 +1,6 @@
 /**
- * These are a contract with scripts/CI (docs/cli.md#exit-codes) — don't
- * renumber once shipped.
+ * These are a contract with scripts and CI (docs/cli.md#exit-codes). Once
+ * shipped, don't renumber them.
  */
 export const ExitCode = {
   Success: 0,
@@ -32,9 +32,9 @@ const EXIT_CODE_BY_KIND: Record<CliErrorKind, ExitCodeValue> = {
 };
 
 /**
- * The one error type every command throws. `suggestion` prints as a
- * "Suggestion: ..." line instead of a raw stack dump. `cause` only shows
- * up under --debug.
+ * The only error type any command throws. `suggestion` prints as a
+ * "Suggestion: ..." line rather than a raw stack dump, and `cause` only
+ * shows up under --debug.
  */
 export class CliError extends Error {
   readonly kind: CliErrorKind;
@@ -56,8 +56,8 @@ export class CliError extends Error {
 
 export function notLoggedInError(): CliError {
   return new CliError('auth', 'Not logged in.', {
-    // Both paths, because the browser one is useless in CI and a
-    // container — which is exactly where this error tends to show up.
+    // Both paths, because the browser one is no use in CI or a container.
+    // Which is precisely where this error tends to turn up.
     suggestion: 'Run `raven login`, or set RAVEN_TOKEN if there is no browser here (CI, containers, SSH)',
   });
 }

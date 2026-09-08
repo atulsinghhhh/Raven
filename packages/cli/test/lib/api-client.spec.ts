@@ -97,7 +97,7 @@ describe('RavenApiClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('does NOT retry a 404 — not-found is never transient', async () => {
+  it('does NOT retry a 404; not-found is never transient', async () => {
     const fetchMock = mockFetchSequence({ status: 404, body: { message: 'not found' } });
     const client = new RavenApiClient('http://api.test', 'token');
 
@@ -105,7 +105,7 @@ describe('RavenApiClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('does NOT retry a 401 — auth failures are never transient', async () => {
+  it('does NOT retry a 401; auth failures are never transient', async () => {
     const fetchMock = mockFetchSequence({ status: 401, body: { message: 'unauthorized' } });
     const client = new RavenApiClient('http://api.test', 'token');
 
@@ -122,9 +122,9 @@ describe('RavenApiClient', () => {
   }, 10000);
 
   it('never retries the public, non-retryable getHealth() call', async () => {
-    // A 500 (unlike the health endpoint's own 503-for-degraded, tested
-    // below) is a genuine unexpected failure with no structured body to
-    // trust — this must still throw and still never retry.
+    // A 500 is a genuine unexpected failure with no structured body worth
+    // trusting, unlike the health endpoint's own 503-for-degraded which is
+    // tested below. So this still has to throw, and still never retry.
     const fetchMock = mockFetchSequence({ status: 500, body: { message: 'boom' } });
     const client = new RavenApiClient('http://api.test');
 
@@ -132,7 +132,7 @@ describe('RavenApiClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('getHealth() returns the parsed body for a 503 "degraded" response instead of throwing — the dependency breakdown is real, structured data, not a failure to surface as an error', async () => {
+  it('getHealth() returns the parsed body for a 503 "degraded" response instead of throwing; the dependency breakdown is real, structured data, not a failure to surface as an error', async () => {
     const degradedBody = {
       status: 'degraded',
       dependencies: { database: 'up', redis: 'up', sfu: 'down', turn: 'up' },

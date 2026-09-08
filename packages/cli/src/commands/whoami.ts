@@ -15,12 +15,12 @@ export function registerWhoamiCommand(program: Command): void {
         const credentials = await requireCredentials();
         const client = new RavenApiClient(credentials.apiUrl, credentials.token);
 
-        // fetched live, not cached or guessed
+        // Fetched live. Not cached, not guessed.
         const projects = await client.listProjects();
 
-        // Where the token came from. Worth printing: the commonest CI
-        // confusion is a stale credentials.json silently winning, or a
-        // $RAVEN_TOKEN silently overriding a developer's own session.
+        // Where the token came from. Worth printing, because the commonest
+        // CI confusion by far is a stale credentials.json quietly winning,
+        // or a $RAVEN_TOKEN quietly overriding somebody's own session.
         const source = credentials.fromEnvironment ? `$${TOKEN_ENV_VAR}` : 'credentials file';
 
         if (opts.json) {
@@ -38,8 +38,8 @@ export function registerWhoamiCommand(program: Command): void {
         printField('Credentials', source);
         printField('API', credentials.apiUrl);
         printField('Projects', String(projects.length));
-        // control plane doesn't distinguish environments per project yet —
-        // this is the honest value, not an invented one
+        // The control plane doesn't distinguish environments per project
+        // yet. This is the honest value, not an invented one.
         printField('Environment', 'development');
       }),
     );

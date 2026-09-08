@@ -33,7 +33,7 @@ describe('raven keys / rooms / status / whoami (integration)', () => {
           environment: 'DEVELOPMENT',
           key: 'rvk_dev_abc.supersecretvalue',
           createdAt: '2026-01-01T00:00:00.000Z',
-          warning: 'This is the only time the full key is shown. Store it securely — it cannot be retrieved again.',
+          warning: 'This is the only time the full key is shown. Store it securely; it cannot be retrieved again.',
         },
       }),
     });

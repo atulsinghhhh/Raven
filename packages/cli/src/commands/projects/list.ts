@@ -26,7 +26,8 @@ export function registerProjectsListCommand(projects: Command): void {
         printTable(list, [
           { header: 'NAME', value: (p) => p.name },
           { header: 'ID', value: (p) => p.id },
-          // fixed label — no per-project environments in the control plane yet
+          // Fixed label. No per-project environments in the control plane
+          // yet.
           { header: 'ENV', value: () => 'development' },
         ]);
       }),

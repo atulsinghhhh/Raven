@@ -25,7 +25,7 @@ export function registerChatConversationsCommand(chat: Command): void {
         if (conversations.length === 0) {
           printEmpty(
             'No conversations yet.',
-            'Conversations are created from your backend — a browser chat token cannot create them. Use raven.chat.createConversation() from @corvidhq/server or raven-sdk.',
+            'Conversations are created from your backend; a browser chat token cannot create them. Use raven.chat.createConversation() from @corvidhq/server or raven-sdk.',
           );
           return;
         }
@@ -43,9 +43,9 @@ export function registerChatConversationsCommand(chat: Command): void {
           },
         ]);
 
-        // Stated rather than implied: this command shows activity, not
+        // Stated instead of implied: this command shows activity, not
         // content, and there is no flag that would change that.
-        process.stdout.write('\nMessage contents are never returned to this surface — see docs/security/chat.md#privacy.\n');
+        process.stdout.write('\nMessage contents are never returned to this surface; see docs/security/chat.md#privacy.\n');
       }),
     );
 }

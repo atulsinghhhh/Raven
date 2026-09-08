@@ -182,9 +182,10 @@ describe('RavenHttpClient', () => {
     });
 
     // A proxy or load balancer returning an HTML error page strips the JSON
-    // body. The status is still meaningful, and the code derived from it has
-    // to come from the same vocabulary — otherwise a caller's `switch` on
-    // error.code silently stops matching exactly when things are worst.
+    // body. The status still means something, and the code we derive from it
+    // has to come out of the same vocabulary. Otherwise a caller's `switch`
+    // on error.code quietly stops matching at the exact moment things are
+    // at their worst.
     it.each([
       [401, 'RAVEN_AUTH_ERROR'],
       [403, 'RAVEN_PERMISSION_DENIED'],

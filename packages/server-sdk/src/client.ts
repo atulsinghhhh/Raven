@@ -10,8 +10,9 @@ import { RoomsResource } from './resources/rooms';
 import { TokensResource } from './resources/tokens';
 
 /**
- * Raven's server SDK — for your backend only, never a browser bundle.
- * Authenticates with a permanent project API key; never expose that key,
+ * Raven's server SDK. For your backend only; never a browser bundle.
+ *
+ * Authenticates with a permanent project API key. Never expose that key,
  * or an instance of this class, to a browser (Phase 10 spec §2).
  *
  * ```ts
@@ -28,9 +29,9 @@ export class Raven {
   readonly errors: ErrorsResource;
   readonly metrics: MetricsResource;
   readonly diagnostics: DiagnosticsResource;
-  /** Raven Chat (Phase 12) — mint browser tokens, manage conversations, post server-side messages. */
+  /** Raven Chat (Phase 12): mint browser tokens, manage conversations, post server-side messages. */
   readonly chat: ChatResource;
-  /** Raven Live Streaming (Phase 14) — create streams, register hosts, mint viewer credentials. */
+  /** Raven Live Streaming (Phase 14): create streams, register hosts, mint viewer credentials. */
   readonly liveStreams: LiveStreamsResource;
 
   constructor(options: RavenClientOptions) {

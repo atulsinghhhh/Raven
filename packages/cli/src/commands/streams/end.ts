@@ -7,7 +7,7 @@ import { withErrorHandling } from '../../lib/run.js';
 export function registerStreamsEndCommand(streams: Command): void {
   streams
     .command('end <streamId>')
-    .description('End a live stream — terminal; it cannot be restarted')
+    .description('End a live stream; terminal; it cannot be restarted')
     .option('-p, --project <project>', 'project ID (overrides the current project context)')
     .option('--json', 'output as JSON')
     .action(

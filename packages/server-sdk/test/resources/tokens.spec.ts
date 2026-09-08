@@ -25,7 +25,7 @@ describe('TokensResource', () => {
     expect(result.token).toBe('t');
   });
 
-  it('never logs the returned token — it is just returned data, not written anywhere', async () => {
+  it('never logs the returned token; it is just returned data, not written anywhere', async () => {
     const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     const http = { request: jest.fn().mockResolvedValue({ token: 'super-secret-rtc-token' }) };
     const resource = new TokensResource(http as unknown as RavenHttpClient);

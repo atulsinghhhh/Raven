@@ -1,7 +1,7 @@
 /**
  * Identity stand-in for `chalk`.
  *
- * Two reasons this is a stub rather than a transform of the real package:
+ * Two reasons this is a stub instead of a transform of the real package:
  *
  * 1. chalk@5 is ESM-only and imports `#ansi-styles`, a subpath import
  *    Jest's CommonJS transform cannot resolve. Every suite importing a
@@ -22,9 +22,9 @@ function makeStyler(): Styler {
       if (property === 'call' || property === 'apply' || property === 'bind') {
         return Reflect.get(target, property);
       }
-      // Every style name — and every chained style — resolves to the same
-      // identity function, so `chalk.bold.red(x)` works without listing
-      // the vocabulary.
+      // Every style name, and every chained style, resolves to the same
+      // identity function. So `chalk.bold.red(x)` works without anybody
+      // listing the vocabulary.
       return makeStyler();
     },
   });

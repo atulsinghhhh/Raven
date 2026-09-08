@@ -4,24 +4,25 @@ import { configFilePath } from './paths.js';
 
 export const DEFAULT_API_URL = 'http://localhost:4100';
 
-/** Overrides the configured apiUrl — the headless counterpart to `raven config set apiUrl`. */
+/** Overrides the configured apiUrl. The headless counterpart to `raven config set apiUrl`. */
 export const API_URL_ENV_VAR = 'RAVEN_API_URL';
 
 export interface CliConfig {
   apiUrl: string;
-  /** Set via `raven projects use <project>` — global fallback, overridden by a dir's raven.json or an explicit --project flag. */
+  /** Set by `raven projects use <project>`. A global fallback, overridden by a directory's raven.json or an explicit --project flag. */
   currentProject?: string;
 }
 
 const DEFAULTS: CliConfig = { apiUrl: DEFAULT_API_URL };
 
 /**
- * Never contains secrets — safe to print in full via `raven config list`.
+ * Never contains secrets, so it's safe to print in full via
+ * `raven config list`.
  *
- * Precedence is environment > file > default, so a CI job can point the
- * CLI at a different Control API without writing to the image's home
+ * Precedence runs environment > file > default, which lets a CI job point
+ * the CLI at a different Control API without writing to the image's home
  * directory. Only apiUrl is overridable this way; currentProject has
- * per-directory `raven.json` for the same job.
+ * per-directory `raven.json` doing the same job.
  */
 export async function readCliConfig(): Promise<CliConfig> {
   const file = await readCliConfigFile();
@@ -30,9 +31,9 @@ export async function readCliConfig(): Promise<CliConfig> {
 }
 
 /**
- * The file's contents alone, ignoring the environment. Writers use this
- * so a read-modify-write never bakes a transient $RAVEN_API_URL into
- * config.json — the override is meant to last exactly one process.
+ * Just the file's contents, ignoring the environment. Writers use this so a
+ * read-modify-write never bakes a transient $RAVEN_API_URL into
+ * config.json. That override is meant to last exactly one process.
  */
 export async function readCliConfigFile(): Promise<CliConfig> {
   try {

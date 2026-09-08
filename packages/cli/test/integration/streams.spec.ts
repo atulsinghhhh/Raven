@@ -121,7 +121,7 @@ describe('raven streams (integration)', () => {
       expect(result.stdout).toContain('unknown');
     });
 
-    it('never prints a credential — the endpoint does not return one', async () => {
+    it('never prints a credential; the endpoint does not return one', async () => {
       mockApi({ 'GET /v1/projects/proj-1/live-streams/stream_abc123': async () => ({ status: 200, body: STREAM }) });
 
       const result = await runCli(['streams', 'inspect', 'stream_abc123']);

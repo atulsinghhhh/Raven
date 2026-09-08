@@ -2,11 +2,12 @@ import type { RavenHttpClient } from '../http-client';
 import type { CreateTokenParams, IssuedToken } from '../types';
 
 /**
- * The core of this SDK (Phase 10 spec §15): mint a short-lived RTC token
- * server-side, then hand it to your frontend — never mint a token in the
- * browser, and never store a minted token any longer than you need to
- * forward it. Every token is short-lived by design; there is no way to
- * request a permanent one (see `expiresIn`).
+ * The heart of this SDK (Phase 10 spec §15). Mint a short-lived RTC token
+ * server-side, then hand it to your frontend.
+ *
+ * Never mint a token in the browser, and never hold on to a minted one any
+ * longer than it takes to forward it. Every token is short-lived by design,
+ * and there's no way to ask for a permanent one (see `expiresIn`).
  */
 export class TokensResource {
   constructor(private readonly http: RavenHttpClient) {}

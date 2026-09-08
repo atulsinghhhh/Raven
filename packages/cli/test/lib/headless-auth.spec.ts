@@ -7,9 +7,9 @@ import { requireCredentials } from '../../src/lib/context.js';
 import { decodeSessionToken } from '../../src/lib/decode-token.js';
 
 /**
- * The headless authentication path: $RAVEN_TOKEN and $RAVEN_API_URL,
- * for CI, containers, and SSH sessions where `raven login` has no
- * browser to open.
+ * The headless authentication path: $RAVEN_TOKEN and $RAVEN_API_URL. For
+ * CI, containers, and SSH sessions where `raven login` has no browser to
+ * open.
  */
 
 function tokenWith(claims: Record<string, unknown>): string {
@@ -30,8 +30,8 @@ describe('decodeSessionToken', () => {
   });
 
   it('returns nothing rather than throwing on a token it cannot parse', () => {
-    // Whether a token works is the server's call — an unparseable one is
-    // not this function's error to raise.
+    // Whether a token works is the server's call. An unparseable one isn't
+    // this function's error to raise.
     expect(decodeSessionToken('not-a-jwt')).toEqual({});
     expect(decodeSessionToken('')).toEqual({});
     expect(decodeSessionToken('a.!!!not-base64!!!.c')).toEqual({});
@@ -55,8 +55,8 @@ describe('credentialsFromEnv', () => {
   });
 
   it('treats a blank or whitespace-only value as unset', () => {
-    // An unset variable in CI usually arrives as the empty string, not
-    // as absent — treating that as a credential would fail confusingly.
+    // An unset variable in CI usually turns up as the empty string rather
+    // than absent, and treating that as a credential fails confusingly.
     process.env[TOKEN_ENV_VAR] = '   ';
     expect(credentialsFromEnv('http://localhost:4100')).toBeUndefined();
   });
@@ -76,8 +76,8 @@ describe('credentialsFromEnv', () => {
   });
 
   it('still returns a credential when the token has no email claim', () => {
-    // The server decides whether it works; a missing display name is not
-    // a reason to refuse to try.
+    // The server decides whether it works. A missing display name is no
+    // reason to refuse to try.
     process.env[TOKEN_ENV_VAR] = tokenWith({ sub: 'u1' });
     const credentials = credentialsFromEnv('http://x');
     expect(credentials?.token).toBeDefined();
@@ -118,8 +118,8 @@ describe('headless config and credential precedence', () => {
   });
 
   it('never writes the environment override back into config.json', async () => {
-    // A read-modify-write that persisted a transient env var would make
-    // the override outlive the process that set it.
+    // A read-modify-write that persisted a transient env var would let the
+    // override outlive the process that set it.
     await writeCliConfig({ apiUrl: 'http://from-file' });
     process.env[API_URL_ENV_VAR] = 'https://from-env';
 
@@ -148,8 +148,8 @@ describe('headless config and credential precedence', () => {
   });
 
   it('prefers $RAVEN_TOKEN over a stored credential', async () => {
-    // So one command can run as a service account without disturbing —
-    // or being disturbed by — the developer's own stored session.
+    // So one command can run as a service account without disturbing the
+    // developer's own stored session, or being disturbed by it.
     await writeCredentials({
       token: 'stored-token',
       email: 'dev@example.com',

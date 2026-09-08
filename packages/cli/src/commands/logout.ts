@@ -14,25 +14,25 @@ export function registerLogoutCommand(program: Command): void {
         const envToken = Boolean(process.env[TOKEN_ENV_VAR]?.trim());
 
         if (!credentials) {
-          // Saying "logged out" while $RAVEN_TOKEN is still set would be
-          // false — the next command would authenticate perfectly well.
+          // Saying "logged out" while $RAVEN_TOKEN is still set would be a
+          // lie. The next command would authenticate perfectly well.
           printInfo(
             envToken
-              ? `No stored credentials to remove, but $${TOKEN_ENV_VAR} is set — unset it to sign out of this shell.`
+              ? `No stored credentials to remove, but $${TOKEN_ENV_VAR} is set; unset it to sign out of this shell.`
               : 'Already logged out.',
           );
           return;
         }
 
-        // best-effort server-side blocklist — local creds get cleared
-        // regardless, so "logged out" here never waits on the network
+        // Best-effort server-side blocklist. Local creds get cleared
+        // either way, so "logged out" never waits on the network.
         await new RavenApiClient(credentials.apiUrl, credentials.token).logout().catch(() => undefined);
 
         await clearCredentials();
         printSuccess('Logged out.');
 
         if (envToken) {
-          printInfo(`$${TOKEN_ENV_VAR} is still set and takes precedence — unset it to finish signing out.`);
+          printInfo(`$${TOKEN_ENV_VAR} is still set and takes precedence; unset it to finish signing out.`);
         }
       }),
     );

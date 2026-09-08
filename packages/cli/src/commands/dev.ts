@@ -49,7 +49,7 @@ export function registerDevCommand(program: Command): void {
         process.stdout.write('\n');
         process.stdout.write(`API:\n${checkLine(apiConnected, 'Connected', 'Could not reach the Control API')}\n\n`);
         process.stdout.write(`RTC:\n${checkLine(rtcAvailable, 'Available', 'SFU is unreachable')}\n\n`);
-        process.stdout.write(`SDK:\n${checkLine(sdkInstalled, '@corvidhq/rtc installed', '@corvidhq/rtc is not installed — run `raven sdk install`')}\n\n`);
+        process.stdout.write(`SDK:\n${checkLine(sdkInstalled, '@corvidhq/rtc installed', '@corvidhq/rtc is not installed; run `raven sdk install`')}\n\n`);
         printField('Environment', 'development');
 
         if (apiConnected && rtcAvailable && sdkInstalled) {

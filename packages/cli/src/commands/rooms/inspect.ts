@@ -25,7 +25,7 @@ export function registerRoomsInspectCommand(rooms: Command): void {
         process.stdout.write(`${chalk.bold(`Room: ${room.name}`)}\n\n`);
 
         if (room.liveParticipants === null) {
-          printEmpty('Live participant data is unavailable — the SFU could not be reached.');
+          printEmpty('Live participant data is unavailable; the SFU could not be reached.');
           return;
         }
 

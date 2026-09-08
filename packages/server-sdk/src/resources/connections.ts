@@ -1,7 +1,7 @@
 import type { RavenHttpClient } from '../http-client';
 import type { ConnectionDetail, ConnectionSummary, ListConnectionsParams } from '../types';
 
-/** Real, event-sourced RTC connection data (Phase 9 observability), read from your backend. */
+/** Real event-sourced RTC connection data (Phase 9 observability), read from your backend. */
 export class ConnectionsResource {
   constructor(private readonly http: RavenHttpClient) {}
 

@@ -3,15 +3,15 @@ import { CliError, ExitCode } from './errors.js';
 import { isDebugEnabled } from './logger.js';
 
 /**
- * Wraps every command action — the one place that turns a thrown error
- * into the right exit code plus a readable message instead of a raw
- * stack trace, unless --debug is set.
+ * Wraps every command action. The one place that turns a thrown error into
+ * the right exit code and a readable message, rather than a raw stack
+ * trace, unless --debug says otherwise.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any --
- * Commander's action callbacks are variadic and differently shaped per
- * command. `unknown[]` reads better but makes every concrete callback
- * unassignable under strictFunctionTypes, so the pass-through genuinely
- * needs `any` at both ends. */
+ * Commander's action callbacks are variadic and shaped differently per
+ * command. `unknown[]` reads nicer but makes every concrete callback
+ * unassignable under strictFunctionTypes, so this pass-through genuinely
+ * does need `any` at both ends. */
 export function withErrorHandling(action: (...args: any[]) => Promise<void>) {
   return async (...args: any[]) => {
     try {

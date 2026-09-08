@@ -8,7 +8,7 @@ import { CliError } from '../../lib/errors.js';
 export function registerStreamsUpdateCommand(streams: Command): void {
   streams
     .command('update <streamId>')
-    .description("Update a stream's metadata — title, description, category, etc. (never its status)")
+    .description("Update a stream's metadata; title, description, category, etc. (never its status)")
     .option('-p, --project <project>', 'project ID (overrides the current project context)')
     .option('--title <title>', 'a new title')
     .option('--description <text>', 'a new description')

@@ -7,10 +7,12 @@ import { writeCliConfig } from '../../src/lib/cli-config.js';
 import { mockApi, runCli } from './helpers.js';
 
 /**
- * `raven login --token` and $RAVEN_TOKEN end-to-end through the real
- * command tree. Neither path may open a browser — that's the whole
- * point of them — so `open` is not stubbed here: a call would fail the
- * suite loudly rather than silently launching something.
+ * `raven login --token` and $RAVEN_TOKEN, end to end through the real
+ * command tree.
+ *
+ * Neither path is allowed to open a browser; that's the entire point of
+ * them. So `open` is not stubbed here, on purpose. A call to it fails the
+ * suite loudly instead of quietly launching something.
  */
 
 function tokenWith(claims: Record<string, unknown>): string {
@@ -74,8 +76,8 @@ describe('headless login (integration)', () => {
   });
 
   it('login --token writes nothing when the API rejects the token', async () => {
-    // Storing an unusable credential would only move the failure to the
-    // next command, where the cause is far less obvious.
+    // Store an unusable credential and you've only moved the failure to
+    // the next command, where the cause is far less obvious.
     mockApi({ 'GET /v1/projects': async () => ({ status: 401, body: { message: 'Invalid token' } }) });
 
     const result = await runCli(['login', '--token', CI_TOKEN]);
@@ -122,7 +124,7 @@ describe('headless login (integration)', () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('ci-app');
-    // The env path is stateless — it must not leave a credentials file.
+    // The env path is stateless. It mustn't leave a credentials file.
     await expect(readCredentials()).resolves.toBeUndefined();
   });
 

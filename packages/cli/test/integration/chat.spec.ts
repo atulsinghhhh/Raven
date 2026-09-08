@@ -65,8 +65,8 @@ describe('raven chat (integration)', () => {
 
       const result = await runCli(['chat', 'overview']);
 
-      // "0 ms" would claim a measurement that was never taken — a quiet
-      // project has no samples, not instant delivery.
+      // "0 ms" claims a measurement nobody took. A quiet project has no
+      // samples; that isn't the same as instant delivery.
       expect(result.stdout).toContain('not measured in this window');
       expect(result.stdout).not.toContain('0 ms');
     });
@@ -82,8 +82,8 @@ describe('raven chat (integration)', () => {
 
       await runCli(['chat', 'overview', '--range', '99y']);
 
-      // Passing it through would make the server silently use 1h while the
-      // header claimed 99y.
+      // Pass it through and the server quietly uses 1h while the header
+      // cheerfully claims 99y.
       expect(seen[0]).toContain('range=1h');
     });
 
@@ -138,8 +138,8 @@ describe('raven chat (integration)', () => {
 
       const result = await runCli(['chat', 'conversations']);
 
-      // The endpoint doesn't return message text, and the CLI says so —
-      // a terminal is not a place to dump customers' messages.
+      // The endpoint doesn't return message text, and the CLI says as much.
+      // A terminal is no place to dump customers' messages.
       expect(result.stdout).toContain('Message contents are never returned');
     });
 
@@ -148,8 +148,8 @@ describe('raven chat (integration)', () => {
 
       const result = await runCli(['chat', 'conversations']);
 
-      // Conversations can't be created from the CLI (that needs an API
-      // key), so the empty state has to say where they do come from.
+      // Conversations can't be created from the CLI, since that needs an
+      // API key, so the empty state has to say where they do come from.
       expect(result.stdout).toContain('No conversations yet');
       expect(result.stdout).toContain('@corvidhq/server');
     });
@@ -217,8 +217,8 @@ describe('raven chat (integration)', () => {
       await runCli(['chat', 'connections', '--state', 'NONSENSE']);
 
       expect(seen[0]).toContain('state=CONNECTED');
-      // An unrecognised state would be rejected by the API; dropping it
-      // returns everything, which is the more useful reading of a typo.
+      // The API rejects an unrecognised state. Dropping it returns
+      // everything, which is the kinder reading of a typo.
       expect(seen[1]).not.toContain('state=');
     });
   });

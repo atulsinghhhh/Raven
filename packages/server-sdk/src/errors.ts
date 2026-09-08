@@ -7,12 +7,13 @@ export interface RavenErrorOptions {
 }
 
 /**
- * The one error type this SDK throws. Built purely from the parsed
- * response body (`{message, code}`, matching `AppError` on the API side)
- * plus response metadata — never from anything that could carry the API
- * key, so there's no path by which a key could end up here. Never
- * includes a stack trace from the server, a database error, or TURN/RTC
- * credentials (Phase 10 spec §10).
+ * The only error type this SDK throws.
+ *
+ * Built purely from the parsed response body (`{message, code}`, matching
+ * `AppError` on the API side) plus response metadata. Never from anything
+ * that could be carrying the API key, so there's no route by which a key
+ * ends up in here. And never a server stack trace, a database error, or
+ * TURN/RTC credentials (Phase 10 spec §10).
  */
 export class RavenError extends Error {
   readonly code: string;

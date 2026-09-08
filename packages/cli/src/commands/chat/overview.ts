@@ -9,15 +9,15 @@ const RANGES = ['15m', '1h', '24h', '7d'];
 export function registerChatOverviewCommand(chat: Command): void {
   chat
     .command('overview')
-    .description('Chat activity for the current project — real counters, never estimates')
+    .description('Chat activity for the current project; real counters, never estimates')
     .option('-p, --project <project>', 'project ID (overrides the current project context)')
     .option('-r, --range <range>', `time window (${RANGES.join(', ')})`, '1h')
     .option('--json', 'output as JSON')
     .action(
       withErrorHandling(async (opts: { project?: string; range?: string; json?: boolean }) => {
         const projectId = await resolveProjectId(opts.project);
-        // Anything else would silently resolve to 1h server-side and print
-        // numbers that don't match the label.
+        // Anything else quietly resolves to 1h server-side, and then you're
+        // printing numbers that don't match the label.
         const range = RANGES.includes(opts.range ?? '') ? opts.range : '1h';
 
         const { client } = await getAuthenticatedApiClient();
@@ -41,8 +41,8 @@ export function registerChatOverviewCommand(chat: Command): void {
         printField('Messages / second', overview.messagesPerSecond.toFixed(2));
 
         process.stdout.write('\n');
-        // null means nothing was measured in this window. Printing "0 ms"
-        // would claim a measurement that was never taken.
+        // null means nothing got measured in this window. Print "0 ms" and
+        // you're claiming a measurement nobody took.
         printField('Storage latency', formatLatency(overview.latency.persistMs));
         printField('Fan-out latency', formatLatency(overview.latency.fanoutMs));
         printField('End-to-end latency', formatLatency(overview.latency.endToEndMs));
@@ -53,8 +53,8 @@ export function registerChatOverviewCommand(chat: Command): void {
         printField('Rooms subscribed', String(overview.gateway.subscribedRooms));
 
         // The overview reflects whichever gateway served this request. In a
-        // fleet that's one instance of several, and saying so avoids a
-        // developer reading it as a cluster-wide total.
+        // fleet that's one instance out of several, and saying so stops
+        // anyone reading it as a cluster-wide total.
         process.stdout.write(
           '\nGateway figures are for the instance that served this request, not the whole fleet.\n',
         );

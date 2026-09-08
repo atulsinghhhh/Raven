@@ -36,9 +36,9 @@ export function registerRtcRoomsCommand(rtc: Command): void {
         printTable(rows, [
           { header: 'Room', value: (room) => room.name },
           { header: 'Status', value: (room) => room.status },
-          // "unknown" rather than "0": a room whose server could not be
-          // reached is not the same as an empty one, and printing 0 would
-          // tell an operator every call had ended.
+          // "unknown", not "0". A room whose server couldn't be reached is
+          // not the same as an empty one, and printing 0 tells an operator
+          // every call has ended.
           {
             header: 'Live',
             value: (room) =>
@@ -75,7 +75,7 @@ export function registerRtcRoomsCommand(rtc: Command): void {
         if (room.liveParticipants === null) {
           process.stdout.write('\n');
           printEmpty(
-            'Live state is unavailable — the RTC server could not be reached.',
+            'Live state is unavailable; the RTC server could not be reached.',
             'The room may still be running. Check: raven rtc servers list',
           );
           return;
@@ -119,10 +119,10 @@ export function registerRtcRoomsCommand(rtc: Command): void {
         }
 
         printSuccess('Room closed');
-        // Worth saying plainly: closing marks the control-plane record so
-        // no new token can be minted for it. Anyone already connected
-        // stays connected until they leave — the alternative would be
-        // cutting off a live call from a CLI command.
+        // Worth spelling out. Closing marks the control-plane record so no
+        // new token can be minted for it. Anyone already connected stays
+        // connected until they leave; the alternative is cutting off a live
+        // call from a CLI command.
         process.stdout.write(
           `\n${chalk.dim('No new tokens can be minted for this room. Participants already connected are not disconnected.')}\n`,
         );

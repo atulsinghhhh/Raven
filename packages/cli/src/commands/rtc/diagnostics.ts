@@ -16,9 +16,9 @@ export function registerRtcDiagnosticsCommand(rtc: Command): void {
         const projectId = await resolveProjectId(opts.project);
         const { client } = await getAuthenticatedApiClient();
 
-        // The fleet view alongside the room's own state: "this room looks
-        // dead" and "the whole fleet is down" need different responses,
-        // and one command answering both saves the second round trip.
+        // The fleet view next to the room's own state. "This room looks
+        // dead" and "the whole fleet is down" call for different responses,
+        // and answering both in one command saves the second round trip.
         const [room, fleet] = await Promise.all([
           client.getRoom(projectId, roomId),
           client.getRtcFleetMetrics().catch(() => null),
@@ -41,7 +41,7 @@ export function registerRtcDiagnosticsCommand(rtc: Command): void {
           if (fleet.healthyServers === 0) {
             process.stdout.write(
               `\n${chalk.red(
-                'No healthy RTC server is registered — no room can be served until one is.',
+                'No healthy RTC server is registered; no room can be served until one is.',
               )}\n`,
             );
             return;
@@ -62,7 +62,7 @@ export function registerRtcDiagnosticsCommand(rtc: Command): void {
         if (room.liveParticipants.length === 0) {
           process.stdout.write('\n');
           printEmpty(
-            'The room is idle — nobody is connected.',
+            'The room is idle; nobody is connected.',
             'A room is only assigned a server while someone is in it.',
           );
           return;
@@ -97,10 +97,10 @@ export function registerRtcDiagnosticsCommand(rtc: Command): void {
           process.stdout.write(`  ${chalk.bold(participant.identity.padEnd(20))} ${detail}\n`);
         }
 
-        // Per-participant RTT/jitter/loss come from SDK telemetry rather
-        // than the media plane's own view; `raven connections` is where
-        // that lives. Saying so beats leaving a gap the reader has to
-        // guess at.
+        // Per-participant RTT, jitter and loss come from SDK telemetry,
+        // not the media plane's own view. `raven connections` is where that
+        // lives. Better to say so than leave a gap the reader has to guess
+        // at.
         process.stdout.write(
           `\n${chalk.dim('For per-connection RTT, jitter and packet loss: raven connections list')}\n`,
         );

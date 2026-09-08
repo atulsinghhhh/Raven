@@ -10,13 +10,14 @@ export interface BrowserLoginResult {
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes to complete the browser step
 
 /**
- * One-shot local server for the browser login handshake. Binds to
- * 127.0.0.1 only, never 0.0.0.0 — this must not be reachable from the
- * network. Waits for the dashboard's /cli-auth page to relay the user's
- * existing session token back here once they approve the login.
+ * A one-shot local server for the browser login handshake.
  *
- * Not a second auth system, just a relay: reuses the Control API's JWT
- * session auth and hands the token to the CLI process waiting for it.
+ * Binds to 127.0.0.1 only, never 0.0.0.0. This must not be reachable from
+ * the network. It waits for the dashboard's /cli-auth page to relay the
+ * user's existing session token back once they approve the login.
+ *
+ * Not a second auth system, just a relay. It reuses the Control API's JWT
+ * session auth and hands the token to whichever CLI process is waiting.
  */
 export function startBrowserLoginServer(): {
   port: Promise<number>;
@@ -48,8 +49,9 @@ export function startBrowserLoginServer(): {
 
     portPromise.then(() => {
       server.on('request', (req, res) => {
-        // dashboard origin might be a real remote host, not localhost, so CORS
-        // has to allow it — fine, this server dies right after the one exchange
+        // The dashboard origin might be a real remote host rather than
+        // localhost, so CORS has to allow it. Fine: this server dies right
+        // after the one exchange.
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');

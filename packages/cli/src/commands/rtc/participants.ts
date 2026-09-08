@@ -28,7 +28,7 @@ export function registerRtcParticipantsCommand(rtc: Command): void {
 
         if (room.liveParticipants === null) {
           printEmpty(
-            'Live state is unavailable — the RTC server could not be reached.',
+            'Live state is unavailable; the RTC server could not be reached.',
             'Check: raven rtc servers list',
           );
           return;

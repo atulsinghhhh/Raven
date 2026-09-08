@@ -3,36 +3,36 @@ import { dirname } from 'node:path';
 import { decodeSessionToken } from './decode-token.js';
 import { credentialsFilePath, ravenHomeDir } from './paths.js';
 
-/** Token env var — the headless path. Documented in docs/cli.md. */
+/** Token env var, i.e. the headless path. Documented in docs/cli.md. */
 export const TOKEN_ENV_VAR = 'RAVEN_TOKEN';
 
 export interface StoredCredentials {
-  /** Session JWT from the Control API — the CLI just reuses the existing auth, doesn't invent a second one. */
+  /** Session JWT from the Control API. The CLI reuses the existing auth rather than inventing a second one. */
   token: string;
   email: string;
   /** Which API this token is valid for, so a credential from one endpoint can't silently get reused against another. */
   apiUrl: string;
   createdAt: string;
   /**
-   * True when the token came from $RAVEN_TOKEN rather than the
-   * credentials file. Commands that would otherwise write to disk
-   * (`logout`) check this so a CI token isn't mistaken for one the CLI
-   * owns and can revoke locally.
+   * True when the token came from $RAVEN_TOKEN instead of the credentials
+   * file. Commands that would otherwise write to disk (`logout`) check it,
+   * so a CI token doesn't get mistaken for one the CLI owns and can revoke
+   * locally.
    */
   fromEnvironment?: boolean;
 }
 
 /**
- * Credentials from $RAVEN_TOKEN, for CI and any other context where no
- * browser exists.
+ * Credentials from $RAVEN_TOKEN, for CI and anywhere else there's no
+ * browser.
  *
- * The email is decoded from the token purely so `whoami` has something
- * to print; if the token can't be parsed the credential is still
- * returned, because whether it works is the server's call, not ours.
+ * We decode the email out of the token purely so `whoami` has something to
+ * print. If the token won't parse we still return the credential; whether
+ * it works is the server's call, not ours.
  *
- * `apiUrl` is passed in rather than read here so a single place —
- * readCliConfig() — stays responsible for resolving it from
- * $RAVEN_API_URL, the config file, and the default.
+ * `apiUrl` gets passed in, not read here, so one place,
+ * readCliConfig(), stays responsible for resolving it from $RAVEN_API_URL,
+ * the config file and the default.
  */
 export function credentialsFromEnv(apiUrl: string): StoredCredentials | undefined {
   const token = process.env[TOKEN_ENV_VAR]?.trim();
@@ -48,9 +48,9 @@ export function credentialsFromEnv(apiUrl: string): StoredCredentials | undefine
 }
 
 /**
- * File-based creds under ~/.raven/ — chmod 600 on the file, 700 on the
- * dir. Same fallback most CLIs use instead of pulling in an OS keychain
- * dependency. Never logged, never printed, never in --json output.
+ * File-based creds under ~/.raven/: chmod 600 on the file, 700 on the
+ * directory. The same fallback most CLIs use instead of dragging in an OS
+ * keychain dependency. Never logged, never printed, never in --json output.
  */
 export async function readCredentials(): Promise<StoredCredentials | undefined> {
   try {
@@ -66,8 +66,8 @@ export async function writeCredentials(credentials: StoredCredentials): Promise<
   const dir = dirname(credentialsFilePath());
   await mkdir(dir, { recursive: true, mode: 0o700 });
   await writeFile(credentialsFilePath(), JSON.stringify(credentials, null, 2), { mode: 0o600 });
-  // mkdir's mode only applies on creation, so force chmod here in case the
-  // dir already existed with looser perms from an older run.
+  // mkdir's mode only applies at creation, so chmod explicitly in case the
+  // directory already existed with looser perms from an older run.
   await chmod(dir, 0o700);
   await chmod(credentialsFilePath(), 0o600);
 }

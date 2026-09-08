@@ -6,11 +6,11 @@ import { withErrorHandling } from '../../lib/run.js';
 import type { RtcServer } from '../../lib/types.js';
 
 /**
- * Renders a percentage the node may not have measured.
+ * Renders a percentage the node may never have measured.
  *
- * A node that has registered but not yet heartbeated reports `null`, and
- * printing `0%` there would read as "idle" rather than "not known yet" —
- * the distinction an operator deciding whether to scale actually needs.
+ * A node that's registered but not yet heartbeated reports `null`, and
+ * printing `0%` there reads as "idle" instead of "not known yet". That's
+ * exactly the distinction an operator deciding whether to scale needs.
  */
 function percent(value: number | null): string {
   return value === null ? chalk.dim('—') : `${value.toFixed(0)}%`;
@@ -37,8 +37,8 @@ function statusLabel(status: RtcServer['status']): string {
 /**
  * How stale a heartbeat is, in words.
  *
- * Every load figure a node reports is a snapshot from its last heartbeat,
- * so showing the age alongside them is what keeps the numbers honest.
+ * Every load figure a node reports is a snapshot from its last heartbeat, so
+ * showing the age next to them is what keeps the numbers honest.
  */
 function heartbeatAge(lastHeartbeatAt: string | null): string {
   if (!lastHeartbeatAt) return chalk.dim('never');
@@ -75,7 +75,7 @@ export function registerRtcServersCommand(rtc: Command): void {
             opts.region
               ? `No RTC servers registered in region "${opts.region}".`
               : 'No RTC servers are registered.',
-            'Servers register themselves on boot — check that one is running and can reach the API.',
+            'Servers register themselves on boot; check that one is running and can reach the API.',
           );
           return;
         }
@@ -162,7 +162,7 @@ export function registerRtcServersCommand(rtc: Command): void {
         printSuccess(`${name} is draining`);
         process.stdout.write(
           `\n${chalk.dim(
-            `Existing rooms keep running and drain as calls end — ${server.activeRooms} still on this node.`,
+            `Existing rooms keep running and drain as calls end; ${server.activeRooms} still on this node.`,
           )}\n`,
         );
       }),

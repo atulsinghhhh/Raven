@@ -2,11 +2,12 @@ import type { RavenHttpClient } from '../http-client';
 import type { ProjectDiagnostics } from '../types';
 
 /**
- * Authenticated, project-scoped diagnostics (Phase 9) — signaling/SFU/
- * TURN health plus this project's real active-connection count. There is
- * no client-side (browser ICE/signaling state) diagnostic here — that
- * only exists inside a running `@corvidhq/rtc` client (`room.getDiagnostics()`),
- * which a backend has no way to observe.
+ * Authenticated, project-scoped diagnostics (Phase 9): signaling, SFU and
+ * TURN health, plus this project's real active-connection count.
+ *
+ * Nothing client-side in here. Browser ICE and signaling state only exist
+ * inside a running `@corvidhq/rtc` client, via `room.getDiagnostics()`, and
+ * a backend has no way to observe that.
  */
 export class DiagnosticsResource {
   constructor(private readonly http: RavenHttpClient) {}

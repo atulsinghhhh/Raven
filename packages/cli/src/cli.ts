@@ -27,16 +27,16 @@ export function buildCli(): Command {
 
   program
     .name('raven')
-    .description('Raven CLI — manage projects, API keys, rooms, RTC, chat, and live streams from the terminal.')
+    .description('Raven CLI; manage projects, API keys, rooms, RTC, chat, and live streams from the terminal.')
     .version(CLI_VERSION, '--version', 'output the current version')
     .option('--debug', 'print verbose request/response logs (never includes secrets)')
     .hook('preAction', (thisCommand) => {
       setDebugEnabled(Boolean(thisCommand.opts().debug));
     })
     // Commander's default exit codes don't match our documented table, so
-    // map parse failures (bad args, unknown option/command) to 2. --help
-    // and --version still exit 0. Runtime errors thrown inside an action
-    // go through withErrorHandling instead — they never hit this.
+    // parse failures (bad args, unknown option or command) get mapped to 2.
+    // --help and --version still exit 0. Runtime errors thrown inside an
+    // action go through withErrorHandling and never reach here.
     .exitOverride((err) => {
       if (err.code === 'commander.helpDisplayed' || err.code === 'commander.version') {
         process.exit(ExitCode.Success);

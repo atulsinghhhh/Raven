@@ -8,7 +8,7 @@ import { CliError } from '../../lib/errors.js';
 export function registerStreamsCreateCommand(streams: Command): void {
   streams
     .command('create <title>')
-    .description('Create a live stream — a dedicated RTC room plus an attached chat conversation')
+    .description('Create a live stream; a dedicated RTC room plus an attached chat conversation')
     .requiredOption('--host <identity>', "the stream's host identity, registered as its HOST")
     .option('-p, --project <project>', 'project ID (overrides the current project context)')
     .option('--description <text>', 'a description for the stream')

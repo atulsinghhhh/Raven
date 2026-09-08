@@ -24,7 +24,7 @@ export function registerChatPresenceCommand(chat: Command): void {
         if (present.length === 0) {
           printEmpty(
             'Nobody is present.',
-            'Presence is ephemeral and expires ~45s after a client stops responding — an empty list here is a real answer, not a missing record.',
+            'Presence is ephemeral and expires ~45s after a client stops responding; an empty list here is a real answer, not a missing record.',
           );
           return;
         }
@@ -36,7 +36,7 @@ export function registerChatPresenceCommand(chat: Command): void {
 
         // Worth saying, because a stale-looking entry is usually correct:
         // presence is TTL'd in Redis, never written to Postgres.
-        process.stdout.write('\nPresence is read from Redis and expires on its own — it is never stored durably.\n');
+        process.stdout.write('\nPresence is read from Redis and expires on its own; it is never stored durably.\n');
       }),
     );
 }

@@ -34,7 +34,7 @@ export interface CreatedApiKey {
   publicId: string;
   /** Optional because a CLI may be newer than the API it is talking to. */
   environment?: Environment;
-  /** Only time the raw secret is visible — not persisted, not logged, never shown again after this. */
+  /** The only time the raw secret is visible. Not persisted, not logged, never shown again. */
   key: string;
   createdAt: string;
   warning: string;
@@ -63,8 +63,8 @@ export interface RoomWithLiveState {
   createdAt: string;
   updatedAt: string;
   /**
-   * `null` means the RTC server could not be asked — not the same thing
-   * as a genuinely idle room, which reports `0`.
+   * `null` means we couldn't ask the RTC server. Not the same thing as a
+   * genuinely idle room, which reports `0`.
    */
   liveParticipantCount: number | null;
 }
@@ -142,7 +142,7 @@ export interface ConnectionSummary {
   connectionQuality: string | null;
   rttMs: number | null;
   jitterMs: number | null;
-  /** 0-100 — an approximation, not an RFC 3550 figure. */
+  /** 0-100. An approximation, not an RFC 3550 figure. */
   packetLossPercent: number | null;
   bitrateBps: number | null;
   codec: string | null;
@@ -225,11 +225,11 @@ export interface ProjectDiagnostics {
 // ---------------------------------------------------------------------------
 // Chat (Phase 12)
 //
-// Note what these carry and what they don't: activity metadata, never
-// message text. The CLI reads the same dashboard-facing endpoints the web
-// dashboard does, and those deliberately don't return message contents
-// (docs/security/chat.md#privacy). A `raven chat` command that printed
-// customers' messages to a terminal would be the wrong tool entirely.
+// Worth noticing what these carry and what they don't: activity metadata,
+// never message text. The CLI reads the same dashboard-facing endpoints the
+// web dashboard does, and those pointedly don't return message contents
+// (docs/security/chat.md#privacy). A `raven chat` command that dumped
+// customers' messages into a terminal would be the wrong tool entirely.
 // ---------------------------------------------------------------------------
 
 export interface ChatOverview {
@@ -245,7 +245,7 @@ export interface ChatOverview {
   rateLimited: number;
   messagesPerSecond: number;
   latency: {
-    /** null = nothing measured in this window, not "zero milliseconds". */
+    /** null means nothing was measured in this window. Not "zero milliseconds". */
     persistMs: number | null;
     fanoutMs: number | null;
     endToEndMs: number | null;
@@ -299,9 +299,9 @@ export interface ChatPresenceEntry {
 // ---------------------------------------------------------------------------
 // Live Streaming (Phase 14)
 //
-// Inspection + non-privileged lifecycle only — same rule as chat above.
-// Minting host/viewer credentials is deliberately absent from the CLI; see
-// commands/streams/index.ts.
+// Inspection and non-privileged lifecycle only, same rule as chat above.
+// Minting host and viewer credentials is on purpose missing from the CLI;
+// see commands/streams/index.ts.
 // ---------------------------------------------------------------------------
 
 export type LiveStreamStatus = 'CREATED' | 'STARTING' | 'LIVE' | 'ENDING' | 'ENDED';
@@ -326,7 +326,7 @@ export interface LiveStreamSummary {
   metadata: Record<string, unknown> | null;
   status: LiveStreamStatus;
   hosts: LiveStreamHostView[];
-  /** null = SFU unreachable, distinct from a genuinely empty stream. */
+  /** null means the SFU was unreachable. Not the same as a genuinely empty stream. */
   viewerCount: number | null;
   peakViewerCount: number;
   conversationId: string | null;
@@ -343,10 +343,10 @@ export type RtcServerStatus = 'HEALTHY' | 'DRAINING' | 'UNHEALTHY';
 /**
  * One RTC server in the fleet.
  *
- * Load figures are a snapshot from the node's last heartbeat, not live
- * truth — read them next to `lastHeartbeatAt`. The resource gauges are
- * nullable because a node that has registered but not yet heartbeated has
- * no measurement to report, and zero would read as "idle" rather than
+ * The load figures are a snapshot from the node's last heartbeat, not live
+ * truth, so read them next to `lastHeartbeatAt`. The resource gauges are
+ * nullable because a node that's registered but not yet heartbeated has no
+ * measurement to report, and zero would read as "idle" instead of
  * "unknown".
  */
 export interface RtcServer {

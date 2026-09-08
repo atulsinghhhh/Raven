@@ -8,8 +8,9 @@ export function registerLogsCommand(program: Command): void {
     .option('-f, --follow', 'follow the log stream')
     .option('--json', 'output as JSON')
     .action(async (opts: { json?: boolean }) => {
-      // no developer-safe logs endpoint on the Control API yet. This is the
-      // real answer until one ships — not a bug, not a placeholder.
+      // There's no developer-safe logs endpoint on the Control API yet, so
+      // this is the honest answer until one ships. Not a bug, not a
+      // placeholder.
       const message = 'Logs are not available for this project yet.';
       if (opts.json) {
         printJson({ available: false, message });

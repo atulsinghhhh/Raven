@@ -33,7 +33,7 @@ describe('cli-config', () => {
     expect(updated).toEqual({ apiUrl: 'https://api.example.com', currentProject: 'proj-2' });
   });
 
-  it('never contains a "token" or "credentials" field — the config file must never carry secrets', async () => {
+  it('never contains a "token" or "credentials" field; the config file must never carry secrets', async () => {
     await writeCliConfig({ apiUrl: 'https://api.example.com', currentProject: 'proj-1' });
     const config = await readCliConfig();
     expect(config).not.toHaveProperty('token');

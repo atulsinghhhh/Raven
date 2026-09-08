@@ -26,8 +26,8 @@ export function registerStatusCommand(program: Command): void {
           const project = await authedClient.getProject(projectId);
           projectName = project.name;
         } catch {
-          // no project context or not logged in — still report infra health,
-          // just skip the project line
+          // No project context, or not logged in. Still report infra
+          // health; just skip the project line.
         }
 
         if (opts.json) {
@@ -35,9 +35,9 @@ export function registerStatusCommand(program: Command): void {
           return;
         }
 
-        // signaling runs in the same process as this /health check — no
-        // separate probe exists for it, so just reaching /health is the
-        // best signal we've got
+        // Signaling runs in the same process as this /health check, and
+        // there's no separate probe for it. Reaching /health at all is the
+        // best signal we've got.
         const apiReachable: DependencyStatus = 'up';
         printDependency('API', apiReachable);
         printDependency('Signaling', apiReachable);

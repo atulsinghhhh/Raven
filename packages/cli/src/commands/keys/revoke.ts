@@ -8,7 +8,7 @@ import { withErrorHandling } from '../../lib/run.js';
 export function registerKeysRevokeCommand(keys: Command): void {
   keys
     .command('revoke <keyId>')
-    .description('Revoke an API key — immediate and permanent')
+    .description('Revoke an API key; immediate and permanent')
     .option('-p, --project <project>', 'project ID (overrides the current project context)')
     .option('-y, --yes', 'skip the confirmation prompt')
     .option('--json', 'output as JSON')
