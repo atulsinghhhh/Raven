@@ -1,4 +1,6 @@
 import { PrismaService } from '../../shared/database/prisma.service';
+import { EmailType } from '../email/email.constants';
+import { EmailService } from '../email/email.service';
 import {
   ConflictError,
   ForbiddenError,
@@ -21,8 +23,10 @@ describe('ProjectMembersService', () => {
       count: jest.Mock;
     };
     user: { findUnique: jest.Mock };
+    project: { findUnique: jest.Mock };
   };
   let projects: { authorize: jest.Mock };
+  let emailService: { send: jest.Mock; brand: unknown; docsUrl: string };
 
   /** Makes `authorize` succeed and report the actor's role. */
   function actingAs(role: ProjectRole) {
@@ -40,11 +44,19 @@ describe('ProjectMembersService', () => {
         count: jest.fn().mockResolvedValue(1),
       },
       user: { findUnique: jest.fn() },
+      project: { findUnique: jest.fn().mockResolvedValue({ name: 'Aurora' }) },
     };
     projects = { authorize: jest.fn() };
+    // A fake: no test may reach a real mail provider, and CI has no key.
+    emailService = {
+      send: jest.fn().mockResolvedValue({ status: 'sent', messageId: 'msg_1' }),
+      brand: { appUrl: 'https://app.ravenstack.online', supportEmail: 'support@mail.ravenstack.online' },
+      docsUrl: 'https://docs.ravenstack.online',
+    };
     service = new ProjectMembersService(
       prisma as unknown as PrismaService,
       projects as unknown as ProjectsService,
+      emailService as unknown as EmailService,
     );
   });
 
@@ -137,7 +149,7 @@ describe('ProjectMembersService', () => {
     });
 
     it('cannot be demoted', async () => {
-      // A project with no owner cannot be administered by anyone — not
+      // A project with no owner cannot be administered by anyone: not
       // even to appoint a new owner. It would be permanently stuck.
       prisma.projectMember.count.mockResolvedValue(0);
 
@@ -232,6 +244,40 @@ describe('ProjectMembersService', () => {
       await service.list('p1', 'u1');
 
       expect(projects.authorize).toHaveBeenCalledWith('p1', 'u1', Capability.MembersRead);
+    });
+  });
+
+  describe('add — notification email', () => {
+    beforeEach(() => {
+      actingAs(ProjectRole.OWNER);
+      prisma.user.findUnique.mockResolvedValue({ id: 'u2', email: 'new@example.com', name: 'New' });
+      prisma.projectMember.findUnique.mockResolvedValue(null);
+      prisma.projectMember.create.mockResolvedValue({
+        role: ProjectRole.DEVELOPER,
+        invitedById: 'actor',
+        createdAt: new Date(),
+      });
+    });
+
+    it('tells the new member, naming the project and their role', async () => {
+      await service.add('p1', 'actor', { email: 'new@example.com', role: ProjectRole.DEVELOPER });
+
+      const [payload] = emailService.send.mock.calls[0];
+      expect(payload.to).toBe('new@example.com');
+      expect(payload.type).toBe(EmailType.ProjectMemberAdded);
+      expect(payload.email.subject).toContain('Aurora');
+      expect(payload.email.text).toContain('developer');
+    });
+
+    it('adds the member even when the email cannot be sent — access is already granted', async () => {
+      emailService.send.mockRejectedValue(new Error('mail provider down'));
+
+      const member = await service.add('p1', 'actor', {
+        email: 'new@example.com',
+        role: ProjectRole.DEVELOPER,
+      });
+
+      expect(member.userId).toBe('u2');
     });
   });
 });

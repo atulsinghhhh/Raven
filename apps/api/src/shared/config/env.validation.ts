@@ -16,7 +16,7 @@ class EnvironmentVariables {
   DATABASE_URL!: string;
 
   // Only the Prisma CLI reads this (prisma.config.ts), and only a
-  // transaction-mode pooler needs it — optional so a direct Postgres
+  // transaction-mode pooler needs it at all. Optional, so a direct Postgres
   // connection stays a one-variable setup.
   @IsOptional()
   @IsString()
@@ -44,11 +44,10 @@ class EnvironmentVariables {
   @Min(1)
   RTC_TOKEN_DEFAULT_TTL_SECONDS!: number;
 
-  // Native RTC. Optional so an existing .env
-  // still boots — configuration.ts falls back to JWT_SECRET for local dev.
-  // What genuinely matters in production (a distinct RTC token secret) is
-  // enforced in validateProductionConfig() below instead, exactly as it is
-  // for CHAT_TOKEN_SECRET.
+  // Native RTC. Optional so an existing .env still boots; configuration.ts
+  // falls back to JWT_SECRET for local dev. The thing that genuinely matters
+  // in production, a distinct RTC token secret, is enforced down in
+  // validateProductionConfig() instead, exactly as CHAT_TOKEN_SECRET is.
   @IsOptional()
   @IsString()
   RTC_TOKEN_SECRET?: string;
@@ -107,9 +106,9 @@ class EnvironmentVariables {
   @IsNotEmpty()
   TURN_SECRET!: string;
 
-  // Optional — unset just means we don't advertise turns: to clients
-  // (no TLS listener on coturn). Fine for local dev, not for production;
-  // validateProductionConfig() below catches that case.
+  // Optional. Unset just means we don't advertise turns: to clients,
+  // because there's no TLS listener on coturn. Fine for local dev, not for
+  // production, and validateProductionConfig() below catches that.
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -120,10 +119,10 @@ class EnvironmentVariables {
   @IsString()
   CORS_ORIGIN?: string;
 
-  // Chat (Phase 12). All optional so a Phase 0-11 .env still boots —
-  // configuration.ts supplies the defaults. The one that genuinely
-  // matters in production (a distinct chat-token secret) is enforced in
-  // validateProductionConfig() below instead.
+  // Chat (Phase 12). All optional so a Phase 0-11 .env still boots;
+  // configuration.ts supplies the defaults. The one that genuinely matters
+  // in production, a distinct chat-token secret, is enforced down in
+  // validateProductionConfig() instead.
   @IsOptional()
   @IsString()
   CHAT_TOKEN_SECRET?: string;
@@ -151,14 +150,147 @@ class EnvironmentVariables {
   @IsString()
   STORAGE_ENDPOINT?: string;
 
+  // Transactional email (Resend). Every one of these is optional, so an
+  // .env written before email existed still boots. EMAIL_ENABLED defaults to
+  // false and configuration.ts supplies the rest.
+  //
+  // The checks that actually matter live in validateEmailConfig() below,
+  // which runs in *every* environment, not production only.
+  // "Enabled but no key" is a misconfiguration in dev too, and catching it
+  // at boot beats catching it when the first user can't verify their
+  // address.
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  EMAIL_ENABLED?: string;
+
+  @IsOptional()
+  @IsString()
+  RESEND_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  RESEND_FROM_EMAIL?: string;
+
+  @IsOptional()
+  @IsString()
+  RESEND_FROM_NAME?: string;
+
+  @IsOptional()
+  @IsString()
+  EMAIL_REPLY_TO?: string;
+
+  @IsOptional()
+  @IsString()
+  EMAIL_SUPPORT_EMAIL?: string;
+
+  // Base URL of the dashboard, not this API. Every link we email points at
+  // it. See configuration.ts's `appUrl`.
+  @IsOptional()
+  @IsString()
+  APP_URL?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  EMAIL_VERIFICATION_TTL_MINUTES?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  PASSWORD_RESET_TTL_MINUTES?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  EMAIL_COOLDOWN_SECONDS?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  EMAIL_DAILY_LIMIT?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  EMAIL_MONTHLY_LIMIT?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  EMAIL_MAX_ATTEMPTS?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  EMAIL_RETRY_BASE_MS?: number;
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  EMAIL_DEV_PREVIEW?: string;
+
   @IsOptional()
   @IsIn(['development', 'test', 'production'])
   NODE_ENV?: string;
 }
 
 /**
+ * Runs in every environment, unlike validateProductionConfig() below.
+ *
+ * Turning email on without a working configuration is the one email failure
+ * mode that must never be silent. The app would boot, accept signups, then
+ * fail to send the verification address those signups depend on.
+ *
+ * Off, meaning EMAIL_ENABLED unset or false, is always valid. That's local
+ * development, and email.service.ts logs whatever it would have sent.
+ *
+ * No message below interpolates a secret. The key gets checked, never
+ * echoed.
+ */
+function validateEmailConfig(config: EnvironmentVariables): void {
+  if (config.EMAIL_ENABLED !== 'true') {
+    return;
+  }
+
+  const problems: string[] = [];
+  const apiKey = config.RESEND_API_KEY?.trim();
+
+  if (!apiKey) {
+    problems.push(
+      'RESEND_API_KEY is required when EMAIL_ENABLED=true — set it, or set EMAIL_ENABLED=false to log emails instead of sending them',
+    );
+  } else if (apiKey.startsWith('re_your') || apiKey.includes('change-me') || apiKey === 're_') {
+    // The .env.example placeholder, copied across verbatim. Caught here
+    // because Resend's own rejection ("invalid_api_key") arrives per-send,
+    // hours after boot, attached to a user who never got their email.
+    problems.push('RESEND_API_KEY still holds a placeholder value — paste the real key from the Resend dashboard');
+  }
+
+  if (!config.RESEND_FROM_EMAIL?.includes('@')) {
+    problems.push(
+      'RESEND_FROM_EMAIL must be a full address on a domain verified in Resend, e.g. hello@mail.ravenstack.online (see docs/email.md#domains)',
+    );
+  }
+
+  if (config.NODE_ENV === 'production') {
+    if (!config.APP_URL) {
+      problems.push(
+        'APP_URL is required in production when email is enabled — verification and password-reset links are built from it',
+      );
+    } else if (!config.APP_URL.startsWith('https://')) {
+      problems.push('APP_URL must use https:// in production — password-reset links travel over it');
+    } else if (/localhost|127\.0\.0\.1/.test(config.APP_URL)) {
+      problems.push('APP_URL must be the real dashboard origin in production, not localhost');
+    }
+  }
+
+  if (problems.length > 0) {
+    throw new Error(`Invalid email configuration: ${problems.join('; ')}`);
+  }
+}
+
+/**
  * Extra checks that only apply once NODE_ENV=production. Local dev should
- * never crash on these; a misconfigured prod deploy should never start.
+ * never crash on these. A misconfigured prod deploy should never start.
  */
 function validateProductionConfig(config: EnvironmentVariables): void {
   if (config.NODE_ENV !== 'production') {
@@ -204,6 +336,11 @@ function validateProductionConfig(config: EnvironmentVariables): void {
   } else if (config.CHAT_TOKEN_SECRET === config.JWT_SECRET) {
     problems.push('CHAT_TOKEN_SECRET must differ from JWT_SECRET — they authorize different things');
   }
+  if (config.EMAIL_DEV_PREVIEW === 'true') {
+    problems.push(
+      'EMAIL_DEV_PREVIEW must not be enabled in production — it prints live verification and password-reset links to the logs',
+    );
+  }
   if (config.STORAGE_ENDPOINT?.startsWith('http://')) {
     problems.push('STORAGE_ENDPOINT must use https:// in production — signed upload URLs would otherwise travel in cleartext');
   }
@@ -213,7 +350,7 @@ function validateProductionConfig(config: EnvironmentVariables): void {
   }
 }
 
-// Fails fast at boot if config is missing/malformed, instead of blowing
+// Fails fast at boot when config is missing or malformed, rather than blow
 // up confusingly on the first request that touches it.
 export function validateEnv(config: Record<string, unknown>) {
   const validated = plainToInstance(EnvironmentVariables, config, {
@@ -228,6 +365,7 @@ export function validateEnv(config: Record<string, unknown>) {
     throw new Error(`Invalid environment configuration: ${messages}`);
   }
 
+  validateEmailConfig(validated);
   validateProductionConfig(validated);
 
   return validated;

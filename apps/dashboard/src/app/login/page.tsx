@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 /**
  * Entry surface. Deliberately quiet: a mark, one sentence about what
  * Raven is, and the two fields the API actually needs. Nothing here is
- * offered that the auth API can't back — no SSO, no magic links.
+ * offered that the auth API can't back: no SSO, no magic links.
  */
 export default function LoginPage() {
   return (
@@ -37,6 +37,12 @@ export default function LoginPage() {
         </Card>
 
         <p className="mt-5 text-center text-sm text-muted">
+          <a href="/forgot-password" className="font-medium text-accent-text hover:underline">
+            Forgot your password?
+          </a>
+        </p>
+
+        <p className="mt-2 text-center text-sm text-muted">
           No account?{' '}
           <a href="/register" className="font-medium text-accent-text hover:underline">
             Create one

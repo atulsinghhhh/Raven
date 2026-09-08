@@ -1,5 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/database/prisma.service';
+import { EmailType } from '../email/email.constants';
+import { EmailService } from '../email/email.service';
+import { renderProjectMemberAddedEmail } from '../email/templates';
 import {
   ConflictError,
   ForbiddenError,
@@ -21,9 +24,12 @@ export interface ProjectMemberView {
 
 @Injectable()
 export class ProjectMembersService {
+  private readonly logger = new Logger(ProjectMembersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly projects: ProjectsService,
+    private readonly emailService: EmailService,
   ) {}
 
   async list(projectId: string, actorId: string): Promise<ProjectMemberView[]> {
@@ -84,6 +90,12 @@ export class ProjectMembersService {
 
     const member = await this.prisma.projectMember.create({
       data: { projectId, userId: user.id, role: input.role, invitedById: actorId },
+    });
+
+    await this.notifyMemberAdded(projectId, actorId, {
+      email: user.email,
+      name: user.name,
+      role: input.role,
     });
 
     return {
@@ -159,6 +171,56 @@ export class ProjectMembersService {
     });
   }
 
+  /**
+   * Tells someone they now have access to a project they did not create.
+   *
+   * Not an invitation: `add()` above requires an existing account, so
+   * there is nothing to accept. The email says so, instead of implying a
+   * pending state that has no endpoint behind it.
+   *
+   * Failure here never fails the membership: the row is already written
+   * and the person already has access, so throwing would report a
+   * completed action as broken. It is logged instead.
+   */
+  private async notifyMemberAdded(
+    projectId: string,
+    actorId: string,
+    target: { email: string; name: string | null; role: ProjectRole },
+  ): Promise<void> {
+    try {
+      const [project, actor] = await Promise.all([
+        this.prisma.project.findUnique({ where: { id: projectId }, select: { name: true } }),
+        this.prisma.user.findUnique({ where: { id: actorId }, select: { name: true, email: true } }),
+      ]);
+
+      if (!project || !actor) {
+        return;
+      }
+
+      const result = await this.emailService.send({
+        to: target.email,
+        type: EmailType.ProjectMemberAdded,
+        email: renderProjectMemberAddedEmail({
+          name: target.name,
+          projectName: project.name,
+          // A name if they set one; otherwise the address, which is what
+          // the recipient would recognise anyway.
+          invitedBy: actor.name ?? actor.email,
+          role: target.role,
+          brand: this.emailService.brand,
+        }),
+      });
+
+      if (result.status !== 'sent') {
+        this.logger.warn(
+          `member-added email not sent status=${result.status} projectId=${projectId}`,
+        );
+      }
+    } catch (err) {
+      this.logger.warn(`member-added email failed: ${(err as Error).message}`);
+    }
+  }
+
   private async requireMember(projectId: string, userId: string) {
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
@@ -170,9 +232,9 @@ export class ProjectMembersService {
   }
 
   /**
-   * A project with no owner cannot be administered by anyone — not even to
-   * appoint a new owner — so the last one is not removable or demotable.
-   * The check counts other owners rather than trusting the caller not to
+   * A project with no owner cannot be administered by anyone: not even to
+   * appoint a new owner, so the last one is not removable or demotable.
+   * The check counts other owners, not trusting the caller not to
    * be looking at a stale members list.
    */
   private async assertNotLastOwner(projectId: string, userId: string): Promise<void> {

@@ -359,6 +359,7 @@ Grouped by what you are trying to do.
 **Operate it**
 [Local development](./docs/local-development.md) ·
 [Control plane](./docs/control-plane.md) ·
+[Transactional email](./docs/email.md) ·
 [coturn reference](./docs/turn.md) ·
 [Observability](./docs/observability.md) ·
 [Telemetry](./docs/telemetry.md) ·

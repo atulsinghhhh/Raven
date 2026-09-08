@@ -2,13 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { Counter, Gauge, Histogram, Registry, collectDefaultMetrics } from 'prom-client';
 import { WebhookDeliveryStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
+import { EmailMetricsService } from '../email/email.metrics.service';
 import { ChatGateway } from '../chat/gateway/chat.gateway';
 import { SignalingGateway } from '../signaling/gateway/signaling.gateway';
 import { SfuLinkService } from '../signaling/sfu/sfu-link.service';
 import { RtcServerRegistryService } from '../rtc-servers/rtc-server-registry.service';
 
 /**
- * Infrastructure metrics for Prometheus — a different concern from
+ * Infrastructure metrics for Prometheus: a different concern from
  * `observability/metrics.service.ts`, which computes dashboard analytics
  * (connection success rate, etc.) from Postgres for developers to look
  * at in the dashboard. This one is for the platform's own operators:
@@ -16,12 +17,12 @@ import { RtcServerRegistryService } from '../rtc-servers/rtc-server-registry.ser
  * set of gauges reusing state that already exists elsewhere rather than
  * tracking anything new.
  *
- * Every gauge below is deliberately local-instance-only (same values
- * `/health` reports) — Prometheus sums across pods at query time
+ * Every gauge below is by design local-instance-only (same values
+ * `/health` reports). Prometheus sums across pods at query time
  * (`sum(raven_chat_connections_active)`), which is the standard pattern
  * and avoids a fleet-wide Redis read on every scrape. The one exception
  * is the webhook pending-deliveries gauge, which is a shared Postgres
- * queue depth by nature — every instance reports the same number, which
+ * queue depth by nature: every instance reports the same number, which
  * is correct for that metric.
  */
 @Injectable()
@@ -37,6 +38,7 @@ export class MetricsService {
     private readonly signalingGateway: SignalingGateway,
     private readonly sfuLink: SfuLinkService,
     private readonly rtcServers: RtcServerRegistryService,
+    private readonly emailMetrics: EmailMetricsService,
   ) {
     collectDefaultMetrics({ register: this.registry });
 
@@ -56,6 +58,13 @@ export class MetricsService {
     });
 
     this.registerGauges();
+
+    // Email counters live in their own service so the dependency runs one
+    // way, MetricsModule imports EmailModule, never the reverse, but
+    // they scrape from this registry like everything else. Registered at
+    // boot rather than on first send, so a counter at zero is visible
+    // (and alertable on) before any email has gone out.
+    this.emailMetrics.registerOn(this.registry);
   }
 
   recordHttpRequest(method: string, route: string, status: number, durationSeconds: number): void {
@@ -159,7 +168,7 @@ export class MetricsService {
     // Fleet gauges, unlike everything above them.
     //
     // These read shared Postgres state, so every instance reports the
-    // same numbers — the same exception the webhook queue-depth gauge
+    // same numbers: the same exception the webhook queue-depth gauge
     // makes below, and correct for the same reason: fleet capacity is not
     // a per-instance quantity, and summing it across pods would multiply
     // it by the pod count.

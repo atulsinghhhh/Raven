@@ -1,6 +1,7 @@
-// Everything here runs server-side and talks to the Control API — the
-// browser never hits it directly, never sees the JWT. This is the only file
-// that knows the API's base URL and response shapes; don't fetch it elsewhere.
+// Everything in here runs server-side and talks to the Control API. The
+// browser never hits it directly and never sees the JWT. This is the only
+// file that knows the API's base URL and response shapes. Don't go fetching
+// it from anywhere else.
 const API_BASE_URL = process.env.RAVEN_API_URL ?? 'http://localhost:4100';
 
 export class ApiError extends Error {
@@ -18,6 +19,8 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   name: string | null;
+  /** Optional: the dashboard may be newer than the API it's talking to. */
+  emailVerified?: boolean;
 }
 
 export interface AuthResponse {
@@ -58,7 +61,7 @@ export interface ProjectMember {
   email: string;
   name: string | null;
   role: ProjectRole;
-  /** What this member's role allows — sent by the API so the UI never keeps a second copy of the matrix. */
+  /** What this member's role allows. The API sends it, so the UI never keeps a second copy of the matrix. */
   capabilities: string[];
   invitedById: string | null;
   createdAt: string;
@@ -98,7 +101,7 @@ export interface RoomWithLiveState {
   status: string;
   createdAt: string;
   updatedAt: string;
-  /** null = the room's RTC server was unreachable, not the same as an idle room with 0 participants. */
+  /** null means the room's RTC server was unreachable. Not the same as an idle room with 0 participants. */
   liveParticipantCount: number | null;
 }
 
@@ -160,13 +163,15 @@ export interface ConnectionSummary {
   signalingState: string | null;
   reconnectCount: number;
   /**
-   * From the SDK's `Room.getConnectionStats()`, reported via telemetry —
-   * absent until at least one stats sample has come in, which the
-   * browser SDK sends every 5s while connected. Never estimated or
-   * backfilled; a connection that never sent one keeps these null.
+   * Comes from the SDK's `Room.getConnectionStats()`, reported over
+   * telemetry. Absent until at least one stats sample has arrived, and the
+   * browser SDK sends one every 5s while connected.
+   *
+   * Never estimated, never backfilled. A connection that never sent one
+   * keeps these null.
    */
   connectionQuality: 'excellent' | 'good' | 'poor' | 'lost' | 'unknown' | null;
-  /** Round-trip time in ms, send direction only — WebRTC has no receiver-side RTT. */
+  /** Round-trip time in ms, send direction only. WebRTC has no receiver-side RTT. */
   rttMs: number | null;
   /** Worst (max) jitter in ms across every track on this connection. */
   jitterMs: number | null;
@@ -268,12 +273,13 @@ export interface HealthResponse {
 // ---------------------------------------------------------------------------
 // RTC fleet
 //
-// Deployment-level rather than project-scoped, and deliberately so: an
-// SFU node is shared infrastructure, so there is no project whose
-// membership could authorize it. It exposes only node identity, health
-// and aggregate load — no project data — which is why any authenticated
-// developer of this deployment can see it without leaking anything about
-// anyone else's rooms.
+// Deployment-level rather than project-scoped, on purpose. An SFU node is
+// shared infrastructure, so there's no project whose membership could
+// authorize it.
+//
+// What it exposes is node identity, health and aggregate load. No project
+// data at all, which is why any authenticated developer of this deployment
+// can see it without learning a thing about anyone else's rooms.
 // ---------------------------------------------------------------------------
 
 export type RtcServerStatus = 'HEALTHY' | 'DRAINING' | 'UNHEALTHY';
@@ -285,15 +291,16 @@ export interface RtcServer {
   status: RtcServerStatus;
   /** What ICE advertises to clients. Shown for support, never used by the dashboard to connect. */
   publicHost: string;
-  /** How the control plane reaches this node. Internal — not a client address. */
+  /** How the control plane reaches this node. Internal; not a client address. */
   internalUrl: string;
   capacity: number;
   activeRooms: number;
   activeParticipants: number;
   /**
-   * Load figures a node reported on its **last heartbeat**, not live
-   * truth. Null where the node did not report one — a node that omits CPU
-   * is not a node at 0% CPU, and the UI must not draw it as such.
+   * Load figures a node reported on its **last heartbeat**, not live truth.
+   *
+   * Null wherever the node didn't report one. A node that omits CPU is not a
+   * node sitting at 0% CPU, and the UI mustn't draw it as one.
    */
   cpuPercent: number | null;
   memoryPercent: number | null;
@@ -319,11 +326,11 @@ export interface RtcFleetMetrics {
 // ---------------------------------------------------------------------------
 // Live Streaming (Phase 15)
 //
-// Inspection only, same rule as Rooms and Chat: this dashboard never
-// creates, starts, updates, or ends a stream. Those are calls your own
-// backend makes with @corvidhq/server/raven-sdk — the dashboard shows
-// what already exists, the same way `rooms` shows rooms nobody clicked
-// "create" for here.
+// Inspection only, same rule as Rooms and Chat. This dashboard never
+// creates, starts, updates or ends a stream. Those are calls your own
+// backend makes with @corvidhq/server or raven-sdk. The dashboard shows what
+// already exists, the same way `rooms` shows rooms nobody clicked "create"
+// for in here.
 // ---------------------------------------------------------------------------
 
 export type LiveStreamStatus = 'CREATED' | 'STARTING' | 'LIVE' | 'ENDING' | 'ENDED';
@@ -348,7 +355,7 @@ export interface LiveStreamSummary {
   metadata: Record<string, unknown> | null;
   status: LiveStreamStatus;
   hosts: LiveStreamHostSummary[];
-  /** null = the SFU couldn't be reached when this was read — never coerced to 0. Always null from `listLiveStreams`; only `getLiveStream` polls for it. */
+  /** null means the SFU couldn't be reached when this was read, and it's never coerced to 0. Always null from `listLiveStreams`; only `getLiveStream` polls for it. */
   viewerCount: number | null;
   peakViewerCount: number;
   conversationId: string | null;
@@ -363,10 +370,10 @@ export interface LiveStreamSummary {
 // ---------------------------------------------------------------------------
 // Chat (Phase 12)
 //
-// Note what these types don't carry: message text. The dashboard shows
-// activity metadata — counts, timestamps, connection state — and never
-// message contents (spec §50). Adding a `lastMessageText` field here
-// would be the moment that privacy line got crossed.
+// Worth noticing what these types don't carry: message text. The dashboard
+// shows activity metadata, meaning counts, timestamps and connection state,
+// and never message contents (spec §50). Adding a `lastMessageText` field
+// here would be the exact moment that privacy line got crossed.
 // ---------------------------------------------------------------------------
 
 export interface ChatOverview {
@@ -382,7 +389,7 @@ export interface ChatOverview {
   rateLimited: number;
   messagesPerSecond: number;
   latency: {
-    /** null = nothing measured in this window, not "zero milliseconds". */
+    /** null means nothing was measured in this window. Not "zero milliseconds". */
     persistMs: number | null;
     fanoutMs: number | null;
     endToEndMs: number | null;
@@ -426,8 +433,8 @@ export interface ChatConversationMember {
 }
 
 /**
- * Message metadata — never content. The API's `select` clause is what
- * actually enforces that (spec §50); this type just can't name a field
+ * Message metadata, never content. The API's `select` clause is what
+ * actually enforces that (spec §50). This type simply can't name a field
  * that was never in the response.
  */
 export interface ChatMessageSummary {
@@ -541,6 +548,32 @@ export const ravenApi = {
 
   logout: (token: string) => apiFetch<void>('/v1/auth/logout', { method: 'POST', token }),
 
+  // Email verification and password reset. Careful with the two senses of
+  // "token" in here: `token` in RequestOptions is the session JWT, while the
+  // values below are the single-use tokens out of an email link. Those are
+  // never a session credential, and they travel in the body, never a
+  // header.
+  verifyEmail: (verificationToken: string) =>
+    apiFetch<{ email: string; verifiedAt: string }>('/v1/auth/verify-email', {
+      method: 'POST',
+      body: { token: verificationToken },
+    }),
+
+  resendVerificationEmail: (token: string) =>
+    apiFetch<{ status: 'sent' | 'already_verified' | 'suppressed'; message: string }>(
+      '/v1/auth/verify-email/resend',
+      { method: 'POST', token },
+    ),
+
+  requestPasswordReset: (email: string) =>
+    apiFetch<{ message: string }>('/v1/auth/password-reset', { method: 'POST', body: { email } }),
+
+  resetPassword: (resetToken: string, password: string) =>
+    apiFetch<{ message: string }>('/v1/auth/password-reset/confirm', {
+      method: 'POST',
+      body: { token: resetToken, password },
+    }),
+
   listProjects: (token: string) => apiFetch<Project[]>('/v1/projects', { token }),
 
   getProject: (token: string, projectId: string) => apiFetch<Project>(`/v1/projects/${projectId}`, { token }),
@@ -617,8 +650,8 @@ export const ravenApi = {
 
   /**
    * Takes a node out of the allocation pool without stopping it. Its
-   * existing rooms keep running — spec §26 is explicit that draining must
-   * not kill live calls.
+   * existing rooms carry on; spec §26 is explicit that draining mustn't
+   * kill live calls.
    */
   drainRtcServer: (token: string, name: string) =>
     apiFetch<RtcServer>(`/v1/rtc/servers/${encodeURIComponent(name)}/drain`, { method: 'POST', token }),
@@ -741,7 +774,7 @@ export const ravenApi = {
       { token },
     ),
 
-  /** Includes the stream's live viewer count — `listLiveStreams` doesn't, to avoid one SFU round trip per row. */
+  /** Includes the stream's live viewer count. `listLiveStreams` doesn't, to avoid an SFU round trip per row. */
   getLiveStream: (token: string, projectId: string, streamId: string) =>
     apiFetch<LiveStreamSummary>(`/v1/projects/${projectId}/live-streams/${streamId}`, { token }),
 };

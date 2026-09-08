@@ -45,7 +45,7 @@ describe('validateEnv — always-required fields', () => {
 
 describe('validateEnv — production-only checks', () => {
   it('does not enforce production checks when NODE_ENV is unset (local dev)', () => {
-    // No TURN_TLS_PORT, CORS_ORIGIN defaults to "*", TURN_HOST=localhost —
+    // No TURN_TLS_PORT, CORS_ORIGIN defaults to "*", TURN_HOST=localhost;
     // all of that's invalid in prod but fine here.
     expect(() => validateEnv(baseConfig())).not.toThrow();
   });
@@ -101,7 +101,7 @@ describe('validateEnv — production-only checks', () => {
 
   /**
    * A production config with every guard satisfied. Individual tests
-   * override one key to prove that guard fires — which keeps the "fully
+   * override one key to prove that guard fires, which keeps the "fully
    * correct" case and the rejection cases from drifting apart as new
    * required settings are added.
    */
@@ -228,5 +228,151 @@ describe('validateEnv — production-only checks', () => {
 
   it('accepts a fully-correct production configuration', () => {
     expect(() => validateEnv(productionConfig())).not.toThrow();
+  });
+});
+
+describe('validateEnv — email (Resend)', () => {
+  function emailConfig(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
+      REDIS_URL: 'redis://localhost:6379',
+      API_PORT: 4100,
+      JWT_SECRET: 'a-jwt-secret-at-least-this-long',
+      JWT_EXPIRES_IN: '12h',
+      RTC_TOKEN_DEFAULT_TTL_SECONDS: 600,
+      API_KEY_HASH_SECRET: 'an-api-key-pepper-at-least-this-long',
+      SIGNALING_MAX_PARTICIPANTS_PER_ROOM: 50,
+      SIGNALING_MAX_MESSAGE_BYTES: 16384,
+      SIGNALING_MAX_MESSAGES_PER_WINDOW: 100,
+      SIGNALING_MESSAGE_WINDOW_SECONDS: 10,
+      SIGNALING_MAX_CONNECTIONS_PER_WINDOW: 20,
+      TURN_HOST: 'localhost',
+      TURN_PORT: 3478,
+      TURN_SECRET: 'a-turn-shared-secret-at-least-this-long',
+      ...overrides,
+    };
+  }
+
+  it('boots with email off and nothing else configured — the default local setup', () => {
+    expect(() => validateEnv(emailConfig({ EMAIL_ENABLED: 'false' }))).not.toThrow();
+  });
+
+  it('boots when EMAIL_ENABLED is absent entirely', () => {
+    expect(() => validateEnv(emailConfig())).not.toThrow();
+  });
+
+  it('refuses to start when email is enabled without an API key', () => {
+    // The failure mode this prevents: the app boots, accepts signups, and
+    // silently cannot send the verification address they depend on.
+    expect(() =>
+      validateEnv(
+        emailConfig({ EMAIL_ENABLED: 'true', RESEND_FROM_EMAIL: 'hello@mail.ravenstack.online' }),
+      ),
+    ).toThrow(/RESEND_API_KEY is required when EMAIL_ENABLED=true/);
+  });
+
+  it('rejects the .env.example placeholder left in place', () => {
+    expect(() =>
+      validateEnv(
+        emailConfig({
+          EMAIL_ENABLED: 'true',
+          RESEND_API_KEY: 're_your_api_key_here',
+          RESEND_FROM_EMAIL: 'hello@mail.ravenstack.online',
+        }),
+      ),
+    ).toThrow(/placeholder/);
+  });
+
+  it('rejects a from-address that is not an address', () => {
+    expect(() =>
+      validateEnv(
+        emailConfig({
+          EMAIL_ENABLED: 'true',
+          RESEND_API_KEY: 'a-real-looking-key',
+          RESEND_FROM_EMAIL: 'mail.ravenstack.online',
+        }),
+      ),
+    ).toThrow(/RESEND_FROM_EMAIL must be a full address/);
+  });
+
+  it('accepts a complete email configuration', () => {
+    expect(() =>
+      validateEnv(
+        emailConfig({
+          EMAIL_ENABLED: 'true',
+          RESEND_API_KEY: 'a-real-looking-key',
+          RESEND_FROM_EMAIL: 'hello@mail.ravenstack.online',
+          RESEND_FROM_NAME: 'Raven',
+          APP_URL: 'http://localhost:3000',
+        }),
+      ),
+    ).not.toThrow();
+  });
+
+  it('never repeats the API key in the failure message', () => {
+    // A boot failure is often the first thing pasted into a chat or an
+    // issue. It must not carry the credential with it.
+    let message = '';
+    try {
+      validateEnv(
+        emailConfig({
+          EMAIL_ENABLED: 'true',
+          RESEND_API_KEY: 're_a_real_looking_secret_value',
+          RESEND_FROM_EMAIL: 'not-an-address',
+        }),
+      );
+    } catch (err) {
+      message = (err as Error).message;
+    }
+
+    expect(message).toMatch(/RESEND_FROM_EMAIL/);
+    expect(message).not.toContain('re_a_real_looking_secret_value');
+  });
+
+  describe('production', () => {
+    function productionEmailConfig(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+      return emailConfig({
+        NODE_ENV: 'production',
+        TURN_TLS_PORT: 5349,
+        CORS_ORIGIN: 'https://app.ravenstack.online',
+        TURN_HOST: 'turn.ravenstack.online',
+        CHAT_TOKEN_SECRET: 'a-distinct-chat-token-secret',
+        RTC_TOKEN_SECRET: 'a-distinct-rtc-token-secret',
+        SFU_REGISTRATION_SECRET: 'a-distinct-sfu-registration-secret',
+        EMAIL_ENABLED: 'true',
+        RESEND_API_KEY: 'a-real-looking-key',
+        RESEND_FROM_EMAIL: 'hello@mail.ravenstack.online',
+        APP_URL: 'https://app.ravenstack.online',
+        ...overrides,
+      });
+    }
+
+    it('accepts a complete production email configuration', () => {
+      expect(() => validateEnv(productionEmailConfig())).not.toThrow();
+    });
+
+    it('requires APP_URL, since every emailed link is built from it', () => {
+      const config = productionEmailConfig();
+      delete config.APP_URL;
+      expect(() => validateEnv(config)).toThrow(/APP_URL is required in production/);
+    });
+
+    it('rejects an http:// APP_URL — reset links travel over it', () => {
+      expect(() => validateEnv(productionEmailConfig({ APP_URL: 'http://app.ravenstack.online' }))).toThrow(
+        /APP_URL must use https/,
+      );
+    });
+
+    it('rejects a localhost APP_URL in production', () => {
+      expect(() => validateEnv(productionEmailConfig({ APP_URL: 'https://localhost:3000' }))).toThrow(
+        /must be the real dashboard origin/,
+      );
+    });
+
+    it('refuses to print live links to the logs in production', () => {
+      expect(() => validateEnv(productionEmailConfig({ EMAIL_DEV_PREVIEW: 'true' }))).toThrow(
+        /EMAIL_DEV_PREVIEW must not be enabled in production/,
+      );
+    });
   });
 });

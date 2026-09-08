@@ -89,13 +89,54 @@ model User {
   email        String   @unique
   passwordHash String
   name         String?
+  /// Null until the address is proven. Nullable rather than a boolean
+  /// because "when" answers support questions a "yes" cannot, and because
+  /// every account that predates email verification is honestly unverified
+  /// rather than being backfilled as verified.
+  emailVerifiedAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   projects    Project[]
   memberships ProjectMember[]
+  tokens      UserToken[]
 
   @@map("users")
+}
+
+enum UserTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+/// A single-use, expiring token emailed to a user — address verification or
+/// a password reset.
+///
+/// Only the SHA-256 of the token is stored, never the token itself: the row
+/// is a *check*, not a copy, so a database leak cannot be replayed into
+/// account takeovers. SHA-256 rather than bcrypt on purpose — the token is
+/// 32 bytes of CSPRNG output, so there is no low-entropy secret for a slow
+/// KDF to protect, a plain digest can be looked up by unique index in one
+/// query, and bcrypt on this path would block the event loop the same way
+/// it already does on API-key auth (docs/production/capacity-report.md §1.3).
+///
+/// `consumedAt` is what makes a token single-use; rows are kept after use
+/// (and after expiry) until the sweep clears them, so "this link was already
+/// used" stays distinguishable from "this link never existed".
+model UserToken {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      UserTokenType
+  /// SHA-256 hex of the raw token. Unique so a lookup is one indexed read.
+  tokenHash String        @unique
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([userId, type])
+  @@index([expiresAt])
+  @@map("user_tokens")
 }
 
 model Project {

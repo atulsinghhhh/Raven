@@ -12,6 +12,7 @@ import { ApiKeysModule } from './modules/api-keys/api-keys.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { EmailModule } from './modules/email/email.module';
 import { HealthModule } from './modules/health/health.module';
 import { LiveStreamsModule } from './modules/live-streams/live-streams.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
@@ -31,12 +32,12 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
       isGlobal: true,
       load: [configuration],
       validate: validateEnv,
-      // .env lives at the repo root, not in apps/api — that way Docker
+      // .env lives at the repo root, not in apps/api: that way Docker
       // Compose, this app, and the Prisma CLI all read the same file.
       envFilePath: ['../../.env', '.env'],
     }),
     // NativeLogger (main.ts) makes every existing `new Logger(name)` call
-    // across the app — no call sites changed — emit pino JSON instead of
+    // across the app, no call sites changed, emit pino JSON instead of
     // ConsoleLogger's human-formatted text, so log aggregators can parse
     // fields instead of regexing lines. autoLogging is off because
     // RequestLoggerMiddleware already emits one guaranteed line per
@@ -54,6 +55,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
     }),
     PrismaModule,
     RedisModule,
+    EmailModule,
     HealthModule,
     UsersModule,
     AuthModule,
@@ -74,7 +76,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    // MetricsMiddleware before RequestLoggerMiddleware doesn't matter —
+    // MetricsMiddleware before RequestLoggerMiddleware doesn't matter;
     // both attach their own res.on('finish') listener, and Express fires
     // every listener registered on the same event regardless of which
     // middleware happened to run first.
