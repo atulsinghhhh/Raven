@@ -142,6 +142,83 @@ of them.
 
 ---
 
+## Official container image
+
+```
+ghcr.io/atulsinghhhh/raven-sfu
+```
+
+Built, scanned and published by
+[`.github/workflows/sfu-publish.yml`](../../.github/workflows/sfu-publish.yml).
+Multi-arch: `linux/amd64` and `linux/arm64`.
+
+### Tags
+
+| Tag | What it is |
+|---|---|
+| `v0.1.0` | An exact release. **Use this in production.** |
+| `0.1` | Latest patch on that minor. |
+| `0` | Latest minor on that major. |
+| `latest` | The most recent release tag. |
+| `edge` | Current `main`. Unreleased; for trying a fix early. |
+| `sha-<commit>` | One specific commit, immutable. |
+
+`latest` moves only on a `sfu-v*` release tag, never on a push to `main`.
+Pin a version tag for anything you care about — the media plane is the
+component whose restart drops live calls.
+
+### Run it
+
+Media does not go through the API's ingress: ICE hands clients a
+`host:port` and they connect to it directly, so the UDP range has to be
+published on the host and reachable. This is the one service you cannot
+put behind a reverse proxy.
+
+```bash
+docker run -d --name raven-sfu \
+  -e SFU_REGISTRATION_SECRET="$SFU_REGISTRATION_SECRET" \
+  -e SFU_CONTROL_PLANE_URL="https://api.example.com" \
+  -e SFU_PUBLIC_IP="203.0.113.10" \
+  -e SFU_PUBLIC_HOST="sfu-1.example.com" \
+  -e SFU_UDP_PORT_MIN=50000 \
+  -e SFU_UDP_PORT_MAX=50200 \
+  -p 7000:7000/tcp \
+  -p 50000-50200:50000-50200/udp \
+  ghcr.io/atulsinghhhh/raven-sfu:v0.1.0
+```
+
+Every variable is in the [configuration table](#configuration) below.
+`SFU_PUBLIC_IP` is not optional in production — without it every candidate
+advertises an unroutable private address and the only connections that work
+are TURN relays.
+
+Verify:
+
+```bash
+curl -fsS http://localhost:7000/healthz     # liveness
+curl -fsS http://localhost:7000/metrics     # Prometheus
+```
+
+### Verify what you pulled
+
+Images carry OCI labels, an SBOM and max-mode provenance:
+
+```bash
+docker buildx imagetools inspect ghcr.io/atulsinghhhh/raven-sfu:v0.1.0
+```
+
+### Building it yourself
+
+The image is not required. `docker-compose.yml` builds the SFU from source
+as `raven/sfu:dev` for local work, and the Dockerfile takes a `VERSION`
+build arg:
+
+```bash
+docker build -t raven-sfu:local --build-arg VERSION=dev services/sfu
+```
+
+---
+
 ## Operating a node
 
 ### Configuration

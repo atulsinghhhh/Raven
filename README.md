@@ -1,5 +1,10 @@
 # Raven
 
+**[ravenstack.online](https://ravenstack.online)** — live deployment ·
+[dashboard](https://app.ravenstack.online) ·
+[docs](https://docs.ravenstack.online) ·
+API at `https://api.ravenstack.online`
+
 **Open-source real-time communication infrastructure.** Add video, voice,
 chat and data to your own app — without running WebRTC or WebSocket
 infrastructure yourself.
@@ -342,6 +347,14 @@ Grouped by what you are trying to do.
 [Threads](./docs/chat/threads.md) ·
 [Attachments](./docs/chat/attachments.md) ·
 [Webhooks](./docs/chat/webhooks.md)
+
+**Contribute to Raven**
+[Contributing guide](./CONTRIBUTING.md) ·
+[Security policy](./SECURITY.md) ·
+[Development — formatting, linting, testing](./docs/development.md) ·
+[Security scanning](./docs/security.md) ·
+[Releases and versioning](./docs/releases.md) ·
+[Known issues](./docs/issues/)
 
 **Operate it**
 [Local development](./docs/local-development.md) ·
