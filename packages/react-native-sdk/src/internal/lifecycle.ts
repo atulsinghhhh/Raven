@@ -27,7 +27,12 @@ export interface LifecycleHandlers {
  */
 export class LifecycleWatcher {
   private subscription?: NativeEventSubscription;
-  private current: AppStateStatus = AppState.currentState;
+  // AppState.currentState can genuinely be null/undefined for an instant
+  // before the native module finishes initializing (and some
+  // react-native/@types versions widen its declared type to reflect
+  // that) — default to 'active' rather than assume the narrower type,
+  // since the safe conservative reading is "no state change yet".
+  private current: AppStateStatus = (AppState.currentState as AppStateStatus | null | undefined) ?? 'active';
 
   constructor(private readonly handlers: LifecycleHandlers) {}
 
