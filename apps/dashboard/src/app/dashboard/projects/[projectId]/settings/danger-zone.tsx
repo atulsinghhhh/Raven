@@ -8,7 +8,7 @@ import { Field } from '@/components/ui/field';
 import { ErrorState } from '@/components/ui/states';
 
 /**
- * DELETE /v1/projects/:id is an archive, not a destructive delete — the
+ * DELETE /v1/projects/:id is an archive, not a destructive delete: the
  * copy says so rather than implying data loss. The typed confirmation is
  * kept: it's the only thing standing between a mis-click and a project
  * disappearing from every list in the dashboard.

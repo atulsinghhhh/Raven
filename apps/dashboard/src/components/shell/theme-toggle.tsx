@@ -6,9 +6,9 @@ import { IconMoon, IconSun } from '@/components/ui/icons';
 type Theme = 'light' | 'dark';
 
 /**
- * The `data-theme` attribute on <html> is the single source of truth —
+ * The `data-theme` attribute on <html> is the single source of truth;
  * the inline boot script in layout.tsx sets it before first paint, and
- * this button reads it rather than keeping a parallel copy that could
+ * this button reads it instead of keeping a parallel copy that could
  * disagree with the page.
  *
  * Modelled as an external store because that attribute genuinely is one:
@@ -39,7 +39,7 @@ function setTheme(next: Theme) {
   try {
     localStorage.setItem('raven-theme', next);
   } catch {
-    // Private mode / storage disabled — the toggle still works for this session.
+    // Private mode / storage disabled: the toggle still works for this session.
   }
   listeners.forEach((notify) => notify());
 }

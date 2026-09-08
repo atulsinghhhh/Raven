@@ -8,7 +8,7 @@ import { IconChevronDown, IconFolder, IconPlus, IconSearch, IconSettings } from 
 
 /**
  * Switching projects keeps you on the same section where that makes
- * sense — if you're looking at Errors for one project, you almost always
+ * sense: if you're looking at Errors for one project, you almost always
  * want Errors for the next one, not its Overview. Detail routes fall back
  * to the section root, since an id from one project never resolves in
  * another.
@@ -73,7 +73,7 @@ export function ProjectSwitcher({
 
 /**
  * Split out so its `query` state remounts (and so resets) every time the
- * menu opens — the parent Menu only renders its children while open, so
+ * menu opens: the parent Menu only renders its children while open, so
  * this component's lifetime is exactly one open/close cycle.
  */
 function ProjectSearchList({
@@ -93,7 +93,7 @@ function ProjectSearchList({
     <>
       {projects.length > 6 && (
         // Stops the click from bubbling to the menu's own "close on click
-        // inside" handler — otherwise focusing the input closes the menu.
+        // inside" handler: otherwise focusing the input closes the menu.
         <div className="relative px-1 pb-1" onClick={(e) => e.stopPropagation()}>
           <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-3 -translate-y-1/2 text-subtle" />
           <input

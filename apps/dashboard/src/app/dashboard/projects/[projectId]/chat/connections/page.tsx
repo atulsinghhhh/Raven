@@ -14,8 +14,8 @@ import { formatCount, formatDuration, formatRelative } from '@/lib/format';
 const SCAN_LIMIT = 200;
 
 /**
- * Chat WebSocket sessions — one row per socket, not one per state change.
- * Presence is deliberately not here: it lives in Redis with a TTL and
+ * Chat WebSocket sessions: one row per socket, not one per state change.
+ * Presence is not here, on purpose: it lives in Redis with a TTL and
  * would be meaningless as a durable record (spec §20).
  *
  * `Gateway` is the column that matters when something goes wrong in a

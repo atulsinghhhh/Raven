@@ -1,6 +1,6 @@
 /**
  * Skeletons mirror the shape of the content they stand in for, so the
- * layout doesn't jump when real data lands. Deliberately no spinners —
+ * layout doesn't jump when real data lands. Deliberately no spinners;
  * a full-page spinner tells the developer nothing about what's coming.
  */
 

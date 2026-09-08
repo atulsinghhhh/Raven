@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 /**
  * Resolves the theme before first paint. Without this the page renders in
- * the default theme for a frame and then snaps — the classic dark-mode
+ * the default theme for a frame and then snaps: the classic dark-mode
  * flash. Has to be inline and synchronous in <head> for that reason.
  */
 const THEME_SCRIPT = `

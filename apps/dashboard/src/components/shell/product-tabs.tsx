@@ -3,11 +3,11 @@ import Link from 'next/link';
 /**
  * The in-page sub-navigation for one product family (RTC / Chat / Live
  * Streaming). The global sidebar only links to the family's landing
- * page (see lib/nav.ts) — this is how a developer moves between Rooms,
+ * page (see lib/nav.ts): this is how a developer moves between Rooms,
  * Connections, and Participants without those cluttering the sidebar as
  * separate top-level entries.
  *
- * Plain server component (no usePathname) — every caller already knows
+ * Plain server component (no usePathname): every caller already knows
  * which tab it is, so it just says so.
  */
 export interface ProductTab {
@@ -41,8 +41,8 @@ export function ProductTabs({ tabs, active }: { tabs: ProductTab[]; active: stri
 
 /**
  * Spec §29's RTC section. `Servers` and `Diagnostics` sit at the end
- * deliberately: the first three answer "what are my users doing", the
- * last two answer "is the media plane itself healthy" — and that is the
+ * on purpose: the first three answer "what are my users doing", the
+ * last two answer "is the media plane itself healthy", and that is the
  * order you reach for them in.
  */
 export function rtcTabs(base: string): ProductTab[] {

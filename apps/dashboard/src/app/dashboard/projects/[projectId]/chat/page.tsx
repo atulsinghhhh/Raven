@@ -13,7 +13,7 @@ import { RANGES, type Range } from '@/lib/format';
 
 /**
  * Chat activity for a project. Every number here comes from a real
- * counter or a real row — an idle project shows zeros and `—`, never a
+ * counter or a real row: an idle project shows zeros and ` `, never a
  * plausible-looking fabrication (the same honesty rule the RTC metrics
  * page follows).
  *

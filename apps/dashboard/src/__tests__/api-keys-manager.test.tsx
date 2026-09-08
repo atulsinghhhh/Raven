@@ -40,7 +40,7 @@ describe('ApiKeysManager', () => {
     expect(screen.getByText('existing-key')).toBeInTheDocument();
     expect(screen.getByText('rvk_existing')).toBeInTheDocument();
     // ApiKeySummary never carries the full secret, so there's no exact value to
-    // check against — just make sure nothing raw-looking leaked into the DOM.
+    // check against: just make sure nothing raw-looking leaked into the DOM.
     expect(screen.queryByText(/rvk_existing\..+/)).not.toBeInTheDocument();
   });
 

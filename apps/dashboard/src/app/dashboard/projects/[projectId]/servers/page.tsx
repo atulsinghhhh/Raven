@@ -19,7 +19,7 @@ import { FleetTable } from './fleet-table';
  * so the Control API's endpoint is not project-scoped and there is no
  * project whose membership could authorize it. The page lives under a
  * project anyway because that is where a developer already is when they
- * ask "why is my call not connecting" — and the answer is sometimes "no
+ * ask "why is my call not connecting", and the answer is sometimes "no
  * healthy node has capacity", which no project-scoped page could tell
  * them. It exposes only node identity, health and aggregate load, never
  * anything about another project's rooms.
@@ -62,7 +62,7 @@ export default async function ServersPage({ params }: { params: Promise<{ projec
   const metrics = metricsResult.status === 'fulfilled' ? metricsResult.value : undefined;
   const base = `/dashboard/projects/${projectId}`;
 
-  // Derived from the rows rather than read from `metrics`, so the headline
+  // Derived from the rows, not read from `metrics`, so the headline
   // number and the table can never disagree in front of an operator.
   const allocatable = servers.filter((server) => server.status === 'HEALTHY');
   const headroom = allocatable.reduce((sum, s) => sum + Math.max(0, s.capacity - s.activeRooms), 0);

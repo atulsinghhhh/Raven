@@ -16,7 +16,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 /**
  * A cross-product summary, not a replacement for the per-product pages
- * this wraps — Metrics, Chat overview, and Live Streaming overview each
+ * this wraps. Metrics, Chat overview, and Live Streaming overview each
  * still exist and go deeper. This page answers "how's everything doing"
  * in one range-filtered view before a developer drills into one product.
  * Every number here comes from the same endpoints those pages already

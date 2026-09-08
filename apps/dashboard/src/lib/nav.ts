@@ -1,9 +1,9 @@
 /**
  * Project-scoped navigation. Grouped by what a developer is trying to do
- * — run RTC, debug it, integrate against it — rather than mirroring the
+ *, run RTC, debug it, integrate against it, instead of mirroring the
  * API's controller layout.
  *
- * Nothing here links to a surface the Control API can't actually back —
+ * Nothing here links to a surface the Control API can't actually back;
  * a nav entry for a non-existent feature is a lie. Webhooks appear as of
  * Phase 12, when the endpoints behind them started existing.
  */
@@ -44,13 +44,13 @@ export interface NavGroup {
 }
 
 /**
- * The top-level sidebar is intentionally flat — one entry per product,
+ * The top-level sidebar is intentionally flat: one entry per product,
  * not one per resource. Rooms/Connections/Participants (RTC),
  * Conversations/Connections (Chat), and Streams (Live Streaming) still
  * exist exactly as before; they're reached via the ProductTabs bar each
  * product's own pages render (see components/shell/product-tabs.tsx),
  * not from this global list. Nothing here links to a surface the
- * Control API can't actually back — a nav entry for a non-existent
+ * Control API can't actually back: a nav entry for a non-existent
  * feature is a lie.
  */
 export const NAV_GROUPS: NavGroup[] = [
@@ -94,7 +94,7 @@ export const NAV_GROUPS: NavGroup[] = [
 
 /**
  * The documentation site (apps/docs). Overridable so a self-hosted
- * deployment can point at its own copy rather than a URL it doesn't
+ * deployment can point at its own copy, not a URL it doesn't
  * control.
  */
 export const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL ?? 'http://localhost:3200';

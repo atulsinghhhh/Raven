@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 // Browser side of `raven login`. No new credential type here, no separate
-// auth system — just relays your existing dashboard session to the CLI
+// auth system: just relays your existing dashboard session to the CLI
 // process waiting on localhost, once you approve it.
 export default async function CliAuthPage({
   searchParams,

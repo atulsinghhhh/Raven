@@ -22,7 +22,7 @@ import {
 import { formatCount, formatDateTime, formatRelative } from '@/lib/format';
 
 /**
- * The audit log — who changed what, and when.
+ * The audit log: who changed what, and when.
  *
  * Read-only by construction, matching the API: there is no endpoint that
  * updates or deletes an entry, so this page offers no affordance that
@@ -31,7 +31,7 @@ import { formatCount, formatDateTime, formatRelative } from '@/lib/format';
  *
  * Requires `audit:read`, which only owners and admins hold. A developer
  * hitting this page gets a 403 from the API, and the empty state below
- * says so plainly rather than looking like "nothing has happened".
+ * says so plainly, not looking like "nothing has happened".
  */
 
 /** Every action the API can record. Mirrors AuditAction in apps/api. */
@@ -67,7 +67,7 @@ const ACTION_LABEL: Record<Action, string> = {
 
 /**
  * Destructive actions read as danger, additions as success, everything
- * else neutral — so a page of entries can be scanned for "what was taken
+ * else neutral, so a page of entries can be scanned for "what was taken
  * away" without reading every row.
  */
 const ACTION_TONE: Record<Action, BadgeTone> = {
@@ -108,7 +108,7 @@ export default async function AuditPage({
   const base = `/dashboard/projects/${projectId}`;
 
   // Counts come from an unfiltered fetch so the chips keep their meaning
-  // while a filter is applied — same reasoning as the errors page.
+  // while a filter is applied: same reasoning as the errors page.
   const [allResult, filteredResult] = await Promise.allSettled([
     ravenApi.listAuditLogs(token, projectId, { limit: FETCH_LIMIT }),
     action
@@ -352,7 +352,7 @@ export default async function AuditPage({
 }
 
 /**
- * One clock read per request. This is an async Server Component — it
+ * One clock read per request. This is an async Server Component: it
  * renders exactly once per navigation, so a single timestamp shared by
  * every relative time keeps them consistent with each other instead of
  * drifting mid-render. Same reasoning as the errors page.
@@ -373,7 +373,7 @@ function countActions(entries: AuditLogEntry[]): Partial<Record<Action, number>>
 }
 
 /**
- * An action the console doesn't recognise still renders — a newer API
+ * An action the console doesn't recognise still renders: a newer API
  * recording something this build predates should show up as itself, not
  * vanish from the list.
  */

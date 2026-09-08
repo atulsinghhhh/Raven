@@ -10,7 +10,7 @@ export type LogProduct = 'rtc' | 'chat' | 'webhook' | 'audit';
 export type LogStatus = 'success' | 'failed';
 
 /**
- * Every row here links back to the real record it came from — a
+ * Every row here links back to the real record it came from: a
  * connection, an error, a webhook delivery, an audit entry. There is no
  * synthetic "log line" resource in the Control API, so this is a
  * client-visible merge of the sources that already exist, not a new
@@ -26,17 +26,17 @@ export interface LogEntry {
   summary: string;
   href: string;
   /**
-   * The real underlying record, verbatim — used by the Events explorer's
+   * The real underlying record, verbatim: used by the Events explorer's
    * JSON view. Never includes a secret: none of the five source types
    * (ConnectionSummary, ErrorSummary, ChatConnectionSummary,
-   * WebhookDeliveryRecord, AuditLogEntry) carry one — API key secrets,
+   * WebhookDeliveryRecord, AuditLogEntry) carry one. API key secrets,
    * webhook signing secrets, and chat message content are all separate
    * resources this merge never touches.
    */
   payload: Record<string, unknown>;
 }
 
-// Matches components/ui/badge.tsx's own CONNECTION_STATE tone map —
+// Matches components/ui/badge.tsx's own CONNECTION_STATE tone map;
 // only FAILED reads as a failure there; DISCONNECTED is a neutral,
 // expected end state, not an error.
 const FAILED_STATES = new Set(['FAILED']);

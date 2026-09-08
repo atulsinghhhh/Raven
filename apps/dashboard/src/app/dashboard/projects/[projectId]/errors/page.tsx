@@ -40,7 +40,7 @@ import {
  *   1. The list endpoint only supports `category` and `connectionId`
  *      filters, and caps at 200 records. So the category filter is a real
  *      server-side query, while the time window is applied here over the
- *      fetched records — and both are labelled as such rather than
+ *      fetched records, and both are labelled as such rather than
  *      pretending the API can do more than it can.
  *   2. Category counts come from an unfiltered fetch, so switching
  *      category never makes the other counts collapse to zero.
@@ -176,7 +176,7 @@ export default async function ErrorsPage({
   const rows = rowsSource?.filter((e) => withinWindow(e.timestamp, windowKey, now)) ?? null;
 
   const filtered = category != null || windowKey !== 'all';
-  // Null when no window filter is applied — keeps every "in the last hour"
+  // Null when no window filter is applied: keeps every "in the last hour"
   // phrase below from having to re-narrow the union.
   const windowLabel = windowKey === 'all' ? null : RANGE_LABEL[windowKey].toLowerCase();
   const newest = countable[0]?.timestamp ?? recent[0]?.timestamp ?? null;
@@ -432,7 +432,7 @@ export default async function ErrorsPage({
 }
 
 /**
- * One clock read per request. This is an async Server Component — it
+ * One clock read per request. This is an async Server Component: it
  * renders exactly once per navigation, so a single timestamp shared by
  * the window filter and every relative time keeps them consistent with
  * each other instead of drifting mid-render.
@@ -455,7 +455,7 @@ function withinWindow(iso: string, windowKey: WindowKey, now: number): boolean {
   return !Number.isNaN(t) && now - t <= RANGE_MS[windowKey];
 }
 
-/** Filters are URL state, so every chip is a plain link — no JS needed. */
+/** Filters are URL state, so every chip is a plain link: no JS needed. */
 function filterHref(base: string, category: ErrorCategory | undefined, windowKey: WindowKey): string {
   const params = new URLSearchParams();
   if (category) params.set('category', category);

@@ -13,7 +13,7 @@ import { LogFilters } from '../logs/log-filters';
 
 /**
  * Same merged sources as Logs, presented as raw structured records
- * instead of a table — for pasting into an issue, a support thread, or
+ * instead of a table: for pasting into an issue, a support thread, or
  * a debugger. Every payload is the real object the Control API already
  * returned elsewhere in this app; nothing is reshaped to look more
  * "event-like" than it is.

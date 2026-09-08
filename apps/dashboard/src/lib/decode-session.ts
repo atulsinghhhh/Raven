@@ -1,5 +1,5 @@
 // Decodes the JWT payload for display only (e.g. showing the email in the
-// nav) — doesn't verify the signature. The Control API is what actually
+// nav): doesn't verify the signature. The Control API is what actually
 // verifies this token; nothing here should be trusted for authorization.
 export function decodeSessionEmail(token: string): string | undefined {
   try {

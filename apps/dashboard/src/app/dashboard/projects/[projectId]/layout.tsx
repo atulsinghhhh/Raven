@@ -23,7 +23,7 @@ export default async function ProjectLayout({
   const email = decodeSessionEmail(token);
 
   // The switcher needs every project and the header needs live health, but
-  // neither should be able to take the page down — only the project itself
+  // neither should be able to take the page down: only the project itself
   // is load-bearing, so the other two are allowed to fail.
   const [projectResult, projectsResult, healthResult] = await Promise.allSettled([
     ravenApi.getProject(token, projectId),
@@ -62,7 +62,7 @@ export default async function ProjectLayout({
   const systemStatus =
     healthResult.status === 'fulfilled' ? deriveSystemStatus(healthResult.value.dependencies) : 'unknown';
 
-  // None of these are load-bearing for the page itself — a 403 (no
+  // None of these are load-bearing for the page itself: a 403 (no
   // audit:read capability) or a transient failure just means that source
   // contributes nothing, not that the whole shell breaks.
   const [diagnosticsResult, auditLogsResult, webhooksResult] = await Promise.allSettled([

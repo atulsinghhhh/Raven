@@ -14,13 +14,13 @@ import { IconAudit, IconChevronRight, IconFolder, IconPlus } from '@/components/
 import { formatCount, formatRelative, normaliseRange, RANGE_LABEL, type Range } from '@/lib/format';
 
 /**
- * Account home — the first thing a developer with more than one project
+ * Account home: the first thing a developer with more than one project
  * sees. `/dashboard/projects` still exists as the full list + create
  * flow; this page is a cross-project summary that sits above it.
  *
  * There is no cross-project aggregate endpoint and no usage/billing
  * backend (see usage/page.tsx), so every number here is derived by
- * fetching each project's own per-project data and summing it — same
+ * fetching each project's own per-project data and summing it: same
  * pattern as overview/page.tsx, just repeated per project. Live detail
  * is capped at DETAIL_LIMIT active projects (most recently updated
  * first) so this page doesn't fan out to dozens of API calls; the cap
@@ -52,13 +52,13 @@ async function loadSnapshot(token: string, project: Project, range: Range): Prom
     diagnostics: diagnosticsR.status === 'fulfilled' ? diagnosticsR.value : undefined,
     liveRoomCount: roomsR.status === 'fulfilled' ? roomsR.value.filter((r) => (r.liveParticipantCount ?? 0) > 0).length : undefined,
     // A developer-role member gets a 403 here (audit:read is owner/admin
-    // only) — that's indistinguishable from "no activity", so it just
-    // renders as no activity rather than an error for this one project.
+    // only): that's indistinguishable from "no activity", so it just
+    // renders as no activity instead of an error for this one project.
     audit: auditR.status === 'fulfilled' ? auditR.value : [],
   };
 }
 
-/** action strings are "resource.verb" (see AuditAction in apps/api) — this only reformats, it never invents a label. */
+/** action strings are "resource.verb" (see AuditAction in apps/api): this only reformats, it never invents a label. */
 function humanizeAction(action: string): string {
   const text = action.replace(/[._]/g, ' ');
   return text.charAt(0).toUpperCase() + text.slice(1);

@@ -11,9 +11,9 @@ import { IconConversations } from '@/components/ui/icons';
 import { formatCount, formatRelative } from '@/lib/format';
 
 /**
- * Conversations with activity metadata. There is deliberately no way to
- * read message contents from here — the API doesn't return them to this
- * surface, so the restriction is structural rather than a UI choice
+ * Conversations with activity metadata. There is by design no way to
+ * read message contents from here: the API doesn't return them to this
+ * surface, so the restriction is structural instead of a UI choice
  * someone could quietly undo (spec §50).
  */
 export default async function ChatConversationsPage({ params }: { params: Promise<{ projectId: string }> }) {

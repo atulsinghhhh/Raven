@@ -12,7 +12,7 @@ import { DOCS_URL } from '@/lib/nav';
  * `createRTCClient`/`Room` from packages/sdk/src, `Raven` +
  * `tokens.create`/`rooms.create` from packages/server-sdk/src, and the
  * same two calls from sdks/python/src/raven. Nothing here is aspirational
- * — if an API isn't in those files, it isn't on this page.
+ *: if an API isn't in those files, it isn't on this page.
  */
 export default async function QuickstartPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -219,7 +219,7 @@ function Step({
 
 const NODE_TOKEN = `import { Raven } from '@corvidhq/server';
 
-// The SDK never reads env vars on its own — pass the key explicitly.
+// The SDK never reads env vars on its own: pass the key explicitly.
 const raven = new Raven({
   apiKey: process.env.RAVEN_API_KEY!,
   baseUrl: process.env.RAVEN_API_URL, // defaults to http://localhost:4100
@@ -228,7 +228,7 @@ const raven = new Raven({
 // Rooms are control-plane records. Create one, or reuse an ID from raven.rooms.list().
 const room = await raven.rooms.create({ name: 'standup' });
 
-// Your own auth decides who "alice" is — Raven only mints for who you say.
+// Your own auth decides who "alice" is. Raven only mints for who you say.
 const issued = await raven.tokens.create({
   room: room.id,
   identity: 'alice',
@@ -287,7 +287,7 @@ curl -X POST "$RAVEN_API_URL/v1/rooms/$ROOM_ID/rtc-tokens" \\
 
 const BROWSER_JOIN = `import { createRTCClient } from '@corvidhq/rtc';
 
-// Fetched from your own backend endpoint — the one that called tokens.create().
+// Fetched from your own backend endpoint: the one that called tokens.create().
 const session = await fetch('/api/rtc-session', { method: 'POST' }).then((r) => r.json());
 
 const client = createRTCClient({
@@ -301,7 +301,7 @@ const client = createRTCClient({
 // immediately, before any connection is attempted.
 const room = await client.join(session.roomId);
 
-// Quote this in a bug report — it's the same ID the Connections page shows.
+// Quote this in a bug report: it's the same ID the Connections page shows.
 console.log('connectionId:', room.connectionId);`;
 
 const BROWSER_PUBLISH = `// Prompts for device permission, creates the track, and publishes it.
@@ -331,7 +331,7 @@ room.on('reconnecting', () => showBanner('Reconnecting…'));
 room.on('reconnected', () => hideBanner());
 
 room.on('error', (error) => {
-  // RTCError carries a stable code — the same categories the Errors page groups by.
+  // RTCError carries a stable code: the same categories the Errors page groups by.
   console.error(error.code, error.message);
 });`;
 

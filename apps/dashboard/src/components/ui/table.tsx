@@ -1,7 +1,7 @@
 /**
- * Table primitives. Dense by default — an infrastructure console is read
+ * Table primitives. Dense by default: an infrastructure console is read
  * by scanning many rows, so row height stays tight and the type stays
- * small rather than turning every record into a card.
+ * small instead of turning every record into a card.
  *
  * On narrow screens callers render <MobileList> instead of shrinking the
  * table; a horizontally scrolling 7-column table is unusable on a phone.

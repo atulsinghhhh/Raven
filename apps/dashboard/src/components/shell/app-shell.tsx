@@ -20,7 +20,7 @@ import { UserMenu } from './user-menu';
  * on mobile, sticky top bar with search/status/account.
  *
  * `systemStatus` is derived from the real /health response by the server
- * component that renders this — it is never assumed to be healthy, and a
+ * component that renders this: it is never assumed to be healthy, and a
  * failed health call shows as "unknown" rather than green.
  */
 export function AppShell({
@@ -40,7 +40,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   // Holds the path the drawer was opened on. Any navigation changes
-  // `pathname`, which closes the drawer as derived state — no effect
+  // `pathname`, which closes the drawer as derived state: no effect
   // needed, and no chance of the new page rendering behind a stale
   // overlay.
   const [openedAt, setOpenedAt] = useState<string | null>(null);

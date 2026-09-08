@@ -8,12 +8,12 @@ import { PageHeader } from '@/components/ui/page-header';
 import { DOCS_URL } from '@/lib/nav';
 
 /**
- * Raven Effects has no per-project data of its own — there is no
+ * Raven Effects has no per-project data of its own: there is no
  * "effects" resource in the Control API, nothing to fetch. This page is a
  * capability reference, the same kind of static page as SDKs: what ships,
  * on which platform, at what maturity. Every row here is transcribed from
  * packages/effects's actual filter/preset registry and each SDK's own
- * integration — nothing is listed as shipping that isn't in the tree.
+ * integration: nothing is listed as shipping that isn't in the tree.
  */
 
 type Status = 'production' | 'experimental' | 'planned';

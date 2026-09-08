@@ -15,10 +15,10 @@ interface Params {
  * developer session alone, matching the Control API's own
  * `DashboardRtcServersController`.
  *
- * Draining does **not** stop the node or end its calls — it stops the
+ * Draining does **not** stop the node or end its calls: it stops the
  * allocator choosing it for *new* rooms and lets the existing ones finish.
  * That distinction is the whole point of the endpoint, and the UI says so
- * at the point of clicking rather than only here.
+ * at the point of clicking instead of only here.
  */
 export async function POST(request: NextRequest, { params }: Params) {
   const token = await requireSessionToken();
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   const { name } = await params;
 
   const body = await request.json().catch(() => ({}));
-  // Explicit rather than a toggle read from current state: two operators
+  // Explicit, not a toggle read from current state: two operators
   // looking at the same stale page must not be able to flip a node
   // between pools by both clicking what each thinks is "the other way".
   const draining = body?.draining;

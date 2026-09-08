@@ -4,7 +4,7 @@ import { handleApiError, isResponse, requireSessionToken } from '@/lib/route-hel
 
 /**
  * Backs the ⌘K palette. There's no search endpoint on the Control API, so
- * this fans out to the existing list endpoints and filters in memory —
+ * this fans out to the existing list endpoints and filters in memory;
  * bounded by the same limits those endpoints already enforce, and scoped
  * to one project the caller demonstrably owns (every upstream call is
  * ownership-checked API-side).
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       if (hits.filter((h) => h.type === 'stream').length >= MAX_PER_GROUP) break;
     }
 
-    // Participants aren't a resource of their own — they're derived from the
+    // Participants aren't a resource of their own: they're derived from the
     // connections above, deduped by identity.
     const seen = new Set<string>();
     for (const c of connections) {

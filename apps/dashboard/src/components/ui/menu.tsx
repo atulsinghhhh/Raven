@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * Small popover menu. Rolled by hand rather than pulling in a headless
- * UI dependency — this is the only overlay pattern the console needs,
+ * Small popover menu. Rolled by hand instead of pulling in a headless
+ * UI dependency: this is the only overlay pattern the console needs,
  * and it's ~80 lines.
  *
  * Keyboard contract: Escape closes and returns focus to the trigger,

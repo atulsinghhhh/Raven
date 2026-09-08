@@ -12,7 +12,7 @@ import { DOCS_URL } from '@/lib/nav';
  * Index of the SDKs that actually ship from this monorepo. Name, version
  * and description are transcribed from each package's own manifest
  * (each packages/… package.json, sdks/python/pyproject.toml) and the snippets
- * from its entry point — this page never advertises a package that
+ * from its entry point: this page never advertises a package that
  * doesn't exist, and every docs link below points at a file that is
  * present in docs/.
  *
@@ -32,7 +32,7 @@ interface SdkEntry {
   usage: { code: string; language: string };
   docsHref?: string;
   docsLabel?: string;
-  /** Shown when there is no published reference page yet — stated plainly rather than linking nowhere. */
+  /** Shown when there is no published reference page yet: stated plainly instead of linking nowhere. */
   docsNote?: string;
 }
 

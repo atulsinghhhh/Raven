@@ -1,5 +1,5 @@
 /**
- * Hand-rolled 16px icon set — no icon package. Every icon here is used by
+ * Hand-rolled 16px icon set: no icon package. Every icon here is used by
  * the shell or a page; the whole file is smaller than the import cost of
  * a tree-shaken icon library, and the stroke weight stays consistent
  * because there's only one source.
@@ -141,7 +141,7 @@ export const IconPresence = (p: IconProps) => (
   </Svg>
 );
 
-/** Live Streaming overview — a play control, distinct from IconStreams' list glyph. */
+/** Live Streaming overview: a play control, distinct from IconStreams' list glyph. */
 export const IconLiveStreaming = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="8" cy="8" r="6.25" />
@@ -149,7 +149,7 @@ export const IconLiveStreaming = (p: IconProps) => (
   </Svg>
 );
 
-/** Streams list — a screen with a live dot, distinct from IconRooms' plain rectangle. */
+/** Streams list: a screen with a live dot, distinct from IconRooms' plain rectangle. */
 export const IconStreams = (p: IconProps) => (
   <Svg {...p}>
     <rect x="1.75" y="2.75" width="12.5" height="8.5" rx="1.25" />
@@ -249,7 +249,7 @@ export const IconFolder = (p: IconProps) => (
   </Svg>
 );
 
-/** Members — two figures, one foregrounded, distinct from IconParticipants' call roster. */
+/** Members: two figures, one foregrounded, distinct from IconParticipants' call roster. */
 export const IconMembers = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="5.75" cy="5.25" r="2.25" />
@@ -259,7 +259,7 @@ export const IconMembers = (p: IconProps) => (
   </Svg>
 );
 
-/** Audit log — a document with ruled lines and a check, i.e. a record of what happened. */
+/** Audit log: a document with ruled lines and a check, i.e. a record of what happened. */
 export const IconAudit = (p: IconProps) => (
   <Svg {...p}>
     <path d="M3.25 2.75h6.5l3 3v7.5a1 1 0 01-1 1h-8.5a1 1 0 01-1-1v-9.5a1 1 0 011-1z" />
@@ -268,7 +268,7 @@ export const IconAudit = (p: IconProps) => (
   </Svg>
 );
 
-/** CLI — a terminal prompt with a chevron and cursor. */
+/** CLI: a terminal prompt with a chevron and cursor. */
 export const IconCli = (p: IconProps) => (
   <Svg {...p}>
     <rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5" />
@@ -276,7 +276,7 @@ export const IconCli = (p: IconProps) => (
   </Svg>
 );
 
-/** Analytics — a simple bar chart, distinct from IconMetrics' single trend line. */
+/** Analytics: a simple bar chart, distinct from IconMetrics' single trend line. */
 export const IconAnalytics = (p: IconProps) => (
   <Svg {...p}>
     <path d="M2.25 13.25h11.5" />
@@ -286,21 +286,21 @@ export const IconAnalytics = (p: IconProps) => (
   </Svg>
 );
 
-/** Logs — stacked lines with a leading timestamp marker, i.e. a scrolling event stream. */
+/** Logs: stacked lines with a leading timestamp marker, i.e. a scrolling event stream. */
 export const IconLogs = (p: IconProps) => (
   <Svg {...p}>
     <path d="M2.75 4.25h3M7 4.25h6.25M2.75 8h3M7 8h6.25M2.75 11.75h3M7 11.75h6.25" />
   </Svg>
 );
 
-/** Events — a discrete pulse/spark, distinct from IconLogs' continuous lines. */
+/** Events: a discrete pulse/spark, distinct from IconLogs' continuous lines. */
 export const IconEvents = (p: IconProps) => (
   <Svg {...p}>
     <path d="M8.5 1.75 3.5 8.75h3.25L6.25 14.25l5.25-7.5H8.25z" />
   </Svg>
 );
 
-/** Raven wordmark glyph — a stylised bird head in a rounded square. */
+/** Raven wordmark glyph: a stylised bird head in a rounded square. */
 export const RavenMark = ({ className = 'size-6' }: IconProps) => (
   <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
     <rect width="24" height="24" rx="6" className="fill-accent" />

@@ -1,6 +1,6 @@
 /*
  * Card, section and stat chrome. The heading components all take an
- * optional `eyebrow` — a mono-uppercase kicker above the title, the same
+ * optional `eyebrow`: a mono-uppercase kicker above the title, the same
  * device the marketing site puts over every section. It's optional
  * precisely so the ~50 existing call sites keep working untouched and
  * can adopt it one page at a time.
@@ -46,8 +46,8 @@ export function CardHeader({
 }
 
 /**
- * Section heading that sits directly on the canvas rather than inside a
- * Card — used to group content without stacking borders inside borders.
+ * Section heading that sits directly on the canvas instead of inside a
+ * Card: used to group content without stacking borders inside borders.
  */
 export function SectionHeader({
   title,
@@ -77,7 +77,7 @@ export function SectionHeader({
  * needs one ("across 50 most recent") so the number itself never has to
  * be read with an asterisk.
  *
- * The number is set in mono and the label in mono-uppercase — a metric
+ * The number is set in mono and the label in mono-uppercase: a metric
  * tile is closer to an instrument reading than to prose, and mono
  * figures line up across a row of tiles the way proportional ones don't.
  */

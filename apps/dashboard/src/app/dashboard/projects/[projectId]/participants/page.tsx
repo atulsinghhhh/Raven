@@ -15,10 +15,10 @@ import { IconParticipants } from '@/components/ui/icons';
 import { formatCount, formatDateTime, formatDuration, formatRelative } from '@/lib/format';
 
 /**
- * There is no participants endpoint on the Control API — a participant is not
+ * There is no participants endpoint on the Control API: a participant is not
  * a stored resource. Everything on this page is derived from connection
  * records, grouped by participantIdentity, and is therefore a view of the most
- * recent CONNECTION_SCAN_LIMIT records rather than a complete roster. The UI
+ * recent CONNECTION_SCAN_LIMIT records, not a complete roster. The UI
  * repeats that caveat wherever a number could otherwise be read as all-time.
  */
 const CONNECTION_SCAN_LIMIT = 200;
@@ -80,7 +80,7 @@ export default async function ParticipantsPage({
   const connectedNow = participants.filter((p) => p.latest.state === 'CONNECTED').length;
 
   // When the filter resolves to exactly one identity, their own connection
-  // records are worth showing in full — that is the closest thing to a
+  // records are worth showing in full: that is the closest thing to a
   // participant detail view the API can actually back.
   const focused = query && matches.length === 1 ? matches[0] : undefined;
 

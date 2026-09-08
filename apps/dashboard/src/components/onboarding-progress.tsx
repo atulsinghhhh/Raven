@@ -2,7 +2,7 @@ import type { OnboardingStep } from '@/lib/onboarding';
 import { Card, CardHeader } from '@/components/ui/card';
 
 /**
- * Persistent version of the old all-or-nothing "get started" panel — it
+ * Persistent version of the old all-or-nothing "get started" panel: it
  * shows real progress across all five steps instead of disappearing the
  * moment the project has any activity at all. The parent page decides
  * when to stop rendering it (once every step is done).

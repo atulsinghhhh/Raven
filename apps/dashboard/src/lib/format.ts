@@ -1,6 +1,6 @@
 /**
  * Shared formatters. Everything is deterministic given its input and
- * uses a fixed en-GB-ish locale rather than the ambient one — these run
+ * uses a fixed en-GB-ish locale instead of the ambient one: these run
  * in server components, and a server/client locale mismatch produces
  * hydration errors that only show up on someone else's machine.
  */
@@ -41,7 +41,7 @@ export function formatClockTime(iso: string | null | undefined): string {
   return Number.isNaN(d.getTime()) ? '—' : CLOCK.format(d);
 }
 
-/** "18m 42s" — the format used for connection durations everywhere. */
+/** "18m 42s": the format used for connection durations everywhere. */
 export function formatDuration(ms: number | null | undefined): string {
   if (ms === null || ms === undefined) return '—';
   const totalSeconds = Math.round(ms / 1000);
@@ -78,9 +78,9 @@ export function formatRelative(iso: string | null | undefined, now: number = Dat
 /**
  * One decimal at most, and no trailing `.0`.
  *
- * Null rather than `'0%'` for an absent value: a node that did not report
+ * Null, not `'0%'` for an absent value: a node that did not report
  * its CPU is not a node at 0%, and every caller here renders the two
- * differently. Rounded because the source is a raw float — a node
+ * differently. Rounded because the source is a raw float: a node
  * reporting `16.1159274436382` percent memory is reporting noise past the
  * first decimal, and printing all of it makes a table unreadable while
  * implying a precision nobody measured.
@@ -97,7 +97,7 @@ export function formatCount(value: number | null | undefined): string {
   return new Intl.NumberFormat('en-GB').format(value);
 }
 
-/** Milliseconds, for RTT/jitter readings — never fabricated, so null stays null rather than 0. */
+/** Milliseconds, for RTT/jitter readings: never fabricated, so null stays null rather than 0. */
 export function formatMs(value: number | null | undefined): string | null {
   if (value === null || value === undefined) return null;
   return `${value} ms`;
@@ -117,7 +117,7 @@ export type Range = (typeof RANGES)[number];
 /**
  * Only these four windows exist server-side (MetricsService.RANGE_MS).
  * Anything else silently falls back to 1h there, which would make the UI
- * lie about what it's showing — so unknown values are normalised here.
+ * lie about what it's showing, so unknown values are normalised here.
  */
 export function normaliseRange(raw: string | undefined): Range {
   return (RANGES as readonly string[]).includes(raw ?? '') ? (raw as Range) : '1h';

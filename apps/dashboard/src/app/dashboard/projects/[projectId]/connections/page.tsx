@@ -17,7 +17,7 @@ import { formatCount, formatDuration, formatRelative } from '@/lib/format';
 /**
  * The API filters by `state` and `roomId` and caps results at 200
  * (QueryConnectionsDto). Free-text search isn't a server capability, so
- * `q` filters the fetched page in memory — and the UI says so, rather
+ * `q` filters the fetched page in memory, and the UI says so, rather
  * than implying a full-history search.
  */
 const SCAN_LIMIT = 200;

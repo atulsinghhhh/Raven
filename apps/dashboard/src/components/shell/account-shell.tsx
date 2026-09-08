@@ -7,7 +7,7 @@ import { UserMenu } from './user-menu';
 
 /**
  * Account-level chrome for pages that aren't scoped to a project (the
- * project list). No sidebar — there's no project to navigate within yet,
+ * project list). No sidebar: there's no project to navigate within yet,
  * and an empty sidebar is worse than none.
  */
 export function AccountShell({

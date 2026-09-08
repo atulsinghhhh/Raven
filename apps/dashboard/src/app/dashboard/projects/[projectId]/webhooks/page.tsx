@@ -9,7 +9,7 @@ import { WebhooksManager } from './webhooks-manager';
  * Webhook endpoints for this project. Project-scoped rather than
  * chat-scoped: chat is the only producer today, but the delivery
  * pipeline is shared, so later phases publish through the same endpoints
- * rather than needing a second page here.
+ * instead of needing a second page here.
  */
 export default async function WebhooksPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;

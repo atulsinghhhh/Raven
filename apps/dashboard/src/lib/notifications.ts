@@ -2,7 +2,7 @@ import type { AuditLogEntry, ProjectDiagnostics, WebhookEndpointSummary } from '
 
 /**
  * Every notification here is derived from a real record already fetched
- * elsewhere in this app — diagnostics, audit log, webhook health. There
+ * elsewhere in this app: diagnostics, audit log, webhook health. There
  * is no synthetic "you have 3 new alerts" placeholder; a quiet project
  * produces an empty list, not a fake one.
  */

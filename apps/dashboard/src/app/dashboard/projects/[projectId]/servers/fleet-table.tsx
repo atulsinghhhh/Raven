@@ -49,7 +49,7 @@ const STATUS_LABEL: Record<RtcServerStatus, string> = {
  * rather than in a details panel: `0 rooms` from a node that last spoke
  * four minutes ago means something different from `0 rooms` reported two
  * seconds ago, and putting them side by side is what makes the difference
- * visible. A node that reported no CPU figure renders as "—", never as 0%.
+ * visible. A node that reported no CPU figure renders as " ", never as 0%.
  */
 export function FleetTable({ initialServers }: { initialServers: RtcServer[] }) {
   const [servers, setServers] = useState(initialServers);
@@ -203,12 +203,12 @@ function Reported({ value }: { value: string | null }) {
 }
 
 /**
- * A five-second clock, as an external store rather than an effect.
+ * A five-second clock, as an external store instead of an effect.
  *
  * `useSyncExternalStore` is the right primitive here and not merely the
  * one that satisfies the lint rule: the current time is genuinely an
  * external mutable source, and this is how React subscribes to one. It
- * also gives the server snapshot for free — `0`, meaning "unknown" — so
+ * also gives the server snapshot for free, `0`, meaning "unknown", so
  * the server HTML and the first client render agree and nothing hydrates
  * mismatched. Reading `Date.now()` during render would put a different
  * string in each, and for a *heartbeat age* that difference is exactly
@@ -226,7 +226,7 @@ function subscribeToClock(onChange: () => void): () => void {
   clockListeners.add(onChange);
   if (!clockTimer) {
     // Set before the first interval fires so the very next snapshot read
-    // — which React performs right after subscribing — already has a real
+    //, which React performs right after subscribing, already has a real
     // time in it, rather than waiting five seconds for one.
     clockTick = Date.now();
     clockTimer = setInterval(() => {
@@ -256,10 +256,10 @@ function useNow(): number | undefined {
  * How long ago the node last spoke, toned by whether that is a problem.
  *
  * The 30-second threshold matches `SFU_HEARTBEAT_TIMEOUT_SECONDS`'s
- * default — past it, the control plane's own sweep will mark the node
- * unhealthy — so a row that looks stale here is about to be one.
+ * default: past it, the control plane's own sweep will mark the node
+ * unhealthy, so a row that looks stale here is about to be one.
  *
- * Untoned until the clock starts, rather than assumed fresh: a warning
+ * Untoned until the clock starts, instead of assumed fresh: a warning
  * that appears a moment after load is honest, one that appears and then
  * disappears is not.
  */

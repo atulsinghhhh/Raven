@@ -3,7 +3,7 @@ import { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } fro
 /*
  * One control style for every input, select and textarea. Flat: a
  * hairline border that strengthens on hover and turns accent on focus,
- * and no inner shadow — same treatment as the buttons next to them.
+ * and no inner shadow: same treatment as the buttons next to them.
  *
  * Field labels are mono-uppercase to match the table headers and stat
  * labels, so every piece of chrome in the console speaks with one voice

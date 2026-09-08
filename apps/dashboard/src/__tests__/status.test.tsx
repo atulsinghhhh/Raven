@@ -24,7 +24,7 @@ describe('deriveSystemStatus', () => {
     expect(deriveSystemStatus({ database: 'down', redis: 'down' })).toBe('unavailable');
   });
 
-  // A failed health check is not a healthy system — it must never
+  // A failed health check is not a healthy system: it must never
   // optimistically render as operational.
   it('reports unknown when health could not be read at all', () => {
     expect(deriveSystemStatus(undefined)).toBe('unknown');

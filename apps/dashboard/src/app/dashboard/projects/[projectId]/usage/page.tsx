@@ -9,16 +9,16 @@ import { formatCount, formatDuration } from '@/lib/format';
 
 /**
  * Raven has no usage metering or billing backend. This page therefore
- * shows only what can be *derived* right now from the Control API — room
+ * shows only what can be *derived* right now from the Control API: room
  * records, live participant counts, and the most recent connection
- * records — and labels every derived number with the window it came from.
+ * records, and labels every derived number with the window it came from.
  *
  * Nothing here is a bill, a quota, or a bandwidth figure, because none of
  * those exist. The "Not metered yet" section says so directly rather than
  * leaving an empty tile that reads like zero usage.
  */
 
-/** The API caps this at 200 (QueryConnectionsDto) — asking for more silently gets you 200. */
+/** The API caps this at 200 (QueryConnectionsDto): asking for more silently gets you 200. */
 const CONNECTION_SAMPLE_LIMIT = 200;
 
 export default async function UsagePage({ params }: { params: Promise<{ projectId: string }> }) {
@@ -39,7 +39,7 @@ export default async function UsagePage({ params }: { params: Promise<{ projectI
   const rooms = roomsResult.value;
   const connections = connectionsResult.status === 'fulfilled' ? connectionsResult.value : undefined;
 
-  // liveParticipantCount is null when the SFU couldn't be reached — that is
+  // liveParticipantCount is null when the SFU couldn't be reached: that is
   // not the same as an idle room, so it never collapses into a 0.
   const liveDataAvailable = rooms.every((r) => r.liveParticipantCount !== null);
   const liveParticipants = rooms.reduce((sum, r) => sum + (r.liveParticipantCount ?? 0), 0);

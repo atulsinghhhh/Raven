@@ -62,7 +62,7 @@ export default async function RoomsPage({ params }: { params: Promise<{ projectI
   const activeByRoomId = countActiveConnections(rooms, connections);
 
   // A room whose liveParticipantCount is null means the SFU could not be
-  // reached for it — that is not the same as an idle room, so it is excluded
+  // reached for it: that is not the same as an idle room, so it is excluded
   // from the aggregates instead of being counted as zero.
   const known = rooms.filter((r) => r.liveParticipantCount !== null);
   const unknownCount = rooms.length - known.length;
@@ -239,7 +239,7 @@ function LiveStatusBadge({ count }: { count: number | null }) {
 /**
  * Counts currently-connected connection records per room. Connection records
  * carry roomId when the room still exists and always carry roomName, so name
- * is used as the fallback join key — without double counting either way.
+ * is used as the fallback join key: without double counting either way.
  */
 function countActiveConnections(
   rooms: RoomWithLiveState[],

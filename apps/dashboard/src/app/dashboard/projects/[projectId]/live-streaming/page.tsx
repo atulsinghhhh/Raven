@@ -12,13 +12,13 @@ import { IconLiveStreaming } from '@/components/ui/icons';
 import { formatCount, formatRelative } from '@/lib/format';
 
 // Live viewer counts require one SFU round trip per stream (getLiveStream
-// does it, listLiveStreams deliberately doesn't). Bounded by how many
+// does it, listLiveStreams on purpose doesn't). Bounded by how many
 // streams are realistically LIVE at once, never by the all-time total.
 const LIVE_DETAIL_FETCH_LIMIT = 20;
 
 /**
  * Live Streaming activity for a project. A stream composes an RTC room
- * and a chat conversation, but a developer thinks of it as one product —
+ * and a chat conversation, but a developer thinks of it as one product;
  * this page answers "is anything live right now, and how much", the same
  * honesty rule the Chat and RTC overviews follow: a quiet project shows
  * zeros, never a plausible-looking number nobody measured.

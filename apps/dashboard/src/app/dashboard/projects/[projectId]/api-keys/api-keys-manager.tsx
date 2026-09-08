@@ -12,7 +12,7 @@ import { IconKeys } from '@/components/ui/icons';
 import { formatDate, formatRelative } from '@/lib/format';
 
 /**
- * Every real environment a key can be scoped to — fixed set of 3, not
+ * Every real environment a key can be scoped to: fixed set of 3, not
  * user-configurable (see apps/api/prisma/schema.prisma's Environment
  * enum). Production gets its own tone so it's never visually confused
  * with a development/staging key at a glance.
@@ -31,13 +31,13 @@ const ENVIRONMENT_LABEL: Record<Environment, string> = {
 
 /**
  * Raven only ever stores a bcrypt hash of a key's secret half
- * (docs/control-plane.md — "API keys: the show-once secret"), so the
+ * (docs/control-plane.md, "API keys: the show-once secret"), so the
  * secret exists in the UI for exactly one render, right after creation.
  * Everything else in here shows the `publicId` and an explicit mask, so
- * it's never ambiguous whether the secret is retrievable — it isn't.
+ * it's never ambiguous whether the secret is retrievable: it isn't.
  *
  * The Control API backs exactly three operations: list, create, revoke.
- * There is no server-side rotate endpoint — the "Rotate" action below is
+ * There is no server-side rotate endpoint: the "Rotate" action below is
  * a client-side convenience that performs the two real calls in the safe
  * order (create the replacement first, then revoke the old key), never a
  * fourth API operation pretending to be atomic.
@@ -117,11 +117,11 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
   }
 
   /**
-   * Create the replacement first, then revoke the old key — never the
+   * Create the replacement first, then revoke the old key: never the
    * other order, so a failure partway through never leaves the project
    * with zero active keys. If the revoke half fails, the new key still
    * exists and is surfaced; the old one is left active with an explicit
-   * error rather than silently retried.
+   * error, not silently retried.
    */
   async function handleRotate(oldKey: ApiKeySummary) {
     setRotatingId(oldKey.id);
@@ -345,7 +345,7 @@ function SecretReveal({ created }: { created: CreatedApiKey }) {
 }
 
 /**
- * Single markup path at every breakpoint — the row reflows rather than
+ * Single markup path at every breakpoint: the row reflows instead of
  * being duplicated into a separate mobile list, so a key's ID appears
  * exactly once in the document.
  */

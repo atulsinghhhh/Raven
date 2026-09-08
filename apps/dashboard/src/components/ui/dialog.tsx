@@ -7,7 +7,7 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
- * Modal dialog. Rolled by hand for the same reason Menu is — this and the
+ * Modal dialog. Rolled by hand for the same reason Menu is: this and the
  * command palette are the only overlay patterns the console needs, and a
  * headless-UI dependency would cost more than the ~90 lines here.
  *
@@ -20,7 +20,7 @@ const FOCUSABLE =
  *   - Body scroll is locked while open.
  *
  * The panel is labelled by its own heading via aria-labelledby, so screen
- * readers announce what the dialog is for rather than just "dialog".
+ * readers announce what the dialog is for, not just "dialog".
  */
 export function Dialog({
   open,
@@ -38,8 +38,8 @@ export function Dialog({
   /**
    * When given, the body and footer are wrapped in a single <form>, so a
    * primary action rendered into `footer` is an ordinary submit button
-   * inside its own form. The alternative — a button outside the form
-   * pointing at it via the `form` attribute — reads fine but makes the
+   * inside its own form. The alternative, a button outside the form
+   * pointing at it via the `form` attribute, reads fine but makes the
    * dialog's main action depend on that association being honoured.
    */
   onSubmit?: (e: React.FormEvent) => void;
@@ -52,7 +52,7 @@ export function Dialog({
   // open means a Space or Enter right after opening dismisses the dialog
   // instead of typing into the first field.
   const bodyRef = useRef<HTMLDivElement>(null);
-  // The last element focused while the dialog was closed — where focus
+  // The last element focused while the dialog was closed: where focus
   // goes back to on close, normally the trigger.
   //
   // Tracked continuously rather than read from document.activeElement on
@@ -93,7 +93,7 @@ export function Dialog({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    // Focus after paint — the panel isn't in the DOM yet on this tick.
+    // Focus after paint: the panel isn't in the DOM yet on this tick.
     const frame = requestAnimationFrame(() => {
       const body = bodyRef.current;
       // The first control in the body, by DOM order. Callers should not
@@ -114,8 +114,8 @@ export function Dialog({
 
       // Visibility is filtered by attribute, not by offsetParent. That
       // is the usual trick for "is this actually on screen", but it
-      // reports null for anything inside a fixed-position ancestor — and
-      // this panel is one — as well as everywhere in jsdom, where there
+      // reports null for anything inside a fixed-position ancestor, and
+      // this panel is one, as well as everywhere in jsdom, where there
       // is no layout at all. Either way the list came back empty and the
       // trap silently did nothing. The selector already drops [disabled]
       // and tabindex="-1"; these two cover the rest.
@@ -144,7 +144,7 @@ export function Dialog({
       document.removeEventListener('keydown', onKeyDown);
       cancelAnimationFrame(frame);
       document.body.style.overflow = previousOverflow;
-      // Skip a node that has since been removed — focusing a detached
+      // Skip a node that has since been removed: focusing a detached
       // element is a no-op that drops focus to <body>.
       if (restoreTo.current?.isConnected) restoreTo.current.focus();
     };

@@ -18,11 +18,11 @@ import { formatDate } from '@/lib/format';
  *   1. Only an owner can grant or remove the OWNER role. An admin who
  *      could promote themselves would make the role decorative.
  *   2. A project always keeps at least one owner. The last one's remove
- *      and demote controls are disabled, with the reason stated — a
+ *      and demote controls are disabled, with the reason stated: a
  *      project with no owner can't be administered by anyone, not even
  *      to appoint a replacement.
  *
- * These are checks, not the enforcement — the server refuses either way.
+ * These are checks, not the enforcement: the server refuses either way.
  * Doing it here too means the developer reads *why* instead of clicking
  * and getting a 400.
  */
@@ -201,7 +201,7 @@ export function MembersManager({
           {members.map((member) => {
             const isLastOwner = member.role === 'OWNER' && ownerCount === 1;
             const isSelf = member.email === currentUserEmail;
-            // Only an owner may touch another owner — mirroring the API.
+            // Only an owner may touch another owner: mirroring the API.
             const mayEdit = canManage && (member.role !== 'OWNER' || viewerIsOwner);
             const busy = busyUserId === member.userId;
 

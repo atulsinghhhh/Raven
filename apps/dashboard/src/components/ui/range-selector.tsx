@@ -1,7 +1,7 @@
 import { RANGES, RANGE_LABEL, RANGE_SHORT, type Range } from '@/lib/format';
 
 /**
- * Plain links, not a client-side control — the range is a URL param the
+ * Plain links, not a client-side control: the range is a URL param the
  * server component reads, so switching it is a normal navigation with no
  * JS and no hydration cost. Shareable/bookmarkable as a side effect.
  *

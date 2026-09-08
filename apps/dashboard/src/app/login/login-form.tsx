@@ -32,8 +32,8 @@ export function LoginForm() {
         return;
       }
 
-      // `next` carries the page the user was trying to reach — including
-      // the CLI authorisation hand-off — so it has to survive the round trip.
+      // `next` carries the page the user was trying to reach: including
+      // the CLI authorisation hand-off, so it has to survive the round trip.
       router.push(searchParams.get('next') ?? '/dashboard');
       router.refresh();
     } catch {

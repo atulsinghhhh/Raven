@@ -1,13 +1,13 @@
 import { ravenApi } from './api-client';
 
 export const LOG_SCAN_LIMIT = 100;
-// Fetching every webhook's full delivery history would be unbounded —
+// Fetching every webhook's full delivery history would be unbounded;
 // cap both dimensions so this can never turn into an accidental
 // N-times-M fan-out against the Control API.
 export const WEBHOOK_FANOUT_LIMIT = 5;
 
 /**
- * The one place Logs and Events both pull from — same sources, same
+ * The one place Logs and Events both pull from: same sources, same
  * caps, so the two pages can never silently disagree about what "the
  * last 100 of each" means.
  */

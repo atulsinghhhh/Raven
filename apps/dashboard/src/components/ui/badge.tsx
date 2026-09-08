@@ -1,9 +1,9 @@
 /**
- * Status is never conveyed by colour alone — every badge and indicator
+ * Status is never conveyed by colour alone: every badge and indicator
  * here pairs its colour with a distinct glyph and a text label, so it
  * still reads correctly in greyscale or with a colour-vision deficiency.
  *
- * Badges are 4px rectangles rather than pills. The status dot inside
+ * Badges are 4px rectangles, not pills. The status dot inside
  * each one is still round, which is the point: the round thing is the
  * indicator, not the container.
  */
@@ -91,7 +91,7 @@ const SYSTEM_STATUS: Record<SystemStatus, { label: string; tone: BadgeTone; dot:
 
 /**
  * Compact infra health pill for the top bar. The dot only pulses while
- * something is actually wrong — a permanently animating indicator is
+ * something is actually wrong: a permanently animating indicator is
  * noise, and stops reading as a signal.
  */
 export function SystemStatusIndicator({ status, className = '' }: { status: SystemStatus; className?: string }) {
@@ -143,7 +143,7 @@ const CONNECTION_QUALITY: Record<string, { tone: BadgeTone; label: string }> = {
 };
 
 /**
- * The SFU's own read on a connection's media quality — see
+ * The SFU's own read on a connection's media quality: see
  * `ConnectionQuality` in `@corvidhq/rtc`. `null` (no stats sample received
  * yet) renders nothing rather than a misleading "Unknown" badge, since
  * `'unknown'` is itself a value the SFU can report.
@@ -156,7 +156,7 @@ export function ConnectionQualityBadge({ quality }: { quality: string | null }) 
 
 /**
  * Error categories are all failures, but they don't all mean the same
- * thing — auth/token problems are the developer's own misconfiguration,
+ * thing: auth/token problems are the developer's own misconfiguration,
  * network/ICE/TURN ones are usually environmental.
  */
 const ERROR_CATEGORY_TONE: Record<string, BadgeTone> = {

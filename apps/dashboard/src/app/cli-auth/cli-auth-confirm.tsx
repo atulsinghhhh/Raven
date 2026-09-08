@@ -16,7 +16,7 @@ export function CliAuthConfirm({ port, state }: { port: string; state: string })
 
     try {
       // Same-origin, cookie-authorized. The token stays in memory here and
-      // never gets written to storage — used once, right below.
+      // never gets written to storage: used once, right below.
       const sessionRes = await fetch('/api/cli-auth/token', { method: 'POST' });
       if (!sessionRes.ok) throw new Error('Could not read your session — try signing in again.');
       const { token, email } = await sessionRes.json();

@@ -20,7 +20,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: 'An email address is required' }, { status: 400 });
   }
 
-  // An unrecognised role is dropped rather than forwarded — the API would
+  // An unrecognised role is dropped, not forwarded: the API would
   // reject it anyway, and letting it through turns a typo into a confusing
   // 400 from a layer the developer isn't looking at.
   const role = ROLES.includes(body?.role) ? (body.role as ProjectRole) : undefined;

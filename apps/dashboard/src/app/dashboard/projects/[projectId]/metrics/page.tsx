@@ -28,11 +28,11 @@ import {
  * Metrics.
  *
  * The API's metrics endpoint returns one aggregate snapshot per window,
- * not a time series — there is no historical store behind it. So the
+ * not a time series: there is no historical store behind it. So the
  * headline numbers come straight from that snapshot, and the two charts
  * are bucketed here from the raw connection and error records. That is
  * real data, but it is capped at the 200 most recent records per list,
- * which is stated on every chart rather than buried in a tooltip.
+ * which is stated on every chart, not buried in a tooltip.
  *
  * Nothing on this page is estimated, interpolated or simulated.
  */
@@ -117,7 +117,7 @@ export default async function MetricsPage({
   const token = await getSessionToken();
   if (!token) redirect('/login');
 
-  // Each panel degrades on its own — a failing list shouldn't blank the
+  // Each panel degrades on its own: a failing list shouldn't blank the
   // snapshot a developer opened the page for.
   const [metricsResult, connectionsResult, errorsResult] = await Promise.allSettled([
     ravenApi.getMetrics(token, projectId, range),
@@ -376,7 +376,7 @@ function NotMeasured({ title, children }: { title: string; children: React.React
 }
 
 /**
- * One clock read per request. This is an async Server Component — it
+ * One clock read per request. This is an async Server Component: it
  * renders exactly once per navigation, so both charts and both
  * distributions share a single window boundary rather than each
  * computing a slightly different "now".
@@ -400,7 +400,7 @@ function withinWindow(iso: string, range: Range, now: number): boolean {
 
 /**
  * Buckets real timestamps into equal slices across the selected window.
- * Anything outside the window is dropped rather than clamped into the
+ * Anything outside the window is dropped instead of clamped into the
  * edge buckets, which would invent activity that didn't happen there.
  */
 function bucketise(timestamps: string[], range: Range, now: number): { data: Bucket[]; covered: number } {

@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * The project list renders its own AccountShell, so this fallback has to
- * stand in for the chrome as well as the content — otherwise the page
+ * stand in for the chrome as well as the content: otherwise the page
  * would flash from a bare canvas to a full header. The mark and wordmark
  * are real; everything below is shaped like the grid that replaces it.
  */

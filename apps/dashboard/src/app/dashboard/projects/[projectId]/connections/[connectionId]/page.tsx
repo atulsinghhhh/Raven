@@ -52,7 +52,7 @@ export default async function ConnectionDetailPage({
 
   const c = connection;
   // A connection that never reached CONNECTED has no meaningful "live"
-  // duration — showing 0s would read as "connected instantly then died".
+  // duration: showing 0s would read as "connected instantly then died".
   const everConnected = Boolean(c.connectedAt);
   const isLive = c.state === 'CONNECTED' || c.state === 'RECONNECTING';
 

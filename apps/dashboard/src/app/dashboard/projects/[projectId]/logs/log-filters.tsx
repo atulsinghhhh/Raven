@@ -14,7 +14,7 @@ const PRODUCTS: { value: LogProduct; label: string }[] = [
 
 /**
  * Filters live in the URL. Product and status are applied server-side
- * over the already-merged log list (see logs/page.tsx) — there's no
+ * over the already-merged log list (see logs/page.tsx): there's no
  * single backend endpoint to filter, so the page states that plainly
  * rather than implying a real query.
  */

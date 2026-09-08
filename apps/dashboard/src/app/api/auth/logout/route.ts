@@ -8,7 +8,7 @@ export async function POST() {
   const token = store.get(SESSION_COOKIE_NAME)?.value;
 
   if (token) {
-    // Best-effort — cookie gets cleared regardless. If the blocklist call
+    // Best-effort: cookie gets cleared regardless. If the blocklist call
     // fails, we still don't want the user stuck looking logged in.
     await ravenApi.logout(token).catch(() => undefined);
   }

@@ -28,7 +28,7 @@ export function EmptyState({
 
 /**
  * API failure UI. Shows a human explanation plus, when the API gave us
- * one, the request/error id to quote in a bug report — never a stack
+ * one, the request/error id to quote in a bug report: never a stack
  * trace or raw driver error.
  */
 export function ErrorState({
@@ -74,14 +74,14 @@ export function ErrorState({
 
 /**
  * Placeholder for a value we genuinely don't have. Deliberately never a
- * zero or a dash that could be mistaken for real data — an unreachable
+ * zero or a dash that could be mistaken for real data: an unreachable
  * dependency and an idle one must not look the same.
  */
 export function NoDataYet({ label = 'No data yet' }: { label?: string }) {
   return <span className="text-sm text-subtle italic">{label}</span>;
 }
 
-/** Inline "—" for a field that is legitimately empty on this record. */
+/** Inline " " for a field that is legitimately empty on this record. */
 export function Dash() {
   return (
     <span className="text-subtle" aria-label="Not set">

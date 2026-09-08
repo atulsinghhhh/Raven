@@ -13,7 +13,7 @@ const KIND_LABEL: Record<DashboardNotification['kind'], string> = {
 
 /**
  * Every item here comes from a real record (diagnostics, webhook health,
- * audit log) fetched server-side by the project layout — see
+ * audit log) fetched server-side by the project layout: see
  * lib/notifications.ts. There is no unread-count persistence yet
  * (nothing in the API tells us what a developer has already seen), so
  * the badge is "how many right now", not "how many new".

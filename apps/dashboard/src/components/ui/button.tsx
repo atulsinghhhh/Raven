@@ -8,7 +8,7 @@ type Size = 'sm' | 'md';
  * surface/canvas contrast and hairline borders, and a drop shadow under
  * a button was the one place that rule was broken.
  *
- * The two filled variants run semibold and the outlined ones medium —
+ * The two filled variants run semibold and the outlined ones medium;
  * same split as the marketing site's buttons, and it's what lets a
  * primary action read as primary without also being the only coloured
  * thing on screen.

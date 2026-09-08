@@ -39,7 +39,7 @@ describe('ProjectsList — create project', () => {
   it('opens the dialog from the deep link, so ?new=1 lands ready to type', async () => {
     render(<ProjectsList initialProjects={[PROJECT]} autoOpenCreate />);
     expect(screen.getByRole('dialog', { name: 'Create a project' })).toBeInTheDocument();
-    // The name field takes focus, not the header's close button — which
+    // The name field takes focus, not the header's close button, which
     // is first in DOM order, and would make Space or Enter dismiss the
     // dialog the instant it opened.
     await waitFor(() => expect(screen.getByLabelText('Project name')).toHaveFocus());

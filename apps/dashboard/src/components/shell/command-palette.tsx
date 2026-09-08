@@ -62,8 +62,8 @@ export function CommandPalette({ projectId }: { projectId: string }) {
   );
 
   // Things you *do*, not places you go. Each still lands on a real page
-  // rather than calling an endpoint from here, which would mean
-  // duplicating that page's validation and error UI — but where the page
+  // instead of calling an endpoint from here, which would mean
+  // duplicating that page's validation and error UI, but where the page
   // supports a deep link that opens its create UI, the action uses it.
   const actions: Item[] = useMemo(
     () => [
@@ -79,7 +79,7 @@ export function CommandPalette({ projectId }: { projectId: string }) {
         id: 'create-project',
         title: 'Create project',
         subtitle: 'Projects',
-        // ?new=1 is the deep link that opens the create dialog — the
+        // ?new=1 is the deep link that opens the create dialog: the
         // dashboard home and the project switcher already use it. Without
         // the param this action only landed on the list and the developer
         // had to find the button themselves.
@@ -98,7 +98,7 @@ export function CommandPalette({ projectId }: { projectId: string }) {
   );
 
   // Remote hits are only meaningful for the query that fetched them, so
-  // they're gated on the query still being long enough rather than being
+  // they're gated on the query still being long enough, not being
   // cleared from an effect.
   const searchable = query.trim().length >= 2;
 
@@ -115,12 +115,12 @@ export function CommandPalette({ projectId }: { projectId: string }) {
     setHits([]);
     setCursor(0);
     setOpen(true);
-    // Focus after paint — the input isn't mounted yet on this tick.
+    // Focus after paint: the input isn't mounted yet on this tick.
     requestAnimationFrame(() => inputRef.current?.focus());
   }, []);
 
   // `open` is a dependency so the handler reads it directly rather than
-  // through a state updater — updaters must stay pure, and openPalette
+  // through a state updater: updaters must stay pure, and openPalette
   // both sets state and focuses the DOM.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -135,7 +135,7 @@ export function CommandPalette({ projectId }: { projectId: string }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, openPalette]);
 
-  // Debounced remote search. Short queries stay local (nav pages only) —
+  // Debounced remote search. Short queries stay local (nav pages only);
   // one- and two-character queries match nearly every id and just burn
   // requests. All state writes happen inside the debounced callback, not
   // synchronously in the effect body.
@@ -154,7 +154,7 @@ export function CommandPalette({ projectId }: { projectId: string }) {
         const payload = await res.json();
         setHits(payload.hits ?? []);
       } catch {
-        // Aborted or failed — the palette keeps working as a page jumper.
+        // Aborted or failed: the palette keeps working as a page jumper.
         if (!controller.signal.aborted) setHits([]);
       } finally {
         if (!controller.signal.aborted) setLoading(false);

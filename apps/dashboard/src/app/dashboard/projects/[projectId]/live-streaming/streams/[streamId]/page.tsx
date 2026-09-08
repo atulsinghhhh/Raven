@@ -11,14 +11,14 @@ import { Dash, EmptyState, ErrorState, NoDataYet } from '@/components/ui/states'
 import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { formatCount, formatDateTime } from '@/lib/format';
 
-// Same scan window the conversation detail page uses for message metadata —
+// Same scan window the conversation detail page uses for message metadata;
 // a chat's root message (the one reactions attach to) may fall outside it
-// on a very active stream; that's called out explicitly rather than shown
+// on a very active stream; that's called out explicitly instead of shown
 // as a silent zero.
 const MESSAGE_SCAN_LIMIT = 100;
 
 /**
- * One live stream — metadata, hosts, viewer counts, and chat *metadata*.
+ * One live stream: metadata, hosts, viewer counts, and chat *metadata*.
  * Message contents are never shown here, same rule as Chat's conversation
  * detail page: the API this reads from doesn't return them.
  */

@@ -3,7 +3,7 @@ import { CopyButton } from './copy-button';
 
 /**
  * Identifiers (conn_…, err_…, rvk_…, uuids) are monospace and truncate
- * from the tail — the prefix is what a developer recognises, so it must
+ * from the tail: the prefix is what a developer recognises, so it must
  * never be the part that gets cut. `title` keeps the full value available
  * on hover, and copy gives them the exact string.
  */

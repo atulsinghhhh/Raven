@@ -28,7 +28,7 @@ import { formatCount } from '@/lib/format';
  * Two independent sources: the project-scoped diagnostics endpoint (auth
  * required, tells you about *your* project) and the platform health
  * endpoint. Either can fail on its own, and the page still renders
- * whatever the other one returned — with the gap named explicitly, since
+ * whatever the other one returned: with the gap named explicitly, since
  * "unknown" and "healthy" must never look the same here.
  */
 

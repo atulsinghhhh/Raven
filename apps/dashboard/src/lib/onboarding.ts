@@ -14,7 +14,7 @@ export interface OnboardingSignals {
 }
 
 /**
- * Five steps, each backed by something Raven can actually observe —
+ * Five steps, each backed by something Raven can actually observe;
  * never a client-side "mark as done" checkbox. Two of them (Install SDK,
  * Create a token) can't be measured directly, since neither has a
  * dedicated resource: they're inferred from the next real signal that

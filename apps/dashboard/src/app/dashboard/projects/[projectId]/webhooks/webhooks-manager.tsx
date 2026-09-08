@@ -25,10 +25,10 @@ const EVENT_TYPES = [
 
 /**
  * Like an API key's secret, a webhook's signing secret is shown exactly
- * once — it exists in this UI for a single render after creation and is
+ * once: it exists in this UI for a single render after creation and is
  * never retrievable afterwards. Unlike an API key it *is* stored
  * server-side (signing each delivery needs it), which is why the copy
- * panel says so plainly rather than implying it's unrecoverable.
+ * panel says so plainly, not implying it's unrecoverable.
  *
  * Raven auto-disables an endpoint after enough consecutive failures, so
  * this component also has to explain that state and offer a way back.
@@ -59,7 +59,7 @@ export function WebhooksManager({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // An empty list means "every event", which is the API's own
-        // default — so we send undefined rather than [].
+        // default, so we send undefined rather than [].
         body: JSON.stringify({ url, events: selectedEvents.length > 0 ? selectedEvents : undefined }),
       });
       const payload = await response.json();

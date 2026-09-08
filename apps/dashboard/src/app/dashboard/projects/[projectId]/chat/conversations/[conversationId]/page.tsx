@@ -27,8 +27,8 @@ const MESSAGE_STATUS_TONE: Record<ChatMessageSummary['status'], BadgeTone> = {
 };
 
 /**
- * One conversation — metadata, members, and message *metadata*. There is
- * deliberately no way to read a message's text from this page: the API
+ * One conversation: metadata, members, and message *metadata*. There is
+ * by design no way to read a message's text from this page: the API
  * behind it never selects `content` in the first place (spec §50), so
  * the restriction can't be undone by a future UI change here without
  * also changing the query that has to name the field explicitly.

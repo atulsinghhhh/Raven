@@ -24,7 +24,7 @@ describe('formatDuration', () => {
     expect(formatDuration(3 * 3_600_000 + 25 * 60_000)).toBe('3h 25m');
   });
 
-  // A connection that never completed has a null duration — it must not
+  // A connection that never completed has a null duration: it must not
   // render as "0s", which would read as an instant disconnect.
   it('renders an em dash for null/undefined rather than zero', () => {
     expect(formatDuration(null)).toBe('—');
@@ -98,8 +98,8 @@ describe('formatMs', () => {
     expect(formatMs(0)).toBe('0 ms');
   });
 
-  // A connection with no stats sample yet is not the same as 0ms jitter —
-  // that would read as a perfect connection rather than "unmeasured".
+  // A connection with no stats sample yet is not the same as 0ms jitter;
+  // that would read as a perfect connection instead of "unmeasured".
   it('distinguishes an unmeasured value from a real zero', () => {
     expect(formatMs(null)).toBeNull();
     expect(formatMs(undefined)).toBeNull();

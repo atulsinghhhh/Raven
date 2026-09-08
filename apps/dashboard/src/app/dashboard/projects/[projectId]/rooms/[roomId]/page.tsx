@@ -13,7 +13,7 @@ import { IconParticipants } from '@/components/ui/icons';
 import { formatCount, formatDateTime, formatDuration, formatMs, formatRelative } from '@/lib/format';
 import { TestTokenPanel } from './test-token-panel';
 
-// The room's own connection history is a supporting panel, not the page —
+// The room's own connection history is a supporting panel, not the page;
 // 50 records is enough to see what has been happening without paging.
 const ROOM_CONNECTION_LIMIT = 50;
 
@@ -215,7 +215,7 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ pro
 }
 
 /**
- * Aggregates the *currently open* connections' last stats sample —
+ * Aggregates the *currently open* connections' last stats sample;
  * closed connections tell you nothing about the room's health right
  * now. "Worst of" for jitter/loss, same reasoning as the connection
  * detail page: for a room someone is actively watching, how bad it
@@ -273,7 +273,7 @@ function LiveQualitySummary({ connections }: { connections: ConnectionSummary[] 
   );
 }
 
-/** Numeric worst-of, skipping nulls — a metric no connection reported yet must not drag the max down to itself. */
+/** Numeric worst-of, skipping nulls: a metric no connection reported yet must not drag the max down to itself. */
 function maxOf(connections: ConnectionSummary[], pick: (c: ConnectionSummary) => number | null): number | null {
   const values = connections.map(pick).filter((v): v is number => v !== null);
   return values.length > 0 ? Math.max(...values) : null;
@@ -281,7 +281,7 @@ function maxOf(connections: ConnectionSummary[], pick: (c: ConnectionSummary) =>
 
 const QUALITY_RANK: Record<string, number> = { excellent: 0, good: 1, unknown: 2, poor: 3, lost: 4 };
 
-/** The single worst reported quality among live connections — same "worst, not average" reasoning as the numeric fields. */
+/** The single worst reported quality among live connections: same "worst, not average" reasoning as the numeric fields. */
 function worstQualityOf(connections: ConnectionSummary[]): string | null {
   const known = connections
     .map((c) => c.connectionQuality)
@@ -313,7 +313,7 @@ function ParticipantCard({ participant }: { participant: LiveParticipantInfo }) 
 }
 
 /**
- * Muted state is in the label, not just the tone — a muted video track and a
+ * Muted state is in the label, not just the tone: a muted video track and a
  * live one must not be told apart by colour alone.
  */
 function TrackBadge({ track }: { track: LiveTrackInfo }) {

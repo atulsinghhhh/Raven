@@ -137,7 +137,7 @@ describe('ravenApi', () => {
     });
   });
   /**
-   * The fleet endpoints are deployment-level, not project-scoped — an SFU
+   * The fleet endpoints are deployment-level, not project-scoped: an SFU
    * node is shared infrastructure, so there is no project whose
    * membership could authorize it. These tests pin that URL shape,
    * because a project segment creeping in would 404 rather than fail
@@ -168,7 +168,7 @@ describe('ravenApi', () => {
 
     it('passes fleet metrics through untouched, including a zero capacity', async () => {
       // A fleet with no registered node has capacity 0, and the caller has
-      // to be able to tell that from "the request failed" — so nothing here
+      // to be able to tell that from "the request failed", so nothing here
       // substitutes a default.
       mockFetchOnce(200, {
         servers: 0,

@@ -16,8 +16,8 @@ import { Badge } from '@/components/ui/badge';
 /**
  * Limits mirror CreateProjectDto on the API (name 2–80, description
  * optional and ≤500). They're enforced here as `maxLength` plus a
- * disabled submit rather than as an error message, so the two never
- * disagree and the request is never sent knowing it will be rejected —
+ * disabled submit instead of as an error message, so the two never
+ * disagree and the request is never sent knowing it will be rejected;
  * but the server stays the authority, and anything it refuses is still
  * surfaced verbatim.
  */
@@ -78,7 +78,7 @@ export function ProjectsList({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: trimmedName,
-          // Omitted entirely rather than sent empty — the field is
+          // Omitted entirely, not sent empty: the field is
           // optional on the API and "" is not the same as absent.
           ...(description.trim() ? { description: description.trim() } : {}),
         }),

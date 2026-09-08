@@ -14,8 +14,8 @@ import { DangerZone } from './danger-zone';
  * Only two things here actually write: PATCH /api/projects/:id (name and
  * description) and DELETE /api/projects/:id (archive). CORS is an honest
  * note about a capability that doesn't exist per-project yet. Webhooks
- * have their own dedicated CRUD page (see nav.ts) — this page just
- * points there rather than duplicating it.
+ * have their own dedicated CRUD page (see nav.ts): this page just
+ * points there instead of duplicating it.
  */
 export default async function SettingsPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;

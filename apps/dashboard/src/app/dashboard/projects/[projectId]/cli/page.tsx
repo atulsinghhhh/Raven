@@ -8,12 +8,12 @@ import { IconExternal } from '@/components/ui/icons';
 import { DOCS_URL } from '@/lib/nav';
 
 /**
- * Static reference page for `@corvidhq/cli` — same nature as SDKs and
+ * Static reference page for `@corvidhq/cli`: same nature as SDKs and
  * Effects (no per-project data of its own; the CLI doesn't have a
  * dashboard-visible resource, it just calls the same Control API this
  * dashboard does). Command names are transcribed from
  * packages/cli/src/cli.ts's actual `register*Command` calls, not
- * invented — if a command is added or removed there, this list goes
+ * invented: if a command is added or removed there, this list goes
  * stale and should be updated alongside it.
  */
 const COMMAND_GROUPS: { name: string; description: string }[] = [

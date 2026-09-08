@@ -3,7 +3,7 @@ import { formatClockTime, formatDateTime } from '@/lib/format';
 /**
  * Connection event timeline. The vocabulary is fixed by the ingest
  * endpoint (see observability.constants.ts on the API side), so events
- * get real labels rather than the raw snake_case type — but anything
+ * get real labels, not the raw snake_case type, but anything
  * unrecognised still renders, humanised, instead of being dropped.
  */
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'accent';

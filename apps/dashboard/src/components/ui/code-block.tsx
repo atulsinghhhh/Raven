@@ -7,7 +7,7 @@ import { CopyButton } from './copy-button';
  * Deliberately a ~60-line tokenizer instead of Shiki/Prism. Snippets here
  * are short and come from a fixed set of languages, and a highlighter
  * dependency would cost more bundle than every other page combined.
- * Tokens render as React nodes — no dangerouslySetInnerHTML anywhere.
+ * Tokens render as React nodes: no dangerouslySetInnerHTML anywhere.
  */
 type TokenType = 'comment' | 'string' | 'keyword' | 'number' | 'function' | 'property' | 'punct' | 'plain';
 
@@ -137,7 +137,7 @@ export interface CodeSample {
   code: string;
 }
 
-/** Same snippet across languages — the tab set doubles as the language selector. */
+/** Same snippet across languages: the tab set doubles as the language selector. */
 export function CodeTabs({ samples, className = '' }: { samples: CodeSample[]; className?: string }) {
   const [active, setActive] = useState(0);
   const id = useId();

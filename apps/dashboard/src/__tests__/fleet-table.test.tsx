@@ -83,7 +83,7 @@ describe('FleetTable', () => {
       expect(within(desktop()).getByText('Draining')).toBeInTheDocument();
     });
 
-    // `draining: true`, not a toggle — two operators on stale pages must
+    // `draining, true`, not a toggle: two operators on stale pages must
     // not be able to flip a node by each clicking "the other way".
     const [, init] = (global.fetch as jest.Mock).mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({ draining: true });
@@ -129,7 +129,7 @@ describe('FleetTable', () => {
     await waitFor(() => {
       expect(screen.getByText('Unknown node')).toBeInTheDocument();
     });
-    // The row is unchanged — a failed action must not look like it worked.
+    // The row is unchanged: a failed action must not look like it worked.
     expect(within(desktop()).getByText('Healthy')).toBeInTheDocument();
   });
 

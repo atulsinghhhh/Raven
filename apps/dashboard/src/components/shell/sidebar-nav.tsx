@@ -61,7 +61,7 @@ const ICONS: Record<NavItem['icon'], (p: { className?: string }) => React.JSX.El
 
 /**
  * The sidebar's "RTC" entry (slug `rooms`) is the landing page for a
- * whole product family — Connections and Participants moved out of the
+ * whole product family. Connections and Participants moved out of the
  * global sidebar into that family's own ProductTabs bar (see
  * product-tabs.tsx), but should still light up the same sidebar item.
  * Chat and Live Streaming don't need this: their sub-routes already

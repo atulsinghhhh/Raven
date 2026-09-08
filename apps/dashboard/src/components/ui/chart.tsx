@@ -5,7 +5,7 @@ import { NoDataYet } from './states';
  * is a small bucketed series, and a library would add more bundle than
  * the entire rest of the console.
  *
- * Every chart carries an sr-only data table — a bar height is not
+ * Every chart carries an sr-only data table: a bar height is not
  * information a screen reader can use, and "accessible chart" in practice
  * means "the numbers are also available as text".
  */
@@ -125,7 +125,7 @@ export function DistributionBar({ segments, caption }: { segments: Segment[]; ca
 
 /**
  * Single-value progress/rate bar. `tone` is derived by the caller from
- * thresholds, not hardcoded — a 90% success rate is good for one project
+ * thresholds, not hardcoded: a 90% success rate is good for one project
  * and alarming for another.
  */
 export function RateBar({ value, tone = 'accent' }: { value: number; tone?: 'accent' | 'success' | 'warning' | 'danger' }) {

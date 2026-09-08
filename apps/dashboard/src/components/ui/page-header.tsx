@@ -1,6 +1,6 @@
 /**
  * The page title block. The heading runs light and tightly tracked
- * rather than semibold — the same restraint the marketing site's
+ * rather than semibold: the same restraint the marketing site's
  * headlines use, one step heavier so it still holds at 22px against a
  * dense page of tables.
  *
