@@ -29,8 +29,9 @@ security hole.
 1. **JWT (developer session auth)** — `JwtAuthGuard`. Used for
    dashboard-style management: `/v1/auth/*`, `/v1/projects/*`,
    `/v1/projects/:id/api-keys/*`. A developer registers/logs in with
-   email+password and gets a bearer JWT. Every one of these routes scopes
-   its query to `ownerId = <the authenticated user>` — see
+   email+password — or through GitHub/Google OAuth (see docs/oauth.md);
+   both paths issue the identical bearer JWT. Every one of these routes
+   scopes its query to `ownerId = <the authenticated user>` — see
    `projects.service.ts#findOneForOwner`.
 2. **API key (machine auth)** — `ApiKeyAuthGuard`. Used for the endpoints
    a developer's *own backend* calls at runtime: `/v1/rooms/*` and

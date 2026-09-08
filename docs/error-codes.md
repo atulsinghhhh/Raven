@@ -62,6 +62,9 @@ new one. Generated IDs look like `req_` followed by 24 hex characters.
 |---|---|---|
 | `RAVEN_AUTH_ERROR` | 401 | Credentials missing, malformed, or rejected. |
 | `RAVEN_TOKEN_EXPIRED` | 401 | Distinct from the above: refresh, do not re-authenticate. |
+| `RAVEN_OAUTH_ERROR` | 401 | An OAuth sign-in that could not complete: bad/expired state or a rejected code. Retry from the start of the flow. |
+| `RAVEN_OAUTH_EMAIL_UNAVAILABLE` | 400 | The provider shared no usable email address. Fix is provider-side. |
+| `RAVEN_OAUTH_EMAIL_UNVERIFIED` | 403 | The email belongs to an existing account, but the provider has not verified it — linking refused. |
 | `RAVEN_PERMISSION_DENIED` | 403 | Authenticated, but not allowed to do this. |
 | `RAVEN_NOT_FOUND` | 404 | Generic; used when no resource-specific code fits. |
 | `RAVEN_PROJECT_NOT_FOUND` | 404 | |

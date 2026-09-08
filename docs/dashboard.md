@@ -44,11 +44,32 @@ token — `lib/session.ts`'s `getSessionToken()` is server-only
 (`next/headers`'s `cookies()`), confirmed by grepping every `'use client'`
 file in the codebase for that import.
 
+Alongside email/password, the login and signup screens offer
+**"Continue with GitHub"** and **"Continue with Google"** when the
+deployment has those providers configured. The whole OAuth dance is
+server-side (`app/api/auth/oauth/[provider]/{start,callback}/route.ts` on
+this side, `/v1/auth/oauth/*` on the Control API's); the browser only sees
+redirects and ends up with the exact same `raven_session` cookie a
+password login sets. See docs/oauth.md for the full flow and provider
+setup.
+
 `src/proxy.ts` (Next.js's post-15 renaming of `middleware.ts` — the export
 had to be renamed from `middleware` to `proxy` to match) redirects to
-`/login` when the session cookie is absent, for every `/dashboard/**`
-route. **This is a UX convenience only, not the authorization boundary** —
-see below.
+`/login` when the session cookie is absent, for every `/dashboard/**` and
+`/onboarding/**` route, and routes between `/dashboard` and `/onboarding`
+off the `raven_onboarding` hint cookie. **This is a UX convenience only,
+not the authorization boundary** — see below.
+
+## Onboarding
+
+First-run onboarding lives at `/onboarding`: a seven-step flow (welcome →
+use cases → experience → stack → create project → connect → done) whose
+answers persist through `GET/PATCH /v1/onboarding` and finish with
+`POST /v1/onboarding/complete`. State lives server-side in the
+`user_onboarding` table, so a closed tab resumes at the last saved step.
+Accounts that predate the feature were backfilled as completed and never
+see it. The project-creation step mints the first API key through the
+normal show-once flow; the secret is displayed exactly once there.
 
 ## Authorization
 

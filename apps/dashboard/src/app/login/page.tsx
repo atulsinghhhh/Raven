@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { Card } from '@/components/ui/card';
-import { RavenMark } from '@/components/ui/icons';
+import { AuthError } from '@/components/auth/auth-error';
+import { AuthShell } from '@/components/auth/auth-shell';
+import { AuthDivider, OAuthButtons } from '@/components/auth/oauth-buttons';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DOCS_URL } from '@/lib/nav';
+import { ravenApi } from '@/lib/api-client';
+import { safeInternalPath } from '@/lib/safe-path';
 import { LoginForm } from './login-form';
 
 export const metadata: Metadata = {
@@ -11,62 +13,56 @@ export const metadata: Metadata = {
 };
 
 /**
- * Entry surface. Deliberately quiet: a mark, one sentence about what
- * Raven is, and the two fields the API actually needs. Nothing here is
- * offered that the auth API can't back: no SSO, no magic links.
+ * Entry surface. Deliberately quiet: what Raven is, the sign-in methods
+ * this deployment actually supports, and nothing else. OAuth buttons only
+ * render for providers the Control API reports as configured.
  */
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string; error?: string }>;
+}) {
+  const params = await searchParams;
+  const next = safeInternalPath(params.next);
+
+  // An unreachable API mustn't take the whole login page down with it —
+  // the email form still works the moment the API is back.
+  const providers = await ravenApi.oauthProviders().catch(() => ({ github: false, google: false }));
+  const hasOAuth = providers.github || providers.google;
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-canvas px-4 py-12">
-      <div className="w-full max-w-sm">
-        <header className="flex flex-col items-center text-center">
-          <span className="flex items-center gap-2">
-            <RavenMark className="size-7" />
-            <span className="text-base font-semibold tracking-tight text-fg">Raven</span>
-          </span>
-          <h1 className="mt-6 text-xl font-semibold tracking-tight text-fg">Sign in to your console</h1>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            Real-time communication infrastructure — rooms, connections, observability, and SDKs.
+    <AuthShell
+      title="Sign in to Raven"
+      subtitle="Realtime infrastructure for your applications."
+      footer={
+        <>
+          <p>
+            <a href="/forgot-password" className="font-medium text-accent-text hover:underline">
+              Forgot your password?
+            </a>
           </p>
-        </header>
-
-        <Card className="mt-7 shadow-raven-sm">
-          <Suspense fallback={<FormFallback />}>
-            <LoginForm />
-          </Suspense>
-        </Card>
-
-        <p className="mt-5 text-center text-sm text-muted">
-          <a href="/forgot-password" className="font-medium text-accent-text hover:underline">
-            Forgot your password?
-          </a>
-        </p>
-
-        <p className="mt-2 text-center text-sm text-muted">
-          No account?{' '}
-          <a href="/register" className="font-medium text-accent-text hover:underline">
-            Create one
-          </a>
-        </p>
-      </div>
-
-      <footer className="mt-10">
-        <a
-          href={DOCS_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs text-subtle transition-colors hover:text-muted"
-        >
-          Documentation
-        </a>
-      </footer>
-    </main>
+          <p>
+            No account?{' '}
+            <a href="/signup" className="font-medium text-accent-text hover:underline">
+              Create one
+            </a>
+          </p>
+        </>
+      }
+    >
+      <AuthError code={params.error} />
+      <OAuthButtons providers={providers} next={next} />
+      {hasOAuth && <AuthDivider label="or continue with email" />}
+      <Suspense fallback={<FormFallback />}>
+        <LoginForm />
+      </Suspense>
+    </AuthShell>
   );
 }
 
 /**
  * The form reads the `next` param, so it suspends on first render. This
- * fallback holds the exact height of the real form to stop the card from
+ * fallback holds the exact height of the real form to stop the column from
  * resizing underneath the heading.
  */
 function FormFallback() {

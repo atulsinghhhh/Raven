@@ -23,10 +23,55 @@ export interface AuthenticatedUser {
   emailVerified?: boolean;
 }
 
+export interface OnboardingStatus {
+  completed: boolean;
+  step: number;
+}
+
 export interface AuthResponse {
   accessToken: string;
   expiresIn: string;
   user: AuthenticatedUser;
+  /** Where this account is in first-run onboarding. Optional: the dashboard
+   *  may be newer than the API it's talking to. */
+  onboarding?: OnboardingStatus;
+}
+
+export type OAuthProvider = 'github' | 'google';
+
+export interface OAuthProviderAvailability {
+  github: boolean;
+  google: boolean;
+}
+
+export interface OnboardingState {
+  step: number;
+  completed: boolean;
+  completedAt: string | null;
+  useCases: string[];
+  experienceLevel: string | null;
+  stack: string[];
+  createdFirstProject: boolean;
+}
+
+export interface UpdateOnboardingInput {
+  step?: number;
+  useCases?: string[];
+  experienceLevel?: string;
+  stack?: string[];
+  createdFirstProject?: boolean;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string | null;
+  emailVerified: boolean;
+  /** False for OAuth-only accounts — settings offers "set a password" instead of "change password". */
+  hasPassword: boolean;
+  createdAt: string;
+  authAccounts: Array<{ provider: 'GITHUB' | 'GOOGLE'; email: string | null; createdAt: string }>;
+  onboarding: OnboardingStatus;
 }
 
 export interface Project {
@@ -540,8 +585,11 @@ async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<
 }
 
 export const ravenApi = {
-  register: (email: string, password: string) =>
-    apiFetch<AuthResponse>('/v1/auth/register', { method: 'POST', body: { email, password } }),
+  register: (email: string, password: string, name?: string) =>
+    apiFetch<AuthResponse>('/v1/auth/register', {
+      method: 'POST',
+      body: { email, password, ...(name ? { name } : {}) },
+    }),
 
   login: (email: string, password: string) =>
     apiFetch<AuthResponse>('/v1/auth/login', { method: 'POST', body: { email, password } }),
@@ -560,10 +608,10 @@ export const ravenApi = {
     }),
 
   resendVerificationEmail: (token: string) =>
-    apiFetch<{ status: 'sent' | 'already_verified' | 'suppressed'; message: string }>(
-      '/v1/auth/verify-email/resend',
-      { method: 'POST', token },
-    ),
+    apiFetch<{ status: 'sent' | 'already_verified' | 'suppressed'; message: string }>('/v1/auth/verify-email/resend', {
+      method: 'POST',
+      token,
+    }),
 
   requestPasswordReset: (email: string) =>
     apiFetch<{ message: string }>('/v1/auth/password-reset', { method: 'POST', body: { email } }),
@@ -573,6 +621,31 @@ export const ravenApi = {
       method: 'POST',
       body: { token: resetToken, password },
     }),
+
+  // OAuth sign-in. `start` and `exchange` are only ever called by our own
+  // server-side route handlers (app/api/auth/oauth) — the browser sees the
+  // provider's authorize page and our redirects, never these calls, and the
+  // client secret never leaves the Control API.
+  oauthProviders: () => apiFetch<OAuthProviderAvailability>('/v1/auth/oauth/providers'),
+
+  oauthStart: (provider: OAuthProvider) =>
+    apiFetch<{ authorizeUrl: string; state: string }>(`/v1/auth/oauth/${provider}/start`, { method: 'POST' }),
+
+  oauthExchange: (provider: OAuthProvider, code: string, state: string) =>
+    apiFetch<AuthResponse>(`/v1/auth/oauth/${provider}/exchange`, { method: 'POST', body: { code, state } }),
+
+  getMe: (token: string) => apiFetch<UserProfile>('/v1/users/me', { token }),
+
+  updateMe: (token: string, input: { name?: string }) =>
+    apiFetch<UserProfile>('/v1/users/me', { method: 'PATCH', token, body: input }),
+
+  getOnboarding: (token: string) => apiFetch<OnboardingState>('/v1/onboarding', { token }),
+
+  updateOnboarding: (token: string, input: UpdateOnboardingInput) =>
+    apiFetch<OnboardingState>('/v1/onboarding', { method: 'PATCH', token, body: input }),
+
+  completeOnboarding: (token: string) =>
+    apiFetch<OnboardingState>('/v1/onboarding/complete', { method: 'POST', token }),
 
   listProjects: (token: string) => apiFetch<Project[]>('/v1/projects', { token }),
 
@@ -760,7 +833,12 @@ export const ravenApi = {
     projectId: string,
     webhookId: string,
     input: { url?: string; events?: string[]; status?: 'ACTIVE' | 'DISABLED' },
-  ) => apiFetch<WebhookEndpointSummary>(`/v1/projects/${projectId}/webhooks/${webhookId}`, { method: 'PATCH', token, body: input }),
+  ) =>
+    apiFetch<WebhookEndpointSummary>(`/v1/projects/${projectId}/webhooks/${webhookId}`, {
+      method: 'PATCH',
+      token,
+      body: input,
+    }),
 
   deleteWebhook: (token: string, projectId: string, webhookId: string) =>
     apiFetch<void>(`/v1/projects/${projectId}/webhooks/${webhookId}`, { method: 'DELETE', token }),
@@ -769,10 +847,9 @@ export const ravenApi = {
     apiFetch<WebhookDeliveryRecord[]>(`/v1/projects/${projectId}/webhooks/${webhookId}/deliveries`, { token }),
 
   listLiveStreams: (token: string, projectId: string, status?: LiveStreamStatus) =>
-    apiFetch<LiveStreamSummary[]>(
-      `/v1/projects/${projectId}/live-streams${status ? `?status=${status}` : ''}`,
-      { token },
-    ),
+    apiFetch<LiveStreamSummary[]>(`/v1/projects/${projectId}/live-streams${status ? `?status=${status}` : ''}`, {
+      token,
+    }),
 
   /** Includes the stream's live viewer count. `listLiveStreams` doesn't, to avoid an SFU round trip per row. */
   getLiveStream: (token: string, projectId: string, streamId: string) =>

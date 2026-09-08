@@ -9,10 +9,20 @@ import { RANGES, RANGE_LABEL, RANGE_SHORT, type Range } from '@/lib/format';
  * offered; anything else would silently resolve to 1h server-side and
  * show numbers that don't match the label.
  */
-export function RangeSelector({ basePath, current }: { basePath: string; current: Range }) {
+export function RangeSelector({
+  basePath,
+  current,
+  ranges = RANGES,
+}: {
+  basePath: string;
+  current: Range;
+  /** Which windows to offer. Defaults to all of them; overview-style pages
+   *  pass the day-scale subset. */
+  ranges?: readonly Range[];
+}) {
   return (
     <nav aria-label="Time range" className="flex items-center gap-0.5 rounded-md border border-line bg-surface p-0.5">
-      {RANGES.map((range) => {
+      {ranges.map((range) => {
         const active = range === current;
         return (
           <a

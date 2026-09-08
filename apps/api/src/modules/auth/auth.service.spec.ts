@@ -2,14 +2,11 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UserTokenType } from '../../generated/prisma/client';
-import {
-  ConflictError,
-  UnauthorizedError,
-  ValidationFailedError,
-} from '../../shared/errors/app-error';
+import { ConflictError, UnauthorizedError, ValidationFailedError } from '../../shared/errors/app-error';
 import { RedisService } from '../../shared/redis/redis.service';
 import { EmailType } from '../email/email.constants';
 import { EmailService } from '../email/email.service';
+import { OnboardingService } from '../onboarding/onboarding.service';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
 import { UserTokensService } from './user-tokens.service';
@@ -26,6 +23,7 @@ describe('AuthService', () => {
   let redisService: { client: { set: jest.Mock; get: jest.Mock } };
   let userTokens: { issue: jest.Mock; consume: jest.Mock; revokeAll: jest.Mock };
   let emailService: { send: jest.Mock; brand: unknown; docsUrl: string };
+  let onboardingService: { ensureStarted: jest.Mock; getStatus: jest.Mock };
 
   beforeEach(() => {
     usersService = {
@@ -55,6 +53,11 @@ describe('AuthService', () => {
       docsUrl: 'https://docs.ravenstack.online',
     };
 
+    onboardingService = {
+      ensureStarted: jest.fn().mockResolvedValue(undefined),
+      getStatus: jest.fn().mockResolvedValue({ completed: false, step: 1 }),
+    };
+
     authService = new AuthService(
       usersService,
       jwtService,
@@ -62,6 +65,7 @@ describe('AuthService', () => {
       redisService as unknown as RedisService,
       userTokens as unknown as UserTokensService,
       emailService as unknown as EmailService,
+      onboardingService as unknown as OnboardingService,
     );
   });
 
@@ -69,15 +73,20 @@ describe('AuthService', () => {
     it('rejects a duplicate email with ConflictError', async () => {
       usersService.findByEmail.mockResolvedValue({ id: 'u1' } as never);
 
-      await expect(
-        authService.register({ email: 'dev@raven.local', password: 'password123' }),
-      ).rejects.toBeInstanceOf(ConflictError);
+      await expect(authService.register({ email: 'dev@raven.local', password: 'password123' })).rejects.toBeInstanceOf(
+        ConflictError,
+      );
     });
 
     it('hashes the password before persisting — never stores it raw', async () => {
       usersService.findByEmail.mockResolvedValue(null);
       usersService.create.mockImplementation((data) =>
-        Promise.resolve({ id: 'u1', email: data.email, passwordHash: data.passwordHash, name: data.name ?? null } as never),
+        Promise.resolve({
+          id: 'u1',
+          email: data.email,
+          passwordHash: data.passwordHash,
+          name: data.name ?? null,
+        } as never),
       );
 
       await authService.register({ email: 'dev@raven.local', password: 'password123' });
@@ -92,9 +101,9 @@ describe('AuthService', () => {
     it('rejects an unknown email with UnauthorizedError (not a 404)', async () => {
       usersService.findByEmail.mockResolvedValue(null);
 
-      await expect(
-        authService.login({ email: 'ghost@raven.local', password: 'whatever' }),
-      ).rejects.toBeInstanceOf(UnauthorizedError);
+      await expect(authService.login({ email: 'ghost@raven.local', password: 'whatever' })).rejects.toBeInstanceOf(
+        UnauthorizedError,
+      );
     });
 
     it('rejects a wrong password with the same UnauthorizedError as unknown email', async () => {
@@ -106,9 +115,9 @@ describe('AuthService', () => {
         name: null,
       } as never);
 
-      await expect(
-        authService.login({ email: 'dev@raven.local', password: 'wrong-password' }),
-      ).rejects.toBeInstanceOf(UnauthorizedError);
+      await expect(authService.login({ email: 'dev@raven.local', password: 'wrong-password' })).rejects.toBeInstanceOf(
+        UnauthorizedError,
+      );
     });
 
     it('succeeds and issues a token for a correct password', async () => {
@@ -130,6 +139,35 @@ describe('AuthService', () => {
         emailVerified: false,
       });
     });
+
+    it('carries onboarding status so the dashboard can route without a second call', async () => {
+      const passwordHash = await bcrypt.hash('correct-password', 12);
+      usersService.findByEmail.mockResolvedValue({
+        id: 'u1',
+        email: 'dev@raven.local',
+        passwordHash,
+        name: null,
+      } as never);
+      onboardingService.getStatus.mockResolvedValue({ completed: true, step: 7 });
+
+      const result = await authService.login({ email: 'dev@raven.local', password: 'correct-password' });
+      expect(result.onboarding).toEqual({ completed: true, step: 7 });
+    });
+
+    it('rejects a password login against an OAuth-only account with the same message as a wrong password', async () => {
+      // A null passwordHash is a GitHub/Google-created account. The
+      // response must not reveal how the account signs in.
+      usersService.findByEmail.mockResolvedValue({
+        id: 'u1',
+        email: 'dev@raven.local',
+        passwordHash: null,
+        name: null,
+      } as never);
+
+      await expect(authService.login({ email: 'dev@raven.local', password: 'anything' })).rejects.toMatchObject({
+        message: 'Invalid email or password',
+      });
+    });
   });
 
   describe('logout', () => {
@@ -137,12 +175,7 @@ describe('AuthService', () => {
       const nowSeconds = Math.floor(Date.now() / 1000);
       await authService.logout({ id: 'u1', email: 'dev@raven.local', jti: 'jti-1', exp: nowSeconds + 100 });
 
-      expect(redisService.client.set).toHaveBeenCalledWith(
-        'auth:revoked-jti:jti-1',
-        '1',
-        'EX',
-        expect.any(Number),
-      );
+      expect(redisService.client.set).toHaveBeenCalledWith('auth:revoked-jti:jti-1', '1', 'EX', expect.any(Number));
       const ttl = redisService.client.set.mock.calls[0][3];
       expect(ttl).toBeGreaterThan(0);
       expect(ttl).toBeLessThanOrEqual(100);
@@ -177,9 +210,7 @@ describe('AuthService', () => {
       const [payload] = emailService.send.mock.calls[0];
       expect(payload.to).toBe('dev@raven.local');
       expect(payload.type).toBe(EmailType.EmailVerification);
-      expect(payload.email.text).toContain(
-        'https://app.ravenstack.online/verify-email?token=raw-token-value',
-      );
+      expect(payload.email.text).toContain('https://app.ravenstack.online/verify-email?token=raw-token-value');
     });
 
     it('does not send a welcome email at signup — that waits for verification', async () => {
@@ -278,9 +309,7 @@ describe('AuthService', () => {
       expect(userTokens.issue).toHaveBeenCalledWith('u1', UserTokenType.PASSWORD_RESET, 60);
       const [payload] = emailService.send.mock.calls[0];
       expect(payload.type).toBe(EmailType.PasswordReset);
-      expect(payload.email.text).toContain(
-        'https://app.ravenstack.online/reset-password?token=raw-token-value',
-      );
+      expect(payload.email.text).toContain('https://app.ravenstack.online/reset-password?token=raw-token-value');
     });
 
     it('answers identically for an unknown address, and sends nothing', async () => {
@@ -338,9 +367,7 @@ describe('AuthService', () => {
     it('rejects an invalid or expired token without touching the password', async () => {
       userTokens.consume.mockResolvedValue(null);
 
-      await expect(authService.resetPassword('nope', 'whatever12')).rejects.toBeInstanceOf(
-        ValidationFailedError,
-      );
+      await expect(authService.resetPassword('nope', 'whatever12')).rejects.toBeInstanceOf(ValidationFailedError);
       expect(usersService.updatePassword).not.toHaveBeenCalled();
     });
   });

@@ -82,7 +82,7 @@ export class DashboardObservabilityController {
 
   @Get('metrics')
   @ApiOperation({ summary: 'Real aggregate connection/error metrics for this project' })
-  @ApiQuery({ name: 'range', required: false, enum: ['15m', '1h', '24h', '7d'] })
+  @ApiQuery({ name: 'range', required: false, enum: ['15m', '1h', '24h', '7d', '30d', '90d'] })
   @ApiNotFoundResponse({ description: 'Project not found, or not owned by the caller' })
   async getMetrics(
     @CurrentUser() user: AuthenticatedUser,
@@ -98,11 +98,7 @@ export class DashboardObservabilityController {
   @ApiResponse({ status: 200, description: 'API/auth/signaling/SFU/TURN status plus active connection count' })
   @ApiNotFoundResponse({ description: 'Project not found, or not owned by the caller' })
   async getDiagnostics(@CurrentUser() user: AuthenticatedUser, @Param('projectId', ParseUUIDPipe) projectId: string) {
-    const { project } = await this.projectsService.authorize(
-      projectId,
-      user.id,
-      Capability.ProjectRead,
-    );
+    const { project } = await this.projectsService.authorize(projectId, user.id, Capability.ProjectRead);
     return this.diagnosticsService.getDiagnostics(project);
   }
 }

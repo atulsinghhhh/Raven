@@ -32,7 +32,7 @@ There is no path from a browser, a mobile app or an SDK package to Resend.
 |---|---|---|
 | `ravenstack.online` | The website | Vercel (`apps/www`) |
 | `app.ravenstack.online` | The dashboard — where every emailed link goes | Vercel (`apps/dashboard`), and `APP_URL` on the API |
-| `mail.ravenstack.online` | The sending domain — where email comes *from* | Verified in Resend; `RESEND_FROM_EMAIL` |
+| `mail.ravenstack.online` | The sending domain — where email comes *from* | Verified in Resend (region `ap-northeast-1`, Tokyo); DNS in the Azure DNS zone `ravenstack.online`, resource group `raven-production`; `RESEND_FROM_EMAIL` |
 
 **Send from the subdomain, not the apex.** Transactional mail builds its
 own sending reputation. Keeping it on `mail.` means a bad week for email

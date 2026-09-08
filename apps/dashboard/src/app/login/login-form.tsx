@@ -32,9 +32,16 @@ export function LoginForm() {
         return;
       }
 
-      // `next` carries the page the user was trying to reach: including
-      // the CLI authorisation hand-off, so it has to survive the round trip.
-      router.push(searchParams.get('next') ?? '/dashboard');
+      // Incomplete onboarding wins over `next`: an account that never
+      // finished first-run setup gets sent back into it, and the flow ends
+      // at the dashboard anyway.
+      if (payload.onboarding && !payload.onboarding.completed) {
+        router.push('/onboarding');
+      } else {
+        // `next` carries the page the user was trying to reach: including
+        // the CLI authorisation hand-off, so it has to survive the round trip.
+        router.push(searchParams.get('next') ?? '/dashboard');
+      }
       router.refresh();
     } catch {
       setError('Could not reach the server. Check your connection and try again.');
@@ -56,7 +63,6 @@ export function LoginForm() {
         type="email"
         inputMode="email"
         autoComplete="email"
-        autoFocus
         placeholder="you@example.com"
         required
         value={email}
