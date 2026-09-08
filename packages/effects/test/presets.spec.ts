@@ -3,7 +3,7 @@ import { FILTER_DEFINITIONS } from '@/filters/index';
 
 describe('presets', () => {
   it('every preset composes only existing filter types (no duplicated pixel math)', () => {
-    for (const [name, preset] of Object.entries(presets)) {
+    for (const preset of Object.values(presets)) {
       const configs = preset();
       expect(configs.length).toBeGreaterThan(0);
       for (const config of configs) {
