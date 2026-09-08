@@ -88,9 +88,15 @@ jobs:
       - name: go vet
         run: go vet ./...
 
+      # golangci-lint refuses to run when the Go it was built with is older
+      # than the go directive in go.mod. v2.6.1 ships built with go1.25 and
+      # this module targets 1.26.4, which is the whole of the failure:
+      #   can't load config: the Go language version (go1.25) used to build
+      #   golangci-lint is lower than the targeted Go version (1.26.4)
+      # v2.13.2 is built with go1.27.0. Bump this alongside GO_VERSION.
       - uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.6.1
+          version: v2.13.2
           working-directory: services/sfu
 
       # Real Pion peers, real ICE/DTLS/SRTP, real RTP forwarding. -race

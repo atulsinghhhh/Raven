@@ -103,10 +103,12 @@ cd sdks/python && ruff check . && mypy src
 cd sdks/flutter/raven_rtc && flutter analyze --fatal-infos
 ```
 
-Install golangci-lint:
+Install golangci-lint. Keep this in step with the version pinned in
+`sfu-publish.yml`, and note that it has to be built with a Go at least as
+new as the `go` directive in `services/sfu/go.mod` or it refuses to start:
 
 ```bash
-go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.1
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
 ```
 
 The Go linter set is chosen for defects with a runtime consequence in a
