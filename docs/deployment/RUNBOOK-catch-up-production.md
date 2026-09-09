@@ -3,9 +3,10 @@
 Written 2026-09-09, after `app.ravenstack.online` was found serving a build
 from before the free-tier-usage-metering merge.
 
-**Nothing in here has been run.** The dashboard half was done; the API half
-is written up deliberately, because it deploys a live release *and* runs
-three migrations against the production database.
+**Both halves have now been run** (2026-09-09) — see "Done" below. What is
+left is one thing no script can do: registering OAuth credentials for
+production. The commands are kept here because they are the deploy path
+for every future release, not just this catch-up.
 
 ## What was wrong
 
@@ -20,11 +21,30 @@ and the page treated that as "no providers configured". It now says so
 explicitly instead (`AuthApiUnreachable`) — which is what the live site
 shows today, correctly, until the API catches up.
 
-## Done already
+## Done
 
-`raven-dashboard` was deployed to production from a tree identical to
-`origin/main` (`vercel deploy --prod`), and `app.ravenstack.online` is
-aliased to it.
+**Dashboard** — deployed from a tree identical to `origin/main`
+(`vercel deploy --prod`); `app.ravenstack.online` is aliased to it.
+
+**API** — image `ravenacr.azurecr.io/raven-api:0f14ad1` built and pushed
+(previous was `201b545`), the migration job run against production, and
+revision `raven-api--0000003` rolled out with 100% of traffic. Verified
+after:
+
+| | Before | After |
+|---|---|---|
+| Documented routes | 78 paths | 91 paths / 114 routes |
+| `oauth` / `usage` / `onboarding` | absent | all present |
+| `/v1/auth/oauth/providers` | `404` | `200` |
+| `/v1/usage` | `404` | `401` (present, auth-guarded) |
+
+Migrations: `prisma migrate status` reports "up to date". The backfill
+landed correctly — 2 users, 2 allowances, both at 20,000 minutes, 0
+sessions, RLS on 30/30 tables.
+
+Rollback if ever needed: revisions `--0000001` and `--0000002` are still
+Running and traffic-free (the app is in `Multiple` revision mode weighted
+100% to latest), so traffic can be shifted back without a rebuild.
 
 ## Still to do
 
@@ -77,7 +97,41 @@ vercel project inspect raven-dashboard
 vercel ls raven-dashboard          # source should stop being your username
 ```
 
-### 2. Deploy the API — a live release plus a production migration
+### 2. Configure OAuth on the production API — needs you
+
+The "Can't reach the Raven API" notice is gone, but the GitHub and Google
+buttons still do not appear, and that is now correct rather than broken:
+`/v1/auth/oauth/providers` answers `{"github":false,"google":false}`.
+`configuration.ts` derives `enabled` from `Boolean(process.env.GITHUB_CLIENT_ID)`,
+and the Container App has no OAuth variables at all — Key Vault holds nine
+secrets, none of them OAuth.
+
+This needs credentials handled by a person, in provider consoles:
+
+1. **Register production callback URLs.** The local credentials in `.env`
+   point at `localhost:3001` and cannot be reused as they are. A GitHub
+   OAuth App accepts only one callback URL, so production needs its own
+   app; Google accepts several redirect URIs, so one app can serve both.
+   The URL in both cases is
+   `https://app.ravenstack.online/api/auth/oauth/{github|google}/callback`.
+2. **Store them** as Key Vault secrets alongside the existing nine, e.g.
+   `github-client-id`, `github-client-secret`, `google-client-id`,
+   `google-client-secret`.
+3. **Wire them into the app**, plus `APP_URL=https://app.ravenstack.online`
+   so `callbackUrl` derives correctly instead of falling back to
+   `http://localhost:3000`. Add them to `13-api-app.sh`'s spec next to
+   `JWT_SECRET` so the next revision keeps them.
+
+Until then, email + password sign-in works and the OAuth buttons stay
+hidden — which is the honest rendering of a deployment without OAuth
+configured.
+
+Note also absent from the running revision, if they matter later: email
+(`RESEND_*`), storage (`STORAGE_*`), and every `USAGE_*` variable. The
+last one is deliberate — `configuration.ts` defaults to 20,000 minutes
+with enforcement on, so metering is live without any of them set.
+
+### 3. The deploy path, for future releases
 
 Read `infrastructure/azure/README.md` first; the scripts are numbered and
 assume `00-variables.sh` is sourced. All three take `RAVEN_IMAGE_TAG`,
@@ -96,7 +150,7 @@ export RAVEN_IMAGE_TAG="$(git rev-parse --short origin/main)"
 ./09-api-image.sh
 
 # b. Point the migration job at that tag and run it.
-#    Applies the 3 pending migrations — see the warning below.
+#    Applies whatever is pending — see the note below.
 ./12-migrate-job.sh
 az containerapp job start -n raven-migrate -g "$RAVEN_RG"
 az containerapp job execution list -n raven-migrate -g "$RAVEN_RG" -o table
@@ -105,12 +159,11 @@ az containerapp job execution list -n raven-migrate -g "$RAVEN_RG" -o table
 ./13-api-app.sh
 ```
 
-#### Before running (b): what those migrations do
+#### Before running (b): check what is pending, every time
 
-Checked against production on 2026-09-09 — `prisma migrate status` reports
-exactly three pending. `20260909000000_enable_row_level_security` is
-already applied and will not be re-run; its guard fix is therefore
-cosmetic on this database and matters only for fresh ones (CI, scratch).
+Run `prisma migrate status` against production first and read the list.
+For the 2026-09-09 catch-up it was these three (all now applied), which is
+the shape to expect — mostly no-ops, with one that writes data:
 
 | Migration | Effect |
 |---|---|
@@ -118,9 +171,10 @@ cosmetic on this database and matters only for fresh ones (CI, scratch).
 | `20260909120000_add_usage_metering` | Creates `usage_allowances` + `usage_sessions`, and **backfills one allowance per existing user at 20,000 minutes**. One row per account. |
 | `20260909130000_portable_data_api_lockdown` | Re-asserts the RLS lockdown across every table, and rebinds the default-privileges revoke to `current_user`. Idempotent; verified as a no-op where the state is already correct. |
 
-The backfill is the only one that writes application data. It is
+The backfill was the only one that wrote application data. It is
 `ON CONFLICT DO NOTHING`, so re-running is safe, and it grants rather than
-revokes — no existing account loses anything.
+revokes — no existing account loses anything. It landed as expected: 2
+users, 2 allowances, both 20,000 minutes.
 
 Verified on a clean cluster with `POSTGRES_USER=raven` (CI-identical) and
 on one seeded to look like Supabase: 30 tables, 30 with RLS, 30 with the
@@ -130,28 +184,31 @@ on one seeded to look like Supabase: 30 tables, 30 with RLS, 30 with the
 
 ```bash
 curl -s https://api.ravenstack.online/health | jq
-# 117-ish paths, and oauth/usage/onboarding present:
+# 91 paths / 114 routes as of 0f14ad1, with oauth/usage/onboarding present:
 curl -s https://api.ravenstack.online/docs-json \
   | jq '[.paths | keys[]] | length, (map(select(test("oauth|usage|onboarding"))))'
 curl -s https://api.ravenstack.online/v1/auth/oauth/providers   # {"github":true,"google":true}
 ```
 
-Then reload https://app.ravenstack.online/login — the "Can't reach the
-Raven API" notice should be replaced by the two provider buttons. That is
-the end-to-end signal that both halves are current.
+Then reload https://app.ravenstack.online/login. The "Can't reach the
+Raven API" notice disappearing is the signal that both halves are current.
+The provider buttons appearing is a *separate* signal, and needs step 2 —
+without OAuth credentials the page correctly shows neither the notice nor
+the buttons.
 
 **Rollback**: `infrastructure/azure/README.md` → "Rollback". `13-api-app.sh`
 keeps the previous revision, so the app can be pointed back at it.
 Migrations are not rolled back, and do not need to be — the new tables are
 additive and nothing older reads them.
 
-### 3. Ordering
+### 4. Ordering, for next time
 
-The dashboard is already ahead of the API, which is the safe direction: it
-degrades to an explicit "can't reach the API" notice rather than breaking.
-Deploy the API whenever you like; nothing is waiting on it except the OAuth
-buttons and the usage page.
+Ship the API before or with the dashboard. The reverse also works — a
+dashboard ahead of its API degrades to an explicit "can't reach the API"
+notice rather than breaking — but it puts that notice in front of users
+for the gap.
 
-If you connect Git (step 1) **before** deploying the API, be aware the next
-push to `main` will auto-deploy all three Vercel projects. That is the point
-of it, but it is a behaviour change worth knowing about in advance.
+Once step 1 is done, be aware that a push to `main` will auto-deploy all
+three Vercel projects while the API still needs its scripts run by hand.
+That asymmetry is worth remembering: the dashboard will race ahead of the
+API on every release until the API deploy is automated too.
