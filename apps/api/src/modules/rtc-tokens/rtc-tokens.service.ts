@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { CreateRtcTokenDto } from './dto/create-rtc-token.dto';
+import { UsageAllowanceService } from '../usage/usage-allowance.service';
 import { RtcTokenSignerService } from './rtc-token-signer.service';
 import { resolvePermissions, toPermissionsDto } from './rtc-token.claims';
 import { buildIceServers, IceServer } from './turn-credential.util';
@@ -38,6 +39,7 @@ export class RtcTokensService {
     private readonly roomsService: RoomsService,
     private readonly configService: ConfigService,
     private readonly signer: RtcTokenSignerService,
+    private readonly usageAllowances: UsageAllowanceService,
   ) {}
 
   async create(
@@ -48,6 +50,14 @@ export class RtcTokensService {
     // Confirms the room exists and belongs to this project *and*
     // environment. The same check used everywhere else in here.
     const room = await this.roomsService.findOneForProject(roomId, scope);
+
+    // Refuse before signing anything. The signaling layer checks again at
+    // join (message-router.service.ts) — that is the check that actually
+    // protects the media plane, since a token minted a minute ago is still
+    // valid — but failing here means a developer whose minutes are gone
+    // gets a 403 from the endpoint their backend already handles errors
+    // from, instead of a WebSocket close their client has to interpret.
+    await this.usageAllowances.assertProjectWithinAllowance(scope.projectId);
 
     const ttlSeconds =
       dto.ttlSeconds ?? this.configService.get<number>('rtcToken.defaultTtlSeconds')!;

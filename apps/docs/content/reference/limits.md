@@ -7,7 +7,10 @@ Every value below is a **default**, read out of the API's configuration. A
 self-hosted deployment can change any of them; a hosted one has whatever
 its operator set.
 
-Nothing here is a billing quota — Raven has no usage metering.
+Nothing here is a billing quota. The one quota Raven does enforce is the
+20,000 free RTC minutes every account is granted — see
+[Usage](/concepts/usage). Everything below is a technical ceiling, and none
+of it is affected by how many minutes you have left.
 
 {/* generated:endpoints — do not edit by hand */}
 

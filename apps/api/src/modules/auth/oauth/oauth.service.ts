@@ -8,6 +8,7 @@ import { RavenErrorCode } from '../../../shared/errors/error-codes';
 import { RedisService } from '../../../shared/redis/redis.service';
 import { EmailType } from '../../email/email.constants';
 import { EmailService } from '../../email/email.service';
+import { UsageAllowanceService } from '../../usage/usage-allowance.service';
 import { renderWelcomeEmail } from '../../email/templates';
 import { AuthResult, AuthService } from '../auth.service';
 import {
@@ -43,6 +44,7 @@ export class OAuthService {
     private readonly redisService: RedisService,
     private readonly authService: AuthService,
     private readonly emailService: EmailService,
+    private readonly usageAllowances: UsageAllowanceService,
   ) {}
 
   /** Which providers this deployment has configured. Safe to expose: it's
@@ -331,6 +333,10 @@ export class OAuthService {
           data: { emailVerifiedAt: new Date() },
         });
       });
+      // Backfills an account that predates metering. Idempotent, so an
+      // account that already has an allowance is untouched — in particular
+      // its spent minutes are not reset by signing in again.
+      await this.usageAllowances.ensureProvisioned(existingUser.id);
       return existingUser;
     }
 
@@ -351,6 +357,13 @@ export class OAuthService {
         await tx.userOnboarding.create({ data: { userId: created.id } });
         return created;
       });
+
+      // The free Raven minutes, same as the password-registration path.
+      // Outside the transaction because it is idempotent and its own
+      // service's concern: an account that exists without an allowance row
+      // gets one on the next read anyway, so failing here must not undo a
+      // sign-in that already succeeded.
+      await this.usageAllowances.ensureProvisioned(user.id);
 
       // Provider-verified addresses skip the verification email entirely,
       // so the welcome — normally sent on verification — goes out now.

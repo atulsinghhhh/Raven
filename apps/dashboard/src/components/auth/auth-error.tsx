@@ -31,3 +31,30 @@ export function AuthError({ code }: { code?: string }) {
     </div>
   );
 }
+
+/**
+ * Shown when the Control API could not be asked which sign-in providers
+ * exist.
+ *
+ * Without this the page is actively misleading. `OAuthButtons` renders
+ * nothing for a provider that is not configured — correct, since a button
+ * that cannot complete is worse than no button — but a *failed lookup* used
+ * to collapse into that same "no providers" answer. The result was a login
+ * page showing only email and password, indistinguishable from a
+ * deployment that genuinely has OAuth switched off, with no clue that
+ * "Continue with GitHub" was missing because nothing could be reached.
+ *
+ * The email form is no better off, it just fails later: signing in needs
+ * the same API. So this says so up front rather than letting someone type
+ * a password into a form that cannot submit.
+ */
+export function AuthApiUnreachable() {
+  return (
+    <div className="mb-5">
+      <ErrorState
+        title="Can't reach the Raven API"
+        description="Sign-in options could not be loaded, so some may be missing from this page — and signing in will not work until the API is back. If you are running Raven locally, check that the control plane is up on its configured port."
+      />
+    </div>
+  );
+}

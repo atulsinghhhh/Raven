@@ -13,6 +13,9 @@ import {
   TrackMuteMessage,
   TrackPublishMessage,
 } from '../interfaces/signaling-message.interface';
+import { UsageAllowanceService } from '../../usage/usage-allowance.service';
+import { UsageMeterService } from '../../usage/usage-meter.service';
+import { UsageCloseReason } from '../../usage/usage.constants';
 import { RoomRegistryService } from '../rooms/room-registry.service';
 import { RoomTrackRegistryService } from '../rooms/room-track-registry.service';
 import { SfuLinkService } from '../sfu/sfu-link.service';
@@ -60,6 +63,8 @@ export class MessageRouterService {
     private readonly trackRegistry: RoomTrackRegistryService,
     private readonly allocator: RtcServerAllocatorService,
     private readonly sfuLink: SfuLinkService,
+    private readonly usageAllowances: UsageAllowanceService,
+    private readonly usageMeter: UsageMeterService,
   ) {}
 
   async route(
@@ -102,6 +107,27 @@ export class MessageRouterService {
       throw new SignalingError(
         SignalingErrorCode.UNAUTHORIZED,
         'roomId does not match the room authorized by this RTC token',
+      );
+    }
+
+    // Before anything is allocated: a project whose owner has spent their
+    // included minutes gets no new sessions. Checked here rather than at
+    // token mint alone because a token issued while minutes remained is
+    // still a valid credential minutes later, and this is the last gate in
+    // front of the media plane.
+    //
+    // Sessions already in progress are never affected — see
+    // UsageAllowanceService.checkProject for why a live call is not cut
+    // off mid-sentence.
+    const { blocked } = await this.usageAllowances.checkProject(session.projectId);
+    if (blocked) {
+      this.logger.warn(
+        `join refused: usage allowance exhausted for project ${session.projectId} ` +
+          `(participant ${session.participantId}, room ${session.roomId})`,
+      );
+      throw new SignalingError(
+        SignalingErrorCode.USAGE_LIMIT_EXCEEDED,
+        'This account has used all of its included Raven minutes — no new sessions can be started',
       );
     }
 
@@ -149,6 +175,29 @@ export class MessageRouterService {
       throw new SignalingError(
         SignalingErrorCode.RTC_SERVER_UNREACHABLE,
         'The RTC server for this room could not be reached — please retry',
+      );
+    }
+
+    // Open the meter only now: past the allocation, past the fleet
+    // registration, and past the node accepting the participant. A join
+    // that failed any of those never happened, and must not be billed.
+    //
+    // Best-effort on purpose. Metering must not be able to fail a join —
+    // a database blip would otherwise take down calling itself — so the
+    // failure is logged and the session runs unmetered rather than being
+    // refused. Under-counting on a Raven fault is the right side to err on.
+    try {
+      await this.usageMeter.startSession({
+        sessionKey: session.connectionId,
+        projectId: session.projectId,
+        environment: session.environment,
+        roomId: session.roomId,
+        roomName: session.roomName,
+        participantIdentity: session.participantId,
+      });
+    } catch (err) {
+      this.logger.error(
+        `usage metering failed to start for session ${session.connectionId}: ${(err as Error).message}`,
       );
     }
 
@@ -233,6 +282,20 @@ export class MessageRouterService {
     await this.trackRegistry.clearParticipant(session.roomId, session.participantId);
     await this.roomRegistry.leave(session.roomId, session.participantId);
     session.joinedRoom = false;
+
+    // Credit the rest of this session and close its meter. Idempotent, so
+    // the explicit `room.leave` and the disconnect cleanup that follows it
+    // (SignalingGateway.handleDisconnect routes ROOM_LEAVE) settle the same
+    // session twice and count it once. Best-effort for the same reason as
+    // the start above: a failure here leaves a live row the reaper will
+    // close at its last confirmed-alive instant.
+    try {
+      await this.usageMeter.settle(session.connectionId, { close: UsageCloseReason.LEFT });
+    } catch (err) {
+      this.logger.warn(
+        `usage metering failed to settle session ${session.connectionId}: ${(err as Error).message}`,
+      );
+    }
 
     // Release the room's node assignment once the last participant leaves,
     // so the next call in this room gets allocated fresh, not pinned

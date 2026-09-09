@@ -59,5 +59,7 @@ which is deliberately yours to point at. See
 ## What Raven does not do
 
 Stated up front because it changes designs: there is **no recording**, no
-RTMP ingest or egress, and no usage metering. The full list is in
+RTMP ingest or egress, and no billing — every account gets a fixed grant of
+20,000 free RTC minutes ([Usage](/concepts/usage)) and there is no plan to
+upgrade to when they are gone. The full list is in
 [Known limitations](/reference/known-limitations).

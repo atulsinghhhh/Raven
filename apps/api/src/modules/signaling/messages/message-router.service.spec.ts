@@ -127,6 +127,8 @@ describe('MessageRouterService', () => {
     releaseRoom: jest.Mock;
   };
   let sfuLink: { send: jest.Mock; trySend: jest.Mock; releaseSession: jest.Mock };
+  let usageAllowances: { checkProject: jest.Mock };
+  let usageMeter: { startSession: jest.Mock; settle: jest.Mock };
   let server: RtcServer;
 
   beforeEach(() => {
@@ -148,11 +150,24 @@ describe('MessageRouterService', () => {
       releaseSession: jest.fn(),
     };
 
+    // Metering is wired into join/leave but is not what this suite is
+    // about: an allowance with room left, and a meter that records calls.
+    // Its own behaviour is covered in usage-meter.service.spec.ts.
+    usageAllowances = {
+      checkProject: jest.fn().mockResolvedValue({ allowance: { id: 'ua1' }, exhausted: false, blocked: false }),
+    };
+    usageMeter = {
+      startSession: jest.fn().mockResolvedValue({ id: 'us1' }),
+      settle: jest.fn().mockResolvedValue(null),
+    };
+
     router = new MessageRouterService(
       registry,
       trackRegistry,
       allocator as never,
       sfuLink as never,
+      usageAllowances as never,
+      usageMeter as never,
     );
   });
 
@@ -230,6 +245,68 @@ describe('MessageRouterService', () => {
         roomId: 'room-1',
         excludeParticipantId: 'alice',
         message: { type: ServerMessageType.PARTICIPANT_JOINED },
+      });
+    });
+
+    it('refuses the join when the account has spent its included minutes', async () => {
+      usageAllowances.checkProject.mockResolvedValue({
+        allowance: { id: 'ua1' },
+        exhausted: true,
+        blocked: true,
+      });
+
+      await expect(router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN })).rejects.toMatchObject({
+        code: SignalingErrorCode.USAGE_LIMIT_EXCEEDED,
+      });
+      // Refused before anything is allocated: an exhausted account must
+      // not pin an SFU it will never use.
+      expect(allocator.allocate).not.toHaveBeenCalled();
+      expect(usageMeter.startSession).not.toHaveBeenCalled();
+    });
+
+    it('admits the join when the allowance is spent but enforcement is off', async () => {
+      usageAllowances.checkProject.mockResolvedValue({
+        allowance: { id: 'ua1' },
+        exhausted: true,
+        blocked: false,
+      });
+
+      await expect(router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN })).resolves.toBeDefined();
+      // Still metered — a self-hoster who does not cap themselves still
+      // wants the figures.
+      expect(usageMeter.startSession).toHaveBeenCalled();
+    });
+
+    it('opens the usage meter with server-side state only', async () => {
+      await router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN });
+
+      expect(usageMeter.startSession).toHaveBeenCalledWith({
+        // The gateway's own connection id, never anything from the client.
+        sessionKey: 'conn-1',
+        projectId: 'project-1',
+        environment: 'DEVELOPMENT',
+        roomId: 'room-1',
+        roomName: 'demo-room',
+        participantIdentity: 'alice',
+      });
+    });
+
+    it('does not open a meter for a join the node refused', async () => {
+      sfuLink.send.mockRejectedValue(new Error('node unreachable'));
+
+      await expect(router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN })).rejects.toMatchObject({
+        code: SignalingErrorCode.RTC_SERVER_UNREACHABLE,
+      });
+      expect(usageMeter.startSession).not.toHaveBeenCalled();
+    });
+
+    it('lets the join succeed when metering itself fails', async () => {
+      // A database blip must not take down calling. Under-counting on a
+      // Raven fault is the right side to err on.
+      usageMeter.startSession.mockRejectedValue(new Error('database down'));
+
+      await expect(router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN })).resolves.toMatchObject({
+        toSender: { type: ServerMessageType.ROOM_JOINED },
       });
     });
 
@@ -489,6 +566,29 @@ describe('MessageRouterService', () => {
       expect(session.joinedRoom).toBe(false);
       expect(result.toSender).toEqual({ type: ServerMessageType.ROOM_LEFT, roomId: 'room-1' });
       expect(result.toRoom?.message).toMatchObject({ type: ServerMessageType.PARTICIPANT_LEFT });
+    });
+
+    it('closes the usage meter for the leaving participant', async () => {
+      const session = makeSession();
+      await router.route(session, { type: ClientMessageType.ROOM_JOIN });
+
+      await router.route(session, { type: ClientMessageType.ROOM_LEAVE });
+
+      expect(usageMeter.settle).toHaveBeenCalledWith('conn-1', { close: 'left' });
+    });
+
+    it('still completes the leave when settling the meter fails', async () => {
+      // A failed settle leaves a live row the reaper closes at its last
+      // confirmed-alive instant; it must not strand the participant in a
+      // room they have left.
+      const session = makeSession();
+      await router.route(session, { type: ClientMessageType.ROOM_JOIN });
+      usageMeter.settle.mockRejectedValue(new Error('database down'));
+
+      await expect(router.route(session, { type: ClientMessageType.ROOM_LEAVE })).resolves.toMatchObject({
+        toSender: { type: ServerMessageType.ROOM_LEFT },
+      });
+      expect(session.joinedRoom).toBe(false);
     });
 
     it('releases the room\'s server assignment once the last participant leaves', async () => {

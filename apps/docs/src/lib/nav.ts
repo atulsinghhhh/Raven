@@ -82,6 +82,7 @@ export const NAV: NavSection[] = [
       { slug: 'concepts/participant', title: 'Participant' },
       { slug: 'concepts/track', title: 'Track' },
       { slug: 'concepts/connection', title: 'Connection' },
+      { slug: 'concepts/usage', title: 'Usage' },
       { slug: 'concepts/conversation', title: 'Conversation' },
       { slug: 'concepts/message', title: 'Message' },
       { slug: 'concepts/live-stream', title: 'Live stream' },

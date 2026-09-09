@@ -24,6 +24,7 @@ import { RtcServersModule } from './modules/rtc-servers/rtc-servers.module';
 import { RtcTokensModule } from './modules/rtc-tokens/rtc-tokens.module';
 import { ServerApiModule } from './modules/server-api/server-api.module';
 import { SignalingModule } from './modules/signaling/signaling.module';
+import { UsageModule } from './modules/usage/usage.module';
 import { UsersModule } from './modules/users/users.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 
@@ -67,6 +68,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
     RoomsModule,
     RtcServersModule,
     RtcTokensModule,
+    UsageModule,
     SignalingModule,
     MetricsModule,
     ObservabilityModule,

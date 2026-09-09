@@ -32,7 +32,10 @@ dashboard session. Same data, different credential.
 | GET | [`/v1/projects/{projectId}/errors`](#get-v1projectsprojectiderrors) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/errors/{errorId}`](#get-v1projectsprojectiderrorserrorid) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/metrics`](#get-v1projectsprojectidmetrics) | Dashboard session (JWT) |
+| GET | [`/v1/projects/{projectId}/usage`](#get-v1projectsprojectidusage) | Dashboard session (JWT) |
 | POST | [`/v1/telemetry/events`](#post-v1telemetryevents) | RTC token |
+| GET | [`/v1/usage`](#get-v1usage) | Dashboard session (JWT) |
+| GET | [`/v1/usage/detail`](#get-v1usagedetail) | Dashboard session (JWT) |
 
 ### GET `/v1/connections`
 
@@ -170,6 +173,18 @@ Real aggregate connection/error metrics for this project
 |---|---|---|---|---|
 | `projectId` | path | `string` | Yes | |
 
+### GET `/v1/projects/{projectId}/usage`
+
+One project's contribution to the owner's allowance
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `projectId` | path | `string` | Yes | |
+| `limit` | query | `number` | No | 1–200 — How many history rows to return, newest first. |
+| `days` | query | `number` | No | 1–365 — How many UTC days of the daily rollup to return, including today. |
+
 ### POST `/v1/telemetry/events`
 
 Best-effort ingestion of one RTC connection/participant/error event
@@ -182,6 +197,25 @@ Best-effort ingestion of one RTC connection/participant/error event
 | `type` | body | `(typeof CONNECTION_EVENT_TYPES)[number]` | Yes |  |
 | `timestamp` | body | `string` | No | Defaults to server receipt time if omitted. |
 | `data` | body | `Record<string, unknown>` | No | Small, developer-safe metadata bag — never raw audio/video, never secrets. |
+
+### GET `/v1/usage`
+
+The caller's Raven minute allowance and how much of it is spent
+
+**Credential** Dashboard session (JWT)
+
+_No parameters._
+
+### GET `/v1/usage/detail`
+
+The same allowance, plus session history, a daily rollup and a per-project breakdown
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `limit` | query | `number` | No | 1–200 — How many history rows to return, newest first. |
+| `days` | query | `number` | No | 1–365 — How many UTC days of the daily rollup to return, including today. |
 
 {/* /generated:endpoints */}
 ## Next steps

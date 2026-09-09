@@ -68,6 +68,14 @@ export const RavenErrorCode = {
    *  malformed", so this does not collapse into VALIDATION_FAILED. */
   INVALID_CURSOR: 'RAVEN_INVALID_CURSOR',
 
+  // --- Usage ---------------------------------------------------------------
+  /** The developer's included Raven minutes are spent. Not a payment
+   *  problem and not a rate limit: nothing the caller can retry into
+   *  success, and there is no plan to upgrade to yet. Returned as 403 (see
+   *  UsageLimitExceededError) rather than 402 — 402 would promise a
+   *  payment path that does not exist. */
+  USAGE_LIMIT_EXCEEDED: 'RAVEN_USAGE_LIMIT_EXCEEDED',
+
   // --- Infrastructure -----------------------------------------------------
   CONNECTION_FAILED: 'RAVEN_CONNECTION_FAILED',
   /** No healthy RTC server had room for this call. An operator/capacity
@@ -117,6 +125,7 @@ export const LEGACY_ERROR_CODE: Record<RavenErrorCode, string> = {
   [RavenErrorCode.MESSAGE_TOO_LARGE]: 'MESSAGE_TOO_LARGE',
   [RavenErrorCode.ATTACHMENT_TOO_LARGE]: 'ATTACHMENT_TOO_LARGE',
   [RavenErrorCode.INVALID_CURSOR]: 'INVALID_CURSOR',
+  [RavenErrorCode.USAGE_LIMIT_EXCEEDED]: 'FORBIDDEN',
   [RavenErrorCode.CONNECTION_FAILED]: 'CONNECTION_FAILED',
   [RavenErrorCode.NO_RTC_CAPACITY]: 'CONNECTION_FAILED',
   [RavenErrorCode.WEBHOOK_FAILED]: 'WEBHOOK_FAILED',

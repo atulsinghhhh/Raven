@@ -152,6 +152,52 @@ SHADOW_DATABASE_URL="$SCRATCH" npm exec prisma migrate diff \
 Leave `SHADOW_DATABASE_URL` unset the rest of the time. `migrate deploy`
 never needs it.
 
+### Never name a role in a migration
+
+A migration runs on Supabase, on CI's throwaway container, on a developer's
+scratch database, and on whatever a self-hoster brings. Those clusters do
+not share a role list, and a statement naming a role that is absent fails
+with `role "..." does not exist` (SQLSTATE 42704) — which aborts the
+migration and then blocks every migration after it with P3009. A fresh
+database becomes unmigratable, and the only symptom is a P3009 pointing at
+a migration that looked fine when it was written.
+
+`20260909000000_enable_row_level_security` hit this twice:
+
+- `anon`, `authenticated` and `service_role` are **Supabase's** Data API
+  roles. No plain Postgres has them.
+- `ALTER DEFAULT PRIVILEGES FOR ROLE postgres` assumes the cluster
+  superuser is called `postgres`. CI's service container sets
+  `POSTGRES_USER: raven`, so it is not.
+
+Two rules, both demonstrated in
+`20260909130000_portable_data_api_lockdown`:
+
+1. **Guard every role reference**, or provision the role first. Both
+   appear in this fix, and which one to reach for depends on whether the
+   statement does anything useful without the role:
+   - *Provision* when skipping it would leave the configuration untested —
+     `20260908999999_ensure_data_api_roles` creates `anon`,
+     `authenticated` and `service_role` as inert `NOLOGIN` roles, so CI
+     and self-hosted deployments run the same revokes and the same
+     policies production does.
+   - *Guard* when the statement is meaningless off Supabase anyway —
+     `IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '...') THEN`.
+     `ALTER DEFAULT PRIVILEGES FOR ROLE postgres` is guarded rather than
+     shimmed, because inventing a role called `postgres` on a cluster
+     whose superuser is named something else would create a
+     system-looking account that owns nothing.
+2. **Say `current_user`, not a literal role name**, when the statement
+   means "the role running this migration" — which is what
+   `ALTER DEFAULT PRIVILEGES` almost always means. Binding it to a literal
+   `postgres` silently does nothing wherever migrations run as anything
+   else, and for a default-privileges REVOKE "silently does nothing" means
+   every future table keeps the grants you thought you had removed.
+
+Same reasoning for table lists: that migration's hardcoded array of 28
+names is why `usage_allowances` and `usage_sessions` needed a second copy
+of the same block. Scan `pg_class` instead and a table cannot be missed.
+
 ## Sizing the pool
 
 `DATABASE_POOL_MAX` (10) is the per-instance `pg.Pool` ceiling;

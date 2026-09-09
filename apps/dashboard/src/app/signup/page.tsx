@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { AuthError } from '@/components/auth/auth-error';
+import { AuthApiUnreachable, AuthError } from '@/components/auth/auth-error';
 import { AuthShell } from '@/components/auth/auth-shell';
 import { AuthDivider, OAuthButtons } from '@/components/auth/oauth-buttons';
 import { ravenApi } from '@/lib/api-client';
@@ -11,8 +11,11 @@ export const metadata: Metadata = {
 
 export default async function SignupPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const params = await searchParams;
-  const providers = await ravenApi.oauthProviders().catch(() => ({ github: false, google: false }));
-  const hasOAuth = providers.github || providers.google;
+  // `null` on failure, not false/false: "this deployment has no OAuth" and
+  // "we could not ask" are different facts, and only one of them means the
+  // missing buttons are intentional. Same reasoning as the login page.
+  const providers = await ravenApi.oauthProviders().catch(() => null);
+  const hasOAuth = Boolean(providers?.github || providers?.google);
 
   return (
     <AuthShell
@@ -28,7 +31,8 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
       }
     >
       <AuthError code={params.error} />
-      <OAuthButtons providers={providers} />
+      {providers === null && <AuthApiUnreachable />}
+      {providers && <OAuthButtons providers={providers} />}
       {hasOAuth && <AuthDivider label="or sign up with email" />}
       <SignupForm />
     </AuthShell>

@@ -3,7 +3,7 @@ title: All endpoints
 description: Every route the Raven API serves, generated from the controllers.
 ---
 
-Raven serves **110** versioned endpoints under `/v1`, plus
+Raven serves **113** versioned endpoints under `/v1`, plus
 **4** unversioned infrastructure routes. This page is generated
 from `apps/api`, so it is the whole surface — not a curated subset.
 
@@ -104,6 +104,7 @@ Interactive request/response schemas are served by the API itself at `/docs`.
 | POST | `/v1/projects/{projectId}/rooms` | Dashboard session (JWT) | [RTC](/api/rtc) |
 | GET | `/v1/projects/{projectId}/rooms/{roomId}` | Dashboard session (JWT) | [RTC](/api/rtc) |
 | POST | `/v1/projects/{projectId}/rooms/{roomId}/test-token` | Dashboard session (JWT) | [RTC](/api/rtc) |
+| GET | `/v1/projects/{projectId}/usage` | Dashboard session (JWT) | [Observability](/api/observability) |
 | GET | `/v1/projects/{projectId}/webhooks` | Dashboard session (JWT) | [Webhooks](/api/webhooks) |
 | POST | `/v1/projects/{projectId}/webhooks` | Dashboard session (JWT) | [Webhooks](/api/webhooks) |
 | DELETE | `/v1/projects/{projectId}/webhooks/{webhookId}` | Dashboard session (JWT) | [Webhooks](/api/webhooks) |
@@ -123,6 +124,8 @@ Interactive request/response schemas are served by the API itself at `/docs`.
 | GET | `/v1/rtc/servers/metrics` | Dashboard session (JWT) | [RTC](/api/rtc) |
 | POST | `/v1/rtc/servers/register` | SFU registration secret | [RTC](/api/rtc) |
 | POST | `/v1/telemetry/events` | RTC token | [Observability](/api/observability) |
+| GET | `/v1/usage` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/usage/detail` | Dashboard session (JWT) | [Observability](/api/observability) |
 | GET | `/v1/users/me` | None | [Auth & Account](/api/auth) |
 | PATCH | `/v1/users/me` | None | [Auth & Account](/api/auth) |
 

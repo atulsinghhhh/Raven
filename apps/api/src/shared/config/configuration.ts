@@ -319,6 +319,37 @@ export default () => ({
     level: process.env.LOG_LEVEL ?? 'info',
   },
 
+  usage: {
+    // How many minutes a *newly provisioned* allowance is granted. It is
+    // snapshotted onto the UsageAllowance row, so lowering this later never
+    // takes minutes away from a developer who already has them, and raising
+    // it never retroactively grants them. See docs/usage-metering.md.
+    freeTierMinutes: parseInt(process.env.USAGE_FREE_TIER_MINUTES ?? '20000', 10),
+
+    // Whether an exhausted allowance actually refuses new RTC sessions. On
+    // by default: an allowance nothing enforces is a number on a page, not
+    // a limit. A self-hosted deployment running its own SFU and TURN fleet
+    // has no reason to cap itself, and turns this off.
+    enforceLimit: (process.env.USAGE_ENFORCE_LIMIT ?? 'true') !== 'false',
+
+    // How often a gateway settles the sessions it is holding. Every
+    // settlement is a fresh (now - startedAt) reading rather than an
+    // increment, so this interval is the *maximum* usage a hard crash can
+    // lose, not an error that accumulates. Matched to the signaling
+    // heartbeat: the same sweep is already proving those sessions alive.
+    meterIntervalMs: parseInt(process.env.USAGE_METER_INTERVAL_MS ?? '30000', 10),
+
+    // How often the reaper looks for sessions whose gateway died without
+    // closing them.
+    reaperIntervalMs: parseInt(process.env.USAGE_REAPER_INTERVAL_MS ?? '60000', 10),
+
+    // A live session not settled inside this window is treated as abandoned
+    // and closed at its last confirmed-alive instant. Has to comfortably
+    // exceed meterIntervalMs, or the reaper starts closing healthy sessions
+    // between their own settlements.
+    abandonedAfterMs: parseInt(process.env.USAGE_ABANDONED_AFTER_MS ?? '180000', 10),
+  },
+
   observability: {
     // Retention defaults. RetentionService sweeps them on an interval
     // instead of a cron job, so we don't pull in a scheduling dependency

@@ -241,7 +241,8 @@ Prisma schema: 27 models, 22 enums. Notable: `User`, `UserToken`,
 `ConnectionEvent`, `ErrorEvent`, `Conversation`, `ChatMember`, `Message`,
 `Reaction`, `ReadState`, `Attachment`, `ChatConnection`,
 `WebhookEndpoint`/`Event`/`Delivery`, `LiveStream`, `LiveStreamHost`,
-`RtcServer`. **No recording model. No usage/billing model.**
+`RtcServer`, `UsageAllowance`, `UsageSession`. **No recording model. A
+free-tier usage model, no billing model** (see `docs/usage-metering.md`).
 
 ### 1.7 Configuration
 

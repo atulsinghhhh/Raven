@@ -5,70 +5,133 @@ import { Card, CardHeader, SectionHeader, StatCard } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header';
 import { ButtonLink } from '@/components/ui/button';
 import { ErrorState, NoDataYet } from '@/components/ui/states';
+import { AllowanceMeter, DailyUsageChart, ExhaustedNotice, UsageHistoryTable } from '@/components/usage/usage-panels';
 import { formatCount, formatDuration } from '@/lib/format';
 
 /**
- * Raven has no usage metering or billing backend. This page therefore
- * shows only what can be *derived* right now from the Control API: room
- * records, live participant counts, and the most recent connection
- * records, and labels every derived number with the window it came from.
+ * One project's usage: the minutes it has metered, and the account-level
+ * allowance those minutes come out of.
  *
- * Nothing here is a bill, a quota, or a bandwidth figure, because none of
- * those exist. The "Not metered yet" section says so directly rather than
- * leaving an empty tile that reads like zero usage.
+ * The allowance belongs to the project's *owner*, not to whoever is
+ * reading this page. For a project you own that distinction is invisible;
+ * for one you were added to, it is the only honest way to show the meter —
+ * so `ownedByCaller` drives an explicit note rather than presenting
+ * someone else's allowance as your own.
+ *
+ * The live-infrastructure figures below (rooms, participants right now)
+ * come from the Control API and the SFU, and are deliberately kept apart
+ * from the metered ones: one is a snapshot of what is happening, the other
+ * is a durable count of what has happened, and running them together in
+ * one row of tiles invites reading a live number as a total.
  */
 
-/** The API caps this at 200 (QueryConnectionsDto): asking for more silently gets you 200. */
-const CONNECTION_SAMPLE_LIMIT = 200;
+const HISTORY_LIMIT = 50;
+const CHART_DAYS = 30;
 
-export default async function UsagePage({ params }: { params: Promise<{ projectId: string }> }) {
+export default async function ProjectUsagePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const token = await getSessionToken();
   if (!token) redirect('/login');
 
-  const [roomsResult, connectionsResult] = await Promise.allSettled([
+  const [usageResult, roomsResult] = await Promise.allSettled([
+    ravenApi.getProjectUsage(token, projectId, { limit: HISTORY_LIMIT, days: CHART_DAYS }),
     ravenApi.listRooms(token, projectId),
-    ravenApi.listConnections(token, projectId, { limit: CONNECTION_SAMPLE_LIMIT }),
   ]);
 
-  if (roomsResult.status === 'rejected') {
-    if (roomsResult.reason instanceof ApiError && roomsResult.reason.status === 401) redirect('/login');
-    return <ErrorState title="Could not load usage" description="The Control API is unreachable right now." />;
+  if (usageResult.status === 'rejected') {
+    if (usageResult.reason instanceof ApiError && usageResult.reason.status === 401) redirect('/login');
+    return (
+      <ErrorState
+        title="Could not load usage"
+        description="The Control API is unreachable right now. Your minutes are unaffected — this page could not read them."
+        retryHref={`/dashboard/projects/${projectId}/usage`}
+      />
+    );
   }
 
-  const rooms = roomsResult.value;
-  const connections = connectionsResult.status === 'fulfilled' ? connectionsResult.value : undefined;
+  const { summary, history, daily, ownedByCaller } = usageResult.value;
+  const rooms = roomsResult.status === 'fulfilled' ? roomsResult.value : undefined;
 
-  // liveParticipantCount is null when the SFU couldn't be reached: that is
+  // liveParticipantCount is null when the SFU could not be reached. That is
   // not the same as an idle room, so it never collapses into a 0.
-  const liveDataAvailable = rooms.every((r) => r.liveParticipantCount !== null);
-  const liveParticipants = rooms.reduce((sum, r) => sum + (r.liveParticipantCount ?? 0), 0);
-  const roomsWithLiveParticipants = rooms.filter((r) => (r.liveParticipantCount ?? 0) > 0).length;
+  const liveDataAvailable = rooms?.every((room) => room.liveParticipantCount !== null) ?? false;
+  const liveParticipants = rooms?.reduce((sum, room) => sum + (room.liveParticipantCount ?? 0), 0) ?? 0;
+  const roomsInUse = rooms?.filter((room) => (room.liveParticipantCount ?? 0) > 0).length ?? 0;
 
-  const completed = connections?.filter((c) => c.durationMs !== null) ?? [];
-  const totalDurationMs = completed.reduce((sum, c) => sum + (c.durationMs ?? 0), 0);
-  const openConnections = connections?.filter((c) => c.state === 'CONNECTED' || c.state === 'CONNECTING').length;
-  const sampleIsCapped = (connections?.length ?? 0) >= CONNECTION_SAMPLE_LIMIT;
-  const sampleHint = sampleIsCapped
-    ? `From the ${CONNECTION_SAMPLE_LIMIT} most recent connection records`
-    : `From all ${formatCount(connections?.length ?? 0)} connection records`;
-
-  const base = `/dashboard/projects/${projectId}`;
+  const projectSeconds = history.reduce((sum, entry) => sum + entry.meteredSeconds, 0);
+  const liveSessionsHere = history.filter((entry) => entry.live).length;
 
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
+        eyebrow="Project"
         title="Usage"
-        description="What this project is doing right now, derived live from the Control API. Raven does not meter or bill usage yet, so nothing on this page is an invoice or a quota."
+        description="Raven minutes this project has metered, and the account allowance they come out of. Counted server-side by the signaling layer while calls run."
+        actions={
+          <ButtonLink href="/dashboard/usage" variant="secondary" size="sm">
+            Account usage
+          </ButtonLink>
+        }
       />
+
+      <ExhaustedNotice summary={summary} />
+
+      {!ownedByCaller && (
+        <Card>
+          <p className="text-sm leading-relaxed text-muted">
+            This project is owned by another account, and its sessions spend{' '}
+            <strong className="font-medium text-fg">that account&apos;s</strong> allowance rather than yours. The meter
+            below is the owner&apos;s — it is the one that decides whether this project can start a new session.
+          </p>
+        </Card>
+      )}
+
+      <section>
+        <SectionHeader
+          title="This project's metered sessions"
+          subtitle={`Across the ${HISTORY_LIMIT} most recent sessions listed below.`}
+        />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard
+            label="Sessions"
+            value={formatCount(history.length)}
+            hint={history.length >= HISTORY_LIMIT ? `Capped at ${HISTORY_LIMIT}` : 'All sessions on record'}
+          />
+          <StatCard
+            label="Metered"
+            value={formatCount(Math.floor(projectSeconds / 60))}
+            hint={`${formatDuration(projectSeconds * 1000)} of session time`}
+          />
+          <StatCard label="Metering now" value={formatCount(liveSessionsHere)} hint="Sessions still accruing minutes" />
+          <StatCard
+            label="Account remaining"
+            value={formatCount(summary.remainingMinutes)}
+            tone={summary.exhausted ? 'danger' : summary.usedPercent >= 80 ? 'warning' : 'default'}
+            hint="Shared across every project this owner has"
+          />
+        </div>
+      </section>
+
+      <AllowanceMeter summary={summary} />
+
+      <DailyUsageChart daily={daily} days={CHART_DAYS} />
+
+      <section>
+        <SectionHeader title="Session history" subtitle="Every metered session for this project, newest first." />
+        <UsageHistoryTable history={history} showProject={false} />
+      </section>
 
       <section>
         <SectionHeader
           title="Live right now"
-          subtitle="A snapshot of current infrastructure state, not a historical aggregate."
+          subtitle="A snapshot of current infrastructure state, read from the Control API and the SFU. Not a metered total, and not part of the figures above."
         />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Rooms" value={formatCount(rooms.length)} hint="All rooms on record for this project" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <StatCard
+            label="Rooms"
+            value={rooms ? formatCount(rooms.length) : <NoDataYet label="Unknown" />}
+            hint="All rooms on record for this project"
+          />
           <StatCard
             label="Participants"
             value={liveDataAvailable ? formatCount(liveParticipants) : <NoDataYet label="Unknown" />}
@@ -76,77 +139,45 @@ export default async function UsagePage({ params }: { params: Promise<{ projectI
           />
           <StatCard
             label="Rooms in use"
-            value={liveDataAvailable ? formatCount(roomsWithLiveParticipants) : <NoDataYet label="Unknown" />}
+            value={liveDataAvailable ? formatCount(roomsInUse) : <NoDataYet label="Unknown" />}
             hint="Rooms with at least one participant"
           />
-          <StatCard
-            label="Open connections"
-            value={openConnections !== undefined ? formatCount(openConnections) : <NoDataYet label="Unknown" />}
-            hint={openConnections !== undefined ? sampleHint : 'Connection records are unavailable'}
-          />
         </div>
-      </section>
-
-      <section>
-        <SectionHeader
-          title="Recent connection activity"
-          subtitle={
-            connections
-              ? `${sampleHint}. Raven stores no rolled-up history, so this is a sample of recent records — not a total for any time period.`
-              : 'Connection records are unavailable right now.'
-          }
-        />
-        {connections ? (
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-            <StatCard label="Connections in sample" value={formatCount(connections.length)} hint={sampleHint} />
-            <StatCard
-              label="Completed connections"
-              value={formatCount(completed.length)}
-              hint="Records that have a recorded duration"
-            />
-            <StatCard
-              label="Total connection time"
-              value={completed.length > 0 ? formatDuration(totalDurationMs) : <NoDataYet label="No completed connections" />}
-              hint="Sum of durations across the completed records above"
-            />
-          </div>
-        ) : (
-          <Card>
-            <NoDataYet label="Connection records could not be loaded" />
-          </Card>
-        )}
-        {connections && sampleIsCapped && (
-          <p className="mt-3 text-xs leading-relaxed text-subtle">
-            The Control API returns at most {CONNECTION_SAMPLE_LIMIT} connection records per request, and this project
-            has hit that ceiling — the figures above describe that sample only, and are not a total for any time period.
-          </p>
-        )}
       </section>
 
       <Card>
         <CardHeader
-          title="Not metered yet"
-          subtitle="Raven has no usage metering, quota, or billing backend. These are genuinely not recorded — the numbers do not exist anywhere to be shown."
+          title="Not metered"
+          subtitle="These are genuinely not counted — the numbers do not exist anywhere to be shown."
         />
         <ul className="grid grid-cols-1 gap-x-8 gap-y-2.5 text-sm leading-relaxed text-muted sm:grid-cols-2">
-          <NotMetered title="Participant-minutes">No historical aggregation of connection duration is stored.</NotMetered>
-          <NotMetered title="TURN relay bandwidth">Bytes relayed are not counted or attributed to a project.</NotMetered>
-          <NotMetered title="Published-track counts over time">Only live track state is visible, never a time series.</NotMetered>
-          <NotMetered title="Per-day or per-month history">Nothing rolls up usage into periods.</NotMetered>
-          <NotMetered title="Quotas and rate limits per project">No allowance is defined, so none can be shown.</NotMetered>
-          <NotMetered title="Cost or billing">There is no billing backend, and no price is attached to any of the above.</NotMetered>
+          <NotMetered title="TURN relay bandwidth">
+            Bytes relayed are not counted or attributed to a project.
+          </NotMetered>
+          <NotMetered title="Chat, webhooks, storage">
+            Messages, deliveries and attachments consume no minutes.
+          </NotMetered>
+          <NotMetered title="Published-track counts over time">
+            Only live track state is visible, never a time series.
+          </NotMetered>
+          <NotMetered title="Cost or billing">
+            There is no billing backend, and no price is attached to any of this.
+          </NotMetered>
         </ul>
         <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
-          <ButtonLink href={`${base}/connections`} variant="secondary" size="sm">
+          <ButtonLink href={`/dashboard/projects/${projectId}/connections`} variant="secondary" size="sm">
             Connections
           </ButtonLink>
-          <ButtonLink href={`${base}/rooms`} variant="secondary" size="sm">
+          <ButtonLink href={`/dashboard/projects/${projectId}/rooms`} variant="secondary" size="sm">
             Rooms
+          </ButtonLink>
+          <ButtonLink href={`/dashboard/projects/${projectId}/metrics`} variant="secondary" size="sm">
+            Metrics
           </ButtonLink>
         </div>
         <p className="mt-3 text-xs leading-relaxed text-subtle">
-          The closest thing to a trend is the Metrics page&apos;s windowed view (15 minutes to 7 days) — and that is
-          computed from these same connection records on request, not from a metering pipeline.
+          Connection records are event-sourced from client telemetry and are best-effort, so their durations will not
+          match the metered minutes above. Metering reads the server&apos;s own clock and is the authoritative count.
         </p>
       </Card>
     </div>

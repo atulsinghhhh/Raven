@@ -311,5 +311,10 @@ visually separated so a developer can't confuse where each snippet runs.
   project, matching the existing Phase 2 data model exactly (no new
   permission tiers were invented).
 - No dedicated CSRF token — mitigated via `SameSite=Lax` cookies only.
-- Usage metering/billing do not exist yet — the Usage page is intentionally
-  minimal and says so.
+- No billing. Usage metering *does* exist — every account gets a fixed
+  grant of free RTC minutes, metered server-side and enforced (see
+  `docs/usage-metering.md`) — but there is no plan, no payment path and no
+  way to buy or be granted more. `/dashboard/usage` shows the allowance;
+  nothing in the dashboard can change it.
+- No administrative surface. There is no admin portal, no admin role, and
+  no endpoint that could grant, adjust or reset a developer's allowance.

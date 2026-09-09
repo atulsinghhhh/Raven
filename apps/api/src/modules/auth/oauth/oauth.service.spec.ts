@@ -6,6 +6,7 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { RedisService } from '../../../shared/redis/redis.service';
 import { EmailService } from '../../email/email.service';
 import { AuthService } from '../auth.service';
+import { UsageAllowanceService } from '../../usage/usage-allowance.service';
 import { OAuthService } from './oauth.service';
 
 const CONFIG: Record<string, unknown> = {
@@ -33,6 +34,7 @@ describe('OAuthService', () => {
   };
   let authService: { issueSessionForUser: jest.Mock };
   let emailService: { send: jest.Mock; brand: unknown; docsUrl: string };
+  let usageAllowances: { ensureProvisioned: jest.Mock };
   let fetchMock: jest.Mock;
 
   const SESSION = { accessToken: 'jwt', expiresIn: '12h', user: {}, onboarding: { completed: false, step: 1 } };
@@ -60,12 +62,15 @@ describe('OAuthService', () => {
     fetchMock = jest.fn();
     global.fetch = fetchMock as unknown as typeof fetch;
 
+    usageAllowances = { ensureProvisioned: jest.fn().mockResolvedValue({ id: 'ua1' }) };
+
     service = new OAuthService(
       configService,
       prisma as unknown as PrismaService,
       redis as unknown as RedisService,
       authService as unknown as AuthService,
       emailService as unknown as EmailService,
+      usageAllowances as unknown as UsageAllowanceService,
     );
   });
 

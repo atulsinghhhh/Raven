@@ -40,6 +40,13 @@ change project settings, or delete anything.
 connections, not keys. Someone who needs an invoice does not need a list
 of your customers' conversations.
 
+`usage:read` gates `GET /v1/projects/{projectId}/usage` — the project's
+metered RTC minutes against its owner's allowance (see
+`docs/usage-metering.md`). The account-level `GET /v1/usage` needs no
+capability at all: it reads the caller's own meter, and there is no project
+to be a member of. Neither route can change an allowance; there is no
+capability that can, because there is no endpoint that can.
+
 `keys:read` covers key *metadata* — name, environment, last used. The
 secret half of a key is not readable by anyone at any role, including the
 owner, because it was never stored.
