@@ -51,8 +51,6 @@ Two properties of this shape drive the whole deployment:
 | `apps/dashboard` | `@raven/dashboard` | Next.js developer dashboard, incl. 14 BFF route handlers | **Vercel** |
 | `apps/www` | `@raven/www` | Next.js landing page | **Vercel** |
 | `apps/docs` | `@raven/docs` | Next.js docs site (`content/` is MDX) | **Vercel** |
-| `apps/community` | `@raven-community/web` | Demo app that consumes Raven as an external customer | **Excluded** — see §10 |
-| `apps/community-api` | `@raven-community/api` | Backend for the above | **Excluded** — see §10 |
 | `packages/sdk` | `@ravenkash/rtc` | Browser RTC SDK, `SFUAdapter` → `raven-adapter.ts` | npm, not deployed |
 | `packages/chat-sdk` | `@ravenkash/chat` | Chat client | npm |
 | `packages/client` | `@ravenkash/client` | Control-plane client | npm |
@@ -235,11 +233,6 @@ Secrets to generate (`openssl rand -hex 32`), all four distinct:
 - **Postgres container** — already gone from compose; Supabase owns it.
 - **MinIO** (`minio`, `minio-init`) — local dev only, a stand-in for a
   real S3-compatible store.
-- **`apps/community` / `apps/community-api`** — a demo app that consumes
-  Raven the way an external customer would, with its own database schema
-  (`COMMUNITY_DATABASE_URL`, `?schema=raven_community`) and its own JWT
-  secret. It is not part of the Raven product surface. *Excluded unless
-  you say otherwise.*
 - **`TURN_PROMETHEUS_PORT` (9641)** — must not be publicly exposed.
 - **SFU `:7000`** — control only; internal network exclusively.
 - **Prisma Studio**, seed scripts, `apps/api` dev deps.
@@ -601,11 +594,10 @@ Not inventable from the repository. Needed before Phase 2:
 6. **All production secret values** — six to generate, four of which must
    be mutually distinct.
 7. **Supabase project + both connection strings.**
-8. **A community-apps decision** — excluded by default (§10).
-9. **No Azure IaC exists.** Bicep/Terraform would have to be written from
+8. **No Azure IaC exists.** Bicep/Terraform would have to be written from
    scratch, or Phase 2 done through the portal/CLI. Say which.
-10. **No SFU image publishing.** `docker-publish.yml` covers `apps/api`
-    only; `services/sfu` needs adding.
+9. **No SFU image publishing.** `docker-publish.yml` covers `apps/api`
+   only; `services/sfu` needs adding.
 
 ## Related
 

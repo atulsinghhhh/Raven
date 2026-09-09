@@ -1,10 +1,8 @@
 # Publishing @ravenkash/* packages to npm
 
 Seven packages are publish-ready under the `@ravenkash` scope. `raven` was the
-original choice, but that npm username/org was already taken; `corvidhq` was
-tried next and the repo was renamed to it, but it turned out to already be a
-registered npm account too (not owned by this project) — so everything below
-(package names, docs, examples, source imports) was renamed a second time, to
+original choice, but that npm username/org was already taken — so everything
+below (package names, docs, examples, source imports) was renamed to
 `@ravenkash`, matching the npm account (`ravenkash`) actually verified and
 logged into in-browser for this project. None of the `@ravenkash/*` package
 names are taken on the public registry (verified via `npm view` — all return

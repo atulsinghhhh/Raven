@@ -81,7 +81,6 @@ The `api` service is not given it at all: the running app reads only
 | `apps/api/src/shared/database/prisma.service.ts` | `DATABASE_URL`, `DATABASE_POOL_*` | Builds the `pg.Pool` the app queries through |
 | `apps/api/prisma.config.ts` | `DIRECT_URL` ?? `DATABASE_URL`, `SHADOW_DATABASE_URL` | The Prisma CLI's datasource |
 | `apps/api/src/shared/config/configuration.ts` | both | Documents every env-driven knob in one place |
-| `apps/community-api/**` | `COMMUNITY_DATABASE_URL` | A separate app, separate schema — see below |
 
 `schema.prisma` has no `url`/`directUrl` in its `datasource` block. Prisma 7
 dropped them: the CLI reads `prisma.config.ts`, and `PrismaClient` gets its
@@ -162,23 +161,6 @@ connections than a self-hosted Postgres — the pooler on `:6543` is what
 makes this default workable, so keep `DATABASE_URL` pointed at it even for
 a single instance. `docs/production/capacity-report.md` has the measured
 numbers behind the default.
-
-## Raven Community's schema
-
-`apps/community-api` is a separate application with its own Prisma schema
-and its own migrations. It used to get its own logical database
-(`raven_community`) on the same container. On Supabase it gets its own
-**schema** in the same database instead, selected by the connection string:
-
-```bash
-COMMUNITY_DATABASE_URL="postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres?schema=raven_community"
-```
-
-A separate *database* would have been the closer analogue, but the shared
-pooler will not route to one on the free tier. A separate schema preserves
-what actually mattered: that app owns its own tables and never touches
-Raven's `public` schema, exactly as an external customer's application
-wouldn't. Prisma creates the schema on the first `migrate deploy`.
 
 ## CI is the one exception
 

@@ -52,8 +52,6 @@ apps/
   dashboard       @raven/dashboard      Next.js developer dashboard (private)
   docs            @raven/docs           Next.js documentation site (private)
   www             @raven/www            Next.js landing page, 1 page (private)
-  community       @raven-community/web  GITIGNORED WIP scaffold — untracked
-  community-api   @raven-community/api  GITIGNORED WIP scaffold — untracked
 packages/
   sdk             @ravenkash/rtc           browser RTC SDK
   chat-sdk        @ravenkash/chat          browser chat SDK
@@ -457,7 +455,6 @@ counterpart.
 | `services/sfu/` | **Missing** | No README in a 20-file Go service. Docker label points at `docs/rtc/sfu.md` |
 | `examples/*/README.md` | Correct (spot-checked) | 12 present |
 | `.docs/` (`plan.md`, `INFRASTRUCTURE_PHASES.md`) | n/a | Gitignored |
-| `apps/community`, `apps/community-api` | n/a | Gitignored WIP — **do not document** |
 
 ---
 

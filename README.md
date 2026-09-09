@@ -214,7 +214,6 @@ apps/
   dashboard/          Developer console (Next.js, server components)
   docs/               Documentation site
   www/                Marketing site
-  community/          Community site + its API
 services/
   sfu/                The SFU. Go, Pion. The only place media is touched.
 packages/

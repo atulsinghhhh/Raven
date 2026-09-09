@@ -37,10 +37,10 @@ cp .env.example .env
 ```
 
 Then replace every `change-me-*` placeholder with a real local value, and
-fill in the Supabase database password in `DATABASE_URL`, `DIRECT_URL` and
-`COMMUNITY_DATABASE_URL` (Supabase dashboard -> Project Settings ->
-Database). Those three are the only values here that point at a real shared
-service rather than a container on your machine.
+fill in the Supabase database password in `DATABASE_URL` and `DIRECT_URL`
+(Supabase dashboard -> Project Settings -> Database). Those two are the
+only values here that point at a real shared service rather than a
+container on your machine.
 
 Suggested generators for the rest:
 
