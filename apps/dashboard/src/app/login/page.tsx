@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { AuthError } from '@/components/auth/auth-error';
+import { AuthApiUnreachable, AuthError } from '@/components/auth/auth-error';
 import { AuthShell } from '@/components/auth/auth-shell';
 import { AuthDivider, OAuthButtons } from '@/components/auth/oauth-buttons';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,8 +27,15 @@ export default async function LoginPage({
 
   // An unreachable API mustn't take the whole login page down with it —
   // the email form still works the moment the API is back.
-  const providers = await ravenApi.oauthProviders().catch(() => ({ github: false, google: false }));
-  const hasOAuth = providers.github || providers.google;
+  //
+  // `null` rather than `{github: false, google: false}` on failure, because
+  // those are different facts and the page has to say which one it is:
+  // false/false means this deployment has no OAuth configured, and a failed
+  // lookup means we do not know. Collapsing the second into the first is
+  // what made a dead API look like a deployment with the buttons switched
+  // off — see AuthApiUnreachable.
+  const providers = await ravenApi.oauthProviders().catch(() => null);
+  const hasOAuth = Boolean(providers?.github || providers?.google);
 
   return (
     <AuthShell
@@ -51,7 +58,8 @@ export default async function LoginPage({
       }
     >
       <AuthError code={params.error} />
-      <OAuthButtons providers={providers} next={next} />
+      {providers === null && <AuthApiUnreachable />}
+      {providers && <OAuthButtons providers={providers} next={next} />}
       {hasOAuth && <AuthDivider label="or continue with email" />}
       <Suspense fallback={<FormFallback />}>
         <LoginForm />
