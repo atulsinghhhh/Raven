@@ -2,13 +2,13 @@ import { Reveal } from './Reveal';
 import { DOCS_ROUTES } from '../lib/links';
 
 const SDKS = [
-  { name: 'Web', packages: ['@corvidhq/rtc', '@corvidhq/chat', '@corvidhq/client', '@corvidhq/effects'], href: DOCS_ROUTES.sdkWeb },
-  { name: 'React', packages: ['@corvidhq/react', '@corvidhq/effects'], href: DOCS_ROUTES.sdkReact },
-  { name: 'React Native', packages: ['@corvidhq/react-native', '@corvidhq/effects'], href: DOCS_ROUTES.sdkReactNative },
+  { name: 'Web', packages: ['@ravenkash/rtc', '@ravenkash/chat', '@ravenkash/client', '@ravenkash/effects'], href: DOCS_ROUTES.sdkWeb },
+  { name: 'React', packages: ['@ravenkash/react', '@ravenkash/effects'], href: DOCS_ROUTES.sdkReact },
+  { name: 'React Native', packages: ['@ravenkash/react-native', '@ravenkash/effects'], href: DOCS_ROUTES.sdkReactNative },
   { name: 'Flutter', packages: ['raven_rtc', 'raven_chat', 'raven_live'], href: DOCS_ROUTES.sdkFlutter },
-  { name: 'Node.js', packages: ['@corvidhq/server'], href: DOCS_ROUTES.sdkNode },
+  { name: 'Node.js', packages: ['@ravenkash/server'], href: DOCS_ROUTES.sdkNode },
   { name: 'Python', packages: ['raven-sdk'], href: DOCS_ROUTES.sdkPython },
-  { name: 'CLI', packages: ['@corvidhq/cli'], href: DOCS_ROUTES.cli },
+  { name: 'CLI', packages: ['@ravenkash/cli'], href: DOCS_ROUTES.cli },
 ];
 
 export function SDKSection() {

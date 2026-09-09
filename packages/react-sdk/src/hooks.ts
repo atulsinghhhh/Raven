@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react';
-import type { LocalParticipant, LocalTrack, RemoteParticipant, RTCError, Room, RTCClient } from '@corvidhq/rtc';
-import { createEffectsPipeline } from '@corvidhq/effects';
-import type { EffectsError, EffectsPipeline, FilterConfig, Preset, ColorOpParams, EffectInstance } from '@corvidhq/effects';
+import type { LocalParticipant, LocalTrack, RemoteParticipant, RTCError, Room, RTCClient } from '@ravenkash/rtc';
+import { createEffectsPipeline } from '@ravenkash/effects';
+import type { EffectsError, EffectsPipeline, FilterConfig, Preset, ColorOpParams, EffectInstance } from '@ravenkash/effects';
 import { useRavenStore } from './context';
 import type { RavenConnectionState, RavenSnapshot } from './store';
 
@@ -133,10 +133,10 @@ export interface UseCameraEffectsResult {
 }
 
 /**
- * Raven Effects for `@corvidhq/react`.
+ * Raven Effects for `@ravenkash/react`.
  *
  * Consumes the same `EffectsPipeline` and `LocalTrack.attachEffects()` from
- * `@corvidhq/effects` and `@corvidhq/rtc`, rather than a separate
+ * `@ravenkash/effects` and `@ravenkash/rtc`, rather than a separate
  * React-specific engine. Creates one pipeline per hook instance and keeps
  * it attached to whatever camera track `useCamera()` currently reports,
  * through enables, disables and device switches. The pipeline itself is

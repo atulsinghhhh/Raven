@@ -1,5 +1,5 @@
 ---
-title: Flutter
+title: Effects on Flutter
 description: RavenEffectsPipeline — real filter/preset configuration in Dart. No native frame engine and no RavenRoom integration point yet.
 ---
 
@@ -11,7 +11,7 @@ Flutter's Effects surface is narrower than React Native's today — read
 
 `RavenEffectsPipeline` and its filter/preset builders, exported from
 `raven_rtc`, are real Dart — the same parameter ranges and preset
-compositions as `@corvidhq/effects` on web:
+compositions as `@ravenkash/effects` on web:
 
 ```dart
 import 'package:raven_rtc/raven_rtc.dart';

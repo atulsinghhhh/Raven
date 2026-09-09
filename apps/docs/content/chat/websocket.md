@@ -3,7 +3,7 @@ title: WebSocket Protocol
 description: For writing a client where Raven doesn't ship an SDK, or for debugging what's on the wire.
 ---
 
-You don't need this page to use Raven Chat — `@corvidhq/chat` speaks this
+You don't need this page to use Raven Chat — `@ravenkash/chat` speaks this
 protocol so you don't have to, and the SDK is the supported interface.
 This is for a client in a language Raven doesn't ship an SDK for, or for
 reading what's actually on the wire in devtools.
@@ -41,6 +41,7 @@ credential sitting in a URL.
   "jti": "ctk_7Qd2nF...",
   "sub": "user-123",
   "pid": "<project uuid>",
+  "env": "PRODUCTION",
   "cvs": ["<conversation uuid>"],
   "scopes": ["chat:read", "chat:send"],
   "iat": 1787054953,
@@ -49,6 +50,11 @@ credential sitting in a URL.
   "iss": "raven"
 }
 ```
+
+`env` is signed rather than sent, for the same reason `sub` is: a browser
+holding a development token must not be able to reach production data by
+editing a request field. Tokens minted before environments existed carry no
+`env` claim and resolve to development at the guard.
 
 `aud` is fixed at `raven-chat` — what stops a dashboard session JWT or an
 RTC token being replayed here even if a key were somehow shared.
@@ -75,7 +81,7 @@ which plane produced it.
 | `4440` | Token expired | Yes, with a **fresh token** |
 | `4500` | Server shutting down | Yes, after backing off — a deploy, not a fault |
 
-`@corvidhq/chat` treats `4401` and `4403` as terminal and reports `failed`
+`@ravenkash/chat` treats `4401` and `4403` as terminal and reports `failed`
 rather than retrying forever.
 
 ## Frame format

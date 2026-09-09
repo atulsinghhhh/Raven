@@ -1,14 +1,13 @@
-import { buildSearchIndex } from '../../lib/search';
+import { buildSearchIndex, compactIndex } from '../../lib/search';
 
 /**
  * The search index, generated once at build time and served as a static
  * file.
  *
- * It's a separate route, not a prop on every page for a reason:
- * embedding ~150 KB of index into all 38 statically-rendered pages would
- * pay for search on every page load, including the ones where nobody
- * opens it. Here the client fetches it exactly once, the first time
- * someone actually presses ⌘K.
+ * It's a separate route, not a prop on every page for a reason: embedding the
+ * index into every statically-rendered page would pay for search on every
+ * page load, including the ones where nobody opens it. Here the client fetches
+ * it exactly once, the first time someone actually presses ⌘K.
  */
 export const dynamic = 'force-static';
 
@@ -18,7 +17,8 @@ export async function GET(): Promise<Response> {
   // page. See assertIndexIsSound.
   const records = await buildSearchIndex();
 
-  return new Response(JSON.stringify(records), {
+  // Normalised for the wire; the client expands it. See CompactSearchIndex.
+  return new Response(JSON.stringify(compactIndex(records)), {
     headers: {
       'content-type': 'application/json; charset=utf-8',
       // Immutable in practice: a content change means a new build.

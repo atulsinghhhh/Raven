@@ -66,7 +66,7 @@ on their own — see [Authentication](/live-streaming/authentication).
 <Tab title="Web">
 
 ```ts
-import { LiveStream } from '@corvidhq/client';
+import { LiveStream } from '@ravenkash/client';
 
 const stream = await LiveStream.join(credentials); // role: 'HOST' or 'CO_HOST'
 
@@ -78,7 +78,7 @@ await stream.room.enableMicrophone();
 <Tab title="React">
 
 ```tsx
-import { useLiveStreamHost } from '@corvidhq/react';
+import { useLiveStreamHost } from '@ravenkash/react';
 
 const { camera, microphone, isHost } = useLiveStreamHost();
 await camera.enable();
@@ -92,7 +92,7 @@ yourself.
 <Tab title="React Native">
 
 ```ts
-import { joinLiveStream } from '@corvidhq/react-native';
+import { joinLiveStream } from '@ravenkash/react-native';
 
 const stream = await joinLiveStream(credentials);
 await stream.room.enableCamera();

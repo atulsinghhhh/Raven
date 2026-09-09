@@ -1,5 +1,5 @@
 {
-  "name": "@corvidhq/chat",
+  "name": "@ravenkash/chat",
   "version": "0.1.0",
   "description": "Raven browser SDK for real-time messaging \u2014 connect, send, and receive without writing a line of WebSocket code.",
   "license": "MIT",

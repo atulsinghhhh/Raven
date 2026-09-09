@@ -1,4 +1,4 @@
-# @corvidhq/effects
+# @ravenkash/effects
 
 Raven's real-time video effects pipeline — filters, presets, beauty
 smoothing, background processing and face detection.
@@ -12,16 +12,16 @@ Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time co
 ## Install
 
 ```bash
-npm install @corvidhq/effects
+npm install @ravenkash/effects
 ```
 
-Already a dependency of `@corvidhq/rtc`, so you only need this directly if
+Already a dependency of `@ravenkash/rtc`, so you only need this directly if
 you want the pipeline on its own.
 
 ## Use
 
 ```ts
-import { createEffectsPipeline, filters, presets } from '@corvidhq/effects';
+import { createEffectsPipeline, filters, presets } from '@ravenkash/effects';
 
 const pipeline = createEffectsPipeline();
 
@@ -45,7 +45,7 @@ Presets are ordered filter stacks — `presets.vintage()`, and friends.
 - Runnable example: [`examples/effects-demo`](https://github.com/atulsinghhhh/Raven/tree/main/examples/effects-demo)
 
 With React, prefer the `useCameraEffects` hook from
-[`@corvidhq/react`](https://www.npmjs.com/package/@corvidhq/react).
+[`@ravenkash/react`](https://www.npmjs.com/package/@ravenkash/react).
 
 ## License
 

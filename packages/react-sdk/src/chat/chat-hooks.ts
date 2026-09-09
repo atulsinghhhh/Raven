@@ -7,12 +7,12 @@ import type {
   ChatMessage,
   PresenceStatus,
   RavenChatError,
-} from '@corvidhq/chat';
+} from '@ravenkash/chat';
 import { useRavenChatStore } from './chat-context';
 import type { RavenChatSnapshot } from './chat-store';
 
 /**
- * Chat hooks for `@corvidhq/react`.
+ * Chat hooks for `@ravenkash/react`.
  *
  * Every hook reads exactly one slice of the store's snapshot, so a
  * component that only renders typing indicators doesn't re-render on every

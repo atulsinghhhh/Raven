@@ -21,7 +21,8 @@ function decodeTokenPayload(token) {
     const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
     const json = JSON.parse(atob(base64));
     return {
-      room: json?.video?.room,
+      roomId: typeof json?.rid === "string" ? json.rid : void 0,
+      roomName: typeof json?.rnm === "string" ? json.rnm : void 0,
       exp: typeof json?.exp === "number" ? json.exp : void 0,
       sub: typeof json?.sub === "string" ? json.sub : void 0
     };
@@ -34,12 +35,12 @@ function validateConfig(config) {
     throw new RTCError("INVALID_TOKEN", "createRTCClient(config) requires a configuration object");
   }
   if (!config.token || typeof config.token !== "string") {
-    throw new RTCError("INVALID_TOKEN", "config.token is required \u2014 the RTC token from your backend");
+    throw new RTCError("INVALID_TOKEN", "config.token is required; the RTC token from your backend");
   }
   if (!config.endpoint || typeof config.endpoint !== "string") {
     throw new RTCError(
       "INVALID_TOKEN",
-      'config.endpoint is required \u2014 the "endpoint" field from the same token-mint response as config.token'
+      'config.endpoint is required; the "endpoint" field from the same token-mint response as config.token'
     );
   }
   const { exp } = decodeTokenPayload(config.token);
@@ -56,11 +57,16 @@ function validateConfig(config) {
     telemetry: config.telemetry ?? true
   };
 }
-function assertTokenMatchesRoom(token, roomId) {
-  const { room } = decodeTokenPayload(token);
-  if (room && room !== roomId) {
-    throw new RTCError("ROOM_NOT_FOUND", `This token was minted for room "${room}", not "${roomId}"`);
+function assertTokenMatchesRoom(token, room) {
+  const { roomId, roomName } = decodeTokenPayload(token);
+  if (!roomId && !roomName) {
+    return;
   }
+  if (room === roomId || room === roomName) {
+    return;
+  }
+  const minted = roomName ?? roomId;
+  throw new RTCError("ROOM_NOT_FOUND", `This token was minted for room "${minted}", not "${room}"`);
 }
 
 // src/logger.ts
@@ -148,7 +154,7 @@ var Track = class {
     this.delegate = delegate;
     this.kind = kind;
   }
-  /** The underlying native track, for the rare case advanced access is needed. */
+  /** The underlying native track, for the rare occasion you need to go deeper. */
   get mediaStreamTrack() {
     return this.delegate.mediaStreamTrack;
   }
@@ -179,21 +185,23 @@ var LocalTrack = class extends Track {
   async unmute() {
     await this.localDelegate.unmute();
   }
-  /** Stops the underlying device capture. Publish state is managed by Room.unpublish(). */
+  /** Stops the underlying device capture. Publish state belongs to Room.unpublish(). */
   stop() {
     this.mediaStreamTrack.stop();
   }
   /**
-   * Raven Effects (`@corvidhq/effects`) integration point — Camera → Raven
-   * Video Track → Effects Pipeline → Processed Video Track → Raven RTC.
-   * Runs `pipeline` against this track's live camera feed and, if already
-   * published, swaps the sender's `MediaStreamTrack` in place via the
-   * adapter's `replaceTrack()` — no renegotiation, no reconnect, audio and
-   * the rest of the room are untouched. Camera-only today; screen share and
-   * microphone aren't supported.
+   * Where Raven Effects (`@ravenkash/effects`) plugs in. The chain is
+   * Camera → Raven Video Track → Effects Pipeline → Processed Video Track →
+   * Raven RTC.
    *
-   * If the pipeline can't run on this device (no WebGL2/Canvas2D/
-   * captureStream), it degrades to the original track automatically — the
+   * Runs `pipeline` against this track's live camera feed and, if the track
+   * is already published, swaps the sender's `MediaStreamTrack` in place
+   * through the adapter's `replaceTrack()`. No renegotiation, no reconnect,
+   * audio and the rest of the room untouched. Camera only for now; screen
+   * share and microphone aren't supported.
+   *
+   * Can't run the pipeline on this device (no WebGL2, Canvas2D or
+   * captureStream)? It falls back to the original track on its own. The
    * call keeps working either way.
    */
   async attachEffects(pipeline) {
@@ -201,7 +209,7 @@ var LocalTrack = class extends Track {
       throw new RTCError("MEDIA_ERROR", `attachEffects() is only supported on camera tracks, not "${this.kind}".`);
     }
     if (!this.localDelegate.replaceTrack) {
-      throw new RTCError("MEDIA_ERROR", "This track cannot be swapped in place \u2014 the current adapter does not support replaceTrack().");
+      throw new RTCError("MEDIA_ERROR", "This track cannot be swapped in place; the current adapter does not support replaceTrack().");
     }
     if (this.attachedEffectsPipeline) {
       await this.detachEffects();
@@ -214,7 +222,7 @@ var LocalTrack = class extends Track {
     this.attachedEffectsPipeline = pipeline;
     this.preEffectsMediaStreamTrack = original;
   }
-  /** Reverts to the unmodified camera track and releases the pipeline's engine resources. */
+  /** Goes back to the unmodified camera track and frees the pipeline's engine resources. */
   async detachEffects() {
     if (!this.attachedEffectsPipeline) return;
     this.attachedEffectsPipeline.detach();
@@ -225,15 +233,17 @@ var LocalTrack = class extends Track {
     this.preEffectsMediaStreamTrack = void 0;
   }
   /**
-   * Live send-side stats for this track — bitrate, packet loss, jitter,
-   * RTT (audio only), resolution/fps (video only). `undefined` when the
-   * adapter can't supply them (no `getSenderStats` on the delegate, or the
-   * underlying call itself resolved to nothing) rather than a
-   * zeroed-out object — see the module doc on why that distinction matters.
+   * Live send-side stats for this track: bitrate, packet loss, jitter, RTT
+   * (audio only), resolution and fps (video only).
    *
-   * Call this periodically (`Room.getConnectionStats()` does, every few
-   * seconds) rather than once: bitrate needs two samples to compute, so
-   * the very first call after a track starts always omits it.
+   * You get `undefined`, not a zeroed-out object, when the adapter can't
+   * supply them, either because the delegate has no `getSenderStats` or
+   * because the underlying call resolved to nothing. The module doc covers
+   * why that distinction matters.
+   *
+   * Call it periodically instead of once. `Room.getConnectionStats()` does,
+   * every few seconds. Bitrate needs two samples to compute, so the first
+   * call after a track starts always omits it.
    */
   async getStats() {
     const raw = await this.localDelegate.getSenderStats?.();
@@ -254,7 +264,7 @@ var RemoteTrack = class extends Track {
     super(delegate, kind);
     this.remoteDelegate = delegate;
   }
-  /** Live receive-side stats for this track. See `LocalTrack.getStats()` for the shape and its caveats. */
+  /** Live receive-side stats. `LocalTrack.getStats()` covers the shape and the caveats. */
   async getStats() {
     const raw = await this.remoteDelegate.getReceiverStats?.();
     if (!raw) {
@@ -341,9 +351,9 @@ function toRawStats(rtp, direction, codecs, remoteInbound) {
     type: kind === "audio" ? "audio" : kind === "video" ? "video" : void 0,
     // `RTCStats.timestamp` is a DOMHighResTimeStamp relative to the time
     // origin, and `normalizeTrackStats` only ever uses it as a delta
-    // against a previous sample, so its epoch does not matter. Falling
-    // back to Date.now() keeps the delta usable in the rare case the
-    // browser omitted it.
+    // against a previous sample, so the epoch is irrelevant. Falling back
+    // to Date.now() keeps the delta usable on the rare browser that omits
+    // it.
     timestamp: typeof rtp.timestamp === "number" ? rtp.timestamp : Date.now()
   };
   if (typeof rtp.jitter === "number") sample.jitter = rtp.jitter;
@@ -427,11 +437,11 @@ var NativeTrackDelegate = class {
     return detached;
   }
   /**
-   * Swaps the track this delegate wraps.
+   * Swaps out the track this delegate wraps.
    *
-   * Called after `replaceTrack` on the sender succeeds, so that
-   * `attach()`ed elements and `mediaStreamTrack` describe what is actually
-   * being sent rather than the track that was replaced.
+   * Called once `replaceTrack` on the sender has succeeded, so attached
+   * elements and `mediaStreamTrack` describe what's actually going out
+   * rather than the track we just replaced.
    */
   swapMediaStreamTrack(next) {
     this.mediaStreamTrack = next;
@@ -459,21 +469,21 @@ var NativeLocalTrackDelegate = class extends NativeTrackDelegate {
   get isMuted() {
     return this.muted;
   }
-  /** @internal called by the adapter once the track is attached to a sender. */
+  /** @internal Called by the adapter once the track has a sender. */
   setSender(sender) {
     this.sender = sender;
   }
   /**
-   * Mutes by disabling the underlying track rather than removing it.
+   * Mutes by disabling the underlying track, not by removing it.
    *
-   * `track.enabled = false` makes the browser send silence or black
-   * frames — the RTP stream continues, the transceiver stays, and
-   * unmuting is instant. Stopping the track instead would release the
-   * device (turning off the camera light, which users read as "off") but
-   * would then need a fresh `getUserMedia` and a renegotiation to undo.
+   * `track.enabled = false` has the browser send silence or black frames.
+   * The RTP stream keeps going, the transceiver stays put, and unmuting is
+   * instant. Stopping the track instead releases the device, which does
+   * turn the camera light off (users read that as "off"), but undoing it
+   * then costs a fresh `getUserMedia` and a renegotiation.
    *
-   * The SFU is told separately, via signaling, so it can stop forwarding
-   * the silence to every subscriber instead of paying to relay it.
+   * We tell the SFU separately over signaling, so it can stop forwarding
+   * the silence to every subscriber instead of paying to relay nothing.
    */
   async mute() {
     this.mediaStreamTrack.enabled = false;
@@ -488,10 +498,10 @@ var NativeLocalTrackDelegate = class extends NativeTrackDelegate {
   /**
    * Replaces the outgoing track without renegotiating.
    *
-   * This is what makes Raven Effects work mid-call: `RTCRtpSender.replaceTrack`
-   * swaps the source of an established stream, so a processed video track
-   * takes over from the raw camera with no offer/answer and no
-   * interruption to anyone else in the room.
+   * This is the trick that makes Raven Effects work mid-call.
+   * `RTCRtpSender.replaceTrack` swaps the source of an established stream,
+   * so a processed video track takes over from the raw camera with no
+   * offer/answer and nobody else in the room noticing.
    */
   async replaceTrack(track, _userProvidedTrack) {
     if (this.sender) {
@@ -506,11 +516,11 @@ var NativeLocalTrackDelegate = class extends NativeTrackDelegate {
   /**
    * Send-side stats for this track.
    *
-   * Returns an array for video, because a simulcast sender reports one
-   * `outbound-rtp` per encoding layer — `LocalTrack.getStats()` picks the
-   * highest-resolution one. `undefined` when there is no sender yet: an
-   * unpublished track has no send statistics, and reporting zeroes would
-   * claim it was sending nothing rather than not sending at all.
+   * Video gets an array, because a simulcast sender reports one
+   * `outbound-rtp` per encoding layer, and `LocalTrack.getStats()` picks
+   * the highest-resolution one. You get `undefined` when there's no sender
+   * yet. An unpublished track has no send statistics, and reporting zeroes
+   * would claim it was sending nothing when really it isn't sending.
    */
   async getSenderStats() {
     if (!this.sender) {
@@ -533,7 +543,7 @@ var NativeRemoteTrackDelegate = class extends NativeTrackDelegate {
   get isMuted() {
     return this.publisherMuted;
   }
-  /** @internal set from the SFU's `track.muted` / `track.unmuted` events. */
+  /** @internal Set from the SFU's `track.muted` / `track.unmuted` events. */
   setPublisherMuted(muted) {
     this.publisherMuted = muted;
   }
@@ -669,14 +679,14 @@ var Participant = class {
     this._identity = identity;
     this.metadata = metadata;
   }
-  /** The RTC token's participant identity — stable for the session's duration. */
+  /** The RTC token's participant identity. Stable for the whole session. */
   get identity() {
     return this._identity;
   }
   /**
-   * @internal Called once by the SFU adapter right after connect()
-   * resolves — the constructor runs before the server confirms identity,
-   * so this patches it in afterward.
+   * @internal Called once by the SFU adapter just after connect() resolves.
+   * The constructor runs before the server has confirmed identity, so this
+   * patches it in afterwards.
    */
   _setIdentity(identity) {
     this._identity = identity;
@@ -708,10 +718,10 @@ var ClientMessageType = {
   /**
    * Declares what a track being published is *of*.
    *
-   * Necessary because WebRTC carries no such concept and a page cannot
-   * choose the `MediaStream` or `MediaStreamTrack` id the SDP will carry
-   * — both are read-only. Without this the SFU can only infer source from
-   * codec kind, which cannot tell a screen share from a camera.
+   * Needed because WebRTC has no such concept, and a page can't choose the
+   * `MediaStream` or `MediaStreamTrack` id the SDP will carry; both are
+   * read-only. Without this the SFU can only guess the source from codec
+   * kind, and that can't tell a screen share from a camera.
    */
   TRACK_PUBLISH: "track.publish",
   SUBSCRIPTION_UPDATE: "subscription.update",
@@ -760,10 +770,10 @@ var SignalingClient = class extends TypedEventEmitter {
   /**
    * Opens the socket and joins the room.
    *
-   * Resolves once `room.joined` arrives — not merely once the socket
-   * opens. A caller that got a resolved promise on socket-open would then
-   * have to wait for an event to know whether it was actually in the room,
-   * which is the same waiting with an extra step.
+   * Resolves when `room.joined` arrives, not when the socket opens. Resolve
+   * on socket-open and the caller still has to sit waiting on an event to
+   * find out whether they're actually in the room, which is the same wait
+   * with an extra step bolted on.
    */
   async connect() {
     this.closedByCaller = false;
@@ -946,7 +956,7 @@ var SignalingClient = class extends TypedEventEmitter {
     }
     this.socket.send(JSON.stringify(message));
   }
-  /** Leaves the room and closes the socket. Suppresses reconnection. */
+  /** Leaves the room and closes the socket. No reconnect afterwards. */
   close() {
     this.closedByCaller = true;
     if (this.reconnectTimer) {
@@ -1021,20 +1031,20 @@ var RavenAdapter = class extends TypedEventEmitter {
     this.iceServers = [];
     this._connectionState = "disconnected";
     this.intentionalDisconnect = false;
-    /** Published tracks by kind, so `enableCamera(false)` knows what to stop. */
+    /** Published tracks by kind, so `enableCamera(false)` knows what to kill. */
     this.published = /* @__PURE__ */ new Map();
     /** Subscribed tracks by `publisherId/trackId`. */
     this.subscribed = /* @__PURE__ */ new Map();
     /**
-     * What the server has told us each participant publishes, before the
-     * media itself arrives. `ontrack` and `track.published` race, and either
-     * can be first — so both paths consult this and the subscription is
-     * completed by whichever arrives second.
+     * What the server says each participant publishes, ahead of the media
+     * actually turning up. `ontrack` and `track.published` race and either
+     * can win, so both paths check in here and whichever lands second
+     * finishes the subscription.
      */
     this.announcedTracks = /* @__PURE__ */ new Map();
     /** Tracks whose media arrived before the announcement. */
     this.pendingMedia = /* @__PURE__ */ new Map();
-    /** Publishes deferred by glare, retried once the server's offer is answered. */
+    /** Publishes that glare pushed back, retried once we've answered the server. */
     this.deferredPublishes = [];
     this.logger = logger;
     this.autoReconnect = autoReconnect;
@@ -1046,17 +1056,18 @@ var RavenAdapter = class extends TypedEventEmitter {
   /**
    * The SFU's read on this connection's health.
    *
-   * Currently `'unknown'` unless the SFU has reported a failed state.
+   * Right now that's `'unknown'` unless the SFU has reported a failure.
    *
-   * This is deliberate and it is a known gap, not an oversight. The
-   * previous adapter returned LiveKit's server-computed verdict, which had
-   * a vantage point a client cannot have: the SFU sees loss and jitter on
-   * every leg of the room, not just this one. Raven's SFU does not yet
-   * compute an equivalent. Returning a client-side guess dressed up as a
-   * server verdict would be exactly the fabricated metric spec §19
-   * forbids, so it returns "unknown" until the SFU can answer honestly.
-   * `room.getConnectionStats()` returns real per-track numbers in the
-   * meantime.
+   * TODO: return a real verdict once the SFU computes one.
+   *
+   * Known gap, not an oversight. The old adapter passed through LiveKit's
+   * server-computed verdict, which had a vantage point no client can get
+   * near: the SFU sees loss and jitter on every leg of the room, not just
+   * this one. Raven's SFU doesn't work out an equivalent yet. Dressing a
+   * client-side guess up as a server verdict is precisely the fabricated
+   * metric spec §19 rules out, so this says "unknown" until the SFU can
+   * answer honestly. `room.getConnectionStats()` gives you real per-track
+   * numbers in the meantime.
    */
   getConnectionQuality() {
     if (this.sfuPeerState === "failed" || this._connectionState === "failed") {
@@ -1064,14 +1075,14 @@ var RavenAdapter = class extends TypedEventEmitter {
     }
     return "unknown";
   }
-  /** Diagnostics the LiveKit adapter could not provide (see `Room.getDiagnostics()`). */
+  /** Diagnostics the LiveKit adapter never could give us (see `Room.getDiagnostics()`). */
   getIceConnectionState() {
     return this.pc?.iceConnectionState;
   }
   getSignalingState() {
     return this.pc?.signalingState;
   }
-  /** The SFU's own view, which can disagree with the local one — and that disagreement is the useful part. */
+  /** The SFU's own view. It can disagree with the local one, and that disagreement is usually the interesting bit. */
   getRemoteConnectionState() {
     return { iceState: this.sfuIceState, peerState: this.sfuPeerState };
   }
@@ -1114,12 +1125,12 @@ var RavenAdapter = class extends TypedEventEmitter {
     }
   }
   /**
-   * Applies the room state the server reported at join.
+   * Applies whatever room state the server reported at join.
    *
-   * Called both on first join and after every reconnect. On a reconnect
-   * the participant list is authoritative and the previous one is
-   * discarded — a participant who left during the outage must not linger,
-   * and one who joined during it must appear.
+   * Runs on first join and after every reconnect. On a reconnect the
+   * server's participant list wins outright and the old one goes in the
+   * bin: anyone who left during the outage must not linger, anyone who
+   * joined during it must show up.
    */
   async handleJoined(payload) {
     this.logger.debug(
@@ -1323,11 +1334,11 @@ var RavenAdapter = class extends TypedEventEmitter {
     }
   }
   /**
-   * Offers, so the server learns about a newly added track.
+   * Offers, so the server hears about a track we just added.
    *
-   * Needed only when adding a track created a new transceiver — which
-   * happens on the first publish of each kind. Later publishes of the same
-   * kind reuse the transceiver and ride the server's next offer.
+   * Only needed when adding the track created a new transceiver, which is
+   * the first publish of each kind. Later publishes of the same kind reuse
+   * the transceiver and hitch a ride on the server's next offer.
    */
   async negotiatePublish() {
     const pc = this.pc;
@@ -1355,24 +1366,24 @@ var RavenAdapter = class extends TypedEventEmitter {
   }
   // --- Incoming media ----------------------------------------------------
   /**
-   * Matches an arriving track to what signaling said about it.
+   * Matches an arriving track up with whatever signaling said about it.
    *
-   * The SFU forwards each subscription carrying the *publisher's* track id
-   * as the SDP `msid` track id, which is what makes attribution possible
-   * without a side-channel. `ontrack` and `track.published` race, so this
-   * completes the subscription only when both halves are present and
-   * parks whichever arrived first.
+   * The SFU forwards every subscription carrying the *publisher's* track id
+   * as the SDP `msid` track id, and that's what makes attribution possible
+   * without a side channel. `ontrack` and `track.published` race, so this
+   * only completes a subscription when both halves are in, parking
+   * whichever showed up first.
    *
-   * # Why the id comes from the SDP rather than from the track
+   * # Why the id comes from the SDP, not the track
    *
    * `RTCTrackEvent.track.id` is **not** the remote track id. Chrome mints
-   * a fresh local id for a received track and ignores what the `msid`
-   * said; the id in `a=msid:<stream> <track>` is the remote one. Matching
-   * on `event.track.id` therefore never matched anything, and — because
-   * the unmatched track was parked as "media arrived early" — it failed
-   * silently, as a subscription that simply never completed rather than
-   * as an error. Reading the `msid` is the standards-defined way to get
-   * the id the remote peer chose.
+   * a brand-new local id for a received track and pays no attention to the
+   * `msid`; the id in `a=msid:<stream> <track>` is the remote one. So
+   * matching on `event.track.id` never matched anything, ever. And because
+   * the unmatched track got parked as "media arrived early", it failed in
+   * total silence: a subscription that simply never completed, not an
+   * error anybody could see. Reading the `msid` is the standards-defined
+   * way to get the id the remote peer actually picked.
    */
   handleIncomingTrack(event) {
     const [stream] = event.streams;
@@ -1402,16 +1413,16 @@ var RavenAdapter = class extends TypedEventEmitter {
     );
   }
   /**
-   * The remote track id for an arriving track, read from the remote SDP.
+   * The remote track id for an arriving track, read out of the remote SDP.
    *
-   * Located by the transceiver's `mid` rather than by scanning every
-   * `a=msid:` line, because a participant publishing both a camera and a
-   * screen share has two video m-sections and picking the wrong one would
-   * label a screen share as somebody's face.
+   * Found via the transceiver's `mid` rather than by scanning every
+   * `a=msid:` line. Someone publishing both a camera and a screen share
+   * has two video m-sections, and picking the wrong one labels a screen
+   * share as somebody's face.
    *
-   * Returns undefined when the SDP does not say — an `msid`-less offer, or
-   * a transceiver with no mid yet — so the caller can fall back rather
-   * than guess.
+   * Returns undefined when the SDP doesn't say, either an `msid`-less
+   * offer or a transceiver with no mid yet, so the caller can fall back
+   * instead of guessing.
    */
   remoteTrackIdFor(event) {
     const mid = event.transceiver?.mid;
@@ -1578,17 +1589,17 @@ var RavenAdapter = class extends TypedEventEmitter {
     this.emit("localTrackUnpublished", track);
   }
   /**
-   * Configures simulcast on a video sender (spec §15).
+   * Sets up simulcast on a video sender (spec §15).
    *
-   * Three spatial layers, each a quarter of the previous one's pixel count
-   * — the standard ladder, and the one browsers implement well. Applied
-   * via `setParameters` after `addTrack` rather than through
-   * `addTransceiver`'s `sendEncodings`, because the transceiver may
-   * already exist from the SFU's offer and re-adding it would renegotiate
-   * for nothing.
+   * Three spatial layers, each a quarter of the previous one's pixel count.
+   * That's the standard ladder and the one browsers actually implement
+   * well. Applied with `setParameters` after `addTrack` instead of through
+   * `addTransceiver`'s `sendEncodings`, because the transceiver may already
+   * exist from the SFU's offer and re-adding it would renegotiate for
+   * nothing at all.
    *
-   * Audio is left alone: there is no spatial layering to do, and Opus
-   * already adapts its own bitrate.
+   * Audio gets left alone. There's no spatial layering to do, and Opus
+   * already sorts its own bitrate out.
    */
   async applySimulcast(sender, kind) {
     if (kind === "microphone" || sender.track?.kind !== "video") {
@@ -1645,15 +1656,15 @@ var RavenAdapter = class extends TypedEventEmitter {
     try {
       channel.send(payload);
     } catch (error) {
-      throw new RTCError("PERMISSION_DENIED", "Could not send data \u2014 check the token grants publishData", error);
+      throw new RTCError("PERMISSION_DENIED", "Could not send data; check the token grants publishData", error);
     }
   }
   /**
-   * Opens the data channel on demand.
+   * Opens the data channel when something actually wants it.
    *
-   * Not opened at connect: a channel costs an SCTP association, and most
-   * calls never send data. Created by the client rather than the server
-   * because the client is the side that knows it wants one.
+   * Not at connect time. A channel costs an SCTP association and most
+   * calls never send a byte of data. The client creates it, not the
+   * server, because the client is the side that knows it needs one.
    */
   openDataChannel() {
     if (!this.pc) {
@@ -1680,11 +1691,11 @@ var RavenAdapter = class extends TypedEventEmitter {
     }
   }
   /**
-   * Switches the device behind a published track without renegotiating.
+   * Swaps the device behind a published track without renegotiating.
    *
-   * `replaceTrack` is what makes this seamless: the transceiver, the SSRC,
-   * and every subscriber's view of the track are untouched, so nobody
-   * else in the room sees anything happen.
+   * `replaceTrack` is what makes it seamless. Transceiver, SSRC, and every
+   * subscriber's view of the track all stay put, so nobody else in the
+   * room notices a thing.
    */
   async replaceDevice(kind, capture) {
     const entry = this.published.get(kind);
@@ -1699,11 +1710,10 @@ var RavenAdapter = class extends TypedEventEmitter {
   /**
    * Points this room's remote audio at a different output device.
    *
-   * `setSinkId` is per-element, so this walks the elements each remote
-   * audio track is attached to. Safari has no `setSinkId` at all;
-   * `Room.setSpeakerDevice()` checks for that and throws before reaching
-   * here, so an unsupported browser gets a clear error rather than a
-   * silent no-op.
+   * `setSinkId` works per element, so this walks whatever elements each
+   * remote audio track is attached to. Safari doesn't have `setSinkId` at
+   * all. `Room.setSpeakerDevice()` checks and throws before we get here,
+   * so an unsupported browser gets a real error instead of a silent no-op.
    */
   async setAudioOutput(deviceId) {
     const failures = [];
@@ -1905,7 +1915,7 @@ var SDK_VERSION = "0.1.0";
 
 // src/room.ts
 var _Room = class _Room extends TypedEventEmitter {
-  /** @internal use `client.join(roomId)` — the telemetry client defaults to a no-op so tests/advanced setups can construct a Room directly without wiring one up. */
+  /** @internal Use `client.join(roomId)`. The telemetry client defaults to a no-op, so tests and advanced setups can build a Room directly without wiring one up. */
   constructor(adapter, roomId, logger, telemetry = createTelemetryClient({ enabled: false, token: "", sdkVersion: SDK_VERSION, logger })) {
     super();
     this.reconnectCount = 0;
@@ -1983,11 +1993,11 @@ var _Room = class _Room extends TypedEventEmitter {
     });
   }
   /**
-   * A safe, non-secret diagnostic snapshot for support and debugging.
+   * A non-secret diagnostic snapshot for support and debugging.
    *
-   * Synchronous and cheap by design — safe to call from anywhere, any
-   * time, including from an error handler. Live media stats are a
-   * separate, `async` call; see `getConnectionStats()`.
+   * Synchronous and cheap by design, so you can call it from anywhere at
+   * any time, error handlers included. Live media stats are a separate
+   * `async` call; see `getConnectionStats()`.
    */
   getDiagnostics() {
     const { platform, browser } = detectPlatform();
@@ -2005,14 +2015,14 @@ var _Room = class _Room extends TypedEventEmitter {
     };
   }
   /**
-   * Live media-quality stats for every published and subscribed track —
-   * RTT, jitter, packet loss, bitrate, codec, resolution/fps, plus the
-   * SFU's own connection-quality read. See `ConnectionStats` for why this
-   * is separate from `getDiagnostics()`.
+   * Live media-quality stats for every published and subscribed track.
+   * RTT, jitter, packet loss, bitrate, codec, resolution/fps, and the
+   * SFU's own connection-quality read. `ConnectionStats` explains why this
+   * is kept apart from `getDiagnostics()`.
    *
-   * Safe to call at any time, including before anything has been
-   * published or subscribed — `local`/`remote` are simply empty then, not
-   * an error.
+   * Call it whenever you like, including before anything is published or
+   * subscribed. You just get empty `local`/`remote` arrays then, not an
+   * error.
    */
   async getConnectionStats() {
     const localTracks = this.localParticipant.tracks;
@@ -2029,12 +2039,11 @@ var _Room = class _Room extends TypedEventEmitter {
     };
   }
   /**
-   * Polls `getConnectionStats()` on an interval and reports it as
+   * Polls `getConnectionStats()` on a timer and ships the result as
    * telemetry, so the dashboard's RTC view (spec §23) has numbers to show
-   * without every developer wiring this up themselves. Best-effort like
-   * every other telemetry event here: a failure is swallowed rather than
-   * surfaced, since a stats-collection hiccup is not a reason to disrupt
-   * the call it's describing.
+   * without every developer wiring it up by hand. Best-effort, same as
+   * every other telemetry event here: failures get swallowed. A hiccup
+   * collecting stats is no reason to disturb the call it's describing.
    */
   startStatsMonitor() {
     if (this.statsTimer) {
@@ -2051,7 +2060,7 @@ var _Room = class _Room extends TypedEventEmitter {
       this.statsTimer = void 0;
     }
   }
-  /** Captures and publishes the camera in one call. Resolves to the published track. */
+  /** Captures and publishes the camera in one go. Resolves to the published track. */
   async enableCamera() {
     return this.adapter.enableCamera(true);
   }
@@ -2074,7 +2083,7 @@ var _Room = class _Room extends TypedEventEmitter {
   async disableScreenShare() {
     await this.adapter.enableScreenShare(false);
   }
-  /** Publishes a track created via `client.createCameraTrack()` et al. */
+  /** Publishes a track you made with `client.createCameraTrack()` and friends. */
   async publish(track) {
     await this.adapter.publish(track);
   }
@@ -2091,9 +2100,9 @@ var _Room = class _Room extends TypedEventEmitter {
   }
   /**
    * Switches the audio output ("speaker") device for this room's remote
-   * audio elements — Phase 11 addition. Not universally supported (Safari
-   * lacks `HTMLMediaElement.setSinkId`); throws `DEVICE_NOT_FOUND` on
-   * browsers that don't implement it, rather than silently no-op-ing.
+   * audio elements. Phase 11 addition. Not supported everywhere: Safari
+   * has no `HTMLMediaElement.setSinkId`. Browsers that don't implement it
+   * get a `DEVICE_NOT_FOUND` throw instead of a silent no-op.
    */
   async setSpeakerDevice(deviceId) {
     if (typeof document !== "undefined") {
@@ -2105,41 +2114,41 @@ var _Room = class _Room extends TypedEventEmitter {
     await this.adapter.setDevice("audiooutput", deviceId);
   }
   /**
-   * Sends a small payload to all participants (or specific ones, if the
-   * underlying SFU adapter supports targeting). Needs the token's
-   * `publishData` grant — throws PERMISSION_DENIED otherwise.
+   * Sends a small payload to everyone, or to specific people if the
+   * underlying SFU adapter supports targeting. Requires the token's
+   * `publishData` grant; throws PERMISSION_DENIED without it.
    */
   async sendData(payload) {
     const bytes = typeof payload === "string" ? new TextEncoder().encode(payload) : new Uint8Array(payload);
     await this.adapter.sendData(bytes);
   }
   /**
-   * Resolves once the media connection is actually established.
+   * Resolves once the media connection is genuinely up.
    *
    * # Why this exists
    *
-   * `client.join()` resolves when the **control plane** has admitted
-   * you: the room is joined, you know who else is in it, and you can
-   * publish. The media connection completes a moment later, after ICE and
-   * DTLS — so `connectionState` is `'connecting'` for a short window
-   * after `join()` returns. That is the honest shape of an SFU
-   * connection, and it is why `'connected'` is an event rather than a
-   * postcondition of joining.
+   * `client.join()` resolves when the **control plane** lets you in: room
+   * joined, you know who else is here, you can publish. The media
+   * connection finishes a moment later, once ICE and DTLS are done, which
+   * means `connectionState` sits at `'connecting'` for a short window
+   * after `join()` returns. That's the honest shape of an SFU connection,
+   * and it's why `'connected'` is an event, not something joining
+   * guarantees you.
    *
-   * Most callers need none of this: `enableCamera()` and
-   * `enableMicrophone()` work during that window, and the `connected`
-   * event is the right thing to drive a UI from. This is for code that
-   * genuinely has to block — a test, or a flow that must not proceed
-   * until media is live.
+   * Most callers need none of this. `enableCamera()` and
+   * `enableMicrophone()` work fine inside that window, and the `connected`
+   * event is what you want driving a UI. This is for code that genuinely
+   * has to block: a test, or a flow that mustn't move on until media is
+   * live.
    *
-   * Resolves immediately if already connected. Rejects on `'failed'`, and
-   * on timeout, rather than resolving with a connection that is not there.
+   * Resolves straight away if already connected. Rejects on `'failed'` and
+   * on timeout, rather than handing back a connection that isn't there.
    *
-   * A subscriber joining a room where nobody is publishing may legitimately
-   * stay `'connecting'`: with no tracks on either side there is nothing to
-   * negotiate, so waiting here would time out on a connection that is not
-   * broken. Drive a UI from the `connected` event instead of blocking on
-   * this when that is possible.
+   * Careful: a subscriber joining a room where nobody is publishing can
+   * quite legitimately stay `'connecting'`. With no tracks on either side
+   * there's nothing to negotiate, so waiting here times out on a
+   * connection that isn't broken at all. Where you can, drive the UI off
+   * the `connected` event instead of blocking on this.
    */
   waitUntilConnected(timeoutMs = 15e3) {
     if (this.connectionState === "connected") {
@@ -2163,7 +2172,7 @@ var _Room = class _Room extends TypedEventEmitter {
           () => reject(
             new RTCError(
               "CONNECTION_FAILED",
-              `Still ${this.connectionState} after ${timeoutMs}ms \u2014 the media connection did not establish`
+              `Still ${this.connectionState} after ${timeoutMs}ms; the media connection did not establish`
             )
           )
         );
@@ -2171,17 +2180,17 @@ var _Room = class _Room extends TypedEventEmitter {
       this.on("connectionStateChanged", onState);
     });
   }
-  /** Leaves the room, stops local tracks, and closes the underlying connection. */
+  /** Leaves the room, stops local tracks and closes the underlying connection. */
   async leave() {
     this.stopStatsMonitor();
     await this.adapter.disconnect();
   }
 };
 /**
- * How often the stats monitor samples and reports. Frequent enough that
- * a dashboard viewing "now" isn't looking at stale numbers; infrequent
- * enough that it isn't a meaningful load on the telemetry endpoint
- * across a call with dozens of participants each doing this.
+ * How often the stats monitor samples and reports. Often enough that a
+ * dashboard showing "now" isn't showing you five minutes ago, rarely
+ * enough that it doesn't hammer the telemetry endpoint on a call where
+ * dozens of participants are all doing exactly this.
  */
 _Room.STATS_INTERVAL_MS = 5e3;
 var Room = _Room;
@@ -2190,9 +2199,9 @@ var Room = _Room;
 var defaultAdapterFactory = (logger, autoReconnect) => new RavenAdapter(logger, autoReconnect);
 var RTCClient = class {
   /**
-   * @internal use `createRTCClient(config)` instead. Second param only
-   * exists so tests can inject a fake SFUAdapter without a real
-   * browser/WebRTC stack — not part of the public config.
+   * @internal Use `createRTCClient(config)`. The second param exists purely
+   * so tests can inject a fake SFUAdapter without a real browser and WebRTC
+   * stack. Not part of the public config.
    */
   constructor(config, adapterFactory = defaultAdapterFactory) {
     this.config = config;
@@ -2200,9 +2209,9 @@ var RTCClient = class {
     this.adapterFactory = adapterFactory;
   }
   /**
-   * Joins the room this client's token was minted for. `roomId` must match
-   * that room — passing a different one throws `ROOM_NOT_FOUND` immediately,
-   * before attempting any connection.
+   * Joins the room this client's token was minted for. `roomId` has to
+   * match that room; pass a different one and you get `ROOM_NOT_FOUND`
+   * straight away, before any connection is attempted.
    */
   async join(roomId) {
     assertTokenMatchesRoom(this.config.token, roomId);
@@ -2229,33 +2238,34 @@ var RTCClient = class {
     this.currentRoom = room;
     return room;
   }
-  /** Leaves the most recently joined room, if any. Equivalent to calling `.leave()` on that `Room`. */
+  /** Leaves the most recently joined room, if there is one. Same as `.leave()` on that `Room`. */
   async leave() {
     await this.currentRoom?.leave();
     this.currentRoom = void 0;
   }
-  /** Captures a camera track without joining/publishing — pair with `room.publish(track)`. */
+  /** Captures a camera track without joining or publishing. Pair it with `room.publish(track)`. */
   async createCameraTrack(deviceId) {
     return createCameraTrack(deviceId ? { deviceId } : {});
   }
-  /** Captures a microphone track without joining/publishing — pair with `room.publish(track)`. */
+  /** Captures a microphone track without joining or publishing. Pair it with `room.publish(track)`. */
   async createMicrophoneTrack(deviceId) {
     return createMicrophoneTrack(deviceId ? { deviceId } : {});
   }
-  /** Captures a screen-share track without joining/publishing — pair with `room.publish(track)`. */
+  /** Captures a screen-share track without joining or publishing. Pair it with `room.publish(track)`. */
   async createScreenShareTrack() {
     return createScreenShareTrack();
   }
-  /** Lists available devices. Labels are populated only once permission has been granted at least once. */
+  /** Lists available devices. Labels only fill in once permission has been granted at least once. */
   async getDevices(kind) {
     return listDevices(kind);
   }
   /**
-   * Subscribes to device connect/disconnect (Phase 11 addition) — e.g. a
-   * USB webcam being plugged in or unplugged. Returns an unsubscribe
-   * function. A no-op (immediately-callable unsubscribe) in environments
-   * without `navigator.mediaDevices` rather than throwing, since this is
-   * an optional convenience, not a required capability.
+   * Subscribes to devices coming and going (Phase 11 addition), like a USB
+   * webcam being plugged in or yanked out. Returns an unsubscribe function.
+   *
+   * In an environment with no `navigator.mediaDevices` this is a no-op with
+   * an immediately-callable unsubscribe, rather than a throw. It's an
+   * optional convenience, not a capability anything depends on.
    */
   onDeviceChange(callback) {
     if (typeof navigator === "undefined" || !navigator.mediaDevices) {
@@ -2268,21 +2278,21 @@ var RTCClient = class {
   /** Switches the active camera on the currently joined room. */
   async setCamera(deviceId) {
     if (!this.currentRoom) {
-      throw new RTCError("CONNECTION_FAILED", "setCamera() requires an active room \u2014 call join() first");
+      throw new RTCError("CONNECTION_FAILED", "setCamera() requires an active room; call join() first");
     }
     await this.currentRoom.setCameraDevice(deviceId);
   }
   /** Switches the active microphone on the currently joined room. */
   async setMicrophone(deviceId) {
     if (!this.currentRoom) {
-      throw new RTCError("CONNECTION_FAILED", "setMicrophone() requires an active room \u2014 call join() first");
+      throw new RTCError("CONNECTION_FAILED", "setMicrophone() requires an active room; call join() first");
     }
     await this.currentRoom.setMicrophoneDevice(deviceId);
   }
-  /** Safe diagnostic snapshot of the currently joined room — see `Room.getDiagnostics()`. */
+  /** Diagnostic snapshot of the currently joined room. See `Room.getDiagnostics()`. */
   getDiagnostics() {
     if (!this.currentRoom) {
-      throw new RTCError("CONNECTION_FAILED", "getDiagnostics() requires an active room \u2014 call join() first");
+      throw new RTCError("CONNECTION_FAILED", "getDiagnostics() requires an active room; call join() first");
     }
     return this.currentRoom.getDiagnostics();
   }

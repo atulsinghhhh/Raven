@@ -72,7 +72,7 @@ export type {
 } from './effects';
 
 /**
- * Re-exported from `@corvidhq/rtc` so a mobile app needs one import for the
+ * Re-exported from `@ravenkash/rtc` so a mobile app needs one import for the
  * common types. These are the *same* types the web SDK uses: a `Room` here
  * is a `Room` there. That's what makes the two platforms one mental model
  * instead of two APIs that merely resemble each other (spec §10).
@@ -92,7 +92,7 @@ export type {
   Track,
   TrackKind,
   LogLevel,
-} from '@corvidhq/rtc';
+} from '@ravenkash/rtc';
 
 // Pointedly not exported: the signaling client, the peer-connection
 // adapter, `registerGlobals` internals, RTCView, the chat WebSocket

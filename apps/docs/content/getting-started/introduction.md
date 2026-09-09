@@ -13,12 +13,16 @@ Concretely, Raven owns:
   other piece is scoped by.
 - **Short-lived tokens** — what your backend hands a client so it can
   join a call or a conversation, without ever exposing your API key.
-- **Rooms and calls** — audio/video sessions, run on Raven's managed
-  RTC infrastructure.
+- **RTC** — audio and video sessions on Raven's own SFU, with signaling,
+  TURN, and reconnection handled.
 - **Chat** — conversations, messages, presence, typing, receipts,
   reactions, and threads, as a first-class service, not a bolt-on.
+- **Live streaming** — one host and many subscribe-only viewers, with a
+  real chat conversation attached on join.
+- **Effects** — a camera filter and preset pipeline that runs entirely
+  client-side and needs no Raven credential at all.
 - **Webhooks and events** — so your backend can react to what happens
-  in a call or a conversation.
+  in a call, a conversation, or a stream.
 
 ## What Raven is not
 
@@ -39,14 +43,21 @@ for how the pieces fit together.
   — a project, a token, and your first call or message in a few minutes.
 - Building calling? [RTC → Overview](/rtc).
 - Building chat? [Chat → Overview](/chat).
-- Wiring up your backend? [Server → Tokens](/authentication/tokens) and
-  [Server → REST API](/api-reference).
+- Wiring up your backend? [Access tokens](/authentication/tokens) and the
+  [REST API](/api).
+- Want the vocabulary first? [Core concepts](/concepts).
 - Running this yourself? [Production → Security](/production/security)
   and [Production → Environments](/production/environments).
 
-## Local development
+## Running it yourself
 
-`docker compose up` brings up everything Raven's control plane needs —
-datastores, the RTC media server, and TURN — for working against a local
-copy while you build. See
-[Installing from source](/getting-started/installing-from-source).
+Raven is open source, and self-hosting is a first-class path rather than an
+afterthought. `docker compose up` brings up everything except Postgres,
+which is deliberately yours to point at. See
+[Self-hosting](/self-hosting).
+
+## What Raven does not do
+
+Stated up front because it changes designs: there is **no recording**, no
+RTMP ingest or egress, and no usage metering. The full list is in
+[Known limitations](/reference/known-limitations).

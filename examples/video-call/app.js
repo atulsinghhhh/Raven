@@ -1,7 +1,7 @@
-// Raven video-call example: built entirely on @corvidhq/rtc's public API.
+// Raven video-call example: built entirely on @ravenkash/rtc's public API.
 // No SDP, no ICE candidates, and no RTCPeerConnection appear anywhere in
 // this file.
-import { createRTCClient, isRTCError } from '@corvidhq/rtc';
+import { createRTCClient, isRTCError } from '@ravenkash/rtc';
 
 const $ = (id) => document.getElementById(id);
 

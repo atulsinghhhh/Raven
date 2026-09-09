@@ -14,7 +14,7 @@ for why that split exists.
 ## Create
 
 ```ts
-import { Raven } from '@corvidhq/server';
+import { Raven } from '@ravenkash/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 const conversation = await raven.chat.createConversation({
@@ -69,7 +69,7 @@ curl -X PATCH "$RAVEN_API_URL/v1/chat/conversations/support-room-42" \
   -d '{"retentionDays": 30}'
 ```
 
-See [REST API → Chat](/api-reference) for the full field list.
+See [REST API → Chat](/api) for the full field list.
 
 ## Common errors
 

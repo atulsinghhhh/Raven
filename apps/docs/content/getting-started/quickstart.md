@@ -7,11 +7,47 @@ This walks through the shortest real path from nothing to a working
 connection: create a project, mint a token on your backend, connect from
 a client.
 
+## Before you start
+
+Raven is software that runs somewhere, so you need one of two things:
+
+- **A Raven deployment you can reach** — your team's, or a hosted one. Its
+  dashboard is linked in the top bar of this site.
+- **A local one.** `docker compose up` brings up everything except
+  Postgres. See [Docker Compose](/self-hosting/docker-compose).
+
+You also need the CLI or the dashboard to create your first API key. **The
+Raven packages are not published to a registry yet**, so the CLI is
+installed from a checkout — see
+[Installing from source](/getting-started/installing-from-source).
+
 ## 1. Create a project and a key
 
-From the [dashboard](/), register and create a project. Every project
+### If you are running Raven locally
+
+The seed script is the fastest route to a working credential. It creates a
+demo developer, project and room, and **prints an API key**:
+
+```bash
+pnpm db:seed
+```
+
+```
+Seed complete:
+  Developer login: demo@raven.local / demo-password-123
+  Project: Demo Project (…)
+  Room: demo-room (…)
+  API key (shown once — this run only): rvk_8Kd2nQxwYtLm.aG9wZXlvdWFyZWhhdmluZ2Fsb3ZlbHlkYXk
+```
+
+Copy that key and skip to step 2. Re-running the seed is safe, but it will
+not print the key again — it only shows a secret it just created.
+
+### If you are using an existing deployment
+
+Register in that deployment's dashboard and create a project. Every project
 starts with a development environment — safe to experiment in, isolated
-from staging and production. Create an API key scoped to it:
+from staging and production. Then create an API key scoped to it:
 
 ```bash
 raven login
@@ -35,7 +71,7 @@ that user should be able to do.
 
 ```ts
 // your backend
-import { Raven } from '@corvidhq/server';
+import { Raven } from '@ravenkash/server';
 
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
@@ -56,7 +92,7 @@ Hand your backend's response straight to the SDK — never hand-construct
 any of these fields yourself.
 
 ```ts
-import { createRTCClient } from '@corvidhq/rtc';
+import { createRTCClient } from '@ravenkash/rtc';
 
 const resp = await fetch('/join-room', { method: 'POST' }).then((r) => r.json());
 

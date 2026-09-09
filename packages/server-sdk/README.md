@@ -1,4 +1,4 @@
-# @corvidhq/server
+# @ravenkash/server
 
 Raven's **backend** SDK — mint short-lived RTC and chat tokens, manage
 rooms and live streams, and read connection/error diagnostics.
@@ -11,7 +11,7 @@ Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time co
 ## Install
 
 ```bash
-npm install @corvidhq/server
+npm install @ravenkash/server
 ```
 
 ## Use
@@ -20,7 +20,7 @@ Identity comes from **your** session — never from the request body, or any
 caller can claim to be anyone.
 
 ```ts
-import { Raven } from '@corvidhq/server';
+import { Raven } from '@ravenkash/server';
 
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
 
@@ -28,12 +28,12 @@ const grant = await raven.tokens.create({ room: roomId, identity: 'user-42' });
 // grant = { token, endpoint, iceServers, telemetryUrl, expiresAt, ... }
 ```
 
-Hand `grant` to your frontend, which passes it to `@corvidhq/rtc`.
+Hand `grant` to your frontend, which passes it to `@ravenkash/rtc`.
 
 ## Errors
 
 ```ts
-import { RavenError, isRavenError } from '@corvidhq/server';
+import { RavenError, isRavenError } from '@ravenkash/server';
 ```
 
 Every failure carries the API's error code and HTTP status, so you branch

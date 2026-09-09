@@ -2,15 +2,19 @@
   "name": "@raven/docs",
   "version": "0.0.0",
   "private": true,
-  "description": "Raven's documentation site \u2014 every guide and reference page, rendered from Markdown.",
+  "description": "Raven's documentation site — every guide and reference page, rendered from Markdown.",
   "scripts": {
     "dev": "next dev -p 3200",
     "build": "next build",
+    "prebuild": "pnpm run docs:groundtruth && pnpm run docs:api && pnpm run docs:verify",
     "start": "next start -p 3200",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "typecheck": "tsc --noEmit",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "test": "jest && pnpm run docs:groundtruth && pnpm run docs:api && pnpm run docs:verify",
+    "test:watch": "jest --watch",
+    "docs:groundtruth": "node ../../scripts/docs-groundtruth.mjs",
+    "docs:api": "node ../../scripts/generate-api-reference.mjs",
+    "docs:verify": "node ../../scripts/verify-docs.mjs"
   },
   "dependencies": {
     "gray-matter": "^4.0.3",

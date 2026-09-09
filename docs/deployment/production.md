@@ -53,14 +53,14 @@ Two properties of this shape drive the whole deployment:
 | `apps/docs` | `@raven/docs` | Next.js docs site (`content/` is MDX) | **Vercel** |
 | `apps/community` | `@raven-community/web` | Demo app that consumes Raven as an external customer | **Excluded** — see §10 |
 | `apps/community-api` | `@raven-community/api` | Backend for the above | **Excluded** — see §10 |
-| `packages/sdk` | `@corvidhq/rtc` | Browser RTC SDK, `SFUAdapter` → `raven-adapter.ts` | npm, not deployed |
-| `packages/chat-sdk` | `@corvidhq/chat` | Chat client | npm |
-| `packages/client` | `@corvidhq/client` | Control-plane client | npm |
-| `packages/server-sdk` | `@corvidhq/server` | Server-side SDK | npm |
-| `packages/react-sdk` | `@corvidhq/react` | React bindings | npm |
-| `packages/react-native-sdk` | `@corvidhq/react-native` | RN bindings | npm |
-| `packages/effects` | `@corvidhq/effects` | Background blur / effects | npm |
-| `packages/cli` | `@corvidhq/cli` | `raven` CLI | npm |
+| `packages/sdk` | `@ravenkash/rtc` | Browser RTC SDK, `SFUAdapter` → `raven-adapter.ts` | npm, not deployed |
+| `packages/chat-sdk` | `@ravenkash/chat` | Chat client | npm |
+| `packages/client` | `@ravenkash/client` | Control-plane client | npm |
+| `packages/server-sdk` | `@ravenkash/server` | Server-side SDK | npm |
+| `packages/react-sdk` | `@ravenkash/react` | React bindings | npm |
+| `packages/react-native-sdk` | `@ravenkash/react-native` | RN bindings | npm |
+| `packages/effects` | `@ravenkash/effects` | Background blur / effects | npm |
+| `packages/cli` | `@ravenkash/cli` | `raven` CLI | npm |
 | `sdks/flutter/*`, `sdks/python` | — | Flutter + Python SDKs (outside the pnpm workspace) | package registries |
 
 `apps/api`'s modules: `api-keys`, `audit`, `auth`, `chat`, `health`,

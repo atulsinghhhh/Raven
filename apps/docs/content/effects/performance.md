@@ -21,7 +21,7 @@ neither?                             → passthrough (original track, unmodified
 ```
 
 ```ts
-import { detectCapabilities } from '@corvidhq/effects';
+import { detectCapabilities } from '@ravenkash/effects';
 
 const caps = detectCapabilities();
 caps.recommendedEngine; // 'webgl2' | 'canvas2d' | 'passthrough'

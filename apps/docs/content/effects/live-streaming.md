@@ -3,7 +3,7 @@ title: Live Streaming Integration
 description: The same Effects pipeline, applied to a stream host's camera — viewers never need the Effects SDK.
 ---
 
-A live stream's camera is an ordinary [`@corvidhq/rtc` `Room`](/rtc)
+A live stream's camera is an ordinary [`@ravenkash/rtc` `Room`](/rtc)
 underneath — `stream.room` — so effects attach exactly the way they do
 for a plain RTC call. Nothing effects-specific was built into Live
 Streaming to make this work.
@@ -28,8 +28,8 @@ Viewers
 <Tab title="Web">
 
 ```ts
-import { LiveStream } from '@corvidhq/client';
-import { effects } from '@corvidhq/effects';
+import { LiveStream } from '@ravenkash/client';
+import { effects } from '@ravenkash/effects';
 
 const stream = await LiveStream.join(credentials); // role: 'HOST' or 'CO_HOST'
 const camera = await stream.room.enableCamera();
@@ -45,7 +45,7 @@ await camera.attachEffects(pipeline);
 
 ```tsx
 'use client';
-import { RavenLiveStream, useCamera, useCameraEffects, effectPresets } from '@corvidhq/react';
+import { RavenLiveStream, useCamera, useCameraEffects, effectPresets } from '@ravenkash/react';
 
 function HostView() {
   const camera = useCamera();
@@ -75,7 +75,7 @@ A viewer subscribes to the host's track through the ordinary
 [Rooms & Participants](/rtc/rooms-and-participants). Because effects
 process the track *before* publish, the SFU forwards the already-filtered
 video: a viewer's `RemoteTrack` is indistinguishable from an unfiltered
-one, and viewers never install or import `@corvidhq/effects`.
+one, and viewers never install or import `@ravenkash/effects`.
 
 ## What isn't affected
 

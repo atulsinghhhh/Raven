@@ -112,7 +112,7 @@ class RavenLiveStream {
 
   /// Leaves the room and disposes the chat connection. Ending the stream
   /// itself (`LIVE` -> `ENDED`) is a separate, server-side call: see
-  /// `@corvidhq/server`'s/`raven-sdk`'s `end_stream()`.
+  /// `@ravenkash/server`'s/`raven-sdk`'s `end_stream()`.
   Future<void> leave() async {
     await _raven.leave();
     _chat?.dispose();

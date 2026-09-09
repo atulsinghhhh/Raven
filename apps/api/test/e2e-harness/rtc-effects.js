@@ -1,6 +1,6 @@
 // Real-browser E2E harness for Phase 16 (Raven Effects), driven by
 // apps/api/test/effects-rtc.e2e-spec.ts via Playwright. Publishes/subscribes
-// through the actual @corvidhq/rtc build against a real Raven SFU;
+// through the actual @ravenkash/rtc build against a real Raven SFU;
 // nothing here is mocked. State is exposed on `window.__state` so the test
 // can poll it, and a couple of actions are exposed for the test to trigger
 // mid-call (disable/remove an effect) without needing DOM controls.

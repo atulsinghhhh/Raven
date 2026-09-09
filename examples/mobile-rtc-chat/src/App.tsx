@@ -20,8 +20,8 @@ import {
   useRemoteParticipants,
   type RavenChatHandle,
   type Room,
-} from '@corvidhq/react-native';
-import type { ChatMessage } from '@corvidhq/chat';
+} from '@ravenkash/react-native';
+import type { ChatMessage } from '@ravenkash/chat';
 
 /**
  * A Raven video call with a chat panel, on a phone.

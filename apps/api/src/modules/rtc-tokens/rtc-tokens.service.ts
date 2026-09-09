@@ -24,7 +24,7 @@ export interface IssuedRtcToken {
    * client ever holds a permanent relay credential (spec §11).
    */
   iceServers: IceServer[];
-  // Base URL for @corvidhq/rtc's telemetry. The SDK never hardcodes it; it
+  // Base URL for @ravenkash/rtc's telemetry. The SDK never hardcodes it; it
   // rides along in the same response as endpoint and iceServers.
   telemetryUrl: string;
   expiresAt: Date;

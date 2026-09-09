@@ -3,6 +3,13 @@ title: Attachments
 description: Direct-to-storage uploads — files never pass through the WebSocket.
 ---
 
+> **Check your deployment has object storage.** Attachments require an
+> S3-compatible bucket. With no `STORAGE_BUCKET` configured, every endpoint
+> on this page returns `RAVEN_NOT_CONFIGURED` — the API says so out loud
+> rather than half-working. See
+> [Known limitations](/reference/known-limitations).
+
+
 Files never pass through Raven's API and never through the WebSocket.
 The browser uploads directly to object storage using a short-lived
 signed URL.

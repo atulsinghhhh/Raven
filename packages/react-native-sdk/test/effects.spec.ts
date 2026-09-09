@@ -1,6 +1,6 @@
 import { createEffectsPipeline, filters, presets, EFFECTS_NATIVE_ENGINE_STATUS } from '../src/effects';
-import { LocalTrack } from '@corvidhq/rtc';
-import type { LocalTrackDelegate } from '@corvidhq/rtc';
+import { LocalTrack } from '@ravenkash/rtc';
+import type { LocalTrackDelegate } from '@ravenkash/rtc';
 
 /**
  * Runs under `testEnvironment: node` (see package.json), so there really is

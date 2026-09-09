@@ -21,21 +21,21 @@ and never in a browser or app.
 <Tab title="Web">
 
 ```bash
-npm install @corvidhq/rtc
+npm install @ravenkash/rtc
 ```
 
 </Tab>
 <Tab title="React">
 
 ```bash
-npm install @corvidhq/rtc @corvidhq/react
+npm install @ravenkash/rtc @ravenkash/react
 ```
 
 </Tab>
 <Tab title="React Native">
 
 ```bash
-npm install @corvidhq/react-native @corvidhq/rtc \
+npm install @ravenkash/react-native @ravenkash/rtc \
             react-native-webrtc react-native-incall-manager
 
 cd ios && pod install   # iOS only
@@ -70,7 +70,7 @@ Mint a token on your backend — never construct one client-side:
 <Tab title="Node.js">
 
 ```ts
-import { Raven } from '@corvidhq/server';
+import { Raven } from '@ravenkash/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 app.post('/join-room', async (req, res) => {
@@ -117,7 +117,7 @@ controls.
 <Tab title="Web">
 
 ```ts
-import { createRTCClient } from '@corvidhq/rtc';
+import { createRTCClient } from '@ravenkash/rtc';
 
 const resp = await fetch('/join-room', { method: 'POST' }).then((r) => r.json());
 
@@ -135,7 +135,7 @@ const room = await client.join('demo-room');
 
 ```tsx
 'use client';
-import { RavenRoom, useConnectionState } from '@corvidhq/react';
+import { RavenRoom, useConnectionState } from '@ravenkash/react';
 
 function CallPage({ token, endpoint, iceServers }) {
   return (
@@ -158,7 +158,7 @@ separate `join()`/`client.join()` call to make yourself.
 <Tab title="React Native">
 
 ```ts
-import { Raven } from '@corvidhq/react-native';
+import { Raven } from '@ravenkash/react-native';
 
 const raven = new Raven({ token: resp.token, endpoint: resp.endpoint, iceServers: resp.iceServers });
 const room = await raven.join('demo-room');
@@ -196,7 +196,7 @@ await room.enableMicrophone();
 
 ```tsx
 'use client';
-import { useCamera, useMicrophone } from '@corvidhq/react';
+import { useCamera, useMicrophone } from '@ravenkash/react';
 
 function Controls() {
   const camera = useCamera();
@@ -265,7 +265,7 @@ room.on('trackSubscribed', (track, participant) => {
 
 ```tsx
 'use client';
-import { useRemoteParticipants, ParticipantView } from '@corvidhq/react';
+import { useRemoteParticipants, ParticipantView } from '@ravenkash/react';
 
 function RemoteGrid() {
   const remote = useRemoteParticipants();
@@ -280,7 +280,7 @@ there's no event listener to wire up yourself.
 <Tab title="React Native">
 
 ```tsx
-import { useRemoteParticipants, RavenVideoView } from '@corvidhq/react-native';
+import { useRemoteParticipants, RavenVideoView } from '@ravenkash/react-native';
 
 function RemoteGrid({ room }) {
   const remote = useRemoteParticipants(room);
@@ -366,7 +366,7 @@ aren't a thrown error (e.g. "works on Wi-Fi, fails on cellular").
 
 ## Production notes
 
-- Never call `raven.tokens.create()` (or any `@corvidhq/server`/`raven-sdk`
+- Never call `raven.tokens.create()` (or any `@ravenkash/server`/`raven-sdk`
   method) from a browser or app — it needs your project API key, which
   must never leave your backend.
 - Derive `identity` from your own authenticated session, never from a

@@ -6,7 +6,7 @@ import type { ProjectDiagnostics } from '../types';
  * TURN health, plus this project's real active-connection count.
  *
  * Nothing client-side in here. Browser ICE and signaling state only exist
- * inside a running `@corvidhq/rtc` client, via `room.getDiagnostics()`, and
+ * inside a running `@ravenkash/rtc` client, via `room.getDiagnostics()`, and
  * a backend has no way to observe that.
  */
 export class DiagnosticsResource {

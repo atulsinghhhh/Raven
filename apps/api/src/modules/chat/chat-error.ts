@@ -19,7 +19,7 @@ export class ChatError extends AppError {
     // Two vocabularies on purpose. The HTTP body gets the canonical
     // RAVEN_ code so a developer can handle chat and control-plane errors
     // with one switch; `toFrame()` below keeps the ChatErrorCode the
-    // WebSocket protocol has always used and @corvidhq/chat already maps.
+    // WebSocket protocol has always used and @ravenkash/chat already maps.
     super(
       message,
       statusFor(code),

@@ -251,7 +251,7 @@ function ChatActivity({
     );
   }
   if (messages.length === 0) {
-    return <EmptyState title="No chat activity yet" description="Messages sent with @corvidhq/chat appear here as soon as they are stored." />;
+    return <EmptyState title="No chat activity yet" description="Messages sent with @ravenkash/chat appear here as soon as they are stored." />;
   }
 
   return (

@@ -1,2 +1,2 @@
-/** Kept in sync with package.json by hand (no bundler JSON import, same approach as @corvidhq/cli). */
+/** Kept in sync with package.json by hand (no bundler JSON import, same approach as @ravenkash/cli). */
 export const SDK_VERSION = '0.1.0';

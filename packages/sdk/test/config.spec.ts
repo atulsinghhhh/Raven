@@ -4,7 +4,7 @@ import { makeToken } from './helpers/token';
 
 describe('validateConfig', () => {
   it('accepts a minimal valid config and fills in sensible defaults', () => {
-    const token = makeToken({ video: { room: 'room-1' }, sub: 'alice' });
+    const token = makeToken({ rid: 'room-1', rnm: 'support-room', sub: 'alice' });
     const resolved = validateConfig({ token, endpoint: 'wss://rtc.example.com' });
 
     expect(resolved.token).toBe(token);
@@ -15,7 +15,7 @@ describe('validateConfig', () => {
   });
 
   it('passes through iceServers, logLevel, and autoReconnect when provided', () => {
-    const token = makeToken({ video: { room: 'room-1' } });
+    const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
     const iceServers = [{ urls: 'stun:example.com:3478' }];
 
     const resolved = validateConfig({
@@ -41,7 +41,7 @@ describe('validateConfig', () => {
   });
 
   it('rejects a missing endpoint', () => {
-    const token = makeToken({ video: { room: 'room-1' } });
+    const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
     try {
       validateConfig({ token, endpoint: '' });
       throw new Error('expected validateConfig to throw');
@@ -60,7 +60,7 @@ describe('validateConfig', () => {
   });
 
   it('rejects an already-expired token', () => {
-    const token = makeToken({ video: { room: 'room-1' }, exp: Math.floor(Date.now() / 1000) - 60 });
+    const token = makeToken({ rid: 'room-1', rnm: 'support-room', exp: Math.floor(Date.now() / 1000) - 60 });
     try {
       validateConfig({ token, endpoint: 'wss://rtc.example.com' });
       throw new Error('expected validateConfig to throw');
@@ -70,35 +70,61 @@ describe('validateConfig', () => {
   });
 
   it('accepts a token that has not expired yet', () => {
-    const token = makeToken({ video: { room: 'room-1' }, exp: Math.floor(Date.now() / 1000) + 3600 });
+    const token = makeToken({ rid: 'room-1', rnm: 'support-room', exp: Math.floor(Date.now() / 1000) + 3600 });
     expect(() => validateConfig({ token, endpoint: 'wss://rtc.example.com' })).not.toThrow();
   });
 });
 
 describe('decodeTokenPayload', () => {
-  it('reads the room and identity out of the JWT payload without verifying it', () => {
-    const token = makeToken({ video: { room: 'room-42' }, sub: 'alice' });
+  it('reads the room id, room name and identity out of the JWT payload without verifying it', () => {
+    const token = makeToken({ rid: 'room-42', rnm: 'support-room', sub: 'alice' });
     const decoded = decodeTokenPayload(token);
-    expect(decoded.room).toBe('room-42');
+    expect(decoded.roomId).toBe('room-42');
+    expect(decoded.roomName).toBe('support-room');
     expect(decoded.sub).toBe('alice');
+  });
+
+  // Regression: this used to read `video.room`, LiveKit's claim shape. Raven's
+  // own signer never emits it, so every field decoded to undefined and the
+  // room check below passed anything at all.
+  it('ignores a LiveKit-shaped `video.room` claim', () => {
+    const decoded = decodeTokenPayload(makeToken({ video: { room: 'room-42' } }));
+    expect(decoded.roomId).toBeUndefined();
+    expect(decoded.roomName).toBeUndefined();
   });
 });
 
 describe('assertTokenMatchesRoom', () => {
-  it('does not throw when the roomId matches the token', () => {
-    const token = makeToken({ video: { room: 'room-1' } });
+  it('does not throw when the room id matches the token', () => {
+    const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
     expect(() => assertTokenMatchesRoom(token, 'room-1')).not.toThrow();
   });
 
-  it('throws ROOM_NOT_FOUND when the roomId does not match the token', () => {
-    const token = makeToken({ video: { room: 'room-1' } });
+  it('does not throw when the room name matches the token', () => {
+    const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
+    expect(() => assertTokenMatchesRoom(token, 'support-room')).not.toThrow();
+  });
+
+  it('throws ROOM_NOT_FOUND when neither the id nor the name matches', () => {
+    const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
     try {
       assertTokenMatchesRoom(token, 'room-2');
       throw new Error('expected assertTokenMatchesRoom to throw');
     } catch (error) {
       expect((error as RTCError).code).toBe('ROOM_NOT_FOUND');
-      expect((error as RTCError).message).toContain('room-1');
+      // Named by name, since that is what a human reading the message knows.
+      expect((error as RTCError).message).toContain('support-room');
       expect((error as RTCError).message).toContain('room-2');
+    }
+  });
+
+  it('falls back to the room id in the message when the token carries no name', () => {
+    const token = makeToken({ rid: 'room-1' });
+    try {
+      assertTokenMatchesRoom(token, 'room-2');
+      throw new Error('expected assertTokenMatchesRoom to throw');
+    } catch (error) {
+      expect((error as RTCError).message).toContain('room-1');
     }
   });
 

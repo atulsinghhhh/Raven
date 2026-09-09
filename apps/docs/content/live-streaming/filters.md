@@ -4,14 +4,14 @@ description: Raven Effects, applied to a live stream host's camera — the same 
 ---
 
 Raven Live Streaming has a filters and effects pipeline as of Raven
-Effects (`@corvidhq/effects`) — no separate implementation was built for
+Effects (`@ravenkash/effects`) — no separate implementation was built for
 Live Streaming, because `stream.room` is an ordinary
-[`@corvidhq/rtc` `Room`](/rtc) and effects attach the same way they do on
+[`@ravenkash/rtc` `Room`](/rtc) and effects attach the same way they do on
 any call.
 
 ```ts
-import { LiveStream } from '@corvidhq/client';
-import { effects } from '@corvidhq/effects';
+import { LiveStream } from '@ravenkash/client';
+import { effects } from '@ravenkash/effects';
 
 const stream = await LiveStream.join(credentials);
 const camera = await stream.room.enableCamera();
@@ -23,7 +23,7 @@ await camera.attachEffects(pipeline);
 ```
 
 Viewers receive the already-processed video through the ordinary
-`trackSubscribed` event — they never install `@corvidhq/effects` or know
+`trackSubscribed` event — they never install `@ravenkash/effects` or know
 a filter is applied.
 
 See the full [Effects → Live Streaming Integration](/effects/live-streaming)

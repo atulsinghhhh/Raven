@@ -1,7 +1,7 @@
 /**
  * Minimal typed pub/sub. No dependency, and it keeps the bundle small.
  *
- * Mirrors @corvidhq/rtc's TypedEventEmitter so the two packages feel like
+ * Mirrors @ravenkash/rtc's TypedEventEmitter so the two packages feel like
  * one SDK, without effects having to depend on rtc, or the other way round.
  */
 export class TypedEventEmitter<EventMap extends { [K in keyof EventMap]: (...args: never[]) => void }> {

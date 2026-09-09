@@ -405,7 +405,7 @@ model RtcToken {
 /// A real RTC connection, event-sourced from best-effort SDK telemetry
 /// (Phase 9) — distinct from `RtcToken` (a grant) and from the SFU's own
 /// per-session bookkeeping, which is in-memory and dies with the node.
-/// `publicId` (`conn_...`) is generated client-side by `@corvidhq/rtc` at
+/// `publicId` (`conn_...`) is generated client-side by `@ravenkash/rtc` at
 /// `join()` time and is the ID surfaced in the dashboard, the CLI, and any
 /// error report, so a developer can correlate all three without reading an
 /// SFU or coturn log. See docs/observability.md#connection-lifecycle.

@@ -22,7 +22,7 @@ stream.room.on('reconnected', () => hideBanner());
 <Tab title="React">
 
 ```tsx
-import { useConnectionState } from '@corvidhq/react';
+import { useConnectionState } from '@ravenkash/react';
 
 const state = useConnectionState(); // works inside <RavenLiveStream> — same as any RavenRoom
 ```

@@ -5,10 +5,10 @@
  * Filter and preset *configuration* is real and fully shared with every
  * other Raven SDK. `effects.createPipeline()`, `effects.filters.*` and
  * `effects.presets.*` are plain validated JS/TS with no native code
- * anywhere near them, re-exported straight from `@corvidhq/effects`.
+ * anywhere near them, re-exported straight from `@ravenkash/effects`.
  *
  * What doesn't exist yet is a *native* frame-processing engine.
- * `camera.attachEffects(pipeline)`, inherited from `@corvidhq/rtc`'s
+ * `camera.attachEffects(pipeline)`, inherited from `@ravenkash/rtc`'s
  * `LocalTrack` because this SDK reuses that class unmodified instead of
  * wrapping it, degrades safely to the unmodified camera track on React
  * Native today. There's no DOM, WebGL or canvas in this JS runtime to
@@ -34,7 +34,7 @@ export {
   filters,
   isEffectsError,
   presets,
-} from '@corvidhq/effects';
+} from '@ravenkash/effects';
 export type {
   ColorOpParams,
   EffectInstance,
@@ -43,7 +43,7 @@ export type {
   EffectsPipeline,
   FilterConfig,
   Preset,
-} from '@corvidhq/effects';
+} from '@ravenkash/effects';
 
 export type EffectsEngineStatus = 'production' | 'planned';
 

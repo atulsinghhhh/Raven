@@ -1,6 +1,6 @@
 """Minimal FastAPI backend for a frontend that joins Raven rooms and chats —
 the canonical flow: Browser -> your backend -> raven-sdk -> Raven -> a
-short-lived token -> back to the browser -> @corvidhq/rtc or @corvidhq/chat.
+short-lived token -> back to the browser -> @ravenkash/rtc or @ravenkash/chat.
 
 RAVEN_API_KEY never leaves this process. Never send it to the browser.
 

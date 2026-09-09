@@ -1,7 +1,7 @@
-import { createRTCClient } from '@corvidhq/rtc';
-export { RTCError, isRTCError } from '@corvidhq/rtc';
-import { createChatClient } from '@corvidhq/chat';
-export { isRavenChatError } from '@corvidhq/chat';
+import { createRTCClient } from '@ravenkash/rtc';
+export { RTCError, isRTCError } from '@ravenkash/rtc';
+import { createChatClient } from '@ravenkash/chat';
+export { isRavenChatError } from '@ravenkash/chat';
 
 // src/index.ts
 var LiveStream = class _LiveStream {
@@ -13,14 +13,14 @@ var LiveStream = class _LiveStream {
     this.chat = chat;
     this.chatRootMessageId = chatRootMessageId;
   }
-  /** True for HOST/CO_HOST — the only roles the server ever grants publish permissions to. A VIEWER's `room` is always subscribe-only, enforced server-side, not by this check. */
+  /** True for HOST and CO_HOST, the only roles the server grants publish permissions to. A VIEWER's `room` is always subscribe-only, and the server enforces that; this check doesn't. */
   get isHost() {
     return this.role === "HOST" || this.role === "CO_HOST";
   }
   /**
-   * Joins a live stream. This is the one entry point for both a host and
-   * a viewer — which one you get is entirely a function of the
-   * credentials your backend minted, never a parameter here.
+   * Joins a live stream. One entry point for hosts and viewers alike.
+   * Which one you end up as follows entirely from the credentials your
+   * backend minted; it's never a parameter here.
    */
   static async join(credentials) {
     const rtc = createRTCClient({
@@ -42,17 +42,17 @@ var LiveStream = class _LiveStream {
     return new _LiveStream(credentials.streamId, credentials.role, rtc, room, chat, credentials.chatRootMessageId);
   }
   /**
-   * The TikTok-style heart-tap. Reactions ride on the stream's own root
-   * chat message through `@corvidhq/chat`'s existing, already-aggregated
-   * reaction model (`chat.messages.addReaction`) — not a second
-   * real-time primitive invented for this. Every viewer's tap on the
-   * same emoji collapses into one count, the same as reacting to any
+   * The TikTok-style heart tap. Reactions ride on the stream's own root
+   * chat message through `@ravenkash/chat`'s existing, already-aggregated
+   * reaction model (`chat.messages.addReaction`). No second real-time
+   * primitive invented specially for this. Every viewer tapping the same
+   * emoji collapses into one count, exactly like reacting to any other
    * chat message.
    */
   async react(emoji) {
     if (!this.chat) {
       throw new Error(
-        "This LiveStream has no chat credentials \u2014 react() needs the `chat` field on the credentials passed to join()."
+        "This LiveStream has no chat credentials; react() needs the `chat` field on the credentials passed to join()."
       );
     }
     if (!this.chatRootMessageId) {
@@ -61,10 +61,10 @@ var LiveStream = class _LiveStream {
     await this.chat.messages.addReaction(this.chatRootMessageId, emoji);
   }
   /**
-   * Leaves the room and disconnects chat. The stream itself keeps
-   * running for everyone else — this only tears down *your* connection
-   * to it. Ending the stream for everyone is a server-side action
-   * (`POST /v1/live-streams/:id/end`), not something a client calls.
+   * Leaves the room and disconnects chat. The stream carries on for
+   * everybody else; this only tears down *your* connection to it. Ending
+   * it for everyone is a server-side action
+   * (`POST /v1/live-streams/:id/end`), not something a client gets to do.
    */
   async leave() {
     await this.rtc.leave();
@@ -108,11 +108,11 @@ var Raven = class {
       });
     }
   }
-  /** True when this instance was given RTC credentials. */
+  /** True if this instance got RTC credentials. */
   get hasRtc() {
     return this.rtc !== void 0;
   }
-  /** True when this instance was given a chat token. */
+  /** True if this instance got a chat token. */
   get hasChat() {
     return this.chat !== void 0;
   }
@@ -121,9 +121,9 @@ var Raven = class {
     return this.currentRoom;
   }
   /**
-   * Joins a room. Throws immediately, with an error that says why, if
-   * this instance has no RTC credentials — rather than failing later as
-   * a null reference.
+   * Joins a room. If this instance has no RTC credentials it throws
+   * straight away with an error explaining why, instead of blowing up
+   * later as a null reference.
    */
   async join(roomId) {
     if (!this.rtc) {
@@ -140,8 +140,8 @@ var Raven = class {
     this.currentRoom = void 0;
   }
   /**
-   * Tears down everything, including chat. Call this when the feature is
-   * going away — `leave()` alone is right when moving between rooms.
+   * Tears down the lot, chat included. Call it when the feature itself is
+   * going away. Moving between rooms? `leave()` on its own is what you want.
    */
   async dispose() {
     await this.leave();

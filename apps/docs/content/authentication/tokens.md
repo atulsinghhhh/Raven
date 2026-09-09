@@ -24,9 +24,19 @@ const token = await raven.tokens.create({
 ```
 
 Raven's own permission vocabulary — `join`, `subscribe`, `publish`,
-`publishAudio`, `publishVideo`, `publishData` — is translated internally
-into the underlying SFU's grant shape. That indirection means the public
-API contract doesn't change if the SFU underneath ever does.
+`publishAudio`, `publishVideo`, `publishData` — is what gets signed into
+the token and what the signaling gateway enforces. There is no translation
+into a third party's grant shape anywhere in the path: the public API, the
+signed claim, the authorization checks and the media server all speak these
+same six names.
+
+Keeping the public names independent of whatever the media plane wants
+internally is exactly what let Raven replace its own SFU without breaking
+this contract.
+
+Every flag is **denied unless granted** — see
+[Permissions](/authentication/permissions) for the two consequences of that
+which are worth knowing.
 
 `iceServers` in the response is STUN and short-lived TURN credentials
 scoped to this participant and this token's TTL — always forward it

@@ -34,7 +34,7 @@ A real permissions module, because the two mobile platforms are
 genuinely different underneath:
 
 ```ts
-import { permissions } from '@corvidhq/react-native';
+import { permissions } from '@ravenkash/react-native';
 
 const status = await permissions.check();
 // { camera: 'granted'|'denied'|'blocked'|'undetermined'|'unavailable', microphone: ... }
@@ -55,7 +55,7 @@ await permissions.require(['camera']); // prompts; throws RavenPermissionError o
   uselessly prompting again:
 
 ```ts
-import { permissions, isRavenPermissionError } from '@corvidhq/react-native';
+import { permissions, isRavenPermissionError } from '@ravenkash/react-native';
 
 try {
   await permissions.require(['camera']);

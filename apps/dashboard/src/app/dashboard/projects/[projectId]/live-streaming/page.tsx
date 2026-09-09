@@ -54,7 +54,7 @@ export default async function LiveStreamingOverviewPage({ params }: { params: Pr
         <EmptyState
           icon={<IconLiveStreaming className="size-7" />}
           title="No live streams yet"
-          description="Raven never creates streams from the dashboard. Your backend creates them with a project API key — raven.liveStreams.create() via @corvidhq/server or raven-sdk — and they appear here the moment they exist."
+          description="Raven never creates streams from the dashboard. Your backend creates them with a project API key — raven.liveStreams.create() via @ravenkash/server or raven-sdk — and they appear here the moment they exist."
           action={
             <>
               <ButtonLink href={`${base}/sdks`} variant="primary">

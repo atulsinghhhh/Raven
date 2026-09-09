@@ -1,6 +1,6 @@
 name: Release
 
-# Changesets-driven release for the eight public @corvidhq/* packages.
+# Changesets-driven release for the eight public @ravenkash/* packages.
 #
 #   PR carrying a changeset
 #      ↓ merged to main

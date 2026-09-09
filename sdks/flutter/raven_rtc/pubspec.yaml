@@ -17,7 +17,7 @@ dependencies:
   flutter:
     sdk: flutter
   # The native WebRTC implementation for iOS, Android, macOS and Web.
-  # Same role react-native-webrtc plays in @corvidhq/react-native: it
+  # Same role react-native-webrtc plays in @ravenkash/react-native: it
   # provides RTCPeerConnection, getUserMedia and the renderer, and it is
   # never re-exported from this package's public API.
   flutter_webrtc: ^1.6.0

@@ -168,3 +168,23 @@ serves all three project environments. Where the codebase needs the
 deployment's own mode (the webhook SSRF guard, for one) it is called
 `deploymentEnv` to keep the two apart.
 
+## One caveat, at the deployment level
+
+Everything above is enforced at the application layer and holds. There is a
+separate, deployment-level way to lose part of it:
+
+**The media-server fleet registry is global to the database.** If your
+environments share one Postgres instance, `rtc_servers` is one table, and a
+development media server registers into the same fleet production allocates
+from. Room allocation prefers the requested region but falls back to any
+region rather than failing the call — so a production room can be handed to
+a laptop.
+
+Use a separate database per environment. This is the single
+highest-value thing to get right when self-hosting, and it is recorded in
+[Known limitations](/reference/known-limitations).
+
+## Next steps
+
+- [Environment concept](/concepts/environment) · [API keys](/authentication/api-keys)
+- [Production checklist](/production/checklist)

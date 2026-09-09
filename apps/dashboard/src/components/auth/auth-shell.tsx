@@ -127,7 +127,7 @@ function QuickstartCard() {
         <code>
           <span className="text-accent-text">import</span>
           {' { RavenClient } '}
-          <span className="text-accent-text">from</span> <span className="text-success-text">{"'@corvidhq/rtc'"}</span>
+          <span className="text-accent-text">from</span> <span className="text-success-text">{"'@ravenkash/rtc'"}</span>
           {';\n\n'}
           <span className="text-accent-text">const</span>
           {' client = '}

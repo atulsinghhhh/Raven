@@ -23,10 +23,10 @@ export const metadata: Metadata = {
  */
 
 const SDKS = [
-  { name: '@corvidhq/rtc', description: 'Browser RTC client — rooms, tracks, telemetry.', install: 'npm install @corvidhq/rtc' },
-  { name: '@corvidhq/react', description: 'React hooks and components over the RTC client.', install: 'npm install @corvidhq/react' },
-  { name: '@corvidhq/chat', description: 'Realtime chat client — conversations, presence, typing.', install: 'npm install @corvidhq/chat' },
-  { name: '@corvidhq/server', description: 'Node.js server SDK — mint tokens, manage rooms and streams.', install: 'npm install @corvidhq/server' },
+  { name: '@ravenkash/rtc', description: 'Browser RTC client — rooms, tracks, telemetry.', install: 'npm install @ravenkash/rtc' },
+  { name: '@ravenkash/react', description: 'React hooks and components over the RTC client.', install: 'npm install @ravenkash/react' },
+  { name: '@ravenkash/chat', description: 'Realtime chat client — conversations, presence, typing.', install: 'npm install @ravenkash/chat' },
+  { name: '@ravenkash/server', description: 'Node.js server SDK — mint tokens, manage rooms and streams.', install: 'npm install @ravenkash/server' },
 ];
 
 export default async function DevelopersPage() {
@@ -94,7 +94,7 @@ export default async function DevelopersPage() {
                 <p className="text-sm font-medium text-fg">Raven CLI</p>
               </div>
               <p className="text-sm text-muted">Manage projects, keys, and rooms from your terminal.</p>
-              <CodeBlock code="npm install -g @corvidhq/cli" language="bash" />
+              <CodeBlock code="npm install -g @ravenkash/cli" language="bash" />
             </Card>
             <Card className="flex flex-col gap-3">
               <div className="flex items-center gap-2">

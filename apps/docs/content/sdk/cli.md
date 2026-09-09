@@ -3,8 +3,12 @@ title: CLI
 description: Install, authenticate (browser or headless CI), manage projects and keys, and inspect a live deployment from the terminal.
 ---
 
-`@corvidhq/cli` is a terminal workflow tool over the same control plane
+`@ravenkash/cli` is a terminal workflow tool over the same control plane
 every SDK uses — no direct database, Redis, media server, or TURN access.
+
+It authenticates with a **dashboard session**, not a project API key. That
+is what decides which commands exist: anything that would mint a real
+credential is deliberately absent. See [Security](#security).
 
 ## Install
 
@@ -13,13 +17,13 @@ every SDK uses — no direct database, Redis, media server, or TURN access.
 > from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
 ```bash
-npm install -g @corvidhq/cli
+npm install -g @ravenkash/cli
 ```
 
 Or run it without installing anything, which is what you want in CI:
 
 ```bash
-npx @corvidhq/cli projects list
+npx @ravenkash/cli projects list
 ```
 
 ## Authenticate
@@ -61,7 +65,7 @@ A complete GitHub Actions step:
 - name: List Raven projects
   env:
     RAVEN_TOKEN: ${{ secrets.RAVEN_TOKEN }}
-  run: npx @corvidhq/cli projects list --json
+  run: npx @ravenkash/cli projects list --json
 ```
 
 If a machine has no browser but does have a writable home directory,
@@ -150,7 +154,38 @@ There is deliberately no `raven streams hosts add/remove` or
 `raven streams token host/viewer` — those mint real RTC + chat
 credentials, and the CLI holds a developer session (a JWT), not a
 project API key, same reason `raven chat send` doesn't exist. Run those
-from your own backend with `@corvidhq/server` or `raven-sdk`.
+from your own backend with `@ravenkash/server` or `raven-sdk`.
+
+## RTC — the media plane
+
+Inspect live rooms, participants and the server fleet:
+
+```bash
+raven rtc rooms list
+raven rtc rooms get <roomId>
+raven rtc rooms close <roomId>
+raven rtc participants list <roomId>
+raven rtc diagnostics <roomId>
+
+raven rtc servers list
+raven rtc servers get <server>
+raven rtc servers drain <server>      # stop new rooms; live ones keep running
+```
+
+`raven rooms` and `raven rtc rooms` are different groups: the first reads
+control-plane records, the second reads live media-server state. See
+[Running the SFU](/self-hosting/sfu).
+
+## Project scaffolding
+
+```bash
+raven init                # link this directory to a project
+raven dev                 # check this directory is ready for Raven development
+raven sdk install         # add and configure a Raven SDK in this project
+raven logs                # stream developer-facing logs for the current project
+raven version             # the CLI's own version
+raven logout              # discard the stored session
+```
 
 ## Connections, errors, diagnostics
 
@@ -158,17 +193,19 @@ from your own backend with `@corvidhq/server` or `raven-sdk`.
 raven connections list
 raven connections inspect <connectionId>   # includes the Quality section — see below
 raven errors list
+raven errors inspect <errorId>             # category, likely cause, suggested action
 raven diagnostics
 ```
 
 `connections inspect` shows RTT, jitter, packet loss, bitrate, and codec
-once a client's SDK has reported them — see [RTC → Diagnostics](/rtc/diagnostics).
+once a client's SDK has reported them — see [Diagnostics](/rtc/diagnostics).
 A brand-new connection simply has nothing here yet.
 
 ## Status and config
 
 ```bash
 raven status                                          # is everything up
+raven config list
 raven config get apiUrl
 raven config set apiUrl https://api.your-raven-deployment.example
 ```
@@ -221,3 +258,9 @@ including `--json` output and `--debug` traces.
 Treat `RAVEN_TOKEN` as a secret: encrypted CI secrets only, never a
 committed workflow file and never a `Dockerfile` `ENV` line. It grants
 everything your account can do.
+
+## Next steps
+
+- [Errors](/reference/errors) — what a non-zero exit is reporting.
+- [Running the SFU](/self-hosting/sfu) — what `raven rtc servers` manages.
+- [SDKs](/sdk) — the packages the CLI does not replace.

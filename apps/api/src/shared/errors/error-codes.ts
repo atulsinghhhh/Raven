@@ -10,7 +10,7 @@
  *
  * - The chat WebSocket `error` frame keeps its `ChatErrorCode` vocabulary
  *   (docs/chat/websocket.md). A frame is a different contract from an HTTP
- *   body, `@corvidhq/chat` maps it today, and renaming it would break every
+ *   body, `@ravenkash/chat` maps it today, and renaming it would break every
  *   connected client for no benefit. `ChatError` therefore carries both:
  *   the chat code on the frame, the canonical code on the HTTP body.
  * - The signaling WebSocket keeps its own codes for the same reason.

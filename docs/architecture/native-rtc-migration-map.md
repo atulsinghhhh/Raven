@@ -20,7 +20,7 @@ CURRENT                             TARGET
 
 Application                         Application
     │                                   │
-Raven SDK (@corvidhq/rtc)           Raven SDK (@corvidhq/rtc)
+Raven SDK (@ravenkash/rtc)           Raven SDK (@ravenkash/rtc)
     │                                   │
     │  LiveKitAdapter                   │  RavenAdapter
     ▼                                   ▼
@@ -184,7 +184,7 @@ the capability is gone or absorbed elsewhere.
 ### 3.4 React SDK (`packages/react-sdk`)
 
 `src/index.ts`, `src/store.ts`, `test/helpers/fake-rtc-client.ts` — comments and
-a fake built against the `@corvidhq/rtc` surface. **KEEP**; the React SDK never
+a fake built against the `@ravenkash/rtc` surface. **KEEP**; the React SDK never
 touches LiveKit. This is the payoff of the existing adapter boundary.
 
 ### 3.5 Mobile SDKs
@@ -495,7 +495,7 @@ rather than left in place. That sweep also caught three claims that had
 become outright false: OpenAPI descriptions telling callers their
 permissions were "translated into a LiveKit access token grant", a build
 script printing that "livekit-client stays an external peer dependency",
-and a test-setup comment asserting `@corvidhq/rtc` pulls `livekit-client`
+and a test-setup comment asserting `@ravenkash/rtc` pulls `livekit-client`
 in transitively.
 
 **4. Category comparison in `README.md`.** "Category peers: LiveKit Cloud,

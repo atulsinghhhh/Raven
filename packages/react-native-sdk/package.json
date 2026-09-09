@@ -1,5 +1,5 @@
 {
-  "name": "@corvidhq/react-native",
+  "name": "@ravenkash/react-native",
   "version": "0.1.0",
   "description": "Raven SDK for React Native \u2014 real-time video, voice, and messaging on iOS and Android with the same API as Raven Web.",
   "license": "MIT",
@@ -50,16 +50,16 @@
     "test:watch": "jest --watch"
   },
   "peerDependencies": {
-    "@corvidhq/chat": "*",
-    "@corvidhq/effects": "*",
-    "@corvidhq/rtc": "*",
+    "@ravenkash/chat": "*",
+    "@ravenkash/effects": "*",
+    "@ravenkash/rtc": "*",
     "react": ">=18.0.0",
     "react-native": ">=0.73.0",
     "react-native-incall-manager": ">=4.2.0",
     "react-native-webrtc": ">=124.0.0"
   },
   "peerDependenciesMeta": {
-    "@corvidhq/chat": {
+    "@ravenkash/chat": {
       "optional": true
     },
     "react-native-incall-manager": {
@@ -67,9 +67,9 @@
     }
   },
   "devDependencies": {
-    "@corvidhq/chat": "workspace:*",
-    "@corvidhq/effects": "workspace:*",
-    "@corvidhq/rtc": "workspace:*",
+    "@ravenkash/chat": "workspace:*",
+    "@ravenkash/effects": "workspace:*",
+    "@ravenkash/rtc": "workspace:*",
     "@react-native-community/netinfo": "^11.4.1",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.2",

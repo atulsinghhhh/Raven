@@ -1,10 +1,10 @@
 /**
- * A hand-rolled fake of @corvidhq/rtc's public surface. Same idea as the way
+ * A hand-rolled fake of @ravenkash/rtc's public surface. Same idea as the way
  * packages/sdk's own tests fake `RTCPeerConnection`, one layer further up.
  *
- * Every @corvidhq/react test mocks the whole `@corvidhq/rtc` module with
+ * Every @ravenkash/react test mocks the whole `@ravenkash/rtc` module with
  * this file, via
- * `jest.mock('@corvidhq/rtc', () => require('./helpers/fake-rtc-client'))`,
+ * `jest.mock('@ravenkash/rtc', () => require('./helpers/fake-rtc-client'))`,
  * so store, hook and component logic can be tested with no real WebRTC
  * stack anywhere in sight.
  */
@@ -29,7 +29,7 @@ export class FakeEmitter {
     return this;
   }
 
-  /** Test-only. Real @corvidhq/rtc keeps emit() protected; this fake needs it public to drive scenarios. */
+  /** Test-only. Real @ravenkash/rtc keeps emit() protected; this fake needs it public to drive scenarios. */
   emit(event: string, ...args: unknown[]): void {
     for (const handler of Array.from(this.listeners.get(event) ?? [])) handler(...args);
   }

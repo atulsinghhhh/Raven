@@ -113,7 +113,7 @@ export default tseslint.config(
   },
 
   {
-    // @corvidhq/react ships hooks, so the rules of hooks aren't advisory
+    // @ravenkash/react ships hooks, so the rules of hooks aren't advisory
     // here: a dependency array that lies is a stale-closure bug in someone
     // else's application. The package already carries exhaustive-deps disable
     // comments; without the plugin loaded those comments were themselves

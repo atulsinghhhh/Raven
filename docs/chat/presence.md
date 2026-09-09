@@ -81,7 +81,7 @@ see [architecture.md](architecture.md#failure-behaviour).
 ## React
 
 ```jsx
-import { usePresence } from '@corvidhq/react';
+import { usePresence } from '@ravenkash/react';
 
 function PresenceList() {
   const presence = usePresence(); // { alice: 'online', bob: 'away' }

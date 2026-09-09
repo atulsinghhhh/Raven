@@ -245,7 +245,7 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
             <EmptyState
               icon={<IconKeys className="size-7" />}
               title="No API keys yet"
-              description="Create one above to mint RTC tokens and read project data from your backend with @corvidhq/server, raven-sdk, or plain HTTP."
+              description="Create one above to mint RTC tokens and read project data from your backend with @ravenkash/server, raven-sdk, or plain HTTP."
             />
           </div>
         ) : (

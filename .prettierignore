@@ -41,3 +41,5 @@ sdks/python/
 # is churn with no payoff on files that are already consistent.
 *.yml
 *.yaml
+
+apps/docs/groundtruth.json

@@ -8,7 +8,7 @@ import { IconExternal } from '@/components/ui/icons';
 import { DOCS_URL } from '@/lib/nav';
 
 /**
- * Static reference page for `@corvidhq/cli`: same nature as SDKs and
+ * Static reference page for `@ravenkash/cli`: same nature as SDKs and
  * Effects (no per-project data of its own; the CLI doesn't have a
  * dashboard-visible resource, it just calls the same Control API this
  * dashboard does). Command names are transcribed from
@@ -45,7 +45,7 @@ export default async function CliPage({ params }: { params: Promise<{ projectId:
       <Card padded={false}>
         <div className="border-b border-line px-5 py-4">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-mono text-sm font-semibold text-fg">@corvidhq/cli</h2>
+            <h2 className="font-mono text-sm font-semibold text-fg">@ravenkash/cli</h2>
             <Badge tone="neutral">v0.1.0</Badge>
           </div>
           <p className="mt-1 text-sm leading-relaxed text-muted">

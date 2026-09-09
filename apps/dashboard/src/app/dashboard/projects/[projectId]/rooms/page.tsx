@@ -92,7 +92,7 @@ export default async function RoomsPage({ params }: { params: Promise<{ projectI
             <>
               Raven never creates rooms from the dashboard. Your backend creates them by calling the Control API with a
               project API key — <code className="font-mono text-xs text-fg">POST /v1/rooms</code> via{' '}
-              <code className="font-mono text-xs text-fg">@corvidhq/server</code> — and they appear here the moment they
+              <code className="font-mono text-xs text-fg">@ravenkash/server</code> — and they appear here the moment they
               exist.
             </>
           }

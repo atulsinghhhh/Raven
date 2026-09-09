@@ -1,7 +1,7 @@
-# @corvidhq/react
+# @ravenkash/react
 
-React hooks and optional UI primitives for [`@corvidhq/rtc`](https://www.npmjs.com/package/@corvidhq/rtc)
-and [`@corvidhq/chat`](https://www.npmjs.com/package/@corvidhq/chat).
+React hooks and optional UI primitives for [`@ravenkash/rtc`](https://www.npmjs.com/package/@ravenkash/rtc)
+and [`@ravenkash/chat`](https://www.npmjs.com/package/@ravenkash/chat).
 Headless by default — no UI lock-in.
 
 Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
@@ -9,12 +9,12 @@ Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time co
 ## Install
 
 ```bash
-npm install @corvidhq/react @corvidhq/rtc
+npm install @ravenkash/react @ravenkash/rtc
 ```
 
-`@corvidhq/rtc`, `@corvidhq/chat`, `@corvidhq/client`, `@corvidhq/effects`
+`@ravenkash/rtc`, `@ravenkash/chat`, `@ravenkash/client`, `@ravenkash/effects`
 and `react` are **peer dependencies**: your app chooses the versions, and
-there must be exactly one copy of `@corvidhq/rtc` in the tree.
+there must be exactly one copy of `@ravenkash/rtc` in the tree.
 
 ## Use
 
@@ -26,7 +26,7 @@ import {
   useCamera,
   useLocalParticipant,
   ParticipantView,
-} from '@corvidhq/react';
+} from '@ravenkash/react';
 
 export function CallPage({ token, endpoint, room }) {
   return (

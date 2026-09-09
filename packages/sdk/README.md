@@ -1,4 +1,4 @@
-# @corvidhq/rtc
+# @ravenkash/rtc
 
 Raven's browser RTC SDK — join a room, publish camera and microphone,
 subscribe to remote media. Hides SDP, ICE, STUN, TURN and the media server
@@ -9,17 +9,17 @@ Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time co
 ## Install
 
 ```bash
-npm install @corvidhq/rtc
+npm install @ravenkash/rtc
 ```
 
 ## Use
 
 The token and endpoint come from your own backend — never mint them in a
-browser. See [`@corvidhq/server`](https://www.npmjs.com/package/@corvidhq/server)
+browser. See [`@ravenkash/server`](https://www.npmjs.com/package/@ravenkash/server)
 or [`raven-sdk`](https://pypi.org/project/raven-sdk/) for Python.
 
 ```ts
-import { createRTCClient } from '@corvidhq/rtc';
+import { createRTCClient } from '@ravenkash/rtc';
 
 const client = createRTCClient({
   token: grant.token,
@@ -62,7 +62,7 @@ room.on('connected', () => setStatus('live'));
 
 ## React?
 
-Use [`@corvidhq/react`](https://www.npmjs.com/package/@corvidhq/react) —
+Use [`@ravenkash/react`](https://www.npmjs.com/package/@ravenkash/react) —
 headless hooks over this package, with optional components.
 
 ## License

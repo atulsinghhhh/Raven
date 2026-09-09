@@ -16,8 +16,8 @@ import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics'
  * Real-browser end-to-end test of Phase 16 (Raven Effects) on Live
  * Streaming. Reuses the exact same `e2e-harness/rtc-effects.html` page as
  * `effects-rtc.e2e-spec.ts`, on purpose: a live stream's host camera is
- * an ordinary `@corvidhq/rtc` `Room` underneath (`stream.room` in
- * `@corvidhq/client`'s `LiveStream`), so nothing Live-Streaming-specific
+ * an ordinary `@ravenkash/rtc` `Room` underneath (`stream.room` in
+ * `@ravenkash/client`'s `LiveStream`), so nothing Live-Streaming-specific
  * needs to exist in the harness for effects to work. What differs here is
  * only how credentials are minted: through the real `/v1/live-streams`
  * host/viewer endpoints instead of `/v1/rooms/:id/rtc-tokens`, and that

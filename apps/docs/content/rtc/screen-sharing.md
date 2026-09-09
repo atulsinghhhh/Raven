@@ -37,7 +37,7 @@ written walkthrough.
 </Tab>
 </Tabs>
 
-**Not available on React Native yet.** `@corvidhq/react-native` reuses
+**Not available on React Native yet.** `@ravenkash/react-native` reuses
 the same `Room` class as web and Flutter for camera/microphone, but
 mobile screen capture needs its own native integration per platform
 (ReplayKit on iOS, `MediaProjection` on Android) that hasn't been built.

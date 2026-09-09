@@ -43,7 +43,7 @@ grant = raven.tokens.create(CreateTokenParams(room="room-1", identity="user-42")
 #   grant["expiresAt"]
 ```
 
-Hand `grant` to your frontend, which passes it to `@corvidhq/rtc`. See
+Hand `grant` to your frontend, which passes it to `@ravenkash/rtc`. See
 [docs/sdk.md](https://github.com/atulsinghhhh/Raven/blob/main/docs/sdk.md).
 
 ## Async

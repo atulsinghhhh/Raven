@@ -380,7 +380,7 @@ describe('Control plane (e2e)', () => {
       });
 
       it('records connection-quality stats from a stats event, in the shape Room.getConnectionStats() actually sends', async () => {
-        // Mirrors what @corvidhq/rtc's periodic stats monitor posts: see
+        // Mirrors what @ravenkash/rtc's periodic stats monitor posts: see
         // ConnectionStats in packages/sdk/src/room.ts.
         await request(app.getHttpServer())
           .post('/v1/telemetry/events')

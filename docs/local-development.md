@@ -62,7 +62,7 @@ openssl rand -hex 32   # SFU_REGISTRATION_SECRET
 ## 2. Start the infrastructure
 
 ```bash
-pnpm infra:up
+npm run infra:up
 ```
 
 This runs `docker compose up -d`. First run pulls four base images and
@@ -78,13 +78,13 @@ If you run the API on the host instead (see below), apply migrations
 yourself once:
 
 ```bash
-pnpm db:migrate     # prisma migrate deploy, over DIRECT_URL
+npm run db:migrate  # prisma migrate deploy, over DIRECT_URL
 ```
 
 ## 3. Verify everything is healthy
 
 ```bash
-pnpm infra:verify
+npm run infra:verify
 ```
 
 This checks that Supabase Postgres answers a `SELECT 1` through the same
@@ -103,7 +103,7 @@ registered, which is the failure that makes every join return
 also just look at container-level health:
 
 ```bash
-pnpm infra:ps
+npm run infra:ps
 ```
 
 Every service should show `(healthy)`.
@@ -111,14 +111,14 @@ Every service should show `(healthy)`.
 ## 4. View logs
 
 ```bash
-pnpm infra:logs           # all services, follow mode
+npm run infra:logs        # all services, follow mode
 docker compose logs -f sfu       # a single service
 ```
 
 ## 5. Stop the infrastructure
 
 ```bash
-pnpm infra:down
+npm run infra:down
 ```
 
 Stops and removes containers but **keeps** volumes — Redis and MinIO data
@@ -127,7 +127,7 @@ survives. The database is not affected either way; it is on Supabase.
 ## 6. Reset the infrastructure
 
 ```bash
-pnpm infra:reset
+npm run infra:reset
 ```
 
 Stops containers **and deletes volumes**, then starts fresh. Use this when
@@ -163,13 +163,13 @@ Local connection strings/URLs (values come from your `.env`):
   `docs/rtc/signaling.md`
 
 Want something to try against immediately instead of registering by hand?
-`pnpm db:seed` creates a demo developer, project, API key, and room, and
+`npm run db:seed` creates a demo developer, project, API key, and room, and
 prints the login + API key to your terminal (shown once, like any other
 key). See `docs/control-plane.md` for the full API design, or open one of:
 
 - `examples/signaling-demo/index.html` — room presence/SDP/ICE only, no
   media (Phase 3)
-- `examples/media-demo/` — real camera/microphone through `@corvidhq/rtc`
+- `examples/media-demo/` — real camera/microphone through `@ravenkash/rtc`
   (see `docs/rtc/sfu.md`) — must be served over HTTP (not
   `file://`) since browsers restrict camera access on `file://` pages;
   see `examples/media-demo/README.md`
@@ -183,16 +183,16 @@ public Supabase hostname from inside and outside the network alike.
 ## Running the API outside Docker (hot reload)
 
 For active development on the control plane, running it directly on the
-host with `pnpm dev` gives you fast TypeScript hot-reload instead of
+host with `npm run dev` gives you fast TypeScript hot-reload instead of
 rebuilding a Docker image on every change:
 
 ```bash
 # One-time: tell the containerised SFU where the host-run API lives.
 echo 'SFU_CONTROL_PLANE_URL=http://host.docker.internal:4100' >> .env
 
-pnpm infra:up                      # keep redis/sfu/coturn in Docker
+npm run infra:up                   # keep redis/sfu/coturn in Docker
 docker compose stop api            # avoid a port clash with the host-run copy
-pnpm dev                            # from the repo root — runs apps/api in watch mode
+npm run dev                         # from the repo root — runs apps/api in watch mode
 ```
 
 This works because `.env`'s `REDIS_URL` points at `localhost` + the
@@ -296,7 +296,7 @@ the Supabase dashboard.
 advertises — correct only when the client runs on the same machine as
 Docker. Connecting from another device on your network means it is being
 handed an address that, from where it sits, is itself. Set `SFU_PUBLIC_IP`
-to your machine's LAN IP and restart (`pnpm infra:down && pnpm infra:up`).
+to your machine's LAN IP and restart (`npm run infra:down && npm run infra:up`).
 
 The symptom is specific and worth recognising: `room.joined` arrives, an
 `sdp.offer` arrives, ICE candidates arrive — and `connectionState` never
@@ -334,6 +334,6 @@ worth knowing before drawing conclusions about real call quality — that
 kind of testing belongs to Phase 4 (SFU) and Phase 5 (STUN/TURN), not here.
 
 **Starting over completely**
-`pnpm infra:reset` handles the normal case (fresh volumes). If Docker
+`npm run infra:reset` handles the normal case (fresh volumes). If Docker
 itself is in a bad state, `docker compose down -v --remove-orphans`
-followed by `pnpm infra:up` is the manual equivalent.
+followed by `npm run infra:up` is the manual equivalent.

@@ -1,7 +1,7 @@
 /**
  * Minimal typed pub/sub. No dependency, keeps the bundle small.
  *
- * One deliberate difference from `@corvidhq/rtc`'s emitter: `on()` returns
+ * One deliberate difference from `@ravenkash/rtc`'s emitter: `on()` returns
  * an **unsubscribe function** instead of `this`. Chat handlers get
  * registered inside component effects almost every time, where cleanup is
  * the common path and a mismatched `off(event, handler)` is the classic way

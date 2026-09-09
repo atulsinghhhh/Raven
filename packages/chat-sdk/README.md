@@ -1,4 +1,4 @@
-# @corvidhq/chat
+# @ravenkash/chat
 
 Raven's browser chat SDK — durable, ordered messaging with presence,
 typing indicators, read receipts, reactions, threads and attachments.
@@ -9,7 +9,7 @@ Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time co
 ## Install
 
 ```bash
-npm install @corvidhq/chat
+npm install @ravenkash/chat
 ```
 
 ## Use
@@ -18,7 +18,7 @@ The chat token is minted by your backend (`POST /v1/chat/tokens`) and is a
 separate credential from an RTC token — neither works on the other plane.
 
 ```ts
-import { createChatClient } from '@corvidhq/chat';
+import { createChatClient } from '@ravenkash/chat';
 
 const chat = createChatClient({
   token: grant.token,

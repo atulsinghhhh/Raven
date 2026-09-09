@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import type { SearchRecord } from '../lib/search';
+import { expandIndex, type CompactSearchIndex, type SearchRecord } from '../lib/search-wire';
 import { highlight, rank, type RankedResult } from '../lib/rank';
 
 /**
@@ -36,8 +36,10 @@ export function Search() {
     let cancelled = false;
     fetch('/search-index.json')
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
-      .then((data: SearchRecord[]) => {
-        if (!cancelled) setIndex(data);
+      .then((data: CompactSearchIndex) => {
+        // The payload is normalised to keep the download small; expanding it
+        // once here means rank() and everything below it stay unaware.
+        if (!cancelled) setIndex(expandIndex(data));
       })
       .catch(() => {
         if (!cancelled) setIndexError(true);
@@ -164,9 +166,7 @@ export function Search() {
                 </p>
               )}
 
-              {!indexError && !index && (
-                <p className="px-4 py-8 text-center text-sm text-subtle">Loading…</p>
-              )}
+              {!indexError && !index && <p className="px-4 py-8 text-center text-sm text-subtle">Loading…</p>}
 
               {index && query.trim().length < 2 && (
                 <p className="px-4 py-8 text-center text-sm text-subtle">
@@ -177,8 +177,7 @@ export function Search() {
 
               {index && query.trim().length >= 2 && results.length === 0 && (
                 <p className="px-4 py-8 text-center text-sm text-subtle">
-                  Nothing matches “{query.trim()}”. Search covers page text and code samples — try a
-                  single keyword.
+                  Nothing matches “{query.trim()}”. Search covers page text and code samples — try a single keyword.
                 </p>
               )}
 
@@ -271,7 +270,14 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 function SearchIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-3.5-3.5" strokeLinecap="round" />
     </svg>
@@ -280,7 +286,14 @@ function SearchIcon() {
 
 function ChevronIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-3 w-3 shrink-0 text-subtle" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      className="h-3 w-3 shrink-0 text-subtle"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
       <path d="m9 6 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

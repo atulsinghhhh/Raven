@@ -1,5 +1,5 @@
 {
-  "name": "@corvidhq/rtc",
+  "name": "@ravenkash/rtc",
   "version": "0.1.0",
   "description": "Raven browser SDK \u2014 join a room, publish camera/microphone, subscribe to remote media. Hides SDP/ICE/STUN/TURN/SFU behind a small typed API.",
   "license": "MIT",
@@ -39,7 +39,7 @@
     "size": "pnpm build && node ./scripts/print-bundle-size.mjs"
   },
   "dependencies": {
-    "@corvidhq/effects": "workspace:*"
+    "@ravenkash/effects": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

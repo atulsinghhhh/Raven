@@ -7,7 +7,7 @@ on an RTC `LocalTrack` does exactly what this page does directly against
 a `getUserMedia()` track — this demo isolates that step so it can run
 with nothing but a static file server.
 
-`app.js` imports only `@corvidhq/effects`. Selecting a filter mutates the
+`app.js` imports only `@ravenkash/effects`. Selecting a filter mutates the
 same running pipeline (`pipeline.clear()` + `pipeline.applyPreset()`/`add()`)
 rather than reattaching — the processed video updates live because the
 engine reads the pipeline's effect list fresh every frame.
@@ -18,7 +18,7 @@ engine reads the pipeline's effect list fresh every frame.
 convention as `examples/live-streaming-demo`):
 
 ```bash
-pnpm --filter @corvidhq/effects run build
+pnpm --filter @ravenkash/effects run build
 cd examples/effects-demo
 cp ../../packages/effects/dist/index.js{,.map} .
 mv index.js raven-effects.js; mv index.js.map raven-effects.js.map

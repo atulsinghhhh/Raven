@@ -13,7 +13,7 @@ import { registerChatPresenceCommand } from './presence.js';
  * key*, which is a runtime credential your backend holds. Not something the
  * CLI should store, or encourage anyone to paste into a terminal.
  *
- * Which is why there's no `raven chat send`. Use `@corvidhq/server` or
+ * Which is why there's no `raven chat send`. Use `@ravenkash/server` or
  * `raven-sdk` from your backend for that. See docs/cli.md#chat.
  */
 export function registerChatCommand(program: Command): void {

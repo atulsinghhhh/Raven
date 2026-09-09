@@ -47,7 +47,7 @@ export default async function ChatConversationsPage({ params }: { params: Promis
         <EmptyState
           icon={<IconConversations className="size-7" />}
           title="No conversations yet"
-          description="Conversations are created from your backend — a browser chat token can't create them, by design. Use raven.chat.createConversation() from @corvidhq/server."
+          description="Conversations are created from your backend — a browser chat token can't create them, by design. Use raven.chat.createConversation() from @ravenkash/server."
           action={
             <ButtonLink href={`${base}/sdks`} variant="primary">
               View SDKs

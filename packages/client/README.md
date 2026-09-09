@@ -1,25 +1,25 @@
-# @corvidhq/client
+# @ravenkash/client
 
 Raven for the browser, with RTC and chat behind one object.
 
 Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
 
 This is a **facade, not a third implementation**: `raven.rtc` is a real
-`RTCClient` from [`@corvidhq/rtc`](https://www.npmjs.com/package/@corvidhq/rtc)
+`RTCClient` from [`@ravenkash/rtc`](https://www.npmjs.com/package/@ravenkash/rtc)
 and `raven.chat` is a real `ChatClient` from
-[`@corvidhq/chat`](https://www.npmjs.com/package/@corvidhq/chat). Every
+[`@ravenkash/chat`](https://www.npmjs.com/package/@ravenkash/chat). Every
 method, event and type documented for those packages applies here
 unchanged, because they *are* those objects.
 
-> **Only want calls?** Use `@corvidhq/rtc` directly — it pulls in no
+> **Only want calls?** Use `@ravenkash/rtc` directly — it pulls in no
 > messaging code. This package is for apps that want both planes without
-> wiring two clients, and it mirrors the shape `@corvidhq/react-native`
+> wiring two clients, and it mirrors the shape `@ravenkash/react-native`
 > gives mobile, so the same mental model works on both.
 
 ## Install
 
 ```bash
-npm install @corvidhq/client
+npm install @ravenkash/client
 ```
 
 ## Use
@@ -28,7 +28,7 @@ RTC and chat credentials are independent, so supply whichever planes your
 app actually uses:
 
 ```ts
-import { Raven } from '@corvidhq/client';
+import { Raven } from '@ravenkash/client';
 
 new Raven({ token, endpoint });                        // calls only
 new Raven({ chatToken, chatApiUrl });                  // messaging only

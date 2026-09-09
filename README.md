@@ -37,11 +37,11 @@ ICE or `RTCPeerConnection`.
 Never mint one in a browser: the API key is permanent, the token is not.
 
 ```bash
-npm install @corvidhq/server        # or: pip install raven-sdk
+npm install @ravenkash/server        # or: pip install raven-sdk
 ```
 
 ```ts
-import { Raven } from '@corvidhq/server';
+import { Raven } from '@ravenkash/server';
 
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
 
@@ -54,11 +54,11 @@ const grant = await raven.tokens.create({ room: roomId, identity: 'user-42' });
 ### 2. Your frontend joins
 
 ```bash
-npm install @corvidhq/rtc
+npm install @ravenkash/rtc
 ```
 
 ```ts
-import { createRTCClient } from '@corvidhq/rtc';
+import { createRTCClient } from '@ravenkash/rtc';
 
 const client = createRTCClient({
   token: grant.token,
@@ -88,12 +88,12 @@ room.on('connected', () => setStatus('live'));
 ### 3. Or use the React bindings
 
 ```bash
-npm install @corvidhq/rtc @corvidhq/react
+npm install @ravenkash/rtc @ravenkash/react
 ```
 
 ```tsx
 'use client';
-import { RavenRoom, useConnectionState, useCamera, useLocalParticipant, ParticipantView } from '@corvidhq/react';
+import { RavenRoom, useConnectionState, useCamera, useLocalParticipant, ParticipantView } from '@ravenkash/react';
 
 export function CallPage({ token, endpoint, room }) {
   return (
@@ -136,18 +136,18 @@ client.
 
 | Package | Install | What it does | Reference |
 |---|---|---|---|
-| `@corvidhq/rtc` | `npm i @corvidhq/rtc` | Browser RTC: join, publish, subscribe | [docs/sdk.md](./docs/sdk.md) |
-| `@corvidhq/react` | `npm i @corvidhq/react` | Hooks + optional components for RTC **and** chat | [docs/sdk/react.md](./docs/sdk/react.md) |
-| `@corvidhq/chat` | `npm i @corvidhq/chat` | Messaging: durable, ordered, with presence and typing | [docs/sdk/chat.md](./docs/sdk/chat.md) |
-| `@corvidhq/effects` | `npm i @corvidhq/effects` | Camera effects pipeline (filters, presets) | [apps/docs/content/effects.md](./apps/docs/content/effects.md) |
-| `@corvidhq/react-native` | `npm i @corvidhq/react-native` | iOS + Android, reusing `@corvidhq/rtc` unmodified | [docs/sdk/react-native.md](./docs/sdk/react-native.md) |
+| `@ravenkash/rtc` | `npm i @ravenkash/rtc` | Browser RTC: join, publish, subscribe | [docs/sdk.md](./docs/sdk.md) |
+| `@ravenkash/react` | `npm i @ravenkash/react` | Hooks + optional components for RTC **and** chat | [docs/sdk/react.md](./docs/sdk/react.md) |
+| `@ravenkash/chat` | `npm i @ravenkash/chat` | Messaging: durable, ordered, with presence and typing | [docs/sdk/chat.md](./docs/sdk/chat.md) |
+| `@ravenkash/effects` | `npm i @ravenkash/effects` | Camera effects pipeline (filters, presets) | [apps/docs/content/effects.md](./apps/docs/content/effects.md) |
+| `@ravenkash/react-native` | `npm i @ravenkash/react-native` | iOS + Android, reusing `@ravenkash/rtc` unmodified | [docs/sdk/react-native.md](./docs/sdk/react-native.md) |
 | `raven_rtc`, `raven_chat` | Dart / pub | Flutter, same concepts in idiomatic Dart | [docs/sdk/flutter.md](./docs/sdk/flutter.md) |
 
 ### Backend SDKs
 
 | Package | Install | Reference |
 |---|---|---|
-| `@corvidhq/server` | `npm i @corvidhq/server` | [docs/sdk/server/typescript.md](./docs/sdk/server/typescript.md) |
+| `@ravenkash/server` | `npm i @ravenkash/server` | [docs/sdk/server/typescript.md](./docs/sdk/server/typescript.md) |
 | `raven-sdk` | `pip install raven-sdk` | [docs/sdk/server/python.md](./docs/sdk/server/python.md) |
 
 Both hold a permanent project API key that never reaches a browser, mint
@@ -159,7 +159,7 @@ diagnostics. Security model: [docs/security/server-sdk.md](./docs/security/serve
 | Tool | What it is | Reference |
 |---|---|---|
 | Dashboard (`apps/dashboard`) | Projects, API keys, rooms, participants, the SFU fleet, diagnostics | [docs/dashboard.md](./docs/dashboard.md) |
-| `@corvidhq/cli` | `raven login`, `raven projects create`, `raven init`, `raven rtc servers list` | [docs/cli.md](./docs/cli.md) |
+| `@ravenkash/cli` | `raven login`, `raven projects create`, `raven init`, `raven rtc servers list` | [docs/cli.md](./docs/cli.md) |
 
 ---
 
@@ -218,14 +218,14 @@ apps/
 services/
   sfu/                The SFU. Go, Pion. The only place media is touched.
 packages/
-  sdk/                @corvidhq/rtc          — browser RTC
-  react-sdk/          @corvidhq/react        — hooks + components
-  chat-sdk/           @corvidhq/chat         — messaging
-  effects/            @corvidhq/effects      — camera effects
-  react-native-sdk/   @corvidhq/react-native — iOS/Android
-  server-sdk/         @corvidhq/server       — backend, TypeScript
-  client/             @corvidhq/client       — live-streaming client
-  cli/                @corvidhq/cli          — terminal workflow
+  sdk/                @ravenkash/rtc          — browser RTC
+  react-sdk/          @ravenkash/react        — hooks + components
+  chat-sdk/           @ravenkash/chat         — messaging
+  effects/            @ravenkash/effects      — camera effects
+  react-native-sdk/   @ravenkash/react-native — iOS/Android
+  server-sdk/         @ravenkash/server       — backend, TypeScript
+  client/             @ravenkash/client       — live-streaming client
+  cli/                @ravenkash/cli          — terminal workflow
 sdks/
   flutter/            raven_rtc, raven_chat, raven_live
   python/             raven-sdk
@@ -241,11 +241,11 @@ scripts/              Load tests, infra verification, TURN certs
 
 ```bash
 cp .env.example .env       # then fill in real secrets — see below
-pnpm install
-pnpm infra:up              # Redis, the SFU, coturn, MinIO, api
-pnpm db:migrate            # apply migrations to your Postgres
-pnpm infra:verify          # confirm every dependency is actually healthy
-pnpm db:seed               # optional: demo developer, project, key, room
+pnpm install                # one-time setup — this is a pnpm workspace, `npm install` will not work here
+npm run infra:up            # Redis, the SFU, coturn, MinIO, api
+npm run db:migrate          # apply migrations to your Postgres
+npm run infra:verify        # confirm every dependency is actually healthy
+npm run db:seed             # optional: demo developer, project, key, room
 ```
 
 Then: interactive API docs at <http://localhost:4100/docs>.
@@ -266,8 +266,8 @@ openssl rand -hex 32   # SFU_REGISTRATION_SECRET
 The dashboard runs separately:
 
 ```bash
-pnpm --filter @raven/dashboard build
-pnpm --filter @raven/dashboard start   # http://localhost:3000
+npm run build --workspace=@raven/dashboard
+npm run start --workspace=@raven/dashboard   # http://localhost:3000
 ```
 
 Ports, troubleshooting, and running the API on the host with hot reload:
@@ -288,17 +288,17 @@ cd services/sfu && go test -race ./...
 cd services/sfu && go test ./internal/room/ -run TestScale -v
 
 # Unit tests, per package.
-pnpm test                                  # apps/api
-pnpm --filter @corvidhq/rtc test           # and any other package
+npm test                                        # apps/api
+npm test --workspace=@ravenkash/rtc              # and any other package
 
 # End-to-end. Needs a scratch Postgres — the suite refuses to run
 # against a shared database — plus Chromium for the browser suites.
-pnpm --filter @raven/api exec playwright install chromium
+npm exec --workspace=@raven/api -- playwright install chromium
 docker run --rm -d --name raven-e2e-db -p 5455:5432 \
   -e POSTGRES_PASSWORD=scratch -e POSTGRES_DB=raven postgres:16-alpine
 E2E_DB="postgresql://postgres:scratch@localhost:5455/raven"
-DATABASE_URL="$E2E_DB" DIRECT_URL="$E2E_DB" pnpm --filter @raven/api prisma:migrate:deploy
-DATABASE_URL="$E2E_DB" DIRECT_URL="$E2E_DB" pnpm test:e2e
+DATABASE_URL="$E2E_DB" DIRECT_URL="$E2E_DB" npm run prisma:migrate:deploy --workspace=@raven/api
+DATABASE_URL="$E2E_DB" DIRECT_URL="$E2E_DB" npm run test:e2e
 ```
 
 The e2e suite builds and runs a **real SFU** as a child process, and two of

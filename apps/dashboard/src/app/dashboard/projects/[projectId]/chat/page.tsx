@@ -65,7 +65,7 @@ export default async function ChatOverviewPage({
         <EmptyState
           icon={<IconChat className="size-7" />}
           title="No chat activity yet"
-          description="Create a conversation from your backend with @corvidhq/server, mint a chat token for a user, and connect with @corvidhq/chat. Everything on this page fills in from real traffic — nothing is simulated."
+          description="Create a conversation from your backend with @ravenkash/server, mint a chat token for a user, and connect with @ravenkash/chat. Everything on this page fills in from real traffic — nothing is simulated."
           action={
             <>
               <ButtonLink href={`${base}/sdks`} variant="primary">

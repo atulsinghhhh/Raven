@@ -1,6 +1,6 @@
 import { audio } from '../src/audio';
 import type { NativeAudioAdapter } from '../src/audio';
-import { isRTCError } from '@corvidhq/rtc';
+import { isRTCError } from '@ravenkash/rtc';
 import { __calls, __resetCalls } from './mocks/react-native-incall-manager';
 import { __setPlatform } from './mocks/react-native';
 

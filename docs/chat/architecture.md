@@ -217,7 +217,7 @@ To reproduce, raise `CHAT_CONNECTION_RATE_LIMIT` first — the per-IP connection
 limiter will (correctly) refuse a load test from a single host otherwise:
 
 ```bash
-CHAT_CONNECTION_RATE_LIMIT=5000 CHAT_SEND_RATE_LIMIT=5000 pnpm dev
+CHAT_CONNECTION_RATE_LIMIT=5000 CHAT_SEND_RATE_LIMIT=5000 npm run dev
 node scripts/chat-load-test.mjs --connections 300 --senders 60 --rate 3 --duration 25 --rooms 10
 ```
 

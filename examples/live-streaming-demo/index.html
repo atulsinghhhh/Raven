@@ -25,7 +25,7 @@
 <body>
   <h1>Raven Live Streaming Demo — <span id="roleLabel">?</span></h1>
   <p style="font-size:0.85rem; opacity:0.75;">
-    Built entirely on <code>@corvidhq/client</code>'s <code>LiveStream</code> API
+    Built entirely on <code>@ravenkash/client</code>'s <code>LiveStream</code> API
     (<code>raven.live.join()</code>) — no SDP or peer connection anywhere in
     <code>app.js</code>. Open this page with <code>?role=host</code> in one
     tab and <code>?role=viewer&amp;stream=&lt;id&gt;</code> in another. See
@@ -76,9 +76,9 @@
   <script type="importmap">
     {
       "imports": {
-        "@corvidhq/client": "./raven-client.js",
-        "@corvidhq/rtc": "./raven-rtc.js",
-        "@corvidhq/chat": "./raven-chat.js"
+        "@ravenkash/client": "./raven-client.js",
+        "@ravenkash/rtc": "./raven-rtc.js",
+        "@ravenkash/chat": "./raven-chat.js"
       }
     }
   </script>

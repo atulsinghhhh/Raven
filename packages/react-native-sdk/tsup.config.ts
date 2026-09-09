@@ -19,7 +19,7 @@ export default defineConfig({
     'react-native-webrtc',
     'react-native-incall-manager',
     '@react-native-community/netinfo',
-    '@corvidhq/rtc',
-    '@corvidhq/chat',
+    '@ravenkash/rtc',
+    '@ravenkash/chat',
   ],
 });

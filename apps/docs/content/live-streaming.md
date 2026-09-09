@@ -17,7 +17,7 @@ A typical live-streaming build asks you to run an SFU, a chat service,
 and a bridge between the two — three systems, three sets of
 credentials, three failure modes. On Raven, `POST /v1/live-streams`
 gives you both a room and a conversation in one call, and a viewer's
-chat message rides the same infrastructure `@corvidhq/chat` already
+chat message rides the same infrastructure `@ravenkash/chat` already
 documents.
 
 | | RTC | Chat | Live Streaming |
@@ -75,7 +75,7 @@ exactly like every other Raven webhook. See [Webhooks](/webhooks).
 
 - No cloud recording or AI moderation/captions yet. Filters/effects are
   already supported — see [Filters & Effects](/live-streaming/filters) —
-  since a stream's camera is an ordinary `@corvidhq/rtc` track.
+  since a stream's camera is an ordinary `@ravenkash/rtc` track.
 - Viewer count is derived live from the SFU's current participants, not
   stored — see [Analytics](/live-streaming/analytics) for exactly
   what's tracked.

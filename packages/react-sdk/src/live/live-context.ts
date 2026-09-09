@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext } from 'react';
-import type { LiveStream, LiveStreamRole } from '@corvidhq/client';
+import type { LiveStream, LiveStreamRole } from '@ravenkash/client';
 
 export type RavenLiveStreamStatus = 'connecting' | 'ready' | 'failed';
 
@@ -23,7 +23,7 @@ export const RavenLiveStreamContext = createContext<RavenLiveStreamContextValue 
 export function useRavenLiveStreamContext(): RavenLiveStreamContextValue {
   const value = useContext(RavenLiveStreamContext);
   if (!value) {
-    throw new Error('@corvidhq/react Live Streaming hooks must be used inside a <RavenLiveStream>; see docs/sdk/react.md#live-streaming.');
+    throw new Error('@ravenkash/react Live Streaming hooks must be used inside a <RavenLiveStream>; see docs/sdk/react.md#live-streaming.');
   }
   return value;
 }

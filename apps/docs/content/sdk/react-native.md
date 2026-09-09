@@ -4,7 +4,7 @@ description: The same API as Raven Web — the Room class is the same class.
 ---
 
 ```tsx
-import { Raven, RavenVideoView } from '@corvidhq/react-native';
+import { Raven, RavenVideoView } from '@ravenkash/react-native';
 
 const raven = new Raven({ token, endpoint });
 const room = await raven.join('room_123');
@@ -14,7 +14,7 @@ await room.enableMicrophone();
 ```
 
 If that looks like the web SDK, that's the point — and it isn't a
-resemblance. The `Room` you get back is the *same class* `@corvidhq/rtc`
+resemblance. The `Room` you get back is the *same class* `@ravenkash/rtc`
 returns in a browser. Everything you know about rooms, participants,
 tracks, and events on web is true here, and a fix to that logic lands on
 both platforms at once.
@@ -26,7 +26,7 @@ both platforms at once.
 > from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
 ```bash
-npm install @corvidhq/react-native @corvidhq/rtc @corvidhq/effects @corvidhq/chat \
+npm install @ravenkash/react-native @ravenkash/rtc @ravenkash/effects @ravenkash/chat \
             react-native-webrtc react-native-incall-manager
 
 cd ios && pod install   # iOS only
@@ -36,7 +36,7 @@ cd ios && pod install   # iOS only
 integrate with — React Native's autolinking needs it installed directly
 in your app so the native WebRTC implementation builds for iOS and
 Android. You never import or call it; everything you write is
-`@corvidhq/react-native`'s API.
+`@ravenkash/react-native`'s API.
 
 `react-native-incall-manager` is **optional** and only used for
 call-audio routing (earpiece/speaker, proximity, the in-call audio
@@ -116,7 +116,7 @@ await raven.chat!.connect('room_123');
 await raven.chat!.send('Hello everyone!');
 ```
 
-Everything else is `@corvidhq/chat`'s API unchanged — `messages.list()`,
+Everything else is `@ravenkash/chat`'s API unchanged — `messages.list()`,
 `startTyping()`, `markAsRead()`, presence, threads. It's the same
 client, so [Chat](/chat) applies verbatim.
 
@@ -149,12 +149,12 @@ new Raven({
 
 `RavenLiveStream` is a thin wrapper around `Raven` — not a parallel
 implementation. A stream's host and viewers are ordinary participants of
-one room, and its chat is ordinary `@corvidhq/chat`, so every mobile
+one room, and its chat is ordinary `@ravenkash/chat`, so every mobile
 concern `Raven.join()` already handles (permissions, audio session, app
 lifecycle, network recovery) applies unchanged:
 
 ```ts
-import { joinLiveStream, useLiveStream, useCamera } from '@corvidhq/react-native';
+import { joinLiveStream, useLiveStream, useCamera } from '@ravenkash/react-native';
 
 const stream = await joinLiveStream(credentials);
 // or, inside a component:
@@ -205,4 +205,4 @@ Live Streaming credentials are a plain object (`streamId`, `role`,
   `iceServers` from your token response.
 
 Full API reference (permissions module, audio routing, error types):
-`@corvidhq/react-native`'s exported types.
+`@ravenkash/react-native`'s exported types.

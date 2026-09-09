@@ -1,9 +1,9 @@
-# @corvidhq/react-native
+# @ravenkash/react-native
 
 Raven on iOS and Android, with the same API as Raven Web.
 
 ```tsx
-import { Raven, RavenVideoView } from '@corvidhq/react-native';
+import { Raven, RavenVideoView } from '@ravenkash/react-native';
 
 const raven = new Raven({ token, endpoint });
 const room = await raven.join('room_123');
@@ -13,7 +13,7 @@ await room.enableMicrophone();
 ```
 
 If that looks like the web SDK, that's the point — and it isn't a
-resemblance. The `Room` you get back is the *same class* `@corvidhq/rtc`
+resemblance. The `Room` you get back is the *same class* `@ravenkash/rtc`
 returns in a browser. Everything you know about rooms, participants,
 tracks and events is true here.
 
@@ -22,7 +22,7 @@ tracks and events is true here.
 **1. Install**
 
 ```bash
-npm install @corvidhq/react-native @corvidhq/rtc @corvidhq/chat \
+npm install @ravenkash/react-native @ravenkash/rtc @ravenkash/chat \
             react-native-webrtc react-native-incall-manager
 
 cd ios && pod install   # iOS only
@@ -33,7 +33,7 @@ in your app for the native WebRTC implementation to build.
 `react-native-incall-manager` is **optional**, for call-audio routing
 (earpiece/speaker, proximity, the in-call audio session); without it
 `audio.*` throws `NOT_SUPPORTED` and everything else works. You never
-import either: everything you write is `@corvidhq/react-native`'s API.
+import either: everything you write is `@ravenkash/react-native`'s API.
 
 **2. Permissions** — the SDK can't add these for you.
 
@@ -91,7 +91,7 @@ downloadable and inspectable; anything inside it is public.
 Mobile app
     │  your own authenticated request
     ▼
-Your backend  ──(@corvidhq/server, API key)──►  Raven
+Your backend  ──(@ravenkash/server, API key)──►  Raven
     │                                          │
     │◄────────── short-lived token ────────────┘
     ▼
@@ -207,7 +207,7 @@ put, which suits a static thumbnail and breaks a call.
 ## Permissions
 
 ```ts
-import { permissions } from '@corvidhq/react-native';
+import { permissions } from '@ravenkash/react-native';
 
 const status = await permissions.request();     // { camera, microphone }
 await permissions.require(['camera']);          // throws on refusal
@@ -257,7 +257,7 @@ const unsubscribe = raven.chat.on('message', (message) => {
 });
 ```
 
-Everything else is `@corvidhq/chat`'s API unchanged — `messages.list()`,
+Everything else is `@ravenkash/chat`'s API unchanged — `messages.list()`,
 `startTyping()`, `markAsRead()`, `messages.addReaction()`, presence,
 threads. It *is* the same client, so
 [the chat documentation](../chat/overview.md) applies verbatim.
@@ -318,7 +318,7 @@ intent.
 ## Error handling
 
 ```ts
-import { RTCError, RavenPermissionError, isRTCError } from '@corvidhq/react-native';
+import { RTCError, RavenPermissionError, isRTCError } from '@ravenkash/react-native';
 
 try {
   await room.enableCamera();
@@ -369,10 +369,10 @@ cause.
 ## Architecture
 
 ```
-@corvidhq/react-native      ← platform layer: video, permissions,
+@ravenkash/react-native      ← platform layer: video, permissions,
         │                  lifecycle, audio routing
-        ├── @corvidhq/rtc    ← shared with web, unmodified
-        ├── @corvidhq/chat   ← shared with web, unmodified
+        ├── @ravenkash/rtc    ← shared with web, unmodified
+        ├── @ravenkash/chat   ← shared with web, unmodified
         ├── react-native-webrtc → native iOS/Android WebRTC
         └── react-native-incall-manager → call-audio routing (optional)
 ```

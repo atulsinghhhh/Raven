@@ -5,7 +5,7 @@ import { __calls as audioCalls, __resetCalls as resetAudioCalls } from './mocks/
 import { __appState, PermissionsAndroid, __setPlatform } from './mocks/react-native';
 
 /**
- * Drives `RavenLiveStream` against the same fake `@corvidhq/rtc` client
+ * Drives `RavenLiveStream` against the same fake `@ravenkash/rtc` client
  * `raven.spec.ts` uses.
  *
  * The class is a thin wrapper round `Raven`, so what's worth testing is the
@@ -17,7 +17,7 @@ const rtcState = {
   leaves: 0,
 };
 
-jest.mock('@corvidhq/rtc', () => ({
+jest.mock('@ravenkash/rtc', () => ({
   createRTCClient: () => ({
     join: async (roomId: string) => {
       rtcState.joins.push(roomId);

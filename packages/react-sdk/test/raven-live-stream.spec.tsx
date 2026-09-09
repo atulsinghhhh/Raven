@@ -48,7 +48,7 @@ function fakeStream(overrides: { isHost?: boolean; room?: FakeRoom; chat?: FakeC
 }
 
 const joinLiveStream = jest.fn();
-jest.mock('@corvidhq/client', () => ({ joinLiveStream: (...args: unknown[]) => joinLiveStream(...args) }));
+jest.mock('@ravenkash/client', () => ({ joinLiveStream: (...args: unknown[]) => joinLiveStream(...args) }));
 
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { RavenLiveStream } from '../src/live/raven-live-stream';

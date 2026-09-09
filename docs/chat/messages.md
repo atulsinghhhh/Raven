@@ -52,7 +52,7 @@ await chat.sendMessage({ text: 'Hello', clientMessageId: 'client_123' });
 // Same message. The second call returns the original, with deduplicated: true.
 ```
 
-`@corvidhq/chat` attaches one automatically if you don't, so the SDK's own
+`@ravenkash/chat` attaches one automatically if you don't, so the SDK's own
 retries are already safe. Supply your own when *you* control the retry — a
 job queue, a form resubmit, an offline outbox.
 
@@ -179,7 +179,7 @@ Permanent removal is retention's job — see
 Every failure is a typed error:
 
 ```js
-import { RavenRateLimitError, RavenMessageError } from '@corvidhq/chat';
+import { RavenRateLimitError, RavenMessageError } from '@ravenkash/chat';
 
 try {
   await chat.sendMessage({ text: veryLongText });

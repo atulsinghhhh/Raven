@@ -20,7 +20,7 @@ chat conversation and the host's row in one call:
 <Tab title="Node.js">
 
 ```ts
-import { Raven } from '@corvidhq/server';
+import { Raven } from '@ravenkash/server';
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 
 const stream = await raven.liveStreams.create({ title: 'Launch Day', hostIdentity: 'alice' });
@@ -95,7 +95,7 @@ unchanged to your frontend as the join credentials.
 <Tab title="Web">
 
 ```ts
-import { LiveStream } from '@corvidhq/client';
+import { LiveStream } from '@ravenkash/client';
 
 const stream = await LiveStream.join(credentials); // exactly what addHost() returned, reshaped as { streamId, role, rtc, chat, chatRootMessageId }
 
@@ -103,8 +103,8 @@ await stream.room.enableCamera();
 await stream.room.enableMicrophone();
 ```
 
-`stream.room` is a real `@corvidhq/rtc` `Room` and `stream.chat` is a
-real `@corvidhq/chat` client — `LiveStream` composes them, it doesn't
+`stream.room` is a real `@ravenkash/rtc` `Room` and `stream.chat` is a
+real `@ravenkash/chat` client — `LiveStream` composes them, it doesn't
 wrap or hide them.
 
 </Tab>
@@ -112,7 +112,7 @@ wrap or hide them.
 
 ```tsx
 'use client';
-import { RavenLiveStream, useLiveStreamHost, useParticipants } from '@corvidhq/react';
+import { RavenLiveStream, useLiveStreamHost, useParticipants } from '@ravenkash/react';
 
 function HostPage({ credentials }) {
   return (
@@ -138,7 +138,7 @@ works, since a stream's room is an ordinary `Room`.
 <Tab title="React Native">
 
 ```ts
-import { joinLiveStream } from '@corvidhq/react-native';
+import { joinLiveStream } from '@ravenkash/react-native';
 
 const stream = await joinLiveStream(credentials);
 await stream.room.enableCamera();
@@ -237,7 +237,7 @@ stream.room.on('trackSubscribed', (track, participant) => {
 
 ```tsx
 'use client';
-import { useLiveStreamViewer, useRemoteParticipants } from '@corvidhq/react';
+import { useLiveStreamViewer, useRemoteParticipants } from '@ravenkash/react';
 
 function ViewerControls() {
   const { react } = useLiveStreamViewer();

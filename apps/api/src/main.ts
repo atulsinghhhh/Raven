@@ -80,7 +80,7 @@ async function bootstrap(): Promise<void> {
           type: 'http',
           scheme: 'bearer',
           description:
-            'The same RTC token minted for this connection — used only by @corvidhq/rtc to authenticate its own best-effort telemetry, never a separate credential.',
+            'The same RTC token minted for this connection — used only by @ravenkash/rtc to authenticate its own best-effort telemetry, never a separate credential.',
         },
         'rtcToken',
       )

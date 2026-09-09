@@ -3,8 +3,8 @@ title: Filters
 description: Every basic filter Raven Effects ships, its parameters, valid ranges, and what invalid input does.
 ---
 
-Every filter below is exported from `effects.filters` (`@corvidhq/effects`,
-re-exported as `effectFilters` from `@corvidhq/react`). Each factory
+Every filter below is exported from `effects.filters` (`@ravenkash/effects`,
+re-exported as `effectFilters` from `@ravenkash/react`). Each factory
 validates its parameters immediately and throws
 [`EffectsError`](/effects/api-reference#effectserror) with code
 `RAVEN_EFFECT_INVALID_CONFIG` on an out-of-range or unknown value —

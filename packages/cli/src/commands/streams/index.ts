@@ -14,7 +14,7 @@ import { registerStreamsEndCommand } from './end.js';
  * no secret in their response, so they're fine here.
  *
  * Adding or removing a host, or minting a viewer token, mints a real RTC and
- * chat credential. That stays on `@corvidhq/server` and `raven-sdk`, run
+ * chat credential. That stays on `@ravenkash/server` and `raven-sdk`, run
  * from your own backend, for the same reason `raven chat send` and chat
  * token minting never got a CLI equivalent. See docs/cli.md#live-streams.
  */

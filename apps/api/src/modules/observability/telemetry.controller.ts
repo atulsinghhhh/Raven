@@ -10,7 +10,7 @@ import { VerifiedRtcToken } from '../signaling/authentication/rtc-token-verifier
 
 /**
  * The Telemetry API from the Phase 9 architecture diagram: the one
- * ingestion point `@corvidhq/rtc` best-effort POSTs connection/participant/
+ * ingestion point `@ravenkash/rtc` best-effort POSTs connection/participant/
  * error events to. Authenticated by the same RTC token the browser
  * already holds (see TelemetryIngestGuard), never a separate credential.
  * Deliberately tolerant: malformed individual events fail this one

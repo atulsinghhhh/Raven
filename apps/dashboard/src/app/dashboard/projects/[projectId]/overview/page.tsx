@@ -125,7 +125,7 @@ export default async function OverviewPage({
         <Card>
           <p className="text-sm leading-relaxed text-muted">
             No rooms or connections yet — telemetry appears here automatically the moment your backend mints a token and
-            a client joins with <code className="font-mono text-xs text-fg">@corvidhq/rtc</code>. Follow the steps
+            a client joins with <code className="font-mono text-xs text-fg">@ravenkash/rtc</code>. Follow the steps
             above, or open the{' '}
             <a href={`${base}/quickstart`} className="text-accent-text hover:underline">
               quickstart

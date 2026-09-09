@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
-import type { ChatClientConfig, RavenChatError } from '@corvidhq/chat';
+import type { ChatClientConfig, RavenChatError } from '@ravenkash/chat';
 import { RavenChatStoreContext } from './chat-context';
 import { RavenChatStore } from './chat-store';
 
@@ -27,7 +27,7 @@ export interface RavenChatProps extends ChatClientConfig {
  *
  * Mirrors `<RavenRoom>` from the RTC side: same lifecycle, same
  * autoConnect, fallback and onError props. Anyone already using
- * `@corvidhq/react` for video has nothing new to learn (spec §43).
+ * `@ravenkash/react` for video has nothing new to learn (spec §43).
  *
  * The two nest quite happily:
  *

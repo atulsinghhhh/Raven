@@ -1,5 +1,5 @@
-import { createRTCClient, type RTCClient, type RTCClientConfig, type Room } from '@corvidhq/rtc';
-import { createChatClient, type ChatClient, type ChatClientConfig } from '@corvidhq/chat';
+import { createRTCClient, type RTCClient, type RTCClientConfig, type Room } from '@ravenkash/rtc';
+import { createChatClient, type ChatClient, type ChatClientConfig } from '@ravenkash/chat';
 import { LiveStream } from './live/live-stream';
 import type { LiveStreamCredentials } from './live/types';
 
@@ -48,7 +48,7 @@ export interface RavenConfig {
    * standard deployment.
    *
    * In practice you need it whenever `chatToken` is set. Without it, or
-   * `chatUrl`, there's nowhere to connect, and `@corvidhq/chat` says so at
+   * `chatUrl`, there's nowhere to connect, and `@ravenkash/chat` says so at
    * construction instead of falling over later.
    */
   chatApiUrl?: string;
@@ -67,8 +67,8 @@ export interface RavenConfig {
  * Raven for the browser, RTC and chat behind a single object.
  *
  * A facade, not a third implementation. `raven.rtc` is a genuine
- * `RTCClient` from `@corvidhq/rtc`, and `raven.chat` a genuine `ChatClient`
- * from `@corvidhq/chat`. Every method, event and type documented for those
+ * `RTCClient` from `@ravenkash/rtc`, and `raven.chat` a genuine `ChatClient`
+ * from `@ravenkash/chat`. Every method, event and type documented for those
  * packages applies here untouched, because they *are* those objects.
  *
  * ```ts
@@ -81,10 +81,10 @@ export interface RavenConfig {
  * await raven.chat!.sendMessage({ text: 'Hello' });
  * ```
  *
- * **If you only want calls, use `@corvidhq/rtc` directly.** It's around
+ * **If you only want calls, use `@ravenkash/rtc` directly.** It's around
  * 10 KB gzipped and drags in no messaging code at all. This package is for
  * apps that want both halves without wiring up two clients by hand, and it
- * mirrors the shape `@corvidhq/react-native` already gives mobile so the
+ * mirrors the shape `@ravenkash/react-native` already gives mobile so the
  * same mental model carries across.
  */
 export class Raven {
@@ -205,10 +205,10 @@ export function createRaven(config: RavenConfig): Raven {
 
 // Re-exported so an app on this facade doesn't need direct imports from
 // the underlying packages just to name a common type.
-export type { Room, RTCClient, RTCClientConfig } from '@corvidhq/rtc';
-export { RTCError, isRTCError } from '@corvidhq/rtc';
-export type { ChatClient, ChatMessage, ChatConnectionState } from '@corvidhq/chat';
-export { isRavenChatError } from '@corvidhq/chat';
+export type { Room, RTCClient, RTCClientConfig } from '@ravenkash/rtc';
+export { RTCError, isRTCError } from '@ravenkash/rtc';
+export type { ChatClient, ChatMessage, ChatConnectionState } from '@ravenkash/chat';
+export { isRavenChatError } from '@ravenkash/chat';
 
 export { LiveStream, joinLiveStream } from './live/live-stream';
 export type { LiveStreamCredentials, LiveStreamRole } from './live/types';

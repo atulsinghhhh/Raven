@@ -55,14 +55,14 @@ import { createAROverlay } from './foundations/ar';
 import { detectCapabilities } from './capabilities';
 
 /**
- * Raven Effects' public entry point. Shaped the same way `@corvidhq/client`'s
- * `Raven` facade composes `@corvidhq/rtc` and `@corvidhq/chat`:
+ * Raven Effects' public entry point. Shaped the same way `@ravenkash/client`'s
+ * `Raven` facade composes `@ravenkash/rtc` and `@ravenkash/chat`:
  *
  * ```ts
  * const effects = raven.effects.createPipeline();
  * effects.add(raven.effects.filters.brightness({ value: 0.2 }));
  * effects.applyPreset(raven.effects.presets.cinematic);
- * camera.attachEffects(effects); // @corvidhq/rtc's LocalTrack
+ * camera.attachEffects(effects); // @ravenkash/rtc's LocalTrack
  * ```
  */
 export const effects = {

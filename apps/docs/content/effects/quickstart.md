@@ -17,10 +17,10 @@ description: Install, build a pipeline, attach it to a camera — the shortest r
 <Tab title="Web">
 
 ```bash
-npm install @corvidhq/effects
+npm install @ravenkash/effects
 ```
 
-`@corvidhq/rtc` already depends on `@corvidhq/effects`, so
+`@ravenkash/rtc` already depends on `@ravenkash/effects`, so
 `camera.attachEffects()` is available even without installing it
 directly — install it yourself only to build filter/preset configs
 (`effects.filters.*`, `effects.presets.*`).
@@ -29,7 +29,7 @@ directly — install it yourself only to build filter/preset configs
 <Tab title="React">
 
 ```bash
-npm install @corvidhq/effects @corvidhq/react
+npm install @ravenkash/effects @ravenkash/react
 ```
 
 </Tab>
@@ -38,7 +38,7 @@ npm install @corvidhq/effects @corvidhq/react
 ## 2. Build a pipeline
 
 ```ts
-import { effects } from '@corvidhq/effects';
+import { effects } from '@ravenkash/effects';
 
 const pipeline = effects.createPipeline();
 
@@ -70,7 +70,7 @@ await camera.detachEffects();
 
 ```tsx
 'use client';
-import { useCamera, useCameraEffects, effectPresets } from '@corvidhq/react';
+import { useCamera, useCameraEffects, effectPresets } from '@ravenkash/react';
 
 function EffectsPanel() {
   const camera = useCamera();

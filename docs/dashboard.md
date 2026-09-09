@@ -235,7 +235,7 @@ Every number on these pages comes from the `Connection`/`ErrorEvent`
 tables — a project with no real connections shows `0`/`—`, never a
 placeholder percentage (same "no fake metrics" rule as the Usage page
 above). There is no client-side ICE/browser diagnostic view here — that
-data only exists inside a running `@corvidhq/rtc` client
+data only exists inside a running `@ravenkash/rtc` client
 (`room.getDiagnostics()`, `docs/diagnostics.md`), and the dashboard
 never fabricates it.
 
@@ -268,7 +268,7 @@ reachable states, never hidden.
 ## SDK Quickstart
 
 Every code example on the Quickstart page was cross-checked line-by-line
-against `docs/sdk.md` and the actual `@corvidhq/rtc` public API
+against `docs/sdk.md` and the actual `@ravenkash/rtc` public API
 (`createRTCClient`, `client.join`, `room.enableCamera`/`enableMicrophone`,
 `room.on('participantJoined'|'trackSubscribed', ...)`, `room.leave`) — no
 example uses an API that doesn't exist. Backend/frontend steps are

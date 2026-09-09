@@ -1,23 +1,26 @@
-# Publishing @corvidhq/* packages to npm
+# Publishing @ravenkash/* packages to npm
 
-Seven packages are publish-ready under the `@corvidhq` scope. `raven` was the
-original choice, but that npm username/org is already taken, so everything
-below (package names, docs, examples, source imports) was renamed to
-`@corvidhq` across the repo. None of the `@corvidhq/*` package names are taken
-on the public registry (verified via `npm view` — all return 404), but you
-still need to own the `corvidhq` scope on npm before `npm publish` will work —
-double-check it's actually free on npmjs.com/GoDaddy before registering
-anything; the checks run here were best-effort only.
+Seven packages are publish-ready under the `@ravenkash` scope. `raven` was the
+original choice, but that npm username/org was already taken; `corvidhq` was
+tried next and the repo was renamed to it, but it turned out to already be a
+registered npm account too (not owned by this project) — so everything below
+(package names, docs, examples, source imports) was renamed a second time, to
+`@ravenkash`, matching the npm account (`ravenkash`) actually verified and
+logged into in-browser for this project. None of the `@ravenkash/*` package
+names are taken on the public registry (verified via `npm view` — all return
+404). Since `ravenkash` is a personal npm username rather than a separate org,
+owning the scope is automatic once you're logged in as that account — there is
+no separate org to create or claim.
 
 | Package | Path | What it is |
 |---|---|---|
-| `@corvidhq/rtc` | `packages/sdk` | Browser RTC SDK |
-| `@corvidhq/chat` | `packages/chat-sdk` | Browser chat SDK |
-| `@corvidhq/client` | `packages/client` | RTC + chat behind one object |
-| `@corvidhq/react` | `packages/react-sdk` | React hooks/UI for `@corvidhq/rtc` |
-| `@corvidhq/react-native` | `packages/react-native-sdk` | React Native SDK |
-| `@corvidhq/server` | `packages/server-sdk` | Server-side token/room/diagnostics SDK |
-| `@corvidhq/cli` | `packages/cli` | `raven` CLI binary |
+| `@ravenkash/rtc` | `packages/sdk` | Browser RTC SDK |
+| `@ravenkash/chat` | `packages/chat-sdk` | Browser chat SDK |
+| `@ravenkash/client` | `packages/client` | RTC + chat behind one object |
+| `@ravenkash/react` | `packages/react-sdk` | React hooks/UI for `@ravenkash/rtc` |
+| `@ravenkash/react-native` | `packages/react-native-sdk` | React Native SDK |
+| `@ravenkash/server` | `packages/server-sdk` | Server-side token/room/diagnostics SDK |
+| `@ravenkash/cli` | `packages/cli` | `raven` CLI binary |
 
 ## What was done to prep them
 
@@ -28,9 +31,9 @@ anything; the checks run here were best-effort only.
   (pointed at `github.com/atulsinghhhh/Raven`, `main` branch — update if the
   repo path or default branch differs).
 - Added `"publishConfig": { "access": "public" }` to each — **required**
-  because scoped packages (`@corvidhq/...`) publish as *private* by default,
+  because scoped packages (`@ravenkash/...`) publish as *private* by default,
   which fails outright on a free npm account.
-- Fixed `@corvidhq/cli`'s `bin` path (`./dist/index.js` → `dist/index.js`) to
+- Fixed `@ravenkash/cli`'s `bin` path (`./dist/index.js` → `dist/index.js`) to
   silence npm's (harmless but noisy) path-normalization warning.
 - Built all seven packages (`pnpm --filter ... run build`) and ran
   `npm publish --dry-run` in each — all pack cleanly, correct files only
@@ -42,11 +45,11 @@ yourself.
 
 ## What you need to do
 
-1. **Claim the `@corvidhq` scope**, if you haven't already: it must map to
-   your npm username or an npm org you own. Either:
-   - Your npm username is literally `corvidhq`, or
-   - Create the `corvidhq` org at https://www.npmjs.com/org/create (free for
-     one public-package org) and make sure your account is a member.
+1. **Nothing to claim** — `ravenkash` is your personal npm username, so you
+   already own the `@ravenkash` scope by virtue of being logged in as that
+   account. Double check on npmjs.com that `ravenkash` is in fact your
+   account before publishing, since scope ownership follows account
+   ownership exactly.
 2. **Log in** from this machine:
    ```bash
    npm login
@@ -56,28 +59,28 @@ yourself.
 3. **Publish each package**, in this order (leaf SDKs first, `cli` and
    `client` last since nothing in this repo depends on them):
    ```bash
-   cd packages/sdk               && npm publish   # @corvidhq/rtc
-   cd ../chat-sdk                 && npm publish   # @corvidhq/chat
-   cd ../server-sdk                && npm publish   # @corvidhq/server
-   cd ../react-sdk                 && npm publish   # @corvidhq/react
-   cd ../react-native-sdk           && npm publish   # @corvidhq/react-native
-   cd ../client                     && npm publish   # @corvidhq/client
-   cd ../cli                        && npm publish   # @corvidhq/cli
+   cd packages/sdk               && npm publish   # @ravenkash/rtc
+   cd ../chat-sdk                 && npm publish   # @ravenkash/chat
+   cd ../server-sdk                && npm publish   # @ravenkash/server
+   cd ../react-sdk                 && npm publish   # @ravenkash/react
+   cd ../react-native-sdk           && npm publish   # @ravenkash/react-native
+   cd ../client                     && npm publish   # @ravenkash/client
+   cd ../cli                        && npm publish   # @ravenkash/cli
    ```
    Or from the repo root with pnpm, one at a time:
    ```bash
-   pnpm --filter @corvidhq/rtc publish --access public
-   pnpm --filter @corvidhq/chat publish --access public
-   pnpm --filter @corvidhq/server publish --access public
-   pnpm --filter @corvidhq/react publish --access public
-   pnpm --filter @corvidhq/react-native publish --access public
-   pnpm --filter @corvidhq/client publish --access public
-   pnpm --filter @corvidhq/cli publish --access public
+   pnpm --filter @ravenkash/rtc publish --access public
+   pnpm --filter @ravenkash/chat publish --access public
+   pnpm --filter @ravenkash/server publish --access public
+   pnpm --filter @ravenkash/react publish --access public
+   pnpm --filter @ravenkash/react-native publish --access public
+   pnpm --filter @ravenkash/client publish --access public
+   pnpm --filter @ravenkash/cli publish --access public
    ```
 4. **Verify**:
    ```bash
-   npm view @corvidhq/rtc
-   npx @corvidhq/cli --help
+   npm view @ravenkash/rtc
+   npx @ravenkash/cli --help
    ```
 
 ## After the first publish

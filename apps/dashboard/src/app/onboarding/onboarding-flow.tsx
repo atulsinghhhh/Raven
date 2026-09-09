@@ -620,7 +620,7 @@ function ConnectStep({
   onOpenQuickstart?: () => void;
 }) {
   const wantsServer = stack.includes('nodejs') || stack.includes('python');
-  const installCommand = wantsServer ? 'npm install @corvidhq/server' : 'npm install @corvidhq/rtc';
+  const installCommand = wantsServer ? 'npm install @ravenkash/server' : 'npm install @ravenkash/rtc';
   // The real key never renders here — it was shown exactly once on the
   // previous step. The placeholder keeps this snippet honest and paste-safe.
   const keyPlaceholder = project?.apiKey
@@ -642,7 +642,7 @@ function ConnectStep({
         </QuickstartItem>
         <QuickstartItem index={3} title="Create your first RTC session">
           <CodeBlock
-            code={`import { RavenClient } from '@corvidhq/rtc';\n\nconst client = new RavenClient({ token });\nawait client.join({ room: 'my-first-room' });`}
+            code={`import { RavenClient } from '@ravenkash/rtc';\n\nconst client = new RavenClient({ token });\nawait client.join({ room: 'my-first-room' });`}
             language="typescript"
           />
         </QuickstartItem>

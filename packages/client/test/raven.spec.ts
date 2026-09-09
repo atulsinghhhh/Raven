@@ -1,26 +1,32 @@
 import { Raven, createRaven } from '../src/index';
 
 /**
- * `@corvidhq/client` is a facade, so the interesting behaviour is which
+ * `@ravenkash/client` is a facade, so the interesting behaviour is which
  * clients it constructs, which it doesn't, and whether it fails early with
  * a useful message when the credentials can't possibly work together.
  *
- * The underlying `@corvidhq/rtc` and `@corvidhq/chat` clients have suites
+ * The underlying `@ravenkash/rtc` and `@ravenkash/chat` clients have suites
  * of their own. Nothing here re-tests them.
  */
 
 // A syntactically valid RTC token. createRTCClient decodes it client-side
-// (never verifies it), so it does at least have to parse as a JWT.
+// (never verifies it), so it does at least have to parse as a JWT and carry
+// the claims that decode reads: `rid`/`rnm` for the room check, `exp` to
+// fail fast on an already-expired token.
 function fakeRtcToken(): string {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const payload = Buffer.from(
-    JSON.stringify({ video: { room: 'room_123' }, exp: Math.floor(Date.now() / 1000) + 3600 }),
+    JSON.stringify({
+      rid: 'room_123',
+      rnm: 'demo-room',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    }),
   ).toString('base64url');
   return `${header}.${payload}.signature`;
 }
 
 /**
- * @corvidhq/chat decodes the token client-side, never verifies it, purely
+ * @ravenkash/chat decodes the token client-side, never verifies it, purely
  * to fail fast on an expired one. So the fixture needs whatever that decode
  * actually reads: `sub`, `pid`, and a numeric `exp`.
  */

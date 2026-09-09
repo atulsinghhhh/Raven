@@ -9,21 +9,21 @@ human step.
 
 ---
 
-## npm — `@corvidhq/*`
+## npm — `@ravenkash/*`
 
 Eight packages, versioned **independently** with
 [Changesets](https://github.com/changesets/changesets).
 
 | Package | Path |
 |---|---|
-| `@corvidhq/rtc` | `packages/sdk` |
-| `@corvidhq/chat` | `packages/chat-sdk` |
-| `@corvidhq/effects` | `packages/effects` |
-| `@corvidhq/client` | `packages/client` |
-| `@corvidhq/react` | `packages/react-sdk` |
-| `@corvidhq/react-native` | `packages/react-native-sdk` |
-| `@corvidhq/server` | `packages/server-sdk` |
-| `@corvidhq/cli` | `packages/cli` |
+| `@ravenkash/rtc` | `packages/sdk` |
+| `@ravenkash/chat` | `packages/chat-sdk` |
+| `@ravenkash/effects` | `packages/effects` |
+| `@ravenkash/client` | `packages/client` |
+| `@ravenkash/react` | `packages/react-sdk` |
+| `@ravenkash/react-native` | `packages/react-native-sdk` |
+| `@ravenkash/server` | `packages/server-sdk` |
+| `@ravenkash/cli` | `packages/cli` |
 
 `@raven/api`, `@raven/dashboard`, `@raven/docs` and `@raven/www` are
 `private: true` and listed in `.changeset/config.json`'s `ignore`. They are
@@ -78,7 +78,7 @@ and creates one GitHub Release per package from its changelog entry.
 ```bash
 pnpm changeset:status              # what would be released, and at what bump
 node scripts/verify-package-metadata.mjs
-pnpm --filter @corvidhq/rtc exec npm publish --dry-run
+pnpm --filter @ravenkash/rtc exec npm publish --dry-run
 ```
 
 ### Versioning policy
@@ -89,14 +89,14 @@ Semver, independently per package.
 - **minor** — additive API
 - **major** — anything a consumer must change code for
 
-`@corvidhq/rtc` depends on `@corvidhq/effects`, and `@corvidhq/client` on
+`@ravenkash/rtc` depends on `@ravenkash/effects`, and `@ravenkash/client` on
 both `rtc` and `chat`, all via `workspace:*`. pnpm rewrites those to the
 exact published version at pack time, and `updateInternalDependencies:
 "patch"` gives dependents a patch bump when a dependency is released.
 
-`@corvidhq/react` and `@corvidhq/react-native` take their Raven siblings as
+`@ravenkash/react` and `@ravenkash/react-native` take their Raven siblings as
 `peerDependencies: "*"` deliberately — the application picks the version,
-and there must be exactly one copy of `@corvidhq/rtc` in the tree.
+and there must be exactly one copy of `@ravenkash/rtc` in the tree.
 
 ### Authentication
 
@@ -109,7 +109,7 @@ minted per run and expires, and nothing long-lived is stored in GitHub.
 secrets, for packages not yet migrated. It is never echoed, and the publish
 fails loudly if it is missing rather than publishing anonymously.
 
-> The `@corvidhq` npm scope must exist and be owned by the publishing
+> The `@ravenkash` npm scope must exist and be owned by the publishing
 > account before the first publish — scoped packages fail outright
 > otherwise. See `PUBLISHING.md`.
 
@@ -197,7 +197,7 @@ are on pub.dev.
 
 One-off, before the first real release:
 
-- [ ] Own the `@corvidhq` scope on npmjs.com
+- [ ] Own the `@ravenkash` scope on npmjs.com
 - [ ] Enable npm trusted publishing per package, **or** set the `NPM_TOKEN`
       repository secret
 - [ ] Settle the PyPI `raven-sdk` name conflict

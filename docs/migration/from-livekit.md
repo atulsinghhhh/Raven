@@ -248,7 +248,7 @@ Additive — no existing code changed meaning.
 
 - **`Room.waitUntilConnected(timeoutMs?)`** — see the join-timing section
   above.
-- **`NOT_SUPPORTED`** (`@corvidhq/rtc`) — the platform cannot do this at
+- **`NOT_SUPPORTED`** (`@ravenkash/rtc`) — the platform cannot do this at
   all, e.g. screen sharing on a mobile browser with no `getDisplayMedia`.
   A permanent fact a UI should reflect by hiding the button, unlike
   `MEDIA_ERROR`, which is worth retrying.

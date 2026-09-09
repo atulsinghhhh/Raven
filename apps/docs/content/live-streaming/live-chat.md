@@ -20,7 +20,7 @@ stream.chat.on('message', (message) => console.log(message.senderId, message.tex
 <Tab title="React">
 
 ```tsx
-import { useMessages } from '@corvidhq/react';
+import { useMessages } from '@ravenkash/react';
 
 function LiveChatPanel() {
   const { messages, send } = useMessages(); // works inside <RavenLiveStream> — no separate hook

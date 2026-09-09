@@ -9,5 +9,5 @@ change no code), Prettier/ruff/golangci-lint/analysis_options were
 introduced, and the SFU's Go module path was corrected to
 `github.com/atulsinghhhh/Raven/services/sfu`.
 
-The `@corvidhq/*` packages have never been published, so the first release
+The `@ravenkash/*` packages have never been published, so the first release
 should be 0.1.0 exactly as it stands rather than 0.1.1.
