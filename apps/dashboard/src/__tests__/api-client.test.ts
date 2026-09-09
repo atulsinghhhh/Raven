@@ -206,4 +206,71 @@ describe('ravenApi', () => {
       expect(options.method).toBe('POST');
     });
   });
+
+  describe('usage', () => {
+    it('reads the allowance from an account-scoped endpoint, with no projectId', async () => {
+      mockFetchOnce(200, { includedMinutes: 20000, usedMinutes: 0 });
+      await ravenApi.getUsage('token');
+
+      const [url] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).toContain('/v1/usage');
+      expect(url).not.toContain('/projects/');
+    });
+
+    it('passes the allowance through untouched, including a zero', async () => {
+      // The dashboard holds no copy of the free-tier figure: whatever the
+      // API says this account was granted is what gets rendered.
+      mockFetchOnce(200, {
+        includedMinutes: 50000,
+        usedMinutes: 0,
+        remainingMinutes: 50000,
+        usedPercent: 0,
+        exhausted: false,
+      });
+
+      await expect(ravenApi.getUsage('token')).resolves.toMatchObject({
+        includedMinutes: 50000,
+        usedMinutes: 0,
+        exhausted: false,
+      });
+    });
+
+    it('forwards limit and days to the detail endpoint', async () => {
+      mockFetchOnce(200, { summary: {}, history: [], daily: [], byProject: [] });
+      await ravenApi.getUsageDetail('token', { limit: 100, days: 30 });
+
+      const [url] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).toContain('/v1/usage/detail?');
+      expect(url).toContain('limit=100');
+      expect(url).toContain('days=30');
+    });
+
+    it('omits the query string entirely when no options are given', async () => {
+      mockFetchOnce(200, { summary: {}, history: [], daily: [], byProject: [] });
+      await ravenApi.getUsageDetail('token');
+
+      const [url] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).toMatch(/\/v1\/usage\/detail$/);
+    });
+
+    it('scopes project usage under the project it belongs to', async () => {
+      mockFetchOnce(200, { ownedByCaller: true, summary: {}, history: [], daily: [] });
+      await ravenApi.getProjectUsage('token', 'p_1', { days: 7 });
+
+      const [url] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).toContain('/v1/projects/p_1/usage?days=7');
+    });
+
+    it('surfaces an exhausted allowance as a 403 ApiError with the Raven code', async () => {
+      mockFetchOnce(403, {
+        code: 'RAVEN_USAGE_LIMIT_EXCEEDED',
+        message: 'This account has used all 20000 of its included Raven minutes.',
+      });
+
+      await expect(ravenApi.getUsage('token')).rejects.toMatchObject({
+        status: 403,
+        code: 'RAVEN_USAGE_LIMIT_EXCEEDED',
+      });
+    });
+  });
 });

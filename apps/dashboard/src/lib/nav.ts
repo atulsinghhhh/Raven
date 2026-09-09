@@ -107,7 +107,7 @@ export const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL ?? 'http://localhost:32
 export interface AccountNavItem {
   href: string;
   label: string;
-  icon: 'overview' | 'projects' | 'developers' | 'analytics' | 'settings';
+  icon: 'overview' | 'projects' | 'developers' | 'analytics' | 'usage' | 'settings';
   /** Match this href exactly instead of by prefix — for /dashboard, whose
    *  prefix would otherwise swallow every other entry. */
   exact?: boolean;
@@ -118,6 +118,9 @@ export const ACCOUNT_NAV: AccountNavItem[] = [
   { href: '/dashboard/projects', label: 'Projects', icon: 'projects' },
   { href: '/dashboard/developers', label: 'Developers', icon: 'developers' },
   { href: '/dashboard/analytics', label: 'Analytics', icon: 'analytics' },
+  // Account-level, not project-level: the minute allowance belongs to the
+  // developer, and every project they own spends the same one.
+  { href: '/dashboard/usage', label: 'Usage', icon: 'usage' },
   { href: '/dashboard/settings', label: 'Settings', icon: 'settings' },
 ];
 

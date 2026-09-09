@@ -155,6 +155,11 @@ Notable choices not obvious from the field list alone:
   the two can legitimately disagree. This row exists so `RtcToken` has
   something durable to reference and so a room enforces one consistent
   identity per participant (`@@unique([roomId, identity])`).
+- **`UsageAllowance` / `UsageSession` are the only tables the client cannot
+  influence.** `Connection` is event-sourced from telemetry the SDK POSTs;
+  these two are written solely by the signaling plane from the server's own
+  clock and its own connection ids, because a developer must not be able to
+  reduce their own metered usage. See `docs/usage-metering.md`.
 
 ## Database migrations
 
@@ -289,6 +294,7 @@ migration), `npm run db:seed` (seed a demo developer/project/key/room).
 
 Per `INFRASTRUCTURE_PHASES.md`, Phase 2 stops here. WebSocket signaling
 (`docs/rtc/signaling.md`) and the media plane (`docs/rtc/sfu.md`) are now
-built. Still not built: the TypeScript SDK
-(Phase 6), the dashboard (Phase 7), real usage metering (Phase 8),
-recording (Phase 9), and everything from Phase 10 onward.
+built. Free-tier usage metering is built as well
+(`docs/usage-metering.md`) — RTC participant-minutes only, and metering
+without billing. Still not built: recording, and the administrative surface
+that would let an operator manage a developer's allowance.

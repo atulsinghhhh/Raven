@@ -554,6 +554,78 @@ export interface WebhookDeliveryRecord {
   event: { publicId: string; type: string; createdAt: string };
 }
 
+/**
+ * A developer's Raven-minute allowance.
+ *
+ * Every number here comes from the API, `includedMinutes` included. The
+ * dashboard deliberately holds no copy of the free-tier figure: an account
+ * shows what it was actually granted, which is not necessarily what a new
+ * one would be granted today.
+ */
+export interface UsageSummary {
+  includedMinutes: number;
+  usedMinutes: number;
+  remainingMinutes: number;
+  /** 0-100, one decimal. Already capped at 100 server-side. */
+  usedPercent: number;
+  exhausted: boolean;
+  exhaustedAt: string | null;
+  /** Whether this deployment actually refuses new sessions once spent. */
+  enforced: boolean;
+  source: string;
+  grantedAt: string;
+  usedSeconds: number;
+  liveSessions: number;
+}
+
+export interface UsageHistoryEntry {
+  id: string;
+  projectId: string;
+  projectName: string | null;
+  environment: Environment;
+  roomName: string;
+  participantIdentity: string;
+  kind: string;
+  startedAt: string;
+  endedAt: string | null;
+  meteredSeconds: number;
+  meteredMinutes: number;
+  /** 'left' | 'abandoned' | 'shutdown', or null while live. */
+  closeReason: string | null;
+  live: boolean;
+}
+
+export interface UsageDailyBucket {
+  /** `YYYY-MM-DD`, UTC. */
+  date: string;
+  seconds: number;
+  minutes: number;
+  sessions: number;
+}
+
+export interface UsageByProject {
+  projectId: string;
+  projectName: string | null;
+  seconds: number;
+  minutes: number;
+  sessions: number;
+}
+
+export interface UsageDetail {
+  summary: UsageSummary;
+  history: UsageHistoryEntry[];
+  daily: UsageDailyBucket[];
+  byProject: UsageByProject[];
+}
+
+export interface ProjectUsage {
+  /** False when the caller is a member of a project someone else owns. */
+  ownedByCaller: boolean;
+  summary: UsageSummary;
+  history: UsageHistoryEntry[];
+  daily: UsageDailyBucket[];
+}
+
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   token?: string;
@@ -733,6 +805,31 @@ export const ravenApi = {
     apiFetch<RtcServer>(`/v1/rtc/servers/${encodeURIComponent(name)}/undrain`, { method: 'POST', token }),
 
   getHealth: () => apiFetch<HealthResponse>('/health'),
+
+  /** The caller's own minute allowance. Account-scoped: no projectId. */
+  getUsage: (token: string) => apiFetch<UsageSummary>('/v1/usage', { token }),
+
+  getUsageDetail: (token: string, opts: { limit?: number; days?: number } = {}) => {
+    const params = new URLSearchParams();
+    // Server-side caps: 200 rows (USAGE_HISTORY_MAX_LIMIT) and 365 days.
+    if (opts.limit) params.set('limit', String(opts.limit));
+    if (opts.days) params.set('days', String(opts.days));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiFetch<UsageDetail>(`/v1/usage/detail${query}`, { token });
+  },
+
+  /**
+   * One project's share of its *owner's* allowance. For a project the
+   * caller does not own, `summary` describes the owner's meter — see
+   * `ownedByCaller`.
+   */
+  getProjectUsage: (token: string, projectId: string, opts: { limit?: number; days?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.limit) params.set('limit', String(opts.limit));
+    if (opts.days) params.set('days', String(opts.days));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiFetch<ProjectUsage>(`/v1/projects/${projectId}/usage${query}`, { token });
+  },
 
   listConnections: (
     token: string,

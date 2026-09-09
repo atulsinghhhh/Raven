@@ -15,6 +15,7 @@ import {
   renderWelcomeEmail,
 } from '../email/templates';
 import { OnboardingService, OnboardingStatus } from '../onboarding/onboarding.service';
+import { UsageAllowanceService } from '../usage/usage-allowance.service';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -53,6 +54,7 @@ export class AuthService {
     private readonly userTokens: UserTokensService,
     private readonly emailService: EmailService,
     private readonly onboardingService: OnboardingService,
+    private readonly usageAllowances: UsageAllowanceService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthResult> {
@@ -78,6 +80,12 @@ export class AuthService {
     // first dashboard load, so "where is this user in onboarding?" always
     // has a row to answer from.
     await this.onboardingService.ensureStarted(user.id);
+
+    // The free Raven minutes every developer gets. Written here, next to
+    // the onboarding row and for the same reason: "how many minutes does
+    // this account have?" should always have a row to answer from, rather
+    // than depending on whatever page happens to read it first.
+    await this.usageAllowances.ensureProvisioned(user.id);
 
     await this.sendVerificationEmail(user);
 

@@ -106,6 +106,10 @@ model User {
   tokens      UserToken[]
   authAccounts AuthAccount[]
   onboarding   UserOnboarding?
+  /// The free-minute allowance provisioned at registration. Optional
+  /// because an account can exist without one for as long as it takes the
+  /// next read to provision it — see UsageAllowanceService.
+  usageAllowance UsageAllowance?
 
   @@map("users")
 }
@@ -236,6 +240,9 @@ model Project {
   chatConnections  ChatConnection[]
   webhookEndpoints WebhookEndpoint[]
   liveStreams      LiveStream[]
+  /// Metered RTC sessions attributed to this project. They spend the
+  /// *owner's* allowance, not each member's — see docs/usage-metering.md.
+  usageSessions    UsageSession[]
 
   @@index([ownerId])
   @@map("projects")
@@ -1037,4 +1044,171 @@ model RtcServer {
 
   @@index([region, status])
   @@map("rtc_servers")
+}
+
+// ---------------------------------------------------------------------------
+// Usage metering (free tier)
+//
+// Every registered developer gets a fixed allowance of Raven minutes. Two
+// tables carry it, and the split is the whole design:
+//
+// - `UsageAllowance` is the *entitlement*: how many minutes this developer
+//   was granted, and how many have been consumed. One row per developer.
+// - `UsageSession` is the *meter*: one row per RTC participant-session, each
+//   one recording how much of that session has already been counted. It is
+//   also the usage history the dashboard lists.
+//
+// Nothing here is billing. There is no price, no plan, no invoice and no
+// payment state, and the allowance never resets — when it runs out, new
+// sessions are refused and `exhaustedAt` records when that happened. See
+// docs/usage-metering.md.
+//
+// Deliberately absent: any notion of an administrator. A future Admin
+// Portal manages allocations by writing `UsageAllowance.includedMinutes`
+// (and adding a new `source`), which is a data change, not a migration.
+// ---------------------------------------------------------------------------
+
+/// Where a developer's allowance came from.
+///
+/// One value today, and it is an enum rather than a boolean precisely so
+/// that adding `ADMIN_GRANT` or `PLAN` later is an additive migration on a
+/// column the reading code already switches on.
+enum UsageAllowanceSource {
+  /// The free minutes granted automatically at registration.
+  FREE_TIER
+}
+
+/// What a metered session consumed. RTC participant-minutes is the only
+/// thing Raven meters today; chat, live streaming and TURN relay are not
+/// metered at all (docs/usage-metering.md#what-is-not-metered).
+///
+/// An enum, not a free-form string, so a future kind cannot be introduced
+/// by a typo — and so adding one is a migration that forces every
+/// aggregation in the API to be revisited.
+enum UsageKind {
+  /// One participant, connected to one room, for one wall-clock stretch.
+  /// Two people in a call for ten minutes consume twenty.
+  RTC_PARTICIPANT_MINUTES
+}
+
+/// A developer's metered allowance, and the running total against it.
+///
+/// `includedMinutes` is a *column*, snapshotted from configuration when the
+/// row is provisioned, never re-read from a constant. That is what makes
+/// the number in the dashboard the number this account was actually
+/// granted: changing the default later does not silently re-grant every
+/// existing developer, and a future Admin Portal can raise one developer's
+/// allocation without touching anyone else's.
+///
+/// `consumedSeconds` is denormalised from `UsageSession` on purpose. It is
+/// the column enforcement reads on the join path, where a `SUM()` over a
+/// developer's whole session history is the wrong query to run; it is
+/// updated in the same transaction that advances the session that produced
+/// it, so the two cannot drift.
+model UsageAllowance {
+  id     String @id @default(uuid())
+  /// One allowance per developer. A future model with several concurrent
+  /// grants would add a `usage_grants` table summing into this row rather
+  /// than reinterpret it, which is why the uniqueness lives here.
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  source          UsageAllowanceSource @default(FREE_TIER)
+  includedMinutes Int
+
+  /// Seconds, not minutes: a 40-second call has to count for something, and
+  /// rounding at write time would let a developer accumulate unlimited
+  /// sub-minute sessions for free. Minutes are derived at read time.
+  consumedSeconds Int @default(0)
+
+  /// When consumption first reached `includedMinutes`. Stamped exactly
+  /// once and never cleared — an allowance that silently reset itself
+  /// would be indistinguishable from one that was never spent.
+  exhaustedAt DateTime?
+
+  grantedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions UsageSession[]
+
+  @@map("usage_allowances")
+}
+
+/// One metered RTC participant-session: a participant's stay in a room,
+/// from the moment the control plane accepted their join to the moment it
+/// saw them leave.
+///
+/// # Why this is not `Connection`
+///
+/// `Connection` is event-sourced from telemetry the client SDK POSTs, which
+/// is fire-and-forget, unordered, and — the part that matters here —
+/// entirely under the client's control. A developer could halve their own
+/// bill by dropping a `disconnected` event. This table is written only by
+/// the signaling plane, from server-side state: `sessionKey` is the
+/// connection id the gateway generated with `randomUUID()`, and `startedAt`
+/// and every settlement timestamp are the server's own clock.
+///
+/// # Why `meteredSeconds` exists
+///
+/// Consumption is a function of `startedAt` and a settlement instant, and a
+/// settlement only ever adds `elapsed - meteredSeconds` to the allowance.
+/// So settling the same session twice, or from two instances at once, adds
+/// the difference once and zero the second time. That is what makes
+/// metering idempotent without an idempotency-key table.
+model UsageSession {
+  id String @id @default(uuid())
+
+  /// The signaling connection id: server-generated per WebSocket, never
+  /// supplied or influenced by a client. Unique, which is what makes
+  /// `start` idempotent under a retried join.
+  sessionKey String @unique
+
+  allowanceId String
+  allowance   UsageAllowance @relation(fields: [allowanceId], references: [id], onDelete: Cascade)
+
+  /// Denormalised from the allowance so history stays queryable per
+  /// developer without a join, and stays readable if the allowance model
+  /// is ever reshaped.
+  userId String
+
+  projectId String
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment Environment @default(DEVELOPMENT)
+
+  /// Nullable for the same reason `Connection.roomId` is: the room record
+  /// can be deleted while the usage it produced stays on the books.
+  roomId              String?
+  roomName            String
+  participantIdentity String
+
+  kind UsageKind @default(RTC_PARTICIPANT_MINUTES)
+
+  startedAt DateTime @default(now())
+
+  /// High-water mark: seconds of this session already added to the
+  /// allowance. Only ever moves forward.
+  meteredSeconds Int @default(0)
+
+  /// The last instant this session was confirmed alive *and* settled. The
+  /// reaper uses it twice: to find sessions whose gateway died, and as the
+  /// instant to meter them up to — crediting an abandoned session all the
+  /// way to `now` would bill a developer for a Raven outage.
+  lastMeteredAt DateTime @default(now())
+
+  /// Null while the session is live.
+  endedAt     DateTime?
+  /// How it ended. See USAGE_CLOSE_REASON in usage.constants.ts.
+  closeReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// The dashboard's history list: this developer's sessions, newest first.
+  @@index([userId, startedAt])
+  /// Per-project attribution, for the project-scoped usage page.
+  @@index([projectId, startedAt])
+  /// The reaper's query: live rows that have stopped being settled.
+  @@index([endedAt, lastMeteredAt])
+  @@map("usage_sessions")
 }

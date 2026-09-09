@@ -72,6 +72,10 @@ export default function guardDatabaseTarget(): void {
       '    -p 5455:5432 -e POSTGRES_PASSWORD=scratch -e POSTGRES_DB=raven \\\n' +
       '    postgres:16-alpine\n\n' +
       '  E2E_DB="postgresql://postgres:scratch@localhost:5455/raven"\n' +
+      // Nothing extra to set up: 20260908999999_ensure_data_api_roles
+      // provisions the roles the RLS migration names, so the chain applies
+      // to a bare postgres:16-alpine. See
+      // docs/deployment/managed-postgres.md#never-name-a-role-in-a-migration.
       '  DATABASE_URL="$E2E_DB" DIRECT_URL="$E2E_DB" \\\n' +
       '    pnpm --filter @raven/api prisma:migrate:deploy\n' +
       '  DATABASE_URL="$E2E_DB" DIRECT_URL="$E2E_DB" \\\n' +

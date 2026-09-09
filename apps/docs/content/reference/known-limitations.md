@@ -13,7 +13,9 @@ and deployment notes, not from guesswork.
 |---|---|
 | **Recording** | Nothing captures a room or stream to storage. No composite output, no per-track archive. |
 | **RTMP ingest / egress** | No path in or out for external broadcast tooling. |
-| **Usage metering and billing** | No quota accounting. The [limits](/reference/limits) are technical ceilings, not plan limits. |
+| **Billing, plans and paid usage** | Every account gets a fixed grant of 20,000 free RTC minutes, metered and enforced ([Usage](/concepts/usage)). Beyond that there is nothing: no plans, no payment path, no invoices, and no way to buy or be granted more minutes. The allowance does not reset. |
+| **Metering beyond RTC minutes** | Chat, Live Streaming as a product, TURN bandwidth, storage and API requests are not counted at all. The [limits](/reference/limits) below are technical ceilings, not plan limits. |
+| **Admin portal** | No administrative surface exists — no admin roles, no admin auth, and no endpoint that can grant, adjust or reset a developer's allowance. |
 | **Active-speaker detection** | No event. Per-track statistics are available and can approximate it. |
 | **Web-side simulcast layer selection** | The signaling protocol carries a `subscription.update` frame and `raven_rtc` exposes `RavenRoom.requestLayer(...)`, but `@ravenkash/rtc` neither sends the frame nor offers a method. Flutter only, today. |
 | **Chat token revocation endpoint** | The service can revoke a token and the gateway checks for it, but no REST route, CLI command or SDK method triggers it. `TOKEN_REVOKED` is therefore reachable in principle and unreachable in practice. |

@@ -11,9 +11,10 @@ import { RoomTrackRegistryService } from './rooms/room-track-registry.service';
 import { SfuFrameHandlerService } from './sfu/sfu-frame-handler.service';
 import { SfuLinkModule } from './sfu/sfu-link.module';
 import { RtcServersModule } from '../rtc-servers/rtc-servers.module';
+import { UsageMeteringModule } from '../usage/usage-metering.module';
 
 @Module({
-  imports: [RtcTokenSignerModule, RtcServersModule, SfuLinkModule],
+  imports: [RtcTokenSignerModule, RtcServersModule, SfuLinkModule, UsageMeteringModule],
   providers: [
     SignalingGateway,
     RtcTokenVerifierService,

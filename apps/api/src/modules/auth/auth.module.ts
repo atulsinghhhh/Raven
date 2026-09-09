@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { OnboardingModule } from '../onboarding/onboarding.module';
+import { UsageMeteringModule } from '../usage/usage-metering.module';
 import { UsersModule } from '../users/users.module';
 import { AuthController } from './auth.controller';
 import { OAuthController } from './oauth/oauth.controller';
@@ -15,6 +16,11 @@ import { UserTokensService } from './user-tokens.service';
   imports: [
     UsersModule,
     OnboardingModule,
+    // Registration provisions the account's free Raven minutes. The
+    // metering module carries no module dependencies of its own, which is
+    // what keeps this import from closing a cycle back through
+    // ProjectsModule — see UsageMeteringModule.
+    UsageMeteringModule,
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],

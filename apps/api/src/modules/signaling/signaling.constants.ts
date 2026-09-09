@@ -79,6 +79,13 @@ export enum SignalingErrorCode {
   NOT_IN_ROOM = 'NOT_IN_ROOM',
   PERMISSION_DENIED = 'PERMISSION_DENIED',
   RATE_LIMITED = 'RATE_LIMITED',
+  /**
+   * The developer account behind this project has spent its included Raven
+   * minutes. Terminal for this join: unlike RATE_LIMITED there is nothing
+   * to wait for, and unlike NO_RTC_CAPACITY it is not an operator problem.
+   * Sessions already in progress are never cut off by it.
+   */
+  USAGE_LIMIT_EXCEEDED = 'USAGE_LIMIT_EXCEEDED',
   /** No healthy RTC server had capacity. An operator problem, not a caller one. */
   NO_RTC_CAPACITY = 'NO_RTC_CAPACITY',
   /** The assigned RTC server could not be reached. Retryable. */

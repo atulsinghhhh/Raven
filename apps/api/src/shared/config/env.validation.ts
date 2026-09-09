@@ -84,6 +84,32 @@ class EnvironmentVariables {
   @Min(1)
   SIGNALING_MAX_CONNECTIONS_PER_WINDOW!: number;
 
+  // Usage metering. All optional: configuration.ts carries the defaults, so
+  // an existing .env keeps booting after a `git pull`.
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  USAGE_FREE_TIER_MINUTES?: number;
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  USAGE_ENFORCE_LIMIT?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1000)
+  USAGE_METER_INTERVAL_MS?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1000)
+  USAGE_REAPER_INTERVAL_MS?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1000)
+  USAGE_ABANDONED_AFTER_MS?: number;
+
   @IsString()
   @IsNotEmpty()
   TURN_HOST!: string;

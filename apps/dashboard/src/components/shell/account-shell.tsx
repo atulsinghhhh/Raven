@@ -15,6 +15,7 @@ import {
   IconMenu,
   IconOverview,
   IconSettings,
+  IconUsage,
   RavenMark,
 } from '@/components/ui/icons';
 import { ACCOUNT_NAV, DOCS_URL, GITHUB_URL, SUPPORT_URL, type AccountNavItem } from '@/lib/nav';
@@ -26,6 +27,7 @@ const NAV_ICONS: Record<AccountNavItem['icon'], React.ComponentType<{ className?
   projects: IconFolder,
   developers: IconCli,
   analytics: IconAnalytics,
+  usage: IconUsage,
   settings: IconSettings,
 };
 

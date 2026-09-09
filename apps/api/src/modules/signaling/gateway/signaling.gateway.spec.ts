@@ -24,6 +24,7 @@ describe('SignalingGateway heartbeat', () => {
       configService,
       {} as never, // sfuLink
       {} as never, // sfuFrames
+      { sweepIntervalMs: 30_000, sweep: jest.fn(), settle: jest.fn() } as never, // usageMeter
     );
     // Reach into the private sessions map: see the comment above.
     const sessions = (gateway as unknown as { sessions: Map<unknown, ParticipantSession> }).sessions;

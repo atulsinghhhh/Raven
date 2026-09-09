@@ -3,10 +3,10 @@ title: Environment variables
 description: Every variable any Raven component reads, grouped by what it configures. Generated from source.
 ---
 
-Raven's components read **112** environment variables between them —
-**92** by the control plane, **16** by the SFU,
+Raven's components read **117** environment variables between them —
+**97** by the control plane, **16** by the SFU,
 **6** by the dashboard. `.env.example` documents
-**100**, which leaves **22** read but
+**105**, which leaves **22** read but
 undocumented there; those are marked below.
 
 This page is generated from the source, so it is the complete set.
@@ -234,6 +234,11 @@ openssl rand -hex 32   # TURN_SECRET
 | `NEXT_PUBLIC_SUPPORT_URL` | not in `.env.example` |
 | `RAVEN_API_KEY` | not in `.env.example` |
 | `RAVEN_API_URL` | not in `.env.example` |
+| `USAGE_ABANDONED_AFTER_MS` |   |
+| `USAGE_ENFORCE_LIMIT` |   |
+| `USAGE_FREE_TIER_MINUTES` |   |
+| `USAGE_METER_INTERVAL_MS` |   |
+| `USAGE_REAPER_INTERVAL_MS` |   |
 
 {/* /generated:endpoints */}
 

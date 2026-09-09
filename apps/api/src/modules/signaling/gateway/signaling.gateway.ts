@@ -19,6 +19,8 @@ import { ConnectionRateLimitService } from '../rate-limit/connection-rate-limit.
 import { checkMessageRate } from '../rate-limit/message-rate-limiter.util';
 import { RoomEventsService } from '../rooms/room-events.service';
 import { RoomRegistryService } from '../rooms/room-registry.service';
+import { UsageMeterService } from '../../usage/usage-meter.service';
+import { UsageCloseReason } from '../../usage/usage.constants';
 import { SfuFrameHandlerService } from '../sfu/sfu-frame-handler.service';
 import { SfuLinkService } from '../sfu/sfu-link.service';
 import { NodeLinkFrame } from '../sfu/node-link.interface';
@@ -65,6 +67,14 @@ export class SignalingGateway
    */
   private readonly sessionsByConnectionId = new Map<string, ParticipantSession>();
   private heartbeatTimer?: NodeJS.Timeout;
+  /**
+   * Settles the usage meters of the sessions this instance holds. Separate
+   * from the heartbeat timer because they answer to different intervals:
+   * the heartbeat protects sockets, this protects the accounting, and
+   * `usage.meterIntervalMs` is configured independently of
+   * HEARTBEAT_INTERVAL_MS even though they default to the same 30s.
+   */
+  private usageSweepTimer?: NodeJS.Timeout;
   private unsubscribeFromRoomEvents?: () => void;
 
   constructor(
@@ -77,6 +87,7 @@ export class SignalingGateway
     private readonly configService: ConfigService,
     private readonly sfuLink: SfuLinkService,
     private readonly sfuFrames: SfuFrameHandlerService,
+    private readonly usageMeter: UsageMeterService,
   ) {}
 
   afterInit(): void {
@@ -89,6 +100,7 @@ export class SignalingGateway
     // the latency-sensitive negotiation path.
     this.sfuLink.onFrame((frame) => void this.handleSfuFrame(frame));
     this.heartbeatTimer = setInterval(() => this.runHeartbeat(), HEARTBEAT_INTERVAL_MS);
+    this.usageSweepTimer = setInterval(() => void this.runUsageSweep(), this.usageMeter.sweepIntervalMs);
     this.logger.log(`Signaling gateway listening on ${SIGNALING_PATH}`);
   }
 
@@ -96,7 +108,17 @@ export class SignalingGateway
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
     }
+    if (this.usageSweepTimer) {
+      clearInterval(this.usageSweepTimer);
+    }
     this.unsubscribeFromRoomEvents?.();
+    // Settle what this instance is holding before its sockets go. A clean
+    // shutdown (a rolling deploy, most of the time) should not push a
+    // roomful of sessions through the reaper, which would credit them only
+    // up to their last sweep. Fire-and-forget: Nest does not await this
+    // hook's promise for a synchronous signature, and the reaper is the
+    // backstop if the process dies before it lands.
+    void this.settleLiveSessionsOnShutdown();
     for (const client of this.sessions.keys()) {
       client.terminate();
     }
@@ -346,6 +368,54 @@ export class SignalingGateway
     if (socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(message));
     }
+  }
+
+  /**
+   * Credits every session this instance currently has in a room.
+   *
+   * Only its own: `this.sessions` is the local socket map, so a gateway
+   * never meters a session it is not holding. That is what makes an
+   * instance's death visible to the reaper instead of being papered over by
+   * its peers.
+   */
+  private async runUsageSweep(): Promise<void> {
+    const liveKeys = this.joinedSessionKeys();
+    if (liveKeys.length === 0) {
+      return;
+    }
+    try {
+      await this.usageMeter.sweep(liveKeys);
+    } catch (err) {
+      // The next sweep recomputes from each session's startedAt, so a
+      // failed pass loses nothing beyond its own interval of resolution.
+      this.logger.warn(`usage sweep failed: ${(err as Error).message}`);
+    }
+  }
+
+  private async settleLiveSessionsOnShutdown(): Promise<void> {
+    const liveKeys = this.joinedSessionKeys();
+    if (liveKeys.length === 0) {
+      return;
+    }
+    const at = new Date();
+    await Promise.all(
+      liveKeys.map((key) =>
+        this.usageMeter
+          .settle(key, { at, close: UsageCloseReason.SHUTDOWN })
+          .catch((err: Error) => this.logger.warn(`usage settle on shutdown failed for ${key}: ${err.message}`)),
+      ),
+    );
+  }
+
+  /** Connection ids of the sessions this instance holds that are actually in a room. */
+  private joinedSessionKeys(): string[] {
+    const keys: string[] = [];
+    for (const session of this.sessions.values()) {
+      if (session.joinedRoom) {
+        keys.push(session.connectionId);
+      }
+    }
+    return keys;
   }
 
   private runHeartbeat(): void {

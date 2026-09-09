@@ -7,6 +7,7 @@ import { RedisService } from '../../shared/redis/redis.service';
 import { EmailType } from '../email/email.constants';
 import { EmailService } from '../email/email.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
+import { UsageAllowanceService } from '../usage/usage-allowance.service';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
 import { UserTokensService } from './user-tokens.service';
@@ -24,6 +25,7 @@ describe('AuthService', () => {
   let userTokens: { issue: jest.Mock; consume: jest.Mock; revokeAll: jest.Mock };
   let emailService: { send: jest.Mock; brand: unknown; docsUrl: string };
   let onboardingService: { ensureStarted: jest.Mock; getStatus: jest.Mock };
+  let usageAllowances: { ensureProvisioned: jest.Mock };
 
   beforeEach(() => {
     usersService = {
@@ -58,6 +60,8 @@ describe('AuthService', () => {
       getStatus: jest.fn().mockResolvedValue({ completed: false, step: 1 }),
     };
 
+    usageAllowances = { ensureProvisioned: jest.fn().mockResolvedValue({ id: 'ua1' }) };
+
     authService = new AuthService(
       usersService,
       jwtService,
@@ -66,6 +70,7 @@ describe('AuthService', () => {
       userTokens as unknown as UserTokensService,
       emailService as unknown as EmailService,
       onboardingService as unknown as OnboardingService,
+      usageAllowances as unknown as UsageAllowanceService,
     );
   });
 
