@@ -1,8 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  OutboundSignalingMessage,
-  PublicTrack,
-} from '../interfaces/signaling-message.interface';
+import { OutboundSignalingMessage, PublicTrack } from '../interfaces/signaling-message.interface';
 import { RoomTrackRegistryService } from '../rooms/room-track-registry.service';
 import { ServerMessageType, SignalingErrorCode } from '../signaling.constants';
 import {

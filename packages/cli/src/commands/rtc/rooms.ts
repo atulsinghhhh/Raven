@@ -42,9 +42,7 @@ export function registerRtcRoomsCommand(rtc: Command): void {
           {
             header: 'Live',
             value: (room) =>
-              room.liveParticipantCount === null
-                ? chalk.dim('unknown')
-                : String(room.liveParticipantCount),
+              room.liveParticipantCount === null ? chalk.dim('unknown') : String(room.liveParticipantCount),
           },
           { header: 'ID', value: (room) => room.id },
         ]);

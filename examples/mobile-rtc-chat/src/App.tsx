@@ -89,7 +89,13 @@ function JoinScreen({ onJoined }: { onJoined: (session: Session) => void }) {
       <Text style={styles.title}>Livqeno</Text>
       <Text style={styles.subtitle}>Video and chat, on the same screen.</Text>
 
-      <TextInput style={styles.input} value={identity} onChangeText={setIdentity} placeholder="Your identity" autoCapitalize="none" />
+      <TextInput
+        style={styles.input}
+        value={identity}
+        onChangeText={setIdentity}
+        placeholder="Your identity"
+        autoCapitalize="none"
+      />
       <TextInput style={styles.input} value={room} onChangeText={setRoom} placeholder="Room" autoCapitalize="none" />
 
       <Pressable style={[styles.button, busy && styles.buttonDisabled]} onPress={join} disabled={busy}>
@@ -192,12 +198,7 @@ function CallScreen({ session, onLeave }: { session: Session; onLeave: () => voi
 
         {/* The local preview floats above the remote video — zOrder 1 is
             what puts it there on Android. */}
-        <RavenVideoView
-          participant={room.localParticipant}
-          room={room}
-          style={styles.pip}
-          zOrder={1}
-        />
+        <RavenVideoView participant={room.localParticipant} room={room} style={styles.pip} zOrder={1} />
 
         <View style={styles.statusBar}>
           <Text style={styles.statusText}>
@@ -280,10 +281,7 @@ function ChatPanel({ chat, identity }: { chat?: RavenChatHandle; identity: strin
   }, [draft, chat]);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.chatPanel}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.chatPanel} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <FlatList
         ref={listRef}
         data={messages}
@@ -304,9 +302,7 @@ function ChatPanel({ chat, identity }: { chat?: RavenChatHandle; identity: strin
         )}
       />
 
-      <Text style={styles.typing}>
-        {typingUsers.length > 0 ? `${typingUsers.join(', ')} typing…` : ' '}
-      </Text>
+      <Text style={styles.typing}>{typingUsers.length > 0 ? `${typingUsers.join(', ')} typing…` : ' '}</Text>
 
       <View style={styles.composer}>
         <TextInput
@@ -371,7 +367,15 @@ const styles = StyleSheet.create({
 
   stage: { flex: 1 },
   pip: { position: 'absolute', right: 16, top: 16, width: 96, height: 140, borderRadius: 10 },
-  statusBar: { position: 'absolute', left: 16, top: 16, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+  statusBar: {
+    position: 'absolute',
+    left: 16,
+    top: 16,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
   statusText: { color: '#fff', fontSize: 12 },
 
   controls: { flexDirection: 'row', justifyContent: 'space-around', padding: 12, gap: 8 },

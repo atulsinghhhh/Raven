@@ -31,7 +31,12 @@ import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics'
 jest.setTimeout(120_000);
 
 const HARNESS_DIR = join(__dirname, 'e2e-harness');
-const MIME: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.map': 'application/json' };
+const MIME: Record<string, string> = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.mjs': 'text/javascript',
+  '.map': 'application/json',
+};
 
 function startHarnessServer(): Promise<{ server: Server; url: string }> {
   const server = createServer((req, res) => {
@@ -176,7 +181,12 @@ describe('Livqeno Effects — Live Streaming (real browser e2e)', () => {
       .set('Authorization', `Bearer ${apiKey}`)
       .send({ identity, role: 'HOST' })
       .expect(201);
-    return { token: res.body.rtc.token, endpoint: res.body.rtc.endpoint, iceServers: res.body.rtc.iceServers, roomName: res.body.rtc.roomName };
+    return {
+      token: res.body.rtc.token,
+      endpoint: res.body.rtc.endpoint,
+      iceServers: res.body.rtc.iceServers,
+      roomName: res.body.rtc.roomName,
+    };
   }
 
   async function createViewerToken(streamId: string, identity: string): Promise<RtcCredentials> {
@@ -211,8 +221,17 @@ describe('Livqeno Effects — Live Streaming (real browser e2e)', () => {
       hostCtx = await browser.newContext({ permissions: ['camera', 'microphone'] });
       const hostPage = await hostCtx.newPage();
 
-      await hostPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, role: 'publisher', creds: hostCreds, preset: 'vivid' }));
-      await hostPage.waitForFunction(() => (window as unknown as { __ready?: boolean }).__ready === true, undefined, { timeout: 30_000 });
+      await hostPage.goto(
+        harnessUrl(harnessUrlBase, {
+          endpoint: signalingEndpoint,
+          role: 'publisher',
+          creds: hostCreds,
+          preset: 'vivid',
+        }),
+      );
+      await hostPage.waitForFunction(() => (window as unknown as { __ready?: boolean }).__ready === true, undefined, {
+        timeout: 30_000,
+      });
 
       const state = await hostPage.evaluate(() => (window as unknown as { __state: Record<string, unknown> }).__state);
       expect(state.connectionState).toBe('connected');
@@ -223,7 +242,9 @@ describe('Livqeno Effects — Live Streaming (real browser e2e)', () => {
       // Switch presets mid-stream: the host's room/connection must be unaffected.
       await hostPage.evaluate(() => (window as unknown as { __clearEffects: () => void }).__clearEffects());
       expect(
-        await hostPage.evaluate(() => (window as unknown as { __state: { connectionState: string } }).__state.connectionState),
+        await hostPage.evaluate(
+          () => (window as unknown as { __state: { connectionState: string } }).__state.connectionState,
+        ),
       ).toBe('connected');
 
       await hostCtx.close();
@@ -247,7 +268,10 @@ describe('Livqeno Effects — Live Streaming (real browser e2e)', () => {
     const streamId = await createStream();
     const hostCreds = await addHost(streamId, 'alice');
     const viewerCreds = await createViewerToken(streamId, 'carol');
-    await request(app.getHttpServer()).post(`/v1/live-streams/${streamId}/start`).set('Authorization', `Bearer ${apiKey}`).expect(201);
+    await request(app.getHttpServer())
+      .post(`/v1/live-streams/${streamId}/start`)
+      .set('Authorization', `Bearer ${apiKey}`)
+      .expect(201);
 
     let hostCtx: BrowserContext | undefined;
     let viewerCtx: BrowserContext | undefined;
@@ -259,7 +283,14 @@ describe('Livqeno Effects — Live Streaming (real browser e2e)', () => {
       const hostLog = collectPageDiagnostics(hostPage, 'host');
       const viewerLog = collectPageDiagnostics(viewerPage, 'viewer');
 
-      await hostPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, role: 'publisher', creds: hostCreds, preset: 'vivid' }));
+      await hostPage.goto(
+        harnessUrl(harnessUrlBase, {
+          endpoint: signalingEndpoint,
+          role: 'publisher',
+          creds: hostCreds,
+          preset: 'vivid',
+        }),
+      );
       await waitForPage(
         hostPage,
         () => (window as unknown as { __ready?: boolean }).__ready === true,
@@ -267,10 +298,14 @@ describe('Livqeno Effects — Live Streaming (real browser e2e)', () => {
         'the host harness to become ready',
       );
 
-      await viewerPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, role: 'subscriber', creds: viewerCreds }));
+      await viewerPage.goto(
+        harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, role: 'subscriber', creds: viewerCreds }),
+      );
       await waitForPage(
         viewerPage,
-        () => (window as unknown as { __state: { remoteTrackSubscribed?: boolean } }).__state.remoteTrackSubscribed === true,
+        () =>
+          (window as unknown as { __state: { remoteTrackSubscribed?: boolean } }).__state.remoteTrackSubscribed ===
+          true,
         () => `${viewerLog()}\n\n${hostLog()}`,
         "the viewer to receive the host's track",
       );
@@ -278,7 +313,10 @@ describe('Livqeno Effects — Live Streaming (real browser e2e)', () => {
       // Chat/reactions continuity is covered at the API level by the existing
       // live-streams.e2e-spec.ts suite; this test's job is specifically the
       // video path once the viewer subscribes.
-      await request(app.getHttpServer()).post(`/v1/live-streams/${streamId}/end`).set('Authorization', `Bearer ${apiKey}`).expect(201);
+      await request(app.getHttpServer())
+        .post(`/v1/live-streams/${streamId}/end`)
+        .set('Authorization', `Bearer ${apiKey}`)
+        .expect(201);
     } finally {
       await hostCtx?.close();
       await viewerCtx?.close();

@@ -1,11 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
-import {
-  WebhookDelivery,
-  WebhookEndpoint,
-  WebhookEndpointStatus,
-} from '../../generated/prisma/client';
+import { WebhookDelivery, WebhookEndpoint, WebhookEndpointStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { NotFoundError, ValidationFailedError } from '../../shared/errors/app-error';
 import { generateId } from '../../shared/utils/crypto.util';

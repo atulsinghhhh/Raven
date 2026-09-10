@@ -82,8 +82,9 @@ export function AllowedOriginsForm({
 
         {parsed.length === 0 && (
           <p className="rounded border border-line bg-surface-2 p-3 text-sm leading-relaxed text-muted">
-            <span className="font-medium text-fg">No origins configured — browser access is currently
-            unrestricted.</span>{' '}
+            <span className="font-medium text-fg">
+              No origins configured — browser access is currently unrestricted.
+            </span>{' '}
             Any origin may reach this project&apos;s SDK endpoints. Add your application&apos;s domains below to limit
             it: enforcement begins as soon as the list is non-empty, and applies from the next connection.
             <br />

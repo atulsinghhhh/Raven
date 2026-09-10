@@ -114,7 +114,11 @@ describe('RavenApiClient', () => {
   });
 
   it('maps a network-level failure (fetch throwing) to a network CliError after exhausting retries', async () => {
-    const fetchMock = mockFetchSequence(new Error('ECONNREFUSED'), new Error('ECONNREFUSED'), new Error('ECONNREFUSED'));
+    const fetchMock = mockFetchSequence(
+      new Error('ECONNREFUSED'),
+      new Error('ECONNREFUSED'),
+      new Error('ECONNREFUSED'),
+    );
     const client = new RavenApiClient('http://api.test', 'token');
 
     await expect(client.listProjects()).rejects.toMatchObject({ kind: 'network' });

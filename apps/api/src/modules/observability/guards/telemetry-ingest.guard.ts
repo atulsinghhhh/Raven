@@ -1,10 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Request } from 'express';
 import { UnauthorizedError } from '../../../shared/errors/app-error';
-import {
-  RtcTokenVerifierService,
-  VerifiedRtcToken,
-} from '../../signaling/authentication/rtc-token-verifier.service';
+import { RtcTokenVerifierService, VerifiedRtcToken } from '../../signaling/authentication/rtc-token-verifier.service';
 
 export type TelemetryRequest = Request & { rtcContext?: VerifiedRtcToken };
 

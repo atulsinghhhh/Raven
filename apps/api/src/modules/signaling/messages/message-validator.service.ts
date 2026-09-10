@@ -45,10 +45,7 @@ export class MessageValidatorService {
     const maxBytes = this.configService.get<number>('signaling.maxMessageBytes')!;
 
     if (byteLength > maxBytes) {
-      throw new SignalingError(
-        SignalingErrorCode.INVALID_MESSAGE,
-        `Message exceeds maximum size of ${maxBytes} bytes`,
-      );
+      throw new SignalingError(SignalingErrorCode.INVALID_MESSAGE, `Message exceeds maximum size of ${maxBytes} bytes`);
     }
 
     let parsed: unknown;
@@ -66,19 +63,13 @@ export class MessageValidatorService {
     const type = candidate.type;
 
     if (!isNonEmptyString(type) || !KNOWN_TYPES.has(type)) {
-      throw new SignalingError(
-        SignalingErrorCode.INVALID_MESSAGE_TYPE,
-        `Unknown message type: ${String(type)}`,
-      );
+      throw new SignalingError(SignalingErrorCode.INVALID_MESSAGE_TYPE, `Unknown message type: ${String(type)}`);
     }
 
     return this.validateByType(type as ClientMessageType, candidate);
   }
 
-  private validateByType(
-    type: ClientMessageType,
-    candidate: Record<string, unknown>,
-  ): InboundSignalingMessage {
+  private validateByType(type: ClientMessageType, candidate: Record<string, unknown>): InboundSignalingMessage {
     switch (type) {
       case ClientMessageType.ROOM_JOIN: {
         if (candidate.roomId !== undefined && !isNonEmptyString(candidate.roomId)) {

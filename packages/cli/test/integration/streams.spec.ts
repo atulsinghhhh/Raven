@@ -151,7 +151,15 @@ describe('raven streams (integration)', () => {
     });
 
     it('rejects an unknown visibility rather than passing it through', async () => {
-      const result = await runCli(['streams', 'create', 'Friday Q&A', '--host', 'user-123', '--visibility', 'NONSENSE']);
+      const result = await runCli([
+        'streams',
+        'create',
+        'Friday Q&A',
+        '--host',
+        'user-123',
+        '--visibility',
+        'NONSENSE',
+      ]);
 
       expect(result.exitCode).not.toBe(0);
       expect(result.stderr).toContain('Unknown visibility');

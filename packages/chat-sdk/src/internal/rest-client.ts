@@ -57,8 +57,7 @@ export class RestClient {
     }
 
     const payload = (await response.json().catch(() => undefined)) as
-      | { code?: string; message?: string; retryAfterSeconds?: number }
-      | undefined;
+      { code?: string; message?: string; retryAfterSeconds?: number } | undefined;
 
     if (!response.ok) {
       // The server's own Livqeno error code, not the HTTP status, so a caller

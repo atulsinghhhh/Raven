@@ -74,7 +74,11 @@ export default async function SettingsPage() {
                 <p className="text-sm text-fg">{profile.email}</p>
                 <p className="mt-0.5 text-xs text-muted">Member since {formatDate(profile.createdAt)}</p>
               </div>
-              {profile.emailVerified ? <Badge tone="success">Verified</Badge> : <Badge tone="warning">Unverified</Badge>}
+              {profile.emailVerified ? (
+                <Badge tone="success">Verified</Badge>
+              ) : (
+                <Badge tone="warning">Unverified</Badge>
+              )}
             </div>
             {!profile.emailVerified && <VerifyEmailNudge />}
           </Card>

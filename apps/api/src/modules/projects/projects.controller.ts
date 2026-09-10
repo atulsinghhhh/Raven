@@ -108,7 +108,7 @@ export class ProjectsController {
   @ApiOperation({
     summary: "Replace a project's allowed browser origins",
     description:
-      'Controls which browser applications may reach this project\'s SDK surfaces — RTC telemetry, chat REST, ' +
+      "Controls which browser applications may reach this project's SDK surfaces — RTC telemetry, chat REST, " +
       'and both WebSocket gateways. Send the complete list; it replaces the stored one. ' +
       'An empty list means unconfigured, which allows any origin. ' +
       'Your Livqeno API key is unaffected and stays server-side either way.',
@@ -150,7 +150,8 @@ export class ProjectsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Archive a project',
-    description: 'Soft delete — sets status to ARCHIVED. The project and its history are retained, but it stops appearing in the list.',
+    description:
+      'Soft delete — sets status to ARCHIVED. The project and its history are retained, but it stops appearing in the list.',
   })
   @ApiResponse({ status: 204, description: 'Project archived' })
   @ApiNotFoundResponse({ description: 'Not found, or not owned by the caller' })

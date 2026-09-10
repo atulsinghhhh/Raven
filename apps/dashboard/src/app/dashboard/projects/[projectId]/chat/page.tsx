@@ -95,11 +95,7 @@ export default async function ChatOverviewPage({
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Conversations" value={formatCount(overview.conversations)} hint="Active" />
-        <StatCard
-          label="Live connections"
-          value={formatCount(overview.activeConnections)}
-          hint="Open WebSockets"
-        />
+        <StatCard label="Live connections" value={formatCount(overview.activeConnections)} hint="Open WebSockets" />
         <StatCard label="Messages sent" value={formatCount(overview.messagesSent)} hint={`In the last ${range}`} />
         <StatCard
           label="Messages failed"
@@ -154,7 +150,11 @@ export default async function ChatOverviewPage({
       <section>
         <SectionHeader title="Throughput" subtitle={`Counters for the last ${range}.`} />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Messages / second" value={overview.messagesPerSecond.toFixed(2)} hint="Averaged over the window" />
+          <StatCard
+            label="Messages / second"
+            value={overview.messagesPerSecond.toFixed(2)}
+            hint="Averaged over the window"
+          />
           <StatCard
             label="Fan-out deliveries"
             value={formatCount(overview.messagesFannedOut)}

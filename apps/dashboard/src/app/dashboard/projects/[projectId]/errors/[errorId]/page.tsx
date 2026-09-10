@@ -24,11 +24,7 @@ const CATEGORY_LABEL: Record<ErrorCategory, string> = {
   UNKNOWN_ERROR: 'Unknown error',
 };
 
-export default async function ErrorDetailPage({
-  params,
-}: {
-  params: Promise<{ projectId: string; errorId: string }>;
-}) {
+export default async function ErrorDetailPage({ params }: { params: Promise<{ projectId: string; errorId: string }> }) {
   const { projectId, errorId } = await params;
   const token = await getSessionToken();
   if (!token) redirect('/login');
@@ -194,9 +190,9 @@ export default async function ErrorDetailPage({
         ) : error.connectionId ? (
           <Card>
             <p className="text-sm leading-relaxed text-muted">
-              This error references connection{' '}
-              <span className="font-mono text-xs text-fg">{error.connectionId}</span>, but its record is no longer
-              available — most likely it aged out under this project&apos;s retention policy.
+              This error references connection <span className="font-mono text-xs text-fg">{error.connectionId}</span>,
+              but its record is no longer available — most likely it aged out under this project&apos;s retention
+              policy.
             </p>
           </Card>
         ) : (

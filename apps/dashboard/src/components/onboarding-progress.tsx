@@ -12,10 +12,7 @@ export function OnboardingProgress({ steps }: { steps: OnboardingStep[] }) {
 
   return (
     <Card>
-      <CardHeader
-        title="Get to your first real connection"
-        subtitle={`${doneCount} of ${steps.length} steps done.`}
-      />
+      <CardHeader title="Get to your first real connection" subtitle={`${doneCount} of ${steps.length} steps done.`} />
       <ol className="flex flex-col gap-0">
         {steps.map((step, i) => (
           <li key={step.step} className="relative flex gap-3 pb-5 last:pb-0">
@@ -28,9 +25,7 @@ export function OnboardingProgress({ steps }: { steps: OnboardingStep[] }) {
             <span
               aria-hidden="true"
               className={`z-10 flex size-[1.375rem] shrink-0 items-center justify-center rounded-full border text-[0.6875rem] font-medium ${
-                step.done
-                  ? 'border-accent bg-accent text-accent-fg'
-                  : 'border-line bg-surface text-muted'
+                step.done ? 'border-accent bg-accent text-accent-fg' : 'border-line bg-surface text-muted'
               }`}
             >
               {step.done ? (

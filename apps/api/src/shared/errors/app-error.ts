@@ -13,12 +13,7 @@ export class AppError extends HttpException {
    * `retryAfterSeconds`. Only put things here that are safe to hand a
    * client; the global filter forwards this verbatim.
    */
-  constructor(
-    message: string,
-    status: HttpStatus,
-    code: RavenErrorCode,
-    details?: Record<string, unknown>,
-  ) {
+  constructor(message: string, status: HttpStatus, code: RavenErrorCode, details?: Record<string, unknown>) {
     // `legacyCode` is what this error was called before the RAVEN_ prefix
     // existed. It ships for one deprecation window so callers switching on
     // the old value keep working; docs/error-codes.md tracks its removal.

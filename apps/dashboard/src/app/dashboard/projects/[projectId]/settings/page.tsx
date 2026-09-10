@@ -48,7 +48,10 @@ export default async function SettingsPage({ params }: { params: Promise<{ proje
       />
 
       <Card>
-        <CardHeader title="Project details" subtitle="Read-only. The project ID is what every SDK and API call is scoped to." />
+        <CardHeader
+          title="Project details"
+          subtitle="Read-only. The project ID is what every SDK and API call is scoped to."
+        />
         <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
           <MetaRow label="Project ID">
             <MonoId value={project.id} copy />
@@ -72,10 +75,12 @@ export default async function SettingsPage({ params }: { params: Promise<{ proje
       />
 
       <Card>
-        <CardHeader title="Webhooks" subtitle="Register an endpoint to receive chat and live-stream lifecycle events." />
+        <CardHeader
+          title="Webhooks"
+          subtitle="Register an endpoint to receive chat and live-stream lifecycle events."
+        />
         <p className="text-sm leading-relaxed text-muted">
-          Managed on its own page — create an endpoint, choose which events it receives, and inspect delivery
-          attempts.
+          Managed on its own page — create an endpoint, choose which events it receives, and inspect delivery attempts.
         </p>
         <a
           href={`/dashboard/projects/${projectId}/webhooks`}

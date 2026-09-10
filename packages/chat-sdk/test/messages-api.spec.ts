@@ -19,7 +19,11 @@ function stubFetch(response: { status?: number; body?: unknown } = {}) {
 
 function makeApi(room = 'room_123') {
   const rest = new RestClient('https://api.test', 'token');
-  return new MessagesApi(rest, () => room, async () => ({}) as never);
+  return new MessagesApi(
+    rest,
+    () => room,
+    async () => ({}) as never,
+  );
 }
 
 describe('messages.list', () => {

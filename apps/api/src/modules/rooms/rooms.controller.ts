@@ -11,7 +11,14 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiConflictResponse, ApiNotFoundResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentScope } from '../api-keys/decorators/current-scope.decorator';
 import { ProjectScope } from '../../shared/environment/environment.constants';
 import { ApiKeyAuthGuard } from '../api-keys/guards/api-key-auth.guard';
@@ -34,8 +41,9 @@ export class RoomsController {
   @UseInterceptors(IdempotencyInterceptor)
   @Idempotent()
   @ApiOperation({
-    summary: 'Create a room in the API key\'s project',
-    description: 'Safe to retry: send the same Idempotency-Key header on a retry to replay the original response instead of creating a duplicate.',
+    summary: "Create a room in the API key's project",
+    description:
+      'Safe to retry: send the same Idempotency-Key header on a retry to replay the original response instead of creating a duplicate.',
   })
   @ApiResponse({ status: 201, description: 'Room created' })
   @ApiConflictResponse({ description: 'A room with this name already exists in this project' })
@@ -60,7 +68,10 @@ export class RoomsController {
 
   @Get(':id/participants')
   @ApiOperation({ summary: 'List live participants in a room, from the SFU (Phase 10 server SDK)' })
-  @ApiResponse({ status: 200, description: 'Live participants (null if the SFU could not be reached — never a fabricated empty list)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Live participants (null if the SFU could not be reached — never a fabricated empty list)',
+  })
   @ApiNotFoundResponse({ description: "Room doesn't exist, or belongs to a different project" })
   async findParticipants(@CurrentScope() scope: ProjectScope, @Param('id', ParseUUIDPipe) id: string) {
     const room = await this.roomsService.findOneForProjectWithLiveState(id, scope);
@@ -72,10 +83,7 @@ export class RoomsController {
   @ApiOperation({ summary: 'Close a room', description: 'Soft close — sets status to CLOSED.' })
   @ApiResponse({ status: 204, description: 'Room closed' })
   @ApiNotFoundResponse({ description: "Room doesn't exist, or belongs to a different project" })
-  async remove(
-    @CurrentScope() scope: ProjectScope,
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<void> {
+  async remove(@CurrentScope() scope: ProjectScope, @Param('id', ParseUUIDPipe) id: string): Promise<void> {
     await this.roomsService.close(id, scope);
   }
 }

@@ -61,9 +61,7 @@ export function TableOfContents({ headings }: { headings: Heading[] }) {
           <li key={heading.id}>
             <a
               href={`#${heading.id}`}
-              className={`-ml-px block border-l-2 py-1.5 transition-colors ${
-                heading.level === 3 ? 'pl-6' : 'pl-3'
-              } ${
+              className={`-ml-px block border-l-2 py-1.5 transition-colors ${heading.level === 3 ? 'pl-6' : 'pl-3'} ${
                 activeId === heading.id
                   ? 'border-accent font-medium text-accent-text'
                   : 'border-transparent text-muted hover:border-line-strong hover:text-fg'

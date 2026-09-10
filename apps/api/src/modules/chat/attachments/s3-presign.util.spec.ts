@@ -44,9 +44,7 @@ describe('presignS3Url', () => {
     expect(parsed.searchParams.get('X-Amz-Date')).toBe('20260818T120000Z');
     expect(parsed.searchParams.get('X-Amz-Expires')).toBe('900');
     expect(parsed.searchParams.get('X-Amz-SignedHeaders')).toBe('host');
-    expect(parsed.searchParams.get('X-Amz-Credential')).toBe(
-      'AKIAIOSFODNN7EXAMPLE/20260818/us-east-1/s3/aws4_request',
-    );
+    expect(parsed.searchParams.get('X-Amz-Credential')).toBe('AKIAIOSFODNN7EXAMPLE/20260818/us-east-1/s3/aws4_request');
     expect(parsed.searchParams.get('X-Amz-Signature')).toMatch(/^[0-9a-f]{64}$/);
   });
 
@@ -122,7 +120,14 @@ describe('presignS3Url', () => {
 
   it('changes the signature when the region changes', () => {
     const useast = presignS3Url({ ...BASE, method: 'GET', key: 'k', expiresInSeconds: 60, now: NOW });
-    const euwest = presignS3Url({ ...BASE, region: 'eu-west-1', method: 'GET', key: 'k', expiresInSeconds: 60, now: NOW });
+    const euwest = presignS3Url({
+      ...BASE,
+      region: 'eu-west-1',
+      method: 'GET',
+      key: 'k',
+      expiresInSeconds: 60,
+      now: NOW,
+    });
     expect(useast).not.toBe(euwest);
   });
 

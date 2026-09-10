@@ -98,8 +98,8 @@ export default async function CliPage({ params }: { params: Promise<{ projectId:
         <CardHeader title="CI / headless" subtitle="No browser, no writable home directory required." />
         <p className="mb-3 text-sm leading-relaxed text-muted">
           Set <span className="font-mono text-xs text-fg">RAVEN_TOKEN</span> instead of running{' '}
-          <span className="font-mono text-xs text-fg">raven login</span> — it takes precedence over a stored session
-          for that one process only.
+          <span className="font-mono text-xs text-fg">raven login</span> — it takes precedence over a stored session for
+          that one process only.
         </p>
         <CodeBlock language="bash" code={'export RAVEN_TOKEN="$CI_SECRET"\nraven projects list --json'} />
       </Card>

@@ -45,11 +45,7 @@ export class WebhookEventsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async emit(
-    scope: ProjectScope,
-    type: WebhookEventType,
-    payload: Record<string, unknown>,
-  ): Promise<void> {
+  async emit(scope: ProjectScope, type: WebhookEventType, payload: Record<string, unknown>): Promise<void> {
     const { projectId, environment } = scope;
     try {
       // Endpoints are environment-scoped, so a production endpoint never

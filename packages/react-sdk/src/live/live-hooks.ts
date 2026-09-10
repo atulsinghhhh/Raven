@@ -79,7 +79,9 @@ export function useLiveStreamViewer(): UseLiveStreamResult {
   const stream = useLiveStream();
 
   if (stream.isHost) {
-    throw new Error('useLiveStreamViewer() was called for a HOST/CO_HOST-role stream; use useLiveStreamHost() instead.');
+    throw new Error(
+      'useLiveStreamViewer() was called for a HOST/CO_HOST-role stream; use useLiveStreamHost() instead.',
+    );
   }
 
   return stream;

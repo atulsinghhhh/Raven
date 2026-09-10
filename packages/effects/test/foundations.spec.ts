@@ -25,7 +25,10 @@ describe('AROverlay (§18; planned, depends on face tracking)', () => {
     const overlay = createAROverlay(createFaceDetector());
     expect(overlay.isSupported()).toBe(false);
     try {
-      overlay.attach({ id: 'a', image: {} as unknown as HTMLImageElement }, { id: 'anchor', landmarkTarget: 'noseTip' });
+      overlay.attach(
+        { id: 'a', image: {} as unknown as HTMLImageElement },
+        { id: 'anchor', landmarkTarget: 'noseTip' },
+      );
       throw new Error('expected throw');
     } catch (error) {
       expect(isEffectsError(error)).toBe(true);

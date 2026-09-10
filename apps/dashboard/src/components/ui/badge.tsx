@@ -11,17 +11,7 @@
 // Legacy tone names kept alongside semantic ones so older call sites keep
 // working; new code should prefer the semantic names.
 export type BadgeTone =
-  | 'success'
-  | 'danger'
-  | 'warning'
-  | 'info'
-  | 'neutral'
-  | 'accent'
-  | 'live'
-  | 'green'
-  | 'red'
-  | 'yellow'
-  | 'gray';
+  'success' | 'danger' | 'warning' | 'info' | 'neutral' | 'accent' | 'live' | 'green' | 'red' | 'yellow' | 'gray';
 
 const TONE: Record<BadgeTone, string> = {
   success: 'bg-success-subtle text-success-text border-success-line',

@@ -11,7 +11,10 @@ import { CONNECTION_EVENT_TYPES } from '../observability.constants';
  * etc.) and the ingest service reads only the fields it recognizes.
  */
 export class IngestEventDto {
-  @ApiProperty({ example: 'conn_01J8Z3K9QK2Y8V6ZC7B5R9F0XN', description: "The client-generated connection ID (Room's own, stable for its lifetime)." })
+  @ApiProperty({
+    example: 'conn_01J8Z3K9QK2Y8V6ZC7B5R9F0XN',
+    description: "The client-generated connection ID (Room's own, stable for its lifetime).",
+  })
   @IsString()
   @Matches(/^conn_/, { message: 'connectionId must be a Livqeno connection ID (conn_...)' })
   @MaxLength(128)

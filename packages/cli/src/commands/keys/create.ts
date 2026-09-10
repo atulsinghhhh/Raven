@@ -13,14 +13,10 @@ export function registerKeysCreateCommand(keys: Command): void {
     .description('Create a new API key for a project; the secret is shown exactly once')
     .option('-p, --project <project>', 'project ID (overrides the current project context)')
     .option('-n, --name <name>', 'a label for the key')
-    .option(
-      '-e, --environment <environment>',
-      'development | staging | production (default: development)',
-    )
+    .option('-e, --environment <environment>', 'development | staging | production (default: development)')
     .option('--json', 'output as JSON')
     .action(
-      withErrorHandling(
-        async (opts: { project?: string; name?: string; environment?: string; json?: boolean }) => {
+      withErrorHandling(async (opts: { project?: string; name?: string; environment?: string; json?: boolean }) => {
         const projectId = await resolveProjectId(opts.project);
         const environment = parseEnvironment(opts.environment);
         const { client } = await getAuthenticatedApiClient();
@@ -47,8 +43,7 @@ export function registerKeysCreateCommand(keys: Command): void {
             `\n${chalk.dim('This is a production key. Keep it server-side; never in an app bundle or a committed file.')}\n`,
           );
         }
-        },
-      ),
+      }),
     );
 }
 

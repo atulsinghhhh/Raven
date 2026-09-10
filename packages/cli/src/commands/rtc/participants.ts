@@ -6,9 +6,7 @@ import { printEmpty, printJson, printTable } from '../../lib/output.js';
 import { withErrorHandling } from '../../lib/run.js';
 
 export function registerRtcParticipantsCommand(rtc: Command): void {
-  const participants = rtc
-    .command('participants')
-    .description('Participants connected to a live room');
+  const participants = rtc.command('participants').description('Participants connected to a live room');
 
   participants
     .command('list <room>')
@@ -46,9 +44,7 @@ export function registerRtcParticipantsCommand(rtc: Command): void {
             value: (participant) =>
               participant.tracks.length === 0
                 ? chalk.dim('none')
-                : participant.tracks
-                    .map((track) => `${track.name}${track.muted ? '*' : ''}`)
-                    .join(' '),
+                : participant.tracks.map((track) => `${track.name}${track.muted ? '*' : ''}`).join(' '),
           },
         ]);
 

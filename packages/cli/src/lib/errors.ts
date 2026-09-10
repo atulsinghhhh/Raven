@@ -14,13 +14,7 @@ export const ExitCode = {
 
 export type ExitCodeValue = (typeof ExitCode)[keyof typeof ExitCode];
 
-export type CliErrorKind =
-  | 'usage'
-  | 'auth'
-  | 'authz'
-  | 'not_found'
-  | 'network'
-  | 'general';
+export type CliErrorKind = 'usage' | 'auth' | 'authz' | 'not_found' | 'network' | 'general';
 
 const EXIT_CODE_BY_KIND: Record<CliErrorKind, ExitCodeValue> = {
   usage: ExitCode.InvalidUsage,

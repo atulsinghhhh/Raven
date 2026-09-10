@@ -112,9 +112,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
     peakViewers: sum(snapshots.map((s) => sum((s.streams ?? []).map((x) => x.peakViewerCount)))),
   };
 
-  const successRates = withMetrics
-    .map((s) => s.metrics!.connectionSuccessRate)
-    .filter((v): v is number => v !== null);
+  const successRates = withMetrics.map((s) => s.metrics!.connectionSuccessRate).filter((v): v is number => v !== null);
   const successRate = successRates.length ? successRates.reduce((a, b) => a + b, 0) / successRates.length : null;
 
   const bars = (value: (s: Snapshot) => number | undefined, unit: string) =>

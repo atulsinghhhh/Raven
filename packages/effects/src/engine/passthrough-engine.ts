@@ -24,6 +24,12 @@ export class PassthroughEngine implements EffectsEngine {
   }
 
   getStats(): PipelineStats {
-    return { engine: this.kind, fps: 0, averageFrameTimeMs: 0, droppedFrames: 0, framesProcessed: this.framesProcessed };
+    return {
+      engine: this.kind,
+      fps: 0,
+      averageFrameTimeMs: 0,
+      droppedFrames: 0,
+      framesProcessed: this.framesProcessed,
+    };
   }
 }

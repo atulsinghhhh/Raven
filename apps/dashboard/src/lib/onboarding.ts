@@ -36,7 +36,8 @@ export function buildOnboardingSteps(projectId: string, signals: OnboardingSigna
     {
       step: 2,
       label: 'Install an SDK',
-      description: 'Livqeno can’t see a local install directly — marked done once your project shows any real activity.',
+      description:
+        'Livqeno can’t see a local install directly — marked done once your project shows any real activity.',
       done: signals.hasApiKey || hasActivity,
       href: `${base}/sdks`,
     },

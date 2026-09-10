@@ -13,7 +13,9 @@ function fakeWindow(overrides: {
     document: { createElement: () => canvas },
     OffscreenCanvas: overrides.offscreenCanvas ? function () {} : undefined,
     HTMLCanvasElement: { prototype: { captureStream: overrides.captureStream ? function () {} : undefined } },
-    HTMLVideoElement: { prototype: { requestVideoFrameCallback: overrides.requestVideoFrameCallback ? function () {} : undefined } },
+    HTMLVideoElement: {
+      prototype: { requestVideoFrameCallback: overrides.requestVideoFrameCallback ? function () {} : undefined },
+    },
   } as unknown as Window & typeof globalThis;
 }
 

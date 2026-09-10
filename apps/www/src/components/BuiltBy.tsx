@@ -19,8 +19,8 @@ export function BuiltBy() {
               Built by <span className="kw">Atul</span>.
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted md:text-base">
-              No team, no company behind it — Livqeno is one developer&apos;s real-time infrastructure, designed,
-              built, and run end to end by Atul.
+              No team, no company behind it — Livqeno is one developer&apos;s real-time infrastructure, designed, built,
+              and run end to end by Atul.
             </p>
           </div>
 
@@ -40,8 +40,7 @@ export function BuiltBy() {
               rel="noreferrer noopener"
               className="inline-flex items-center gap-2 rounded-(--radius-panel) border border-accent-line px-3.5 py-2 text-[13px] font-medium text-fg transition-colors hover:border-accent-text hover:bg-canvas"
             >
-              <XIcon className="h-4 w-4" />
-              X
+              <XIcon className="h-4 w-4" />X
             </a>
           </div>
         </div>

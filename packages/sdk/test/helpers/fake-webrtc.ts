@@ -69,7 +69,13 @@ export class FakeRTCRtpSender {
 
   constructor(track: FakeMediaStreamTrack | null, encodings: RTCRtpEncodingParameters[]) {
     this.track = track;
-    this.parameters = { encodings, transactionId: 'tx', codecs: [], headerExtensions: [], rtcp: {} } as unknown as RTCRtpSendParameters;
+    this.parameters = {
+      encodings,
+      transactionId: 'tx',
+      codecs: [],
+      headerExtensions: [],
+      rtcp: {},
+    } as unknown as RTCRtpSendParameters;
   }
 
   getParameters(): RTCRtpSendParameters {
@@ -287,9 +293,7 @@ export class FakeRTCPeerConnection {
     // The reused m-section keeps whatever msid it arrived with.
     const reusable = this.transceivers.find(
       (candidate) =>
-        candidate.kind === track.kind &&
-        candidate.direction === 'recvonly' &&
-        candidate.sender.track === null,
+        candidate.kind === track.kind && candidate.direction === 'recvonly' && candidate.sender.track === null,
     );
     if (reusable) {
       reusable.sender.track = track;
@@ -403,9 +407,7 @@ export class FakeRTCPeerConnection {
       lines.push(`m=${transceiver.kind} 9 UDP/TLS/RTP/SAVPF 96`);
       lines.push(`a=mid:${transceiver.mid}`);
       const trackId =
-        this.msidOverrides.get(transceiver.mid) ??
-        this.pinnedMsid.get(transceiver.mid) ??
-        transceiver.sender.track?.id;
+        this.msidOverrides.get(transceiver.mid) ?? this.pinnedMsid.get(transceiver.mid) ?? transceiver.sender.track?.id;
       if (trackId) {
         lines.push(`a=msid:stream-${transceiver.mid} ${trackId}`);
       }
@@ -695,7 +697,9 @@ export class FakeWebSocket {
   }
 
   lastSent(type: string): Record<string, unknown> | undefined {
-    return this.sentMessages().reverse().find((message) => message.type === type);
+    return this.sentMessages()
+      .reverse()
+      .find((message) => message.type === type);
   }
 }
 
@@ -736,8 +740,7 @@ export function installFakeMediaDevices(options: { devices?: MediaDeviceInfo[] }
       const kind: 'audio' | 'video' = constraints.audio ? 'audio' : 'video';
       return new FakeMediaStream([new FakeMediaStreamTrack(kind, `local-${kind}`)]);
     },
-    getDisplayMedia: async () =>
-      new FakeMediaStream([new FakeMediaStreamTrack('video', 'local-screen')]),
+    getDisplayMedia: async () => new FakeMediaStream([new FakeMediaStreamTrack('video', 'local-screen')]),
     enumerateDevices: async () => options.devices ?? [],
     addEventListener: () => undefined,
     removeEventListener: () => undefined,
@@ -752,8 +755,7 @@ export function installFakeMediaDevices(options: { devices?: MediaDeviceInfo[] }
 
 /** Builds an unsigned Livqeno RTC token the SDK can read claims off. */
 export function fakeToken(claims: Record<string, unknown>): string {
-  const encode = (value: unknown) =>
-    Buffer.from(JSON.stringify(value), 'utf8').toString('base64url');
+  const encode = (value: unknown) => Buffer.from(JSON.stringify(value), 'utf8').toString('base64url');
   return `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode(claims)}.signature-not-checked-by-the-client`;
 }
 

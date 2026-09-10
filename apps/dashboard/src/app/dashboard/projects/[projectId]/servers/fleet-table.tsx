@@ -5,18 +5,7 @@ import type { RtcServer, RtcServerStatus } from '@/lib/api-client';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ErrorState, NoDataYet } from '@/components/ui/states';
-import {
-  MobileField,
-  MobileList,
-  MobileRow,
-  Table,
-  TableWrap,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from '@/components/ui/table';
+import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { formatBitrate, formatCount, formatPercent, formatRelative } from '@/lib/format';
 
 const STATUS_TONE: Record<RtcServerStatus, BadgeTone> = {
@@ -140,11 +129,7 @@ export function FleetTable({ initialServers }: { initialServers: RtcServer[] }) 
                     <span className="font-mono text-xs text-muted">{server.version ?? '—'}</span>
                   </TD>
                   <TD align="right">
-                    <DrainButton
-                      server={server}
-                      pending={pendingName === server.name}
-                      onChange={setDraining}
-                    />
+                    <DrainButton server={server} pending={pendingName === server.name} onChange={setDraining} />
                   </TD>
                 </TR>
               ))}
@@ -267,9 +252,7 @@ function Heartbeat({ at, now }: { at: string | null; now: number | undefined }) 
   if (!at) return <NoDataYet label="Never" />;
   const stale = now !== undefined && now - new Date(at).getTime() > 30_000;
   return (
-    <span className={`tabular text-xs ${stale ? 'text-warning-text' : 'text-muted'}`}>
-      {formatRelative(at, now)}
-    </span>
+    <span className={`tabular text-xs ${stale ? 'text-warning-text' : 'text-muted'}`}>{formatRelative(at, now)}</span>
   );
 }
 

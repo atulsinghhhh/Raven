@@ -1,11 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RtcTokenRevocationService } from '../../rtc-tokens/rtc-token-revocation.service';
 import { RtcTokenSignerService } from '../../rtc-tokens/rtc-token-signer.service';
-import {
-  RtcPermissions,
-  RtcTokenError,
-  toPermissionsDto,
-} from '../../rtc-tokens/rtc-token.claims';
+import { RtcPermissions, RtcTokenError, toPermissionsDto } from '../../rtc-tokens/rtc-token.claims';
 import { RtcTokenPermissionsDto } from '../../rtc-tokens/dto/rtc-token-permissions.dto';
 import { SignalingError } from '../signaling-error';
 import { SignalingErrorCode } from '../signaling.constants';
@@ -77,9 +73,7 @@ export class RtcTokenVerifierService {
         // Never log the token itself.
         this.logger.warn(`RTC token rejected: ${err.code}`);
         throw new SignalingError(
-          err.code === 'TOKEN_EXPIRED'
-            ? SignalingErrorCode.TOKEN_EXPIRED
-            : SignalingErrorCode.INVALID_TOKEN,
+          err.code === 'TOKEN_EXPIRED' ? SignalingErrorCode.TOKEN_EXPIRED : SignalingErrorCode.INVALID_TOKEN,
           err.message,
         );
       }
@@ -91,10 +85,7 @@ export class RtcTokenVerifierService {
     // value Livqeno minted rather than one the caller chose.
     if (await this.revocations.isRevoked(claims.jti)) {
       this.logger.warn(`RTC token rejected: TOKEN_REVOKED (${claims.jti})`);
-      throw new SignalingError(
-        SignalingErrorCode.TOKEN_REVOKED,
-        'This RTC token has been revoked — mint a new one',
-      );
+      throw new SignalingError(SignalingErrorCode.TOKEN_REVOKED, 'This RTC token has been revoked — mint a new one');
     }
 
     return {

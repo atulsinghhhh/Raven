@@ -80,10 +80,7 @@ export class RoomEventsService implements OnModuleInit, OnModuleDestroy {
    */
   async publish(roomId: string, envelope: SignalingEventEnvelope): Promise<void> {
     try {
-      await this.redisService.client.publish(
-        SignalingRedisKeys.roomChannel(roomId),
-        JSON.stringify(envelope),
-      );
+      await this.redisService.client.publish(SignalingRedisKeys.roomChannel(roomId), JSON.stringify(envelope));
     } catch (err) {
       this.logger.error(`signaling fan-out failed for room ${roomId}: ${(err as Error).message}`);
     }

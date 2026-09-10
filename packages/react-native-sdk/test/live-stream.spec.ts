@@ -53,7 +53,7 @@ function credentials(overrides: Partial<LiveStreamCredentials> = {}): LiveStream
 beforeEach(() => {
   jest.clearAllMocks();
   resetWebrtcCalls();
-    resetAudioCalls();
+  resetAudioCalls();
   __appState.listeners.clear();
   __appState.current = 'active';
   __setPlatform('android');

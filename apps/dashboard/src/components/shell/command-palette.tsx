@@ -193,9 +193,7 @@ export function CommandPalette({ projectId }: { projectId: string }) {
   }
 
   useEffect(() => {
-    listRef.current
-      ?.querySelector<HTMLElement>(`[data-index="${cursor}"]`)
-      ?.scrollIntoView({ block: 'nearest' });
+    listRef.current?.querySelector<HTMLElement>(`[data-index="${cursor}"]`)?.scrollIntoView({ block: 'nearest' });
   }, [cursor]);
 
   if (!open) return <SearchTrigger onClick={openPalette} />;
@@ -237,7 +235,13 @@ export function CommandPalette({ projectId }: { projectId: string }) {
             {loading && <span className="text-xs text-subtle">Searching…</span>}
           </div>
 
-          <div ref={listRef} id="palette-results" role="listbox" aria-label="Results" className="max-h-[22rem] overflow-y-auto p-1.5">
+          <div
+            ref={listRef}
+            id="palette-results"
+            role="listbox"
+            aria-label="Results"
+            className="max-h-[22rem] overflow-y-auto p-1.5"
+          >
             {items.length === 0 ? (
               <p className="px-3 py-8 text-center text-sm text-muted">
                 {query.trim().length < 2 ? 'Type at least two characters to search.' : `No matches for “${query}”.`}
@@ -271,7 +275,9 @@ export function CommandPalette({ projectId }: { projectId: string }) {
                           <ItemIcon type={item.type} />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm text-fg">{item.title}</span>
-                            {item.subtitle && <span className="block truncate text-xs text-muted">{item.subtitle}</span>}
+                            {item.subtitle && (
+                              <span className="block truncate text-xs text-muted">{item.subtitle}</span>
+                            )}
                           </span>
                         </div>
                       );

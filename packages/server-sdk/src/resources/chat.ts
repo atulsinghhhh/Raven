@@ -102,9 +102,7 @@ export class ChatResource {
     if (params.includeDeleted) query.set('includeDeleted', 'true');
 
     const suffix = query.toString() ? `?${query.toString()}` : '';
-    return this.http.request<ChatMessagePage>(
-      `/v1/chat/conversations/${encodeURIComponent(room)}/messages${suffix}`,
-    );
+    return this.http.request<ChatMessagePage>(`/v1/chat/conversations/${encodeURIComponent(room)}/messages${suffix}`);
   }
 
   /** Soft-deletes a message. A moderation action: the row survives, with a `deletedAt`. */

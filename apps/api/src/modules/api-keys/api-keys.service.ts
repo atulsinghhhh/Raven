@@ -4,11 +4,7 @@ import { ApiKey, ApiKeyStatus, Project } from '../../generated/prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { NotFoundError, UnauthorizedError } from '../../shared/errors/app-error';
-import {
-  generateApiKeyPublicId,
-  generateApiKeySecret,
-  pepper as applyPepper,
-} from '../../shared/utils/crypto.util';
+import { generateApiKeyPublicId, generateApiKeySecret, pepper as applyPepper } from '../../shared/utils/crypto.util';
 import { DEFAULT_ENVIRONMENT, Environment } from '../../shared/environment/environment.constants';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
 
@@ -124,9 +120,7 @@ export class ApiKeysService {
     }
 
     // Best-effort: must never block the actual request if this fails.
-    this.prisma.apiKey
-      .update({ where: { id: apiKey.id }, data: { lastUsedAt: new Date() } })
-      .catch(() => undefined);
+    this.prisma.apiKey.update({ where: { id: apiKey.id }, data: { lastUsedAt: new Date() } }).catch(() => undefined);
 
     // The environment travels with the key, never with the request. A
     // caller cannot ask to act in production; it either holds a production

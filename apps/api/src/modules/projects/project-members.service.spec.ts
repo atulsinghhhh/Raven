@@ -1,12 +1,7 @@
 import { PrismaService } from '../../shared/database/prisma.service';
 import { EmailType } from '../email/email.constants';
 import { EmailService } from '../email/email.service';
-import {
-  ConflictError,
-  ForbiddenError,
-  NotFoundError,
-  ValidationFailedError,
-} from '../../shared/errors/app-error';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationFailedError } from '../../shared/errors/app-error';
 import { ProjectMembersService } from './project-members.service';
 import { Capability, ProjectRole } from './project-permissions';
 import { ProjectsService } from './projects.service';
@@ -153,18 +148,16 @@ describe('ProjectMembersService', () => {
       // even to appoint a new owner. It would be permanently stuck.
       prisma.projectMember.count.mockResolvedValue(0);
 
-      await expect(
-        service.updateRole('p1', 'owner1', 'owner1', ProjectRole.ADMIN),
-      ).rejects.toBeInstanceOf(ValidationFailedError);
+      await expect(service.updateRole('p1', 'owner1', 'owner1', ProjectRole.ADMIN)).rejects.toBeInstanceOf(
+        ValidationFailedError,
+      );
       expect(prisma.projectMember.update).not.toHaveBeenCalled();
     });
 
     it('cannot be removed', async () => {
       prisma.projectMember.count.mockResolvedValue(0);
 
-      await expect(service.remove('p1', 'owner1', 'owner1')).rejects.toBeInstanceOf(
-        ValidationFailedError,
-      );
+      await expect(service.remove('p1', 'owner1', 'owner1')).rejects.toBeInstanceOf(ValidationFailedError);
       expect(prisma.projectMember.delete).not.toHaveBeenCalled();
     });
 
@@ -188,9 +181,9 @@ describe('ProjectMembersService', () => {
         user: { email: 'a@b.c', name: null },
       });
 
-      await expect(
-        service.updateRole('p1', 'owner1', 'owner1', ProjectRole.ADMIN),
-      ).resolves.toMatchObject({ role: ProjectRole.ADMIN });
+      await expect(service.updateRole('p1', 'owner1', 'owner1', ProjectRole.ADMIN)).resolves.toMatchObject({
+        role: ProjectRole.ADMIN,
+      });
     });
   });
 
@@ -202,18 +195,18 @@ describe('ProjectMembersService', () => {
         role: ProjectRole.OWNER,
       });
 
-      await expect(
-        service.updateRole('p1', 'admin1', 'owner1', ProjectRole.VIEWER),
-      ).rejects.toBeInstanceOf(ForbiddenError);
+      await expect(service.updateRole('p1', 'admin1', 'owner1', ProjectRole.VIEWER)).rejects.toBeInstanceOf(
+        ForbiddenError,
+      );
     });
 
     it('refuses to change someone who is not a member', async () => {
       actingAs(ProjectRole.OWNER);
       prisma.projectMember.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.updateRole('p1', 'owner1', 'stranger', ProjectRole.VIEWER),
-      ).rejects.toBeInstanceOf(NotFoundError);
+      await expect(service.updateRole('p1', 'owner1', 'stranger', ProjectRole.VIEWER)).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
     });
   });
 

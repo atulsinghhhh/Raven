@@ -88,10 +88,7 @@ export default async function ConnectionsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Connections"
-        description="Every RTC connection reported by @ravenkash/rtc, newest first."
-      />
+      <PageHeader title="Connections" description="Every RTC connection reported by @ravenkash/rtc, newest first." />
       <ProductTabs tabs={rtcTabs(base)} active="Connections" />
 
       {fetched.length === 0 && !filtered ? (
@@ -113,7 +110,11 @@ export default async function ConnectionsPage({
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard label="Records shown" value={formatCount(connections.length)} hint={`Most recent ${SCAN_LIMIT} max`} />
+            <StatCard
+              label="Records shown"
+              value={formatCount(connections.length)}
+              hint={`Most recent ${SCAN_LIMIT} max`}
+            />
             <StatCard label="Currently live" value={formatCount(live)} hint="Connected or reconnecting" />
             <StatCard
               label="Failed"
@@ -184,11 +185,7 @@ export default async function ConnectionsPage({
                           {formatDuration(c.durationMs)}
                         </TD>
                         <TD className="text-sm text-muted">
-                          {c.sdkVersion ? (
-                            <span className="font-mono text-xs">{c.sdkVersion}</span>
-                          ) : (
-                            <Dash />
-                          )}
+                          {c.sdkVersion ? <span className="font-mono text-xs">{c.sdkVersion}</span> : <Dash />}
                         </TD>
                         <TD align="right" className="tabular text-xs text-subtle">
                           <span title={new Date(c.startedAt).toISOString()}>{formatRelative(c.startedAt)}</span>

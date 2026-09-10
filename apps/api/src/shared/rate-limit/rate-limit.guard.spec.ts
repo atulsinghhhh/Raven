@@ -50,9 +50,7 @@ describe('RateLimitGuard', () => {
   it('refuses once the count exceeds the limit', async () => {
     redis.incr.mockResolvedValue(6);
 
-    await expect(guard.canActivate(contextWith({ ip: '203.0.113.7' }))).rejects.toBeInstanceOf(
-      TooManyRequestsError,
-    );
+    await expect(guard.canActivate(contextWith({ ip: '203.0.113.7' }))).rejects.toBeInstanceOf(TooManyRequestsError);
   });
 
   it('reports retryAfterSeconds from the key’s actual TTL', async () => {
@@ -79,9 +77,7 @@ describe('RateLimitGuard', () => {
 
   describe('identity keying', () => {
     it('keys on the API key’s own public id when one authenticated the request', async () => {
-      await guard.canActivate(
-        contextWith({ apiKeyPublicId: 'rvk_prod_abc', apiProjectId: 'p1', ip: '203.0.113.7' }),
-      );
+      await guard.canActivate(contextWith({ apiKeyPublicId: 'rvk_prod_abc', apiProjectId: 'p1', ip: '203.0.113.7' }));
 
       expect(redis.incr).toHaveBeenCalledWith(expect.stringContaining('apikey:rvk_prod_abc'));
     });
@@ -91,9 +87,7 @@ describe('RateLimitGuard', () => {
       // compromised key should not spend the project's other keys'
       // headroom, and each key is revocable independently for exactly
       // this kind of isolation.
-      await guard.canActivate(
-        contextWith({ apiKeyPublicId: 'rvk_prod_abc', apiProjectId: 'p1', ip: '203.0.113.7' }),
-      );
+      await guard.canActivate(contextWith({ apiKeyPublicId: 'rvk_prod_abc', apiProjectId: 'p1', ip: '203.0.113.7' }));
 
       const key = redis.incr.mock.calls[0][0] as string;
       expect(key).not.toContain('p1');
@@ -148,9 +142,7 @@ describe('RateLimitGuard', () => {
     });
 
     it('prefers the API key over a user id if a request somehow carried both', async () => {
-      await guard.canActivate(
-        contextWith({ apiKeyPublicId: 'rvk_prod_abc', user: { id: 'user-1' } }),
-      );
+      await guard.canActivate(contextWith({ apiKeyPublicId: 'rvk_prod_abc', user: { id: 'user-1' } }));
 
       expect(redis.incr).toHaveBeenCalledWith(expect.stringContaining('apikey:rvk_prod_abc'));
       expect(redis.incr).not.toHaveBeenCalledWith(expect.stringContaining('user:user-1'));
@@ -177,9 +169,7 @@ describe('RateLimitGuard', () => {
     it('scopes the key to the route, so one limit cannot bleed into another', async () => {
       await guard.canActivate(contextWith({ ip: '203.0.113.7' }));
 
-      expect(redis.incr).toHaveBeenCalledWith(
-        expect.stringContaining('TestController.testRoute'),
-      );
+      expect(redis.incr).toHaveBeenCalledWith(expect.stringContaining('TestController.testRoute'));
     });
   });
 });

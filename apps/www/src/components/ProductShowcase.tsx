@@ -20,7 +20,11 @@ const PRODUCTS = [
     icon: <WaveIcon />,
     headline: 'Video calls without the infrastructure headache.',
     body: 'Rooms, participants, and reconnection are handled underneath. Your app calls join() and gets back a room with cameras, microphones, and screen shares already wired for network blips.',
-    bullets: ['Rooms, participants, and screen sharing', 'Automatic reconnection with backoff', 'RTT, jitter, and packet loss from live WebRTC stats'],
+    bullets: [
+      'Rooms, participants, and screen sharing',
+      'Automatic reconnection with backoff',
+      'RTT, jitter, and packet loss from live WebRTC stats',
+    ],
     href: DOCS_ROUTES.rtc,
     demo: <RoomDemo />,
   },
@@ -30,7 +34,11 @@ const PRODUCTS = [
     icon: <BubbleIcon />,
     headline: 'Messaging that feels instant.',
     body: 'Conversations, presence, typing, and receipts — with idempotent sends and cursor-based pagination underneath, so a retried request never double-posts a message.',
-    bullets: ['Conversations, threads, and presence', 'Delivery and read receipts', 'Idempotent sends, cursor-based history'],
+    bullets: [
+      'Conversations, threads, and presence',
+      'Delivery and read receipts',
+      'Idempotent sends, cursor-based history',
+    ],
     href: DOCS_ROUTES.chat,
     demo: <ChatDemo />,
   },
@@ -40,7 +48,11 @@ const PRODUCTS = [
     icon: <BroadcastIcon />,
     headline: 'Turn any product into a live experience.',
     body: 'A host publishes, viewers watch, co-hosts join in — with a Livqeno Chat conversation attached automatically for live comments and reactions. Same rooms and tokens as RTC, one join call.',
-    bullets: ['Hosts, co-hosts, and viewers', 'Live chat attached on join', 'Reactions and moderation on one connection'],
+    bullets: [
+      'Hosts, co-hosts, and viewers',
+      'Live chat attached on join',
+      'Reactions and moderation on one connection',
+    ],
     href: DOCS_ROUTES.liveStreaming,
     demo: <LiveDemo />,
   },
@@ -50,7 +62,11 @@ const PRODUCTS = [
     icon: <SparkIcon />,
     headline: 'Filters on the track, before it leaves the device.',
     body: 'camera.attachEffects() swaps the published track in place — no reconnect, no renegotiation. It runs entirely inside the SDK, shared by RTC and Live Streaming.',
-    bullets: ['Filters and five built-in presets', 'Swaps the published track in place', 'Runs client-side, no extra round trip'],
+    bullets: [
+      'Filters and five built-in presets',
+      'Swaps the published track in place',
+      'Runs client-side, no extra round trip',
+    ],
     href: DOCS_ROUTES.effects,
     demo: <EffectsDemo />,
   },
@@ -122,7 +138,14 @@ export function ProductShowcase() {
 
 function CheckIcon() {
   return (
-    <svg viewBox="0 0 16 16" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+    <svg
+      viewBox="0 0 16 16"
+      className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      aria-hidden="true"
+    >
       <path d="M3 8.5 6.2 11.5 13 4.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -130,7 +153,14 @@ function CheckIcon() {
 
 function WaveIcon() {
   return (
-    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+    <svg
+      viewBox="0 0 16 16"
+      className="h-3.5 w-3.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
       <path d="M2 8h1.5M5.5 4.5v7M8 2.5v11M10.5 5.5v5M13.5 8H14" strokeLinecap="round" />
     </svg>
   );
@@ -138,24 +168,51 @@ function WaveIcon() {
 
 function BubbleIcon() {
   return (
-    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <path d="M2.5 4.5A2 2 0 0 1 4.5 2.5h7a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H7l-3.5 3v-3a1 1 0 0 1-1-1v-5Z" strokeLinejoin="round" />
+    <svg
+      viewBox="0 0 16 16"
+      className="h-3.5 w-3.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
+      <path
+        d="M2.5 4.5A2 2 0 0 1 4.5 2.5h7a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H7l-3.5 3v-3a1 1 0 0 1-1-1v-5Z"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 function BroadcastIcon() {
   return (
-    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+    <svg
+      viewBox="0 0 16 16"
+      className="h-3.5 w-3.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
       <circle cx="8" cy="8" r="1.75" />
-      <path d="M4.6 4.6a4.8 4.8 0 0 0 0 6.8M11.4 11.4a4.8 4.8 0 0 0 0-6.8M2.3 2.3a8 8 0 0 0 0 11.4M13.7 13.7a8 8 0 0 0 0-11.4" strokeLinecap="round" />
+      <path
+        d="M4.6 4.6a4.8 4.8 0 0 0 0 6.8M11.4 11.4a4.8 4.8 0 0 0 0-6.8M2.3 2.3a8 8 0 0 0 0 11.4M13.7 13.7a8 8 0 0 0 0-11.4"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 function SparkIcon() {
   return (
-    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+    <svg
+      viewBox="0 0 16 16"
+      className="h-3.5 w-3.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
       <path d="M8 2v3M8 11v3M2 8h3M11 8h3M4.2 4.2l2 2M9.8 9.8l2 2M11.8 4.2l-2 2M6.2 9.8l-2 2" strokeLinecap="round" />
     </svg>
   );

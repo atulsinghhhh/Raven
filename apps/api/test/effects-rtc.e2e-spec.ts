@@ -43,7 +43,12 @@ import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics'
 jest.setTimeout(120_000);
 
 const HARNESS_DIR = join(__dirname, 'e2e-harness');
-const MIME: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.map': 'application/json' };
+const MIME: Record<string, string> = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.mjs': 'text/javascript',
+  '.map': 'application/json',
+};
 
 function startHarnessServer(): Promise<{ server: Server; url: string }> {
   const server = createServer((req, res) => {
@@ -208,7 +213,15 @@ describe('Livqeno Effects — RTC (real browser e2e)', () => {
       const publisherPage = await publisherCtx.newPage();
       const publisherLog = collectPageDiagnostics(publisherPage, 'publisher');
 
-      await publisherPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, roomId: roomName, role: 'publisher', creds: publisherCreds, preset: 'cinematic' }));
+      await publisherPage.goto(
+        harnessUrl(harnessUrlBase, {
+          endpoint: signalingEndpoint,
+          roomId: roomName,
+          role: 'publisher',
+          creds: publisherCreds,
+          preset: 'cinematic',
+        }),
+      );
       await waitForPage(
         publisherPage,
         () => (window as unknown as { __ready?: boolean }).__ready === true,
@@ -216,7 +229,8 @@ describe('Livqeno Effects — RTC (real browser e2e)', () => {
         'the publisher harness to become ready',
       );
 
-      const state = () => publisherPage.evaluate(() => (window as unknown as { __state: Record<string, unknown> }).__state);
+      const state = () =>
+        publisherPage.evaluate(() => (window as unknown as { __state: Record<string, unknown> }).__state);
 
       const initial = await state();
       expect(initial.connectionState).toBe('connected');
@@ -226,7 +240,9 @@ describe('Livqeno Effects — RTC (real browser e2e)', () => {
 
       // Disable the effect mid-call. RTC must keep running.
       await publisherPage.evaluate(() => (window as unknown as { __disableEffects: () => void }).__disableEffects());
-      await publisherPage.waitForFunction(() => (window as unknown as { __pipeline: { isEnabled: boolean } }).__pipeline.isEnabled === false);
+      await publisherPage.waitForFunction(
+        () => (window as unknown as { __pipeline: { isEnabled: boolean } }).__pipeline.isEnabled === false,
+      );
       expect((await state()).connectionState).toBe('connected');
 
       // Re-enable, then remove the effect entirely.
@@ -239,7 +255,9 @@ describe('Livqeno Effects — RTC (real browser e2e)', () => {
       expect((await state()).connectionState).toBe('connected');
 
       // Detach entirely: reverts to the unmodified camera track, room stays up.
-      await publisherPage.evaluate(() => (window as unknown as { __detachEffects: () => Promise<void> }).__detachEffects());
+      await publisherPage.evaluate(() =>
+        (window as unknown as { __detachEffects: () => Promise<void> }).__detachEffects(),
+      );
       await new Promise((r) => setTimeout(r, 500));
       expect((await state()).connectionState).toBe('connected');
     } finally {
@@ -266,7 +284,15 @@ describe('Livqeno Effects — RTC (real browser e2e)', () => {
       const publisherLog = collectPageDiagnostics(publisherPage, 'publisher');
       const subscriberLog = collectPageDiagnostics(subscriberPage, 'subscriber');
 
-      await publisherPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, roomId: roomName, role: 'publisher', creds: publisherCreds, preset: 'cinematic' }));
+      await publisherPage.goto(
+        harnessUrl(harnessUrlBase, {
+          endpoint: signalingEndpoint,
+          roomId: roomName,
+          role: 'publisher',
+          creds: publisherCreds,
+          preset: 'cinematic',
+        }),
+      );
       await waitForPage(
         publisherPage,
         () => (window as unknown as { __ready?: boolean }).__ready === true,
@@ -274,10 +300,19 @@ describe('Livqeno Effects — RTC (real browser e2e)', () => {
         'the publisher harness to become ready',
       );
 
-      await subscriberPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, roomId: roomName, role: 'subscriber', creds: subscriberCreds }));
+      await subscriberPage.goto(
+        harnessUrl(harnessUrlBase, {
+          endpoint: signalingEndpoint,
+          roomId: roomName,
+          role: 'subscriber',
+          creds: subscriberCreds,
+        }),
+      );
       await waitForPage(
         subscriberPage,
-        () => (window as unknown as { __state: { remoteTrackSubscribed?: boolean } }).__state.remoteTrackSubscribed === true,
+        () =>
+          (window as unknown as { __state: { remoteTrackSubscribed?: boolean } }).__state.remoteTrackSubscribed ===
+          true,
         () => `${subscriberLog()}\n\n${publisherLog()}`,
         "the subscriber to receive the publisher's track",
       );
@@ -288,14 +323,20 @@ describe('Livqeno Effects — RTC (real browser e2e)', () => {
       });
 
       await publisherPage.evaluate(() => (window as unknown as { __disableEffects: () => void }).__disableEffects());
-      expect(await subscriberPage.evaluate(() => (window as unknown as { __state: { connectionState: string } }).__state.connectionState)).toBe(
-        'connected',
-      );
+      expect(
+        await subscriberPage.evaluate(
+          () => (window as unknown as { __state: { connectionState: string } }).__state.connectionState,
+        ),
+      ).toBe('connected');
 
       await publisherPage.evaluate(() => (window as unknown as { __clearEffects: () => void }).__clearEffects());
-      await publisherPage.evaluate(() => (window as unknown as { __detachEffects: () => Promise<void> }).__detachEffects());
+      await publisherPage.evaluate(() =>
+        (window as unknown as { __detachEffects: () => Promise<void> }).__detachEffects(),
+      );
       expect(
-        await subscriberPage.evaluate(() => (window as unknown as { __state: { remoteTrackSubscribed: boolean } }).__state.remoteTrackSubscribed),
+        await subscriberPage.evaluate(
+          () => (window as unknown as { __state: { remoteTrackSubscribed: boolean } }).__state.remoteTrackSubscribed,
+        ),
       ).toBe(true);
     } finally {
       await publisherCtx?.close();

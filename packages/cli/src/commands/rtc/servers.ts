@@ -60,10 +60,7 @@ export function registerRtcServersCommand(rtc: Command): void {
     .action(
       withErrorHandling(async (opts: { region?: string; json?: boolean }) => {
         const { client } = await getAuthenticatedApiClient();
-        const [fleet, rows] = await Promise.all([
-          client.getRtcFleetMetrics(),
-          client.listRtcServers(opts.region),
-        ]);
+        const [fleet, rows] = await Promise.all([client.getRtcFleetMetrics(), client.listRtcServers(opts.region)]);
 
         if (opts.json) {
           printJson({ fleet, servers: rows });
@@ -72,9 +69,7 @@ export function registerRtcServersCommand(rtc: Command): void {
 
         if (rows.length === 0) {
           printEmpty(
-            opts.region
-              ? `No RTC servers registered in region "${opts.region}".`
-              : 'No RTC servers are registered.',
+            opts.region ? `No RTC servers registered in region "${opts.region}".` : 'No RTC servers are registered.',
             'Servers register themselves on boot; check that one is running and can reach the API.',
           );
           return;
@@ -96,9 +91,7 @@ export function registerRtcServersCommand(rtc: Command): void {
               `${fleet.activeRooms}/${fleet.capacity} rooms · ${fleet.activeParticipants} participants`,
           )}\n`,
         );
-        process.stdout.write(
-          `${chalk.dim('Load figures are each node\'s last heartbeat, not live truth.')}\n`,
-        );
+        process.stdout.write(`${chalk.dim("Load figures are each node's last heartbeat, not live truth.")}\n`);
       }),
     );
 

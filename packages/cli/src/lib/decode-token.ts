@@ -17,10 +17,7 @@ export function decodeSessionToken(token: string): DecodedSessionToken {
     const payloadB64 = token.split('.')[1];
     if (!payloadB64) return {};
 
-    const claims = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as Record<
-      string,
-      unknown
-    >;
+    const claims = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as Record<string, unknown>;
 
     return {
       email: typeof claims.email === 'string' ? claims.email : undefined,

@@ -56,8 +56,7 @@ describe('RtcServerRegistryService', () => {
       },
     };
     const config = {
-      get: (key: string) =>
-        key === 'sfu.heartbeatTimeoutSeconds' ? HEARTBEAT_TIMEOUT_SECONDS : undefined,
+      get: (key: string) => (key === 'sfu.heartbeatTimeoutSeconds' ? HEARTBEAT_TIMEOUT_SECONDS : undefined),
     } as unknown as ConfigService;
     service = new RtcServerRegistryService(prisma as unknown as PrismaService, config);
   });
@@ -140,16 +139,14 @@ describe('RtcServerRegistryService', () => {
       // one would be unusable for allocation.
       prisma.rtcServer.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.heartbeat('sfu-ghost', { activeRooms: 0, activeParticipants: 0 }),
-      ).rejects.toBeInstanceOf(NotFoundError);
+      await expect(service.heartbeat('sfu-ghost', { activeRooms: 0, activeParticipants: 0 })).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
       expect(prisma.rtcServer.update).not.toHaveBeenCalled();
     });
 
     it('promotes an unhealthy node back to healthy — the recovery path', async () => {
-      prisma.rtcServer.findUnique.mockResolvedValue(
-        server({ status: RtcServerStatus.UNHEALTHY }),
-      );
+      prisma.rtcServer.findUnique.mockResolvedValue(server({ status: RtcServerStatus.UNHEALTHY }));
 
       await service.heartbeat('sfu-local-01', { activeRooms: 0, activeParticipants: 0 });
 
@@ -174,14 +171,9 @@ describe('RtcServerRegistryService', () => {
       expect(count).toBe(2);
       const where = prisma.rtcServer.updateMany.mock.calls[0][0].where;
       expect(where.status).toEqual({ not: RtcServerStatus.UNHEALTHY });
-      expect(where.OR).toEqual([
-        { lastHeartbeatAt: { lt: expect.any(Date) } },
-        { lastHeartbeatAt: null },
-      ]);
+      expect(where.OR).toEqual([{ lastHeartbeatAt: { lt: expect.any(Date) } }, { lastHeartbeatAt: null }]);
       const deadline = where.OR[0].lastHeartbeatAt.lt as Date;
-      expect(Date.now() - deadline.getTime()).toBeGreaterThanOrEqual(
-        HEARTBEAT_TIMEOUT_SECONDS * 1000 - 50,
-      );
+      expect(Date.now() - deadline.getTime()).toBeGreaterThanOrEqual(HEARTBEAT_TIMEOUT_SECONDS * 1000 - 50);
     });
 
     it('never touches the rooms an unhealthy node is already serving', async () => {

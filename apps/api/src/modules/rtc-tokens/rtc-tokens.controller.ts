@@ -106,8 +106,7 @@ export class RtcTokensController {
     },
   })
   @ApiNotFoundResponse({
-    description:
-      "Token doesn't exist, belongs to a different room, or belongs to a different project or environment",
+    description: "Token doesn't exist, belongs to a different room, or belongs to a different project or environment",
   })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
   revoke(

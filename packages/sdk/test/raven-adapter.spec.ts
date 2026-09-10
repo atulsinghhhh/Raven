@@ -212,7 +212,7 @@ describe('RavenAdapter', () => {
       expect(FakeWebSocket.instances).toHaveLength(0);
     });
 
-    it('passes the mint response\'s ICE servers to the PeerConnection', async () => {
+    it("passes the mint response's ICE servers to the PeerConnection", async () => {
       // A developer forwards `iceServers` from the token response. They
       // have to reach the connection, or NAT traversal drops back to host
       // candidates and nothing else.
@@ -224,7 +224,7 @@ describe('RavenAdapter', () => {
   });
 
   describe('negotiation', () => {
-    it('answers the SFU\'s offer', async () => {
+    it("answers the SFU's offer", async () => {
       const { socket } = await connectAdapter();
       const pc = await receiveOffer(socket);
 
@@ -354,10 +354,7 @@ describe('RavenAdapter', () => {
      */
     it('matches an arriving track by its SDP msid, not by the local track id the browser minted', async () => {
       const { adapter, socket } = await connectAdapter({ participants: [{ id: 'bob' }] });
-      const pc = await receiveOffer(
-        socket,
-        offerWithMsid([{ mid: '1', streamId: 'bob-stream', trackId: 'bob-cam' }]),
-      );
+      const pc = await receiveOffer(socket, offerWithMsid([{ mid: '1', streamId: 'bob-stream', trackId: 'bob-cam' }]));
 
       const subscribed: Array<{ kind: string; from: string }> = [];
       adapter.on('trackSubscribed', (track: RemoteTrack, participant: RemoteParticipant) =>
@@ -488,7 +485,7 @@ describe('RavenAdapter', () => {
       expect(kind).toBe('screenShare');
     });
 
-    it('reflects the publisher\'s mute, not the browser\'s data-arrival flag', async () => {
+    it("reflects the publisher's mute, not the browser's data-arrival flag", async () => {
       const { adapter, socket } = await connectAdapter({ participants: [{ id: 'bob' }] });
       const pc = await receiveOffer(socket);
 
@@ -521,7 +518,7 @@ describe('RavenAdapter', () => {
       expect(muteEvents).toEqual(['muted', 'unmuted']);
     });
 
-    it('drops a departed participant\'s tracks without waiting for the browser', async () => {
+    it("drops a departed participant's tracks without waiting for the browser", async () => {
       const { adapter, socket } = await connectAdapter({ participants: [{ id: 'bob' }] });
       const pc = await receiveOffer(socket);
 
@@ -786,9 +783,7 @@ describe('RavenAdapter', () => {
       socket.receive({ type: 'sdp.offer', sdp: 'v=0 glare-server-offer' });
       await flush();
 
-      expect(pc.descriptions).toEqual(
-        expect.arrayContaining([{ side: 'local', type: 'rollback' }]),
-      );
+      expect(pc.descriptions).toEqual(expect.arrayContaining([{ side: 'local', type: 'rollback' }]));
       expect(socket.lastSent('sdp.answer')).toBeDefined();
 
       // And our change is re-offered rather than dropped.
@@ -840,9 +835,7 @@ describe('RavenAdapter', () => {
       // Nothing sent yet. The SFU's message says "answer it, then retry",
       // and retrying before that offer arrives is how this turns into an
       // offer/refusal loop that trips the connection's rate limit.
-      expect(socket.sentMessages().filter((message) => message.type === 'sdp.offer')).toHaveLength(
-        before,
-      );
+      expect(socket.sentMessages().filter((message) => message.type === 'sdp.offer')).toHaveLength(before);
 
       // Whatever round the server was in ends by offering us one.
       socket.receive({ type: 'sdp.offer', sdp: 'v=0 server-offer-after-glare' });
@@ -858,18 +851,17 @@ describe('RavenAdapter', () => {
       const { adapter, socket } = await connectAdapter();
       const pc = await receiveOffer(socket);
 
-      await Promise.all([
-        adapter.enableMicrophone(true),
-        adapter.enableCamera(true),
-        adapter.enableScreenShare(true),
-      ]);
+      await Promise.all([adapter.enableMicrophone(true), adapter.enableCamera(true), adapter.enableScreenShare(true)]);
       await flush();
 
       expect(pc.activeSenders('audio')).toHaveLength(1);
       expect(pc.activeSenders('video')).toHaveLength(2);
       expect(socket.sentMessages().filter((message) => message.type === 'sdp.offer')).toHaveLength(1);
       expect(
-        socket.sentMessages().filter((message) => message.type === 'track.publish').map((message) => message.source),
+        socket
+          .sentMessages()
+          .filter((message) => message.type === 'track.publish')
+          .map((message) => message.source),
       ).toEqual(expect.arrayContaining(['microphone', 'camera', 'screenShare']));
     });
 
@@ -888,7 +880,7 @@ describe('RavenAdapter', () => {
       expect(second).toBe(first);
     });
 
-    it('stops offering once the sfu\'s own offer has carried the change', async () => {
+    it("stops offering once the sfu's own offer has carried the change", async () => {
       // The loop this cost us. Livqeno's SFU adds a receive slot for a track
       // as soon as the client declares it, so its next offer often carries
       // a just-published camera. An SDK that keeps its own "something
@@ -918,9 +910,7 @@ describe('RavenAdapter', () => {
         await flush();
       }
 
-      expect(socket.sentMessages().filter((message) => message.type === 'sdp.offer')).toHaveLength(
-        offers,
-      );
+      expect(socket.sentMessages().filter((message) => message.type === 'sdp.offer')).toHaveLength(offers);
       expect(pc.signalingState).toBe('stable');
       expect(pc.activeSenders('video')).toHaveLength(1);
     });
@@ -1050,9 +1040,7 @@ describe('RavenAdapter', () => {
       const camera = await adapter.enableCamera(true);
       await settleNegotiation(socket, pc);
 
-      const declarations = socket
-        .sentMessages()
-        .filter((message) => message.type === 'track.publish');
+      const declarations = socket.sentMessages().filter((message) => message.type === 'track.publish');
       expect(declarations).toHaveLength(1);
       expect(declarations[0]).toMatchObject({
         trackId: camera!.mediaStreamTrack.id,
@@ -1229,9 +1217,7 @@ describe('RavenAdapter', () => {
       return { adapter, socket, pc: FakeRTCPeerConnection.latest };
     }
 
-    async function rejoin(
-      socket: FakeWebSocket,
-    ): Promise<{ socket: FakeWebSocket; pc: FakeRTCPeerConnection }> {
+    async function rejoin(socket: FakeWebSocket): Promise<{ socket: FakeWebSocket; pc: FakeRTCPeerConnection }> {
       const before = FakeWebSocket.instances.length;
       socket.close(1006);
       await flush();
@@ -1267,10 +1253,7 @@ describe('RavenAdapter', () => {
       // neither of them guessed.
       let view = sfuView(socket, pc);
       expect(view.filter((publication) => publication.kind === 'video')).toHaveLength(2);
-      expect(view.map((publication) => publication.source).sort()).toEqual([
-        'camera',
-        'screenShare',
-      ]);
+      expect(view.map((publication) => publication.source).sort()).toEqual(['camera', 'screenShare']);
       expect(view.every((publication) => !publication.guessed)).toBe(true);
       expect(new Set(view.map((publication) => publication.publicationId)).size).toBe(2);
 
@@ -1280,27 +1263,19 @@ describe('RavenAdapter', () => {
 
       view = sfuView(rejoined.socket, rejoined.pc);
       expect(view.filter((publication) => publication.kind === 'video')).toHaveLength(2);
-      expect(view.map((publication) => publication.source).sort()).toEqual([
-        'camera',
-        'screenShare',
-      ]);
+      expect(view.map((publication) => publication.source).sort()).toEqual(['camera', 'screenShare']);
       expect(view.every((publication) => !publication.guessed)).toBe(true);
 
       // 11. stop the screen share.
       await adapter.enableScreenShare(false);
       await settleNegotiation(rejoined.socket, rejoined.pc);
-      expect(
-        sfuView(rejoined.socket, rejoined.pc).map((publication) => publication.source),
-      ).toEqual(['camera']);
+      expect(sfuView(rejoined.socket, rejoined.pc).map((publication) => publication.source)).toEqual(['camera']);
 
       // 12. start it again. 13. still classified as a screen share.
       await adapter.enableScreenShare(true);
       await settleNegotiation(rejoined.socket, rejoined.pc);
       view = sfuView(rejoined.socket, rejoined.pc);
-      expect(view.map((publication) => publication.source).sort()).toEqual([
-        'camera',
-        'screenShare',
-      ]);
+      expect(view.map((publication) => publication.source).sort()).toEqual(['camera', 'screenShare']);
       expect(view.every((publication) => !publication.guessed)).toBe(true);
     });
 
@@ -1341,10 +1316,7 @@ describe('RavenAdapter', () => {
       await settleNegotiation(socket, pc);
 
       const view = sfuView(socket, pc);
-      expect(view.map((publication) => publication.source).sort()).toEqual([
-        'camera',
-        'screenShare',
-      ]);
+      expect(view.map((publication) => publication.source).sort()).toEqual(['camera', 'screenShare']);
       expect(view.every((publication) => !publication.guessed)).toBe(true);
       expect(new Set(view.map((publication) => publication.publicationId)).size).toBe(2);
     });
@@ -1420,9 +1392,7 @@ describe('RavenAdapter', () => {
       socket.receive({ type: 'sdp.answer', sdp: 'v=0 fake-server-answer' });
       await Promise.all(sends);
 
-      const decoded = pc.dataChannels[0].sent.map((payload) =>
-        new TextDecoder().decode(payload as Uint8Array),
-      );
+      const decoded = pc.dataChannels[0].sent.map((payload) => new TextDecoder().decode(payload as Uint8Array));
       expect(decoded).toEqual(['one', 'two', 'three']);
     });
 
@@ -1441,9 +1411,7 @@ describe('RavenAdapter', () => {
       expect(pc.dataChannels).toHaveLength(1);
       expect(pc.dataChannels[0].sent).toHaveLength(2);
       // No renegotiation for a channel that already exists.
-      expect(socket.sentMessages().filter((message) => message.type === 'sdp.offer')).toHaveLength(
-        offersBefore,
-      );
+      expect(socket.sentMessages().filter((message) => message.type === 'sdp.offer')).toHaveLength(offersBefore);
     });
 
     it('opens a channel for a participant that only listens for data', async () => {
@@ -1564,7 +1532,10 @@ describe('RavenAdapter', () => {
 
       expect(replacement.activeSenders('video')).toHaveLength(1);
       expect(
-        rejoined.sentMessages().filter((message) => message.type === 'track.publish').map((m) => m.source),
+        rejoined
+          .sentMessages()
+          .filter((message) => message.type === 'track.publish')
+          .map((m) => m.source),
       ).toContain('screenShare');
     });
 
@@ -1703,7 +1674,7 @@ describe('RavenAdapter', () => {
       });
     });
 
-    it('surfaces the SFU\'s view alongside the local one', async () => {
+    it("surfaces the SFU's view alongside the local one", async () => {
       // The two can disagree, and the disagreement is the useful bit.
       const { adapter, socket } = await connectAdapter();
       await receiveOffer(socket);

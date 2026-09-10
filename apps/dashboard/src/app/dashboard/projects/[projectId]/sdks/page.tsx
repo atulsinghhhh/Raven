@@ -201,10 +201,7 @@ export default async function SdksPage({ params }: { params: Promise<{ projectId
       </div>
 
       <Card>
-        <CardHeader
-          title="Also in the toolchain"
-          subtitle="Not an SDK, but built and versioned alongside them."
-        />
+        <CardHeader title="Also in the toolchain" subtitle="Not an SDK, but built and versioned alongside them." />
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-baseline gap-2">
             <span className="font-mono text-sm font-medium text-fg">@ravenkash/cli</span>

@@ -189,9 +189,7 @@ describe('RtcTokenVerifierService', () => {
         roomId: 'r1',
         roomName: 'room-1',
         participantIdentity: 'alice',
-        permissions: resolvePermissions(
-          Object.assign(new RtcTokenPermissionsDto(), { join: true, subscribe: true }),
-        ),
+        permissions: resolvePermissions(Object.assign(new RtcTokenPermissionsDto(), { join: true, subscribe: true })),
         ttlSeconds,
       }).token;
     }
@@ -280,10 +278,7 @@ describe('RtcTokenVerifierService', () => {
       // Degraded revocation, not a total outage of RTC. Documented in
       // RtcTokenRevocationService.
       const token = mintWithId('rtk-live');
-      const verifier = new RtcTokenVerifierService(
-        signerWith(),
-        revocationsWith({ failing: true }).service,
-      );
+      const verifier = new RtcTokenVerifierService(signerWith(), revocationsWith({ failing: true }).service);
 
       const result = await verifier.verify(token);
       expect(result.tokenId).toBe('rtk-live');

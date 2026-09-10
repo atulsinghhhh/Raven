@@ -25,9 +25,7 @@ export interface TableColumn<T> {
 
 /** Dependency-free table, widths sized from the content. Think `docker ps` or `kubectl get`. */
 export function printTable<T>(rows: T[], columns: TableColumn<T>[]): void {
-  const widths = columns.map((col) =>
-    Math.max(col.header.length, ...rows.map((row) => col.value(row).length)),
-  );
+  const widths = columns.map((col) => Math.max(col.header.length, ...rows.map((row) => col.value(row).length)));
 
   const headerLine = columns.map((col, i) => col.header.padEnd(widths[i])).join('   ');
   process.stdout.write(chalk.dim(headerLine) + '\n');

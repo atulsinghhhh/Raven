@@ -2,7 +2,7 @@
 var RTCError = class extends Error {
   constructor(code, message, cause) {
     super(message);
-    this.name = "RTCError";
+    this.name = 'RTCError';
     this.code = code;
     this.cause = cause;
   }
@@ -13,48 +13,48 @@ function isRTCError(value) {
 
 // src/config.ts
 function decodeTokenPayload(token) {
-  const parts = token.split(".");
+  const parts = token.split('.');
   if (parts.length !== 3) {
-    throw new RTCError("INVALID_TOKEN", "RTC token is malformed (expected a JWT with 3 parts)");
+    throw new RTCError('INVALID_TOKEN', 'RTC token is malformed (expected a JWT with 3 parts)');
   }
   try {
-    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
     const json = JSON.parse(atob(base64));
     return {
-      roomId: typeof json?.rid === "string" ? json.rid : void 0,
-      roomName: typeof json?.rnm === "string" ? json.rnm : void 0,
-      exp: typeof json?.exp === "number" ? json.exp : void 0,
-      sub: typeof json?.sub === "string" ? json.sub : void 0
+      roomId: typeof json?.rid === 'string' ? json.rid : void 0,
+      roomName: typeof json?.rnm === 'string' ? json.rnm : void 0,
+      exp: typeof json?.exp === 'number' ? json.exp : void 0,
+      sub: typeof json?.sub === 'string' ? json.sub : void 0,
     };
   } catch (error) {
-    throw new RTCError("INVALID_TOKEN", "RTC token payload could not be decoded", error);
+    throw new RTCError('INVALID_TOKEN', 'RTC token payload could not be decoded', error);
   }
 }
 function validateConfig(config) {
-  if (!config || typeof config !== "object") {
-    throw new RTCError("INVALID_TOKEN", "createRTCClient(config) requires a configuration object");
+  if (!config || typeof config !== 'object') {
+    throw new RTCError('INVALID_TOKEN', 'createRTCClient(config) requires a configuration object');
   }
-  if (!config.token || typeof config.token !== "string") {
-    throw new RTCError("INVALID_TOKEN", "config.token is required; the RTC token from your backend");
+  if (!config.token || typeof config.token !== 'string') {
+    throw new RTCError('INVALID_TOKEN', 'config.token is required; the RTC token from your backend');
   }
-  if (!config.endpoint || typeof config.endpoint !== "string") {
+  if (!config.endpoint || typeof config.endpoint !== 'string') {
     throw new RTCError(
-      "INVALID_TOKEN",
-      'config.endpoint is required; the "endpoint" field from the same token-mint response as config.token'
+      'INVALID_TOKEN',
+      'config.endpoint is required; the "endpoint" field from the same token-mint response as config.token',
     );
   }
   const { exp } = decodeTokenPayload(config.token);
   if (exp !== void 0 && exp * 1e3 <= Date.now()) {
-    throw new RTCError("TOKEN_EXPIRED", "RTC token has already expired");
+    throw new RTCError('TOKEN_EXPIRED', 'RTC token has already expired');
   }
   return {
     token: config.token,
     endpoint: config.endpoint,
     iceServers: config.iceServers,
-    logLevel: config.logLevel ?? "silent",
+    logLevel: config.logLevel ?? 'silent',
     autoReconnect: config.autoReconnect ?? true,
     telemetryUrl: config.telemetryUrl,
-    telemetry: config.telemetry ?? true
+    telemetry: config.telemetry ?? true,
   };
 }
 function assertTokenMatchesRoom(token, room) {
@@ -66,86 +66,91 @@ function assertTokenMatchesRoom(token, room) {
     return;
   }
   const minted = roomName ?? roomId;
-  throw new RTCError("ROOM_NOT_FOUND", `This token was minted for room "${minted}", not "${room}"`);
+  throw new RTCError('ROOM_NOT_FOUND', `This token was minted for room "${minted}", not "${room}"`);
 }
 
 // src/logger.ts
-var LEVELS = ["silent", "error", "warn", "info", "debug"];
-function createLogger(level = "silent") {
+var LEVELS = ['silent', 'error', 'warn', 'info', 'debug'];
+function createLogger(level = 'silent') {
   const rank = LEVELS.indexOf(level);
   const enabled = (l) => LEVELS.indexOf(l) <= rank;
   return {
     error: (...args) => {
-      if (enabled("error")) console.error("[raven-rtc]", ...args);
+      if (enabled('error')) console.error('[raven-rtc]', ...args);
     },
     warn: (...args) => {
-      if (enabled("warn")) console.warn("[raven-rtc]", ...args);
+      if (enabled('warn')) console.warn('[raven-rtc]', ...args);
     },
     info: (...args) => {
-      if (enabled("info")) console.info("[raven-rtc]", ...args);
+      if (enabled('info')) console.info('[raven-rtc]', ...args);
     },
     debug: (...args) => {
-      if (enabled("debug")) console.debug("[raven-rtc]", ...args);
-    }
+      if (enabled('debug')) console.debug('[raven-rtc]', ...args);
+    },
   };
 }
 
 // src/internal/devices/enumerate.ts
 async function listDevices(kind) {
-  if (typeof navigator === "undefined" || !navigator.mediaDevices?.enumerateDevices) {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) {
     throw new RTCError(
-      "NOT_SUPPORTED",
-      "Device enumeration is not available in this environment (no navigator.mediaDevices)"
+      'NOT_SUPPORTED',
+      'Device enumeration is not available in this environment (no navigator.mediaDevices)',
     );
   }
   const devices = await navigator.mediaDevices.enumerateDevices();
-  return devices.filter((device) => !kind || device.kind === kind).map((device) => ({
-    deviceId: device.deviceId,
-    label: device.label,
-    kind: device.kind
-  }));
+  return devices
+    .filter((device) => !kind || device.kind === kind)
+    .map((device) => ({
+      deviceId: device.deviceId,
+      label: device.label,
+      kind: device.kind,
+    }));
 }
 
 // src/internal/telemetry/track-stats.ts
 var MS_PER_SECOND = 1e3;
 function normalizeTrackStats(raw, previous, kind, direction) {
   const stats = { kind, direction };
-  if (typeof raw.jitter === "number") {
+  if (typeof raw.jitter === 'number') {
     stats.jitterMs = raw.jitter * MS_PER_SECOND;
   }
-  if (typeof raw.roundTripTime === "number") {
+  if (typeof raw.roundTripTime === 'number') {
     stats.roundTripTimeMs = raw.roundTripTime * MS_PER_SECOND;
   }
-  if (typeof raw.mimeType === "string") {
+  if (typeof raw.mimeType === 'string') {
     stats.codec = raw.mimeType;
   }
-  if (typeof raw.frameWidth === "number") stats.frameWidth = raw.frameWidth;
-  if (typeof raw.frameHeight === "number") stats.frameHeight = raw.frameHeight;
-  if (typeof raw.framesPerSecond === "number") stats.framesPerSecond = raw.framesPerSecond;
-  if (typeof raw.packetsLost === "number") {
+  if (typeof raw.frameWidth === 'number') stats.frameWidth = raw.frameWidth;
+  if (typeof raw.frameHeight === 'number') stats.frameHeight = raw.frameHeight;
+  if (typeof raw.framesPerSecond === 'number') stats.framesPerSecond = raw.framesPerSecond;
+  if (typeof raw.packetsLost === 'number') {
     stats.packetsLost = raw.packetsLost;
-    const attempted = direction === "send" ? raw.packetsSent : raw.packetsReceived;
-    if (typeof attempted === "number" && attempted + raw.packetsLost > 0) {
-      stats.packetLossPercent = raw.packetsLost / (attempted + raw.packetsLost) * 100;
+    const attempted = direction === 'send' ? raw.packetsSent : raw.packetsReceived;
+    if (typeof attempted === 'number' && attempted + raw.packetsLost > 0) {
+      stats.packetLossPercent = (raw.packetsLost / (attempted + raw.packetsLost)) * 100;
     }
   }
-  const bytesField = direction === "send" ? "bytesSent" : "bytesReceived";
+  const bytesField = direction === 'send' ? 'bytesSent' : 'bytesReceived';
   const currentBytes = raw[bytesField];
   const previousBytes = previous?.[bytesField];
-  if (typeof currentBytes === "number" && typeof previousBytes === "number") {
+  if (typeof currentBytes === 'number' && typeof previousBytes === 'number') {
     const elapsedSeconds = (raw.timestamp - previous.timestamp) / MS_PER_SECOND;
     if (elapsedSeconds > 0 && currentBytes >= previousBytes) {
-      stats.bitrateBps = (currentBytes - previousBytes) * 8 / elapsedSeconds;
+      stats.bitrateBps = ((currentBytes - previousBytes) * 8) / elapsedSeconds;
     }
   }
   return stats;
 }
 function pickBestLayer(layers) {
-  return layers.reduce((best, layer) => {
-    const bestWidth = best?.frameWidth ?? -1;
-    const layerWidth = layer.frameWidth ?? -1;
-    return layerWidth > bestWidth ? layer : best;
-  }, void 0);
+  return layers.reduce(
+    (best, layer) => {
+      const bestWidth = best?.frameWidth ?? -1;
+      const layerWidth = layer.frameWidth ?? -1;
+      return layerWidth > bestWidth ? layer : best;
+    },
+    void 0,
+  );
 }
 
 // src/track.ts
@@ -205,11 +210,14 @@ var LocalTrack = class extends Track {
    * call keeps working either way.
    */
   async attachEffects(pipeline) {
-    if (this.kind !== "camera") {
-      throw new RTCError("MEDIA_ERROR", `attachEffects() is only supported on camera tracks, not "${this.kind}".`);
+    if (this.kind !== 'camera') {
+      throw new RTCError('MEDIA_ERROR', `attachEffects() is only supported on camera tracks, not "${this.kind}".`);
     }
     if (!this.localDelegate.replaceTrack) {
-      throw new RTCError("MEDIA_ERROR", "This track cannot be swapped in place; the current adapter does not support replaceTrack().");
+      throw new RTCError(
+        'MEDIA_ERROR',
+        'This track cannot be swapped in place; the current adapter does not support replaceTrack().',
+      );
     }
     if (this.attachedEffectsPipeline) {
       await this.detachEffects();
@@ -254,7 +262,7 @@ var LocalTrack = class extends Track {
     if (!sample) {
       return void 0;
     }
-    const stats = normalizeTrackStats(sample, this.lastSample, this.kind, "send");
+    const stats = normalizeTrackStats(sample, this.lastSample, this.kind, 'send');
     this.lastSample = sample;
     return stats;
   }
@@ -270,7 +278,7 @@ var RemoteTrack = class extends Track {
     if (!raw) {
       return void 0;
     }
-    const stats = normalizeTrackStats(raw, this.lastSample, this.kind, "receive");
+    const stats = normalizeTrackStats(raw, this.lastSample, this.kind, 'receive');
     this.lastSample = raw;
     return stats;
   }
@@ -280,46 +288,38 @@ var RemoteTrack = class extends Track {
 function toMediaError(error, kind) {
   const name = errorName(error);
   switch (name) {
-    case "NotAllowedError":
-    case "SecurityError":
-      return new RTCError(
-        permissionDeniedCode(kind),
-        `Permission to use the ${label(kind)} was denied`,
-        error
-      );
-    case "NotFoundError":
-    case "OverconstrainedError":
-      return new RTCError("DEVICE_NOT_FOUND", `No ${label(kind)} device matched`, error);
-    case "NotReadableError":
-      return new RTCError(
-        "MEDIA_ERROR",
-        `The ${label(kind)} is already in use by another application`,
-        error
-      );
-    case "AbortError":
-      return new RTCError("MEDIA_ERROR", `Capturing the ${label(kind)} was aborted`, error);
-    case "TypeError":
-      return new RTCError("MEDIA_ERROR", `Invalid ${label(kind)} capture constraints`, error);
+    case 'NotAllowedError':
+    case 'SecurityError':
+      return new RTCError(permissionDeniedCode(kind), `Permission to use the ${label(kind)} was denied`, error);
+    case 'NotFoundError':
+    case 'OverconstrainedError':
+      return new RTCError('DEVICE_NOT_FOUND', `No ${label(kind)} device matched`, error);
+    case 'NotReadableError':
+      return new RTCError('MEDIA_ERROR', `The ${label(kind)} is already in use by another application`, error);
+    case 'AbortError':
+      return new RTCError('MEDIA_ERROR', `Capturing the ${label(kind)} was aborted`, error);
+    case 'TypeError':
+      return new RTCError('MEDIA_ERROR', `Invalid ${label(kind)} capture constraints`, error);
     default:
-      return new RTCError("MEDIA_ERROR", `Could not access the ${label(kind)}`, error);
+      return new RTCError('MEDIA_ERROR', `Could not access the ${label(kind)}`, error);
   }
 }
 function errorName(error) {
-  if (typeof DOMException !== "undefined" && error instanceof DOMException) {
+  if (typeof DOMException !== 'undefined' && error instanceof DOMException) {
     return error.name;
   }
-  if (error && typeof error === "object" && typeof error.name === "string") {
+  if (error && typeof error === 'object' && typeof error.name === 'string') {
     return error.name;
   }
   return void 0;
 }
 function label(kind) {
-  return kind === "screenShare" ? "screen" : kind;
+  return kind === 'screenShare' ? 'screen' : kind;
 }
 function permissionDeniedCode(kind) {
-  if (kind === "camera") return "CAMERA_PERMISSION_DENIED";
-  if (kind === "microphone") return "MICROPHONE_PERMISSION_DENIED";
-  return "PERMISSION_DENIED";
+  if (kind === 'camera') return 'CAMERA_PERMISSION_DENIED';
+  if (kind === 'microphone') return 'MICROPHONE_PERMISSION_DENIED';
+  return 'PERMISSION_DENIED';
 }
 
 // src/internal/telemetry/rtc-stats.ts
@@ -330,12 +330,12 @@ function rawStatsFromReport(report, wanted) {
   report.forEach((entry) => {
     const stats = entry;
     switch (stats.type) {
-      case "codec":
-        if (typeof stats.id === "string" && typeof stats.mimeType === "string") {
+      case 'codec':
+        if (typeof stats.id === 'string' && typeof stats.mimeType === 'string') {
           codecs.set(stats.id, stats.mimeType);
         }
         break;
-      case "remote-inbound-rtp":
+      case 'remote-inbound-rtp':
         remoteInbound.push(stats);
         break;
       case wanted:
@@ -348,36 +348,38 @@ function rawStatsFromReport(report, wanted) {
 function toRawStats(rtp, direction, codecs, remoteInbound) {
   const kind = rtp.kind ?? rtp.mediaType;
   const sample = {
-    type: kind === "audio" ? "audio" : kind === "video" ? "video" : void 0,
+    type: kind === 'audio' ? 'audio' : kind === 'video' ? 'video' : void 0,
     // `RTCStats.timestamp` is a DOMHighResTimeStamp relative to the time
     // origin, and `normalizeTrackStats` only ever uses it as a delta
     // against a previous sample, so the epoch is irrelevant. Falling back
     // to Date.now() keeps the delta usable on the rare browser that omits
     // it.
-    timestamp: typeof rtp.timestamp === "number" ? rtp.timestamp : Date.now()
+    timestamp: typeof rtp.timestamp === 'number' ? rtp.timestamp : Date.now(),
   };
-  if (typeof rtp.jitter === "number") sample.jitter = rtp.jitter;
-  if (typeof rtp.frameWidth === "number") sample.frameWidth = rtp.frameWidth;
-  if (typeof rtp.frameHeight === "number") sample.frameHeight = rtp.frameHeight;
-  if (typeof rtp.framesPerSecond === "number") sample.framesPerSecond = rtp.framesPerSecond;
+  if (typeof rtp.jitter === 'number') sample.jitter = rtp.jitter;
+  if (typeof rtp.frameWidth === 'number') sample.frameWidth = rtp.frameWidth;
+  if (typeof rtp.frameHeight === 'number') sample.frameHeight = rtp.frameHeight;
+  if (typeof rtp.framesPerSecond === 'number') sample.framesPerSecond = rtp.framesPerSecond;
   const mimeType = rtp.mimeType ?? (rtp.codecId ? codecs.get(rtp.codecId) : void 0);
   if (mimeType) sample.mimeType = mimeType;
-  if (direction === "outbound-rtp") {
-    if (typeof rtp.bytesSent === "number") sample.bytesSent = rtp.bytesSent;
-    if (typeof rtp.packetsSent === "number") sample.packetsSent = rtp.packetsSent;
-    const feedback = remoteInbound.find((remote) => rtp.id && remote.localId === rtp.id) ?? remoteInbound.find((remote) => rtp.ssrc !== void 0 && remote.ssrc === rtp.ssrc);
+  if (direction === 'outbound-rtp') {
+    if (typeof rtp.bytesSent === 'number') sample.bytesSent = rtp.bytesSent;
+    if (typeof rtp.packetsSent === 'number') sample.packetsSent = rtp.packetsSent;
+    const feedback =
+      remoteInbound.find((remote) => rtp.id && remote.localId === rtp.id) ??
+      remoteInbound.find((remote) => rtp.ssrc !== void 0 && remote.ssrc === rtp.ssrc);
     if (feedback) {
-      if (typeof feedback.roundTripTime === "number") sample.roundTripTime = feedback.roundTripTime;
-      if (typeof feedback.packetsLost === "number") sample.packetsLost = feedback.packetsLost;
-      if (sample.jitter === void 0 && typeof feedback.jitter === "number") {
+      if (typeof feedback.roundTripTime === 'number') sample.roundTripTime = feedback.roundTripTime;
+      if (typeof feedback.packetsLost === 'number') sample.packetsLost = feedback.packetsLost;
+      if (sample.jitter === void 0 && typeof feedback.jitter === 'number') {
         sample.jitter = feedback.jitter;
       }
     }
     return sample;
   }
-  if (typeof rtp.bytesReceived === "number") sample.bytesReceived = rtp.bytesReceived;
-  if (typeof rtp.packetsReceived === "number") sample.packetsReceived = rtp.packetsReceived;
-  if (typeof rtp.packetsLost === "number") sample.packetsLost = rtp.packetsLost;
+  if (typeof rtp.bytesReceived === 'number') sample.bytesReceived = rtp.bytesReceived;
+  if (typeof rtp.packetsReceived === 'number') sample.packetsReceived = rtp.packetsReceived;
+  if (typeof rtp.packetsLost === 'number') sample.packetsLost = rtp.packetsLost;
   return sample;
 }
 async function connectionRoundTripTimeMs(connection) {
@@ -385,13 +387,13 @@ async function connectionRoundTripTimeMs(connection) {
   let rttSeconds;
   report.forEach((entry) => {
     const stats = entry;
-    if (stats.type !== "candidate-pair") {
+    if (stats.type !== 'candidate-pair') {
       return;
     }
-    if (stats.state !== "succeeded" || stats.nominated !== true) {
+    if (stats.state !== 'succeeded' || stats.nominated !== true) {
       return;
     }
-    if (typeof stats.currentRoundTripTime === "number") {
+    if (typeof stats.currentRoundTripTime === 'number') {
       rttSeconds = stats.currentRoundTripTime;
     }
   });
@@ -405,7 +407,7 @@ var NativeTrackDelegate = class {
     this.mediaStreamTrack = mediaStreamTrack;
   }
   get mediaStream() {
-    if (!this.stream && typeof MediaStream !== "undefined") {
+    if (!this.stream && typeof MediaStream !== 'undefined') {
       this.stream = new MediaStream([this.mediaStreamTrack]);
     }
     return this.stream;
@@ -445,7 +447,7 @@ var NativeTrackDelegate = class {
    */
   swapMediaStreamTrack(next) {
     this.mediaStreamTrack = next;
-    this.stream = typeof MediaStream !== "undefined" ? new MediaStream([next]) : void 0;
+    this.stream = typeof MediaStream !== 'undefined' ? new MediaStream([next]) : void 0;
     const stream = this.stream;
     if (!stream) {
       return;
@@ -455,10 +457,10 @@ var NativeTrackDelegate = class {
     }
   }
   createElement() {
-    if (typeof document === "undefined") {
-      throw new Error("attach() without an element requires a DOM");
+    if (typeof document === 'undefined') {
+      throw new Error('attach() without an element requires a DOM');
     }
-    return document.createElement(this.mediaStreamTrack.kind === "video" ? "video" : "audio");
+    return document.createElement(this.mediaStreamTrack.kind === 'video' ? 'video' : 'audio');
   }
 };
 var NativeLocalTrackDelegate = class extends NativeTrackDelegate {
@@ -527,7 +529,7 @@ var NativeLocalTrackDelegate = class extends NativeTrackDelegate {
       return void 0;
     }
     const report = await this.sender.getStats();
-    const samples = rawStatsFromReport(report, "outbound-rtp");
+    const samples = rawStatsFromReport(report, 'outbound-rtp');
     if (samples.length === 0) {
       return void 0;
     }
@@ -549,7 +551,7 @@ var NativeRemoteTrackDelegate = class extends NativeTrackDelegate {
   }
   async getReceiverStats() {
     const report = await this.receiver.getStats();
-    const [sample] = rawStatsFromReport(report, "inbound-rtp");
+    const [sample] = rawStatsFromReport(report, 'inbound-rtp');
     return sample;
   }
 };
@@ -558,63 +560,60 @@ var NativeRemoteTrackDelegate = class extends NativeTrackDelegate {
 var DEFAULT_AUDIO_CONSTRAINTS = {
   echoCancellation: true,
   noiseSuppression: true,
-  autoGainControl: true
+  autoGainControl: true,
 };
 var DEFAULT_VIDEO_CONSTRAINTS = {
   width: { ideal: 1280 },
   height: { ideal: 720 },
-  frameRate: { ideal: 30 }
+  frameRate: { ideal: 30 },
 };
 var VIDEO_PROFILES = {
-  "360p": { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 30 } },
-  "480p": { width: { ideal: 854 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
-  "720p": { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
-  "1080p": { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } }
+  '360p': { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 30 } },
+  '480p': { width: { ideal: 854 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
+  '720p': { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+  '1080p': { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
 };
 async function createCameraTrack(options = {}) {
   const constraints = {
     ...DEFAULT_VIDEO_CONSTRAINTS,
-    ...options.profile ? VIDEO_PROFILES[options.profile] : {},
-    ...options.facingMode ? { facingMode: options.facingMode } : {},
-    ...options.deviceId ? { deviceId: { exact: options.deviceId } } : {},
-    ...options.constraints
+    ...(options.profile ? VIDEO_PROFILES[options.profile] : {}),
+    ...(options.facingMode ? { facingMode: options.facingMode } : {}),
+    ...(options.deviceId ? { deviceId: { exact: options.deviceId } } : {}),
+    ...options.constraints,
   };
-  const stream = await getUserMedia({ video: constraints, audio: false }, "camera");
-  return trackFromStream(stream, "camera");
+  const stream = await getUserMedia({ video: constraints, audio: false }, 'camera');
+  return trackFromStream(stream, 'camera');
 }
 async function createMicrophoneTrack(options = {}) {
   const constraints = {
     ...DEFAULT_AUDIO_CONSTRAINTS,
-    ...options.deviceId ? { deviceId: { exact: options.deviceId } } : {},
-    ...options.constraints
+    ...(options.deviceId ? { deviceId: { exact: options.deviceId } } : {}),
+    ...options.constraints,
   };
-  const stream = await getUserMedia({ audio: constraints, video: false }, "microphone");
-  return trackFromStream(stream, "microphone");
+  const stream = await getUserMedia({ audio: constraints, video: false }, 'microphone');
+  return trackFromStream(stream, 'microphone');
 }
 async function createScreenShareTrack() {
-  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getDisplayMedia) {
-    throw new RTCError(
-      "NOT_SUPPORTED",
-      "Screen sharing is not available on this platform (no getDisplayMedia)"
-    );
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getDisplayMedia) {
+    throw new RTCError('NOT_SUPPORTED', 'Screen sharing is not available on this platform (no getDisplayMedia)');
   }
   let stream;
   try {
     stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
   } catch (error) {
-    throw toMediaError(error, "screenShare");
+    throw toMediaError(error, 'screenShare');
   }
   const [videoTrack] = stream.getVideoTracks();
   if (!videoTrack) {
-    throw new RTCError("MEDIA_ERROR", "Screen capture returned no video track");
+    throw new RTCError('MEDIA_ERROR', 'Screen capture returned no video track');
   }
-  return new LocalTrack(new NativeLocalTrackDelegate(videoTrack), "screenShare");
+  return new LocalTrack(new NativeLocalTrackDelegate(videoTrack), 'screenShare');
 }
 async function getUserMedia(constraints, kind) {
-  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
     throw new RTCError(
-      "NOT_SUPPORTED",
-      "Media capture is not available in this environment (no navigator.mediaDevices)"
+      'NOT_SUPPORTED',
+      'Media capture is not available in this environment (no navigator.mediaDevices)',
     );
   }
   try {
@@ -624,9 +623,9 @@ async function getUserMedia(constraints, kind) {
   }
 }
 function trackFromStream(stream, kind) {
-  const [track] = kind === "microphone" ? stream.getAudioTracks() : stream.getVideoTracks();
+  const [track] = kind === 'microphone' ? stream.getAudioTracks() : stream.getVideoTracks();
   if (!track) {
-    throw new RTCError("MEDIA_ERROR", `Capture returned no ${kind} track`);
+    throw new RTCError('MEDIA_ERROR', `Capture returned no ${kind} track`);
   }
   return new LocalTrack(new NativeLocalTrackDelegate(track), kind);
 }
@@ -650,10 +649,10 @@ var TypedEventEmitter = class {
     return this;
   }
   once(event, handler) {
-    const wrapped = ((...args) => {
+    const wrapped = (...args) => {
       this.off(event, wrapped);
       handler(...args);
-    });
+    };
     return this.on(event, wrapped);
   }
   removeAllListeners(event) {
@@ -709,12 +708,12 @@ var RemoteParticipant = class extends Participant {
 
 // src/internal/signaling/protocol.ts
 var ClientMessageType = {
-  ROOM_JOIN: "room.join",
-  ROOM_LEAVE: "room.leave",
-  SDP_ANSWER: "sdp.answer",
-  SDP_OFFER: "sdp.offer",
-  ICE_CANDIDATE: "ice.candidate",
-  TRACK_MUTE: "track.mute",
+  ROOM_JOIN: 'room.join',
+  ROOM_LEAVE: 'room.leave',
+  SDP_ANSWER: 'sdp.answer',
+  SDP_OFFER: 'sdp.offer',
+  ICE_CANDIDATE: 'ice.candidate',
+  TRACK_MUTE: 'track.mute',
   /**
    * Declares what a track being published is *of*.
    *
@@ -723,29 +722,30 @@ var ClientMessageType = {
    * read-only. Without this the SFU can only guess the source from codec
    * kind, and that can't tell a screen share from a camera.
    */
-  TRACK_PUBLISH: "track.publish",
-  SUBSCRIPTION_UPDATE: "subscription.update",
-  PING: "ping"
+  TRACK_PUBLISH: 'track.publish',
+  SUBSCRIPTION_UPDATE: 'subscription.update',
+  PING: 'ping',
 };
 var ServerMessageType = {
-  ROOM_JOINED: "room.joined",
-  PARTICIPANT_JOINED: "participant.joined",
-  PARTICIPANT_LEFT: "participant.left",
-  TRACK_PUBLISHED: "track.published",
-  TRACK_UNPUBLISHED: "track.unpublished",
-  TRACK_MUTED: "track.muted",
-  TRACK_UNMUTED: "track.unmuted",
-  SDP_OFFER: "sdp.offer",
-  SDP_ANSWER: "sdp.answer",
-  ICE_CANDIDATE: "ice.candidate",
-  CONNECTION_STATE: "connection.state",
-  ERROR: "error"};
+  ROOM_JOINED: 'room.joined',
+  PARTICIPANT_JOINED: 'participant.joined',
+  PARTICIPANT_LEFT: 'participant.left',
+  TRACK_PUBLISHED: 'track.published',
+  TRACK_UNPUBLISHED: 'track.unpublished',
+  TRACK_MUTED: 'track.muted',
+  TRACK_UNMUTED: 'track.unmuted',
+  SDP_OFFER: 'sdp.offer',
+  SDP_ANSWER: 'sdp.answer',
+  ICE_CANDIDATE: 'ice.candidate',
+  CONNECTION_STATE: 'connection.state',
+  ERROR: 'error',
+};
 var FATAL_ERROR_CODES = /* @__PURE__ */ new Set([
-  "INVALID_TOKEN",
-  "TOKEN_EXPIRED",
-  "UNAUTHORIZED",
-  "ROOM_NOT_FOUND",
-  "PERMISSION_DENIED"
+  'INVALID_TOKEN',
+  'TOKEN_EXPIRED',
+  'UNAUTHORIZED',
+  'ROOM_NOT_FOUND',
+  'PERMISSION_DENIED',
 ]);
 
 // src/internal/signaling/signaling-client.ts
@@ -791,33 +791,28 @@ var SignalingClient = class extends TypedEventEmitter {
       try {
         socket = new WebSocket(url);
       } catch (error) {
-        reject(new RTCError("SIGNALING_ERROR", "Could not open a signaling connection", error));
+        reject(new RTCError('SIGNALING_ERROR', 'Could not open a signaling connection', error));
         return;
       }
       const timeout = setTimeout(() => {
         socket.close();
-        reject(new RTCError("TIMEOUT", `Signaling connection to ${this.options.endpoint} timed out`));
+        reject(new RTCError('TIMEOUT', `Signaling connection to ${this.options.endpoint} timed out`));
       }, OPEN_TIMEOUT_MS);
       socket.onopen = () => {
         clearTimeout(timeout);
-        this.logger.debug("signaling socket open");
+        this.logger.debug('signaling socket open');
         resolve(socket);
       };
       socket.onerror = () => {
         clearTimeout(timeout);
-        reject(
-          new RTCError(
-            "NETWORK_ERROR",
-            `Could not reach the signaling endpoint at ${this.options.endpoint}`
-          )
-        );
+        reject(new RTCError('NETWORK_ERROR', `Could not reach the signaling endpoint at ${this.options.endpoint}`));
       };
     });
   }
   join(socket) {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new RTCError("TIMEOUT", "The server did not confirm the room join"));
+        reject(new RTCError('TIMEOUT', 'The server did not confirm the room join'));
       }, JOIN_TIMEOUT_MS);
       let settled = false;
       const settle = (fn) => {
@@ -837,17 +832,13 @@ var SignalingClient = class extends TypedEventEmitter {
               roomId: message.roomId,
               participants: message.participants,
               rtcServer: message.rtcServer,
-              region: message.region
+              region: message.region,
             };
             this.joined = true;
             this.reconnectAttempts = 0;
-            this.logger.info(
-              "joined room",
-              message.roomId,
-              message.rtcServer ? `via ${message.rtcServer}` : ""
-            );
+            this.logger.info('joined room', message.roomId, message.rtcServer ? `via ${message.rtcServer}` : '');
             settle(() => resolve(payload));
-            this.emit("joined", payload);
+            this.emit('joined', payload);
             return;
           }
           if (message.type === ServerMessageType.ERROR) {
@@ -859,48 +850,44 @@ var SignalingClient = class extends TypedEventEmitter {
       };
       socket.onclose = (event) => {
         this.joined = false;
-        settle(
-          () => reject(
+        settle(() =>
+          reject(
             new RTCError(
-              "SIGNALING_ERROR",
-              `The signaling connection closed before the room was joined (code ${event.code})`
-            )
-          )
+              'SIGNALING_ERROR',
+              `The signaling connection closed before the room was joined (code ${event.code})`,
+            ),
+          ),
         );
         this.handleClose(event);
       };
-      socket.onerror = () => {
-      };
+      socket.onerror = () => {};
       this.send({
         type: ClientMessageType.ROOM_JOIN,
         roomId: this.options.roomId,
-        region: this.options.region
+        region: this.options.region,
       });
     });
   }
   handleMessage(message) {
     if (message.type === ServerMessageType.ERROR) {
       const error = this.toError(message.code, message.message);
-      this.logger.warn("signaling error", message.code, message.message);
+      this.logger.warn('signaling error', message.code, message.message);
       if (FATAL_ERROR_CODES.has(message.code)) {
         this.closedByCaller = true;
         this.socket?.close();
-        this.emit("failed", error);
+        this.emit('failed', error);
         return;
       }
     }
-    this.emit("message", message);
+    this.emit('message', message);
   }
   handleClose(event) {
     if (this.closedByCaller) {
-      this.emit("closed");
+      this.emit('closed');
       return;
     }
     if (!this.options.autoReconnect) {
-      this.emit(
-        "failed",
-        new RTCError("NETWORK_ERROR", `The signaling connection closed (code ${event.code})`)
-      );
+      this.emit('failed', new RTCError('NETWORK_ERROR', `The signaling connection closed (code ${event.code})`));
       return;
     }
     const authFailed = event.code === 4001;
@@ -909,27 +896,22 @@ var SignalingClient = class extends TypedEventEmitter {
   async scheduleReconnect(refreshFirst) {
     if (this.reconnectAttempts >= RECONNECT_MAX_ATTEMPTS) {
       this.emit(
-        "failed",
-        new RTCError(
-          "CONNECTION_FAILED",
-          `Could not re-establish signaling after ${RECONNECT_MAX_ATTEMPTS} attempts`
-        )
+        'failed',
+        new RTCError('CONNECTION_FAILED', `Could not re-establish signaling after ${RECONNECT_MAX_ATTEMPTS} attempts`),
       );
       return;
     }
     this.reconnectAttempts++;
-    this.emit("reconnecting");
+    this.emit('reconnecting');
     if (refreshFirst || this.reconnectAttempts === 1) {
       await this.tryRefreshToken();
     }
     const backoff = Math.min(RECONNECT_BASE_MS * 2 ** (this.reconnectAttempts - 1), RECONNECT_MAX_MS);
     const delay = Math.random() * backoff;
-    this.logger.info(
-      `signaling reconnect attempt ${this.reconnectAttempts} in ${Math.round(delay)}ms`
-    );
+    this.logger.info(`signaling reconnect attempt ${this.reconnectAttempts} in ${Math.round(delay)}ms`);
     this.reconnectTimer = setTimeout(() => {
       void this.openAndJoin().catch((error) => {
-        this.logger.warn("signaling reconnect failed", error.message);
+        this.logger.warn('signaling reconnect failed', error.message);
         void this.scheduleReconnect(false);
       });
     }, delay);
@@ -940,9 +922,9 @@ var SignalingClient = class extends TypedEventEmitter {
     }
     try {
       this.token = await this.options.refreshToken();
-      this.logger.debug("rtc token refreshed");
+      this.logger.debug('rtc token refreshed');
     } catch (error) {
-      this.logger.warn("rtc token refresh failed", error.message);
+      this.logger.warn('rtc token refresh failed', error.message);
     }
   }
   /** Replaces the token used by future reconnects (spec §21). */
@@ -951,7 +933,7 @@ var SignalingClient = class extends TypedEventEmitter {
   }
   send(message) {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      this.logger.debug("dropping signaling message, socket not open", message.type);
+      this.logger.debug('dropping signaling message, socket not open', message.type);
       return;
     }
     this.socket.send(JSON.stringify(message));
@@ -965,63 +947,63 @@ var SignalingClient = class extends TypedEventEmitter {
     }
     if (this.socket?.readyState === WebSocket.OPEN) {
       this.send({ type: ClientMessageType.ROOM_LEAVE });
-      this.socket.close(1e3, "client left");
+      this.socket.close(1e3, 'client left');
     }
     this.joined = false;
   }
   buildUrl() {
-    const base = this.options.endpoint.replace(/\/$/, "");
+    const base = this.options.endpoint.replace(/\/$/, '');
     return `${base}?token=${encodeURIComponent(this.token)}`;
   }
   parse(data) {
-    if (typeof data !== "string") {
-      this.logger.warn("ignoring non-text signaling frame");
+    if (typeof data !== 'string') {
+      this.logger.warn('ignoring non-text signaling frame');
       return void 0;
     }
     try {
       return JSON.parse(data);
     } catch {
-      this.logger.warn("ignoring unparseable signaling frame");
+      this.logger.warn('ignoring unparseable signaling frame');
       return void 0;
     }
   }
   toError(code, message) {
     switch (code) {
-      case "INVALID_TOKEN":
-        return new RTCError("INVALID_TOKEN", message);
-      case "TOKEN_EXPIRED":
-        return new RTCError("TOKEN_EXPIRED", message);
-      case "ROOM_NOT_FOUND":
-        return new RTCError("ROOM_NOT_FOUND", message);
-      case "UNAUTHORIZED":
-      case "PERMISSION_DENIED":
-        return new RTCError("PERMISSION_DENIED", message);
-      case "ROOM_FULL":
-      case "NO_RTC_CAPACITY":
-      case "RTC_SERVER_UNREACHABLE":
-        return new RTCError("CONNECTION_FAILED", message);
-      case "RATE_LIMITED":
-        return new RTCError("NETWORK_ERROR", message);
+      case 'INVALID_TOKEN':
+        return new RTCError('INVALID_TOKEN', message);
+      case 'TOKEN_EXPIRED':
+        return new RTCError('TOKEN_EXPIRED', message);
+      case 'ROOM_NOT_FOUND':
+        return new RTCError('ROOM_NOT_FOUND', message);
+      case 'UNAUTHORIZED':
+      case 'PERMISSION_DENIED':
+        return new RTCError('PERMISSION_DENIED', message);
+      case 'ROOM_FULL':
+      case 'NO_RTC_CAPACITY':
+      case 'RTC_SERVER_UNREACHABLE':
+        return new RTCError('CONNECTION_FAILED', message);
+      case 'RATE_LIMITED':
+        return new RTCError('NETWORK_ERROR', message);
       default:
-        return new RTCError("SIGNALING_ERROR", message);
+        return new RTCError('SIGNALING_ERROR', message);
     }
   }
 };
 
 // src/internal/sfu/raven-adapter.ts
-var DATA_CHANNEL_LABEL = "raven-data";
+var DATA_CHANNEL_LABEL = 'raven-data';
 var MAX_DATA_PAYLOAD_BYTES = 64 * 1024;
 var ICE_GATHER_HINT_MS = 0;
 function trackKindFromSource(source, kind) {
   switch (source) {
-    case "camera":
-      return "camera";
-    case "microphone":
-      return "microphone";
-    case "screenShare":
-      return "screenShare";
+    case 'camera':
+      return 'camera';
+    case 'microphone':
+      return 'microphone';
+    case 'screenShare':
+      return 'screenShare';
     default:
-      return kind === "audio" ? "microphone" : "camera";
+      return kind === 'audio' ? 'microphone' : 'camera';
   }
 }
 var RavenAdapter = class extends TypedEventEmitter {
@@ -1029,7 +1011,7 @@ var RavenAdapter = class extends TypedEventEmitter {
     super();
     this.remoteParticipants = /* @__PURE__ */ new Map();
     this.iceServers = [];
-    this._connectionState = "disconnected";
+    this._connectionState = 'disconnected';
     this.intentionalDisconnect = false;
     /** Published tracks by kind, so `enableCamera(false)` knows what to kill. */
     this.published = /* @__PURE__ */ new Map();
@@ -1048,7 +1030,7 @@ var RavenAdapter = class extends TypedEventEmitter {
     this.deferredPublishes = [];
     this.logger = logger;
     this.autoReconnect = autoReconnect;
-    this.localParticipant = new LocalParticipant("");
+    this.localParticipant = new LocalParticipant('');
   }
   get connectionState() {
     return this._connectionState;
@@ -1070,10 +1052,10 @@ var RavenAdapter = class extends TypedEventEmitter {
    * numbers in the meantime.
    */
   getConnectionQuality() {
-    if (this.sfuPeerState === "failed" || this._connectionState === "failed") {
-      return "lost";
+    if (this.sfuPeerState === 'failed' || this._connectionState === 'failed') {
+      return 'lost';
     }
-    return "unknown";
+    return 'unknown';
   }
   /** Diagnostics the LiveKit adapter never could give us (see `Room.getDiagnostics()`). */
   getIceConnectionState() {
@@ -1092,36 +1074,36 @@ var RavenAdapter = class extends TypedEventEmitter {
   // --- Connection --------------------------------------------------------
   async connect(endpoint, token, iceServers) {
     this.iceServers = iceServers ?? [];
-    this.setConnectionState("connecting");
+    this.setConnectionState('connecting');
     const roomId = roomIdFromToken(token);
     const signaling = new SignalingClient({
       endpoint,
       token,
       roomId,
       autoReconnect: this.autoReconnect,
-      logger: this.logger
+      logger: this.logger,
     });
     this.signaling = signaling;
-    signaling.on("message", (message) => void this.handleSignalingMessage(message));
-    signaling.on("reconnecting", () => {
-      this.setConnectionState("reconnecting");
+    signaling.on('message', (message) => void this.handleSignalingMessage(message));
+    signaling.on('reconnecting', () => {
+      this.setConnectionState('reconnecting');
       this.teardownPeerConnection();
     });
-    signaling.on("joined", (payload) => void this.handleJoined(payload));
-    signaling.on("failed", (error) => {
-      this.logger.error("signaling failed", error.message);
-      this.setConnectionState("failed");
+    signaling.on('joined', (payload) => void this.handleJoined(payload));
+    signaling.on('failed', (error) => {
+      this.logger.error('signaling failed', error.message);
+      this.setConnectionState('failed');
     });
-    signaling.on("closed", () => {
-      this.setConnectionState(this.intentionalDisconnect ? "disconnected" : "failed");
+    signaling.on('closed', () => {
+      this.setConnectionState(this.intentionalDisconnect ? 'disconnected' : 'failed');
     });
     try {
       const joined = await signaling.connect();
       this.localParticipant._setIdentity(participantIdFromToken(token));
       await this.handleJoined(joined);
     } catch (error) {
-      this.setConnectionState("failed");
-      throw error instanceof RTCError ? error : new RTCError("CONNECTION_FAILED", "Could not join the room", error);
+      this.setConnectionState('failed');
+      throw error instanceof RTCError ? error : new RTCError('CONNECTION_FAILED', 'Could not join the room', error);
     }
   }
   /**
@@ -1134,15 +1116,15 @@ var RavenAdapter = class extends TypedEventEmitter {
    */
   async handleJoined(payload) {
     this.logger.debug(
-      "room state at join",
+      'room state at join',
       `${payload.participants.length} participant(s)`,
-      payload.rtcServer ? `on ${payload.rtcServer}` : ""
+      payload.rtcServer ? `on ${payload.rtcServer}` : '',
     );
     const present = new Set(payload.participants.map((participant) => participant.id));
     for (const [id, participant] of this.remoteParticipants) {
       if (!present.has(id)) {
         this.remoteParticipants.delete(id);
-        this.emit("participantLeft", participant);
+        this.emit('participantLeft', participant);
       }
     }
     for (const entry of payload.participants) {
@@ -1150,7 +1132,7 @@ var RavenAdapter = class extends TypedEventEmitter {
       if (!participant) {
         participant = new RemoteParticipant(entry.id);
         this.remoteParticipants.set(entry.id, participant);
-        this.emit("participantJoined", participant);
+        this.emit('participantJoined', participant);
       }
       for (const track of entry.tracks ?? []) {
         this.announceTrack(entry.id, track);
@@ -1164,7 +1146,7 @@ var RavenAdapter = class extends TypedEventEmitter {
           roomId: message.roomId,
           participants: message.participants,
           rtcServer: message.rtcServer,
-          region: message.region
+          region: message.region,
         });
         return;
       case ServerMessageType.SDP_OFFER:
@@ -1183,7 +1165,7 @@ var RavenAdapter = class extends TypedEventEmitter {
         }
         const participant = new RemoteParticipant(message.participant.id);
         this.remoteParticipants.set(participant.identity, participant);
-        this.emit("participantJoined", participant);
+        this.emit('participantJoined', participant);
         return;
       }
       case ServerMessageType.PARTICIPANT_LEFT: {
@@ -1195,10 +1177,10 @@ var RavenAdapter = class extends TypedEventEmitter {
         for (const [key, subscription] of this.subscribed) {
           if (subscription.participantId === participant.identity) {
             this.subscribed.delete(key);
-            this.emit("trackUnsubscribed", subscription.track, participant);
+            this.emit('trackUnsubscribed', subscription.track, participant);
           }
         }
-        this.emit("participantLeft", participant);
+        this.emit('participantLeft', participant);
         return;
       }
       case ServerMessageType.TRACK_PUBLISHED:
@@ -1212,8 +1194,8 @@ var RavenAdapter = class extends TypedEventEmitter {
         const participant = this.remoteParticipants.get(message.participantId);
         if (subscription && participant) {
           this.subscribed.delete(key);
-          this.emit("trackUnpublished", subscription.track.kind, participant);
-          this.emit("trackUnsubscribed", subscription.track, participant);
+          this.emit('trackUnpublished', subscription.track.kind, participant);
+          this.emit('trackUnsubscribed', subscription.track, participant);
         }
         return;
       }
@@ -1227,20 +1209,20 @@ var RavenAdapter = class extends TypedEventEmitter {
           return;
         }
         subscription.delegate.setPublisherMuted(muted);
-        this.emit(muted ? "trackMuted" : "trackUnmuted", subscription.track.kind, participant);
+        this.emit(muted ? 'trackMuted' : 'trackUnmuted', subscription.track.kind, participant);
         return;
       }
       case ServerMessageType.CONNECTION_STATE:
         this.sfuIceState = message.iceState;
         this.sfuPeerState = message.peerState;
-        this.logger.debug("sfu connection state", message.iceState, message.peerState);
+        this.logger.debug('sfu connection state', message.iceState, message.peerState);
         return;
       case ServerMessageType.ERROR:
-        if (message.code === "NEGOTIATION_GLARE") {
-          this.logger.debug("publish deferred by glare; will retry after the next offer");
+        if (message.code === 'NEGOTIATION_GLARE') {
+          this.logger.debug('publish deferred by glare; will retry after the next offer');
           return;
         }
-        this.emit("mediaError", new Error(message.message));
+        this.emit('mediaError', new Error(message.message));
         return;
       default:
         return;
@@ -1262,17 +1244,17 @@ var RavenAdapter = class extends TypedEventEmitter {
         candidate: event.candidate.candidate,
         sdpMid: event.candidate.sdpMid ?? void 0,
         sdpMLineIndex: event.candidate.sdpMLineIndex ?? void 0,
-        usernameFragment: event.candidate.usernameFragment ?? void 0
+        usernameFragment: event.candidate.usernameFragment ?? void 0,
       });
     };
     pc.onconnectionstatechange = () => {
-      this.logger.debug("peer connection state", pc.connectionState);
+      this.logger.debug('peer connection state', pc.connectionState);
       switch (pc.connectionState) {
-        case "connected":
-          this.setConnectionState("connected");
+        case 'connected':
+          this.setConnectionState('connected');
           break;
-        case "failed":
-          this.setConnectionState(this.autoReconnect ? "reconnecting" : "failed");
+        case 'failed':
+          this.setConnectionState(this.autoReconnect ? 'reconnecting' : 'failed');
           break;
       }
     };
@@ -1288,17 +1270,17 @@ var RavenAdapter = class extends TypedEventEmitter {
   async handleOffer(sdp) {
     const pc = this.ensurePeerConnection();
     try {
-      await pc.setRemoteDescription({ type: "offer", sdp });
+      await pc.setRemoteDescription({ type: 'offer', sdp });
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       this.signaling?.send({
         type: ClientMessageType.SDP_ANSWER,
-        sdp: pc.localDescription?.sdp ?? answer.sdp ?? ""
+        sdp: pc.localDescription?.sdp ?? answer.sdp ?? '',
       });
       this.flushDeferredPublishes();
     } catch (error) {
-      this.logger.error("failed to answer offer", error.message);
-      this.emit("mediaError", new Error("Could not answer the server's offer"));
+      this.logger.error('failed to answer offer', error.message);
+      this.emit('mediaError', new Error("Could not answer the server's offer"));
     }
   }
   async handleAnswer(sdp) {
@@ -1306,9 +1288,9 @@ var RavenAdapter = class extends TypedEventEmitter {
       return;
     }
     try {
-      await this.pc.setRemoteDescription({ type: "answer", sdp });
+      await this.pc.setRemoteDescription({ type: 'answer', sdp });
     } catch (error) {
-      this.logger.error("failed to apply answer", error.message);
+      this.logger.error('failed to apply answer', error.message);
     }
   }
   async handleRemoteCandidate(message) {
@@ -1320,10 +1302,10 @@ var RavenAdapter = class extends TypedEventEmitter {
         candidate: message.candidate,
         sdpMid: message.sdpMid,
         sdpMLineIndex: message.sdpMLineIndex,
-        usernameFragment: message.usernameFragment
+        usernameFragment: message.usernameFragment,
       });
     } catch (error) {
-      this.logger.debug("ignoring ICE candidate", error.message);
+      this.logger.debug('ignoring ICE candidate', error.message);
     }
   }
   flushDeferredPublishes() {
@@ -1346,8 +1328,8 @@ var RavenAdapter = class extends TypedEventEmitter {
     if (!pc || !signaling) {
       return;
     }
-    if (pc.signalingState !== "stable") {
-      this.logger.debug("deferring publish negotiation until stable");
+    if (pc.signalingState !== 'stable') {
+      this.logger.debug('deferring publish negotiation until stable');
       this.deferredPublishes.push(() => void this.negotiatePublish());
       return;
     }
@@ -1357,11 +1339,11 @@ var RavenAdapter = class extends TypedEventEmitter {
       await waitTick();
       signaling.send({
         type: ClientMessageType.SDP_OFFER,
-        sdp: pc.localDescription?.sdp ?? offer.sdp ?? ""
+        sdp: pc.localDescription?.sdp ?? offer.sdp ?? '',
       });
     } catch (error) {
-      this.logger.error("publish negotiation failed", error.message);
-      throw new RTCError("MEDIA_ERROR", "Could not negotiate the published track", error);
+      this.logger.error('publish negotiation failed', error.message);
+      throw new RTCError('MEDIA_ERROR', 'Could not negotiate the published track', error);
     }
   }
   // --- Incoming media ----------------------------------------------------
@@ -1391,26 +1373,23 @@ var RavenAdapter = class extends TypedEventEmitter {
     const announcement = this.findAnnouncementForTrack(trackId);
     if (!announcement) {
       this.logger.debug(
-        "media arrived before its announcement",
+        'media arrived before its announcement',
         `resolved=${trackId}`,
         `local=${event.track.id}`,
-        `stream=${stream?.id ?? "none"}`,
-        `mid=${event.transceiver?.mid ?? "none"}`,
-        `announced=[${Array.from(this.announcedTracks.values()).map((entry) => `${entry.participantId}:${entry.track.trackId}`).join(", ")}]`
+        `stream=${stream?.id ?? 'none'}`,
+        `mid=${event.transceiver?.mid ?? 'none'}`,
+        `announced=[${Array.from(this.announcedTracks.values())
+          .map((entry) => `${entry.participantId}:${entry.track.trackId}`)
+          .join(', ')}]`,
       );
       this.pendingMedia.set(pendingKey(trackId), {
         stream: stream ?? new MediaStream([event.track]),
         track: event.track,
-        receiver: event.receiver
+        receiver: event.receiver,
       });
       return;
     }
-    this.completeSubscription(
-      announcement.participantId,
-      announcement.track,
-      event.track,
-      event.receiver
-    );
+    this.completeSubscription(announcement.participantId, announcement.track, event.track, event.receiver);
   }
   /**
    * The remote track id for an arriving track, read out of the remote SDP.
@@ -1436,8 +1415,8 @@ var RavenAdapter = class extends TypedEventEmitter {
       if (!lines.some((line) => line.trim() === `a=mid:${mid}`)) {
         continue;
       }
-      const msid = lines.find((line) => line.startsWith("a=msid:"));
-      const trackId = msid?.slice("a=msid:".length).trim().split(/\s+/)[1];
+      const msid = lines.find((line) => line.startsWith('a=msid:'));
+      const trackId = msid?.slice('a=msid:'.length).trim().split(/\s+/)[1];
       return trackId && trackId.length > 0 ? trackId : void 0;
     }
     return void 0;
@@ -1453,10 +1432,10 @@ var RavenAdapter = class extends TypedEventEmitter {
   announceTrack(participantId, track) {
     const key = subscriptionKey(participantId, track.trackId);
     this.announcedTracks.set(key, { participantId, track });
-    this.logger.debug("track announced", `${participantId}:${track.trackId}`, track.kind, track.source);
+    this.logger.debug('track announced', `${participantId}:${track.trackId}`, track.kind, track.source);
     const participant = this.remoteParticipants.get(participantId);
     if (participant) {
-      this.emit("trackPublished", trackKindFromSource(track.source, track.kind), participant);
+      this.emit('trackPublished', trackKindFromSource(track.source, track.kind), participant);
     }
     const pending = this.pendingMedia.get(pendingKey(track.trackId));
     if (pending) {
@@ -1467,7 +1446,7 @@ var RavenAdapter = class extends TypedEventEmitter {
   completeSubscription(participantId, serverTrack, mediaStreamTrack, receiver) {
     const participant = this.remoteParticipants.get(participantId);
     if (!participant) {
-      this.logger.debug("track for an unknown participant", participantId);
+      this.logger.debug('track for an unknown participant', participantId);
       return;
     }
     const key = subscriptionKey(participantId, serverTrack.trackId);
@@ -1480,7 +1459,7 @@ var RavenAdapter = class extends TypedEventEmitter {
     const track = new RemoteTrack(delegate, kind);
     this.subscribed.set(key, { track, delegate, participantId, trackId: serverTrack.trackId });
     participant.tracks.push(track);
-    this.emit("trackSubscribed", track, participant);
+    this.emit('trackSubscribed', track, participant);
     mediaStreamTrack.onended = () => {
       const subscription = this.subscribed.get(key);
       if (!subscription) {
@@ -1491,18 +1470,20 @@ var RavenAdapter = class extends TypedEventEmitter {
       if (index !== -1) {
         participant.tracks.splice(index, 1);
       }
-      this.emit("trackUnsubscribed", subscription.track, participant);
+      this.emit('trackUnsubscribed', subscription.track, participant);
     };
   }
   // --- Publishing --------------------------------------------------------
   async enableCamera(enabled) {
-    return enabled ? this.publishKind("camera", () => createCameraTrack()) : this.unpublishKind("camera");
+    return enabled ? this.publishKind('camera', () => createCameraTrack()) : this.unpublishKind('camera');
   }
   async enableMicrophone(enabled) {
-    return enabled ? this.publishKind("microphone", () => createMicrophoneTrack()) : this.unpublishKind("microphone");
+    return enabled ? this.publishKind('microphone', () => createMicrophoneTrack()) : this.unpublishKind('microphone');
   }
   async enableScreenShare(enabled) {
-    return enabled ? this.publishKind("screenShare", () => createScreenShareTrack()) : this.unpublishKind("screenShare");
+    return enabled
+      ? this.publishKind('screenShare', () => createScreenShareTrack())
+      : this.unpublishKind('screenShare');
   }
   async publishKind(kind, capture) {
     const existing = this.published.get(kind);
@@ -1511,7 +1492,7 @@ var RavenAdapter = class extends TypedEventEmitter {
       this.signaling?.send({
         type: ClientMessageType.TRACK_MUTE,
         trackId: existing.trackId,
-        muted: false
+        muted: false,
       });
       return existing.track;
     }
@@ -1529,26 +1510,23 @@ var RavenAdapter = class extends TypedEventEmitter {
   }
   async publish(track) {
     const pc = this.ensurePeerConnection();
-    const delegate = track["delegate"];
+    const delegate = track['delegate'];
     if (!(delegate instanceof NativeLocalTrackDelegate)) {
-      throw new RTCError(
-        "MEDIA_ERROR",
-        "This track was not created by the Livqeno SDK and cannot be published"
-      );
+      throw new RTCError('MEDIA_ERROR', 'This track was not created by the Livqeno SDK and cannot be published');
     }
-    const stream = typeof MediaStream !== "undefined" ? new MediaStream([track.mediaStreamTrack]) : void 0;
+    const stream = typeof MediaStream !== 'undefined' ? new MediaStream([track.mediaStreamTrack]) : void 0;
     let sender;
     try {
       sender = stream ? pc.addTrack(track.mediaStreamTrack, stream) : pc.addTrack(track.mediaStreamTrack);
     } catch (error) {
-      throw new RTCError("MEDIA_ERROR", "Could not add the track to the connection", error);
+      throw new RTCError('MEDIA_ERROR', 'Could not add the track to the connection', error);
     }
     const source = declaredSourceFor(track.kind);
     if (source) {
       this.signaling?.send({
         type: ClientMessageType.TRACK_PUBLISH,
         trackId: track.mediaStreamTrack.id,
-        source
+        source,
       });
     }
     delegate.setSender(sender);
@@ -1557,7 +1535,7 @@ var RavenAdapter = class extends TypedEventEmitter {
       track,
       delegate,
       sender,
-      trackId: track.mediaStreamTrack.id
+      trackId: track.mediaStreamTrack.id,
     });
     if (!this.localParticipant.tracks.includes(track)) {
       this.localParticipant.tracks.push(track);
@@ -1566,7 +1544,7 @@ var RavenAdapter = class extends TypedEventEmitter {
       void this.unpublish(track).catch(() => void 0);
     };
     await this.negotiatePublish();
-    this.emit("localTrackPublished", track);
+    this.emit('localTrackPublished', track);
   }
   async unpublish(track) {
     const entry = this.published.get(track.kind);
@@ -1582,11 +1560,11 @@ var RavenAdapter = class extends TypedEventEmitter {
     try {
       this.pc?.removeTrack(entry.sender);
     } catch (error) {
-      this.logger.debug("removeTrack failed", error.message);
+      this.logger.debug('removeTrack failed', error.message);
     }
     track.mediaStreamTrack.stop();
     await this.negotiatePublish();
-    this.emit("localTrackUnpublished", track);
+    this.emit('localTrackUnpublished', track);
   }
   /**
    * Sets up simulcast on a video sender (spec §15).
@@ -1602,10 +1580,10 @@ var RavenAdapter = class extends TypedEventEmitter {
    * already sorts its own bitrate out.
    */
   async applySimulcast(sender, kind) {
-    if (kind === "microphone" || sender.track?.kind !== "video") {
+    if (kind === 'microphone' || sender.track?.kind !== 'video') {
       return;
     }
-    if (kind === "screenShare") {
+    if (kind === 'screenShare') {
       return;
     }
     try {
@@ -1614,23 +1592,23 @@ var RavenAdapter = class extends TypedEventEmitter {
         return;
       }
       parameters.encodings = [
-        { rid: "low", scaleResolutionDownBy: 4, maxBitrate: 15e4 },
-        { rid: "medium", scaleResolutionDownBy: 2, maxBitrate: 5e5 },
-        { rid: "high", scaleResolutionDownBy: 1, maxBitrate: 15e5 }
+        { rid: 'low', scaleResolutionDownBy: 4, maxBitrate: 15e4 },
+        { rid: 'medium', scaleResolutionDownBy: 2, maxBitrate: 5e5 },
+        { rid: 'high', scaleResolutionDownBy: 1, maxBitrate: 15e5 },
       ];
       await sender.setParameters(parameters);
     } catch (error) {
-      this.logger.debug("simulcast not applied", error.message);
+      this.logger.debug('simulcast not applied', error.message);
     }
   }
   // --- Data channel ------------------------------------------------------
   attachDataChannel(channel) {
     this.dataChannel = channel;
-    channel.binaryType = "arraybuffer";
+    channel.binaryType = 'arraybuffer';
     channel.onmessage = (event) => {
       const payload = toUint8Array(event.data);
       if (payload) {
-        this.emit("dataReceived", payload, void 0);
+        this.emit('dataReceived', payload, void 0);
       }
     };
     channel.onclose = () => {
@@ -1642,21 +1620,21 @@ var RavenAdapter = class extends TypedEventEmitter {
   async sendData(payload) {
     if (payload.byteLength > MAX_DATA_PAYLOAD_BYTES) {
       throw new RTCError(
-        "MEDIA_ERROR",
-        `Data payload is ${payload.byteLength} bytes, over the ${MAX_DATA_PAYLOAD_BYTES}-byte limit`
+        'MEDIA_ERROR',
+        `Data payload is ${payload.byteLength} bytes, over the ${MAX_DATA_PAYLOAD_BYTES}-byte limit`,
       );
     }
     const channel = this.dataChannel ?? this.openDataChannel();
     if (!channel) {
-      throw new RTCError("CONNECTION_FAILED", "sendData() requires an active connection");
+      throw new RTCError('CONNECTION_FAILED', 'sendData() requires an active connection');
     }
-    if (channel.readyState !== "open") {
-      throw new RTCError("CONNECTION_FAILED", "The data channel is not open yet");
+    if (channel.readyState !== 'open') {
+      throw new RTCError('CONNECTION_FAILED', 'The data channel is not open yet');
     }
     try {
       channel.send(payload);
     } catch (error) {
-      throw new RTCError("PERMISSION_DENIED", "Could not send data; check the token grants publishData", error);
+      throw new RTCError('PERMISSION_DENIED', 'Could not send data; check the token grants publishData', error);
     }
   }
   /**
@@ -1680,14 +1658,14 @@ var RavenAdapter = class extends TypedEventEmitter {
   }
   async setDevice(kind, deviceId) {
     switch (kind) {
-      case "videoinput":
-        return this.replaceDevice("camera", () => createCameraTrack({ deviceId }));
-      case "audioinput":
-        return this.replaceDevice("microphone", () => createMicrophoneTrack({ deviceId }));
-      case "audiooutput":
+      case 'videoinput':
+        return this.replaceDevice('camera', () => createCameraTrack({ deviceId }));
+      case 'audioinput':
+        return this.replaceDevice('microphone', () => createMicrophoneTrack({ deviceId }));
+      case 'audiooutput':
         return this.setAudioOutput(deviceId);
       default:
-        throw new RTCError("DEVICE_NOT_FOUND", `Unknown device kind "${String(kind)}"`);
+        throw new RTCError('DEVICE_NOT_FOUND', `Unknown device kind "${String(kind)}"`);
     }
   }
   /**
@@ -1718,7 +1696,7 @@ var RavenAdapter = class extends TypedEventEmitter {
   async setAudioOutput(deviceId) {
     const failures = [];
     for (const subscription of this.subscribed.values()) {
-      if (subscription.track.kind === "camera" || subscription.track.kind === "screenShare") {
+      if (subscription.track.kind === 'camera' || subscription.track.kind === 'screenShare') {
         continue;
       }
       for (const element of subscription.track.detach()) {
@@ -1732,7 +1710,7 @@ var RavenAdapter = class extends TypedEventEmitter {
       }
     }
     if (failures.length > 0) {
-      throw new RTCError("DEVICE_NOT_FOUND", "Could not switch the audio output device", failures[0]);
+      throw new RTCError('DEVICE_NOT_FOUND', 'Could not switch the audio output device', failures[0]);
     }
   }
   // --- Teardown ----------------------------------------------------------
@@ -1749,14 +1727,13 @@ var RavenAdapter = class extends TypedEventEmitter {
     this.subscribed.clear();
     this.announcedTracks.clear();
     this.pendingMedia.clear();
-    this.setConnectionState("disconnected");
+    this.setConnectionState('disconnected');
   }
   teardownPeerConnection() {
     if (this.dataChannel) {
       try {
         this.dataChannel.close();
-      } catch {
-      }
+      } catch {}
       this.dataChannel = void 0;
     }
     if (!this.pc) {
@@ -1768,8 +1745,7 @@ var RavenAdapter = class extends TypedEventEmitter {
     this.pc.ondatachannel = null;
     try {
       this.pc.close();
-    } catch {
-    }
+    } catch {}
     this.pc = void 0;
   }
   setConnectionState(state) {
@@ -1777,7 +1753,7 @@ var RavenAdapter = class extends TypedEventEmitter {
       return;
     }
     this._connectionState = state;
-    this.emit("connectionStateChanged", state);
+    this.emit('connectionStateChanged', state);
   }
 };
 function subscriptionKey(participantId, trackId) {
@@ -1788,16 +1764,16 @@ function pendingKey(trackId) {
 }
 function declaredSourceFor(kind) {
   switch (kind) {
-    case "camera":
-    case "microphone":
-    case "screenShare":
+    case 'camera':
+    case 'microphone':
+    case 'screenShare':
       return kind;
     default:
       return void 0;
   }
 }
 function toUint8Array(data) {
-  if (typeof data === "string") {
+  if (typeof data === 'string') {
     return new TextEncoder().encode(data);
   }
   if (ArrayBuffer.isView(data)) {
@@ -1810,7 +1786,7 @@ function toUint8Array(data) {
 }
 function isArrayBufferLike(value) {
   const tag = Object.prototype.toString.call(value);
-  return tag === "[object ArrayBuffer]" || tag === "[object SharedArrayBuffer]";
+  return tag === '[object ArrayBuffer]' || tag === '[object SharedArrayBuffer]';
 }
 function waitTick() {
   return new Promise((resolve) => setTimeout(resolve, ICE_GATHER_HINT_MS));
@@ -1818,22 +1794,22 @@ function waitTick() {
 function roomIdFromToken(token) {
   const claims = decodeClaims(token);
   const roomId = claims?.rid;
-  if (typeof roomId !== "string" || roomId.length === 0) {
-    throw new RTCError("INVALID_TOKEN", "RTC token does not name a room");
+  if (typeof roomId !== 'string' || roomId.length === 0) {
+    throw new RTCError('INVALID_TOKEN', 'RTC token does not name a room');
   }
   return roomId;
 }
 function participantIdFromToken(token) {
   const claims = decodeClaims(token);
-  return typeof claims?.sub === "string" ? claims.sub : "";
+  return typeof claims?.sub === 'string' ? claims.sub : '';
 }
 function decodeClaims(token) {
-  const parts = token.split(".");
+  const parts = token.split('.');
   if (parts.length !== 3) {
     return void 0;
   }
   try {
-    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
     return JSON.parse(atob(base64));
   } catch {
     return void 0;
@@ -1842,10 +1818,10 @@ function decodeClaims(token) {
 
 // src/internal/telemetry/connection-id.ts
 function generateConnectionId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return `conn_${crypto.randomUUID().replace(/-/g, "")}`;
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `conn_${crypto.randomUUID().replace(/-/g, '')}`;
   }
-  let id = "";
+  let id = '';
   for (let i = 0; i < 32; i++) {
     id += Math.floor(Math.random() * 16).toString(16);
   }
@@ -1854,20 +1830,20 @@ function generateConnectionId() {
 
 // src/internal/telemetry/platform.ts
 function detectPlatform() {
-  if (typeof navigator === "undefined") {
-    return { platform: "unknown", browser: "unknown" };
+  if (typeof navigator === 'undefined') {
+    return { platform: 'unknown', browser: 'unknown' };
   }
-  const ua = navigator.userAgent ?? "";
-  let browser = "unknown";
-  if (/edg\//i.test(ua)) browser = "edge";
-  else if (/firefox|fxios/i.test(ua)) browser = "firefox";
-  else if (/chrome|crios/i.test(ua)) browser = "chrome";
-  else if (/safari/i.test(ua)) browser = "safari";
-  let platform = "web";
-  if (/android/i.test(ua)) platform = "android";
-  else if (/iphone|ipad|ipod/i.test(ua)) platform = "ios";
+  const ua = navigator.userAgent ?? '';
+  let browser = 'unknown';
+  if (/edg\//i.test(ua)) browser = 'edge';
+  else if (/firefox|fxios/i.test(ua)) browser = 'firefox';
+  else if (/chrome|crios/i.test(ua)) browser = 'chrome';
+  else if (/safari/i.test(ua)) browser = 'safari';
+  let platform = 'web';
+  if (/android/i.test(ua)) platform = 'android';
+  else if (/iphone|ipad|ipod/i.test(ua)) platform = 'ios';
   const connection = navigator.connection;
-  const networkType = typeof connection?.effectiveType === "string" ? connection.effectiveType : void 0;
+  const networkType = typeof connection?.effectiveType === 'string' ? connection.effectiveType : void 0;
   return { platform, browser, networkType };
 }
 
@@ -1875,8 +1851,7 @@ function detectPlatform() {
 function createTelemetryClient(options) {
   const connectionId = generateConnectionId();
   if (!options.enabled || !options.telemetryUrl) {
-    return { connectionId, send: () => {
-    } };
+    return { connectionId, send: () => {} };
   }
   return new HttpTelemetryClient(connectionId, options);
 }
@@ -1889,34 +1864,41 @@ var HttpTelemetryClient = class {
     const body = {
       connectionId: this.connectionId,
       type,
-      data: { sdkVersion: this.options.sdkVersion, ...detectPlatform(), ...data }
+      data: { sdkVersion: this.options.sdkVersion, ...detectPlatform(), ...data },
     };
     try {
       fetch(`${this.options.telemetryUrl}/v1/telemetry/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.options.token}` },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.options.token}` },
         body: JSON.stringify(body),
-        keepalive: true
-      }).then((res) => {
-        if (!res.ok) {
-          this.options.logger.debug("telemetry event rejected", type, res.status);
-        }
-      }).catch((error) => {
-        this.options.logger.debug("telemetry event failed", type, error.message);
-      });
+        keepalive: true,
+      })
+        .then((res) => {
+          if (!res.ok) {
+            this.options.logger.debug('telemetry event rejected', type, res.status);
+          }
+        })
+        .catch((error) => {
+          this.options.logger.debug('telemetry event failed', type, error.message);
+        });
     } catch (error) {
-      this.options.logger.debug("telemetry send threw synchronously", type, error.message);
+      this.options.logger.debug('telemetry send threw synchronously', type, error.message);
     }
   }
 };
 
 // src/version.ts
-var SDK_VERSION = "0.1.0";
+var SDK_VERSION = '0.1.0';
 
 // src/room.ts
 var _Room = class _Room extends TypedEventEmitter {
   /** @internal Use `client.join(roomId)`. The telemetry client defaults to a no-op, so tests and advanced setups can build a Room directly without wiring one up. */
-  constructor(adapter, roomId, logger, telemetry = createTelemetryClient({ enabled: false, token: "", sdkVersion: SDK_VERSION, logger })) {
+  constructor(
+    adapter,
+    roomId,
+    logger,
+    telemetry = createTelemetryClient({ enabled: false, token: '', sdkVersion: SDK_VERSION, logger }),
+  ) {
     super();
     this.reconnectCount = 0;
     this.adapter = adapter;
@@ -1935,61 +1917,61 @@ var _Room = class _Room extends TypedEventEmitter {
   }
   wireAdapterEvents() {
     let prevState = this.adapter.connectionState;
-    this.adapter.on("connectionStateChanged", (state) => {
-      this.emit("connectionStateChanged", state);
-      if (state === "connected") {
-        if (prevState === "reconnecting") {
+    this.adapter.on('connectionStateChanged', (state) => {
+      this.emit('connectionStateChanged', state);
+      if (state === 'connected') {
+        if (prevState === 'reconnecting') {
           this.reconnectCount++;
-          this.telemetry.send("reconnected");
-          this.emit("reconnected");
+          this.telemetry.send('reconnected');
+          this.emit('reconnected');
         } else {
-          this.telemetry.send("connected");
-          this.emit("connected");
+          this.telemetry.send('connected');
+          this.emit('connected');
         }
         this.startStatsMonitor();
-      } else if (state === "reconnecting" && prevState !== "reconnecting") {
-        this.telemetry.send("reconnecting");
-        this.emit("reconnecting");
-      } else if (state === "disconnected" || state === "failed") {
+      } else if (state === 'reconnecting' && prevState !== 'reconnecting') {
+        this.telemetry.send('reconnecting');
+        this.emit('reconnecting');
+      } else if (state === 'disconnected' || state === 'failed') {
         this.stopStatsMonitor();
-        this.telemetry.send(state === "failed" ? "connection_failed" : "disconnected");
-        this.emit("disconnected");
-        if (state === "failed") {
-          const error = new RTCError("CONNECTION_FAILED", "Connection failed after exhausting reconnect attempts");
-          this.telemetry.send("error", { code: error.code, message: error.message });
-          this.emit("error", error);
+        this.telemetry.send(state === 'failed' ? 'connection_failed' : 'disconnected');
+        this.emit('disconnected');
+        if (state === 'failed') {
+          const error = new RTCError('CONNECTION_FAILED', 'Connection failed after exhausting reconnect attempts');
+          this.telemetry.send('error', { code: error.code, message: error.message });
+          this.emit('error', error);
         }
       }
       prevState = state;
     });
-    this.adapter.on("participantJoined", (participant) => {
-      this.telemetry.send("participant_joined", { participantIdentity: participant.identity });
-      this.emit("participantJoined", participant);
+    this.adapter.on('participantJoined', (participant) => {
+      this.telemetry.send('participant_joined', { participantIdentity: participant.identity });
+      this.emit('participantJoined', participant);
     });
-    this.adapter.on("participantLeft", (participant) => {
-      this.telemetry.send("participant_left", { participantIdentity: participant.identity });
-      this.emit("participantLeft", participant);
+    this.adapter.on('participantLeft', (participant) => {
+      this.telemetry.send('participant_left', { participantIdentity: participant.identity });
+      this.emit('participantLeft', participant);
     });
-    this.adapter.on("trackPublished", (kind, participant) => this.emit("trackPublished", kind, participant));
-    this.adapter.on("trackUnpublished", (kind, participant) => this.emit("trackUnpublished", kind, participant));
-    this.adapter.on("trackSubscribed", (track, participant) => this.emit("trackSubscribed", track, participant));
-    this.adapter.on("trackUnsubscribed", (track, participant) => this.emit("trackUnsubscribed", track, participant));
-    this.adapter.on("trackMuted", (kind, participant) => this.emit("trackMuted", kind, participant));
-    this.adapter.on("trackUnmuted", (kind, participant) => this.emit("trackUnmuted", kind, participant));
-    this.adapter.on("localTrackPublished", (track) => {
-      this.telemetry.send("track_published", { kind: track.kind });
-      this.emit("localTrackPublished", track);
+    this.adapter.on('trackPublished', (kind, participant) => this.emit('trackPublished', kind, participant));
+    this.adapter.on('trackUnpublished', (kind, participant) => this.emit('trackUnpublished', kind, participant));
+    this.adapter.on('trackSubscribed', (track, participant) => this.emit('trackSubscribed', track, participant));
+    this.adapter.on('trackUnsubscribed', (track, participant) => this.emit('trackUnsubscribed', track, participant));
+    this.adapter.on('trackMuted', (kind, participant) => this.emit('trackMuted', kind, participant));
+    this.adapter.on('trackUnmuted', (kind, participant) => this.emit('trackUnmuted', kind, participant));
+    this.adapter.on('localTrackPublished', (track) => {
+      this.telemetry.send('track_published', { kind: track.kind });
+      this.emit('localTrackPublished', track);
     });
-    this.adapter.on("localTrackUnpublished", (track) => {
-      this.telemetry.send("track_unpublished", { kind: track.kind });
-      this.emit("localTrackUnpublished", track);
+    this.adapter.on('localTrackUnpublished', (track) => {
+      this.telemetry.send('track_unpublished', { kind: track.kind });
+      this.emit('localTrackUnpublished', track);
     });
-    this.adapter.on("dataReceived", (payload, participant) => this.emit("dataReceived", payload, participant));
-    this.adapter.on("mediaError", (error) => {
-      this.logger.warn("media device error", error.message);
-      const rtcError = new RTCError("MEDIA_ERROR", error.message, error);
-      this.telemetry.send("error", { code: rtcError.code, message: rtcError.message });
-      this.emit("error", rtcError);
+    this.adapter.on('dataReceived', (payload, participant) => this.emit('dataReceived', payload, participant));
+    this.adapter.on('mediaError', (error) => {
+      this.logger.warn('media device error', error.message);
+      const rtcError = new RTCError('MEDIA_ERROR', error.message, error);
+      this.telemetry.send('error', { code: rtcError.code, message: rtcError.message });
+      this.emit('error', rtcError);
     });
   }
   /**
@@ -2011,7 +1993,7 @@ var _Room = class _Room extends TypedEventEmitter {
       reconnectCount: this.reconnectCount,
       sdkVersion: SDK_VERSION,
       platform,
-      browser
+      browser,
     };
   }
   /**
@@ -2029,13 +2011,13 @@ var _Room = class _Room extends TypedEventEmitter {
     const remoteTracks = this.remoteParticipants.flatMap((participant) => participant.tracks);
     const [local, remote] = await Promise.all([
       Promise.all(localTracks.map((track) => track.getStats())),
-      Promise.all(remoteTracks.map((track) => track.getStats()))
+      Promise.all(remoteTracks.map((track) => track.getStats())),
     ]);
     return {
       connectionState: this.connectionState,
       connectionQuality: this.adapter.getConnectionQuality(),
       local: local.filter((stats) => stats !== void 0),
-      remote: remote.filter((stats) => stats !== void 0)
+      remote: remote.filter((stats) => stats !== void 0),
     };
   }
   /**
@@ -2050,8 +2032,9 @@ var _Room = class _Room extends TypedEventEmitter {
       return;
     }
     this.statsTimer = setInterval(() => {
-      this.getConnectionStats().then((stats) => this.telemetry.send("stats", stats)).catch(() => {
-      });
+      this.getConnectionStats()
+        .then((stats) => this.telemetry.send('stats', stats))
+        .catch(() => {});
     }, _Room.STATS_INTERVAL_MS);
   }
   stopStatsMonitor() {
@@ -2092,11 +2075,11 @@ var _Room = class _Room extends TypedEventEmitter {
   }
   /** Switches the active camera without republishing. */
   async setCameraDevice(deviceId) {
-    await this.adapter.setDevice("videoinput", deviceId);
+    await this.adapter.setDevice('videoinput', deviceId);
   }
   /** Switches the active microphone without republishing. */
   async setMicrophoneDevice(deviceId) {
-    await this.adapter.setDevice("audioinput", deviceId);
+    await this.adapter.setDevice('audioinput', deviceId);
   }
   /**
    * Switches the audio output ("speaker") device for this room's remote
@@ -2105,13 +2088,16 @@ var _Room = class _Room extends TypedEventEmitter {
    * get a `DEVICE_NOT_FOUND` throw instead of a silent no-op.
    */
   async setSpeakerDevice(deviceId) {
-    if (typeof document !== "undefined") {
-      const probe = document.createElement("audio");
-      if (typeof probe.setSinkId !== "function") {
-        throw new RTCError("DEVICE_NOT_FOUND", "This browser doesn't support selecting an audio output device (no setSinkId)");
+    if (typeof document !== 'undefined') {
+      const probe = document.createElement('audio');
+      if (typeof probe.setSinkId !== 'function') {
+        throw new RTCError(
+          'DEVICE_NOT_FOUND',
+          "This browser doesn't support selecting an audio output device (no setSinkId)",
+        );
       }
     }
-    await this.adapter.setDevice("audiooutput", deviceId);
+    await this.adapter.setDevice('audiooutput', deviceId);
   }
   /**
    * Sends a small payload to everyone, or to specific people if the
@@ -2119,7 +2105,7 @@ var _Room = class _Room extends TypedEventEmitter {
    * `publishData` grant; throws PERMISSION_DENIED without it.
    */
   async sendData(payload) {
-    const bytes = typeof payload === "string" ? new TextEncoder().encode(payload) : new Uint8Array(payload);
+    const bytes = typeof payload === 'string' ? new TextEncoder().encode(payload) : new Uint8Array(payload);
     await this.adapter.sendData(bytes);
   }
   /**
@@ -2151,33 +2137,33 @@ var _Room = class _Room extends TypedEventEmitter {
    * the `connected` event instead of blocking on this.
    */
   waitUntilConnected(timeoutMs = 15e3) {
-    if (this.connectionState === "connected") {
+    if (this.connectionState === 'connected') {
       return Promise.resolve();
     }
     return new Promise((resolve, reject) => {
       const settle = (fn) => {
         clearTimeout(timer);
-        this.off("connectionStateChanged", onState);
+        this.off('connectionStateChanged', onState);
         fn();
       };
       const onState = (state) => {
-        if (state === "connected") {
+        if (state === 'connected') {
           settle(resolve);
-        } else if (state === "failed") {
-          settle(() => reject(new RTCError("CONNECTION_FAILED", "The connection failed while waiting for it")));
+        } else if (state === 'failed') {
+          settle(() => reject(new RTCError('CONNECTION_FAILED', 'The connection failed while waiting for it')));
         }
       };
       const timer = setTimeout(() => {
-        settle(
-          () => reject(
+        settle(() =>
+          reject(
             new RTCError(
-              "CONNECTION_FAILED",
-              `Still ${this.connectionState} after ${timeoutMs}ms; the media connection did not establish`
-            )
-          )
+              'CONNECTION_FAILED',
+              `Still ${this.connectionState} after ${timeoutMs}ms; the media connection did not establish`,
+            ),
+          ),
         );
       }, timeoutMs);
-      this.on("connectionStateChanged", onState);
+      this.on('connectionStateChanged', onState);
     });
   }
   /** Leaves the room, stops local tracks and closes the underlying connection. */
@@ -2215,24 +2201,24 @@ var RTCClient = class {
    */
   async join(roomId) {
     assertTokenMatchesRoom(this.config.token, roomId);
-    this.logger.info("joining room", roomId);
+    this.logger.info('joining room', roomId);
     const telemetry = createTelemetryClient({
       enabled: this.config.telemetry,
       telemetryUrl: this.config.telemetryUrl,
       token: this.config.token,
       sdkVersion: SDK_VERSION,
-      logger: this.logger
+      logger: this.logger,
     });
-    telemetry.send("connection_started");
+    telemetry.send('connection_started');
     const adapter = this.adapterFactory(this.logger, this.config.autoReconnect);
     const room = new Room(adapter, roomId, this.logger, telemetry);
     try {
       await adapter.connect(this.config.endpoint, this.config.token, this.config.iceServers);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      const code = error instanceof RTCError ? error.code : "CONNECTION_FAILED";
-      telemetry.send("error", { code, message });
-      telemetry.send("connection_failed");
+      const code = error instanceof RTCError ? error.code : 'CONNECTION_FAILED';
+      telemetry.send('error', { code, message });
+      telemetry.send('connection_failed');
       throw error;
     }
     this.currentRoom = room;
@@ -2268,31 +2254,30 @@ var RTCClient = class {
    * optional convenience, not a capability anything depends on.
    */
   onDeviceChange(callback) {
-    if (typeof navigator === "undefined" || !navigator.mediaDevices) {
-      return () => {
-      };
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
+      return () => {};
     }
-    navigator.mediaDevices.addEventListener("devicechange", callback);
-    return () => navigator.mediaDevices.removeEventListener("devicechange", callback);
+    navigator.mediaDevices.addEventListener('devicechange', callback);
+    return () => navigator.mediaDevices.removeEventListener('devicechange', callback);
   }
   /** Switches the active camera on the currently joined room. */
   async setCamera(deviceId) {
     if (!this.currentRoom) {
-      throw new RTCError("CONNECTION_FAILED", "setCamera() requires an active room; call join() first");
+      throw new RTCError('CONNECTION_FAILED', 'setCamera() requires an active room; call join() first');
     }
     await this.currentRoom.setCameraDevice(deviceId);
   }
   /** Switches the active microphone on the currently joined room. */
   async setMicrophone(deviceId) {
     if (!this.currentRoom) {
-      throw new RTCError("CONNECTION_FAILED", "setMicrophone() requires an active room; call join() first");
+      throw new RTCError('CONNECTION_FAILED', 'setMicrophone() requires an active room; call join() first');
     }
     await this.currentRoom.setMicrophoneDevice(deviceId);
   }
   /** Diagnostic snapshot of the currently joined room. See `Room.getDiagnostics()`. */
   getDiagnostics() {
     if (!this.currentRoom) {
-      throw new RTCError("CONNECTION_FAILED", "getDiagnostics() requires an active room; call join() first");
+      throw new RTCError('CONNECTION_FAILED', 'getDiagnostics() requires an active room; call join() first');
     }
     return this.currentRoom.getDiagnostics();
   }
@@ -2305,15 +2290,30 @@ function createRTCClient(config) {
 // src/browser-support.ts
 function getBrowserSupportDetails() {
   const missing = [];
-  if (typeof RTCPeerConnection === "undefined") missing.push("RTCPeerConnection");
-  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) missing.push("navigator.mediaDevices.getUserMedia");
-  if (typeof WebSocket === "undefined") missing.push("WebSocket");
+  if (typeof RTCPeerConnection === 'undefined') missing.push('RTCPeerConnection');
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia)
+    missing.push('navigator.mediaDevices.getUserMedia');
+  if (typeof WebSocket === 'undefined') missing.push('WebSocket');
   return { supported: missing.length === 0, missing };
 }
 function isBrowserSupported() {
   return getBrowserSupportDetails().supported;
 }
 
-export { LocalParticipant, LocalTrack, Participant, RTCClient, RTCError, RemoteParticipant, RemoteTrack, Room, Track, createRTCClient, getBrowserSupportDetails, isBrowserSupported, isRTCError };
+export {
+  LocalParticipant,
+  LocalTrack,
+  Participant,
+  RTCClient,
+  RTCError,
+  RemoteParticipant,
+  RemoteTrack,
+  Room,
+  Track,
+  createRTCClient,
+  getBrowserSupportDetails,
+  isBrowserSupported,
+  isRTCError,
+};
 //# sourceMappingURL=index.js.map
 //# sourceMappingURL=index.js.map

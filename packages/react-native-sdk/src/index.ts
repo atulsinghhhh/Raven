@@ -30,12 +30,7 @@ export {
 } from './hooks';
 export type { MediaToggle } from './hooks';
 
-export {
-  RavenPermissionError,
-  RTCError,
-  isRavenPermissionError,
-  isRTCError,
-} from './errors';
+export { RavenPermissionError, RTCError, isRavenPermissionError, isRTCError } from './errors';
 export type { RavenPermissionKind, RavenPermissionStatus, RTCErrorCode } from './errors';
 
 /**

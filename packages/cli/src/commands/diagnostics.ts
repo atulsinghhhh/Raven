@@ -33,7 +33,10 @@ export function registerDiagnosticsCommand(program: Command): void {
         printField('Active connections', String(diagnostics.connections.active));
 
         process.stdout.write('\n');
-        printField('SDK (@ravenkash/rtc) installed in this directory', sdkInstalled ? 'yes' : 'no; run `raven sdk install`');
+        printField(
+          'SDK (@ravenkash/rtc) installed in this directory',
+          sdkInstalled ? 'yes' : 'no; run `raven sdk install`',
+        );
 
         // Connection-level diagnostics (ICE and signaling state, browser)
         // only exist for a live browser connection. See

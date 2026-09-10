@@ -31,16 +31,11 @@ export async function POST(request: NextRequest, { params }: Params) {
   // between pools by both clicking what each thinks is "the other way".
   const draining = body?.draining;
   if (typeof draining !== 'boolean') {
-    return NextResponse.json(
-      { code: 'INVALID_REQUEST', message: 'draining must be true or false' },
-      { status: 400 },
-    );
+    return NextResponse.json({ code: 'INVALID_REQUEST', message: 'draining must be true or false' }, { status: 400 });
   }
 
   try {
-    const server = draining
-      ? await ravenApi.drainRtcServer(token, name)
-      : await ravenApi.undrainRtcServer(token, name);
+    const server = draining ? await ravenApi.drainRtcServer(token, name) : await ravenApi.undrainRtcServer(token, name);
     return NextResponse.json(server);
   } catch (error) {
     return handleApiError(error);

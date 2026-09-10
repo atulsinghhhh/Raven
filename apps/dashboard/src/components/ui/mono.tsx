@@ -63,7 +63,5 @@ export function KeyValue({
 }
 
 export function KeyValueGrid({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <dl className={`grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-4 ${className}`}>{children}</dl>
-  );
+  return <dl className={`grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-4 ${className}`}>{children}</dl>;
 }

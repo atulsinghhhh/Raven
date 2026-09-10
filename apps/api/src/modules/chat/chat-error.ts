@@ -20,19 +20,14 @@ export class ChatError extends AppError {
     // RAVEN_ code so a developer can handle chat and control-plane errors
     // with one switch; `toFrame()` below keeps the ChatErrorCode the
     // WebSocket protocol has always used and @ravenkash/chat already maps.
-    super(
-      message,
-      statusFor(code),
-      ravenCodeFor(code),
-      {
-        // The compat field reports exactly what this error used to emit;
-        // the chat code itself, not whatever the canonical code's generic
-        // legacy name happens to be. Anything mid-migration was reading
-        // `INVALID_CURSOR`, not `VALIDATION_FAILED`.
-        legacyCode: code,
-        ...(retryAfterSeconds !== undefined ? { retryAfterSeconds } : {}),
-      },
-    );
+    super(message, statusFor(code), ravenCodeFor(code), {
+      // The compat field reports exactly what this error used to emit;
+      // the chat code itself, not whatever the canonical code's generic
+      // legacy name happens to be. Anything mid-migration was reading
+      // `INVALID_CURSOR`, not `VALIDATION_FAILED`.
+      legacyCode: code,
+      ...(retryAfterSeconds !== undefined ? { retryAfterSeconds } : {}),
+    });
     this.chatCode = code;
     this.retryAfterSeconds = retryAfterSeconds;
   }

@@ -73,12 +73,7 @@ describe('audio', () => {
       await audio.setOutput('headset');
       await audio.setOutput('bluetooth');
 
-      expect(__calls.chosenRoutes).toEqual([
-        'SPEAKER_PHONE',
-        'EARPIECE',
-        'WIRED_HEADSET',
-        'BLUETOOTH',
-      ]);
+      expect(__calls.chosenRoutes).toEqual(['SPEAKER_PHONE', 'EARPIECE', 'WIRED_HEADSET', 'BLUETOOTH']);
     });
 
     it('falls back to the speaker toggle where route selection is unavailable', async () => {
@@ -153,13 +148,7 @@ describe('audio', () => {
       await expect(audio.getOutputs()).resolves.toEqual(['speaker', 'bluetooth']);
       await audio.stop();
 
-      expect(calls).toEqual([
-        'start',
-        'speaker:true',
-        'output:bluetooth',
-        'picker',
-        'stop',
-      ]);
+      expect(calls).toEqual(['start', 'speaker:true', 'output:bluetooth', 'picker', 'stop']);
       // The default adapter was never consulted.
       expect(__calls.start).toBe(0);
     });

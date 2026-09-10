@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiConflictResponse,
@@ -45,7 +58,8 @@ export class LiveStreamsController {
   @Idempotent()
   @ApiOperation({
     summary: 'Create a live stream — a dedicated RTC room plus an attached chat conversation',
-    description: 'Safe to retry: send the same Idempotency-Key header on a retry to replay the original response instead of creating a duplicate stream.',
+    description:
+      'Safe to retry: send the same Idempotency-Key header on a retry to replay the original response instead of creating a duplicate stream.',
   })
   @ApiResponse({ status: 201, description: 'Stream created, status CREATED' })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
@@ -70,15 +84,11 @@ export class LiveStreamsController {
   }
 
   @Patch(':streamId')
-  @ApiOperation({ summary: 'Update a stream\'s metadata — title, description, thumbnail, visibility, etc.' })
+  @ApiOperation({ summary: "Update a stream's metadata — title, description, thumbnail, visibility, etc." })
   @ApiResponse({ status: 200, description: 'Stream updated' })
   @ApiNotFoundResponse({ description: "Stream doesn't exist, or belongs to a different project" })
   @ApiConflictResponse({ description: 'This stream has ended and can no longer be modified' })
-  update(
-    @CurrentScope() scope: ProjectScope,
-    @Param('streamId') streamId: string,
-    @Body() dto: UpdateLiveStreamDto,
-  ) {
+  update(@CurrentScope() scope: ProjectScope, @Param('streamId') streamId: string, @Body() dto: UpdateLiveStreamDto) {
     return this.streams.update(scope, streamId, dto);
   }
 
@@ -112,11 +122,7 @@ export class LiveStreamsController {
   @ApiNotFoundResponse({ description: "Stream doesn't exist, or belongs to a different project" })
   @ApiConflictResponse({ description: 'This stream has ended and can no longer be modified' })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
-  addHost(
-    @CurrentScope() scope: ProjectScope,
-    @Param('streamId') streamId: string,
-    @Body() dto: AddHostDto,
-  ) {
+  addHost(@CurrentScope() scope: ProjectScope, @Param('streamId') streamId: string, @Body() dto: AddHostDto) {
     return this.streams.addHost(scope, streamId, dto);
   }
 
@@ -137,7 +143,7 @@ export class LiveStreamsController {
   @UseGuards(RateLimitGuard)
   @RateLimit(120)
   @ApiOperation({
-    summary: 'Mint a viewer\'s RTC + chat credentials',
+    summary: "Mint a viewer's RTC + chat credentials",
     description:
       'Always subscribe-only — there is no field on this request that can grant publish access. Call createHostCredential/addHost for that.',
   })

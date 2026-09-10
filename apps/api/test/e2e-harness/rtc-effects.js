@@ -53,7 +53,9 @@ room.on('connectionStateChanged', (state) => {
 });
 room.on('participantJoined', (p) => console.log(`[harness:${role}] participantJoined ${p.identity}`));
 // `trackPublished` carries the track *kind*, not a publication object.
-room.on('trackPublished', (kind, p) => console.log(`[harness:${role}] trackPublished kind=${kind} from=${p?.identity}`));
+room.on('trackPublished', (kind, p) =>
+  console.log(`[harness:${role}] trackPublished kind=${kind} from=${p?.identity}`),
+);
 room.on('localTrackPublished', (t) => console.log(`[harness:${role}] localTrackPublished kind=${t?.kind}`));
 
 room.on('trackSubscribed', (track, participant) => {

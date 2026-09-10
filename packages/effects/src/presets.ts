@@ -13,7 +13,11 @@ const vivid: Preset = () => [
   filters.brightness({ value: 0.03 }),
 ];
 
-const warm: Preset = () => [filters.temperature({ value: 0.35 }), filters.tint({ value: 0.05 }), filters.saturation({ value: 1.1 })];
+const warm: Preset = () => [
+  filters.temperature({ value: 0.35 }),
+  filters.tint({ value: 0.05 }),
+  filters.saturation({ value: 1.1 }),
+];
 
 const cool: Preset = () => [filters.temperature({ value: -0.35 }), filters.saturation({ value: 1.05 })];
 

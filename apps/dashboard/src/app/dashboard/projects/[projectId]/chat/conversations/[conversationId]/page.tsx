@@ -99,7 +99,11 @@ export default async function ConversationDetailPage({
         title={conversation.name}
         breadcrumb={{ label: 'All conversations', href: `${base}/chat/conversations` }}
         description="Metadata and message activity. Message contents are never shown here — the API this page reads from doesn't return them."
-        meta={<Badge tone={conversation.status === 'ACTIVE' ? 'success' : 'neutral'}>{conversation.status.toLowerCase()}</Badge>}
+        meta={
+          <Badge tone={conversation.status === 'ACTIVE' ? 'success' : 'neutral'}>
+            {conversation.status.toLowerCase()}
+          </Badge>
+        }
       />
 
       <Card>
@@ -238,9 +242,30 @@ export default async function ConversationDetailPage({
         {/* Plain GET form — filters work with JavaScript disabled and the
             resulting URL is shareable/bookmarkable. */}
         <form method="get" className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-line bg-surface p-4">
-          <Field label="Sender ID" id="senderId" name="senderId" defaultValue={senderId} placeholder="user_123" className="w-48" />
-          <Field label="After" id="after" name="after" type="datetime-local" defaultValue={toLocalInput(after)} className="w-56" />
-          <Field label="Before" id="before" name="before" type="datetime-local" defaultValue={toLocalInput(before)} className="w-56" />
+          <Field
+            label="Sender ID"
+            id="senderId"
+            name="senderId"
+            defaultValue={senderId}
+            placeholder="user_123"
+            className="w-48"
+          />
+          <Field
+            label="After"
+            id="after"
+            name="after"
+            type="datetime-local"
+            defaultValue={toLocalInput(after)}
+            className="w-56"
+          />
+          <Field
+            label="Before"
+            id="before"
+            name="before"
+            type="datetime-local"
+            defaultValue={toLocalInput(before)}
+            className="w-56"
+          />
           <Button type="submit" variant="secondary">
             Filter
           </Button>

@@ -234,9 +234,7 @@ function ChatPanel({ identity }: { identity: string }) {
         ))}
       </ol>
 
-      <div className="typing">
-        {typingUsers.length > 0 ? `${typingUsers.join(', ')} typing…` : ' '}
-      </div>
+      <div className="typing">{typingUsers.length > 0 ? `${typingUsers.join(', ')} typing…` : ' '}</div>
 
       <form onSubmit={handleSend}>
         <input

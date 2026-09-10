@@ -139,9 +139,7 @@ export class SfuProcess {
 
   /** The node's own logs, so a failure message says what actually happened. */
   logs(): string {
-    return this.logLines.length
-      ? `--- sfu output ---\n${this.logLines.join('\n')}`
-      : '(no sfu output)';
+    return this.logLines.length ? `--- sfu output ---\n${this.logLines.join('\n')}` : '(no sfu output)';
   }
 
   async stop(): Promise<void> {

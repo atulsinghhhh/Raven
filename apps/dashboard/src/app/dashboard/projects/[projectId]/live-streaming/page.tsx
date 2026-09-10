@@ -49,7 +49,10 @@ export default async function LiveStreamingOverviewPage({ params }: { params: Pr
   if (streams.length === 0) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader title="Live Streaming" description="One host, any viewers, and a chat conversation attached automatically." />
+        <PageHeader
+          title="Live Streaming"
+          description="One host, any viewers, and a chat conversation attached automatically."
+        />
         <ProductTabs tabs={liveStreamingTabs(base)} active="Overview" />
         <EmptyState
           icon={<IconLiveStreaming className="size-7" />}

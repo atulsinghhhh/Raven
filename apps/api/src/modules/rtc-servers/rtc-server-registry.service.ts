@@ -272,8 +272,7 @@ export class RtcServerRegistryService implements OnModuleInit, OnModuleDestroy {
       }),
     ]);
 
-    const countFor = (status: RtcServerStatus) =>
-      byStatus.find((row) => row.status === status)?._count._all ?? 0;
+    const countFor = (status: RtcServerStatus) => byStatus.find((row) => row.status === status)?._count._all ?? 0;
 
     return {
       servers: totals._count._all,

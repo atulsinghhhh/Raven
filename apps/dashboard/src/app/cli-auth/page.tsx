@@ -76,8 +76,8 @@ export default async function CliAuthPage({
           <p className="text-xs font-medium text-warning-text">This grants full account access</p>
           <ul className="mt-2 flex flex-col gap-1.5 text-xs leading-relaxed text-warning-text">
             <li>
-              The CLI receives a session token and can act as <strong className="font-medium">{email}</strong> — read and
-              create projects, and issue or revoke API keys.
+              The CLI receives a session token and can act as <strong className="font-medium">{email}</strong> — read
+              and create projects, and issue or revoke API keys.
             </li>
             <li>
               The token is sent only to <span className="font-mono">127.0.0.1:{port}</span> on this machine, never to a

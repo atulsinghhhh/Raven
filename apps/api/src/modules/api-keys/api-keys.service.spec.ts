@@ -59,9 +59,7 @@ describe('ApiKeysService', () => {
       // Hashing the raw secret with no pepper must NOT match: proves the
       // pepper actually factors into the stored hash, isn't just decorative.
       expect(await bcrypt.compare(rawSecret, persistedData.secretHash)).toBe(false);
-      expect(
-        await bcrypt.compare(pepper(rawSecret, TEST_PEPPER), persistedData.secretHash),
-      ).toBe(true);
+      expect(await bcrypt.compare(pepper(rawSecret, TEST_PEPPER), persistedData.secretHash)).toBe(true);
     });
   });
 
@@ -73,9 +71,7 @@ describe('ApiKeysService', () => {
     it('rejects an unknown publicId', async () => {
       prisma.apiKey.findUnique.mockResolvedValue(null);
 
-      await expect(service.verify('rvk_unknown.somesecret')).rejects.toBeInstanceOf(
-        UnauthorizedError,
-      );
+      await expect(service.verify('rvk_unknown.somesecret')).rejects.toBeInstanceOf(UnauthorizedError);
     });
 
     it('rejects a revoked key even with the correct secret', async () => {
@@ -87,9 +83,7 @@ describe('ApiKeysService', () => {
         project: { id: 'project1' },
       });
 
-      await expect(service.verify('rvk_x.correctsecret')).rejects.toBeInstanceOf(
-        UnauthorizedError,
-      );
+      await expect(service.verify('rvk_x.correctsecret')).rejects.toBeInstanceOf(UnauthorizedError);
     });
 
     it('rejects the correct publicId with a wrong secret', async () => {

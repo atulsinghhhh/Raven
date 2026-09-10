@@ -12,7 +12,8 @@ export function getBrowserSupportDetails(): BrowserSupportDetails {
   const missing: string[] = [];
 
   if (typeof RTCPeerConnection === 'undefined') missing.push('RTCPeerConnection');
-  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) missing.push('navigator.mediaDevices.getUserMedia');
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia)
+    missing.push('navigator.mediaDevices.getUserMedia');
   if (typeof WebSocket === 'undefined') missing.push('WebSocket');
 
   return { supported: missing.length === 0, missing };

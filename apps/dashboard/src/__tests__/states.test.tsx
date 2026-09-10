@@ -3,7 +3,13 @@ import { EmptyState, ErrorState, NoDataYet } from '@/components/ui/states';
 
 describe('EmptyState', () => {
   it('renders a title, optional description, and optional action', () => {
-    render(<EmptyState title="No projects yet" description="Create your first project to get started." action={<button>New project</button>} />);
+    render(
+      <EmptyState
+        title="No projects yet"
+        description="Create your first project to get started."
+        action={<button>New project</button>}
+      />,
+    );
 
     expect(screen.getByText('No projects yet')).toBeInTheDocument();
     expect(screen.getByText('Create your first project to get started.')).toBeInTheDocument();

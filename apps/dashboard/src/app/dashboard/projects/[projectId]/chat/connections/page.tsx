@@ -82,7 +82,11 @@ export default async function ChatConnectionsPage({ params }: { params: Promise<
       <ProductTabs tabs={chatTabs(base)} active="Connections" />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Records shown" value={formatCount(connections.length)} hint={`Most recent ${SCAN_LIMIT} max`} />
+        <StatCard
+          label="Records shown"
+          value={formatCount(connections.length)}
+          hint={`Most recent ${SCAN_LIMIT} max`}
+        />
         <StatCard label="Currently live" value={formatCount(live)} hint="Connected or reconnecting" />
         <StatCard label="Messages sent" value={formatCount(totalMessages)} hint="Across these sessions" />
         <StatCard
@@ -100,7 +104,10 @@ export default async function ChatConnectionsPage({ params }: { params: Promise<
           />
           <div className="flex flex-wrap gap-2">
             {Array.from(gateways).map((gatewayId) => (
-              <span key={gatewayId} className="rounded-md border border-line bg-surface px-2.5 py-1 font-mono text-xs text-muted">
+              <span
+                key={gatewayId}
+                className="rounded-md border border-line bg-surface px-2.5 py-1 font-mono text-xs text-muted"
+              >
                 {gatewayId}
                 <span className="ml-2 tabular text-subtle">
                   {connections.filter((c) => c.gatewayId === gatewayId).length}
@@ -151,10 +158,16 @@ export default async function ChatConnectionsPage({ params }: { params: Promise<
                   {formatDuration(connection.durationMs)}
                 </TD>
                 <TD className="text-sm text-muted">
-                  {connection.sdkVersion ? <span className="font-mono text-xs">{connection.sdkVersion}</span> : <Dash />}
+                  {connection.sdkVersion ? (
+                    <span className="font-mono text-xs">{connection.sdkVersion}</span>
+                  ) : (
+                    <Dash />
+                  )}
                 </TD>
                 <TD align="right" className="tabular text-xs text-subtle">
-                  <span title={new Date(connection.createdAt).toISOString()}>{formatRelative(connection.createdAt)}</span>
+                  <span title={new Date(connection.createdAt).toISOString()}>
+                    {formatRelative(connection.createdAt)}
+                  </span>
                 </TD>
               </TR>
             ))}

@@ -117,7 +117,9 @@ export function SidebarNav({ projectId, onNavigate }: { projectId: string; onNav
                         : 'text-muted hover:bg-surface-raised hover:text-fg'
                     }`}
                   >
-                    <Icon className={`size-4 shrink-0 ${active ? 'text-accent' : 'text-subtle group-hover:text-muted'}`} />
+                    <Icon
+                      className={`size-4 shrink-0 ${active ? 'text-accent' : 'text-subtle group-hover:text-muted'}`}
+                    />
                     <span className="truncate">{item.label}</span>
                   </Link>
                 </li>

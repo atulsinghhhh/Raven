@@ -33,9 +33,10 @@ describe('filters factories', () => {
 
 describe('color op math (spot checks against the documented formulas)', () => {
   it('brightness(0) leaves a pixel unchanged', () => {
-    const [r, g, b] = FILTER_DEFINITIONS.brightness.op.kind === 'color'
-      ? FILTER_DEFINITIONS.brightness.op.applyToPixel([100, 150, 200], { value: 0 })
-      : [0, 0, 0];
+    const [r, g, b] =
+      FILTER_DEFINITIONS.brightness.op.kind === 'color'
+        ? FILTER_DEFINITIONS.brightness.op.applyToPixel([100, 150, 200], { value: 0 })
+        : [0, 0, 0];
     expect([r, g, b]).toEqual([100, 150, 200]);
   });
 

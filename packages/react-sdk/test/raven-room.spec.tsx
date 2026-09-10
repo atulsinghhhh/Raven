@@ -69,7 +69,13 @@ describe('<RavenRoom>', () => {
   it('calls onError and shows the fallback when join() rejects', async () => {
     const onError = jest.fn();
     render(
-      <RavenRoom token="t" endpoint="wss://rtc.example.com" room="room-1" fallback={<div>Failed</div>} onError={onError}>
+      <RavenRoom
+        token="t"
+        endpoint="wss://rtc.example.com"
+        room="room-1"
+        fallback={<div>Failed</div>}
+        onError={onError}
+      >
         <div>Joined!</div>
       </RavenRoom>,
     );

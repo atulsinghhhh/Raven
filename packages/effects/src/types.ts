@@ -24,7 +24,14 @@ export interface ColorOp {
 export interface SpatialOp {
   kind: 'spatial';
   /** WebGL: renders `source` into `target`, a framebuffer-backed texture, at `width`x`height`. */
-  renderGL(gl: WebGL2RenderingContext, source: WebGLTexture, target: WebGLFramebuffer, width: number, height: number, params: ColorOpParams): void;
+  renderGL(
+    gl: WebGL2RenderingContext,
+    source: WebGLTexture,
+    target: WebGLFramebuffer,
+    width: number,
+    height: number,
+    params: ColorOpParams,
+  ): void;
   /** Canvas2D fallback: mutates `imageData` in place. */
   applyToImageData(imageData: ImageData, params: ColorOpParams): void;
 }

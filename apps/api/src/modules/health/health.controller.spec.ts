@@ -36,9 +36,7 @@ describe('HealthController', () => {
       }),
     };
     rtcServers = {
-      listHealthyForProbe: jest
-        .fn()
-        .mockResolvedValue([{ name: 'sfu-local-01', internalUrl: 'http://sfu:7000' }]),
+      listHealthyForProbe: jest.fn().mockResolvedValue([{ name: 'sfu-local-01', internalUrl: 'http://sfu:7000' }]),
     };
     mockCheckSfuHttp.mockReset().mockResolvedValue(true);
     mockCheckStunBinding.mockReset().mockResolvedValue(true);

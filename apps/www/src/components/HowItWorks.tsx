@@ -56,7 +56,10 @@ export function HowItWorks() {
   return (
     <section id="workflow" className="border-t border-line py-24 md:py-32">
       <div className="mx-auto max-w-6xl px-6">
-        <div ref={ref} className="relative overflow-hidden rounded-(--radius-panel) border border-line bg-surface-sunken/40">
+        <div
+          ref={ref}
+          className="relative overflow-hidden rounded-(--radius-panel) border border-line bg-surface-sunken/40"
+        >
           <IsoStack activeLayer={active} />
 
           <div className="relative max-w-xl p-8 md:p-12">
@@ -70,12 +73,17 @@ export function HowItWorks() {
                   {/* The connector between numbers; skipped on the last
                       step so the line doesn't dangle past the end. */}
                   {i < STEPS.length - 1 && (
-                    <span className="absolute left-[11px] top-7 h-[calc(100%-1.25rem)] w-px bg-line" aria-hidden="true" />
+                    <span
+                      className="absolute left-[11px] top-7 h-[calc(100%-1.25rem)] w-px bg-line"
+                      aria-hidden="true"
+                    />
                   )}
 
                   <span
                     className={`mono-label absolute left-0 top-0.5 flex h-[22px] w-[22px] items-center justify-center rounded-full border text-[10px] transition-colors ${
-                      i === active ? 'border-accent-line bg-accent-subtle text-accent-text' : 'border-line bg-canvas text-muted'
+                      i === active
+                        ? 'border-accent-line bg-accent-subtle text-accent-text'
+                        : 'border-line bg-canvas text-muted'
                     }`}
                   >
                     {i + 1}
@@ -125,7 +133,10 @@ function IsoStack({ activeLayer }: { activeLayer: number }) {
       style={{ perspective: '1600px' }}
       aria-hidden="true"
     >
-      <div className="relative h-full w-full" style={{ transform: 'rotateX(56deg) rotateZ(-40deg)', transformStyle: 'preserve-3d' }}>
+      <div
+        className="relative h-full w-full"
+        style={{ transform: 'rotateX(56deg) rotateZ(-40deg)', transformStyle: 'preserve-3d' }}
+      >
         {STEPS.map((_, i) => (
           <div
             key={i}

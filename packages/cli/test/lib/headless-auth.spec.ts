@@ -20,9 +20,7 @@ function tokenWith(claims: Record<string, unknown>): string {
 
 describe('decodeSessionToken', () => {
   it('reads the email claim used for display', () => {
-    expect(decodeSessionToken(tokenWith({ sub: 'u1', email: 'ci@example.com' })).email).toBe(
-      'ci@example.com',
-    );
+    expect(decodeSessionToken(tokenWith({ sub: 'u1', email: 'ci@example.com' })).email).toBe('ci@example.com');
   });
 
   it('converts exp from JWT seconds to milliseconds', () => {

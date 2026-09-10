@@ -16,9 +16,7 @@ import { registerRtcDiagnosticsCommand } from './diagnostics.js';
  * server directly; by design it has no address for one.
  */
 export function registerRtcCommand(program: Command): void {
-  const rtc = program
-    .command('rtc')
-    .description('Inspect the RTC media plane; live rooms, participants, and servers');
+  const rtc = program.command('rtc').description('Inspect the RTC media plane; live rooms, participants, and servers');
 
   registerRtcRoomsCommand(rtc);
   registerRtcParticipantsCommand(rtc);

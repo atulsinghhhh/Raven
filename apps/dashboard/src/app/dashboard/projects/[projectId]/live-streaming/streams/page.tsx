@@ -173,7 +173,10 @@ export default async function LiveStreamsPage({
 
 function StatusFilter({ base, current }: { base: string; current?: LiveStreamStatus }) {
   return (
-    <nav aria-label="Filter by status" className="flex items-center gap-0.5 rounded-md border border-line bg-surface p-0.5">
+    <nav
+      aria-label="Filter by status"
+      className="flex items-center gap-0.5 rounded-md border border-line bg-surface p-0.5"
+    >
       <a
         href={base}
         aria-current={!current ? 'true' : undefined}
@@ -189,7 +192,9 @@ function StatusFilter({ base, current }: { base: string; current?: LiveStreamSta
           href={`${base}?status=${status}`}
           aria-current={current === status ? 'true' : undefined}
           className={`rounded-sm px-2 py-1 text-xs font-medium capitalize transition-colors ${
-            current === status ? 'bg-accent-subtle text-accent-text' : 'text-muted hover:bg-surface-raised hover:text-fg'
+            current === status
+              ? 'bg-accent-subtle text-accent-text'
+              : 'text-muted hover:bg-surface-raised hover:text-fg'
           }`}
         >
           {status.toLowerCase()}

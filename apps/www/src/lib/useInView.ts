@@ -18,7 +18,9 @@ export function useInView<T extends HTMLElement>() {
   useEffect(() => {
     const node = ref.current;
     const skipObserving =
-      !node || typeof IntersectionObserver === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      !node ||
+      typeof IntersectionObserver === 'undefined' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (skipObserving) {
       // Deferred a frame rather than set synchronously inline: keeps the

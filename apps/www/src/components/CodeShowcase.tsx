@@ -17,8 +17,8 @@ export function CodeShowcase() {
           One SDK, every <span className="kw">real-time</span> product
         </h2>
         <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">
-          The same token and the same client shape, whether you&apos;re joining a call, opening a chat, going
-          live, or filtering a camera track.
+          The same token and the same client shape, whether you&apos;re joining a call, opening a chat, going live, or
+          filtering a camera track.
         </p>
 
         <div className="mt-10">

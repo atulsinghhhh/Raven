@@ -92,9 +92,9 @@ export default function DocsHome() {
             <span className="mono-label text-[11px] text-muted">Documentation</span>
             <h1 className="display mt-4 text-4xl text-fg">Infrastructure for real-time applications</h1>
             <p className="mt-5 text-base leading-relaxed text-muted">
-              Livqeno runs the audio, video, chat, and live streaming layer of your product, so you do not operate WebRTC
-              signaling, a media server, TURN, or a message store yourself. You keep the interface; Livqeno keeps the
-              pipes.
+              Livqeno runs the audio, video, chat, and live streaming layer of your product, so you do not operate
+              WebRTC signaling, a media server, TURN, or a message store yourself. You keep the interface; Livqeno keeps
+              the pipes.
             </p>
             <div className="mt-7 flex flex-wrap gap-2.5">
               <Link

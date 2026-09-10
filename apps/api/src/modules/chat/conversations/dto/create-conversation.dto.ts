@@ -63,7 +63,11 @@ export class CreateConversationDto {
   @IsUUID()
   roomId?: string;
 
-  @ApiPropertyOptional({ minimum: 1, maximum: 3650, description: 'Overrides CHAT_RETENTION_DAYS for this conversation.' })
+  @ApiPropertyOptional({
+    minimum: 1,
+    maximum: 3650,
+    description: 'Overrides CHAT_RETENTION_DAYS for this conversation.',
+  })
   @IsOptional()
   @IsInt()
   @Min(1)

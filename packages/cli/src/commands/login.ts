@@ -14,11 +14,8 @@ export function registerLoginCommand(program: Command): void {
   program
     .command('login')
     .description('Authenticate with Livqeno')
-    .option('--no-open', "print the login URL instead of opening a browser automatically")
-    .option(
-      '--token <jwt>',
-      'authenticate with an existing session token instead of a browser (CI, containers, SSH)',
-    )
+    .option('--no-open', 'print the login URL instead of opening a browser automatically')
+    .option('--token <jwt>', 'authenticate with an existing session token instead of a browser (CI, containers, SSH)')
     .action(
       withErrorHandling(async (options: { open: boolean; token?: string }) => {
         const config = await readCliConfig();
@@ -58,7 +55,8 @@ async function loginWithToken(token: string, apiUrl: string): Promise<void> {
   } catch (error) {
     if (error instanceof CliError && error.kind === 'auth') {
       throw new CliError('auth', `${apiUrl} rejected that token.`, {
-        suggestion: 'Tokens expire; mint a fresh one from the dashboard, or run `raven login` on a machine with a browser',
+        suggestion:
+          'Tokens expire; mint a fresh one from the dashboard, or run `raven login` on a machine with a browser',
         cause: error,
       });
     }
@@ -76,9 +74,7 @@ async function loginWithToken(token: string, apiUrl: string): Promise<void> {
   });
 
   printSuccess(email ? `Logged in as ${email}` : 'Logged in.');
-  printInfo(
-    `In an ephemeral environment, set ${TOKEN_ENV_VAR} instead; it needs no writable home directory.`,
-  );
+  printInfo(`In an ephemeral environment, set ${TOKEN_ENV_VAR} instead; it needs no writable home directory.`);
 }
 
 async function loginWithBrowser(apiUrl: string, shouldOpen: boolean): Promise<void> {

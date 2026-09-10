@@ -20,7 +20,14 @@ describe('TelemetryIngestGuard', () => {
   });
 
   it('attaches the verified RTC context to the request and allows the call through', async () => {
-    const verified = { participantId: 'alice', projectId: 'p1', roomId: 'r1', roomName: 'demo', permissions: {}, expiresAt: new Date() };
+    const verified = {
+      participantId: 'alice',
+      projectId: 'p1',
+      roomId: 'r1',
+      roomName: 'demo',
+      permissions: {},
+      expiresAt: new Date(),
+    };
     verifier.verify.mockResolvedValue(verified);
 
     const context = contextWithHeader('Bearer real-token');
@@ -31,7 +38,7 @@ describe('TelemetryIngestGuard', () => {
     expect((context.switchToHttp().getRequest() as TelemetryRequest).rtcContext).toBe(verified);
   });
 
-  it('rejects with a generic UnauthorizedError, never the verifier\'s internal error message', async () => {
+  it("rejects with a generic UnauthorizedError, never the verifier's internal error message", async () => {
     verifier.verify.mockRejectedValue(new Error('jose: signature verification failed: some internal detail'));
 
     const context = contextWithHeader('Bearer bad-token');

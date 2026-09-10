@@ -6,11 +6,7 @@ import { ParticipantSession } from '../interfaces/participant-session.interface'
  * live WebSocket, so there's nothing worth sharing across instances
  * (unlike the connection-level limit, which has to survive reconnects).
  */
-export function checkMessageRate(
-  session: ParticipantSession,
-  maxMessages: number,
-  windowSeconds: number,
-): boolean {
+export function checkMessageRate(session: ParticipantSession, maxMessages: number, windowSeconds: number): boolean {
   const now = Date.now();
   const windowStart = now - windowSeconds * 1000;
 

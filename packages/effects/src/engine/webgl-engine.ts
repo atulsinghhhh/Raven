@@ -170,12 +170,29 @@ export class WebGLEngine implements EffectsEngine {
         continue;
       }
       flushColorRun();
-      const radius = effect.type === 'blur' ? (effect.params.radius ?? 0) : effect.type === 'beautySmooth' ? (effect.params.amount ?? 0) * 12 : 0;
+      const radius =
+        effect.type === 'blur'
+          ? (effect.params.radius ?? 0)
+          : effect.type === 'beautySmooth'
+            ? (effect.params.amount ?? 0) * 12
+            : 0;
       if (radius > 0) {
         const weights = paddedGaussianWeights(radius);
         const taps = Math.min(MAX_BLUR_RADIUS, Math.ceil(radius));
-        passes.push({ kind: 'blur', program: this.blurProgram!, blurDirection: [1, 0], blurWeights: weights, blurTaps: taps });
-        passes.push({ kind: 'blur', program: this.blurProgram!, blurDirection: [0, 1], blurWeights: weights, blurTaps: taps });
+        passes.push({
+          kind: 'blur',
+          program: this.blurProgram!,
+          blurDirection: [1, 0],
+          blurWeights: weights,
+          blurTaps: taps,
+        });
+        passes.push({
+          kind: 'blur',
+          program: this.blurProgram!,
+          blurDirection: [0, 1],
+          blurWeights: weights,
+          blurTaps: taps,
+        });
       }
     }
     flushColorRun();
@@ -295,7 +312,10 @@ function compileProgram(gl: WebGL2RenderingContext, vertexSource: string, fragme
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     const log = gl.getProgramInfoLog(program);
     gl.deleteProgram(program);
-    throw new EffectsError('RAVEN_EFFECT_PROCESSING_FAILED', `Shader program failed to link: ${log ?? 'unknown error'}`);
+    throw new EffectsError(
+      'RAVEN_EFFECT_PROCESSING_FAILED',
+      `Shader program failed to link: ${log ?? 'unknown error'}`,
+    );
   }
   return program;
 }
@@ -305,14 +325,7 @@ function createQuadBuffer(gl: WebGL2RenderingContext): WebGLBuffer {
   const buffer = gl.createBuffer();
   if (!buffer) throw new EffectsError('RAVEN_EFFECT_PROCESSING_FAILED', 'Failed to allocate a WebGL buffer.');
   // x, y, u, v
-  const vertices = new Float32Array([
-    -1, -1, 0, 0,
-    1, -1, 1, 0,
-    -1, 1, 0, 1,
-    -1, 1, 0, 1,
-    1, -1, 1, 0,
-    1, 1, 1, 1,
-  ]);
+  const vertices = new Float32Array([-1, -1, 0, 0, 1, -1, 1, 0, -1, 1, 0, 1, -1, 1, 0, 1, 1, -1, 1, 0, 1, 1, 1, 1]);
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
   return buffer;
