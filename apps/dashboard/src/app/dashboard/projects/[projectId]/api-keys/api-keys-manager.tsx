@@ -30,7 +30,7 @@ const ENVIRONMENT_LABEL: Record<Environment, string> = {
 };
 
 /**
- * Raven only ever stores a bcrypt hash of a key's secret half
+ * Livqeno only ever stores a bcrypt hash of a key's secret half
  * (docs/control-plane.md, "API keys: the show-once secret"), so the
  * secret exists in the UI for exactly one render, right after creation.
  * Everything else in here shows the `publicId` and an explicit mask, so
@@ -264,14 +264,14 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
 
       <Card>
         <CardHeader
-          title="How Raven stores your keys"
+          title="How Livqeno stores your keys"
           subtitle="Why a lost secret can't be recovered, and what to do instead."
         />
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div>
             <h3 className="text-xs font-semibold text-fg">Only a hash is stored</h3>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">
-              A full key is <span className="font-mono text-xs text-fg">publicId.secret</span>. Raven persists the{' '}
+              A full key is <span className="font-mono text-xs text-fg">publicId.secret</span>. Livqeno persists the{' '}
               <span className="font-mono text-xs text-fg">publicId</span> in the clear so it can find the right row, and
               stores the secret only as a peppered bcrypt hash. Nothing in the database — or in this dashboard — can
               turn that hash back into the secret. If you lose it, create a new key and revoke the old one.

@@ -89,7 +89,7 @@ export function toPermissionError(permission: RavenPermissionKind, error: unknow
   return denied ? new RavenPermissionError(permission, 'denied', error) : undefined;
 }
 
-// Re-exported so a mobile app can catch everything Raven throws without
+// Re-exported so a mobile app can catch everything Livqeno throws without
 // having to import @ravenkash/rtc as well.
 export { RTCError, isRTCError } from '@ravenkash/rtc';
 export type { RTCErrorCode };

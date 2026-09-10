@@ -362,7 +362,7 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
 
   private parse(data: unknown): ServerMessage | undefined {
     if (typeof data !== 'string') {
-      // Raven's signaling is text-only. A binary frame means something
+      // Livqeno's signaling is text-only. A binary frame means something
       // else has got onto this socket, and guessing at it beats ignoring it
       // exactly never.
       this.logger.warn('ignoring non-text signaling frame');

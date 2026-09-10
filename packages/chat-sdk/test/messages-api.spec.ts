@@ -102,7 +102,7 @@ describe('messages mutations', () => {
 });
 
 describe('error translation', () => {
-  it('turns a server error body into the specific Raven error class', async () => {
+  it('turns a server error body into the specific Livqeno error class', async () => {
     stubFetch({ status: 413, body: { code: 'MESSAGE_TOO_LARGE', message: 'too long' } });
     await expect(makeApi().update('msg_1', { text: 'x' })).rejects.toBeInstanceOf(RavenMessageError);
   });
@@ -113,7 +113,7 @@ describe('error translation', () => {
     await expect(makeApi().list({})).rejects.toBeInstanceOf(RavenRateLimitError);
   });
 
-  it('reports a network failure as a Raven error, not a raw TypeError', async () => {
+  it('reports a network failure as a Livqeno error, not a raw TypeError', async () => {
     (globalThis as unknown as { fetch: unknown }).fetch = jest.fn(async () => {
       throw new TypeError('Failed to fetch');
     });

@@ -74,7 +74,7 @@ export function AllowedOriginsForm({
     <Card>
       <CardHeader
         title="Allowed origins"
-        subtitle="Which browser applications may make cross-origin requests to Raven. Your Raven API key stays server-side either way."
+        subtitle="Which browser applications may make cross-origin requests to Livqeno. Your Livqeno API key stays server-side either way."
       />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -90,7 +90,7 @@ export function AllowedOriginsForm({
             <br />
             <span className="mt-1.5 block text-xs">
               An empty list means &ldquo;unconfigured&rdquo;, not &ldquo;deny&rdquo;, so that projects created before
-              this setting existed did not lose browser access to a field nobody had filled in. A Raven API key is
+              this setting existed did not lose browser access to a field nobody had filled in. A Livqeno API key is
               unaffected either way — it stays server-side.
             </span>
           </p>

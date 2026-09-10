@@ -1,7 +1,7 @@
 # SFU Comparison and Decision
 
 > **Superseded — historical record.** This document records the Phase 1–6
-> decision to build on LiveKit. Raven has since moved to its own SFU on
+> decision to build on LiveKit. Livqeno has since moved to its own SFU on
 > Pion; see
 > [`native-rtc-migration-map.md`](./native-rtc-migration-map.md#4-technology-decision)
 > for the current decision and the reasoning that reversed this one. The

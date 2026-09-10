@@ -13,7 +13,7 @@ export function ProductSwitcher({ activeSlug }: { activeSlug?: string }) {
 
   return (
     <nav
-      aria-label="Raven products"
+      aria-label="Livqeno products"
       className="mono-label flex items-center gap-0.5 rounded-md border border-line bg-surface p-0.5 text-[11px]"
     >
       {PRODUCTS.map((product) => {

@@ -39,7 +39,7 @@ client = httpx.Client(
 @app.exception_handler(httpx.HTTPStatusError)
 async def raven_error_handler(_request: Request, error: httpx.HTTPStatusError) -> JSONResponse:
     body = error.response.json() if error.response.content else {}
-    print(f"Raven request failed [{error.response.status_code}] {body.get('code')}: {body.get('message')}")
+    print(f"Livqeno request failed [{error.response.status_code}] {body.get('code')}: {body.get('message')}")
     return JSONResponse(status_code=error.response.status_code, content=body)
 
 

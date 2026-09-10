@@ -93,7 +93,7 @@ export class WebhooksController {
   }
 
   @Patch(':webhookId')
-  @ApiOperation({ summary: 'Update an endpoint, or re-enable one Raven auto-disabled' })
+  @ApiOperation({ summary: 'Update an endpoint, or re-enable one Livqeno auto-disabled' })
   @ApiNotFoundResponse({ description: 'Project or endpoint not found' })
   async update(
     @CurrentUser() user: AuthenticatedUser,

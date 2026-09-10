@@ -66,7 +66,7 @@ def test_secret_never_appears_in_client_repr_or_vars() -> None:
     raven = Raven(api_key="rvk_super-secret-value.dontleakme")
 
     assert "dontleakme" not in repr(raven._http)
-    # __dict__ on Raven itself never holds the raw key (it lives inside the
+    # __dict__ on Livqeno itself never holds the raw key (it lives inside the
     # http client's own name-mangled attribute, one level down).
     assert "dontleakme" not in repr(vars(raven))
     raven.close()

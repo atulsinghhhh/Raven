@@ -14,7 +14,7 @@ import { useChatClient } from '@ravenkash/react';
 import './index.css';
 
 /**
- * A real Raven Chat client. Every message on screen came from Postgres
+ * A real Livqeno Chat client. Every message on screen came from Postgres
  * via the WebSocket: there is no mock array anywhere in this file
  * (Phase 12 spec §44).
  *
@@ -50,7 +50,7 @@ export function App() {
         const refreshed = await mintToken(session.userId);
         return refreshed.token;
       }}
-      fallback={<main className="centered">Connecting to Raven Chat…</main>}
+      fallback={<main className="centered">Connecting to Livqeno Chat…</main>}
       onError={(error) => {
         // eslint-disable-next-line no-console
         console.error(`[raven-chat] ${error.code}: ${error.message}`);
@@ -96,7 +96,7 @@ function SignIn({ onSignedIn }: { onSignedIn: (session: Session) => void }) {
   return (
     <main className="centered">
       <form className="card" onSubmit={handleSubmit}>
-        <h1>Raven Chat</h1>
+        <h1>Livqeno Chat</h1>
         <p className="muted">
           Pick a name and open this page in a second tab as someone else to see two clients talk to each other.
         </p>
@@ -129,7 +129,7 @@ function ChatScreen({ session, onSignOut }: { session: Session; onSignOut: () =>
     setDraft('');
     setReplyTo(null);
     stop();
-    // sendMessage resolves once Raven has durably stored the message.
+    // sendMessage resolves once Livqeno has durably stored the message.
     // The message itself arrives through the normal event stream, so the
     // sender renders exactly what everyone else does.
     await send(text, { replyTo: replyTo?.id });

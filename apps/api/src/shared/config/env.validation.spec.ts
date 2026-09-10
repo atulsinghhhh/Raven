@@ -289,7 +289,7 @@ describe('validateEnv — email (Resend)', () => {
           EMAIL_ENABLED: 'true',
           RESEND_API_KEY: 'a-real-looking-key',
           RESEND_FROM_EMAIL: 'hello@mail.ravenstack.online',
-          RESEND_FROM_NAME: 'Raven',
+          RESEND_FROM_NAME: 'Livqeno',
           APP_URL: 'http://localhost:3000',
         }),
       ),

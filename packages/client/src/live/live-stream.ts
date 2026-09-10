@@ -3,7 +3,7 @@ import { createRTCClient, type Room, type RTCClient } from '@ravenkash/rtc';
 import type { LiveStreamCredentials, LiveStreamRole } from './types';
 
 /**
- * Raven Live Streaming, for the browser.
+ * Livqeno Live Streaming, for the browser.
  *
  * Not a third real-time system. `LiveStream.join()` takes the credentials
  * your backend minted (`POST /v1/live-streams/:id/hosts` or

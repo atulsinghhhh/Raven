@@ -36,7 +36,7 @@ class UnsupportedBackgroundProcessor implements BackgroundProcessor {
   configure(): void {
     throw new EffectsError(
       'RAVEN_EFFECT_UNSUPPORTED',
-      'Background blur/replacement is planned but not implemented in this Raven Effects release; it requires a segmentation model this release does not ship.',
+      'Background blur/replacement is planned but not implemented in this Livqeno Effects release; it requires a segmentation model this release does not ship.',
     );
   }
 }

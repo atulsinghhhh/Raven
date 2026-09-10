@@ -18,8 +18,20 @@ import { LiveStreamsService } from './live-streams.service';
 describe('LiveStreamsService', () => {
   let service: LiveStreamsService;
   let prisma: {
-    liveStream: { create: jest.Mock; update: jest.Mock; findUnique: jest.Mock; findMany: jest.Mock };
-    liveStreamHost: { upsert: jest.Mock; update: jest.Mock; findUnique: jest.Mock; findMany: jest.Mock };
+    liveStream: {
+      create: jest.Mock;
+      update: jest.Mock;
+      updateMany: jest.Mock;
+      findUnique: jest.Mock;
+      findMany: jest.Mock;
+    };
+    liveStreamHost: {
+      create: jest.Mock;
+      upsert: jest.Mock;
+      update: jest.Mock;
+      findUnique: jest.Mock;
+      findMany: jest.Mock;
+    };
     room: { findUnique: jest.Mock };
     conversation: { findUnique: jest.Mock };
   };
@@ -69,10 +81,20 @@ describe('LiveStreamsService', () => {
       liveStream: {
         create: jest.fn(),
         update: jest.fn().mockResolvedValue({}),
+        // A lifecycle transition is a conditional write, so the default is
+        // "this caller won the transition". Tests that model a lost race
+        // override it with { count: 0 }.
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         findUnique: jest.fn(),
         findMany: jest.fn(),
       },
-      liveStreamHost: { upsert: jest.fn(), update: jest.fn(), findUnique: jest.fn(), findMany: jest.fn() },
+      liveStreamHost: {
+        create: jest.fn(),
+        upsert: jest.fn(),
+        update: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn(),
+      },
       room: { findUnique: jest.fn() },
       conversation: { findUnique: jest.fn() },
     };
@@ -210,8 +232,11 @@ describe('LiveStreamsService', () => {
 
       await service.start(SCOPE, 'stream_abc123');
 
-      expect(prisma.liveStream.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ status: LiveStreamStatus.LIVE }) }),
+      expect(prisma.liveStream.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: LiveStreamStatus.CREATED }),
+          data: expect.objectContaining({ status: LiveStreamStatus.LIVE }),
+        }),
       );
       expect(webhooks.emit).toHaveBeenCalledWith(
         SCOPE,
@@ -222,16 +247,17 @@ describe('LiveStreamsService', () => {
 
     it('rejects starting a stream that is already LIVE', async () => {
       prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.LIVE }));
+      prisma.liveStream.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(service.start(SCOPE, 'stream_abc123')).rejects.toMatchObject({
         code: RavenErrorCode.STREAM_INVALID_STATE,
       });
-      expect(prisma.liveStream.update).not.toHaveBeenCalled();
       expect(webhooks.emit).not.toHaveBeenCalled();
     });
 
     it('rejects starting a stream that has already ENDED', async () => {
       prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.ENDED }));
+      prisma.liveStream.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(service.start(SCOPE, 'stream_abc123')).rejects.toMatchObject({
         code: RavenErrorCode.STREAM_INVALID_STATE,
@@ -270,6 +296,7 @@ describe('LiveStreamsService', () => {
 
     it('rejects ending a stream that was never started (still CREATED)', async () => {
       prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.CREATED }));
+      prisma.liveStream.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(service.end(SCOPE, 'stream_abc123')).rejects.toMatchObject({
         code: RavenErrorCode.STREAM_INVALID_STATE,
@@ -279,6 +306,7 @@ describe('LiveStreamsService', () => {
 
     it('rejects ending a stream that has already ENDED — no ENDED to LIVE resurrection path exists', async () => {
       prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.ENDED }));
+      prisma.liveStream.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(service.end(SCOPE, 'stream_abc123')).rejects.toMatchObject({
         code: RavenErrorCode.STREAM_INVALID_STATE,
@@ -301,7 +329,7 @@ describe('LiveStreamsService', () => {
     });
 
     it('mints an RTC token with full publish permissions', async () => {
-      prisma.liveStreamHost.upsert.mockResolvedValue({
+      prisma.liveStreamHost.create.mockResolvedValue({
         identity: 'bob',
         role: LiveStreamHostRole.CO_HOST,
         invitedAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -320,7 +348,7 @@ describe('LiveStreamsService', () => {
     });
 
     it('grants MODERATOR chat role for a CO_HOST, ADMIN for a HOST', async () => {
-      prisma.liveStreamHost.upsert.mockResolvedValueOnce({
+      prisma.liveStreamHost.create.mockResolvedValueOnce({
         identity: 'bob',
         role: LiveStreamHostRole.CO_HOST,
         invitedAt: new Date(),
@@ -332,7 +360,7 @@ describe('LiveStreamsService', () => {
         expect.objectContaining({ role: ChatMemberRole.MODERATOR }),
       );
 
-      prisma.liveStreamHost.upsert.mockResolvedValueOnce({
+      prisma.liveStreamHost.create.mockResolvedValueOnce({
         identity: 'carol',
         role: LiveStreamHostRole.HOST,
         invitedAt: new Date(),
@@ -346,7 +374,7 @@ describe('LiveStreamsService', () => {
     });
 
     it('defaults to CO_HOST when no role is given', async () => {
-      prisma.liveStreamHost.upsert.mockResolvedValue({
+      prisma.liveStreamHost.create.mockResolvedValue({
         identity: 'bob',
         role: LiveStreamHostRole.CO_HOST,
         invitedAt: new Date(),
@@ -354,15 +382,15 @@ describe('LiveStreamsService', () => {
 
       await service.addHost(SCOPE, 'stream_abc123', { identity: 'bob' });
 
-      expect(prisma.liveStreamHost.upsert).toHaveBeenCalledWith(
+      expect(prisma.liveStreamHost.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          create: expect.objectContaining({ role: LiveStreamHostRole.CO_HOST }),
+          data: expect.objectContaining({ role: LiveStreamHostRole.CO_HOST }),
         }),
       );
     });
 
     it('emits live_stream.host_joined with the role actually assigned', async () => {
-      prisma.liveStreamHost.upsert.mockResolvedValue({
+      prisma.liveStreamHost.create.mockResolvedValue({
         identity: 'bob',
         role: LiveStreamHostRole.CO_HOST,
         invitedAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -384,6 +412,177 @@ describe('LiveStreamsService', () => {
         code: RavenErrorCode.STREAM_INVALID_STATE,
       });
       expect(rtcTokensService.create).not.toHaveBeenCalled();
+    });
+
+    /**
+     * The quickstart calls `create({ hostIdentity: 'alice' })` and then
+     * `addHost(streamId, { identity: 'alice' })` to mint alice her
+     * credentials. Applying the CO_HOST default to that existing row
+     * demoted her, left the stream with no HOST, and dropped
+     * `chat:manage` from the token it handed back.
+     */
+    describe('re-registering an identity that is already a host', () => {
+      it('keeps their existing role when no role is given', async () => {
+        prisma.liveStreamHost.findUnique.mockResolvedValue({
+          identity: 'alice',
+          role: LiveStreamHostRole.HOST,
+          invitedAt: new Date('2026-01-01T00:00:00.000Z'),
+        });
+        prisma.liveStreamHost.update.mockResolvedValue({
+          identity: 'alice',
+          role: LiveStreamHostRole.HOST,
+          invitedAt: new Date('2026-01-01T00:00:00.000Z'),
+        });
+
+        const credential = await service.addHost(SCOPE, 'stream_abc123', { identity: 'alice' });
+
+        expect(prisma.liveStreamHost.update).toHaveBeenCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ role: LiveStreamHostRole.HOST }) }),
+        );
+        expect(credential.role).toBe(LiveStreamHostRole.HOST);
+      });
+
+      it('still hands a re-minted HOST an ADMIN chat role', async () => {
+        prisma.liveStreamHost.findUnique.mockResolvedValue({
+          identity: 'alice',
+          role: LiveStreamHostRole.HOST,
+          invitedAt: new Date(),
+        });
+        prisma.liveStreamHost.update.mockResolvedValue({
+          identity: 'alice',
+          role: LiveStreamHostRole.HOST,
+          invitedAt: new Date(),
+        });
+
+        await service.addHost(SCOPE, 'stream_abc123', { identity: 'alice' });
+
+        expect(conversationsService.addMember).toHaveBeenCalledWith(
+          SCOPE,
+          'conv_xyz789',
+          expect.objectContaining({ role: ChatMemberRole.ADMIN }),
+        );
+      });
+
+      it('still honours an explicit role change', async () => {
+        prisma.liveStreamHost.findUnique.mockResolvedValue({
+          identity: 'alice',
+          role: LiveStreamHostRole.HOST,
+          invitedAt: new Date(),
+        });
+        prisma.liveStreamHost.update.mockResolvedValue({
+          identity: 'alice',
+          role: LiveStreamHostRole.CO_HOST,
+          invitedAt: new Date(),
+        });
+
+        await service.addHost(SCOPE, 'stream_abc123', {
+          identity: 'alice',
+          role: LiveStreamHostRole.CO_HOST,
+        });
+
+        expect(prisma.liveStreamHost.update).toHaveBeenCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ role: LiveStreamHostRole.CO_HOST }) }),
+        );
+      });
+
+      it('reactivates a soft-removed host rather than orphaning their row', async () => {
+        prisma.liveStreamHost.findUnique.mockResolvedValue({
+          identity: 'bob',
+          role: LiveStreamHostRole.CO_HOST,
+          invitedAt: new Date(),
+          removedAt: new Date(),
+        });
+        prisma.liveStreamHost.update.mockResolvedValue({
+          identity: 'bob',
+          role: LiveStreamHostRole.CO_HOST,
+          invitedAt: new Date(),
+        });
+
+        await service.addHost(SCOPE, 'stream_abc123', { identity: 'bob' });
+
+        expect(prisma.liveStreamHost.update).toHaveBeenCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ removedAt: null }) }),
+        );
+      });
+    });
+
+    /**
+     * Two simultaneous calls for one identity both see no row and both
+     * insert; the loser hits `@@unique([streamId, identity])`. That used to
+     * escape as a 500, which is the wrong answer to a race whose winner
+     * wrote exactly the row this caller wanted.
+     */
+    it('recovers from losing the insert race instead of failing the request', async () => {
+      const winner = {
+        identity: 'bob',
+        role: LiveStreamHostRole.CO_HOST,
+        invitedAt: new Date('2026-01-01T00:00:00.000Z'),
+      };
+      prisma.liveStreamHost.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(winner);
+      prisma.liveStreamHost.create.mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' }));
+      prisma.liveStreamHost.update.mockResolvedValue(winner);
+
+      const credential = await service.addHost(SCOPE, 'stream_abc123', { identity: 'bob' });
+
+      expect(credential.role).toBe(LiveStreamHostRole.CO_HOST);
+      expect(rtcTokensService.create).toHaveBeenCalled();
+    });
+
+    it('rethrows a create failure that is not a lost race', async () => {
+      prisma.liveStreamHost.findUnique.mockResolvedValue(null);
+      prisma.liveStreamHost.create.mockRejectedValue(new Error('connection reset'));
+
+      await expect(service.addHost(SCOPE, 'stream_abc123', { identity: 'bob' })).rejects.toThrow('connection reset');
+    });
+  });
+
+  /**
+   * Reading the row, deciding, then writing left a gap wide enough that
+   * five concurrent start() calls all read CREATED and all wrote LIVE.
+   * The status is part of the WHERE now, so the database picks the winner.
+   */
+  describe('lifecycle transitions are conditional writes, not read-then-write', () => {
+    it('start() guards the update on the stream still being CREATED', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.CREATED }));
+      prisma.liveStreamHost.findMany.mockResolvedValue([]);
+
+      await service.start(SCOPE, 'stream_abc123');
+
+      expect(prisma.liveStream.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ status: LiveStreamStatus.CREATED }) }),
+      );
+    });
+
+    it('end() guards the update on the stream still being LIVE', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.LIVE }));
+      prisma.liveStreamHost.findMany.mockResolvedValue([]);
+
+      await service.end(SCOPE, 'stream_abc123');
+
+      expect(prisma.liveStream.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ status: LiveStreamStatus.LIVE }) }),
+      );
+    });
+
+    it('a start() that matched no row emits nothing and conflicts', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.CREATED }));
+      prisma.liveStream.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.start(SCOPE, 'stream_abc123')).rejects.toMatchObject({
+        code: RavenErrorCode.STREAM_INVALID_STATE,
+      });
+      expect(webhooks.emit).not.toHaveBeenCalled();
+    });
+
+    it('an end() that matched no row emits nothing and leaves the room alone', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.LIVE }));
+      prisma.liveStream.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.end(SCOPE, 'stream_abc123')).rejects.toMatchObject({
+        code: RavenErrorCode.STREAM_INVALID_STATE,
+      });
+      expect(webhooks.emit).not.toHaveBeenCalled();
+      expect(roomsService.close).not.toHaveBeenCalled();
     });
   });
 

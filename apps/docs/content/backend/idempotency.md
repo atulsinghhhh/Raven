@@ -31,7 +31,7 @@ caches for **5 minutes**.
 
 That is deliberate. An RTC token can expire in as little as 30 seconds.
 Replaying a cached response an hour later would hand back a dead credential
-and the failure would look like a Raven bug rather than a stale replay. A
+and the failure would look like a Livqeno bug rather than a stale replay. A
 short window means a retry either replays a still-useful token or mints a
 fresh one.
 

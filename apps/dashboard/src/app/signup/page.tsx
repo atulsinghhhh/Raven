@@ -6,7 +6,7 @@ import { ravenApi } from '@/lib/api-client';
 import { SignupForm } from './signup-form';
 
 export const metadata: Metadata = {
-  title: 'Create account — Raven',
+  title: 'Create account — Livqeno',
 };
 
 export default async function SignupPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -19,7 +19,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
 
   return (
     <AuthShell
-      title="Create your Raven account"
+      title="Create your Livqeno account"
       subtitle="Free to start. Build voice, video, chat, and live streaming."
       footer={
         <p>

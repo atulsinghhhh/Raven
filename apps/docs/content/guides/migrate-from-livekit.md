@@ -8,33 +8,33 @@ description: A concept-by-concept mapping, the places the two differ in kind, an
 A translation. If you have a LiveKit integration, this is what changes and
 what does not.
 
-Raven's media plane was itself migrated off LiveKit, so this mapping comes
+Livqeno's media plane was itself migrated off LiveKit, so this mapping comes
 from having done it rather than from reading a comparison table.
 
 ## Prerequisites
 
 - An existing LiveKit integration.
-- A Raven project and API key.
+- A Livqeno project and API key.
 
 ## Implementation
 
 ### The concepts map closely
 
-| LiveKit | Raven | Notes |
+| LiveKit | Livqeno | Notes |
 |---|---|---|
-| Room | [Room](/concepts/room) | Same idea. Raven's is a control-plane record; a server is allocated on first join. |
+| Room | [Room](/concepts/room) | Same idea. Livqeno's is a control-plane record; a server is allocated on first join. |
 | Participant | [Participant](/concepts/participant) | Identity is a string your backend chooses, signed into the token. |
-| Track | [Track](/concepts/track) | Raven declares the *source* — `camera`, `microphone`, `screenShare`. |
+| Track | [Track](/concepts/track) | Livqeno declares the *source* — `camera`, `microphone`, `screenShare`. |
 | Access token | [Token](/concepts/token) | Minted server-side. Max 6 hours; no non-expiring option. |
 | API key / secret | [API key](/concepts/api-key) | One `rvk_<env>_id.secret` string rather than a key/secret pair. |
 | Server SDK | `@ravenkash/server`, `raven-sdk` | Same job. |
-| Egress / Ingress | — | **No equivalent.** Raven has no recording and no RTMP ingest. |
-| Webhooks | [Webhooks](/webhooks) | Raven's fire for chat and live-stream events, not RTC lifecycle. |
+| Egress / Ingress | — | **No equivalent.** Livqeno has no recording and no RTMP ingest. |
+| Webhooks | [Webhooks](/webhooks) | Livqeno's fire for chat and live-stream events, not RTC lifecycle. |
 
 ### Token minting
 
 ```ts
-// Raven
+// Livqeno
 const credentials = await raven.tokens.create({
   room: room.id,                 // the room's id, not its name
   identity: 'user-42',
@@ -46,7 +46,7 @@ const credentials = await raven.tokens.create({
 Two differences that matter:
 
 - **Permissions are denied unless granted.** LiveKit's unset
-  `canPublish`/`canSubscribe` meant *both granted*. Raven resolves every
+  `canPublish`/`canSubscribe` meant *both granted*. Livqeno resolves every
   flag to an explicit boolean at mint time, so there is no permissive
   default to inherit.
 - **You forward the whole response.** `endpoint`, `iceServers` and
@@ -77,13 +77,13 @@ await room.publish(track);
 
 ### Events
 
-Raven's event names are its own. The mapping is mostly mechanical —
+Livqeno's event names are its own. The mapping is mostly mechanical —
 `participantJoined`, `participantLeft`, `trackSubscribed`,
 `trackUnsubscribed`, `trackMuted`, `connectionStateChanged` — and the full
 list is in [RTC events](/rtc/events).
 
 No WebRTC type is ever exposed. There is no `RTCPeerConnection`,
-`RTCRtpSender` or `MediaStreamTrack` in Raven's public API except
+`RTCRtpSender` or `MediaStreamTrack` in Livqeno's public API except
 `track.mediaStreamTrack` when you deliberately reach for it.
 
 ## How it works
@@ -92,8 +92,8 @@ No WebRTC type is ever exposed. There is no `RTCPeerConnection`,
 SFU topology, so your mental model transfers.
 
 **Clients never learn which media server they got.** They connect to a
-signaling endpoint and Raven allocates on their behalf. That indirection is
-what let Raven replace its own media plane without an SDK release — and it
+signaling endpoint and Livqeno allocates on their behalf. That indirection is
+what let Livqeno replace its own media plane without an SDK release — and it
 means there is no server address for you to configure.
 
 **The signaling protocol is not LiveKit's.** If you wrote anything against
@@ -103,12 +103,12 @@ the wire protocol rather than the SDK, that work does not carry over. See
 ## Production considerations
 
 - **Nothing recording-shaped will port.** No Egress, no Ingress, no
-  composite output, no RTMP. If your product depends on any of it, Raven
+  composite output, no RTMP. If your product depends on any of it, Livqeno
   cannot replace LiveKit for that part today.
 - **Re-audit your permissions.** Code that relied on "unset means allowed"
   will produce participants who cannot publish. That is the intended
   direction of the change, but it will surface as a bug during migration.
-- **Verify on your own networks.** Raven's relay path is tested and its
+- **Verify on your own networks.** Livqeno's relay path is tested and its
   browser coverage is Chromium-only so far. See
   [Known limitations](/reference/known-limitations).
 

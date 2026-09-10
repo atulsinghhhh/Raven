@@ -1,10 +1,10 @@
 # @ravenkash/rtc
 
-Raven's browser RTC SDK — join a room, publish camera and microphone,
+Livqeno's browser RTC SDK — join a room, publish camera and microphone,
 subscribe to remote media. Hides SDP, ICE, STUN, TURN and the media server
 behind a small typed API.
 
-Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
+Part of [Livqeno](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
 
 ## Install
 
@@ -16,7 +16,7 @@ npm install @ravenkash/rtc
 
 The token and endpoint come from your own backend — never mint them in a
 browser. See [`@ravenkash/server`](https://www.npmjs.com/package/@ravenkash/server)
-or [Raven's Python SDK](https://github.com/atulsinghhhh/Raven/tree/main/sdks/python) for Python (not on PyPI yet — the
+or [Livqeno's Python SDK](https://github.com/atulsinghhhh/Raven/tree/main/sdks/python) for Python (not on PyPI yet — the
 `raven-sdk` name there belongs to an unrelated project).
 
 ```ts
@@ -31,7 +31,7 @@ const room = await client.join();
 // Spelling out the same thing, if you prefer to be explicit:
 //   const client = createRTCClient({
 //     token: grant.token,
-//     endpoint: grant.endpoint,       // Raven's signaling WebSocket
+//     endpoint: grant.endpoint,       // Livqeno's signaling WebSocket
 //     iceServers: grant.iceServers,   // never hand-build STUN/TURN config
 //   });
 //   const room = await client.join(grant.roomName);

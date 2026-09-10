@@ -32,7 +32,7 @@ export function Nav() {
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-8 px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2 text-[15px] font-medium tracking-tight text-fg">
           <RavenMark />
-          RAVEN
+          LIVQENO
         </Link>
 
         <nav className="hidden items-center gap-1 text-[14px] text-muted md:flex">

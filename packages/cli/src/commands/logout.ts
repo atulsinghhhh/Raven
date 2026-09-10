@@ -7,7 +7,7 @@ import { withErrorHandling } from '../lib/run.js';
 export function registerLogoutCommand(program: Command): void {
   program
     .command('logout')
-    .description('Sign out and remove locally stored Raven credentials')
+    .description('Sign out and remove locally stored Livqeno credentials')
     .action(
       withErrorHandling(async () => {
         const credentials = await readCredentials();

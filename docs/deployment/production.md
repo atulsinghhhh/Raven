@@ -1,4 +1,4 @@
-# Raven production deployment — Vercel + Azure + Supabase
+# Livqeno production deployment — Vercel + Azure + Supabase
 
 The target topology: **frontends on Vercel, Postgres on Supabase,
 everything else on Azure.** LiveKit is gone and is not coming back.
@@ -14,7 +14,7 @@ evidence that forced the change.
 
 ## 1. Current architecture
 
-Raven is a **control plane** and a **media plane** that are deliberately
+Livqeno is a **control plane** and a **media plane** that are deliberately
 separate processes, plus a set of frontends and client SDKs.
 
 ```text
@@ -123,7 +123,7 @@ imports or depends on it.
 
 What replaced it:
 
-| Concern | LiveKit before | Raven now |
+| Concern | LiveKit before | Livqeno now |
 |---|---|---|
 | Media | `livekit-server` | `services/sfu` (Go, Pion), rooms in-process |
 | Tokens | `AccessToken`/`TokenVerifier` | `rtc-tokens/rtc-token-signer.service.ts` |
@@ -244,7 +244,7 @@ Secrets to generate (`openssl rand -hex 32`), all four distinct:
 
 ## 11.1 There is no separate worker to deploy
 
-**Requested:** "Deploy Raven worker" as its own Azure service.
+**Requested:** "Deploy Livqeno worker" as its own Azure service.
 
 **Finding:** there is one entrypoint (`apps/api/src/main.ts`), one
 `AppModule`, one build. All eight background jobs run in-process in every
@@ -315,7 +315,7 @@ env var.
 
 ## 11.3 Azure Blob Storage cannot back chat attachments as-is
 
-**Requested:** "Azure Blob Storage if Raven requires object storage."
+**Requested:** "Azure Blob Storage if Livqeno requires object storage."
 
 **Finding:** `apps/api/src/modules/chat/attachments/s3-presign.util.ts` is
 a hand-rolled **AWS Signature V4** presigner — deliberately, to avoid

@@ -49,8 +49,8 @@ export default async function CliPage({ params }: { params: Promise<{ projectId:
             <Badge tone="neutral">v0.1.0</Badge>
           </div>
           <p className="mt-1 text-sm leading-relaxed text-muted">
-            Not yet published to a package registry — install locally while Raven is in this phase; see the installation
-            section of the docs below.
+            Not yet published to a package registry — install locally while Livqeno is in this phase; see the
+            installation section of the docs below.
           </p>
         </div>
 

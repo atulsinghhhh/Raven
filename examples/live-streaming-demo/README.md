@@ -1,6 +1,6 @@
 # Live Streaming Demo
 
-A real two-browser demo of Raven Live Streaming — one host tab publishing
+A real two-browser demo of Livqeno Live Streaming — one host tab publishing
 camera/microphone, one viewer tab receiving real media, plus live chat and
 reactions — built entirely on `@ravenkash/client`'s `LiveStream` API
 (`raven.live.join()` / `LiveStream.join()`). `app.js` never touches
@@ -11,7 +11,7 @@ This is deliberately not a polished product UI — see
 
 ## Running it
 
-**1. Bring up Raven's infrastructure** (from the repo root): `pnpm infra:up`
+**1. Bring up Livqeno's infrastructure** (from the repo root): `pnpm infra:up`
 
 **2. Get a real API key** — `raven keys create`, the dashboard, or `pnpm db:seed`.
 

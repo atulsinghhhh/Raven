@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { VerifyEmailPanel } from './verify-email-panel';
 
 export const metadata: Metadata = {
-  title: 'Confirm your email — Raven',
+  title: 'Confirm your email — Livqeno',
   // A verification link is single-use: an indexer following it would burn
   // the token before the recipient ever clicked.
   robots: { index: false, follow: false },

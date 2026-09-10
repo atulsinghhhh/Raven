@@ -1,6 +1,6 @@
 # Security Policy
 
-Raven is real-time communication infrastructure. A vulnerability here can
+Livqeno is real-time communication infrastructure. A vulnerability here can
 mean someone joining a call they were never granted, minting a token for
 another project, or relaying traffic through your TURN server on your bill.
 We take reports seriously and would rather hear about a problem early and
@@ -69,7 +69,7 @@ There is no bug bounty. We can offer credit and genuine thanks.
 
 ## Supported versions
 
-Raven is **pre-1.0 and has not had its first release**. Nothing on npm,
+Livqeno is **pre-1.0 and has not had its first release**. Nothing on npm,
 PyPI or pub.dev is published from this repository yet, and no version is
 under long-term support.
 
@@ -97,8 +97,8 @@ then, "supported" means `main`.
 
 **Out of scope:**
 
-- Vulnerabilities in third-party dependencies with no Raven-specific
-  exploit path — report those upstream. If Raven's use of a dependency is
+- Vulnerabilities in third-party dependencies with no Livqeno-specific
+  exploit path — report those upstream. If Livqeno's use of a dependency is
   what makes it exploitable, that *is* in scope.
 - Anything requiring an attacker to already hold a project API key. That
   key is a permanent full-project credential by design; protecting it is
@@ -170,7 +170,7 @@ The load-bearing invariants:
 
 ## For operators
 
-If you run Raven yourself, most of your real risk is configuration:
+If you run Livqeno yourself, most of your real risk is configuration:
 
 - Generate `JWT_SECRET`, `RTC_TOKEN_SECRET`, `API_KEY_HASH_SECRET`,
   `CHAT_TOKEN_SECRET` and `SFU_REGISTRATION_SECRET` independently

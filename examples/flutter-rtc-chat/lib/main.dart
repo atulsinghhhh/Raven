@@ -6,10 +6,10 @@ import 'package:http/http.dart' as http;
 import 'package:raven_chat/raven_chat.dart';
 import 'package:raven_rtc/raven_rtc.dart';
 
-/// A Raven video call with a chat panel, in Flutter.
+/// A Livqeno video call with a chat panel, in Flutter.
 ///
-/// Everything is real: WebRTC media through Raven's SFU, messages through
-/// Raven Chat into Postgres. No mock participants, no fake message list
+/// Everything is real: WebRTC media through Livqeno's SFU, messages through
+/// Livqeno Chat into Postgres. No mock participants, no fake message list
 /// (spec §11).
 ///
 /// Devices on the same Wi-Fi should point this at the host machine's LAN
@@ -26,7 +26,7 @@ class RavenExampleApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'Raven',
+        title: 'Livqeno',
         theme: ThemeData.dark(useMaterial3: true),
         home: const JoinScreen(),
       );
@@ -101,7 +101,7 @@ class _JoinScreenState extends State<JoinScreen> {
     });
 
     try {
-      // The app authenticates against its OWN backend. A Raven API key
+      // The app authenticates against its OWN backend. A Livqeno API key
       // never exists on the device (spec §15).
       final response = await http.post(
         Uri.parse('$backendUrl/api/session'),
@@ -139,7 +139,7 @@ class _JoinScreenState extends State<JoinScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Raven', style: TextStyle(fontSize: 32)),
+                const Text('Livqeno', style: TextStyle(fontSize: 32)),
                 const SizedBox(height: 8),
                 const Text('Video and chat, on the same screen.'),
                 const SizedBox(height: 24),
@@ -178,7 +178,7 @@ class CallScreen extends StatefulWidget {
 }
 
 class _CallScreenState extends State<CallScreen> {
-  Raven? _raven;
+  Livqeno? _raven;
   RavenRoom? _room;
   RavenChat? _chat;
 
@@ -282,7 +282,7 @@ class _CallScreenState extends State<CallScreen> {
 
     _composer.clear();
     await chat.stopTyping();
-    // Completes once Raven has durably stored it; the message itself
+    // Completes once Livqeno has durably stored it; the message itself
     // arrives through the normal stream.
     await chat.send(text);
   }

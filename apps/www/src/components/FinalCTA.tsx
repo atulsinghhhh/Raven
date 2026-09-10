@@ -12,7 +12,7 @@ export function FinalCTA() {
         <h2 className="display text-4xl text-fg md:text-6xl">
           Your application.
           <br />
-          <span className="kw">Raven&apos;s</span> infrastructure.
+          <span className="kw">Livqeno&apos;s</span> infrastructure.
         </h2>
         <p className="mt-6 max-w-lg text-base leading-relaxed text-muted">
           Create a project, mint your first token, and join a room — RTC, messaging, live streaming, and effects through

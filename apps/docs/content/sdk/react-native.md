@@ -1,6 +1,6 @@
 ---
 title: React Native SDK
-description: The same API as Raven Web — the Room class is the same class.
+description: The same API as Livqeno Web — the Room class is the same class.
 ---
 
 ```tsx
@@ -146,7 +146,7 @@ new Raven({
 `RavenLiveStream` is a thin wrapper around `Raven` — not a parallel
 implementation. A stream's host and viewers are ordinary participants of
 one room, and its chat is ordinary `@ravenkash/chat`, so every mobile
-concern `Raven.join()` already handles (permissions, audio session, app
+concern `Livqeno.join()` already handles (permissions, audio session, app
 lifecycle, network recovery) applies unchanged:
 
 ```ts

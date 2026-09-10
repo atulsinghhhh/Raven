@@ -493,7 +493,7 @@ class RavenRoom extends ChangeNotifier {
   }
 
   /// Runs a media operation and translates whatever the platform throws
-  /// into Raven's vocabulary.
+  /// into Livqeno's vocabulary.
   Future<void> _guardMedia(
     RavenPermission permission,
     Future<void> Function() action,
@@ -506,7 +506,7 @@ class RavenRoom extends ChangeNotifier {
   }
 }
 
-/// Turns a platform media failure into a Raven error.
+/// Turns a platform media failure into a Livqeno error.
 ///
 /// The native layer reports a denied permission as a `PlatformException`
 /// whose message varies by OS and OS version, so this matches on the

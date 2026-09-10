@@ -1,9 +1,9 @@
 ---
 title: All endpoints
-description: Every route the Raven API serves, generated from the controllers.
+description: Every route the Livqeno API serves, generated from the controllers.
 ---
 
-Raven serves **115** versioned endpoints under `/v1`, plus
+Livqeno serves **115** versioned endpoints under `/v1`, plus
 **4** unversioned infrastructure routes. This page is generated
 from `apps/api`, so it is the whole surface — not a curated subset.
 

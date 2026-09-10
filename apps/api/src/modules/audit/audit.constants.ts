@@ -1,5 +1,5 @@
 /**
- * Every administrative action Raven records.
+ * Every administrative action Livqeno records.
  *
  * Kept as one flat list, not composed from parts, because the value
  * of an audit log is being able to answer "what can appear here?" without

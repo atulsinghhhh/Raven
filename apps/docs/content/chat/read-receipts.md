@@ -88,7 +88,7 @@ tab receives everything. A phone in a pocket receives everything. A
 per-recipient `delivered` flag would produce a checkmark that looks like
 a strong guarantee and means almost nothing.
 
-What Raven reports instead is honest: how many connected sockets a
+What Livqeno reports instead is honest: how many connected sockets a
 message was fanned out to, as an aggregate metric. If your product needs
 "delivered" semantics, build them on `read` — which requires an actual
 client action — rather than on socket mechanics.

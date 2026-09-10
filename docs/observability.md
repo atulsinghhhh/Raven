@@ -1,18 +1,18 @@
 # Observability
 
-Raven's first production-oriented observability layer (Phase 9): answer
+Livqeno's first production-oriented observability layer (Phase 9): answer
 "is my project working, and if not, why?" without ever needing to touch
 the SFU or coturn directly. See also `docs/telemetry.md` (what the SDK
 reports and how), `docs/diagnostics.md` (the two diagnostic surfaces),
 and `docs/error-codes.md` (error categories and explanations).
 
-## Core principle: Raven concepts, never infrastructure internals
+## Core principle: Livqeno concepts, never infrastructure internals
 
 A developer sees `TURN_ERROR` / `"Likely cause: a firewall/NAT
 restriction"` — never a raw ICE candidate error code or a coturn
 allocation failure. Internal infrastructure detail stays out of every
 developer-facing surface (dashboard, CLI, API responses); `error-classifier.ts`
-is the one place that maps SDK-reported errors onto Raven's own vocabulary.
+is the one place that maps SDK-reported errors onto Livqeno's own vocabulary.
 
 ## Architecture
 

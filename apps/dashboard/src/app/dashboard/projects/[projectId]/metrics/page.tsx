@@ -180,7 +180,7 @@ export default async function MetricsPage({
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Metrics"
-        description="What Raven measured for this project. Every number here is a value the Control API returned — where a figure is derived from raw records rather than read directly, it says so."
+        description="What Livqeno measured for this project. Every number here is a value the Control API returned — where a figure is derived from raw records rather than read directly, it says so."
         actions={<RangeSelector basePath={`${base}/metrics`} current={range} />}
       />
 
@@ -253,7 +253,7 @@ export default async function MetricsPage({
       <section>
         <SectionHeader
           title="Activity over time"
-          subtitle="Raven has no time-series store. These two charts are bucketed in the console from the raw records the list endpoints return."
+          subtitle="Livqeno has no time-series store. These two charts are bucketed in the console from the raw records the list endpoints return."
         />
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <Card>
@@ -342,7 +342,10 @@ export default async function MetricsPage({
       </section>
 
       <section>
-        <SectionHeader title="What Raven does not measure yet" subtitle="So you know what this page can't tell you." />
+        <SectionHeader
+          title="What Livqeno does not measure yet"
+          subtitle="So you know what this page can't tell you."
+        />
         <Card>
           <ul className="flex flex-col gap-2.5 text-sm leading-relaxed text-muted">
             <NotMeasured title="Latency and jitter">

@@ -10,7 +10,7 @@ export type RTCErrorCode =
    */
   | 'TOKEN_REVOKED'
   /**
-   * The account behind this project has spent its included Raven minutes.
+   * The account behind this project has spent its included Livqeno minutes.
    *
    * Its own code rather than `SIGNALING_ERROR` because it is the one join
    * failure whose remedy is commercial, not technical: no retry, no fresh

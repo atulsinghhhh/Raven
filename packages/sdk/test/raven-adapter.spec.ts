@@ -100,7 +100,7 @@ async function settleNegotiation(socket: FakeWebSocket, pc: FakeRTCPeerConnectio
 }
 
 /**
- * An offer shaped like the one Raven's SFU sends at join: a recvonly
+ * An offer shaped like the one Livqeno's SFU sends at join: a recvonly
  * m-section per kind, each carrying an msid of the SFU's own.
  *
  * `Manager.AddParticipant` adds those two transceivers up front so a first
@@ -881,7 +881,7 @@ describe('RavenAdapter', () => {
     });
 
     it("stops offering once the sfu's own offer has carried the change", async () => {
-      // The loop this cost us. Raven's SFU adds a receive slot for a track
+      // The loop this cost us. Livqeno's SFU adds a receive slot for a track
       // as soon as the client declares it, so its next offer often carries
       // a just-published camera. An SDK that keeps its own "something
       // changed" flag cannot tell, so it re-offers, collides with the next
@@ -916,7 +916,7 @@ describe('RavenAdapter', () => {
     });
 
     it("offers again when the wire still carries somebody else's msid", async () => {
-      // Raven's SFU identifies a published track by the id in the SDP
+      // Livqeno's SFU identifies a published track by the id in the SDP
       // `msid` and matches it to the `track.publish` declaration that says
       // camera or screen share. The SFU pre-creates a receive slot for a
       // declared track, `addTrack` reuses that transceiver, and if the
@@ -1540,7 +1540,7 @@ describe('RavenAdapter', () => {
     });
 
     it('drops a screen share the user stopped while disconnected', async () => {
-      // Ending a share is the user's own doing, through browser UI Raven
+      // Ending a share is the user's own doing, through browser UI Livqeno
       // never sees. Restoring the dead track would publish an m-section
       // that never carries a frame.
       const { adapter, socket } = await connectAdapter({ autoReconnect: true });
@@ -1652,7 +1652,7 @@ describe('RavenAdapter', () => {
 
     it('exposes ICE and signaling state, which the previous adapter could not', async () => {
       // `Room.getDiagnostics()` reported these as undefined for as long as
-      // LiveKit owned the connection. Raven's own adapter has the peer
+      // LiveKit owned the connection. Livqeno's own adapter has the peer
       // connection right there. These are the states that actually explain
       // a failed connection in a bug report.
       const { adapter, socket } = await connectAdapter();

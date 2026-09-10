@@ -3,7 +3,7 @@ import { Fraunces, JetBrains_Mono, Lexend } from 'next/font/google';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Raven — Developer Console',
+  title: 'Livqeno — Developer Console',
   description: 'Real-time communication infrastructure: rooms, connections, observability, and SDKs.',
 };
 

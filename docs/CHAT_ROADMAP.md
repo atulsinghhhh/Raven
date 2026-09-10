@@ -1,4 +1,4 @@
-# Raven Chat — Roadmap
+# Livqeno Chat — Roadmap
 
 Companion to `CHAT_GAP_AUDIT.md` (feature-by-feature findings) and `CHAT_ARCHITECTURE.md` (current + target architecture). Phases are ordered so each is buildable on top of what's already real — see the audit's §8 for what not to redo.
 
@@ -14,7 +14,7 @@ The highest-priority phase. Transactional outbox alongside the message/reaction/
 Persist "last seen" (currently entirely absent); add a user-level presence subscription API (today presence is scoped to a shared conversation only); extend read-receipt fanout testing to multi-reader/multi-session races; formalize event ordering guarantees once Phase 2's sequence number lands.
 
 ## Phase 4 — Groups/channels
-A `findOrCreateDirect(userA, userB)` server-SDK convenience method for 1:1 DMs (the `DIRECT` type exists in schema but has no ergonomics today — still server-actor-only, matching Agora Chat's own single-chat convenience methods, not an end-user self-join feature); enforce the currently-unused `chat:manage` scope on membership mutations; add conversation deletion (soft-delete, mirroring message soft-delete). No self-serve public-channel discovery/join or invite-link system is planned — that's a Discord/Slack-workspace pattern, not part of this product's model; Raven's `ROOM` type (host-controlled join via the RTC/live-streaming plane) already covers the "give someone access to join" use case this product actually needs.
+A `findOrCreateDirect(userA, userB)` server-SDK convenience method for 1:1 DMs (the `DIRECT` type exists in schema but has no ergonomics today — still server-actor-only, matching Agora Chat's own single-chat convenience methods, not an end-user self-join feature); enforce the currently-unused `chat:manage` scope on membership mutations; add conversation deletion (soft-delete, mirroring message soft-delete). No self-serve public-channel discovery/join or invite-link system is planned — that's a Discord/Slack-workspace pattern, not part of this product's model; Livqeno's `ROOM` type (host-controlled join via the RTC/live-streaming plane) already covers the "give someone access to join" use case this product actually needs.
 
 ## Phase 5 — Attachments/media
 Content-type allowlist; async malware-scan pipeline before an attachment is servable; type-specific metadata for images (dimensions, thumbnail) and audio/video (duration, waveform/poster) instead of treating every attachment as an opaque blob; Flutter SDK gains attachment upload (currently receive-only).
@@ -139,7 +139,7 @@ Mentions (@user parsing/storage/notification), message pinning, search (Postgres
 - **A general-purpose event-sourcing rewrite of the whole chat pipeline** — the outbox addition in Phase 2 gets the reliability win without discarding the working persist-then-publish design.
 - **Automated spam/ML-based abuse detection** — build the manual block/report/mute/ban primitives first (Phase 6); automated detection is a layer on top, not a prerequisite.
 
-## 9. Minimum Chat MVP Raven can publicly release
+## 9. Minimum Chat MVP Livqeno can publicly release
 Everything in the "already solid" list from the audit (send/edit/delete, reactions, read receipts, typing, presence, cursor pagination, webhooks, chat tokens/auth, rate limiting) **plus**:
 - A working attachment storage driver in production (it's coded, just not configured — this is a blocking bug for any public release that mentions attachments)
 - Basic moderation: block + report at minimum (mute/ban can follow shortly after, but shipping public chat with zero abuse-reporting mechanism is not defensible)
@@ -160,10 +160,10 @@ This is where the single-Redis-node ceiling identified in `CHAT_ARCHITECTURE.md`
 - **The outbox from Phase 2 becomes more important, not less** — at this scale, transient Redis hiccups affecting even a small percentage of fan-out events translate into a large absolute number of "silently dropped, only recoverable via manual refetch" events; the outbox's replay path is what keeps that invisible to users.
 - **Full observability (Phase 7) is a hard prerequisite**, not optional, at this scale — diagnosing an incident across hundreds of gateway instances without tracing/percentile metrics is not realistically possible.
 
-## 12. Features that would make Raven Chat meaningfully better than a basic Agora Chat clone
-- **An honest, documented delivery guarantee with automatic client-side catch-up** — most "Agora Chat clone" projects leave this exactly as implicit as Raven does today; actually solving Phase 2 and documenting it clearly is a real differentiator, not just parity.
-- **Cross-language SDK parity as a first-class design constraint** — Raven already does this unusually well for the raw-WebSocket SDKs (Web/Flutter/RN share an intentionally aligned wire protocol); extending that same discipline to hooks (React Native) and to moderation/mention/pin methods as they're built would keep this advantage rather than let it erode.
+## 12. Features that would make Livqeno Chat meaningfully better than a basic Agora Chat clone
+- **An honest, documented delivery guarantee with automatic client-side catch-up** — most "Agora Chat clone" projects leave this exactly as implicit as Livqeno does today; actually solving Phase 2 and documenting it clearly is a real differentiator, not just parity.
+- **Cross-language SDK parity as a first-class design constraint** — Livqeno already does this unusually well for the raw-WebSocket SDKs (Web/Flutter/RN share an intentionally aligned wire protocol); extending that same discipline to hooks (React Native) and to moderation/mention/pin methods as they're built would keep this advantage rather than let it erode.
 - **A genuinely usable dashboard for trust & safety** — most competitors bolt moderation UI on late; building the Phase 6 report-review queue as a first-class dashboard experience (not just a REST endpoint) from the start is a real product wedge.
-- **Structural multi-tenancy (RLS) as a selling point for enterprise/regulated customers** — "our isolation is enforced by the database, not just by our code" is a meaningfully stronger security claim than most competitors can make, and Raven already has the RLS pattern proven elsewhere in the platform.
+- **Structural multi-tenancy (RLS) as a selling point for enterprise/regulated customers** — "our isolation is enforced by the database, not just by our code" is a meaningfully stronger security claim than most competitors can make, and Livqeno already has the RLS pattern proven elsewhere in the platform.
 - **Transparent, real load-test-backed capacity numbers** — the existing `scripts/chat-load-test.mjs` + documented measured-limits pattern is already better practice than most vendors' marketing-only capacity claims; keeping this updated and public as the architecture scales is cheap and builds real trust.
 - **First-class mention-driven notifications and search built on Postgres full-text before reaching for a separate search service** — keeps operational surface area small while still shipping the features that actually drive daily engagement.

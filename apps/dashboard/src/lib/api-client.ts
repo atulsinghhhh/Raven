@@ -567,7 +567,7 @@ export interface WebhookDeliveryRecord {
 }
 
 /**
- * A developer's Raven-minute allowance.
+ * A developer's Livqeno-minute allowance.
  *
  * Every number here comes from the API, `includedMinutes` included. The
  * dashboard deliberately holds no copy of the free-tier figure: an account

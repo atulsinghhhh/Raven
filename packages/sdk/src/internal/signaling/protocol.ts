@@ -1,5 +1,5 @@
 /**
- * Raven's signaling wire protocol, as the client sees it.
+ * Livqeno's signaling wire protocol, as the client sees it.
  *
  * Mirrors `apps/api/src/modules/signaling/signaling.constants.ts` and
  * `interfaces/signaling-message.interface.ts`. Written out by hand rather

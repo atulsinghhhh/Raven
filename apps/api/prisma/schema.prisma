@@ -1,4 +1,4 @@
-// Raven control plane schema.
+// Livqeno control plane schema.
 // See docs/architecture/infrastructure-decisions.md for why Prisma/Postgres.
 // See docs/control-plane.md for the full data-model rationale.
 
@@ -69,7 +69,7 @@ enum ConnectionState {
   FAILED
 }
 
-/// Raven-facing error categories (Phase 9 spec §18) — never the raw SFU,
+/// Livqeno-facing error categories (Phase 9 spec §18) — never the raw SFU,
 /// ICE-agent, or coturn error a developer would have to reverse-engineer.
 enum ErrorCategory {
   AUTHENTICATION_ERROR
@@ -154,11 +154,11 @@ enum AuthProvider {
   GOOGLE
 }
 
-/// One external identity (a GitHub or Google account) linked to a Raven
+/// One external identity (a GitHub or Google account) linked to a Livqeno
 /// user. The unique (provider, providerAccountId) pair is what makes a
 /// returning OAuth login find the same user instead of minting a duplicate.
 ///
-/// Deliberately token-free: Raven only needs the provider to prove who the
+/// Deliberately token-free: Livqeno only needs the provider to prove who the
 /// person is at login time, so access/refresh tokens are used once during
 /// the callback exchange and discarded. A row here is a link, not a
 /// credential — a database leak yields no way into anyone's GitHub or
@@ -303,7 +303,7 @@ model AuditLog {
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   /// Null for project-level actions that no single environment owns.
   environment  Environment?
-  /// Null when Raven itself acted rather than a person.
+  /// Null when Livqeno itself acted rather than a person.
   actorId      String?
   actorEmail   String
   /// Dotted noun.verb, e.g. `api_key.revoked`. See audit.constants.ts.
@@ -405,7 +405,7 @@ model Participant {
 }
 
 /// A control-plane record of a granted RTC token. The actual bearer
-/// credential is a Raven-signed HS256 JWT returned once at creation time
+/// credential is a Livqeno-signed HS256 JWT returned once at creation time
 /// and never persisted — this row is the audit/metadata trail, not the
 /// secret itself. This row's `id` is the token's `jti`, which is why it is
 /// created before the token is signed. See docs/rtc/security.md.
@@ -453,7 +453,7 @@ model Connection {
   signalingState      String?
   /// The SFU's own connection-quality read ('excellent'|'good'|'poor'|
   /// 'lost'|'unknown') — plain string, not a Postgres enum, since the
-  /// vocabulary belongs to whichever SFU adapter reported it, not to Raven.
+  /// vocabulary belongs to whichever SFU adapter reported it, not to Livqeno.
   connectionQuality   String?
   rttMs               Int?
   jitterMs            Int?
@@ -497,7 +497,7 @@ model ConnectionEvent {
 }
 
 /// A classified, developer-facing error (Phase 9 spec §18-20). `category`
-/// is always a Raven concept (never a raw SFU or coturn error code) —
+/// is always a Livqeno concept (never a raw SFU or coturn error code) —
 /// see `error-classifier.ts` for the mapping and docs/error-codes.md for
 /// the full reference.
 model ErrorEvent {
@@ -629,7 +629,7 @@ model Conversation {
 
 /// Membership + role for one identity in one conversation. `userId` is the
 /// developer's own user identity string (same concept as an RTC
-/// participant identity) — Raven never owns end-user accounts.
+/// participant identity) — Livqeno never owns end-user accounts.
 model ChatMember {
   id             String           @id @default(uuid())
   conversationId String
@@ -688,8 +688,20 @@ model Message {
   // conversation so two clients can't collide on a generic key like "1".
   @@unique([conversationId, senderId, clientMessageId], map: "chat_messages_idempotency_key")
   // Covers the only hot read path: newest-first history for one
-  // conversation, keyset-paginated on (createdAt, id).
-  @@index([conversationId, createdAt, id])
+  // conversation, keyset-paginated on (createdAt, publicId).
+  //
+  // `publicId`, not `id`, because that is the column the cursor actually
+  // compares — cursors carry the public `msg_...` id so they cannot leak an
+  // internal uuid (see cursor.util.ts). With `id` here instead, the
+  // tiebreaker half of the keyset predicate fell outside the index and
+  // Postgres applied it as a filter: a 51-row page 150k rows deep read
+  // 11,084 buffers in 250ms rather than 10 buffers in 0.13ms, and got worse
+  // linearly with depth. That is precisely the OFFSET pathology keyset
+  // pagination exists to avoid, reintroduced by a column mismatch.
+  //
+  // Every other query that used the old index only ever used its
+  // `(conversationId, createdAt)` prefix, which is unchanged.
+  @@index([conversationId, createdAt, publicId])
   @@index([senderId, createdAt])
   @@index([threadRootId, createdAt])
   @@map("chat_messages")
@@ -976,7 +988,7 @@ model LiveStreamHost {
   stream   LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
 
   /// The developer's own end-user identity — same concept as an RTC
-  /// participant identity or a chat userId. Raven never owns this account.
+  /// participant identity or a chat userId. Livqeno never owns this account.
   identity String
   role     LiveStreamHostRole @default(CO_HOST)
 
@@ -1002,7 +1014,7 @@ enum RtcServerStatus {
   UNHEALTHY
 }
 
-/// One Raven SFU process in the fleet (spec §23).
+/// One Livqeno SFU process in the fleet (spec §23).
 ///
 /// Rows are created by the SFU itself, registering on boot with the shared
 /// SFU_REGISTRATION_SECRET, and kept fresh by its heartbeats. The control
@@ -1065,7 +1077,7 @@ model RtcServer {
 // ---------------------------------------------------------------------------
 // Usage metering (free tier)
 //
-// Every registered developer gets a fixed allowance of Raven minutes. Two
+// Every registered developer gets a fixed allowance of Livqeno minutes. Two
 // tables carry it, and the split is the whole design:
 //
 // - `UsageAllowance` is the *entitlement*: how many minutes this developer
@@ -1095,7 +1107,7 @@ enum UsageAllowanceSource {
 }
 
 /// What a metered session consumed. RTC participant-minutes is the only
-/// thing Raven meters today; chat, live streaming and TURN relay are not
+/// thing Livqeno meters today; chat, live streaming and TURN relay are not
 /// metered at all (docs/usage-metering.md#what-is-not-metered).
 ///
 /// An enum, not a free-form string, so a future kind cannot be introduced
@@ -1209,7 +1221,7 @@ model UsageSession {
   /// The last instant this session was confirmed alive *and* settled. The
   /// reaper uses it twice: to find sessions whose gateway died, and as the
   /// instant to meter them up to — crediting an abandoned session all the
-  /// way to `now` would bill a developer for a Raven outage.
+  /// way to `now` would bill a developer for a Livqeno outage.
   lastMeteredAt DateTime @default(now())
 
   /// Null while the session is live.

@@ -8,7 +8,7 @@ import { ErrorState } from '@/components/ui/states';
 import { CliAuthConfirm } from './cli-auth-confirm';
 
 export const metadata: Metadata = {
-  title: 'Authorize Raven CLI — Raven',
+  title: 'Authorize Livqeno CLI — Livqeno',
 };
 
 // Browser side of `raven login`. No new credential type here, no separate
@@ -47,7 +47,7 @@ export default async function CliAuthPage({
   return (
     <CliAuthFrame>
       <div className="text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-fg">Authorize Raven CLI</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-fg">Authorize Livqeno CLI</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
           A terminal on this computer is requesting access as <strong className="font-medium text-fg">{email}</strong>,
           via local port <code className="font-mono text-xs text-fg">{port}</code>. Only approve this if you just ran{' '}
@@ -104,7 +104,7 @@ function CliAuthFrame({ children }: { children: React.ReactNode }) {
         <div className="flex justify-center">
           <span className="flex items-center gap-2">
             <RavenMark className="size-7" />
-            <span className="text-base font-semibold tracking-tight text-fg">Raven</span>
+            <span className="text-base font-semibold tracking-tight text-fg">Livqeno</span>
           </span>
         </div>
         <div className="mt-7">{children}</div>

@@ -4,7 +4,7 @@ import 'package:raven_rtc/raven_rtc.dart' show Raven, RavenRoom;
 
 import 'types.dart';
 
-/// Raven Live Streaming on Flutter.
+/// Livqeno Live Streaming on Flutter.
 ///
 /// ```dart
 /// final stream = await RavenLiveStream.join(credentials);

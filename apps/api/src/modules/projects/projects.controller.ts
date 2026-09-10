@@ -111,7 +111,7 @@ export class ProjectsController {
       "Controls which browser applications may reach this project's SDK surfaces — RTC telemetry, chat REST, " +
       'and both WebSocket gateways. Send the complete list; it replaces the stored one. ' +
       'An empty list means unconfigured, which allows any origin. ' +
-      'Your Raven API key is unaffected and stays server-side either way.',
+      'Your Livqeno API key is unaffected and stays server-side either way.',
   })
   @ApiResponse({ status: 200, description: 'Origins replaced' })
   @ApiNotFoundResponse({ description: 'Not found, or not owned by the caller' })

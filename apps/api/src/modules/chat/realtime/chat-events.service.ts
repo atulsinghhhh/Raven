@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import type Redis from 'ioredis';
 import { RedisService } from '../../../shared/redis/redis.service';
 import { RedisKeys } from '../chat.constants';
-import { ChatEventEnvelope, ChatRealtimeEvent } from './chat-event.interface';
+import { ChatControlMessage, ChatEventEnvelope, ChatRealtimeEvent } from './chat-event.interface';
 
 type EnvelopeHandler = (envelope: ChatEventEnvelope) => void;
 
@@ -95,6 +95,32 @@ export class ChatEventsService implements OnModuleInit, OnModuleDestroy {
       );
     } catch (err) {
       this.logger.error(`real-time fan-out failed for conversation ${conversationId}: ${(err as Error).message}`);
+    }
+  }
+
+  /**
+   * Publishes an instruction to the gateways holding sockets in this
+   * conversation, rather than an event for clients.
+   *
+   * Rides the same channel deliberately: the set of gateways that need to
+   * hear "this member was removed" is exactly the set already subscribed
+   * for fan-out, so there is no second topology to keep in step.
+   */
+  async publishControl(projectId: string, conversationId: string, control: ChatControlMessage): Promise<void> {
+    const envelope: ChatEventEnvelope = { control, projectId, publishedAt: Date.now() };
+    try {
+      await this.redisService.client.publish(
+        RedisKeys.conversationChannel(projectId, conversationId),
+        JSON.stringify(envelope),
+      );
+    } catch (err) {
+      // Logged, not thrown: the membership row is already updated, so the
+      // authorization decision has taken effect for every new request. What
+      // is lost is the promptness of tearing down existing sockets, and
+      // those still fail their next authorized operation.
+      this.logger.error(
+        `could not broadcast control message for conversation ${conversationId}: ${(err as Error).message}`,
+      );
     }
   }
 

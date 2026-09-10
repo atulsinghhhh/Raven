@@ -16,7 +16,7 @@ export class IngestEventDto {
     description: "The client-generated connection ID (Room's own, stable for its lifetime).",
   })
   @IsString()
-  @Matches(/^conn_/, { message: 'connectionId must be a Raven connection ID (conn_...)' })
+  @Matches(/^conn_/, { message: 'connectionId must be a Livqeno connection ID (conn_...)' })
   @MaxLength(128)
   connectionId!: string;
 

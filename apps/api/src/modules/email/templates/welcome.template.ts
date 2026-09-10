@@ -18,17 +18,17 @@ export function renderWelcomeEmail(input: WelcomeEmailInput): RenderedEmail {
   const greeting = input.name ? `Hi ${input.name},` : 'Hi,';
 
   const { html, text } = renderLayout({
-    heading: 'Your Raven account is ready',
+    heading: 'Your Livqeno account is ready',
     preheader: 'Your email is confirmed — create a project and mint your first API key.',
     paragraphs: [
       greeting,
-      'Your email address is confirmed and your Raven account is active.',
-      'Next: create a project, mint an API key, and mint a token from your own backend. Video, voice, chat and data run on Raven’s infrastructure — you keep building your product.',
+      'Your email address is confirmed and your Livqeno account is active.',
+      'Next: create a project, mint an API key, and mint a token from your own backend. Video, voice, chat and data run on Livqeno’s infrastructure — you keep building your product.',
     ],
     cta: { label: 'Open the dashboard', url: `${input.brand.appUrl}/dashboard` },
     ctaFootnote: `Documentation, quickstarts and SDK references: ${input.docsUrl}`,
     brand: input.brand,
   });
 
-  return { subject: 'Welcome to Raven', html, text };
+  return { subject: 'Welcome to Livqeno', html, text };
 }

@@ -307,15 +307,20 @@ export const IconGitHub = ({ className = 'size-4' }: IconProps) => (
 );
 
 /**
- * The Raven glyph — the circuit-winged raven head, traced from the master
- * artwork in `assests/logo.png`. A single path with `evenodd` fill, so the
- * eye and the two wing-trace nodes stay punched out rather than needing
- * their own shapes. The viewBox keeps the artwork's natural 32:20.5, so a
- * square box letterboxes the mark instead of squashing it.
+ * The Livqeno glyph — a monogram L with three concentric arcs opening off
+ * its stem: the brand's "signal leaving the stack" idea, and the reason the
+ * mark reads as realtime rather than as a bird. Arcs are stroked and the L
+ * is filled, both on `currentColor`, so the whole glyph inherits whatever
+ * the chip below sets. Master artwork: `assests/livqeno-mark.svg`.
  */
 export const RavenGlyph = ({ className = 'size-6' }: IconProps) => (
-  <svg viewBox="0 0 32 20.53" className={className} fill="currentColor" fillRule="evenodd" aria-hidden="true">
-    <path d="M18.52 0L20.21 0.03L22.03 0.38L23.34 0.82L25.06 1.75L25.88 2.37L26.78 3.24L27.65 4.36L28.32 4.7L29.28 5.36L30.49 6.46L31.38 7.7L31.86 8.7L32 9.16L31.94 9.2L31.34 8.89L30.07 8.41L28.15 7.93L26.48 7.79L25.45 8L24.8 8.38L24.45 8.7L24.14 9.11L23.86 9.66L23.48 10.93L23.31 12.4L23.31 13.14L23.25 13.15L17.58 5.67L16.93 4.85L16.4 4.36L15.89 4.05L15.06 3.81L10.51 3.8L11.03 3.26L12.16 2.37L13.02 1.79L14.33 1.06L16.28 0.34L17.42 0.1ZM21.69 3.12L21.67 3.18L23.46 5.29L25.58 4.66L25.57 4.6L25.09 4.39ZM0.21 5.53L15.2 5.53L16.79 7.42L23.45 15.8L24.21 16.97L24.86 18.17L25.51 19.61L25.82 20.52L18.19 15.28L8.94 15.28L8.8 15.18L6.94 13.07L6.94 12.94L14.24 12.94L14.57 13.32L14.94 13.56L15.29 13.67L15.79 13.67L16.37 13.42L16.79 13L16.93 12.73L17.03 12.32L17 11.89L16.86 11.51L16.62 11.17L16.3 10.92L15.92 10.75L15.36 10.71L14.77 10.92L14.27 11.43L5.33 11.43L4.29 10.33L3.4 9.3L3.36 9.18L9.81 9.17L10.1 9.51L10.58 9.79L11.25 9.85L11.73 9.68L12.19 9.3L12.36 9.02L12.5 8.54L12.43 7.94L12.26 7.6L11.77 7.14L11.29 6.97L10.55 7.04L10.14 7.28L9.85 7.66L1.86 7.66L0.03 5.66L0.01 5.56Z" />
+  <svg viewBox="0 0 32 32" className={className} fill="currentColor" aria-hidden="true">
+    <g fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
+      <path d="M16.04 12.46A5 5 0 0 1 16.04 19.54" />
+      <path d="M18.51 9.99A8.5 8.5 0 0 1 18.51 22.01" />
+      <path d="M20.99 7.51A12 12 0 0 1 20.99 24.49" />
+    </g>
+    <path d="M8 7.5h3.5v13.7H16v3.3H8z" />
   </svg>
 );
 

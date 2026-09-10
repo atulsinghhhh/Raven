@@ -32,7 +32,7 @@ describe('OnboardingFlow', () => {
 
   it('starts on the welcome step with no progress indicator', () => {
     render(<OnboardingFlow initialState={FRESH} hasProjects={false} />);
-    expect(screen.getByRole('heading', { name: 'Welcome to Raven' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Welcome to Livqeno' })).toBeInTheDocument();
     expect(screen.queryByText(/step \d of/i)).not.toBeInTheDocument();
   });
 
@@ -142,6 +142,6 @@ describe('OnboardingFlow', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Something broke');
     // Still on welcome — the step only advances when the save landed.
-    expect(screen.getByRole('heading', { name: 'Welcome to Raven' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Welcome to Livqeno' })).toBeInTheDocument();
   });
 });

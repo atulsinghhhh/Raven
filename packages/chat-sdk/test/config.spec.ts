@@ -4,7 +4,7 @@ import { RavenChatAuthenticationError } from '../src/errors';
 import { fakeToken } from './helpers/token';
 
 /**
- * Endpoint resolution is the developer-facing half of Raven's URL model: an
+ * Endpoint resolution is the developer-facing half of Livqeno's URL model: an
  * application forwards the mint response and never composes a WebSocket
  * address itself. These tests pin that contract from the outside, because
  * every one of them is a shape somebody will actually pass.

@@ -32,8 +32,8 @@ let pipelineCounter = 0;
 let effectCounter = 0;
 
 /**
- * Raven Effects' pipeline: a reusable, ordered list of video effects you can
- * attach to any Raven camera track. RTC or Live Streaming, doesn't matter;
+ * Livqeno Effects' pipeline: a reusable, ordered list of video effects you can
+ * attach to any Livqeno camera track. RTC or Live Streaming, doesn't matter;
  * they're the same `LocalTrack`.
  *
  * The pipeline owns *what* to render. An `EffectsEngine` owns *how*, and
@@ -87,7 +87,7 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
   /**
    * Registers a trusted, in-process custom effect (Phase 16 §19).
    *
-   * Raven Effects never loads an effect from a URL and never executes
+   * Livqeno Effects never loads an effect from a URL and never executes
    * untrusted code. `effect` has to already be a real object in the host
    * application's own bundle. See security.ts.
    */
@@ -229,7 +229,7 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
         'error',
         new EffectsError(
           'RAVEN_EFFECT_UNSUPPORTED',
-          'Raven Effects has no DOM to render into in this environment; the camera track is unmodified.',
+          'Livqeno Effects has no DOM to render into in this environment; the camera track is unmodified.',
         ),
       );
       return sourceTrack;

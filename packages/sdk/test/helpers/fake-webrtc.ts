@@ -224,7 +224,7 @@ export class FakeRTCPeerConnection {
    *
    * False by default, which is the conservative case: a subscription-only
    * offer leaves our new sender unnegotiated, the bit stays set, and we
-   * offer once the round ends. Raven's SFU often *does* carry a declared
+   * offer once the round ends. Livqeno's SFU often *does* carry a declared
    * track in its own offer, and that case is the one that used to loop, so
    * it gets tested explicitly rather than assumed either way.
    */
@@ -399,7 +399,7 @@ export class FakeRTCPeerConnection {
    * Enough shape for the one thing the adapter reads out of its own local
    * description: whether each published track's id is actually announced.
    * A fake returning a fixed string made that check untestable, and the
-   * check exists because Raven's SFU identifies tracks by exactly this.
+   * check exists because Livqeno's SFU identifies tracks by exactly this.
    */
   private describe(label: string): string {
     const lines = ['v=0', `s=${label}`];
@@ -428,7 +428,7 @@ export class FakeRTCPeerConnection {
    * The msid an m-section the *remote* side created already carries, by
    * mid.
    *
-   * Raven's SFU adds a recvonly transceiver per kind to every offer, so a
+   * Livqeno's SFU adds a recvonly transceiver per kind to every offer, so a
    * first publish costs no extra renegotiation. `addTrack` reuses those,
    * and the m-section keeps the msid it came with — a browser will not
    * rewrite an id it did not author. That is the whole mechanism behind a
@@ -753,7 +753,7 @@ export function installFakeMediaDevices(options: { devices?: MediaDeviceInfo[] }
   });
 }
 
-/** Builds an unsigned Raven RTC token the SDK can read claims off. */
+/** Builds an unsigned Livqeno RTC token the SDK can read claims off. */
 export function fakeToken(claims: Record<string, unknown>): string {
   const encode = (value: unknown) => Buffer.from(JSON.stringify(value), 'utf8').toString('base64url');
   return `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode(claims)}.signature-not-checked-by-the-client`;

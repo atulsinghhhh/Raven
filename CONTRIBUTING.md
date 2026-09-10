@@ -1,6 +1,6 @@
-# Contributing to Raven
+# Contributing to Livqeno
 
-Thanks for being here. Raven is real-time communication infrastructure —
+Thanks for being here. Livqeno is real-time communication infrastructure —
 an API, SDKs and a dashboard that other people build products on — so the
 bar is "someone can depend on this", not "it works on my machine". This
 page is what you need to clear it.
@@ -32,14 +32,14 @@ You need **Node ≥ 20** (CI uses 22), **pnpm 11.22.0**, **Docker**, and a
 
 ```bash
 git clone https://github.com/atulsinghhhh/Raven.git
-cd Raven
+cd Livqeno
 cp .env.example .env      # then fill in real values — see below
 pnpm install
 ```
 
 ### Postgres is not in the compose stack
 
-Raven runs on managed Postgres, so `.env` needs `DATABASE_URL` and
+Livqeno runs on managed Postgres, so `.env` needs `DATABASE_URL` and
 `DIRECT_URL` before anything works. Any Postgres will do — a local one is
 fine:
 

@@ -126,7 +126,7 @@ export class RTCClient {
    * await room.publish(client.createCustomTrack(canvasTrack, { source: 'camera' }));
    * ```
    *
-   * Raven never captured this track, so stopping the underlying source is
+   * Livqeno never captured this track, so stopping the underlying source is
    * yours to do; `room.unpublish(track)` stops the track itself, as it
    * does for every other kind.
    */

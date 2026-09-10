@@ -20,6 +20,7 @@ import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { ProjectScope } from '../../../shared/environment/environment.constants';
 import { WebhookEventsService } from '../../webhooks/webhook-events.service';
+import { ChatEventsService } from '../realtime/chat-events.service';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -40,6 +41,7 @@ export class ConversationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly webhooks: WebhookEventsService,
+    private readonly events: ChatEventsService,
   ) {}
 
   async create(scope: ProjectScope, dto: CreateConversationDto): Promise<Conversation> {
@@ -122,13 +124,19 @@ export class ConversationsService {
     return conversation;
   }
 
-  listForProject(scope: ProjectScope, includeArchived = false): Promise<Conversation[]> {
+  listForProject(
+    scope: ProjectScope,
+    includeArchived = false,
+  ): Promise<Array<Conversation & { room: { name: string } | null }>> {
     return this.prisma.conversation.findMany({
       where: {
         projectId: scope.projectId,
         environment: scope.environment,
         ...(includeArchived ? {} : { status: ConversationStatus.ACTIVE }),
       },
+      // The room's *name*, never its uuid: that is the identifier the RTC
+      // plane exposes, so both planes name one room the same way.
+      include: { room: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
       take: 200,
     });
@@ -219,7 +227,19 @@ export class ConversationsService {
     });
 
     if (!member || member.status === ChatMemberStatus.LEFT) {
-      throw new ChatError(ChatErrorCode.NOT_A_MEMBER, 'You are not a member of this conversation');
+      // Deliberately the same ROOM_NOT_FOUND a genuinely missing
+      // conversation gets, and for the same reason `resolve()` refuses to
+      // distinguish cross-project lookups: a client token belongs to one of
+      // the developer's end users, and answering "403, that one exists"
+      // versus "404, it doesn't" turns every such token into an oracle for
+      // enumerating conversation names — which are developer-chosen and
+      // frequently meaningful (`order-1234`, `case-5678`).
+      //
+      // The distinction is kept where it is safe and useful: a *server*
+      // actor holds the project API key and is already trusted with the
+      // whole project, so it never reaches this branch, and `removeMember`
+      // below still reports NOT_A_MEMBER to the developer's own backend.
+      throw new ChatError(ChatErrorCode.ROOM_NOT_FOUND, `Conversation "${reference}" not found`);
     }
 
     const roleScopes = scopesForRole(member.role);
@@ -276,6 +296,18 @@ export class ConversationsService {
     const removed = await this.prisma.chatMember.update({
       where: { id: member.id },
       data: { status: ChatMemberStatus.LEFT, leftAt: new Date() },
+    });
+
+    // Awaited, unlike the webhook below, because this one is part of the
+    // authorization decision rather than a notification about it. Writing
+    // `status = LEFT` stops every new request; it does nothing to a socket
+    // that already joined, and that socket keeps receiving messages until it
+    // disconnects. Revocation has to reach the gateway holding it.
+    await this.events.publishControl(scope.projectId, conversation.id, {
+      kind: 'membership.revoked',
+      conversationId: conversation.id,
+      roomId: conversation.publicId,
+      userId: removed.userId,
     });
 
     void this.webhooks.emit(scope, 'participant.left', {

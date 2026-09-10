@@ -232,9 +232,17 @@ export class RavenChatStore {
       ),
 
       client.on('reconnected', () => {
-        // Pull whatever arrived while the socket was down. The WebSocket
-        // is not the source of truth (spec §19).
-        void this.catchUp();
+        // Messages are not fetched here. @ravenkash/chat replays whatever
+        // arrived while the socket was down and emits it through the same
+        // `message` event, de-duplicated and in order — this store used to
+        // do its own single-page catch-up, which silently truncated an
+        // outage longer than 100 messages and hand-rolled the cursor
+        // format besides.
+        //
+        // What does need refreshing is the state the SDK deliberately does
+        // *not* replay: presence and read receipts are ephemeral or durable
+        // rather than replayable, so re-read them as they are now.
+        void this.hydrateEphemeralState();
       }),
     ];
   }
@@ -316,26 +324,6 @@ export class RavenChatStore {
     }
   }
 
-  /** After a reconnect, fetches anything newer than the last message we hold. */
-  private async catchUp(): Promise<void> {
-    if (!this.client) return;
-    const newest = this.snapshot.messages[this.snapshot.messages.length - 1];
-    try {
-      const page = newest
-        ? await this.client.messages.list({ room: this.room, limit: 100, after: encodeMessageCursor(newest) })
-        : await this.client.messages.list({ room: this.room, limit: 50 });
-
-      const known = new Set(this.snapshot.messages.map((m) => m.id));
-      const fresh = [...page.data].reverse().filter((m) => !known.has(m.id));
-      if (fresh.length > 0) {
-        this.patch({ messages: [...this.snapshot.messages, ...fresh] });
-      }
-    } catch {
-      // A failed catch-up is recoverable. The next message over the socket
-      // still renders, and the user can scroll to refetch.
-    }
-  }
-
   private async hydrateEphemeralState(): Promise<void> {
     if (!this.client) return;
     try {
@@ -360,9 +348,3 @@ export class RavenChatStore {
  * place in the package that knows that. Saves a catch-up an extra round
  * trip just to find out where it is.
  */
-function encodeMessageCursor(message: ChatMessage): string {
-  const raw = `${message.createdAt}|${message.id}`;
-  return typeof btoa === 'function'
-    ? btoa(raw).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-    : Buffer.from(raw, 'utf8').toString('base64url');
-}

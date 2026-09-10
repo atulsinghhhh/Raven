@@ -9,7 +9,7 @@ import type {
 } from '../types';
 
 /**
- * Raven Live Streaming, server-side (Phase 14).
+ * Livqeno Live Streaming, server-side (Phase 14).
  *
  * A stream composes an RTC room and a chat conversation. This resource only
  * owns lifecycle and role bookkeeping on top of those, following the same
@@ -91,7 +91,7 @@ export class LiveStreamsResource {
 
   /**
    * A clean-leave signal for `live_stream.viewer_left`. Not a disconnect
-   * detector: Raven has no way to spot an abrupt viewer disconnect in this
+   * detector: Livqeno has no way to spot an abrupt viewer disconnect in this
    * phase. Call it when your own app knows a viewer left.
    */
   leave(streamId: string, identity: string): Promise<void> {

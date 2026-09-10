@@ -93,7 +93,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Send another verification link to the signed-in account',
     description:
-      'Takes the address from the session, never from the body — a body-supplied address would make this a way to send mail from Raven’s domain to anyone. Also subject to the per-recipient email cooldown (EMAIL_COOLDOWN_SECONDS) on top of this rate limit.',
+      'Takes the address from the session, never from the body — a body-supplied address would make this a way to send mail from Livqeno’s domain to anyone. Also subject to the per-recipient email cooldown (EMAIL_COOLDOWN_SECONDS) on top of this rate limit.',
   })
   @ApiResponse({ status: 202, description: 'Sent, suppressed by cooldown, or already verified' })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })

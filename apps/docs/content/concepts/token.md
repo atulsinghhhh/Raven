@@ -3,7 +3,7 @@ title: Token
 description: A client's credential. Short-lived, scoped to one room or conversation, minted server-side.
 ---
 
-A token is the only Raven credential that ever reaches a client. It is a
+A token is the only Livqeno credential that ever reaches a client. It is a
 signed JWT your backend mints and forwards.
 
 ## Why it exists

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RtcServer } from '../../../generated/prisma/client';
+import { RoomStatus, RtcServer } from '../../../generated/prisma/client';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import { NoRtcCapacityError, RtcServerAllocatorService } from '../../rtc-servers/rtc-server-allocator.service';
 import { ParticipantSession } from '../interfaces/participant-session.interface';
 import {
@@ -59,6 +60,7 @@ export class MessageRouterService {
   private readonly logger = new Logger(MessageRouterService.name);
 
   constructor(
+    private readonly prisma: PrismaService,
     private readonly roomRegistry: RoomRegistryService,
     private readonly trackRegistry: RoomTrackRegistryService,
     private readonly allocator: RtcServerAllocatorService,
@@ -104,6 +106,23 @@ export class MessageRouterService {
       );
     }
 
+    // A closed room takes nobody new, however good the credential.
+    //
+    // Closing is what ends a live stream and what an operator's
+    // `DELETE /v1/rooms/:id` does, and both evict everyone already in the
+    // session. Without this check they came straight back: the SDK sees a
+    // dropped socket, reconnects, and its token — minted before the close
+    // and still perfectly valid — walks it back into a room that is
+    // supposed to be over. The room's status is the durable decision, so
+    // it is what the last gate in front of the media plane reads.
+    const room = await this.prisma.room.findUnique({
+      where: { id: session.roomId },
+      select: { status: true },
+    });
+    if (room?.status === RoomStatus.CLOSED) {
+      throw new SignalingError(SignalingErrorCode.ROOM_CLOSED, 'This room has been closed and can no longer be joined');
+    }
+
     // Before anything is allocated: a project whose owner has spent their
     // included minutes gets no new sessions. Checked here rather than at
     // token mint alone because a token issued while minutes remained is
@@ -121,7 +140,7 @@ export class MessageRouterService {
       );
       throw new SignalingError(
         SignalingErrorCode.USAGE_LIMIT_EXCEEDED,
-        'This account has used all of its included Raven minutes — no new sessions can be started',
+        'This account has used all of its included Livqeno minutes — no new sessions can be started',
       );
     }
 
@@ -179,7 +198,7 @@ export class MessageRouterService {
     // Best-effort on purpose. Metering must not be able to fail a join —
     // a database blip would otherwise take down calling itself — so the
     // failure is logged and the session runs unmetered rather than being
-    // refused. Under-counting on a Raven fault is the right side to err on.
+    // refused. Under-counting on a Livqeno fault is the right side to err on.
     try {
       await this.usageMeter.startSession({
         sessionKey: session.connectionId,

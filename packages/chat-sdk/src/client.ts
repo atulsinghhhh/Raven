@@ -10,6 +10,7 @@ import { TypedEventEmitter, type Unsubscribe } from './events';
 import { createLogger, type Logger } from './logger';
 import { RestClient } from './internal/rest-client';
 import { SocketTransport, type WebSocketFactory } from './internal/socket-transport';
+import { RecoveryTracker, type RoomRecoveryResult } from './internal/recovery';
 import { AttachmentsApi } from './attachments-api';
 import { MessagesApi } from './messages-api';
 import type {
@@ -42,7 +43,27 @@ export interface ChatEventMap {
   disconnected: () => void;
   reconnecting: (attempt: number) => void;
   reconnected: () => void;
+  /**
+   * Catch-up after a reconnect has finished.
+   *
+   * Anything it recovered has already been delivered through `message`, so
+   * an app that just renders messages needs nothing here. It is worth
+   * listening to for two things: `gap` says some messages could not be
+   * recovered and the view should be reloaded, and `errors` says a room's
+   * catch-up did not complete and will be retried on the next reconnect.
+   */
+  recovered: (summary: RecoverySummary) => void;
   error: (error: RavenChatError) => void;
+}
+
+export interface RecoverySummary {
+  /** How many missed messages were delivered, across every room. */
+  recovered: number;
+  perRoom: RoomRecoveryResult[];
+  /** True when at least one room had to restart from the newest page, skipping older messages. */
+  gap: boolean;
+  /** Rooms whose catch-up did not complete. They are retried on the next reconnect. */
+  errors: RoomRecoveryResult[];
 }
 
 export interface ConnectOptions {
@@ -59,7 +80,7 @@ interface PendingRequest {
 }
 
 /**
- * The Raven Chat client.
+ * The Livqeno Chat client.
  *
  * Nobody using this constructs a `WebSocket`, reconnects by hand, sees a
  * frame type, or ever finds out which gateway instance is holding their
@@ -94,6 +115,14 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
   private hasConnectedBefore = false;
   /** Local stop-typing timers, so a dropped `typing.stop` can't leave someone stuck typing. */
   private readonly typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  /** Per-room resume points and de-duplication. See internal/recovery.ts. */
+  private readonly recovery: RecoveryTracker;
+  /**
+   * Live messages that arrived while a catch-up was still running, held
+   * back so they cannot overtake the older messages being replayed.
+   */
+  private readonly pendingLive = new Map<string, ChatMessage[]>();
+  private recovering = false;
 
   /** @internal Use `createChatClient(config)`. The second parameter exists purely so tests can inject a fake socket. */
   constructor(config: ResolvedChatClientConfig, socketFactory?: WebSocketFactory) {
@@ -106,12 +135,26 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
       this.rest,
       () => this.defaultRoom(),
       (options) => this.sendMessage(options),
+      (page) => this.recovery.observeHistory(page.data),
     );
     this.attachments = new AttachmentsApi(this.rest, () => this.defaultRoom());
 
     const payload = decodeChatToken(config.token);
     this.currentUserId = payload.sub;
     this.tokenExpiresAt = payload.exp * 1000;
+
+    this.recovery = new RecoveryTracker({
+      // Deliberately the same public, authorized history call an
+      // application would make. Recovery has no privileged path into the
+      // store, so a room the token cannot read cannot be recovered either.
+      listMessages: (options) => this.messages.listRaw(options),
+      deliver: (message) => this.emit('message', message),
+      logger: this.logger,
+      isConnected: () => this.state === 'connected',
+      maxAttempts: 3,
+      retryDelayMs: (attempt) => Math.min(500 * 2 ** (attempt - 1), 5_000),
+      sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    });
   }
 
   /** Who this client speaks as, read from the token. You can't set it from here. */
@@ -204,6 +247,11 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     this.transport?.disconnect();
     this.transport = undefined;
     this.connectionId = undefined;
+    // Buffered live messages belong to a catch-up that will never finish
+    // now. The resume points stay: an explicit disconnect followed by
+    // connect() should still recover what was missed in between.
+    this.pendingLive.clear();
+    this.recovering = false;
     this.setState('disconnected');
   }
 
@@ -211,11 +259,23 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
    * Force a reconnect right now. Rarely needed, since the SDK reconnects
    * on its own, but handy when the app knows the network changed (an
    * `online` event, say) and doesn't fancy waiting out the backoff.
+   *
+   * Literally a `disconnect()` followed by a `connect()`, rather than its
+   * own teardown. It used to have one, and that copy had drifted: it
+   * dropped the transport but left `state` on `'connected'`, so the
+   * `connect()` on the next line took its already-up early return, found
+   * nothing to reconnect, and returned happily. The client was then
+   * permanently deaf — state `'connected'`, no socket, no error, no
+   * messages ever again — and the only way to notice was that nothing
+   * arrived. It also leaked the token-refresh and typing timers and left
+   * in-flight requests hanging until their own timeouts.
+   *
+   * Deferring to `disconnect()` means there is one teardown to be correct
+   * about instead of two to keep in step. Resume points survive it, so the
+   * new connection still catches up on whatever was missed.
    */
   async reconnect(): Promise<void> {
-    this.transport?.disconnect();
-    this.transport = undefined;
-    this.connectionId = undefined;
+    await this.disconnect();
     await this.connect();
   }
 
@@ -232,6 +292,11 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
 
   async leaveRoom(room: string): Promise<void> {
     this.desiredRooms.delete(room);
+    // Deliberately leaving on purpose is not an outage: drop the resume
+    // point so re-joining later starts fresh rather than replaying
+    // everything said while the caller was deliberately not listening.
+    this.recovery.forget(room);
+    this.pendingLive.delete(room);
     if (this.state === 'connected') {
       await this.request('room.leave', { room });
     }
@@ -243,7 +308,7 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
 
   /**
    * Sends a message and resolves with the stored one: canonical server id,
-   * canonical timestamp. It only resolves after Raven has durably stored
+   * canonical timestamp. It only resolves after Livqeno has durably stored
    * it, so a resolved promise really does mean saved (spec §15).
    *
    * If you don't supply a `clientMessageId` we attach one, and that's what
@@ -435,7 +500,7 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
       }
 
       case 'message':
-        this.emit('message', frame.message as ChatMessage);
+        this.onLiveMessage(frame.message as ChatMessage);
         return;
 
       case 'message.updated':
@@ -514,9 +579,15 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     this.connectPromise = undefined;
 
     if (wasReconnecting) {
-      // Re-join whatever rooms the caller asked for. The new socket knows
-      // nothing about the old one's subscriptions.
-      void this.syncRooms().then(() => this.emit('reconnected'));
+      // Re-join whatever rooms the caller asked for — the new socket knows
+      // nothing about the old one's subscriptions — and then replay
+      // whatever arrived while this client was away.
+      void this.syncRooms()
+        .then(() => {
+          this.emit('reconnected');
+          return this.recoverMissedMessages();
+        })
+        .catch((error) => this.logger.warn(`reconnect handling failed: ${String(error)}`));
     } else {
       this.emit('connected');
     }
@@ -554,6 +625,104 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     this.connectPromise?.reject(error);
     this.connectPromise = undefined;
     this.emit('error', error);
+  }
+
+  /**
+   * Every live message goes through here rather than straight to the
+   * application, for two reasons.
+   *
+   * **De-duplication.** A message can legitimately arrive twice: once over
+   * the socket just before it dropped, and again in the catch-up that
+   * re-reads that window from history. The application must see it once.
+   *
+   * **Ordering.** While a catch-up is replaying older messages, a live one
+   * arriving would otherwise be delivered ahead of them, and a sender's
+   * messages would reach the application out of order — which is the one
+   * ordering guarantee Livqeno actually makes. So live messages are held
+   * until the replay finishes, then flushed in arrival order.
+   */
+  private onLiveMessage(message: ChatMessage): void {
+    if (this.recovering) {
+      const queued = this.pendingLive.get(message.roomId);
+      if (queued) {
+        queued.push(message);
+      } else {
+        this.pendingLive.set(message.roomId, [message]);
+      }
+      return;
+    }
+
+    if (this.recovery.accept(message)) {
+      this.emit('message', message);
+    }
+  }
+
+  /**
+   * Replays what each room missed while this client was disconnected.
+   *
+   * Rooms are recovered concurrently and independently: they have separate
+   * resume points, and one room failing — or being unreadable by this
+   * token — must not hold up the others.
+   *
+   * Runs after `syncRooms()`, so the socket is already subscribed before
+   * the catch-up starts. Anything that arrives during the catch-up is
+   * buffered rather than dropped, which is what closes the window between
+   * "history read" and "live again".
+   */
+  private async recoverMissedMessages(): Promise<void> {
+    const rooms = Array.from(this.desiredRooms).filter((room) => this.recovery.has(room));
+    if (rooms.length === 0) {
+      // Nothing was ever delivered in these rooms, so there is no resume
+      // point and nothing to catch up on. Still flush, in case a live
+      // message arrived while we were deciding, and still report — an app
+      // waiting on `recovered` to re-enable its UI must not hang just
+      // because there happened to be nothing to recover.
+      this.flushPendingLive();
+      this.emit('recovered', { recovered: 0, perRoom: [], gap: false, errors: [] });
+      return;
+    }
+
+    this.recovering = true;
+    let perRoom: RoomRecoveryResult[] = [];
+    try {
+      perRoom = await Promise.all(rooms.map((room) => this.recovery.recoverRoom(room)));
+    } finally {
+      // Always release the buffer, even if a catch-up threw. Holding live
+      // messages back forever would be a far worse failure than delivering
+      // them slightly out of order.
+      this.recovering = false;
+      this.flushPendingLive();
+    }
+
+    const summary = {
+      recovered: perRoom.reduce((total, result) => total + result.recovered, 0),
+      perRoom,
+      gap: perRoom.some((result) => result.gap),
+      errors: perRoom.filter((result) => result.error !== undefined),
+    };
+
+    if (summary.recovered > 0 || summary.gap || summary.errors.length > 0) {
+      this.logger.info(
+        `recovered ${summary.recovered} missed message(s)` +
+          (summary.gap ? ' (with a gap)' : '') +
+          (summary.errors.length > 0 ? `; ${summary.errors.length} room(s) incomplete` : ''),
+      );
+    }
+    this.emit('recovered', summary);
+  }
+
+  /** Delivers messages that arrived mid-catch-up, in the order they came in. */
+  private flushPendingLive(): void {
+    if (this.pendingLive.size === 0) return;
+    const buffered = Array.from(this.pendingLive.values()).flat();
+    this.pendingLive.clear();
+    for (const message of buffered) {
+      // De-duplicated against the catch-up, which may already have
+      // delivered the very same message from history.
+      if (this.recovery.accept(message)) {
+        this.emit('message', message);
+      }
+    }
   }
 
   private async syncRooms(): Promise<void> {

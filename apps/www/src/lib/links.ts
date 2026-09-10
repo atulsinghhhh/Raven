@@ -15,7 +15,7 @@
 // The docs and README have said "open source" all along; the repo setting
 // is what lags. docs/production/readiness-audit.md tracks the flip and
 // what resolves with it. (An earlier version of this comment claimed the
-// audit called Raven closed-source — it does not, and never did.)
+// audit called Livqeno closed-source — it does not, and never did.)
 export const GITHUB_REPO_URL = 'https://github.com/atulsinghhhh/Raven';
 
 /**

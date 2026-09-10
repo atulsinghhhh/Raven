@@ -1,4 +1,4 @@
-# Raven Chat security audit
+# Livqeno Chat security audit
 
 This is the Phase 12 security review (spec §39), written as a record of what
 was checked, what holds, and what doesn't. Each finding names the code that
@@ -58,7 +58,9 @@ operation passes through:
 | Check | Enforced |
 |---|---|
 | Cross-project access | `resolve()` scopes every lookup by `projectId` |
-| Non-member reads | `authorize()` → `NOT_A_MEMBER` |
+| Non-member reads | `authorize()` → `ROOM_NOT_FOUND` for a chat token, `NOT_A_MEMBER` for an API key |
+| Conversation-existence probing | A chat token gets the same 404 for "not a member" and "does not exist", so conversation names are not enumerable |
+| Membership revoked mid-session | `removeMember()` publishes `membership.revoked`; gateways force-leave that user's live sockets |
 | Non-member WebSocket subscribe | `handleRoomJoin()` calls `authorize()` before subscribing |
 | Editing another user's message | Author check in `MessagesService.update()` |
 | Deleting another user's message | Requires `chat:moderate` |
@@ -111,7 +113,7 @@ confirm the id exists somewhere else, which is a tenant-enumeration oracle.
 - All database access is through Prisma's parameterised queries — no string
   interpolation anywhere in the chat module.
 
-**Message content is not HTML-escaped or sanitised.** Raven stores what it's
+**Message content is not HTML-escaped or sanitised.** Livqeno stores what it's
 given and returns it verbatim, because sanitising would corrupt legitimate
 content (code snippets, Markdown) and the correct escaping depends on where
 it's rendered. **Rendering safely is the client's job** — React escapes by

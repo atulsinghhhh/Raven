@@ -17,4 +17,12 @@ export type SignalingEventEnvelope =
       participantId: string;
       /** The connection that must NOT be kicked: the one that just replaced it. */
       exceptConnectionId: string;
+    }
+  | {
+      /**
+       * The room was closed by an operator: everyone goes, not one
+       * participant. Distinct from `kick`, which replaces a single
+       * participant's connection and leaves the room running.
+       */
+      kind: 'closed';
     };

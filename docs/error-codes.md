@@ -1,6 +1,6 @@
 # Error codes and classification
 
-Raven has three error vocabularies, and they are separate on purpose:
+Livqeno has three error vocabularies, and they are separate on purpose:
 
 | Vocabulary | Where you see it | Why it is its own thing |
 |---|---|---|
@@ -43,7 +43,7 @@ Unknown fields should be ignored rather than treated as an error.
 Every response carries `x-request-id`. Error bodies repeat it as `requestId`
 so a developer copying a JSON blob into an issue does not lose it.
 
-**Send your own** and Raven will adopt it, letting one call be traced across
+**Send your own** and Livqeno will adopt it, letting one call be traced across
 your logs and ours:
 
 ```
@@ -134,7 +134,7 @@ codes carry information the old ones did not.
 ## RTC errors
 
 Every RTC error a developer sees — in the dashboard, in `raven errors`,
-or in an `@ravenkash/rtc` `error` event — is a **Raven concept**, never a raw
+or in an `@ravenkash/rtc` `error` event — is a **Livqeno concept**, never a raw
 SFU or coturn error code. `apps/api/src/modules/observability/error-classifier.ts`
 is the one place that mapping lives.
 
@@ -177,7 +177,7 @@ is the one place that mapping lives.
 
 Every classified error carries a `likelyCause` and `suggestedAction` —
 deliberately hedged language ("likely a firewall/NAT restriction"), never
-a claim of certainty a Raven server can't actually back up. Examples:
+a claim of certainty a Livqeno server can't actually back up. Examples:
 
 - **`TOKEN_ERROR`**: *"The RTC token had already expired before (or
   during) the connection attempt."* → *"Mint a fresh RTC token — tokens
@@ -222,9 +222,9 @@ full and surfaces as `INTERNAL_ERROR`.
 | `TOKEN_REVOKED` | 401 | `RavenChatAuthenticationError` | Revoked before its natural expiry. |
 | `UNAUTHORIZED` | 401 | `RavenChatAuthenticationError` | No usable credential presented. |
 | `PERMISSION_DENIED` | 403 | `RavenChatPermissionError` | Authenticated, but the scope or role doesn't allow this. |
-| `NOT_A_MEMBER` | 403 | `RavenChatPermissionError` | Not a member of that conversation. |
+| `NOT_A_MEMBER` | 403 | `RavenChatPermissionError` | Not a member of that conversation. Reported to a **project API key** — a backend already trusted with the whole project. A chat token that is not a member gets `ROOM_NOT_FOUND` instead, so an end user cannot use the difference to discover which conversations exist. |
 | `ORIGIN_NOT_ALLOWED` | 403 | `RavenChatPermissionError` | Reserved; no longer emitted. Any origin may open a chat connection — the chat token decides what it can do (docs/control-plane.md#cors). |
-| `ROOM_NOT_FOUND` | 404 | `RavenRoomError` | No such conversation in this project. |
+| `ROOM_NOT_FOUND` | 404 | `RavenRoomError` | No such conversation in this project — **or** one the caller's chat token is not a member of. The two are deliberately indistinguishable to a chat token; see `NOT_A_MEMBER`. |
 | `NOT_IN_ROOM` | 400 | `RavenRoomError` | This connection isn't subscribed to that room. |
 | `TOO_MANY_SUBSCRIPTIONS` | 400 | `RavenRoomError` | Per-connection room subscription limit reached. |
 | `CONVERSATION_ARCHIVED` | 409 | `RavenRoomError` | Writes are closed; reads still work. |
@@ -240,9 +240,9 @@ full and surfaces as `INTERNAL_ERROR`.
 | `ATTACHMENT_TOO_LARGE` | 413 | `RavenAttachmentError` | Over `STORAGE_MAX_ATTACHMENT_BYTES`. |
 | `CONNECTION_FAILED` | — | `RavenChatConnectionError` | Could not connect, or reconnects were exhausted. |
 | `CONNECTION_CLOSED` | — | `RavenChatConnectionError` | The socket closed before the server replied. |
-| `NETWORK_ERROR` | — | `RavenChatConnectionError` | The request never reached Raven. |
+| `NETWORK_ERROR` | — | `RavenChatConnectionError` | The request never reached Livqeno. |
 | `TIMEOUT` | — | `RavenChatConnectionError` | No server response within `requestTimeoutMs`. |
-| `INTERNAL_ERROR` | 500 | `RavenChatError` | Something failed on Raven's side; logged server-side. |
+| `INTERNAL_ERROR` | 500 | `RavenChatError` | Something failed on Livqeno's side; logged server-side. |
 
 An unrecognised code (from a newer server) becomes a base `RavenChatError`
 with that code preserved, rather than an exception — an older client keeps

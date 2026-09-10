@@ -84,7 +84,7 @@ describe('decodeTokenPayload', () => {
     expect(decoded.sub).toBe('alice');
   });
 
-  // Regression: this used to read `video.room`, LiveKit's claim shape. Raven's
+  // Regression: this used to read `video.room`, LiveKit's claim shape. Livqeno's
   // own signer never emits it, so every field decoded to undefined and the
   // room check below passed anything at all.
   it('ignores a LiveKit-shaped `video.room` claim', () => {

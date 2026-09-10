@@ -54,7 +54,7 @@ class FakeSocket implements RavenSocket {
   }
 }
 
-/// An unsigned Raven RTC token whose claims the client can read.
+/// An unsigned Livqeno RTC token whose claims the client can read.
 String fakeToken(Map<String, dynamic> claims) {
   String encode(Object value) =>
       base64Url.encode(utf8.encode(jsonEncode(value))).replaceAll('=', '');
@@ -250,7 +250,7 @@ void main() {
       final received = <Map<String, dynamic>>[];
       final subscription = client.messages.listen(received.add);
 
-      // Raven's signaling is text-only. A binary frame means something
+      // Livqeno's signaling is text-only. A binary frame means something
       // else is on this socket.
       socket._incoming.add([1, 2, 3]);
       socket._incoming.add('{not json');

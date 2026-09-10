@@ -1,6 +1,6 @@
 # @ravenkash/chat — Browser SDK
 
-`@ravenkash/chat` is Raven's browser SDK for real-time messaging. Connect, send,
+`@ravenkash/chat` is Livqeno's browser SDK for real-time messaging. Connect, send,
 listen — without writing a line of WebSocket code, a reconnect loop, a
 heartbeat, or message-ordering logic.
 
@@ -25,14 +25,14 @@ scope for this package.
 there.**
 
 ```
-Your backend  ──(project API key)──►  Raven Control API
+Your backend  ──(project API key)──►  Livqeno Control API
                                               │
                                               │  short-lived chat token
                                               ▼
                                       Your frontend
 ```
 
-Your backend authenticates the user however it already does, then asks Raven
+Your backend authenticates the user however it already does, then asks Livqeno
 for a token scoped to that one user:
 
 ```js
@@ -138,17 +138,32 @@ chat.on('reconnecting', (attempt) => showBanner(`Reconnecting… (${attempt})`))
 chat.on('reconnected', () => hideBanner());
 ```
 
-After a reconnect you should refetch what you missed — the WebSocket is not
-the source of truth:
+**Missed messages are recovered for you.** After reconnecting and re-joining,
+the SDK fetches whatever arrived while the socket was down and emits it
+through the same `message` handler, oldest first, de-duplicated against what
+you already hold. There is nothing to call:
 
 ```js
-chat.on('reconnected', async () => {
-  const page = await chat.messages.list({ after: newestCursorYouHold });
-  page.data.forEach(append);
+chat.on('message', (m) => append(m));   // live and recovered alike
+
+chat.on('recovered', ({ recovered, gap, errors }) => {
+  if (gap) reloadConversation();        // resume point was unusable
+  if (errors.length) keepBannerUp();    // retried on the next reconnect
 });
 ```
 
-`@ravenkash/react`'s store does this automatically.
+Do **not** also call `messages.list({ after })` on `reconnected`; running
+your own catch-up alongside the SDK's is how the same message ends up in a
+list twice.
+
+It resumes from the opaque `cursor` on the newest message it delivered in
+each room, pages until the server says there is no more, and never advances
+past a message it did not deliver. Full behaviour, including what happens
+when recovery cannot complete, is in
+[docs/chat/messages.md](../chat/messages.md#missed-messages-after-a-reconnect).
+
+`@ravenkash/react`'s store relies on this too — it no longer runs a catch-up
+of its own.
 
 ## Messages
 
@@ -198,6 +213,7 @@ common case. `off(event, handler)` and `once()` also exist.
 | `read` | `{ userId, roomId, messageId, at }` |
 | `connectionStateChanged` | `ChatConnectionState` |
 | `connected` / `disconnected` / `reconnecting` / `reconnected` | — |
+| `recovered` | `{ recovered, perRoom, gap, errors }` — catch-up after a reconnect finished. Fires even when there was nothing to recover |
 | `error` | `RavenChatError` |
 
 ## Presence, typing, read state
@@ -223,7 +239,7 @@ await chat.sendMessage({ type: 'attachment', attachmentId: attachment.id });
 const { url } = await chat.attachments.getDownloadUrl('att_…');
 ```
 
-Bytes go straight to object storage over a signed URL — never through Raven's
+Bytes go straight to object storage over a signed URL — never through Livqeno's
 API or the WebSocket. See [../chat/attachments.md](../chat/attachments.md).
 
 ## Errors
@@ -253,7 +269,7 @@ try {
 ```
 
 You will never see a raw `CloseEvent`, a Postgres constraint name, or a Redis
-timeout. Those are infrastructure Raven is supposed to be hiding.
+timeout. Those are infrastructure Livqeno is supposed to be hiding.
 
 An error correlated to a call you made rejects *that promise*. Connection-level
 errors fire the `error` event.

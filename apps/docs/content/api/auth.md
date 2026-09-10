@@ -3,7 +3,7 @@ title: Auth & Account API
 description: Registration, sign-in, email verification, password reset, OAuth, and the signed-in account.
 ---
 
-These endpoints back the Raven dashboard and the CLI's `raven login`.
+These endpoints back the Livqeno dashboard and the CLI's `raven login`.
 Your own application's users never touch them — they authenticate against
 your app, and your backend mints them a [token](/authentication/tokens).
 {/* generated:endpoints — do not edit by hand */}

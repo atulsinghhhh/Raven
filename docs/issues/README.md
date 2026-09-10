@@ -1,6 +1,6 @@
 # Known issues
 
-Open problems found while deploying Raven to production (Supabase + Azure +
+Open problems found while deploying Livqeno to production (Supabase + Azure +
 Vercel). Each file is self-contained: what is wrong, how to reproduce it, why
 it matters, and where to start. Pick one up without needing the deployment
 context in your head.

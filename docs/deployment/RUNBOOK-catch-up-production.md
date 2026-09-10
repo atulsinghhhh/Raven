@@ -99,7 +99,7 @@ vercel ls raven-dashboard          # source should stop being your username
 
 ### 2. Configure OAuth on the production API — needs you
 
-The "Can't reach the Raven API" notice is gone, but the GitHub and Google
+The "Can't reach the Livqeno API" notice is gone, but the GitHub and Google
 buttons still do not appear, and that is now correct rather than broken:
 `/v1/auth/oauth/providers` answers `{"github":false,"google":false}`.
 `configuration.ts` derives `enabled` from `Boolean(process.env.GITHUB_CLIENT_ID)`,
@@ -191,7 +191,7 @@ curl -s https://api.ravenstack.online/v1/auth/oauth/providers   # {"github":true
 ```
 
 Then reload https://app.ravenstack.online/login. The "Can't reach the
-Raven API" notice disappearing is the signal that both halves are current.
+Livqeno API" notice disappearing is the signal that both halves are current.
 The provider buttons appearing is a *separate* signal, and needs step 2 —
 without OAuth credentials the page correctly shows neither the notice nor
 the buttons.

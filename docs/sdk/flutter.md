@@ -1,6 +1,6 @@
 # raven_rtc & raven_chat (Flutter)
 
-Raven on iOS and Android from Flutter. Two packages, deliberately
+Livqeno on iOS and Android from Flutter. Two packages, deliberately
 separate: a video app never pulls in a message store, and a chat app
 never pulls in a WebRTC stack.
 
@@ -12,7 +12,7 @@ await room.enableCamera();
 await room.enableMicrophone();
 ```
 
-Same concepts as Raven Web and Raven React Native. Only the syntax
+Same concepts as Livqeno Web and Livqeno React Native. Only the syntax
 follows Dart.
 
 ## Quickstart
@@ -57,7 +57,7 @@ app** the instant it asks.
 class CallScreen extends StatefulWidget { /* … */ }
 
 class _CallScreenState extends State<CallScreen> {
-  Raven? _raven;
+  Livqeno? _raven;
   RavenRoom? _room;
 
   @override
@@ -104,18 +104,18 @@ class _CallScreenState extends State<CallScreen> {
 
 ## Authentication
 
-**Never put a Raven API key in a mobile app.** An app binary is
+**Never put a Livqeno API key in a mobile app.** An app binary is
 downloadable and inspectable.
 
 ```
 Flutter app
     │  your own authenticated request
     ▼
-Your backend  ──(@ravenkash/server or raven-sdk)──►  Raven
+Your backend  ──(@ravenkash/server or raven-sdk)──►  Livqeno
     │                                              │
     │◄──────────── short-lived token ──────────────┘
     ▼
-Flutter app  ──────►  Raven
+Flutter app  ──────►  Livqeno
 ```
 
 Your backend decides the participant identity from *its own* session,
@@ -191,14 +191,14 @@ await RavenPermissions.require();   // throws RavenPermissionException
 ```
 
 **A limitation worth stating up front:** Flutter has no permissions API
-in the framework, and Raven doesn't require `permission_handler` just for
+in the framework, and Livqeno doesn't require `permission_handler` just for
 this. So `request()` genuinely prompts — by asking for the device, which
 is what raises the OS dialog — but a pure "what is the status right now"
 check isn't possible without a native module, and this package doesn't
 pretend to offer one.
 
 If you need pre-flight status, or the denied-vs-permanently-denied
-distinction, add `permission_handler` and use it alongside Raven:
+distinction, add `permission_handler` and use it alongside Livqeno:
 
 ```dart
 final status = await Permission.camera.status;
@@ -219,7 +219,7 @@ chat.messages.listen((message) => print('${message.senderId}: ${message.text}'))
 await chat.send('Hello everyone!');
 ```
 
-The same service, protocol and guarantees as every other Raven Chat
+The same service, protocol and guarantees as every other Livqeno Chat
 client:
 
 ```dart
@@ -361,7 +361,7 @@ raven_rtc                        raven_chat
     │                                │
     ├── flutter_webrtc              └── web_socket_channel + http
     └── web_socket_channel                   │
-            │                        Raven Chat service
+            │                        Livqeno Chat service
     native iOS/Android WebRTC
 ```
 
@@ -372,7 +372,7 @@ would mean two implementations competing for the same camera.
 
 What `raven_rtc` *does* own, and previously did not, is the signaling
 protocol and the peer-connection lifecycle (`lib/src/internal/`). Those
-used to come from a third-party client; they are Raven's own now, which is
+used to come from a third-party client; they are Livqeno's own now, which is
 what lets the SFU change without a package release.
 
 `raven_chat` is pure Dart over the platform's own networking.

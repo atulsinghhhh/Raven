@@ -42,7 +42,7 @@ class TokenRequest(BaseModel):
 
 @app.exception_handler(RavenError)
 async def raven_error_handler(_request: Request, error: RavenError) -> JSONResponse:
-    print(f"Raven request failed [{error.code}] (request {error.request_id or 'n/a'})")
+    print(f"Livqeno request failed [{error.code}] (request {error.request_id or 'n/a'})")
     return JSONResponse(status_code=error.status_code or 502, content={"error": error.message, "code": error.code})
 
 
@@ -74,7 +74,7 @@ async def create_token(request: TokenRequest) -> dict:
     # `identity` should come from your own authenticated session in a real
     # app, never trusted verbatim from the request body — see
     # docs/security/server-sdk.md#authorization-model. Kept simple here to
-    # focus the example on the Raven SDK calls themselves.
+    # focus the example on the Livqeno SDK calls themselves.
     room_id = _room_id_for(request.room)
     token = raven.tokens.create(
         CreateTokenParams(

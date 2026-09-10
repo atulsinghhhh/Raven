@@ -20,17 +20,17 @@ export function renderPasswordChangedEmail(input: PasswordChangedEmailInput): Re
   const greeting = input.name ? `Hi ${input.name},` : 'Hi,';
 
   const { html, text } = renderLayout({
-    heading: 'Your Raven password was changed',
-    preheader: 'The password on your Raven account was just changed.',
+    heading: 'Your Livqeno password was changed',
+    preheader: 'The password on your Livqeno account was just changed.',
     paragraphs: [
       greeting,
-      'The password for your Raven account was changed just now. If that was you, there is nothing to do.',
+      'The password for your Livqeno account was changed just now. If that was you, there is nothing to do.',
       'If it was not you, someone else has access to this account. Reset the password immediately and contact support.',
     ],
-    cta: { label: 'Sign in to Raven', url: `${input.brand.appUrl}/login` },
+    cta: { label: 'Sign in to Livqeno', url: `${input.brand.appUrl}/login` },
     closing: `Support: ${input.brand.supportEmail}`,
     brand: input.brand,
   });
 
-  return { subject: 'Your Raven password was changed', html, text };
+  return { subject: 'Your Livqeno password was changed', html, text };
 }

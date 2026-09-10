@@ -108,7 +108,7 @@ enable/disable toggle state `enableCamera()`/`disableCamera()` manage.
 ## Filters & Effects
 
 A published camera track can run through a
-[Raven Effects](/effects) pipeline before anyone downstream sees it —
+[Livqeno Effects](/effects) pipeline before anyone downstream sees it —
 brightness, contrast, saturation, and presets like `cinematic`/`vivid`,
 without touching SDP, WebGL, or a canvas directly:
 

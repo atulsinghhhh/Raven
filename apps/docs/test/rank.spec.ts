@@ -207,7 +207,7 @@ describe('rank — natural-language queries', () => {
     record({
       slug: 'getting-started/introduction',
       title: 'Introduction',
-      text: 'How Raven fits together, and what it is for.',
+      text: 'How Livqeno fits together, and what it is for.',
     }),
   ];
 

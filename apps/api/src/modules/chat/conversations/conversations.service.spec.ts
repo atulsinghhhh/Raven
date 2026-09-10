@@ -3,6 +3,7 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { ConflictError } from '../../../shared/errors/app-error';
 import { Environment } from '../../../shared/environment/environment.constants';
 import { WebhookEventsService } from '../../webhooks/webhook-events.service';
+import { ChatEventsService } from '../realtime/chat-events.service';
 import { ConversationsService } from './conversations.service';
 
 /**
@@ -23,6 +24,7 @@ describe('ConversationsService — webhook events', () => {
     chatMember: { upsert: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
   };
   let webhooks: { emit: jest.Mock };
+  let events: { publishControl: jest.Mock };
 
   const SCOPE = { projectId: 'p1', environment: Environment.DEVELOPMENT };
 
@@ -33,8 +35,13 @@ describe('ConversationsService — webhook events', () => {
       chatMember: { upsert: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
     };
     webhooks = { emit: jest.fn().mockResolvedValue(undefined) };
+    events = { publishControl: jest.fn().mockResolvedValue(undefined) };
 
-    service = new ConversationsService(prisma as unknown as PrismaService, webhooks as unknown as WebhookEventsService);
+    service = new ConversationsService(
+      prisma as unknown as PrismaService,
+      webhooks as unknown as WebhookEventsService,
+      events as unknown as ChatEventsService,
+    );
   });
 
   describe('create()', () => {

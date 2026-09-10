@@ -82,6 +82,16 @@ export enum SignalingErrorCode {
   UNAUTHORIZED = 'UNAUTHORIZED',
   ROOM_NOT_FOUND = 'ROOM_NOT_FOUND',
   ROOM_FULL = 'ROOM_FULL',
+  /**
+   * The room was closed while this participant was in it — an operator
+   * called `DELETE /v1/rooms/:id`, or the live stream this room belongs to
+   * was ended. Terminal: the media session is gone and a fresh token
+   * against the same room will not get back in. Kept apart from
+   * UNAUTHORIZED because nothing was wrong with the credential, and from
+   * ROOM_NOT_FOUND because the room did exist and the participant was
+   * legitimately in it a moment ago.
+   */
+  ROOM_CLOSED = 'ROOM_CLOSED',
   INVALID_MESSAGE = 'INVALID_MESSAGE',
   INVALID_MESSAGE_TYPE = 'INVALID_MESSAGE_TYPE',
   PARTICIPANT_NOT_FOUND = 'PARTICIPANT_NOT_FOUND',
@@ -97,7 +107,7 @@ export enum SignalingErrorCode {
   ORIGIN_NOT_ALLOWED = 'ORIGIN_NOT_ALLOWED',
   RATE_LIMITED = 'RATE_LIMITED',
   /**
-   * The developer account behind this project has spent its included Raven
+   * The developer account behind this project has spent its included Livqeno
    * minutes. Terminal for this join: unlike RATE_LIMITED there is nothing
    * to wait for, and unlike NO_RTC_CAPACITY it is not an operator problem.
    * Sessions already in progress are never cut off by it.

@@ -1,9 +1,9 @@
-# Deploying Raven on an Azure for Students budget
+# Deploying Livqeno on an Azure for Students budget
 
-This is a costed deployment plan for running Raven on a **$100 / 12-month
+This is a costed deployment plan for running Livqeno on a **$100 / 12-month
 Azure for Students** credit. It exists because the obvious reading of that
 offer — "put the backend, the database and the storage on Azure" — is the
-wrong shape for this system, and the reason why is specific to Raven's
+wrong shape for this system, and the reason why is specific to Livqeno's
 architecture rather than to Azure.
 
 **Every dollar figure here is indicative and was correct at the time of
@@ -17,12 +17,12 @@ roughly right, that is called out.
 $100 spread over 12 months is **~$8.33/month sustained**. That is one very
 small VM and nothing else. The plan therefore has to spend the credit only
 where Azure is competitive, and use free tiers elsewhere — not out of
-frugality, but because two of Raven's components are actively
+frugality, but because two of Livqeno's components are actively
 *mispriced* on Azure (§2, §3).
 
 ## 1. What each component actually needs
 
-Raven is not one workload. It is a control plane, a media plane, and a
+Livqeno is not one workload. It is a control plane, a media plane, and a
 static frontend, and they have very different infrastructure profiles.
 
 | Component | Hard requirement | Azure fit |
@@ -37,7 +37,7 @@ static frontend, and they have very different infrastructure profiles.
 ## 2. Blocker: media egress is mispriced for an SFU
 
 Azure includes 100 GB/month of free egress and then charges roughly
-**$0.087/GB** (Zone 1). Raven's media plane is an egress amplifier by
+**$0.087/GB** (Zone 1). Livqeno's media plane is an egress amplifier by
 design: the SFU receives one upstream copy of a track and sends one
 downstream copy to every other subscriber.
 
@@ -139,7 +139,7 @@ Notes on the choices:
 - **Why Postgres moves off-box.** B1s is 1 vCPU / 1 GB. That is tight for
   api + redis and will not also hold Postgres. Moving the database to a
   free managed tier buys back the RAM at no cost, and gets you backups you
-  did not have to build. This has already happened — Supabase is Raven's
+  did not have to build. This has already happened — Supabase is Livqeno's
   database in every environment, so there is nothing to migrate at deploy
   time beyond setting the two connection strings.
 - **Set `DATABASE_POOL_MAX` deliberately.** The default of 10 is sized for

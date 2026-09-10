@@ -1,11 +1,11 @@
 # Local Development
 
-How to run Raven on your own machine. `docker compose up -d` brings up
-Redis, the Raven SFU, coturn (TURN/STUN), MinIO (chat attachments), and
+How to run Livqeno on your own machine. `docker compose up -d` brings up
+Redis, the Livqeno SFU, coturn (TURN/STUN), MinIO (chat attachments), and
 the `api` service — which carries both the REST control plane and the
 `/v1/rtc` WebSocket signaling gateway on the same port.
 
-**Postgres is not in that stack.** Raven's database is managed Postgres on
+**Postgres is not in that stack.** Livqeno's database is managed Postgres on
 Supabase, external to Docker and shared by every environment including your
 laptop — see `docs/deployment/managed-postgres.md` for the reasoning, the
 two connection strings, and how migrations work against it.
@@ -134,7 +134,7 @@ Stops containers **and deletes volumes**, then starts fresh. Use this when
 you want empty Redis/MinIO state.
 
 This does **not** touch the database — Supabase is outside the compose
-stack, so there is no `down -v` that empties it. Resetting Raven's data now
+stack, so there is no `down -v` that empties it. Resetting Livqeno's data now
 means doing it deliberately against the hosted database, which every
 environment shares; see `docs/deployment/managed-postgres.md#resetting`.
 
@@ -143,7 +143,7 @@ environment shares; see `docs/deployment/managed-postgres.md#resetting`.
 | Service | Container | Host port(s) | Purpose |
 |---|---|---|---|
 | Redis | `raven-redis` | `6379` | Ephemeral state, cache, fleet-wide room membership and fan-out |
-| SFU | `raven-sfu` | `7000` (node link, health, metrics), `51000-51200/udp` (RTC media) | Raven's own SFU (Go/Pion) |
+| SFU | `raven-sfu` | `7000` (node link, health, metrics), `51000-51200/udp` (RTC media) | Livqeno's own SFU (Go/Pion) |
 | coturn | `raven-coturn` | `3478` (UDP+TCP, STUN/TURN control), `49160-49200/udp` (relayed media) | TURN/STUN relay |
 | api | `raven-api` | `4100` (not 4000 — see Troubleshooting) | Control plane (Phase 2) — see `docs/control-plane.md` |
 
@@ -217,14 +217,14 @@ docker compose logs sfu | grep -i registered
 
 ## How the SFU fits in
 
-Raven owns both the signaling protocol and the SFU. The flow, end to end:
+Livqeno owns both the signaling protocol and the SFU. The flow, end to end:
 
 1. Your backend asks the control plane for an RTC token with a project API
    key. Never mint one in a browser.
-2. The control plane signs it itself — Raven's own JWT, `aud: raven-rtc`,
+2. The control plane signs it itself — Livqeno's own JWT, `aud: raven-rtc`,
    with the permissions baked in — and returns it alongside `iceServers`
    and an `endpoint`.
-3. The client connects that token to **Raven's** signaling WebSocket
+3. The client connects that token to **Livqeno's** signaling WebSocket
    (`ws://localhost:4100/v1/rtc`), not to the SFU. `room.join` allocates a
    node, and that node offers first.
 4. Media flows client ↔ SFU directly over the published UDP range. The API
@@ -283,7 +283,7 @@ host before assuming the container is broken.
 Postgres used to be here too, on `5433` rather than `5432`, for the same
 reason. That is moot now that there is no Postgres container — but it is
 also why a stray Homebrew Postgres on your machine can no longer be
-mistaken for Raven's database.
+mistaken for Livqeno's database.
 
 **`Can't reach database server` / `ENETUNREACH`**
 Check `DATABASE_URL` uses the `aws-0-<region>.pooler.supabase.com` host,

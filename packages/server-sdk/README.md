@@ -1,9 +1,9 @@
 # @ravenkash/server
 
-Raven's **backend** SDK — mint short-lived RTC and chat tokens, manage
+Livqeno's **backend** SDK — mint short-lived RTC and chat tokens, manage
 rooms and live streams, and read connection/error diagnostics.
 
-Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
+Part of [Livqeno](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
 
 > **Never import this in a browser.** It holds a permanent project API key.
 > The browser gets a short-lived token that *this* SDK mints.
@@ -49,7 +49,7 @@ on the cause rather than parse a message. Codes are listed in
 - [Server SDK security model](https://github.com/atulsinghhhh/Raven/blob/main/docs/security/server-sdk.md)
 - Runnable example: [`examples/node-server`](https://github.com/atulsinghhhh/Raven/tree/main/examples/node-server)
 
-Python backend? See [Raven's Python SDK](https://github.com/atulsinghhhh/Raven/tree/main/sdks/python). It is not on PyPI
+Python backend? See [Livqeno's Python SDK](https://github.com/atulsinghhhh/Raven/tree/main/sdks/python). It is not on PyPI
 yet — `pip install raven-sdk` installs an unrelated third-party package of
 that name, not this one.
 

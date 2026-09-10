@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Raven Chat example — real messages, real presence, real WebSocket. No mock data anywhere.",
+  "description": "Livqeno Chat example — real messages, real presence, real WebSocket. No mock data anywhere.",
   "scripts": {
     "server": "node server.mjs",
     "dev": "vite",

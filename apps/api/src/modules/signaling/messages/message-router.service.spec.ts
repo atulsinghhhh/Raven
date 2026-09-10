@@ -129,6 +129,7 @@ describe('MessageRouterService', () => {
   let sfuLink: { send: jest.Mock; trySend: jest.Mock; releaseSession: jest.Mock };
   let usageAllowances: { checkProject: jest.Mock };
   let usageMeter: { startSession: jest.Mock; settle: jest.Mock };
+  let prisma: { room: { findUnique: jest.Mock } };
   let server: RtcServer;
 
   beforeEach(() => {
@@ -161,7 +162,11 @@ describe('MessageRouterService', () => {
       settle: jest.fn().mockResolvedValue(null),
     };
 
+    // A room that is open. The closed case gets its own test below.
+    prisma = { room: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) } };
+
     router = new MessageRouterService(
+      prisma as never,
       registry,
       trackRegistry,
       allocator as never,
@@ -190,6 +195,22 @@ describe('MessageRouterService', () => {
         router.route(session, { type: ClientMessageType.ROOM_JOIN, roomId: 'someone-elses-room' }),
       ).rejects.toMatchObject({ code: SignalingErrorCode.UNAUTHORIZED });
       expect(allocator.allocate).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Closing a room evicts everyone, which the SDK reads as a dropped
+     * socket and answers by reconnecting. Its token was minted before the
+     * close and is still perfectly valid, so without this the eviction
+     * lasted about a second and the room carried on.
+     */
+    it('refuses to let anyone into a CLOSED room, however valid their token', async () => {
+      prisma.room.findUnique.mockResolvedValue({ status: 'CLOSED' });
+
+      await expect(router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN })).rejects.toMatchObject({
+        code: SignalingErrorCode.ROOM_CLOSED,
+      });
+      expect(allocator.allocate).not.toHaveBeenCalled();
+      expect(sfuLink.send).not.toHaveBeenCalled();
     });
 
     it('allocates a server, registers the participant, and asks the node for a PeerConnection', async () => {
@@ -302,7 +323,7 @@ describe('MessageRouterService', () => {
 
     it('lets the join succeed when metering itself fails', async () => {
       // A database blip must not take down calling. Under-counting on a
-      // Raven fault is the right side to err on.
+      // Livqeno fault is the right side to err on.
       usageMeter.startSession.mockRejectedValue(new Error('database down'));
 
       await expect(router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN })).resolves.toMatchObject({

@@ -6,7 +6,7 @@ description: Install, authenticate, connect, and send your first message — on 
 What you'll build: a conversation two users can send messages into, with
 one seeing the other's messages arrive live.
 
-**Prerequisites:** a Raven project and a project API key (see
+**Prerequisites:** a Livqeno project and a project API key (see
 [API Keys](/authentication)) — conversations are created and chat tokens
 are minted with it, server-side, and never in a browser or app.
 
@@ -123,7 +123,7 @@ export async function POST() {
 }
 ```
 
-Then the browser needs no Raven configuration of its own — no
+Then the browser needs no Livqeno configuration of its own — no
 `RAVEN_API_KEY`, no gateway hostname, no API base URL:
 
 ```ts
@@ -133,7 +133,7 @@ await chat.connect();
 ```
 
 That is the whole reason the addresses ride inside the grant: the same
-frontend code works against your laptop, hosted Raven, or your own
+frontend code works against your laptop, hosted Livqeno, or your own
 cluster, and nothing in it knows which.
 
 ## 4. Connect from the client
@@ -324,9 +324,9 @@ chat.dispose();
 </Tab>
 </Tabs>
 
-## What Raven handles vs. what you handle
+## What Livqeno handles vs. what you handle
 
-**Raven handles:** the WebSocket connection, reconnection with backoff
+**Livqeno handles:** the WebSocket connection, reconnection with backoff
 and catch-up, message ordering and durability, and idempotent retries.
 
 **You handle:** minting tokens from your own authenticated backend

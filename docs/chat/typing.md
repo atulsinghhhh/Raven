@@ -1,4 +1,4 @@
-# Raven Chat — Typing indicators
+# Livqeno Chat — Typing indicators
 
 ```js
 await chat.startTyping();

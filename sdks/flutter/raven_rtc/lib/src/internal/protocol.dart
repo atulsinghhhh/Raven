@@ -1,4 +1,4 @@
-/// Raven's signaling wire protocol, as the Flutter client sees it.
+/// Livqeno's signaling wire protocol, as the Flutter client sees it.
 ///
 /// Mirrors `packages/sdk/src/internal/signaling/protocol.ts` and
 /// `apps/api/src/modules/signaling/signaling.constants.ts`. Written out
@@ -205,7 +205,7 @@ class IceCandidatePayload {
       };
 }
 
-/// Reads the claims out of a Raven RTC token.
+/// Reads the claims out of a Livqeno RTC token.
 ///
 /// The payload is readable, not secret: the same information the server
 /// will act on. It is decoded, never trusted: the server re-verifies the

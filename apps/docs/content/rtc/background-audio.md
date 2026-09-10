@@ -7,7 +7,7 @@ description: Keeping a call's audio alive when a mobile app moves to the backgro
 around every call; Flutter has no equivalent yet, and web has no
 "background" concept in the same sense (a browser tab keeps running
 audio when unfocused, subject to the OS's own power-management, which
-Raven doesn't control on any platform).
+Livqeno doesn't control on any platform).
 
 ## What happens automatically
 
@@ -36,7 +36,7 @@ new Raven({
 
 Video pausing in the background is normal and unavoidable — but audio
 continuing (an audio-only call staying live while the user checks
-another app) needs one thing Raven can't add for you: the `audio`
+another app) needs one thing Livqeno can't add for you: the `audio`
 background mode.
 
 `ios/YourApp/Info.plist`:
@@ -49,13 +49,13 @@ background mode.
 ```
 
 Without it, iOS suspends the app shortly after backgrounding and the
-call's audio stops along with everything else — not a Raven bug, a
+call's audio stops along with everything else — not a Livqeno bug, a
 missing platform capability declaration.
 
 ## Deciding whether to leave instead
 
 Some apps want backgrounding to end the call rather than keep it alive
-silently. That's a product decision Raven leaves to you — combine
+silently. That's a product decision Livqeno leaves to you — combine
 `onAppStateChange` with `leave()`:
 
 ```ts

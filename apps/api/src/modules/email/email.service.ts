@@ -74,7 +74,7 @@ export interface SendEmailInput {
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * The only thing in Raven that sends email.
+ * The only thing in Livqeno that sends email.
  *
  *   caller → EmailService → Resend → mail.ravenstack.online → inbox
  *
@@ -149,7 +149,7 @@ export class EmailService {
       // Loud on purpose: this is the free tier running out, and the next
       // person to sign up gets no verification email at all.
       this.logger.error(
-        `email suppressed by Raven's own ${quota === 'daily_quota' ? 'daily' : 'monthly'} free-tier cap type=${type} recipientDomain=${domain} — raise EMAIL_${quota === 'daily_quota' ? 'DAILY' : 'MONTHLY'}_LIMIT only if the Resend plan actually allows it`,
+        `email suppressed by Livqeno's own ${quota === 'daily_quota' ? 'daily' : 'monthly'} free-tier cap type=${type} recipientDomain=${domain} — raise EMAIL_${quota === 'daily_quota' ? 'DAILY' : 'MONTHLY'}_LIMIT only if the Resend plan actually allows it`,
       );
       this.metrics.recordSkip(type, quota);
       return { status: 'skipped', reason: quota };

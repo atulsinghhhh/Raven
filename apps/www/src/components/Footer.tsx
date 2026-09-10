@@ -39,7 +39,7 @@ export function Footer() {
           <div>
             <span className="flex items-center gap-2 text-[15px] font-medium tracking-tight text-fg">
               <RavenMark className="h-5 w-5" />
-              RAVEN
+              LIVQENO
             </span>
             <p className="mt-3 max-w-xs text-sm text-muted">
               Real-time infrastructure for developers — RTC, chat, live streaming, and effects through one API.
@@ -72,7 +72,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 border-t border-line pt-6 text-sm text-muted">
-          <p>&copy; Raven. All rights reserved.</p>
+          <p>&copy; Livqeno. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -28,7 +28,7 @@ const RTC_TOKEN_IDEMPOTENCY_TTL_SECONDS = 5 * 60;
 
 // Issues short-lived RTC access tokens for a room. Doesn't establish a
 // WebRTC session itself: the token comes back and the client SDK
-// presents it to Raven's own signaling endpoint (`/v1/rtc`) later.
+// presents it to Livqeno's own signaling endpoint (`/v1/rtc`) later.
 @ApiTags('RTC Tokens')
 @ApiBearerAuth('apiKey')
 @Controller('v1/rooms/:roomId/rtc-tokens')

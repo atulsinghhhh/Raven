@@ -101,9 +101,9 @@ export function AccountShell({
 
   const sidebarHeader = (
     <div className="flex h-14 items-center px-4">
-      <Link href="/dashboard" className="flex items-center gap-2" aria-label="Raven home">
+      <Link href="/dashboard" className="flex items-center gap-2" aria-label="Livqeno home">
         <RavenMark className="size-6" />
-        <span className="mono-label text-[13px] font-medium text-fg">Raven</span>
+        <span className="mono-label text-[13px] font-medium text-fg">Livqeno</span>
       </Link>
     </div>
   );
@@ -127,7 +127,7 @@ export function AccountShell({
       {/* Tablet icon rail */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-14 flex-col border-r border-line bg-surface-sunken md:flex lg:hidden">
         <div className="flex h-14 items-center justify-center">
-          <Link href="/dashboard" aria-label="Raven home">
+          <Link href="/dashboard" aria-label="Livqeno home">
             <RavenMark className="size-6" />
           </Link>
         </div>
@@ -148,7 +148,7 @@ export function AccountShell({
             <div className="flex h-14 items-center justify-between px-4">
               <span className="flex items-center gap-2">
                 <RavenMark className="size-6" />
-                <span className="text-sm font-semibold text-fg">Raven</span>
+                <span className="text-sm font-semibold text-fg">Livqeno</span>
               </span>
               <button
                 type="button"

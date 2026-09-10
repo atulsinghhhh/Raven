@@ -21,7 +21,7 @@ BASE_RETRY_DELAY_SECONDS = 0.3
 def validate_api_key(api_key: str | None) -> str:
     if not api_key or not isinstance(api_key, str):
         raise RavenError(
-            "api_key is required — pass your Raven project API key, e.g. api_key=os.environ['RAVEN_API_KEY']",
+            "api_key is required — pass your Livqeno project API key, e.g. api_key=os.environ['RAVEN_API_KEY']",
             code="RAVEN_INVALID_CONFIG",
         )
     return api_key

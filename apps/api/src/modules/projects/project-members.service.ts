@@ -69,7 +69,7 @@ export class ProjectMembersService {
     // Saying so plainly beats a silent no-op or a pending row that never
     // resolves into anything.
     if (!user) {
-      throw new NotFoundError(`No Raven account for ${input.email}`);
+      throw new NotFoundError(`No Livqeno account for ${input.email}`);
     }
 
     const existing = await this.prisma.projectMember.findUnique({

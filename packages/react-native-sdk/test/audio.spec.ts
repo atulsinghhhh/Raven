@@ -67,7 +67,7 @@ describe('audio', () => {
       expect(__calls.chosenRoutes).toEqual(['BLUETOOTH']);
     });
 
-    it('maps every Raven output onto an Android route', async () => {
+    it('maps every Livqeno output onto an Android route', async () => {
       await audio.setOutput('speaker');
       await audio.setOutput('earpiece');
       await audio.setOutput('headset');

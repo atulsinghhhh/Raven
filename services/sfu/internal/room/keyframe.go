@@ -10,7 +10,7 @@ import "strings"
 // smear or a frozen image. Waiting for a keyframe is what makes the switch
 // invisible.
 //
-// Only covers the codecs Raven forwards video in. Audio needs none of this,
+// Only covers the codecs Livqeno forwards video in. Audio needs none of this,
 // since every packet is independently decodable. An unrecognised video
 // codec returns false, which is the safe answer: the layer switch just
 // waits, and a PLI forces a keyframe out of the publisher eventually.

@@ -6,7 +6,7 @@ import type { RavenAudioOutput } from '../audio';
  *
  * # Why this is an interface and not a direct dependency
  *
- * Raven used to get audio routing from `@livekit/react-native`'s
+ * Livqeno used to get audio routing from `@livekit/react-native`'s
  * `AudioSession`, which crammed session management, output selection,
  * device enumeration and the iOS route picker into one native module. No
  * single upstream package does all of that. `react-native-incall-manager`
@@ -58,7 +58,7 @@ export interface NativeAudioAdapter {
  *
  * Declared locally instead of imported, so this package doesn't need the
  * module's types at build time. It's an optional peer, and a project that
- * only uses Raven Chat shouldn't have to install a call-audio native module
+ * only uses Livqeno Chat shouldn't have to install a call-audio native module
  * just to typecheck.
  */
 interface InCallManagerModule {
@@ -68,7 +68,7 @@ interface InCallManagerModule {
   chooseAudioRoute?(route: string): Promise<unknown>;
 }
 
-/** Android's route names, which don't match Raven's vocabulary. */
+/** Android's route names, which don't match Livqeno's vocabulary. */
 const ANDROID_ROUTES: Record<RavenAudioOutput, string> = {
   speaker: 'SPEAKER_PHONE',
   earpiece: 'EARPIECE',
@@ -80,7 +80,7 @@ const ANDROID_ROUTES: Record<RavenAudioOutput, string> = {
  * Loads `react-native-incall-manager`, if the app happens to have it.
  *
  * `require`, not a static import, and failures swallowed, because
- * the module is an optional peer dependency. An app using Raven for chat
+ * the module is an optional peer dependency. An app using Livqeno for chat
  * only, or one supplying its own adapter, must not fail to start over a
  * missing call-audio native module. If routing does then get used,
  * `audio.ts` reports a clear error.

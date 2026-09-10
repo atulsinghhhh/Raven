@@ -1,4 +1,4 @@
-# Raven Chat — Read receipts
+# Livqeno Chat — Read receipts
 
 ```js
 await chat.markAsRead('msg_3xR…');
@@ -38,7 +38,7 @@ already seen.
 
 ## Delivery semantics
 
-Raven is deliberately precise about three different things:
+Livqeno is deliberately precise about three different things:
 
 | State | Meaning | Guarantee |
 | --- | --- | --- |
@@ -53,7 +53,7 @@ backgrounded tab receives everything. A phone in a pocket receives everything.
 Storing a per-recipient `delivered` flag would produce a checkmark in the UI
 that looks like a strong guarantee and means almost nothing.
 
-What Raven reports instead is honest: how many connected sockets the message
+What Livqeno reports instead is honest: how many connected sockets the message
 was fanned out to, as an aggregate metric. If your product needs "delivered",
 build it on `read` — which requires an actual client action — rather than on
 socket mechanics.

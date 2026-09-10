@@ -9,7 +9,7 @@ import { __appState, PermissionsAndroid, __setPlatform } from './mocks/react-nat
  * `raven.spec.ts` uses.
  *
  * The class is a thin wrapper round `Raven`, so what's worth testing is the
- * *translation*: credentials -> Raven config, role -> isHost, reactions.
+ * *translation*: credentials -> Livqeno config, role -> isHost, reactions.
  * Not the join/leave mechanics `Raven` already covers.
  */
 const rtcState = {
@@ -107,7 +107,7 @@ describe('RavenLiveStream', () => {
     await expect(stream.react('❤️')).rejects.toThrow(/no chat conversation attached/);
   });
 
-  it('leave() disposes the underlying Raven instance', async () => {
+  it('leave() disposes the underlying Livqeno instance', async () => {
     const stream = new RavenLiveStream(credentials());
     await stream.join();
 
@@ -124,7 +124,7 @@ describe('RavenLiveStream', () => {
     expect(rtcState.joins).toEqual(['stream_1']);
   });
 
-  it('forwards onAppStateChange/onNetworkReconnect to the underlying Raven instance', async () => {
+  it('forwards onAppStateChange/onNetworkReconnect to the underlying Livqeno instance', async () => {
     const onAppStateChange = jest.fn();
     const stream = new RavenLiveStream(credentials({ role: 'HOST' }), { onAppStateChange });
     await stream.join();

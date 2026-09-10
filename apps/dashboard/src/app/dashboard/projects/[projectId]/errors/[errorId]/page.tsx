@@ -91,7 +91,7 @@ export default async function ErrorDetailPage({ params }: { params: Promise<{ pr
         <section>
           <SectionHeader
             title="Diagnosis"
-            subtitle="Best effort. Raven infers this from the error category and the payload the SDK sent — treat it as a starting point, not a verdict."
+            subtitle="Best effort. Livqeno infers this from the error category and the payload the SDK sent — treat it as a starting point, not a verdict."
           />
           <Card>
             <div className="flex flex-col gap-4">

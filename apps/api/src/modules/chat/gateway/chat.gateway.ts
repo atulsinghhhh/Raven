@@ -27,7 +27,7 @@ import { PresenceService } from '../presence/presence.service';
 import { ReactionsService } from '../reactions/reactions.service';
 import { ReadStateService } from '../read-state/read-state.service';
 import { ChatRateLimitService } from '../rate-limit/chat-rate-limit.service';
-import { ChatEventEnvelope } from '../realtime/chat-event.interface';
+import { ChatControlMessage, ChatEventEnvelope } from '../realtime/chat-event.interface';
 import { ChatEventsService } from '../realtime/chat-events.service';
 import { ChatTokenService } from '../tokens/chat-token.service';
 import { ProjectOriginService } from '../../../shared/origins/project-origin.service';
@@ -38,7 +38,7 @@ import { ParsedFrame, optionalString, parseClientFrame, requireString } from './
 import { DEFAULT_ENVIRONMENT } from '../../../shared/environment/environment.constants';
 
 /**
- * The Raven Chat WebSocket gateway.
+ * The Livqeno Chat WebSocket gateway.
  *
  * Kept separate from the RTC signaling gateway on purpose: different path,
  * different token, different protocol, different lifecycle. A media
@@ -238,7 +238,15 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     for (const [conversationId, subscription] of session.rooms) {
       this.removeFromRoomIndex(conversationId, session.socket);
       await subscription.unsubscribe();
-      await this.presence.clear(session.projectId, conversationId, subscription.conversationPublicId, session.userId);
+      await this.presence.clear(
+        session.projectId,
+        conversationId,
+        subscription.conversationPublicId,
+        session.userId,
+        // This connection is going away; the person may not be. Only the
+        // last of a user's connections takes them offline.
+        session.connectionId,
+      );
       await this.typing.stop(
         session.projectId,
         conversationId,
@@ -378,6 +386,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       conversation.publicId,
       session.userId,
       PresenceStatus.ONLINE,
+      session.connectionId,
     );
 
     // Hand back the current ephemeral state, so a client joining
@@ -409,7 +418,13 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     session.rooms.delete(conversation.id);
     this.removeFromRoomIndex(conversation.id, session.socket);
     await subscription.unsubscribe();
-    await this.presence.clear(session.projectId, conversation.id, conversation.publicId, session.userId);
+    await this.presence.clear(
+      session.projectId,
+      conversation.id,
+      conversation.publicId,
+      session.userId,
+      session.connectionId,
+    );
     await this.typing.stop(
       session.projectId,
       conversation.id,
@@ -498,6 +513,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         subscription.conversationPublicId,
         session.userId,
         status,
+        session.connectionId,
       );
     }
 
@@ -518,7 +534,13 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
    * O(total connections) per message.
    */
   private deliverToLocalSockets(envelope: ChatEventEnvelope): void {
+    if (envelope.control) {
+      void this.applyControl(envelope.control);
+      return;
+    }
+
     const { event } = envelope;
+    if (!event) return;
     const sockets = this.roomIndex.get(event.conversationId);
     if (!sockets || sockets.size === 0) {
       return;
@@ -551,6 +573,61 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       // storage cost, for when somebody asks why chat feels slow
       // (spec §48).
       this.metrics.recordLatency(envelope.projectId, 'fanout', Date.now() - envelope.publishedAt);
+    }
+  }
+
+  /**
+   * Applies a gateway-to-gateway instruction.
+   *
+   * Today that is only membership revocation: force every socket this
+   * instance holds for that user out of that conversation. Authorization is
+   * checked at `room.join`, so without this a subscription simply outlives
+   * the decision that granted it and a removed member keeps receiving
+   * messages until their socket happens to close.
+   *
+   * The socket itself survives — the person may legitimately be in other
+   * conversations, and closing it would knock them out of those too.
+   */
+  private async applyControl(control: ChatControlMessage): Promise<void> {
+    if (control.kind !== 'membership.revoked') return;
+
+    const sockets = this.roomIndex.get(control.conversationId);
+    if (!sockets || sockets.size === 0) return;
+
+    for (const socket of Array.from(sockets)) {
+      const session = this.sessions.get(socket);
+      if (!session || session.userId !== control.userId) continue;
+
+      const subscription = session.rooms.get(control.conversationId);
+      if (!subscription) continue;
+
+      session.rooms.delete(control.conversationId);
+      this.removeFromRoomIndex(control.conversationId, socket);
+      await subscription.unsubscribe();
+      // Unconditional, not connection-scoped: the person has lost access to
+      // this conversation, so every one of their connections goes with them.
+      await this.presence.clear(
+        session.projectId,
+        control.conversationId,
+        subscription.conversationPublicId,
+        session.userId,
+      );
+      await this.typing.stop(
+        session.projectId,
+        control.conversationId,
+        subscription.conversationPublicId,
+        session.userId,
+      );
+
+      this.logger.log(
+        `revoked ${session.userId}'s subscription to ${control.roomId} on connection ${session.connectionId}`,
+      );
+      // Tell the client, so it can stop rendering a room it can no longer
+      // read instead of quietly going silent.
+      this.send(socket, {
+        ...new ChatError(ChatErrorCode.NOT_A_MEMBER, 'You were removed from this conversation').toFrame(),
+        room: control.roomId,
+      });
     }
   }
 
@@ -623,6 +700,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
           subscription.conversationPublicId,
           session.userId,
           PresenceStatus.ONLINE,
+          // Re-arms this connection's hold on the shared presence key, so a
+          // gateway that dies expires out of the set instead of pinning
+          // someone online.
+          session.connectionId,
         );
       }
     }

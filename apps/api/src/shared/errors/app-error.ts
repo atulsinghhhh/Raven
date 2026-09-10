@@ -58,10 +58,10 @@ export class ValidationFailedError extends AppError {
 }
 
 /**
- * The caller's developer account has spent its included Raven minutes.
+ * The caller's developer account has spent its included Livqeno minutes.
  *
  * 403, not 402: `402 Payment Required` tells a client there is something to
- * pay, and there isn't — Raven has no billing. It is also not 429; a rate
+ * pay, and there isn't — Livqeno has no billing. It is also not 429; a rate
  * limit clears by waiting, and this does not clear at all.
  *
  * `details` carries the allowance figures so an SDK can render "0 of 20,000
@@ -70,7 +70,7 @@ export class ValidationFailedError extends AppError {
 export class UsageLimitExceededError extends AppError {
   constructor(details: { includedMinutes: number; usedMinutes: number; remainingMinutes: number }) {
     super(
-      `This account has used all ${details.includedMinutes} of its included Raven minutes. ` +
+      `This account has used all ${details.includedMinutes} of its included Livqeno minutes. ` +
         'New RTC sessions are refused until more minutes are allocated.',
       HttpStatus.FORBIDDEN,
       RavenErrorCode.USAGE_LIMIT_EXCEEDED,

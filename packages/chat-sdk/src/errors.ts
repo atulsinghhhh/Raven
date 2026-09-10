@@ -1,7 +1,7 @@
 /**
  * Every error `@ravenkash/chat` raises is one of these. Nobody using it ever
  * sees a raw `CloseEvent`, a Postgres constraint name or a Redis timeout.
- * That's the infrastructure Raven is supposed to be hiding (Phase 12
+ * That's the infrastructure Livqeno is supposed to be hiding (Phase 12
  * spec §42).
  */
 export type ChatErrorCode =
@@ -32,7 +32,7 @@ export type ChatErrorCode =
   | 'NETWORK_ERROR'
   | 'INTERNAL_ERROR';
 
-/** Base class for every Raven Chat error. Catch this to catch them all. */
+/** Base class for every Livqeno Chat error. Catch this to catch them all. */
 export class RavenChatError extends Error {
   readonly code: ChatErrorCode;
   readonly cause?: unknown;

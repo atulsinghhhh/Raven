@@ -1,6 +1,6 @@
 """Minimal TURN Allocate over the long-term credential mechanism (RFC 5766).
 
-Proves coturn accepts a credential minted by Raven's generateTurnCredential():
+Proves coturn accepts a credential minted by Livqeno's generateTurnCredential():
   username = "<unix-expiry>:<identity>"
   password = base64(HMAC-SHA1(TURN_SECRET, username))
 which is coturn's `use-auth-secret` REST scheme.
@@ -72,7 +72,7 @@ if errno_ != 401:
     print(f"FAIL: expected 401, got {errno_}")
     sys.exit(1)
 
-# --- 2. authenticated Allocate with Raven's credential -------------------
+# --- 2. authenticated Allocate with Livqeno's credential -------------------
 key = hashlib.md5(f"{USER}:{realm}:{PASSWD}".encode()).digest()
 txid = os.urandom(12)
 req = build(txid, [
@@ -99,7 +99,7 @@ if mtype == ALLOC_OK:
         print(f"        XOR-RELAYED-ADDRESS = {ip}:{rport}")
         private = ip.startswith(("10.", "192.168.")) or ip.startswith("172.")
         print(f"        relay address is {'PRIVATE (external-ip misconfigured!)' if private else 'PUBLIC (external-ip correct)'}")
-        print("PASS: coturn validated a credential minted by Raven's generateTurnCredential()")
+        print("PASS: coturn validated a credential minted by Livqeno's generateTurnCredential()")
         sys.exit(0 if not private else 1)
     print("PASS (allocated, but no XOR-RELAYED-ADDRESS attribute)")
     sys.exit(0)
@@ -108,5 +108,5 @@ code = at.get(A_ERRCODE, b"\x00" * 4)
 errno_ = code[2] * 100 + code[3]
 reason = code[4:].decode(errors="replace")
 print(f"step 2: authenticated Allocate -> {errno_} {reason}")
-print("FAIL: coturn rejected Raven's credential — shared secret mismatch?")
+print("FAIL: coturn rejected Livqeno's credential — shared secret mismatch?")
 sys.exit(1)

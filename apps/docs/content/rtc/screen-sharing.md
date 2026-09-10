@@ -47,7 +47,7 @@ relied on.
 ## A known rough edge: source labelling
 
 A subscriber normally learns that a track is a screen share from the
-`source` Raven announces, which the publisher declares alongside the track.
+`source` Livqeno announces, which the publisher declares alongside the track.
 That declaration is matched to the track by the id in the SDP `msid`.
 
 When a screen share is published onto a transceiver the SFU had already

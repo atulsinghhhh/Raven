@@ -14,7 +14,7 @@ export interface OnboardingSignals {
 }
 
 /**
- * Five steps, each backed by something Raven can actually observe;
+ * Five steps, each backed by something Livqeno can actually observe;
  * never a client-side "mark as done" checkbox. Two of them (Install SDK,
  * Create a token) can't be measured directly, since neither has a
  * dedicated resource: they're inferred from the next real signal that
@@ -36,7 +36,8 @@ export function buildOnboardingSteps(projectId: string, signals: OnboardingSigna
     {
       step: 2,
       label: 'Install an SDK',
-      description: 'Raven can’t see a local install directly — marked done once your project shows any real activity.',
+      description:
+        'Livqeno can’t see a local install directly — marked done once your project shows any real activity.',
       done: signals.hasApiKey || hasActivity,
       href: `${base}/sdks`,
     },

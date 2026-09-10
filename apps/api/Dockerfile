@@ -1,4 +1,4 @@
-# Raven control plane API — multi-stage build.
+# Livqeno control plane API — multi-stage build.
 #
 # Stage 1 (deps): full workspace deps, including devDependencies, needed
 # to compile TypeScript and generate the Prisma client. Stage 2 (build):
@@ -46,7 +46,7 @@ RUN apk add --no-cache openssl
 # npm exists in the base image solely to install pnpm, so it is removed
 # immediately afterwards. That drops npm's bundled copy of node-tar, which
 # carries CVE-2026-59873 (a gzip bomb can exhaust disk and CPU; fixed in
-# tar 7.5.19). Nothing in Raven imports it, but an unused vulnerable file
+# tar 7.5.19). Nothing in Livqeno imports it, but an unused vulnerable file
 # in a production image is still a vulnerable file — and the runtime only
 # ever needs pnpm and node.
 RUN npm install -g pnpm@11.22.0 \

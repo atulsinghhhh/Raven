@@ -1,0 +1,262 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Acme Chat — built on Livqeno</title>
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui;
+        margin: 0;
+        padding: 16px;
+        background: #faf9f7;
+        color: #1c1917;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 0 4px;
+      }
+      #who {
+        font-size: 12px;
+        color: #78716c;
+        margin-bottom: 10px;
+      }
+      #state {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 99px;
+        font-size: 11px;
+        background: #e7e5e4;
+      }
+      #state.connected {
+        background: #bbf7d0;
+      }
+      #state.reconnecting {
+        background: #fed7aa;
+      }
+      #state.failed {
+        background: #fecaca;
+      }
+      #log {
+        border: 1px solid #d6d3d1;
+        border-radius: 8px;
+        height: 300px;
+        overflow: auto;
+        padding: 8px;
+        background: #fff;
+        font-size: 13px;
+      }
+      .m {
+        padding: 3px 0;
+        border-bottom: 1px solid #f5f5f4;
+      }
+      .meta {
+        color: #a8a29e;
+        font-size: 11px;
+      }
+      #row {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      input {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid #d6d3d1;
+        border-radius: 6px;
+      }
+      button {
+        padding: 8px 12px;
+        border: 1px solid #d6d3d1;
+        border-radius: 6px;
+        background: #fff;
+        cursor: pointer;
+      }
+      #side {
+        font-size: 12px;
+        color: #57534e;
+        margin-top: 8px;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Acme Chat</h1>
+    <div id="who">user: <b id="uid">…</b> · <span id="state">idle</span> · conn <span id="cid">—</span></div>
+    <div id="log"></div>
+    <div id="row">
+      <input id="text" placeholder="Type a message…" autocomplete="off" /><button id="send">Send</button>
+    </div>
+    <div id="side">
+      presence: <b id="presence">—</b><br />
+      typing: <b id="typing">—</b><br />
+      unread: <b id="unread">—</b> · last read: <b id="lastread">—</b><br />
+      reactions on last message: <b id="reactions">—</b>
+    </div>
+
+    <script type="module">
+      // ---- The ONLY Livqeno import. Public package, nothing internal. --------------
+      import { createChatClient } from './raven-chat.js';
+
+      const user = new URLSearchParams(location.search).get('user') ?? 'alice';
+      document.getElementById('uid').textContent = user;
+
+      // The app's own backend mints the token. The browser never sees the API key.
+      const grant = await fetch(`/api/chat-token?user=${encodeURIComponent(user)}`).then((r) => r.json());
+
+      const chat = createChatClient({
+        token: grant.token,
+        chatUrl: grant.chatUrl,
+        apiUrl: grant.apiUrl,
+        logLevel: 'silent',
+      });
+
+      // Everything below is what a developer writes. No knowledge of frames,
+      // sockets, Redis, or Postgres.
+      const $log = document.getElementById('log');
+      const seen = new Set();
+      const results = {
+        messages: [],
+        duplicates: 0,
+        presence: [],
+        typing: [],
+        reads: [],
+        reactions: [],
+        states: [],
+        errors: [],
+      };
+      window.__acme = { chat, results, grant };
+
+      function line(cls, html) {
+        const d = document.createElement('div');
+        d.className = 'm ' + cls;
+        d.innerHTML = html;
+        $log.appendChild(d);
+        $log.scrollTop = $log.scrollHeight;
+      }
+
+      chat.on('message', (m) => {
+        if (seen.has(m.id)) {
+          results.duplicates++;
+          line('dup', `<b>DUPLICATE</b> ${m.id}`);
+          return;
+        }
+        seen.add(m.id);
+        results.messages.push({ id: m.id, from: m.senderId, text: m.text, at: m.createdAt });
+        line(
+          'msg',
+          `<b>${m.senderId}</b>: ${m.text ?? '<i>(deleted)</i>'} <span class="meta">${m.id.slice(0, 12)}… ${m.createdAt}</span>`,
+        );
+      });
+      chat.on('messageDeleted', (e) => {
+        results.messages.push({ deleted: e.messageId });
+        line('del', `<i>${e.messageId.slice(0, 12)}… deleted</i>`);
+      });
+      chat.on('presence', (p) => {
+        results.presence.push(p);
+        refreshPresence();
+      });
+      chat.on('typing', (t) => {
+        results.typing.push(t);
+        document.getElementById('typing').textContent = t.isTyping ? `${t.userId} is typing…` : '—';
+      });
+      chat.on('read', (r) => {
+        results.reads.push(r);
+        line('read', `<span class="meta">${r.userId} read up to ${r.messageId?.slice(0, 12)}…</span>`);
+      });
+      chat.on('reactionAdded', (r) => {
+        results.reactions.push({ ...r, kind: 'added' });
+        line('rx', `<span class="meta">${r.userId} reacted ${r.emoji}</span>`);
+      });
+      chat.on('reactionRemoved', (r) => {
+        results.reactions.push({ ...r, kind: 'removed' });
+        line('rx', `<span class="meta">${r.userId} removed ${r.emoji}</span>`);
+      });
+      chat.on('connectionStateChanged', (s) => {
+        results.states.push(s);
+        const el = document.getElementById('state');
+        el.textContent = s;
+        el.className = s;
+        document.getElementById('cid').textContent = chat.id ?? '—';
+      });
+      chat.on('reconnected', () => line('sys', '<i>reconnected automatically</i>'));
+      chat.on('error', (e) => {
+        results.errors.push(e.message);
+        line('err', `<b>error</b> ${e.message}`);
+      });
+
+      await chat.connect({ room: grant.room });
+
+      // Load history the way the docs describe.
+      const page = await chat.messages.list({ limit: 50 });
+      for (const m of [...page.data].reverse()) {
+        if (seen.has(m.id)) continue;
+        seen.add(m.id);
+        results.messages.push({ id: m.id, from: m.senderId, text: m.text, at: m.createdAt, source: 'history' });
+        line('msg', `<b>${m.senderId}</b>: ${m.text ?? '<i>(deleted)</i>'} <span class="meta">history</span>`);
+      }
+
+      async function refreshPresence() {
+        try {
+          const p = await chat.getPresence();
+          document.getElementById('presence').textContent = p.map((x) => `${x.userId}:${x.status}`).join(', ') || '—';
+        } catch {}
+      }
+      async function refreshRead() {
+        try {
+          const rs = await chat.getReadState();
+          document.getElementById('unread').textContent = rs.unreadCount;
+          document.getElementById('lastread').textContent = rs.lastReadMessageId?.slice(0, 12) ?? '—';
+        } catch {}
+      }
+      await refreshPresence();
+      await refreshRead();
+      setInterval(refreshRead, 2000);
+
+      document.getElementById('text').addEventListener('input', () => void chat.startTyping());
+      document.getElementById('send').addEventListener('click', send);
+      document.getElementById('text').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') send();
+      });
+      async function send() {
+        const input = document.getElementById('text');
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = '';
+        await chat.stopTyping();
+        await chat.sendMessage({ text });
+      }
+
+      // Test affordances the harness drives. Every one is a public SDK call.
+      window.__acme.api = {
+        send: (text) => chat.sendMessage({ text }),
+        markLastRead: async () => {
+          const last = results.messages.filter((m) => m.id).at(-1);
+          return last && chat.markAsRead(last.id);
+        },
+        reactTo: async (i, emoji) => {
+          const m = results.messages.filter((x) => x.id)[i];
+          const r = await chat.messages.addReaction(m.id, emoji);
+          document.getElementById('reactions').textContent = r.reactions.map((x) => `${x.emoji}×${x.count}`).join(' ');
+          return r;
+        },
+        unreactTo: async (i, emoji) => {
+          const m = results.messages.filter((x) => x.id)[i];
+          return chat.messages.removeReaction(m.id, emoji);
+        },
+        startTyping: () => chat.startTyping(),
+        stopTyping: () => chat.stopTyping(),
+        history: (opts) => chat.messages.list(opts ?? { limit: 100 }),
+        readState: () => chat.getReadState(),
+        presence: () => chat.getPresence(),
+        deleteLast: async () => {
+          const last = results.messages.filter((m) => m.id).at(-1);
+          return chat.messages.delete(last.id);
+        },
+        state: () => chat.connectionState,
+        disconnect: () => chat.disconnect(),
+        reconnect: () => chat.connect({ room: grant.room }),
+      };
+      line('sys', `<i>ready — SDK-only client for ${user}</i>`);
+    </script>
+  </body>
+</html>

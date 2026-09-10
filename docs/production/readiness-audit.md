@@ -1,4 +1,4 @@
-# Raven Production Readiness Audit
+# Livqeno Production Readiness Audit
 
 Step 1 of the production programme: a survey of everything built through
 Phase 13, measured against the production platform requirements. No code
@@ -7,7 +7,7 @@ was changed to produce this report.
 Audit date: 2026-08-18. Commit: `1ea19d0`.
 
 > **Historical.** A point-in-time survey, kept as one. It predates the
-> migration to Raven's own SFU, so anything it says about the media plane
+> migration to Livqeno's own SFU, so anything it says about the media plane
 > describes LiveKit. Current state:
 > [`docs/rtc/`](../rtc/README.md) and
 > [`docs/rtc/test-matrix.md`](../rtc/test-matrix.md).
@@ -16,7 +16,7 @@ Audit date: 2026-08-18. Commit: `1ea19d0`.
 
 ## Summary
 
-Raven has more working functionality than its CI or lint configuration
+Livqeno has more working functionality than its CI or lint configuration
 would suggest. **748 tests pass locally across eight test suites**, the
 API builds, the dashboard typechecks, and RTC and Chat both work end to
 end against live infrastructure.
@@ -200,7 +200,7 @@ upper bound on decompressed size, entry count, or compression ratio, so
 a small crafted gzip bomb can exhaust disk and CPU.
 
 The vulnerable copy was **npm's own bundled `node-tar`** inside
-`node:22-alpine` — not a Raven dependency, and not fixable from the
+`node:22-alpine` — not a Livqeno dependency, and not fixable from the
 lockfile.
 
 **Fixed** by removing npm in the layer that uses it. It exists in the

@@ -23,9 +23,9 @@ export interface ReadStateView {
  * marking 500 messages read is a single UPDATE, and an unread count is one
  * indexed COUNT, not a set difference over a receipts table.
  *
- * Raven's delivery vocabulary, stated plainly:
+ * Livqeno's delivery vocabulary, stated plainly:
  *   - **accepted**: the send ack, returned only once the row is durably in
- *     Postgres. This is the one Raven actually guarantees.
+ *     Postgres. This is the one Livqeno actually guarantees.
  *   - **delivered**: a recipient's live socket received the fan-out.
  *     Reported per broadcast as a count and never stored, because a socket
  *     receiving bytes is no proof a person saw them.

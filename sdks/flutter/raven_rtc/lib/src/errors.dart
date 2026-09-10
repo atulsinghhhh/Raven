@@ -23,8 +23,8 @@ enum RavenErrorCode {
 ///
 /// Never a raw `flutter_webrtc` error, never a `PlatformException` from
 /// the native layer. Those leak implementation details a developer using
-/// Raven has no way to act on, and would tie application error handling
-/// to whichever WebRTC implementation Raven happens to use.
+/// Livqeno has no way to act on, and would tie application error handling
+/// to whichever WebRTC implementation Livqeno happens to use.
 class RavenException implements Exception {
   const RavenException(this.code, this.message, [this.cause]);
 

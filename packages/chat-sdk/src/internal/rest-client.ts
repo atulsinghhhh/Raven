@@ -49,7 +49,7 @@ export class RestClient {
     } catch (error) {
       // fetch only rejects on a genuine network failure: DNS, offline,
       // CORS. An HTTP error status resolves, and gets handled below.
-      throw new RavenChatConnectionError('Could not reach Raven', 'NETWORK_ERROR', error);
+      throw new RavenChatConnectionError('Could not reach Livqeno', 'NETWORK_ERROR', error);
     }
 
     if (response.status === 204) {
@@ -60,7 +60,7 @@ export class RestClient {
       { code?: string; message?: string; retryAfterSeconds?: number } | undefined;
 
     if (!response.ok) {
-      // The server's own Raven error code, not the HTTP status, so a caller
+      // The server's own Livqeno error code, not the HTTP status, so a caller
       // can tell MESSAGE_TOO_LARGE from ATTACHMENT_TOO_LARGE even though
       // both come back 413.
       throw toRavenChatError(payload?.code, payload?.message ?? `Request failed with status ${response.status}`, {

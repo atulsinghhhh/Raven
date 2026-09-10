@@ -1,4 +1,4 @@
-// Raven media demo: built entirely on @ravenkash/rtc's public API. No SDP, no
+// Livqeno media demo: built entirely on @ravenkash/rtc's public API. No SDP, no
 // ICE candidates, and no RTCPeerConnection appear anywhere in this file. Run `server.py` alongside this
 // page: see the README.
 import { createRTCClient, isRTCError } from '@ravenkash/rtc';

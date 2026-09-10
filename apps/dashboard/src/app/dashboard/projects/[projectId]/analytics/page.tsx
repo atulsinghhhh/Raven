@@ -20,7 +20,7 @@ const TABS: { id: Tab; label: string }[] = [
  * still exist and go deeper. This page answers "how's everything doing"
  * in one range-filtered view before a developer drills into one product.
  * Every number here comes from the same endpoints those pages already
- * call; nothing is bucketed into a time series Raven doesn't have.
+ * call; nothing is bucketed into a time series Livqeno doesn't have.
  */
 export default async function AnalyticsPage({
   params,

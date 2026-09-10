@@ -56,20 +56,12 @@ dart format --output=none --set-exit-if-changed lib test
 `.editorconfig` mirrors all of the above so your editor agrees before you
 save.
 
-> **The one-time Prettier pass has not been run yet.** Prettier was adopted
-> — config, scripts and the `Format` job in `ci.yml` — without reformatting
-> the existing tree, so roughly 345 files are not yet compliant and that job
-> **fails until someone lands the pass**:
->
-> ```bash
-> npm run format
-> git commit -am "style: adopt Prettier across the repo"
-> ```
->
-> Do it in its own commit, then add the SHA to `.git-blame-ignore-revs` so
-> `git blame` keeps pointing at the change that actually wrote each line.
-> Go, Python and Dart are already fully formatted and their checks are
-> green.
+The one-time Prettier adoption pass has been run: every file Prettier owns
+is compliant, and the `Format` job in `ci.yml` is green alongside the Go,
+Python and Dart checks. Land any future repo-wide pass as its own
+commit and add its SHA to `.git-blame-ignore-revs`, so `git blame` keeps
+pointing at the change that actually wrote each line rather than at the
+reformat.
 
 ### What is deliberately not formatted
 

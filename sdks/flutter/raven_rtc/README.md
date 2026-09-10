@@ -1,10 +1,10 @@
 # raven_rtc
 
-Raven's Flutter SDK — join a room, publish camera and microphone, render
+Livqeno's Flutter SDK — join a room, publish camera and microphone, render
 participants. Hides WebRTC, SDP, ICE, STUN, TURN and the media server
 behind a small typed API.
 
-Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
+Part of [Livqeno](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
 
 ## Requirements
 

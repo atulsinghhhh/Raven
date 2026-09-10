@@ -53,7 +53,7 @@ export interface RavenConfig {
   onChatTokenExpiring?: () => Promise<string> | string;
 
   /**
-   * Set false if your app already owns the audio session. Otherwise Raven
+   * Set false if your app already owns the audio session. Otherwise Livqeno
    * starts one on join and stops it on leave.
    */
   manageAudioSession?: boolean;

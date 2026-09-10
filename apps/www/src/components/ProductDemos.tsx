@@ -18,7 +18,7 @@ const PARTICIPANTS = ['Alice', 'Bob', 'Charlie'];
 /** RTC: a room with three participants, one of them speaking. */
 export function RoomDemo() {
   return (
-    <DemoPanel title="Raven Room · demo-room">
+    <DemoPanel title="Livqeno Room · demo-room">
       <div className="flex items-center justify-between border-b border-line px-5 py-3">
         <span className="font-mono text-xs text-muted">3 participants</span>
         <span className="mono-label inline-flex items-center gap-1.5 rounded-(--radius-panel) border border-success-line bg-success-subtle px-2 py-1 text-[10px] text-success-text">
@@ -71,7 +71,7 @@ const RECEIPT_LABEL: Record<'sent' | 'delivered' | 'read', string> = {
 /** Chat: a short thread with receipts, and one bubble still typing. */
 export function ChatDemo() {
   return (
-    <DemoPanel title="Raven Chat · support-room-42">
+    <DemoPanel title="Livqeno Chat · support-room-42">
       <ul className="flex flex-col gap-3 p-5">
         {MESSAGES.map((m, i) => (
           <li
@@ -136,7 +136,7 @@ export function LiveDemo() {
   const viewers = useCountUp(342, true);
 
   return (
-    <DemoPanel title="Raven Live · stream-7" note="Preview — scripted demo, not live data.">
+    <DemoPanel title="Livqeno Live · stream-7" note="Preview — scripted demo, not live data.">
       <div className="flex items-center justify-between border-b border-line px-5 py-3">
         <span className="mono-label inline-flex items-center gap-1.5 rounded-(--radius-panel) bg-live px-2 py-1 text-[10px] text-canvas">
           <span className="h-1.5 w-1.5 rounded-full bg-canvas animate-pulse-dot" />
@@ -181,7 +181,7 @@ const PRESETS = ['vivid', 'warm', 'cool', 'cinematic', 'vintage'] as const;
 /** Effects: the preset rail, not a rendered filter preview. */
 export function EffectsDemo() {
   return (
-    <DemoPanel title="Raven Effects · camera preview">
+    <DemoPanel title="Livqeno Effects · camera preview">
       <div className="flex items-center justify-between border-b border-line px-5 py-3">
         <span className="font-mono text-xs text-muted">local track</span>
         <span className="mono-label rounded-(--radius-panel) border border-line px-2 py-1 text-[10px] text-muted">
@@ -215,7 +215,7 @@ export function EffectsDemo() {
 /** Server: what the backend actually hands the client. No visual to fake. */
 export function TokenDemo() {
   return (
-    <DemoPanel title="Raven API · POST /v1/tokens">
+    <DemoPanel title="Livqeno API · POST /v1/tokens">
       <dl className="divide-y divide-line">
         {[
           ['room', 'room-123'],

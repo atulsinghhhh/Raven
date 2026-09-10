@@ -25,6 +25,11 @@ import { CreateLiveStreamDto } from './dto/create-live-stream.dto';
 import { UpdateLiveStreamDto } from './dto/update-live-stream.dto';
 import { toJsonInput } from './json.util';
 
+/** Prisma's unique-constraint code. Same helper, same reasoning, as ConversationsService. */
+function isUniqueViolation(err: unknown): boolean {
+  return (err as { code?: string })?.code === 'P2002';
+}
+
 export interface LiveStreamHostView {
   identity: string;
   role: LiveStreamHostRole;
@@ -205,18 +210,31 @@ export class LiveStreamsService {
    */
   async start(scope: ProjectScope, streamId: string): Promise<LiveStreamView> {
     const stream = await this.resolveRaw(scope, streamId);
-    if (stream.status !== LiveStreamStatus.CREATED) {
+
+    const startedAt = new Date();
+    // The status is part of the WHERE, not a check performed before it.
+    // Reading the row, deciding, then writing is two round trips with a gap
+    // in the middle, and five simultaneous start() calls all read CREATED
+    // in that gap and all wrote LIVE — five `live_stream.started` webhooks
+    // and a startedAt belonging to whichever write landed last. Postgres
+    // settles it instead: the transition is the write, so exactly one
+    // caller can match CREATED and the rest match nothing.
+    const { count } = await this.prisma.liveStream.updateMany({
+      where: { id: stream.id, status: LiveStreamStatus.CREATED },
+      data: { status: LiveStreamStatus.LIVE, startedAt },
+    });
+    if (count === 0) {
+      // Re-read rather than echo the status from above: by now it is
+      // whatever the winner set, and that is what the caller should be
+      // told they lost to.
+      const current = await this.resolveRaw(scope, streamId);
       throw new ConflictError(
-        `Cannot start a stream that is ${stream.status} — only a CREATED stream can be started`,
+        `Cannot start a stream that is ${current.status} — only a CREATED stream can be started`,
         RavenErrorCode.STREAM_INVALID_STATE,
       );
     }
 
-    const startedAt = new Date();
-    const updated = await this.prisma.liveStream.update({
-      where: { id: stream.id },
-      data: { status: LiveStreamStatus.LIVE, startedAt },
-    });
+    const updated = await this.resolveRaw(scope, streamId);
 
     void this.webhooks.emit(scope, 'live_stream.started', {
       streamId: updated.publicId,
@@ -239,18 +257,25 @@ export class LiveStreamsService {
    */
   async end(scope: ProjectScope, streamId: string): Promise<LiveStreamView> {
     const stream = await this.resolveRaw(scope, streamId);
-    if (stream.status !== LiveStreamStatus.LIVE) {
+
+    const endedAt = new Date();
+    // Conditional on LIVE for the same reason start() is conditional on
+    // CREATED — see the comment there. Ending mattered more: four of five
+    // simultaneous end() calls used to succeed, so a stream could emit
+    // four `live_stream.ended` webhooks and close its room four times.
+    const { count } = await this.prisma.liveStream.updateMany({
+      where: { id: stream.id, status: LiveStreamStatus.LIVE },
+      data: { status: LiveStreamStatus.ENDED, endedAt },
+    });
+    if (count === 0) {
+      const current = await this.resolveRaw(scope, streamId);
       throw new ConflictError(
-        `Cannot end a stream that is ${stream.status} — only a LIVE stream can be ended`,
+        `Cannot end a stream that is ${current.status} — only a LIVE stream can be ended`,
         RavenErrorCode.STREAM_INVALID_STATE,
       );
     }
 
-    const endedAt = new Date();
-    const updated = await this.prisma.liveStream.update({
-      where: { id: stream.id },
-      data: { status: LiveStreamStatus.ENDED, endedAt },
-    });
+    const updated = await this.resolveRaw(scope, streamId);
     await this.roomsService.close(stream.roomId, scope);
 
     void this.webhooks.emit(scope, 'live_stream.ended', {
@@ -271,22 +296,20 @@ export class LiveStreamsService {
    * The role is only ever read from this endpoint's own DTO. There's no
    * field anywhere that a viewer token accepts which could turn it into a
    * host token.
+   *
+   * Omitting `role` for someone already registered leaves their role
+   * alone; see `upsertHost`. Only a new registration falls back to
+   * CO_HOST.
    */
   async addHost(scope: ProjectScope, streamId: string, dto: AddHostDto): Promise<IssuedStreamCredential> {
     const stream = await this.resolveRaw(scope, streamId);
     this.assertNotEnded(stream);
 
-    const role = dto.role ?? LiveStreamHostRole.CO_HOST;
-    const host = await this.prisma.liveStreamHost.upsert({
-      where: { streamId_identity: { streamId: stream.id, identity: dto.identity } },
-      create: { streamId: stream.id, identity: dto.identity, role },
-      // Re-inviting someone who was removed reactivates the same row.
-      update: { role, removedAt: null },
-    });
+    const host = await this.upsertHost(stream.id, dto.identity, dto.role);
 
     const credential = await this.mintCredential(scope, stream, dto.identity, {
       rtcPublish: true,
-      chatRole: role === LiveStreamHostRole.HOST ? ChatMemberRole.ADMIN : ChatMemberRole.MODERATOR,
+      chatRole: host.role === LiveStreamHostRole.HOST ? ChatMemberRole.ADMIN : ChatMemberRole.MODERATOR,
     });
 
     void this.webhooks.emit(scope, 'live_stream.host_joined', {
@@ -437,6 +460,67 @@ export class LiveStreamsService {
     }
   }
 
+  /**
+   * Registers or re-registers a host, and settles what their role should be.
+   *
+   * ## Why an omitted role is not the same as CO_HOST
+   *
+   * `role` defaults to CO_HOST because that is what this endpoint is
+   * normally used for — a stream already has its HOST, set at creation.
+   * But the default used to be applied to *existing* rows too, so
+   * re-minting a host's credentials the way the quickstart does it —
+   * `addHost(streamId, { identity: 'alice' })` for the same alice that
+   * `create({ hostIdentity: 'alice' })` just registered — silently
+   * demoted her to CO_HOST. The stream was then left with no HOST at all,
+   * and her chat token came back without `chat:manage`.
+   *
+   * So an omitted role now means "leave whatever they already are", and
+   * only an explicit one changes anything. Re-minting credentials is not
+   * a statement about rank.
+   *
+   * ## Concurrency
+   *
+   * Two simultaneous calls for the same identity both find no row and both
+   * insert, and one loses on `@@unique([streamId, identity])`. Prisma's
+   * `upsert` does not retry that, so the loser surfaced as a 500. It is a
+   * lost race, not a failure: the row the winner wrote is the row this
+   * caller wanted, so read it back and carry on.
+   */
+  private async upsertHost(
+    streamId: string,
+    identity: string,
+    role: LiveStreamHostRole | undefined,
+  ): Promise<LiveStreamHost> {
+    const where = { streamId_identity: { streamId, identity } };
+    const existing = await this.prisma.liveStreamHost.findUnique({ where });
+
+    if (existing) {
+      return this.prisma.liveStreamHost.update({
+        where,
+        // Re-inviting someone who was removed reactivates the same row.
+        data: { role: role ?? existing.role, removedAt: null },
+      });
+    }
+
+    try {
+      return await this.prisma.liveStreamHost.create({
+        data: { streamId, identity, role: role ?? LiveStreamHostRole.CO_HOST },
+      });
+    } catch (err) {
+      if (!isUniqueViolation(err)) {
+        throw err;
+      }
+      const winner = await this.prisma.liveStreamHost.findUnique({ where });
+      if (!winner) {
+        throw err;
+      }
+      return this.prisma.liveStreamHost.update({
+        where,
+        data: { role: role ?? winner.role, removedAt: null },
+      });
+    }
+  }
+
   private activeHosts(streamId: string): Promise<LiveStreamHost[]> {
     return this.prisma.liveStreamHost.findMany({ where: { streamId, removedAt: null } });
   }
@@ -456,7 +540,7 @@ export class LiveStreamsService {
 
     if (withLiveState) {
       // Addressed by room id, which the stream already holds. No name
-      // lookup needed; Raven's media plane is keyed by id.
+      // lookup needed; Livqeno's media plane is keyed by id.
       const liveParticipants = await this.roomState.listLiveParticipants(stream.roomId);
 
       if (liveParticipants) {

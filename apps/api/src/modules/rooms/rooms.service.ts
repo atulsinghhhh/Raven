@@ -3,6 +3,7 @@ import { Room, RoomStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { ConflictError, NotFoundError } from '../../shared/errors/app-error';
 import { RavenErrorCode } from '../../shared/errors/error-codes';
+import { RoomEventsService } from '../signaling/rooms/room-events.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { LiveParticipantInfo, SfuRoomStateService } from './sfu-room-state.service';
 import { ProjectScope } from '../../shared/environment/environment.constants';
@@ -21,6 +22,7 @@ export class RoomsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly roomState: SfuRoomStateService,
+    private readonly roomEvents: RoomEventsService,
   ) {}
 
   async create(scope: ProjectScope, dto: CreateRoomDto): Promise<Room> {
@@ -56,12 +58,36 @@ export class RoomsService {
     return room;
   }
 
+  /**
+   * Closes a room: the control-plane record *and* the live media session.
+   *
+   * The record used to be all of it, which made "closed" a statement about
+   * a database row and nothing else. A closed room — and an ended live
+   * stream, which closes its room — went on forwarding media indefinitely:
+   * the host still publishing, viewers still decoding, usage still
+   * accruing, and no client ever told. The frame that stops it had been
+   * implemented on the node the whole time and was never sent.
+   *
+   * Order matters. The row goes first, because it is what refuses
+   * re-admission, and a caller that got a 2xx must never find the room
+   * still joinable. The media plane and the signaling sockets follow, and
+   * neither can fail the close: a node or a Redis that cannot be reached
+   * leaves a session running a little longer, which is a degraded close,
+   * not a failed one. The alternative — throwing after the row is already
+   * CLOSED — would report failure for work that mostly succeeded and
+   * invite a retry that has nothing left to do.
+   */
   async close(id: string, scope: ProjectScope): Promise<void> {
     await this.findOneForProject(id, scope);
     await this.prisma.room.update({
       where: { id },
       data: { status: RoomStatus.CLOSED },
     });
+
+    await this.roomState.closeLiveSession(id);
+    // Tell the participants before their PeerConnections simply stop
+    // working, so a client can render "this ended" instead of a stall.
+    await this.roomEvents.publish(id, { kind: 'closed' });
   }
 
   /**

@@ -81,7 +81,7 @@ for any real emoji, including multi-codepoint sequences like
 👨‍👩‍👧‍👦, and short enough that the field can't become a second message
 body.
 
-Raven doesn't validate that a reaction *is* an emoji. Products use
+Livqeno doesn't validate that a reaction *is* an emoji. Products use
 custom reactions, `:shipit:`-style shortcodes, and image keys — an
 allow-list would break all of them to prevent nothing.
 

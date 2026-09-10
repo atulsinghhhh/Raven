@@ -1,7 +1,7 @@
 # CLI workflow: zero to a joined room
 
 The canonical path through `@ravenkash/cli`, exactly as verified end-to-end
-against a real local Raven deployment (`docker compose up`, `apps/api`
+against a real local Livqeno deployment (`docker compose up`, `apps/api`
 on `:4100`, dashboard on `:3000`). Every command below is real — no
 placeholders elided for brevity beyond your own project name.
 
@@ -71,7 +71,7 @@ open http://localhost:8900/index.html
 # 12. Repeat steps 10-11 with a second identity ("bob") in a second tab
 #     to see both participants join the same room.
 
-# 13. Verified outcome: Terminal → Raven CLI → Raven API → Raven
+# 13. Verified outcome: Terminal → Livqeno CLI → Livqeno API → Livqeno
 #     infrastructure → a real RTC application, end to end.
 ```
 
@@ -84,7 +84,7 @@ open http://localhost:8900/index.html
   there is no CLI-only backend.
 - The API key minted by the CLI mints a real, working RTC token from the
   Control API, which a real browser SDK client (`@ravenkash/rtc`) can use to
-  join and connect to a real Raven SFU node — confirmed live via
+  join and connect to a real Livqeno SFU node — confirmed live via
   `Status: connected` and correct remote-participant discovery in both
   browser tabs, with real signaling frames visible in the browser
   console.

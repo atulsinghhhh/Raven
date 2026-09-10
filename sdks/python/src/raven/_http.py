@@ -80,7 +80,7 @@ class RavenHttpClient:
                     time.sleep(backoff_delay_seconds(attempt))
                     attempt += 1
                     continue
-                raise RavenError("Could not reach the Raven API", code="RAVEN_NETWORK_ERROR") from exc
+                raise RavenError("Could not reach the Livqeno API", code="RAVEN_NETWORK_ERROR") from exc
 
             request_id = response.headers.get("x-request-id")
 

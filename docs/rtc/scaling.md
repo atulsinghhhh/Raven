@@ -1,6 +1,6 @@
-# Raven RTC — Scaling
+# Livqeno RTC — Scaling
 
-How Raven RTC scales, what has actually been measured, and what has not.
+How Livqeno RTC scales, what has actually been measured, and what has not.
 
 The second half matters as much as the first. This document states
 measured numbers as measured and unmeasured ones as unmeasured, because a
@@ -19,7 +19,7 @@ restarting one costs its clients a reconnect.
 **The media plane scales by adding nodes, and a room lives on one.**
 
 ```text
-                    Raven API (N instances, stateless)
+                    Livqeno API (N instances, stateless)
                               │
                         Load balancer
                               │
@@ -199,7 +199,7 @@ await client.join('room_123');   // uses SFU_DEFAULT_REGION
 { "type": "room.join", "region": "asia-south" }
 ```
 
-Region names are free-form strings; Raven does not interpret them. Nothing
+Region names are free-form strings; Livqeno does not interpret them. Nothing
 does geographic proximity resolution — a client asks for a region or gets
 the default. Routing a client to its *nearest* region is your load
 balancer's or DNS's job, and passing the result through as `region` is how
@@ -250,7 +250,7 @@ quoted until it does:
 - Wi-Fi ↔ cellular handover mid-call
 - Multi-node fleet behaviour with real allocation pressure
 
-**Raven does not claim a supported participant count.** Anything you read
+**Livqeno does not claim a supported participant count.** Anything you read
 elsewhere that does, for this release, is wrong.
 
 ---

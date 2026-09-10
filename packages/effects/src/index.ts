@@ -55,7 +55,7 @@ import { createAROverlay } from './foundations/ar';
 import { detectCapabilities } from './capabilities';
 
 /**
- * Raven Effects' public entry point. Shaped the same way `@ravenkash/client`'s
+ * Livqeno Effects' public entry point. Shaped the same way `@ravenkash/client`'s
  * `Raven` facade composes `@ravenkash/rtc` and `@ravenkash/chat`:
  *
  * ```ts

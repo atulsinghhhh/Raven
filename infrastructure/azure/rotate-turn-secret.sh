@@ -14,7 +14,7 @@
 # 08-verify.sh read Key Vault LIVE. So a rotation moves every reader except
 # the one that matters, and the two sides silently disagree:
 #
-#   Raven-minted credential -> 401       (coturn recomputes a different HMAC)
+#   Livqeno-minted credential -> 401       (coturn recomputes a different HMAC)
 #   Forged credential       -> 401       (auth is working fine)
 #
 # which looks like a broken implementation and is really config drift. That
@@ -159,14 +159,14 @@ const c = generateTurnCredential(process.env.TURN_SECRET, 600, "rotate-verify");
 console.log(c.username + "\t" + c.credential);')"
 if python3 "${HERE}/tests/turn_allocate.py" "${TURN_PUBLIC_IP}" "${RAVEN_TURN_PORT}" \
      "$(echo "${CREDS}" | cut -f1)" "$(echo "${CREDS}" | cut -f2)" | grep -q "^PASS"; then
-  echo "    live Allocate with a Raven-minted credential: PASS"
+  echo "    live Allocate with a Livqeno-minted credential: PASS"
 else
-  echo "    FAIL: coturn still rejects a Raven-minted credential." >&2
+  echo "    FAIL: coturn still rejects a Livqeno-minted credential." >&2
   echo "    Fingerprints match, so this is no longer a secret mismatch —" >&2
   echo "    check the realm and 'docker logs raven-coturn' for check_stun_auth." >&2
   exit 1
 fi
 
 echo
-echo "==> Done. Key Vault, Raven and coturn all on ${KV_FP}."
+echo "==> Done. Key Vault, Livqeno and coturn all on ${KV_FP}."
 echo "    Confirm the full suite with: ./08-verify.sh"

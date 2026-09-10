@@ -33,7 +33,7 @@ export class ProjectMembersController {
 
   @Post()
   @ApiOperation({
-    summary: 'Add an existing Raven user to this project',
+    summary: 'Add an existing Livqeno user to this project',
     description:
       'Requires members:manage. Granting the owner role requires being an owner — otherwise an admin could promote themselves and demote the actual owner.',
   })

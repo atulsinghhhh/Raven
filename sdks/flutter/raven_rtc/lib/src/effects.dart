@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-/// Raven Effects on Flutter. Phase 16 architecture; no native engine yet.
+/// Livqeno Effects on Flutter. Phase 16 architecture; no native engine yet.
 ///
 /// [RavenEffectsPipeline] and the filter and preset builders below are all
 /// real: plain validated Dart, no native code anywhere near them, using the
@@ -19,14 +19,14 @@ import 'package:flutter/foundation.dart';
 /// There's no `room.attachCameraEffects(...)` in this release, rather than
 /// a method that exists and quietly does nothing. Planned:
 ///
-///   Flutter → Raven Effects API → Native Effects Engine → GPU → Raven RTC
+///   Flutter → Livqeno Effects API → Native Effects Engine → GPU → Livqeno RTC
 ///
 /// (a `MethodChannel`/`PlatformView`-based Metal pipeline on iOS, Camera2 +
 /// OpenGL ES on Android) plus a `RavenRoom` track handle to attach it to.
 /// Track status in the dashboard's Effects section and
 /// docs/effects/flutter.
 
-/// Whether Raven Effects has a native frame-processing engine on this
+/// Whether Livqeno Effects has a native frame-processing engine on this
 /// platform yet. Always `planned` in this release. Never claim more.
 enum RavenEffectsEngineStatus { production, planned }
 
@@ -35,7 +35,7 @@ const RavenEffectsEngineStatus ravenEffectsNativeEngineStatus =
 
 enum RavenEffectsErrorCode { unsupported, invalidConfig, resourceLimit }
 
-/// The only error type Raven Effects throws on Flutter. Never a raw
+/// The only error type Livqeno Effects throws on Flutter. Never a raw
 /// `ArgumentError` or platform exception.
 class RavenEffectsException implements Exception {
   const RavenEffectsException(this.code, this.message);
@@ -309,7 +309,7 @@ class RavenEffectInstance {
 
 const int _maxPipelineLength = 16;
 
-/// Raven Effects' pipeline on Flutter: the ordered list of effects,
+/// Livqeno Effects' pipeline on Flutter: the ordered list of effects,
 /// mirroring `EffectsPipeline` on web. `ChangeNotifier` so a widget can
 /// `AnimatedBuilder`/`ListenableBuilder` off it exactly like [RavenRoom].
 ///

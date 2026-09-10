@@ -12,7 +12,7 @@ export type SdkConnectionState = 'disconnected' | 'connecting' | 'connected' | '
  *
  * `'unknown'` covers both "not connected yet" and "the SFU has nothing to
  * say", which is the honest answer either way. It's also the usual answer
- * right now, since Raven's SFU doesn't compute a quality verdict yet. See
+ * right now, since Livqeno's SFU doesn't compute a quality verdict yet. See
  * `RavenAdapter.getConnectionQuality`.
  */
 export type ConnectionQuality = 'excellent' | 'good' | 'poor' | 'lost' | 'unknown';
@@ -46,7 +46,7 @@ export interface SFUAdapterEventMap {
  * The boundary between the public Room API and whatever actually
  * implements the connection.
  *
- * This interface is the reason swapping LiveKit out for Raven's own SFU
+ * This interface is the reason swapping LiveKit out for Livqeno's own SFU
  * didn't touch the public API. `Room` and `RTCClient` are written against
  * it, never against a particular implementation, so trading
  * `internal/sfu/livekit-adapter.ts` for `internal/sfu/raven-adapter.ts`

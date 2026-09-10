@@ -42,7 +42,7 @@ import { LiveStreamsService } from './live-streams.service';
  * with a project API key, same as Rooms and RTC Tokens: minting a host or
  * viewer credential is a server-to-server action your own backend takes
  * after authenticating its own user, never something a browser calls
- * directly (spec: "reuse the existing Raven token architecture").
+ * directly (spec: "reuse the existing Livqeno token architecture").
  */
 @ApiTags('Live Streaming')
 @ApiBearerAuth('apiKey')

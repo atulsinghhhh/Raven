@@ -3,7 +3,7 @@ title: Generate a token
 description: Your backend decides who a user is and what they may do, then mints a short-lived token.
 ---
 
-A client never asks Raven for its own token. Your backend does, from its own
+A client never asks Livqeno for its own token. Your backend does, from its own
 authenticated session, and hands the result to the client.
 
 That ordering is the whole security model: a client that could name its own

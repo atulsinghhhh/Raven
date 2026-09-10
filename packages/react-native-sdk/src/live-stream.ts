@@ -15,7 +15,7 @@ export interface RavenLiveStreamOptions {
 }
 
 /**
- * Raven Live Streaming on React Native (Phase 14).
+ * Livqeno Live Streaming on React Native (Phase 14).
  *
  * A thin wrapper round `Raven` on purpose, not a parallel implementation.
  * A stream's host and viewers are ordinary RTC participants in one room,

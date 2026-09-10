@@ -21,7 +21,7 @@ import { IconAnalytics } from '@/components/ui/icons';
 import { formatCount, formatPercent, normaliseRange, RANGE_LABEL, type Range } from '@/lib/format';
 
 export const metadata: Metadata = {
-  title: 'Analytics — Raven',
+  title: 'Analytics — Livqeno',
 };
 
 /**

@@ -130,11 +130,11 @@ function ArchitectureDiagram() {
       ))}
 
       <ArchNode x={170} y={20} label="Your Application" tone="fg" />
-      <ArchNode x={170} y={96} label="Raven SDK" tone="fg" />
+      <ArchNode x={170} y={96} label="Livqeno SDK" tone="fg" />
       <g transform="translate(170, 172)">
         <circle cx="70" cy="22" r="60" fill="url(#arch-glow)" />
       </g>
-      <ArchNode x={170} y={172} label="Raven API" tone="accent" />
+      <ArchNode x={170} y={172} label="Livqeno API" tone="accent" />
       <ArchNode x={40} y={248} w={110} label="RTC" tone="accent" />
       <ArchNode x={185} y={248} w={110} label="Chat" tone="accent" />
       <ArchNode x={330} y={248} w={110} label="Live" tone="accent" />

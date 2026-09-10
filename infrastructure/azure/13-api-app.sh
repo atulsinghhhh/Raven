@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy / update the Raven API Container App.
+# Deploy / update the Livqeno API Container App.
 #
 # Renders a full app spec from Key Vault into a temp file (mode 600, deleted
 # on exit), then applies it. YAML rather than flags because `az containerapp`

@@ -1,6 +1,6 @@
 # Effects Demo
 
-A real, single-browser demo of Raven Effects — one camera, one
+A real, single-browser demo of Livqeno Effects — one camera, one
 `EffectsPipeline`, side-by-side "Original" vs "Processed" `<video>`
 elements. No RTC room, no signaling server, no backend: `attachEffects()`
 on an RTC `LocalTrack` does exactly what this page does directly against

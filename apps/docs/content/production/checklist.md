@@ -3,7 +3,7 @@ title: Production checklist
 description: Everything to verify before real users. Items that cannot be satisfied yet are marked.
 ---
 
-Work top to bottom. Anything marked **Not available** is a Raven gap, not
+Work top to bottom. Anything marked **Not available** is a Livqeno gap, not
 something you have missed — it is here so you can plan around it.
 
 ## Credentials and secrets
@@ -52,7 +52,7 @@ something you have missed — it is here so you can plan around it.
 - [ ] Ordered by `createdAt`, not arrival.
 - [ ] Responds 2xx within 5 seconds; real work happens after.
 - [ ] Delivery failures monitored — an endpoint auto-disables after 50 consecutive failures, which is silent data loss otherwise.
-- [ ] Delivery worker egress-filtered at the network level. Raven's SSRF check does not resolve DNS. ⚠️
+- [ ] Delivery worker egress-filtered at the network level. Livqeno's SSRF check does not resolve DNS. ⚠️
 
 ## Monitoring
 
@@ -80,13 +80,13 @@ something you have missed — it is here so you can plan around it.
 
 ## Scaling — plan, do not assume
 
-- [ ] You have measured your own capacity. Raven's 100-participant figure is loopback with synthetic media and is not a capacity number. ⚠️
+- [ ] You have measured your own capacity. Livqeno's 100-participant figure is loopback with synthetic media and is not a capacity number. ⚠️
 - [ ] Media server fleet sized with headroom, and draining understood (`raven rtc servers drain`).
 - [ ] PgBouncer in front of Postgres once pod count × pool size approaches the ceiling.
 
 ## Accept these gaps or change plan
 
-Not oversights — Raven does not have them:
+Not oversights — Livqeno does not have them:
 
 - [ ] **No recording.** Not available.
 - [ ] **No usage metering or billing.** Not available.

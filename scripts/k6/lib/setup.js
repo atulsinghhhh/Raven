@@ -2,7 +2,7 @@ import http from 'k6/http';
 
 /**
  * Provisions one real developer account, project, and API key against a
- * running Raven API: the same golden path apps/api/test/app.e2e-spec.ts
+ * running Livqeno API: the same golden path apps/api/test/app.e2e-spec.ts
  * exercises, so every load-test script hits real authenticated
  * endpoints instead of only the unauthenticated /health surface.
  *

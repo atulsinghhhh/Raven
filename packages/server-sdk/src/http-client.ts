@@ -48,7 +48,7 @@ export class RavenHttpClient {
     }
     if (!options.apiKey || typeof options.apiKey !== 'string') {
       throw new RavenError(
-        'apiKey is required; pass your Raven project API key, e.g. apiKey: process.env.RAVEN_API_KEY',
+        'apiKey is required; pass your Livqeno project API key, e.g. apiKey: process.env.RAVEN_API_KEY',
         {
           code: 'RAVEN_INVALID_CONFIG',
         },
@@ -101,7 +101,7 @@ export class RavenHttpClient {
           continue;
         }
         throw new RavenError(
-          isTimeout ? `Request timed out after ${this.timeout}ms` : 'Could not reach the Raven API',
+          isTimeout ? `Request timed out after ${this.timeout}ms` : 'Could not reach the Livqeno API',
           {
             code: isTimeout ? 'RAVEN_TIMEOUT' : 'RAVEN_NETWORK_ERROR',
             cause: error,

@@ -13,7 +13,7 @@ import { tintDefinition } from './tint';
 import { beautySmoothDefinition } from '../foundations/beauty';
 
 /**
- * Every filter Raven Effects can run, keyed by type: the nine basic ones
+ * Every filter Livqeno Effects can run, keyed by type: the nine basic ones
  * (Phase 16 §3) plus `beautySmooth` (§16). Every engine and the pipeline
  * itself resolve ops through this single registry.
  */

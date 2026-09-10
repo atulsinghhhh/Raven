@@ -257,7 +257,7 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
-      # Signs Raven's own RTC tokens. Must differ from JWT_SECRET and
+      # Signs Livqeno's own RTC tokens. Must differ from JWT_SECRET and
       # CHAT_TOKEN_SECRET — see docs/rtc/security.md.
       RTC_TOKEN_SECRET: ${RTC_TOKEN_SECRET:?RTC_TOKEN_SECRET is required}
       RTC_TOKEN_DEFAULT_TTL_SECONDS: ${RTC_TOKEN_DEFAULT_TTL_SECONDS:-600}

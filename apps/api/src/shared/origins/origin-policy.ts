@@ -1,7 +1,7 @@
 /**
  * Which browser origins may reach a project's SDK surfaces.
  *
- * Raven is multi-tenant, so this is a *per-project* decision: project A
+ * Livqeno is multi-tenant, so this is a *per-project* decision: project A
  * listing `https://app-a.com` must never authorize it for project B. The
  * project always comes from the credential the caller presented (an RTC or
  * chat token's `pid`, or an API key's project), never from anything the
@@ -12,7 +12,7 @@
  *
  * CORS cannot do per-tenant enforcement on HTTP. A preflight is
  * unauthenticated by design — `OPTIONS` carries no `Authorization` header —
- * so at the moment the browser asks "may I?", Raven does not yet know which
+ * so at the moment the browser asks "may I?", Livqeno does not yet know which
  * project is asking. Deriving it from the path would work but would mean
  * project-scoped URLs everywhere.
  *

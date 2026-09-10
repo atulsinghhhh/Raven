@@ -122,7 +122,7 @@ export function useMicrophone(): LocalMediaControl {
 }
 
 export interface UseCameraEffectsResult {
-  /** The underlying Raven Effects pipeline. Pass it to `raven.effects.presets.*` or `filters.*` for anything advanced. */
+  /** The underlying Livqeno Effects pipeline. Pass it to `raven.effects.presets.*` or `filters.*` for anything advanced. */
   pipeline: EffectsPipeline;
   effects: readonly EffectInstance[];
   isEnabled: boolean;
@@ -140,7 +140,7 @@ export interface UseCameraEffectsResult {
 }
 
 /**
- * Raven Effects for `@ravenkash/react`.
+ * Livqeno Effects for `@ravenkash/react`.
  *
  * Consumes the same `EffectsPipeline` and `LocalTrack.attachEffects()` from
  * `@ravenkash/effects` and `@ravenkash/rtc`, rather than a separate

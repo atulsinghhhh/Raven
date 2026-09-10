@@ -1,5 +1,5 @@
 import { ChatError } from '../chat-error';
-import { cursorFilter, decodeCursor, encodeCursor } from './cursor.util';
+import { decodeCursor, encodeCursor } from './cursor.util';
 
 describe('encodeCursor / decodeCursor', () => {
   it('round-trips a cursor', () => {
@@ -37,28 +37,5 @@ describe('encodeCursor / decodeCursor', () => {
     // round-trips, not being silently truncated.
     const cursor = { createdAt: new Date('2026-01-01T00:00:00.000Z'), publicId: 'msg_a|b' };
     expect(decodeCursor(encodeCursor(cursor))).toEqual(cursor);
-  });
-});
-
-describe('cursorFilter', () => {
-  const cursor = { createdAt: new Date('2026-08-18T12:00:00.000Z'), publicId: 'msg_mid' };
-
-  it('walks backwards for `before`', () => {
-    expect(cursorFilter(cursor, 'before')).toEqual({
-      OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, publicId: { lt: 'msg_mid' } }],
-    });
-  });
-
-  it('walks forwards for `after`', () => {
-    expect(cursorFilter(cursor, 'after')).toEqual({
-      OR: [{ createdAt: { gt: cursor.createdAt } }, { createdAt: cursor.createdAt, publicId: { gt: 'msg_mid' } }],
-    });
-  });
-
-  it('includes a tiebreaker branch — without it, messages sharing a millisecond would be skipped or repeated', () => {
-    const filter = cursorFilter(cursor, 'before') as { OR: Array<Record<string, unknown>> };
-    expect(filter.OR).toHaveLength(2);
-    // The second branch pins createdAt exactly and compares the id.
-    expect(filter.OR[1].createdAt).toEqual(cursor.createdAt);
   });
 });

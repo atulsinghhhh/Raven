@@ -260,7 +260,7 @@ var RestClient = class {
         body: options.body !== void 0 ? JSON.stringify(options.body) : void 0,
       });
     } catch (error) {
-      throw new RavenChatConnectionError('Could not reach Raven', 'NETWORK_ERROR', error);
+      throw new RavenChatConnectionError('Could not reach Livqeno', 'NETWORK_ERROR', error);
     }
     if (response.status === 204) {
       return void 0;
@@ -557,7 +557,7 @@ var MessagesApi = class {
   }
   /**
    * Edits a message. What comes back carries `edited: true` and an
-   * `editedAt`. Raven never quietly rewrites history (spec §24).
+   * `editedAt`. Livqeno never quietly rewrites history (spec §24).
    */
   update(messageId, changes) {
     return this.rest.request(`/v1/chat/messages/${encodeURIComponent(messageId)}`, {
@@ -728,7 +728,7 @@ var ChatClient = class extends TypedEventEmitter {
   // -------------------------------------------------------------------------
   /**
    * Sends a message and resolves with the stored one: canonical server id,
-   * canonical timestamp. It only resolves after Raven has durably stored
+   * canonical timestamp. It only resolves after Livqeno has durably stored
    * it, so a resolved promise really does mean saved (spec §15).
    *
    * If you don't supply a `clientMessageId` we attach one, and that's what

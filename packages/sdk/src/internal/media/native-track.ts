@@ -137,7 +137,7 @@ export class NativeLocalTrackDelegate extends NativeTrackDelegate implements Loc
   /**
    * Replaces the outgoing track without renegotiating.
    *
-   * This is the trick that makes Raven Effects work mid-call.
+   * This is the trick that makes Livqeno Effects work mid-call.
    * `RTCRtpSender.replaceTrack` swaps the source of an established stream,
    * so a processed video track takes over from the raw camera with no
    * offer/answer and nobody else in the room noticing.

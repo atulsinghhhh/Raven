@@ -61,13 +61,13 @@ Two things, and they're different gaps:
 ```
 Flutter
     ↓
-Raven Effects API
+Livqeno Effects API
     ↓
 Native Effects Engine
     ↓
 GPU
     ↓
-Raven RTC
+Livqeno RTC
 ```
 
 A `MethodChannel`/`PlatformView`-based Metal pipeline on iOS and an

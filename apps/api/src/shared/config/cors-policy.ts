@@ -4,9 +4,9 @@
  * Two kinds of browser caller reach this API and they need opposite
  * answers, so the policy cannot be one global allowlist.
  *
- * **SDK surfaces** are the endpoints a Raven SDK calls from the page:
+ * **SDK surfaces** are the endpoints a Livqeno SDK calls from the page:
  * `@ravenkash/rtc` posting connection telemetry, `@ravenkash/chat` reading
- * history and uploading attachments. They run on origins Raven cannot
+ * history and uploading attachments. They run on origins Livqeno cannot
  * enumerate — a different localhost port for every developer, a different
  * domain for every customer — so any fixed allowlist is wrong for them by
  * construction. These reflect the caller's origin.

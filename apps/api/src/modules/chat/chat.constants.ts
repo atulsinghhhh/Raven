@@ -1,4 +1,4 @@
-// Wire protocol + shared vocabulary for Raven Chat. The full contract is
+// Wire protocol + shared vocabulary for Livqeno Chat. The full contract is
 // documented in docs/chat/websocket.md: this file is its source of truth,
 // same arrangement as signaling.constants.ts for the RTC plane.
 //
@@ -109,10 +109,31 @@ export const RedisKeys = {
   /** Per-user presence value + TTL. Expiry *is* the offline transition. */
   presence: (projectId: string, conversationId: string, userId: string) =>
     `raven:presence:${projectId}:${conversationId}:${userId}`,
+  /**
+   * The connections currently holding a user present in a conversation.
+   *
+   * Presence is a property of the *person*, but it is produced by
+   * *connections*, and a person routinely has several — a laptop tab, a
+   * phone, a second window. Without this set, the first one to close
+   * deleted the shared presence key and broadcast `offline` while the
+   * others were still live; the surviving connection only put it back on
+   * its next heartbeat, so every closed tab cost every other participant a
+   * spurious offline→online flap lasting up to CHAT_HEARTBEAT_INTERVAL_MS.
+   *
+   * So the value key above answers "what status", and this set answers
+   * "is anyone still here". Same TTL as the value, refreshed by the same
+   * heartbeat, so a gateway that dies without cleaning up still expires
+   * out rather than pinning someone online forever.
+   */
+  presenceConnections: (projectId: string, conversationId: string, userId: string) =>
+    `raven:presence:conns:${projectId}:${conversationId}:${userId}`,
   /** Sorted set of userId -> expiry ms, so listing a room's presence is one ZRANGEBYSCORE. */
   presenceIndex: (projectId: string, conversationId: string) => `raven:presence:index:${projectId}:${conversationId}`,
   typing: (projectId: string, conversationId: string, userId: string) =>
     `raven:typing:${projectId}:${conversationId}:${userId}`,
+  /** Connections currently typing as this user. Same reference-counting reason as `presenceConnections`. */
+  typingConnections: (projectId: string, conversationId: string, userId: string) =>
+    `raven:typing:conns:${projectId}:${conversationId}:${userId}`,
   typingIndex: (projectId: string, conversationId: string) => `raven:typing:index:${projectId}:${conversationId}`,
   /** connectionId -> {gatewayId,userId,projectId}. Lets us find where a socket lives. */
   connection: (connectionId: string) => `raven:chat:conn:${connectionId}`,

@@ -14,13 +14,7 @@
 # Add only pure-formatting commits. One full 40-character SHA per line,
 # with a comment saying what it was.
 
-# --- pending -----------------------------------------------------------
-# Prettier was adopted (.prettierrc.json, `pnpm format:check`, and the
-# Format job in .github/workflows/ci.yml) without reformatting the existing
-# tree. Roughly 345 files are not yet compliant, so that job fails until a
-# one-time pass lands:
-#
-#     pnpm format
-#     git commit -am "style: adopt Prettier across the repo"
-#
-# Then paste that commit's SHA below.
+# --- passes --------------------------------------------------------------
+# The one-time Prettier adoption pass. Formatting only, verified by
+# reformatting each blob at its parent and comparing.
+18c4d2a0c07864d863b09b9fcb4b56e92785db9f  # style: adopt Prettier across the repo

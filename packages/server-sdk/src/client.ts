@@ -10,7 +10,7 @@ import { RoomsResource } from './resources/rooms';
 import { TokensResource } from './resources/tokens';
 
 /**
- * Raven's server SDK. For your backend only; never a browser bundle.
+ * Livqeno's server SDK. For your backend only; never a browser bundle.
  *
  * Authenticates with a permanent project API key. Never expose that key,
  * or an instance of this class, to a browser (Phase 10 spec §2).
@@ -32,9 +32,9 @@ export class Raven {
   readonly errors: ErrorsResource;
   readonly metrics: MetricsResource;
   readonly diagnostics: DiagnosticsResource;
-  /** Raven Chat (Phase 12): mint browser tokens, manage conversations, post server-side messages. */
+  /** Livqeno Chat (Phase 12): mint browser tokens, manage conversations, post server-side messages. */
   readonly chat: ChatResource;
-  /** Raven Live Streaming (Phase 14): create streams, register hosts, mint viewer credentials. */
+  /** Livqeno Live Streaming (Phase 14): create streams, register hosts, mint viewer credentials. */
   readonly liveStreams: LiveStreamsResource;
   /**
    * `liveStreams` under the shorter name, so the three product surfaces read

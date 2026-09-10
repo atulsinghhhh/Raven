@@ -164,7 +164,7 @@ export default async function ServersPage({ params }: { params: Promise<{ projec
                 <code className="font-mono text-xs">internalUrl</code> is not shown here.
               </p>
               <p className="mt-3">
-                Capacity is a ceiling each node advertises for itself, not a measured limit. Raven does not publish a
+                Capacity is a ceiling each node advertises for itself, not a measured limit. Livqeno does not publish a
                 supported participant count for this release — see the RTC scaling docs for what was actually measured.
               </p>
             </div>

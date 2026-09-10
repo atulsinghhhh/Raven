@@ -13,7 +13,7 @@ import { CliError } from '../lib/errors.js';
 export function registerLoginCommand(program: Command): void {
   program
     .command('login')
-    .description('Authenticate with Raven')
+    .description('Authenticate with Livqeno')
     .option('--no-open', 'print the login URL instead of opening a browser automatically')
     .option('--token <jwt>', 'authenticate with an existing session token instead of a browser (CI, containers, SSH)')
     .action(

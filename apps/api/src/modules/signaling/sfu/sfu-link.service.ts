@@ -35,6 +35,12 @@ const REQUEST_TIMEOUT_MS = 3_000;
 
 export type FrameHandler = (frame: NodeLinkFrame) => void;
 
+/**
+ * Called with the session ids this instance was holding on a node when its
+ * link dropped. Those sessions cannot be recovered — see `onSessionsLost`.
+ */
+export type SessionsLostHandler = (serverName: string, sessionIds: string[]) => void;
+
 interface NodeLink {
   serverId: string;
   serverName: string;
@@ -81,6 +87,7 @@ export class SfuLinkService implements OnModuleDestroy {
   /** Connection attempts in flight, so concurrent joins share a single dial. */
   private readonly connecting = new Map<string, Promise<NodeLink>>();
   private frameHandler?: FrameHandler;
+  private sessionsLostHandler?: SessionsLostHandler;
   /** In-flight queries, by correlation id. */
   private readonly pendingRequests = new Map<
     string,
@@ -120,6 +127,28 @@ export class SfuLinkService implements OnModuleDestroy {
    */
   onFrame(handler: FrameHandler): void {
     this.frameHandler = handler;
+  }
+
+  /**
+   * Registers the handler for sessions stranded by a link dropping.
+   *
+   * A node's PeerConnections live in its memory and nowhere else. When the
+   * link to it drops, either the node went away or it restarted; in the
+   * restart case it comes back with no memory of a single session this
+   * instance thinks it has there. The link itself reconnects fine, which
+   * is what made this so quiet: the control plane looked healthy, the
+   * client's signaling socket never moved, and the media just stopped. The
+   * PeerConnections sat in `failed` indefinitely because nothing on either
+   * side had a reason to renegotiate.
+   *
+   * There is nothing to resume, so this does not try to. It reports the
+   * stranded sessions and lets the gateway end them, which is the one
+   * thing that gets a client to build a new session from scratch. That is
+   * also, accidentally, what used to fix this: restarting the API dropped
+   * every signaling socket and the clients came back.
+   */
+  onSessionsLost(handler: SessionsLostHandler): void {
+    this.sessionsLostHandler = handler;
   }
 
   /**
@@ -293,7 +322,18 @@ export class SfuLinkService implements OnModuleDestroy {
         // that was drained or removed doesn't get kept alive by a reconnect
         // loop with nothing to carry.
         if (sessions.size > 0) {
+          // Report before reconnecting, and forget them. The link may well
+          // come back, but it comes back to a node that has never heard of
+          // these sessions, so keeping them would only mean sending
+          // negotiation frames about participants that do not exist.
+          const stranded = [...sessions.keys()];
+          sessions.clear();
           this.scheduleReconnect(server);
+          try {
+            this.sessionsLostHandler?.(server.name, stranded);
+          } catch (err) {
+            this.logger.error(`handling lost sessions for ${server.name} failed: ${(err as Error).message}`);
+          }
         }
       });
     });

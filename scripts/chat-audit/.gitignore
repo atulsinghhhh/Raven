@@ -1,0 +1,6 @@
+# Written by bootstrap.mjs: a live API key and session JWT for whatever
+# scratch project the run created. Never committed.
+harness/ctx.json
+harness/node_modules
+harness/.venv
+harness/package.json

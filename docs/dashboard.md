@@ -1,6 +1,6 @@
 # Dashboard — `@raven/dashboard`
 
-The developer dashboard is the control center for Raven's infrastructure:
+The developer dashboard is the control center for Livqeno's infrastructure:
 create projects, manage API keys, inspect rooms and their live participants,
 and read SDK integration instructions. It is **not** a video-conferencing
 app — it never joins a call itself (the one exception, a disposable
@@ -16,11 +16,11 @@ Next.js dashboard (apps/dashboard)
    |  Server Components + Route Handlers only —
    |  the browser never calls the Control API directly.
    v
-Raven Control API (apps/api)
+Livqeno Control API (apps/api)
    |
    +-- PostgreSQL (projects, api keys, rooms, RTC server registry)
    +-- Redis (rate limiting, JWT blocklist)
-   +-- Raven SFU fleet, over the node link (live room/participant state)
+   +-- Livqeno SFU fleet, over the node link (live room/participant state)
    +-- coturn (via the same RTC-token minting path)
 ```
 
@@ -104,7 +104,7 @@ only the caller's own non-archived projects.
 ## Allowed origins (Settings -> Security)
 
 `PATCH /v1/projects/:id/allowed-origins` replaces the project's browser
-origin allow-list. Raven is multi-tenant, so this is per project, not one
+origin allow-list. Livqeno is multi-tenant, so this is per project, not one
 `CORS_ORIGIN` for the deployment: project A listing `https://app-a.com`
 must not authorize it for project B.
 
