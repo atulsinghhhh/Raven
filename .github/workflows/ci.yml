@@ -30,11 +30,6 @@ jobs:
   # Cheap and fails fast, so a whitespace-only mistake does not burn a full
   # matrix. Go and Dart formatting are checked by the jobs that own those
   # languages (sfu-publish.yml and `flutter` below).
-  #
-  # KNOWN RED until the one-time adoption pass lands. Prettier was added
-  # without reformatting the existing tree — ~345 files predate it. Fix
-  # with a single `pnpm format` commit, then record its SHA in
-  # .git-blame-ignore-revs. See docs/development.md#formatting.
   format:
     name: Format (prettier)
     runs-on: ubuntu-latest
