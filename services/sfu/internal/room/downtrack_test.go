@@ -16,7 +16,7 @@ func newTestDownTrack(t *testing.T, mimeType string) *DownTrack {
 	if err != nil {
 		t.Fatalf("create local track: %v", err)
 	}
-	return newDownTrack("sub-1", local, nil, mimeType, webrtc.RTPCodecTypeVideo, LayerNone)
+	return newDownTrack("sub-1", nil, local, nil, mimeType, webrtc.RTPCodecTypeVideo, LayerNone)
 }
 
 func vp8Packet(seq uint16, timestamp uint32, keyframe bool) *rtp.Packet {

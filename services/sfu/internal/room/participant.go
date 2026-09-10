@@ -105,6 +105,18 @@ type Participant struct {
 
 	closed atomic.Bool
 
+	// subMu serializes Subscribe and Unsubscribe for this participant.
+	//
+	// p.mu alone isn't enough. Subscribe has to check whether it is already
+	// subscribed, then build a track and a transceiver, then record it, and
+	// holding p.mu across the PeerConnection work would put every stats
+	// read behind it. Without a lock spanning the three, a joiner's initial
+	// sweep and a publisher's fan-out can both decide the same subscription
+	// is missing and each add a sender for it: two m-sections carrying one
+	// camera, and the first DownTrack orphaned in the subscriber's
+	// transceiver list with nothing ever writing to it or closing it.
+	subMu sync.Mutex
+
 	// ICE candidate buffering, guarded by iceMu.
 	//
 	// iceMu is held across SetRemoteDescription-and-flush so a candidate
@@ -278,6 +290,9 @@ func (p *Participant) Subscribe(track *PublishedTrack) error {
 		return nil
 	}
 
+	p.subMu.Lock()
+	defer p.subMu.Unlock()
+
 	key := subscriptionKey(track.ParticipantID, track.ID)
 	p.mu.RLock()
 	_, already := p.subscriptions[key]
@@ -303,7 +318,7 @@ func (p *Participant) Subscribe(track *PublishedTrack) error {
 		return fmt.Errorf("add track to peer connection: %w", err)
 	}
 
-	down := newDownTrack(p.ID, local, sender, track.MimeType, track.Kind, LayerNone)
+	down := newDownTrack(p.ID, track, local, sender, track.MimeType, track.Kind, LayerNone)
 
 	p.mu.Lock()
 	p.subscriptions[key] = down
@@ -351,6 +366,9 @@ func (p *Participant) forwardSubscriberFeedback(sender *webrtc.RTPSender, track 
 
 // Unsubscribe detaches a track. Same as Subscribe: no renegotiation.
 func (p *Participant) Unsubscribe(publisherID, trackID string) bool {
+	p.subMu.Lock()
+	defer p.subMu.Unlock()
+
 	key := subscriptionKey(publisherID, trackID)
 
 	p.mu.Lock()
@@ -361,12 +379,26 @@ func (p *Participant) Unsubscribe(publisherID, trackID string) bool {
 		return false
 	}
 
+	p.detach(down)
+	return true
+}
+
+// detach undoes one subscription on both sides.
+//
+// Dropping our own record alone isn't enough. The publisher's subscriber
+// list would keep the DownTrack, and its forwarding loop would copy that
+// dead entry into its target slice for every packet it reads, for the rest
+// of the call. PublishedTrack.RemoveSubscriber exists for this and had no
+// callers.
+func (p *Participant) detach(down *DownTrack) {
+	if down.source != nil {
+		down.source.RemoveSubscriber(p.ID)
+	}
 	down.Close()
 	if err := p.pc.RemoveTrack(down.Sender()); err != nil {
 		// Already gone, usually because the PeerConnection is closing.
 		p.logger.Debug("remove track failed", "err", err)
 	}
-	return true
 }
 
 // SetSubscriptionLayer applies a per-subscriber simulcast preference.
@@ -745,7 +777,10 @@ func (p *Participant) Close() {
 		}
 	}
 	for _, down := range subscriptions {
-		down.Close()
+		// Same detach as Unsubscribe, so leaving a call takes this
+		// participant out of every publisher's subscriber list rather than
+		// leaving them writing into a closed copy.
+		p.detach(down)
 	}
 
 	if channel := p.dataChannel.Load(); channel != nil {
