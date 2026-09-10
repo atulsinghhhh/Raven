@@ -126,6 +126,72 @@ export async function createScreenShareTrack(): Promise<LocalTrack> {
   return new LocalTrack(new NativeLocalTrackDelegate(videoTrack), 'screenShare');
 }
 
+/** What a custom track is standing in for, so the SFU can label it. */
+export type CustomTrackSource = 'camera' | 'microphone' | 'screenShare';
+
+export interface CustomTrackOptions {
+  /**
+   * Which source this stands in for. Decides the `source` the SFU
+   * announces to everyone else, and therefore which tile a subscriber
+   * puts it in. Defaults to the kind's obvious one: `camera` for video,
+   * `microphone` for audio.
+   */
+  source?: CustomTrackSource;
+}
+
+/**
+ * Wraps a `MediaStreamTrack` the application produced itself.
+ *
+ * For sources Raven has no capture path for and shouldn't:
+ * `canvas.captureStream()`, a Web Audio graph, a decoded file, a virtual
+ * camera, a synthetic track in a test harness.
+ *
+ * This exists because the type surface already implied it. `LocalTrack`
+ * and `LocalTrackDelegate` are both exported, so a developer could build
+ * a `LocalTrack` by hand — and then `room.publish()` refused it, since
+ * publishing needs a delegate it can hand an `RTCRtpSender` to, and a
+ * hand-rolled one has nowhere to put it. The refusal was right and the
+ * dead end was not. Going through here produces a real internal delegate,
+ * so publishing, muting, stats, effects and device switching all behave
+ * exactly as they do for a captured track — with no loosening of what
+ * `publish()` accepts.
+ *
+ * Raven does not own this track's lifetime: it never called
+ * `getUserMedia`, so stopping the canvas, the oscillator or the file is
+ * the application's business. `unpublish()` still stops the track, in
+ * keeping with every other track the SDK publishes.
+ */
+export function createCustomTrack(
+  mediaStreamTrack: MediaStreamTrack,
+  options: CustomTrackOptions = {},
+): LocalTrack {
+  if (!mediaStreamTrack || typeof mediaStreamTrack !== 'object' || typeof mediaStreamTrack.kind !== 'string') {
+    throw new RTCError('MEDIA_ERROR', 'createCustomTrack() needs a MediaStreamTrack');
+  }
+  if (mediaStreamTrack.kind !== 'audio' && mediaStreamTrack.kind !== 'video') {
+    throw new RTCError(
+      'MEDIA_ERROR',
+      `A MediaStreamTrack of kind "${mediaStreamTrack.kind}" cannot be published`,
+    );
+  }
+  if (mediaStreamTrack.readyState === 'ended') {
+    // Publishing an ended track negotiates an m-section that will never
+    // carry a frame, and the failure would show up as "no media" rather
+    // than as anything anyone could debug.
+    throw new RTCError('MEDIA_ERROR', 'This MediaStreamTrack has already ended');
+  }
+
+  const source = options.source ?? (mediaStreamTrack.kind === 'audio' ? 'microphone' : 'camera');
+  if (source === 'microphone' && mediaStreamTrack.kind !== 'audio') {
+    throw new RTCError('MEDIA_ERROR', 'A microphone track has to be an audio MediaStreamTrack');
+  }
+  if (source !== 'microphone' && mediaStreamTrack.kind !== 'video') {
+    throw new RTCError('MEDIA_ERROR', `A ${source} track has to be a video MediaStreamTrack`);
+  }
+
+  return new LocalTrack(new NativeLocalTrackDelegate(mediaStreamTrack), source);
+}
+
 async function getUserMedia(constraints: MediaStreamConstraints, kind: TrackKind): Promise<MediaStream> {
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
     throw new RTCError(

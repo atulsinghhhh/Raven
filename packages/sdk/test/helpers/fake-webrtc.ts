@@ -99,16 +99,37 @@ export class FakeRTCRtpReceiver {
 }
 
 export class FakeRTCDataChannel {
-  readyState: RTCDataChannelState = 'open';
+  /**
+   * Starts `connecting`, like a real one.
+   *
+   * A channel is only usable once its m-section has been negotiated and
+   * SCTP has come up. A fake that reported `open` on creation made
+   * `sendData()` look like it worked while the real thing threw "The data
+   * channel is not open yet".
+   */
+  readyState: RTCDataChannelState = 'connecting';
   binaryType = 'arraybuffer';
   onmessage: ((event: MessageEvent) => void) | null = null;
+  onopen: (() => void) | null = null;
   onclose: (() => void) | null = null;
   readonly sent: unknown[] = [];
   closed = false;
 
   constructor(readonly label: string) {}
 
+  /** What the SCTP association coming up looks like from the page. */
+  open(): void {
+    if (this.readyState !== 'connecting') {
+      return;
+    }
+    this.readyState = 'open';
+    this.onopen?.();
+  }
+
   send(payload: unknown): void {
+    if (this.readyState !== 'open') {
+      throw new Error(`InvalidStateError: RTCDataChannel.readyState is not 'open'`);
+    }
     this.sent.push(payload);
   }
 
@@ -132,6 +153,31 @@ export class FakeRTCDataChannel {
  * avoidance leans on it. A fake that always claimed `'stable'` would make
  * the deferred-publish path untestable.
  */
+/** What a transceiver looks like from the outside, which is all a test needs. */
+export interface FakeTransceiver {
+  mid: string;
+  kind: 'audio' | 'video';
+  sender: FakeRTCRtpSender;
+  direction: RTCRtpTransceiverDirection;
+  currentDirection: RTCRtpTransceiverDirection | null;
+}
+
+/**
+ * A PeerConnection that enforces the real signaling state machine.
+ *
+ * The strictness is the point. An earlier version tracked `signalingState`
+ * but applied any description it was handed, so the adapter's
+ * check-then-act glare avoidance passed its tests and still threw
+ * "Called in wrong state: have-remote-offer" in Chrome. These throws carry
+ * the same wording a browser uses, so a serialization regression fails a
+ * test instead of shipping.
+ *
+ * What this still doesn't do is simulate media. Nothing here encodes,
+ * forwards or transports a byte; whether media actually flows is settled
+ * by the SFU's own tests against real Pion PeerConnections
+ * (`services/sfu/internal/room/media_test.go`) and by the browser run in
+ * `docs/repro/dtls-role-probe.md`.
+ */
 export class FakeRTCPeerConnection {
   static instances: FakeRTCPeerConnection[] = [];
 
@@ -144,16 +190,77 @@ export class FakeRTCPeerConnection {
 
   onicecandidate: ((event: RTCPeerConnectionIceEvent) => void) | null = null;
   onconnectionstatechange: (() => void) | null = null;
+  onnegotiationneeded: (() => void) | null = null;
   ontrack: ((event: RTCTrackEvent) => void) | null = null;
   ondatachannel: ((event: RTCDataChannelEvent) => void) | null = null;
+
+  /**
+   * The browser's negotiation-needed bit, modelled.
+   *
+   * Local changes (a track added or removed, a data channel created) make
+   * the current local description out of date; applying a local
+   * description brings it up to date again, whichever side offered. That
+   * last part is the whole reason the adapter leans on this event rather
+   * than its own flag: an SFU offer that already carries our new sender
+   * clears the bit, and no further offer is needed. A fake without this
+   * would let an offer/rollback loop pass its tests.
+   */
+  private pendingLocalChanges = 0;
+  /** `pendingLocalChanges` as of the offer currently on the wire, for rollback. */
+  private changesCoveredByOffer = 0;
+  /** How many times `negotiationneeded` has fired. */
+  negotiationNeededCount = 0;
+
+  /**
+   * Whether an incoming offer has m-sections for our pending local
+   * changes, so answering it covers them and no offer of our own is
+   * needed.
+   *
+   * False by default, which is the conservative case: a subscription-only
+   * offer leaves our new sender unnegotiated, the bit stays set, and we
+   * offer once the round ends. Raven's SFU often *does* carry a declared
+   * track in its own offer, and that case is the one that used to loop, so
+   * it gets tested explicitly rather than assumed either way.
+   */
+  offerCoversPendingChanges = false;
 
   readonly senders: FakeRTCRtpSender[] = [];
   readonly addedTracks: FakeMediaStreamTrack[] = [];
   readonly removedSenders: FakeRTCRtpSender[] = [];
   readonly appliedCandidates: RTCIceCandidateInit[] = [];
   readonly dataChannels: FakeRTCDataChannel[] = [];
+  readonly transceivers: FakeTransceiver[] = [];
+  /** Every description this connection applied, in order. */
+  readonly descriptions: Array<{ side: 'local' | 'remote'; type: string }> = [];
+  /**
+   * Descriptions it was asked to apply in a state that could not take
+   * them. A test asserting "never call setRemoteDescription in the wrong
+   * state" needs the attempt, not just the outcome.
+   */
+  readonly refusedDescriptions: Array<{ side: 'local' | 'remote'; type: string; state: RTCSignalingState }> = [];
   /** Encodings the next sender created by addTrack will get. */
   nextSenderEncodings: RTCRtpEncodingParameters[] = [{}];
+
+  /**
+   * Runs inside `createOffer()`, before it resolves.
+   *
+   * The seam for reproducing the publish race: a test can deliver the
+   * SFU's offer here, exactly in the window where the old code checked
+   * `signalingState` and then awaited.
+   */
+  beforeCreateOffer?: () => void | Promise<void>;
+
+  /**
+   * Held inside `createAnswer()` until a test resolves it.
+   *
+   * Lets a test freeze a remote round *mid-way* — remote description
+   * applied, answer not yet built — which is the window that produced
+   * "Called in wrong state: have-remote-offer" in Chrome. Without it, an
+   * interfering offer completes its whole round inside one `flush()` and
+   * the connection is back to `stable` before the racing offer lands, so
+   * the bug hides.
+   */
+  pauseCreateAnswer?: Promise<void>;
 
   constructor(readonly configuration?: RTCConfiguration) {
     FakeRTCPeerConnection.instances.push(this);
@@ -172,38 +279,205 @@ export class FakeRTCPeerConnection {
   }
 
   addTrack(track: FakeMediaStreamTrack): FakeRTCRtpSender {
+    this.markLocalChange();
     this.addedTracks.push(track);
     const sender = new FakeRTCRtpSender(track, this.nextSenderEncodings);
     this.senders.push(sender);
+    this.transceivers.push({
+      mid: String(this.transceivers.length),
+      kind: track.kind,
+      sender,
+      direction: 'sendrecv',
+      currentDirection: null,
+    });
     return sender;
   }
 
   removeTrack(sender: FakeRTCRtpSender): void {
+    this.markLocalChange();
     this.removedSenders.push(sender);
+    sender.track = null;
+    const transceiver = this.transceivers.find((entry) => entry.sender === sender);
+    if (transceiver) {
+      transceiver.direction = 'recvonly';
+    }
+  }
+
+  getSenders(): FakeRTCRtpSender[] {
+    return [...this.senders];
+  }
+
+  getTransceivers(): FakeTransceiver[] {
+    return [...this.transceivers];
   }
 
   createDataChannel(label: string): FakeRTCDataChannel {
+    this.markLocalChange();
     const channel = new FakeRTCDataChannel(label);
     this.dataChannels.push(channel);
     return channel;
   }
 
-  async createOffer(): Promise<RTCSessionDescriptionInit> {
-    return { type: 'offer', sdp: 'v=0 fake-client-offer' };
+  /** A local change that the current local description does not cover. */
+  private markLocalChange(): void {
+    this.pendingLocalChanges++;
+    this.maybeFireNegotiationNeeded();
   }
 
+  /**
+   * Fires `negotiationneeded`, on a task and only while stable — which is
+   * what a browser does. Firing synchronously from `addTrack()` would let
+   * a caller's own follow-up change miss the coalescing window.
+   */
+  private maybeFireNegotiationNeeded(): void {
+    if (this.pendingLocalChanges === 0 || this.signalingState !== 'stable' || this.closed) {
+      return;
+    }
+    queueMicrotask(() => {
+      if (this.pendingLocalChanges === 0 || this.signalingState !== 'stable' || this.closed) {
+        return;
+      }
+      this.negotiationNeededCount++;
+      this.onnegotiationneeded?.();
+    });
+  }
+
+  async createOffer(): Promise<RTCSessionDescriptionInit> {
+    await this.beforeCreateOffer?.();
+    return { type: 'offer', sdp: this.describe('fake-client-offer') };
+  }
+
+  /**
+   * An SDP listing the senders this connection currently has, as
+   * `a=msid:` lines.
+   *
+   * Enough shape for the one thing the adapter reads out of its own local
+   * description: whether each published track's id is actually announced.
+   * A fake returning a fixed string made that check untestable, and the
+   * check exists because Raven's SFU identifies tracks by exactly this.
+   */
+  private describe(label: string): string {
+    const lines = ['v=0', `s=${label}`];
+    for (const transceiver of this.transceivers) {
+      lines.push(`m=${transceiver.kind} 9 UDP/TLS/RTP/SAVPF 96`);
+      lines.push(`a=mid:${transceiver.mid}`);
+      const trackId = this.msidOverrides.get(transceiver.mid) ?? transceiver.sender.track?.id;
+      if (trackId) {
+        lines.push(`a=msid:stream-${transceiver.mid} ${trackId}`);
+      }
+    }
+    return lines.join('\r\n');
+  }
+
+  /**
+   * Pins the msid a m-section announces, whatever track is attached.
+   *
+   * Models the case that matters: the SFU pre-created a receive slot,
+   * `addTrack` reused that transceiver, and the SFU's own offer covered
+   * the m-line — so the wire still carries the SFU's msid and not ours.
+   */
+  readonly msidOverrides = new Map<string, string>();
+
   async createAnswer(): Promise<RTCSessionDescriptionInit> {
-    return { type: 'answer', sdp: 'v=0 fake-client-answer' };
+    if (this.pauseCreateAnswer) {
+      await this.pauseCreateAnswer;
+    }
+    if (this.signalingState !== 'have-remote-offer' && this.signalingState !== 'have-local-pranswer') {
+      throw new Error(`InvalidStateError: Called in wrong state: ${this.signalingState}`);
+    }
+    return { type: 'answer', sdp: this.describe('fake-client-answer') };
   }
 
   async setLocalDescription(description: RTCSessionDescriptionInit): Promise<void> {
+    const type = description.type;
+    if (type === 'rollback') {
+      if (this.signalingState !== 'have-local-offer') {
+        this.refuse('local', type);
+      }
+      this.localDescription = null;
+      this.signalingState = 'stable';
+      this.descriptions.push({ side: 'local', type: 'rollback' });
+      // Whatever that offer was going to cover is uncovered again.
+      this.pendingLocalChanges += this.changesCoveredByOffer;
+      this.changesCoveredByOffer = 0;
+      this.maybeFireNegotiationNeeded();
+      return;
+    }
+
+    if (type === 'offer') {
+      if (this.signalingState !== 'stable' && this.signalingState !== 'have-local-offer') {
+        this.refuse('local', type, 'Failed to set local offer sdp');
+      }
+      this.signalingState = 'have-local-offer';
+      this.changesCoveredByOffer = this.pendingLocalChanges;
+      this.pendingLocalChanges = 0;
+    } else {
+      // answer / pranswer
+      if (this.signalingState !== 'have-remote-offer' && this.signalingState !== 'have-local-pranswer') {
+        this.refuse('local', type, 'Failed to set local answer sdp');
+      }
+      this.signalingState = 'stable';
+      // An answer is a local description too, but it can only cover what
+      // the offer it answers had room for.
+      if (this.offerCoversPendingChanges) {
+        this.pendingLocalChanges = 0;
+      }
+      this.changesCoveredByOffer = 0;
+    }
+
     this.localDescription = description as RTCSessionDescription;
-    this.signalingState = description.type === 'offer' ? 'have-local-offer' : 'stable';
+    this.descriptions.push({ side: 'local', type });
+    if (this.signalingState === 'stable') {
+      this.completeNegotiation();
+      this.maybeFireNegotiationNeeded();
+    }
   }
 
   async setRemoteDescription(description: RTCSessionDescriptionInit): Promise<void> {
+    const type = description.type;
+    if (type === 'offer') {
+      // Chrome rolls back implicitly here; this fake refuses, so the
+      // adapter has to roll back deliberately and the polite-glare path
+      // stays covered.
+      if (this.signalingState !== 'stable' && this.signalingState !== 'have-remote-offer') {
+        this.refuse('remote', type, 'Failed to set remote offer sdp');
+      }
+      this.signalingState = 'have-remote-offer';
+    } else {
+      if (this.signalingState !== 'have-local-offer') {
+        this.refuse('remote', type, 'Failed to set remote answer sdp');
+      }
+      this.signalingState = 'stable';
+      // Our offer is now agreed, so what it covered stays covered.
+      this.changesCoveredByOffer = 0;
+    }
+
     this.remoteDescription = description as RTCSessionDescription;
-    this.signalingState = description.type === 'offer' ? 'have-remote-offer' : 'stable';
+    this.descriptions.push({ side: 'remote', type });
+    if (this.signalingState === 'stable') {
+      this.completeNegotiation();
+      this.maybeFireNegotiationNeeded();
+    }
+  }
+
+  /** Records the attempt and then throws what a browser would throw. */
+  private refuse(side: 'local' | 'remote', type: string, prefix?: string): never {
+    this.refusedDescriptions.push({ side, type, state: this.signalingState });
+    const detail = prefix ? `${prefix}: ` : '';
+    throw new Error(`InvalidStateError: ${detail}Called in wrong state: ${this.signalingState}`);
+  }
+
+  /**
+   * What settling a round trip does to everything downstream of it: senders
+   * start sending, and the SCTP association behind a data channel comes up.
+   */
+  private completeNegotiation(): void {
+    for (const transceiver of this.transceivers) {
+      transceiver.currentDirection = transceiver.sender.track ? 'sendrecv' : 'recvonly';
+    }
+    for (const channel of this.dataChannels) {
+      channel.open();
+    }
   }
 
   async addIceCandidate(candidate: RTCIceCandidateInit): Promise<void> {
@@ -217,6 +491,7 @@ export class FakeRTCPeerConnection {
   close(): void {
     this.closed = true;
     this.connectionState = 'closed';
+    this.signalingState = 'closed';
   }
 
   // --- Test drivers ------------------------------------------------------
@@ -228,6 +503,11 @@ export class FakeRTCPeerConnection {
 
   emitIceCandidate(candidate: Partial<RTCIceCandidate>): void {
     this.onicecandidate?.({ candidate } as RTCPeerConnectionIceEvent);
+  }
+
+  /** The sender currently carrying a track of this kind, if any. */
+  activeSenders(kind: 'audio' | 'video'): FakeRTCRtpSender[] {
+    return this.senders.filter((sender) => sender.track?.kind === kind);
   }
 
   /**
@@ -253,6 +533,7 @@ export class FakeRTCPeerConnection {
 
   emitDataChannel(label: string): FakeRTCDataChannel {
     const channel = new FakeRTCDataChannel(label);
+    channel.open();
     this.ondatachannel?.({ channel } as unknown as RTCDataChannelEvent);
     return channel;
   }

@@ -108,6 +108,12 @@ room.on('dataReceived', (payload, participant) => {
 });
 ```
 
+Works in an empty room with no camera or microphone published. The first
+`sendData()` has to negotiate a data channel, which takes one round trip;
+the SDK does that itself and resolves once your payload is on the wire.
+Anything sent while the channel is still coming up is queued and delivered
+in order, so you never have to publish media first or retry.
+
 </Tab>
 <Tab title="React Native">
 

@@ -44,9 +44,6 @@ const DATA_CHANNEL_LABEL = 'raven-data';
  */
 const MAX_DATA_PAYLOAD_BYTES = 64 * 1024;
 
-/** How long to wait for the local description to be ready before answering. */
-const ICE_GATHER_HINT_MS = 0;
-
 /** Server source string → the SDK's own track kinds. */
 function trackKindFromSource(source: string, kind: 'audio' | 'video'): TrackKind {
   switch (source) {
@@ -80,13 +77,39 @@ interface SubscribedTrack {
  *
  * # Negotiation
  *
- * The SFU offers, we answer. That holds for publishing too: instead of
- * offering when a track is added, the adapter adds the track and lets the
- * SFU's next offer carry it. The one exception is the first publish of a
- * given kind, where no transceiver exists yet and a client-initiated offer
- * is unavoidable. The server settles the resulting glare by refusing our
- * offer with a retryable code, and `publishWithNegotiation` has another go
- * once the server's offer has been answered.
+ * Both peers offer on one PeerConnection: the SFU offers at join and for
+ * every subscription, and this adapter offers when a local track needs an
+ * m-section that does not exist yet (the first publish of each kind).
+ *
+ * Every operation that touches the signaling state machine therefore goes
+ * through one chain — `enqueue()` — and nothing else is allowed near
+ * `setLocalDescription` / `setRemoteDescription`. Checking
+ * `signalingState` and *then* awaiting `createOffer()` is not enough and
+ * was the bug this replaced: the check passes, the await yields, the SFU's
+ * offer lands in that gap, and `setLocalDescription` throws "Called in
+ * wrong state: have-remote-offer". The track keeps its sender, the
+ * m-section stays `recvonly`, and the room sees no media while the SDK
+ * reports a successful publish.
+ *
+ * Local changes never offer directly. Adding a track or creating a data
+ * channel sets the browser's own negotiation-needed bit; its
+ * `negotiationneeded` event queues one offer task, and however many
+ * changes are pending collapse into that single offer — or into none, if a
+ * round is already in flight, in which case the end of that round looks
+ * again. So publishing a microphone and a camera back to back never races,
+ * and no timers are involved anywhere.
+ *
+ * The browser's bit is the source of truth on purpose. It clears when some
+ * description covers the change — including one the *SFU* offered — which
+ * an SDK-side "something changed" flag cannot know. An earlier version of
+ * this kept its own flag and re-offered until answered; against a real SFU
+ * that produced 48 rounds of offer/rollback on a single join, until the
+ * connection's message rate limit tripped.
+ *
+ * Glare — both sides offering at once — resolves politely: the SFU's offer
+ * wins, ours rolls back and is re-queued. The SFU independently refuses a
+ * client offer mid-round with a retryable `NEGOTIATION_GLARE`, which lands
+ * in the same re-queue.
  *
  * # Track identity
  *
@@ -111,8 +134,22 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
   private _connectionState: SdkConnectionState = 'disconnected';
   private intentionalDisconnect = false;
 
-  /** Published tracks by kind, so `enableCamera(false)` knows what to kill. */
-  private readonly published = new Map<TrackKind, { track: LocalTrack; delegate: NativeLocalTrackDelegate; sender: RTCRtpSender; trackId: string }>();
+  /**
+   * What this participant *wants* published, by kind.
+   *
+   * Desired state, deliberately not PeerConnection state. A reconnect
+   * throws the PeerConnection away and with it every `RTCRtpSender`, but
+   * the camera is still on and the developer never asked for it to stop —
+   * so `sender` is the only field here that a replacement connection
+   * invalidates, and `restoreLocalPublications()` refills it. Before this
+   * split, a reconnect left the map holding senders belonging to a closed
+   * connection: the tracks looked published, the new connection had no
+   * transceivers for them, and the room went quiet.
+   */
+  private readonly published = new Map<
+    TrackKind,
+    { track: LocalTrack; delegate: NativeLocalTrackDelegate; sender?: RTCRtpSender; trackId: string }
+  >();
 
   /** Subscribed tracks by `publisherId/trackId`. */
   private readonly subscribed = new Map<string, SubscribedTrack>();
@@ -131,6 +168,49 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
   /** Last ICE/peer state the SFU told us about. Diagnostics only. */
   private sfuIceState?: string;
   private sfuPeerState?: string;
+
+  /**
+   * Serializes everything that touches the signaling state machine —
+   * remote offers, remote answers, our own offers, remote candidates.
+   * See `enqueue()`.
+   */
+  private negotiationChain: Promise<void> = Promise.resolve();
+
+  /** A local change is waiting for an offer to carry it. */
+  private negotiationNeeded = false;
+
+  /** An offer task is already on the chain, so more requests coalesce into it. */
+  private negotiationScheduled = false;
+
+  /** Callers of `dataChannelOpened()`, settled when the channel opens. */
+  private dataChannelWaiters: { resolve: () => void; reject: (error: unknown) => void }[] = [];
+
+  /** In-flight enable/disable per track kind. See `withKindLock()`. */
+  private readonly kindOperations = new Map<TrackKind, Promise<void>>();
+
+  /**
+   * Whether this page has asked for a data channel.
+   *
+   * Desired state, like `published`: the channel itself belongs to a
+   * PeerConnection and does not survive a reconnect, but the intent does.
+   */
+  private dataChannelWanted = false;
+
+  /** Payloads accepted while the channel was still opening. */
+  private dataQueue: Uint8Array[] = [];
+
+  /**
+   * Track ids we have already offered once to get onto the wire.
+   *
+   * `publishedTracksMissingFromSdp()` asks for one corrective offer per
+   * published track and then stops asking, whatever the outcome. A
+   * standing condition instead of a one-shot is a treadmill: if the
+   * browser will not put our id in the description — a reused transceiver
+   * whose msid it considers settled — then re-checking after every round
+   * trip re-offers forever. Bounding it costs a mislabelled track source
+   * in that corner; not bounding it costs the connection.
+   */
+  private readonly msidRefreshAttempted = new Set<string>();
 
   constructor(logger: Logger, autoReconnect: boolean) {
     super();
@@ -213,9 +293,11 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     signaling.on('joined', (payload) => void this.handleJoined(payload));
     signaling.on('failed', (error) => {
       this.logger.error('signaling failed', error.message);
+      this.abortDataChannelWaiters('The connection failed before the data channel could open');
       this.setConnectionState('failed');
     });
     signaling.on('closed', () => {
+      this.abortDataChannelWaiters('The connection closed before the data channel could open');
       this.setConnectionState(this.intentionalDisconnect ? 'disconnected' : 'failed');
     });
 
@@ -257,6 +339,11 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
       }
     }
 
+    // A rejoin is a new SFU session with a new PeerConnection, so
+    // everything local has to be put back on it. No-op on a first join
+    // (nothing published yet) and idempotent on a re-sent room state.
+    this.restoreLocalPublications();
+
     for (const entry of payload.participants) {
       let participant = this.remoteParticipants.get(entry.id);
       if (!participant) {
@@ -286,15 +373,22 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
         return;
 
       case ServerMessageType.SDP_OFFER:
-        await this.handleOffer(message.sdp);
+        // Queued, not awaited inline. `handleSignalingMessage` is invoked
+        // per socket frame with no ordering guarantee of its own, so two
+        // offers arriving together would otherwise interleave their
+        // `setRemoteDescription` calls.
+        await this.enqueue(() => this.applyRemoteOffer(message.sdp));
         return;
 
       case ServerMessageType.SDP_ANSWER:
-        await this.handleAnswer(message.sdp);
+        await this.enqueue(() => this.applyRemoteAnswer(message.sdp));
         return;
 
       case ServerMessageType.ICE_CANDIDATE:
-        await this.handleRemoteCandidate(message);
+        // On the chain as well, so a candidate can never be applied
+        // between a remote description being set and the answer being
+        // built, which is where "unknown mid" rejections come from.
+        await this.enqueue(() => this.applyRemoteCandidate(message));
         return;
 
       case ServerMessageType.PARTICIPANT_JOINED: {
@@ -373,7 +467,14 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
         // reaches here is retryable, glare most of all, which the publish
         // path deals with.
         if (message.code === 'NEGOTIATION_GLARE') {
-          this.logger.debug('publish deferred by glare; will retry after the next offer');
+          // The SFU was mid-round and refused our offer. Ask again: the
+          // request survives, which it did not before — the old code
+          // logged this and dropped the publish, leaving a sender with no
+          // m-section to send on.
+          // "answer it, then retry", says the SFU. There is nothing to do
+          // here: its offer is on the way, applying it rolls ours back,
+          // and the browser then tells us whether a retry is warranted.
+          this.logger.debug('sfu refused our offer as glare; waiting for its offer');
           return;
         }
         this.emit('mediaError', new Error(message.message));
@@ -435,6 +536,24 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
       }
     };
 
+    // The browser's own negotiation-needed bit, which is the only accurate
+    // account of whether a local change still needs an offer.
+    //
+    // An earlier version of this kept its own "something changed" flag and
+    // re-offered until an answer came back. That loops: the SFU's own
+    // offers routinely cover our new senders, so the flag stayed set with
+    // nothing left to negotiate, and each retry collided with the next SFU
+    // offer — 48 rounds of offer/rollback in one join, until the
+    // connection's message rate limit tripped. `negotiationneeded` fires
+    // only while the current local description really is missing
+    // something, and the browser clears it — including after a rollback —
+    // so the loop cannot form.
+    pc.onnegotiationneeded = () => {
+      this.logger.debug('browser reports negotiation needed');
+      this.negotiationNeeded = true;
+      this.scheduleNegotiation();
+    };
+
     pc.ontrack = (event) => this.handleIncomingTrack(event);
 
     pc.ondatachannel = (event) => {
@@ -447,24 +566,150 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     return pc;
   }
 
-  private async handleOffer(sdp: string): Promise<void> {
+  /**
+   * Runs `task` after everything already queued, and before anything
+   * queued later.
+   *
+   * The only way to touch this PeerConnection's signaling state. A failing
+   * task must not wedge the chain, so the next one runs either way — the
+   * caller still sees the rejection through the promise it holds.
+   *
+   * Nothing on this chain ever waits for the *peer*: each task does its
+   * local half (apply a description, build an answer, send an offer) and
+   * returns. Waiting for a reply while holding the chain would deadlock,
+   * since the reply itself has to come through here.
+   */
+  private enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const run = this.negotiationChain.then(task, task);
+    this.negotiationChain = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  /**
+   * Records that something local needs an offer, and makes sure exactly
+   * one offer task is queued to carry it.
+   *
+   * Synchronous and non-throwing on purpose: publishing a track should not
+   * fail because the connection happens to be mid-round. The request is
+   * durable — it outlives an in-flight round, a glare rejection and a
+   * reconnect — and is cleared only once an offer for it is actually on
+   * the wire.
+   */
+  /**
+   * Nudges the chain to look for work.
+   *
+   * Does not decide that an offer is needed — `negotiationneeded` does
+   * that. Used where a round has just ended, or where a local change has
+   * been made and the browser's event may already have fired.
+   */
+  private scheduleNegotiationIfNeeded(): void {
+    if (this.negotiationNeeded || this.publishedTracksMissingFromSdp()) {
+      this.scheduleNegotiation();
+    }
+  }
+
+  private scheduleNegotiation(): void {
+    if (this.negotiationScheduled) {
+      // One queued task already covers every request made so far. This is
+      // the coalescing: mic + camera + screen share in quick succession
+      // produce one offer between them.
+      return;
+    }
+    this.negotiationScheduled = true;
+    void this.enqueue(async () => {
+      this.negotiationScheduled = false;
+      await this.runNegotiation();
+    });
+  }
+
+  /**
+   * Offers, if there is anything to offer and the connection can take one.
+   *
+   * Runs on the chain, so `signalingState` cannot change under it between
+   * the check and `setLocalDescription`.
+   */
+  private async runNegotiation(): Promise<void> {
+    const pc = this.pc;
+    const signaling = this.signaling;
+    if (!pc || !signaling) {
+      return;
+    }
+    if (!this.negotiationNeeded && !this.publishedTracksMissingFromSdp()) {
+      return;
+    }
+
+    if (pc.signalingState !== 'stable') {
+      // A round is in flight. Not an error and not something to retry on
+      // a timer: whoever finishes that round calls back in here.
+      this.logger.debug('negotiation deferred until the current round ends', pc.signalingState);
+      return;
+    }
+
+    // Cleared before the attempt, and restored on failure, so a successful
+    // offer can't be re-sent by a later settle point.
+    this.negotiationNeeded = false;
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      // This offer is every published track's one chance to have its id
+      // written into the description. See `msidRefreshAttempted`.
+      for (const entry of this.published.values()) {
+        if (entry.sender) {
+          this.msidRefreshAttempted.add(entry.trackId);
+        }
+      }
+      // Send `pc.localDescription`: by now it may carry candidates the
+      // pre-set copy doesn't.
+      signaling.send({
+        type: ClientMessageType.SDP_OFFER,
+        sdp: pc.localDescription?.sdp ?? offer.sdp ?? '',
+      });
+    } catch (error) {
+      this.negotiationNeeded = true;
+      this.logger.error('could not offer', (error as Error).message);
+      this.emit('mediaError', new RTCError('MEDIA_ERROR', 'Could not negotiate the published track', error));
+    }
+  }
+
+  /**
+   * Answers the SFU.
+   *
+   * Rolls our own offer back first if one is outstanding. RFC-wise either
+   * peer may offer, and something has to break the tie; the SFU is the one
+   * with the room-wide view, so it wins and our change is re-queued rather
+   * than dropped.
+   */
+  private async applyRemoteOffer(sdp: string): Promise<void> {
     const pc = this.ensurePeerConnection();
     try {
+      if (pc.signalingState === 'have-local-offer') {
+        this.logger.debug('glare: rolling our offer back and answering the sfu');
+        // No flag set here on purpose. Rolling back makes the browser
+        // re-evaluate whether anything is still unnegotiated, and it
+        // fires `negotiationneeded` again only if something is. Assuming
+        // it is — which this code used to do — re-offers into an SFU
+        // round that already carried the change, forever.
+        try {
+          await pc.setLocalDescription({ type: 'rollback' });
+        } catch (error) {
+          // Every engine Raven supports implements explicit rollback, and
+          // `setRemoteDescription(offer)` rolls back implicitly anyway.
+          // Log and carry on rather than abandoning the answer.
+          this.logger.debug('explicit rollback unavailable', (error as Error).message);
+        }
+      }
+
       await pc.setRemoteDescription({ type: 'offer', sdp });
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
-      // Send `pc.localDescription`, not `answer`. The browser may have
-      // stuffed candidates into it since, and the pre-set copy would lose
-      // them.
       this.signaling?.send({
         type: ClientMessageType.SDP_ANSWER,
         sdp: pc.localDescription?.sdp ?? answer.sdp ?? '',
       });
-
-      // Anything publishing had to defer because of glare can go ahead
-      // now the server's offer is answered.
-      this.flushDeferredPublishes();
     } catch (error) {
       this.logger.error('failed to answer offer', (error as Error).message);
       // Carry the browser's own reason. Without it this surfaces as a bare
@@ -475,21 +720,35 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
       // message is what actually reaches a developer's console anyway.
       const reason = error instanceof Error ? error.message : String(error);
       this.emit('mediaError', new Error(`Could not answer the server's offer: ${reason}`));
+      return;
     }
+
+    // Back to stable, so anything of ours that was waiting can go now.
+    this.afterRoundTrip();
   }
 
-  private async handleAnswer(sdp: string): Promise<void> {
-    if (!this.pc) {
+  private async applyRemoteAnswer(sdp: string): Promise<void> {
+    const pc = this.pc;
+    if (!pc) {
+      return;
+    }
+    if (pc.signalingState !== 'have-local-offer') {
+      // An answer to an offer we rolled back for glare. Applying it would
+      // throw "Called in wrong state: stable"; the round it belonged to no
+      // longer exists, and our change is already re-queued.
+      this.logger.debug('discarding an answer for a superseded offer', pc.signalingState);
+      this.afterRoundTrip();
       return;
     }
     try {
-      await this.pc.setRemoteDescription({ type: 'answer', sdp });
+      await pc.setRemoteDescription({ type: 'answer', sdp });
     } catch (error) {
       this.logger.error('failed to apply answer', (error as Error).message);
     }
+    this.afterRoundTrip();
   }
 
-  private async handleRemoteCandidate(message: {
+  private async applyRemoteCandidate(message: {
     candidate: string;
     sdpMid?: string;
     sdpMLineIndex?: number;
@@ -514,50 +773,134 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     }
   }
 
-  /** Publishes that glare pushed back, retried once we've answered the server. */
-  private deferredPublishes: (() => void)[] = [];
+  /**
+   * A round ended: offer again if anything still needs one.
+   *
+   * Two things can: the browser's own negotiation-needed bit, and Raven's
+   * requirement that our published tracks appear in the local description
+   * by their real ids. See `publishedTracksMissingFromSdp()`.
+   */
+  private afterRoundTrip(): void {
+    if (this.publishedTracksMissingFromSdp()) {
+      this.negotiationNeeded = true;
+    }
+    this.scheduleNegotiationIfNeeded();
+  }
 
-  private flushDeferredPublishes(): void {
-    const pending = this.deferredPublishes;
-    this.deferredPublishes = [];
-    for (const retry of pending) {
-      retry();
+  /**
+   * Whether some published track's id is absent from the local
+   * description's `a=msid:` lines.
+   *
+   * Raven's SFU identifies a published track by the id in the SDP `msid`
+   * and matches it against the `track.publish` declaration that says
+   * whether it is a camera or a screen share. So it is not enough for the
+   * track to be *sending*: our id has to be the one on the wire.
+   *
+   * It is possible for it not to be. The SFU pre-creates a receive slot
+   * for a declared track, and `addTrack` reuses that transceiver; if the
+   * SFU's own next offer then covers the m-line, the browser's
+   * negotiation-needed bit clears with the SFU's msid still in place. RTP
+   * flows — the SFU just has no idea which of our tracks it belongs to,
+   * and falls back to guessing from the codec kind. A camera guessed as a
+   * camera hides it; a screen share guessed as a camera puts somebody's
+   * shared window in the face tile.
+   *
+   * Checking the SDP rather than trusting a flag is what makes this
+   * terminate: one offer of ours puts every id in place, and the answer to
+   * the next check is no.
+   */
+  private publishedTracksMissingFromSdp(): boolean {
+    const pc = this.pc;
+    if (!pc || this.published.size === 0) {
+      return false;
+    }
+    const sdp = pc.localDescription?.sdp;
+    if (!sdp) {
+      // Nothing negotiated yet; the offer that is coming will carry them.
+      return false;
+    }
+
+    const announced = new Set<string>();
+    for (const line of sdp.split(/\r?\n/)) {
+      if (!line.startsWith('a=msid:')) {
+        continue;
+      }
+      // `a=msid:<stream-id> <track-id>`; the stream-only form names no track.
+      const trackId = line.slice('a=msid:'.length).trim().split(/\s+/)[1];
+      if (trackId) {
+        announced.add(trackId);
+      }
+    }
+
+    for (const entry of this.published.values()) {
+      if (!entry.sender || announced.has(entry.trackId)) {
+        continue;
+      }
+      if (this.msidRefreshAttempted.has(entry.trackId)) {
+        // Asked once already. The SFU will fall back to guessing this
+        // track's source from its codec kind, which is right for a camera
+        // and a microphone and wrong for a screen share — worth a warning,
+        // not worth another offer.
+        this.logger.warn(
+          'published track is not announced by its own id; the sfu will guess its source',
+          entry.trackId,
+        );
+        continue;
+      }
+      this.logger.debug('published track missing from the local sdp', entry.trackId);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Resolves when the data channel is open.
+   *
+   * What `sendData()` actually needs to wait for. Waiting on "negotiation
+   * has gone quiet" instead resolves a beat too early — the browser raises
+   * `negotiationneeded` on a task, so a connection looks quiet for one
+   * turn after the channel was created — and the caller would be told its
+   * payload had gone out while it was still queued.
+   */
+  private dataChannelOpened(): Promise<void> {
+    if (this.dataChannel?.readyState === 'open') {
+      return Promise.resolve();
+    }
+    return new Promise<void>((resolve, reject) => {
+      this.dataChannelWaiters.push({ resolve, reject });
+    });
+  }
+
+  private settleDataChannel(): void {
+    const waiters = this.dataChannelWaiters;
+    if (waiters.length === 0) {
+      return;
+    }
+    this.dataChannelWaiters = [];
+    for (const waiter of waiters) {
+      waiter.resolve();
     }
   }
 
   /**
-   * Offers, so the server hears about a track we just added.
+   * Fails everyone waiting on the data channel, because it is never going
+   * to open.
    *
-   * Only needed when adding the track created a new transceiver, which is
-   * the first publish of each kind. Later publishes of the same kind reuse
-   * the transceiver and hitch a ride on the server's next offer.
+   * Only for a connection that is finished — a terminal failure or a
+   * deliberate leave. A reconnect deliberately does *not* come through
+   * here: rejoining re-creates the channel and settles the wait, so a
+   * `sendData()` made mid-blip still goes out afterwards rather than
+   * throwing at the caller.
    */
-  private async negotiatePublish(): Promise<void> {
-    const pc = this.pc;
-    const signaling = this.signaling;
-    if (!pc || !signaling) {
+  private abortDataChannelWaiters(reason: string): void {
+    const waiters = this.dataChannelWaiters;
+    if (waiters.length === 0) {
       return;
     }
-
-    if (pc.signalingState !== 'stable') {
-      // Server already has an offer in flight. Answer that first and
-      // retry, instead of putting a competing offer on the wire.
-      this.logger.debug('deferring publish negotiation until stable');
-      this.deferredPublishes.push(() => void this.negotiatePublish());
-      return;
-    }
-
-    try {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      await waitTick();
-      signaling.send({
-        type: ClientMessageType.SDP_OFFER,
-        sdp: pc.localDescription?.sdp ?? offer.sdp ?? '',
-      });
-    } catch (error) {
-      this.logger.error('publish negotiation failed', (error as Error).message);
-      throw new RTCError('MEDIA_ERROR', 'Could not negotiate the published track', error);
+    this.dataChannelWaiters = [];
+    const error = new RTCError('CONNECTION_FAILED', reason);
+    for (const waiter of waiters) {
+      waiter.reject(error);
     }
   }
 
@@ -750,7 +1093,36 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
       : this.unpublishKind('screenShare');
   }
 
+  /**
+   * Serializes enable/disable per kind.
+   *
+   * Two `enableCamera()` calls in flight at once used to mean two
+   * `getUserMedia` prompts, two senders and one of them orphaned in the
+   * `published` map. Callers that overlap now share the first call's
+   * result. Per kind rather than global, so a microphone does not queue
+   * behind a camera's device prompt.
+   */
+  private async withKindLock<T>(kind: TrackKind, operation: () => Promise<T>): Promise<T> {
+    const previous = this.kindOperations.get(kind) ?? Promise.resolve();
+    const run = previous.then(operation, operation);
+    this.kindOperations.set(
+      kind,
+      run.then(
+        () => undefined,
+        () => undefined,
+      ),
+    );
+    return run;
+  }
+
   private async publishKind(
+    kind: TrackKind,
+    capture: () => Promise<LocalTrack>,
+  ): Promise<LocalTrack | undefined> {
+    return this.withKindLock(kind, () => this.publishKindLocked(kind, capture));
+  }
+
+  private async publishKindLocked(
     kind: TrackKind,
     capture: () => Promise<LocalTrack>,
   ): Promise<LocalTrack | undefined> {
@@ -774,34 +1146,87 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
   }
 
   private async unpublishKind(kind: TrackKind): Promise<undefined> {
-    const existing = this.published.get(kind);
-    if (!existing) {
+    return this.withKindLock(kind, async () => {
+      const existing = this.published.get(kind);
+      if (!existing) {
+        return undefined;
+      }
+      await this.unpublish(existing.track);
       return undefined;
-    }
-    await this.unpublish(existing.track);
-    return undefined;
+    });
   }
 
   async publish(track: LocalTrack): Promise<void> {
-    const pc = this.ensurePeerConnection();
     const delegate = track['delegate'] as unknown;
     if (!(delegate instanceof NativeLocalTrackDelegate)) {
+      // Publishing needs a delegate that can hold an `RTCRtpSender`, and
+      // a hand-built one has nowhere to put it. Name the way through
+      // rather than just the refusal: an application-provided track goes
+      // through `createCustomTrack()`.
       throw new RTCError(
         'MEDIA_ERROR',
-        'This track was not created by the Raven SDK and cannot be published',
+        'This track was not created by the Raven SDK. Wrap your own MediaStreamTrack with createCustomTrack() (or client.createCustomTrack()) before publishing it',
       );
     }
 
+    this.published.set(track.kind, {
+      track,
+      delegate,
+      trackId: track.mediaStreamTrack.id,
+    });
+    if (!this.localParticipant.tracks.includes(track)) {
+      this.localParticipant.tracks.push(track);
+    }
+
+    try {
+      await this.attachToPeerConnection(track.kind);
+    } catch (error) {
+      // Desired state only survives if the intent is still valid. A track
+      // that cannot be added at all is not published, and saying it is
+      // would have a reconnect keep retrying it forever.
+      this.published.delete(track.kind);
+      const index = this.localParticipant.tracks.indexOf(track);
+      if (index !== -1) {
+        this.localParticipant.tracks.splice(index, 1);
+      }
+      throw error;
+    }
+
+    // `attachToPeerConnection` has already declared the source, hooked
+    // the track's own `onended`, and asked for the offer that carries it.
+    this.emit('localTrackPublished', track);
+  }
+
+  /**
+   * Puts one desired publication onto the current PeerConnection.
+   *
+   * Everything the SFU needs to know about a track lives here, so the
+   * first publish and a post-reconnect restore go through exactly the same
+   * code and cannot drift apart. Idempotent: a track already carried by a
+   * sender on this connection is left alone, which is what stops a re-sent
+   * room state from adding a second sender for the same camera.
+   */
+  private async attachToPeerConnection(kind: TrackKind): Promise<void> {
+    const entry = this.published.get(kind);
+    if (!entry) {
+      return;
+    }
+    const pc = this.ensurePeerConnection();
+    const mediaStreamTrack = entry.track.mediaStreamTrack;
+
+    const alreadyAttached = pc
+      .getSenders()
+      .some((sender) => sender.track !== null && sender.track === mediaStreamTrack);
+    if (alreadyAttached) {
+      return;
+    }
+
     const stream =
-      typeof MediaStream !== 'undefined'
-        ? new MediaStream([track.mediaStreamTrack])
-        : undefined;
+      typeof MediaStream !== 'undefined' ? new MediaStream([mediaStreamTrack]) : undefined;
 
     let sender: RTCRtpSender;
     try {
-      sender = stream
-        ? pc.addTrack(track.mediaStreamTrack, stream)
-        : pc.addTrack(track.mediaStreamTrack);
+      sender = stream ? pc.addTrack(mediaStreamTrack, stream) : pc.addTrack(mediaStreamTrack);
     } catch (error) {
       throw new RTCError('MEDIA_ERROR', 'Could not add the track to the connection', error);
     }
@@ -811,38 +1236,88 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     // read-only, which leaves codec kind as all the SFU would have to go
     // on. And that can't tell a screen share from a camera (spec §16).
     // Sent before negotiating, so the source is known by the time the
-    // track lands on the node.
-    const source = declaredSourceFor(track.kind);
+    // track lands on the node. Re-sent on a restore too: the SFU session
+    // is new and has never heard of this track.
+    const source = declaredSourceFor(kind);
     if (source) {
       this.signaling?.send({
         type: ClientMessageType.TRACK_PUBLISH,
-        trackId: track.mediaStreamTrack.id,
+        trackId: mediaStreamTrack.id,
         source,
       });
     }
 
-    delegate.setSender(sender);
-    await this.applySimulcast(sender, track.kind);
-
-    this.published.set(track.kind, {
-      track,
-      delegate,
-      sender,
-      trackId: track.mediaStreamTrack.id,
-    });
-    if (!this.localParticipant.tracks.includes(track)) {
-      this.localParticipant.tracks.push(track);
-    }
+    entry.sender = sender;
+    entry.delegate.setSender(sender);
+    await this.applySimulcast(sender, kind);
 
     // A screen share the user stops from the browser's own bar ends the
     // track without telling us. Unpublishing here keeps the room's view
     // correct without the application having to watch for it.
-    track.mediaStreamTrack.onended = () => {
-      void this.unpublish(track).catch(() => undefined);
+    mediaStreamTrack.onended = () => {
+      void this.unpublish(entry.track).catch(() => undefined);
     };
 
-    await this.negotiatePublish();
-    this.emit('localTrackPublished', track);
+    // `addTrack` sets the browser's negotiation-needed bit and
+    // `onnegotiationneeded` carries it from there. This nudge is for the
+    // case the bit does not cover: a reused transceiver whose m-section
+    // still announces somebody else's msid.
+    this.scheduleNegotiationIfNeeded();
+  }
+
+  /**
+   * Re-publishes everything this participant wants published onto a
+   * replacement PeerConnection.
+   *
+   * Runs on every join, so a reconnect restores the microphone, camera and
+   * screen share that were live before the outage — in one renegotiation,
+   * because every `addTrack` here lands before the browser's queued
+   * `negotiationneeded` task runs.
+   *
+   * A screen share is the one case where desired state can have expired
+   * while we were away: ending the share is the user's own doing, through
+   * browser UI Raven never sees, and its track is dead for good. Restoring
+   * a dead track would publish an m-section that never carries a frame, so
+   * it is dropped and the room is told, exactly as if the user had stopped
+   * sharing while connected.
+   */
+  private restoreLocalPublications(): void {
+    // The data channel is per-connection too, and a page that has used it
+    // once expects it to keep working across a blip. Ahead of the tracks
+    // deliberately: a room that only ever sent data has nothing in
+    // `published`, and this used to sit behind an early return for that
+    // case — so the channel came back only for participants who also had
+    // a camera on.
+    if (this.dataChannelWanted && !this.dataChannel) {
+      this.openDataChannel();
+    }
+
+    // A new PeerConnection negotiates from scratch, so every track gets
+    // its corrective offer again if it needs one.
+    this.msidRefreshAttempted.clear();
+
+    for (const [kind, entry] of [...this.published]) {
+      if (entry.track.mediaStreamTrack.readyState === 'ended') {
+        this.logger.debug('dropping a publication whose source has ended', kind);
+        this.published.delete(kind);
+        const index = this.localParticipant.tracks.indexOf(entry.track);
+        if (index !== -1) {
+          this.localParticipant.tracks.splice(index, 1);
+        }
+        entry.sender = undefined;
+        entry.delegate.setSender(undefined);
+        this.emit('localTrackUnpublished', entry.track);
+        continue;
+      }
+
+      // The old sender belonged to a connection that is gone.
+      entry.sender = undefined;
+      entry.delegate.setSender(undefined);
+      void this.attachToPeerConnection(kind).catch((error) => {
+        this.logger.error('could not restore a publication', kind, (error as Error).message);
+        this.emit('mediaError', error instanceof Error ? error : new Error(String(error)));
+      });
+    }
   }
 
   async unpublish(track: LocalTrack): Promise<void> {
@@ -858,14 +1333,20 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     }
 
     entry.delegate.setSender(undefined);
-    try {
-      this.pc?.removeTrack(entry.sender);
-    } catch (error) {
-      this.logger.debug('removeTrack failed', (error as Error).message);
+    if (entry.sender) {
+      try {
+        this.pc?.removeTrack(entry.sender);
+      } catch (error) {
+        this.logger.debug('removeTrack failed', (error as Error).message);
+      }
+      entry.sender = undefined;
     }
+    this.msidRefreshAttempted.delete(entry.trackId);
+    track.mediaStreamTrack.onended = null;
     track.mediaStreamTrack.stop();
 
-    await this.negotiatePublish();
+    // `removeTrack` sets the browser's negotiation-needed bit; the offer
+    // that drops the m-section comes from `onnegotiationneeded`.
     this.emit('localTrackUnpublished', track);
   }
 
@@ -920,6 +1401,11 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
   private attachDataChannel(channel: RTCDataChannel): void {
     this.dataChannel = channel;
     channel.binaryType = 'arraybuffer';
+    channel.onopen = () => {
+      this.logger.debug('data channel open');
+      this.settleDataChannel();
+      this.flushDataQueue();
+    };
     channel.onmessage = (event: MessageEvent) => {
       const payload = toUint8Array(event.data);
       if (payload) {
@@ -935,8 +1421,25 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
         this.dataChannel = undefined;
       }
     };
+
+    // A channel that arrives already open (the SFU's own, or one restored
+    // on a live connection) never fires `onopen` for us.
+    if (channel.readyState === 'open') {
+      this.settleDataChannel();
+      this.flushDataQueue();
+    }
   }
 
+  /**
+   * Sends a payload, waiting for the channel if it is still coming up.
+   *
+   * A data channel needs its own `m=application` section, which means a
+   * round trip before the first byte can go anywhere. That used to be the
+   * caller's problem: `sendData()` created the channel, negotiated
+   * nothing, and threw "The data channel is not open yet" — so the only
+   * way to make data work was to publish a camera first and let its
+   * renegotiation carry the channel along. Now the bootstrap happens here.
+   */
   async sendData(payload: Uint8Array<ArrayBuffer>): Promise<void> {
     if (payload.byteLength > MAX_DATA_PAYLOAD_BYTES) {
       throw new RTCError(
@@ -944,40 +1447,99 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
         `Data payload is ${payload.byteLength} bytes, over the ${MAX_DATA_PAYLOAD_BYTES}-byte limit`,
       );
     }
+    if (!this.pc && !this.signaling) {
+      throw new RTCError('CONNECTION_FAILED', 'sendData() requires an active connection');
+    }
 
     const channel = this.dataChannel ?? this.openDataChannel();
     if (!channel) {
       throw new RTCError('CONNECTION_FAILED', 'sendData() requires an active connection');
     }
-    if (channel.readyState !== 'open') {
-      throw new RTCError('CONNECTION_FAILED', 'The data channel is not open yet');
+
+    if (channel.readyState === 'open') {
+      this.sendOnChannel(channel, payload);
+      return;
     }
 
-    try {
-      channel.send(payload);
-    } catch (error) {
-      throw new RTCError('PERMISSION_DENIED', 'Could not send data; check the token grants publishData', error);
+    // Queued rather than rejected: the caller asked to send, and the only
+    // thing missing is a round trip they should not have to know about.
+    // Order is preserved, so two sends before the channel opens arrive in
+    // the order they were made.
+    this.dataQueue.push(payload);
+
+    // Waits for the round trip the channel needs, not for a timer.
+    await this.dataChannelOpened();
+    this.flushDataQueue();
+  }
+
+  /**
+   * Opens the data channel for a participant that only wants to receive.
+   *
+   * The SFU fans data out over each recipient's own channel, so somebody
+   * who never sends has nothing to receive on. `Room` calls this the
+   * moment an application listens for `dataReceived`, which is the only
+   * honest signal that a channel is wanted — opening one for every
+   * participant at join would cost an SCTP association on every call that
+   * never sends a byte.
+   */
+  ensureDataChannel(): void {
+    this.dataChannelWanted = true;
+    if (!this.dataChannel) {
+      this.openDataChannel();
     }
   }
 
   /**
-   * Opens the data channel when something actually wants it.
+   * Creates the channel and asks for the renegotiation that carries it.
    *
-   * Not at connect time. A channel costs an SCTP association and most
-   * calls never send a byte of data. The client creates it, not the
-   * server, because the client is the side that knows it needs one.
+   * Exactly once per connection: `dataChannel` is set synchronously here,
+   * so two concurrent `sendData()` calls cannot both create one. A second
+   * channel would be a second SCTP stream the SFU closes as unrecognised.
+   *
+   * The client creates it, not the server, because the client is the side
+   * that knows it needs one. Ordered and reliable — the default, and what
+   * anyone sending structured messages expects.
    */
   private openDataChannel(): RTCDataChannel | undefined {
-    if (!this.pc) {
+    this.dataChannelWanted = true;
+    const pc = this.pc ?? (this.signaling ? this.ensurePeerConnection() : undefined);
+    if (!pc) {
       return undefined;
     }
-    // Ordered and reliable. That's the default, and what anyone sending
-    // structured messages expects. Unreliable delivery would suit
-    // high-frequency cursor updates, but as an opt-in later, not as a
-    // default that surprises everybody else.
-    const channel = this.pc.createDataChannel(DATA_CHANNEL_LABEL, { ordered: true });
+    if (this.dataChannel) {
+      return this.dataChannel;
+    }
+
+    const channel = pc.createDataChannel(DATA_CHANNEL_LABEL, { ordered: true });
     this.attachDataChannel(channel);
+    // Creating a channel needs an `m=application` section, which is a
+    // local change like adding a track: the browser raises
+    // `negotiationneeded` and the chain offers.
     return channel;
+  }
+
+  private flushDataQueue(): void {
+    const channel = this.dataChannel;
+    if (!channel || channel.readyState !== 'open' || this.dataQueue.length === 0) {
+      return;
+    }
+    const queued = this.dataQueue;
+    this.dataQueue = [];
+    for (const payload of queued) {
+      this.sendOnChannel(channel, payload);
+    }
+  }
+
+  private sendOnChannel(channel: RTCDataChannel, payload: Uint8Array): void {
+    try {
+      channel.send(payload as Uint8Array<ArrayBuffer>);
+    } catch (error) {
+      throw new RTCError(
+        'PERMISSION_DENIED',
+        'Could not send data; check the token grants publishData',
+        error,
+      );
+    }
   }
 
   // --- Devices -----------------------------------------------------------
@@ -1058,10 +1620,19 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     this.intentionalDisconnect = true;
 
     for (const entry of this.published.values()) {
+      entry.track.mediaStreamTrack.onended = null;
       entry.track.mediaStreamTrack.stop();
     }
     this.published.clear();
     this.localParticipant.tracks.length = 0;
+
+    // Leaving is not a blip: the intent to publish and to hold a data
+    // channel both end here, so a later `connect()` starts clean rather
+    // than resurrecting a previous call's tracks.
+    this.dataChannelWanted = false;
+    this.dataQueue = [];
+    this.negotiationNeeded = false;
+    this.abortDataChannelWaiters('The room was left before the data channel could open');
 
     this.signaling?.close();
     this.teardownPeerConnection();
@@ -1157,11 +1728,6 @@ function toUint8Array(data: unknown): Uint8Array | undefined {
 function isArrayBufferLike(value: unknown): value is ArrayBuffer {
   const tag = Object.prototype.toString.call(value);
   return tag === '[object ArrayBuffer]' || tag === '[object SharedArrayBuffer]';
-}
-
-/** Yields once, giving a just-set local description a beat to settle before we read it. */
-function waitTick(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ICE_GATHER_HINT_MS));
 }
 
 /**
