@@ -144,6 +144,106 @@ describe('Room — participants and tracks', () => {
 
     expect(subscribed).toHaveBeenCalledWith(track, participant);
   });
+
+  /**
+   * The live-streaming case: every viewer joins a broadcast that is already
+   * running, so the host's tracks are subscribed during `client.join()` —
+   * before the caller has a `Room` to attach a handler to. Media arrived
+   * and decoded, and the page rendered nothing.
+   */
+  describe('trackSubscribed replay for publishers who were already live', () => {
+    function remoteTrack(kind: 'camera' | 'microphone'): RemoteTrack {
+      return new RemoteTrack(
+        {
+          mediaStreamTrack: {} as MediaStreamTrack,
+          isMuted: false,
+          attach: jest.fn(),
+          detach: jest.fn(() => []),
+        },
+        kind,
+      );
+    }
+
+    it('replays tracks subscribed before the handler was added', async () => {
+      const adapter = new FakeAdapter();
+      const room = new Room(adapter, 'room-1', logger);
+
+      // What join() does: subscribe to whoever is already publishing.
+      const host = adapter.addRemoteParticipant('host');
+      const camera = remoteTrack('camera');
+      const microphone = remoteTrack('microphone');
+      host.tracks.push(camera, microphone);
+
+      const subscribed = jest.fn();
+      room.on('trackSubscribed', subscribed);
+      await Promise.resolve();
+
+      expect(subscribed).toHaveBeenCalledTimes(2);
+      expect(subscribed).toHaveBeenCalledWith(camera, host);
+      expect(subscribed).toHaveBeenCalledWith(microphone, host);
+    });
+
+    it('does not deliver twice to a handler that was already listening', async () => {
+      const adapter = new FakeAdapter();
+      const room = new Room(adapter, 'room-1', logger);
+      const subscribed = jest.fn();
+      room.on('trackSubscribed', subscribed);
+
+      const host = adapter.addRemoteParticipant('host');
+      const camera = remoteTrack('camera');
+      host.tracks.push(camera);
+      adapter.emitTrackSubscribed(camera, host);
+      await Promise.resolve();
+
+      expect(subscribed).toHaveBeenCalledTimes(1);
+    });
+
+    it('replays only to the handler being added, never to the ones already attached', async () => {
+      const adapter = new FakeAdapter();
+      const room = new Room(adapter, 'room-1', logger);
+      const first = jest.fn();
+      room.on('trackSubscribed', first);
+
+      const host = adapter.addRemoteParticipant('host');
+      const camera = remoteTrack('camera');
+      host.tracks.push(camera);
+      adapter.emitTrackSubscribed(camera, host);
+
+      const second = jest.fn();
+      room.on('trackSubscribed', second);
+      await Promise.resolve();
+
+      expect(first).toHaveBeenCalledTimes(1);
+      expect(second).toHaveBeenCalledTimes(1);
+      expect(second).toHaveBeenCalledWith(camera, host);
+    });
+
+    it('replays nothing when nobody is publishing yet', async () => {
+      const adapter = new FakeAdapter();
+      const room = new Room(adapter, 'room-1', logger);
+      adapter.addRemoteParticipant('host');
+
+      const subscribed = jest.fn();
+      room.on('trackSubscribed', subscribed);
+      await Promise.resolve();
+
+      expect(subscribed).not.toHaveBeenCalled();
+    });
+
+    it('does not re-enter the caller inside .on()', () => {
+      const adapter = new FakeAdapter();
+      const room = new Room(adapter, 'room-1', logger);
+      const host = adapter.addRemoteParticipant('host');
+      host.tracks.push(remoteTrack('camera'));
+
+      const subscribed = jest.fn();
+      room.on('trackSubscribed', subscribed);
+
+      // Deferred to a microtask, so a handler can rely on anything the
+      // caller sets up on the line after `.on(...)`.
+      expect(subscribed).not.toHaveBeenCalled();
+    });
+  });
 });
 
 describe('Room — actions delegate to the adapter', () => {
@@ -251,7 +351,7 @@ describe('Room — telemetry (best-effort, Phase 9)', () => {
     return { connectionId: 'conn_test123', send: jest.fn() };
   }
 
-  it('exposes the telemetry client\'s connectionId as its own public connectionId', () => {
+  it("exposes the telemetry client's connectionId as its own public connectionId", () => {
     const adapter = new FakeAdapter();
     const telemetry = fakeTelemetry();
     const room = new Room(adapter, 'room-1', logger, telemetry);
