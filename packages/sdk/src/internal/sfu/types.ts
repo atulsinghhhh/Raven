@@ -92,6 +92,19 @@ export interface SFUAdapter {
   unpublish(track: LocalTrack): Promise<void>;
 
   sendData(payload: Uint8Array<ArrayBuffer>): Promise<void>;
+  /**
+   * Makes sure a data channel exists, for a participant that wants to
+   * *receive* data.
+   *
+   * The SFU fans data out over each recipient's own channel, so a
+   * participant with no channel cannot receive — and one is only created
+   * on demand, because most calls never send a byte. Listening for
+   * `dataReceived` is that demand.
+   *
+   * Optional so an adapter with no channel concept (or a test double)
+   * satisfies this interface untouched.
+   */
+  ensureDataChannel?(): void;
 
   getDevices(kind?: DeviceKind): Promise<DeviceInfo[]>;
   /**
