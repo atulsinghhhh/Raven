@@ -85,6 +85,61 @@ node scripts/verify-package-metadata.mjs
 node scripts/verify-pack-manifests.mjs
 ```
 
+### The token must be a classic Automation token
+
+`NPM_TOKEN` has to be a **classic Automation** token. A granular access
+token authenticates fine and still cannot publish from CI.
+
+The failure looks like this, at the last step of a four-minute job:
+
+```
+🦋  error an error occurred while publishing @ravenkash/client: ERR_PNPM_OTP_NON_INTERACTIVE
+🦋  error $ node ../../scripts/assert-publish-safe.mjs
+🦋  packages failed to publish:
+🦋  @ravenkash/client@0.1.3
+🦋  @ravenkash/rtc@0.3.1
+```
+
+What happened: the registry accepted the credential and then challenged
+the **write** with two-factor authentication, answering with an `authUrl`
+for npm's browser confirmation flow. pnpm raises `OTP_NON_INTERACTIVE`
+because there is no terminal to complete it in —
+
+> The registry requires additional authentication, but pnpm is not running
+> in an interactive terminal
+
+`--otp` does not help; it takes a human-typed code. Classic **Automation**
+tokens are the credential npm exempts from 2FA on writes. Granular access
+tokens are not exempt, which is also why `npm profile get` and
+`npm access list packages` return 403 for them.
+
+Fix, in order of preference:
+
+1. npmjs.com → *Access Tokens* → *Generate New Token* → **Classic Token**
+   → **Automation**, then `gh secret set NPM_TOKEN`.
+2. Or set the account's 2FA level to *Authorization only* instead of
+   *Authorization and writes*. This works but lowers security for
+   interactive logins too.
+
+Two things this failure is **not**, both of which the log implicates by
+proximity:
+
+- **`assert-publish-safe.mjs` did not reject anything.** pnpm echoes the
+  `prepublishOnly` script line next to the error. The guard ran and passed.
+- **Not the workspace-protocol bug.** `Verify packed manifests are
+  installable` passes in the same run; the tarballs are fine.
+
+Nothing is published when this happens — it fails before the first upload,
+so there is no partial release to clean up. Once the token is replaced,
+`gh workflow run release.yml` picks up where it stopped: `main` already
+carries the bumped versions, and `changeset publish` publishes any package
+whose version is not yet on the registry.
+
+The `Preflight — can this credential publish?` step in `release.yml` now
+checks what it can before the build runs, and warns when the token looks
+granular. It cannot *prove* OTP-exemption — no read-only endpoint reports
+it — so it warns rather than blocks.
+
 ### Never publish with npm
 
 `pnpm publish` rewrites `workspace:*` to a concrete version when it packs.
