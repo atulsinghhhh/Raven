@@ -41,7 +41,7 @@ export interface NavSection {
  *
  * Effects is here because it is a product by every test that matters — its own
  * package, its own error vocabulary, its own platform integrations — even
- * though it runs entirely client-side and needs no Raven credential.
+ * though it runs entirely client-side and needs no Livqeno credential.
  */
 export const PRODUCTS: { id: ProductId; label: string; slug: string }[] = [
   { id: 'rtc', label: 'RTC', slug: 'rtc' },
@@ -54,7 +54,7 @@ export const NAV: NavSection[] = [
   {
     title: 'Introduction',
     items: [
-      { slug: 'getting-started/introduction', title: 'What is Raven?' },
+      { slug: 'getting-started/introduction', title: 'What is Livqeno?' },
       { slug: 'getting-started/architecture', title: 'Architecture' },
       { slug: 'getting-started/quickstart', title: 'Quickstart' },
     ],
@@ -177,7 +177,7 @@ export const NAV: NavSection[] = [
     items: [
       { slug: 'sdk', title: 'Overview' },
       { slug: 'sdk/web', title: 'Web' },
-      { slug: 'sdk/client', title: 'Raven Client' },
+      { slug: 'sdk/client', title: 'Livqeno Client' },
       { slug: 'sdk/react', title: 'React' },
       { slug: 'sdk/react-native', title: 'React Native' },
       { slug: 'sdk/flutter', title: 'Flutter' },

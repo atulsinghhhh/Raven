@@ -1,6 +1,6 @@
 ---
 title: RTC Integration
-description: camera.attachEffects()/detachEffects() — how a pipeline plugs into Raven RTC without disconnecting or renegotiating.
+description: camera.attachEffects()/detachEffects() — how a pipeline plugs into Livqeno RTC without disconnecting or renegotiating.
 ---
 
 Effects attach to a `LocalTrack` of kind `'camera'` — the same class

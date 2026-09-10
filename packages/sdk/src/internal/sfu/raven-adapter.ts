@@ -66,7 +66,7 @@ interface SubscribedTrack {
 }
 
 /**
- * Raven's native `SFUAdapter`: an `RTCPeerConnection` driven by Raven's own
+ * Livqeno's native `SFUAdapter`: an `RTCPeerConnection` driven by Livqeno's own
  * signaling.
  *
  * This replaced the LiveKit adapter. `Room` and `RTCClient` were already
@@ -233,7 +233,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
    * Known gap, not an oversight. The old adapter passed through LiveKit's
    * server-computed verdict, which had a vantage point no client can get
    * near: the SFU sees loss and jitter on every leg of the room, not just
-   * this one. Raven's SFU doesn't work out an equivalent yet. Dressing a
+   * this one. Livqeno's SFU doesn't work out an equivalent yet. Dressing a
    * client-side guess up as a server verdict is precisely the fabricated
    * metric spec §19 rules out, so this says "unknown" until the SFU can
    * answer honestly. `room.getConnectionStats()` gives you real per-track
@@ -696,7 +696,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
         try {
           await pc.setLocalDescription({ type: 'rollback' });
         } catch (error) {
-          // Every engine Raven supports implements explicit rollback, and
+          // Every engine Livqeno supports implements explicit rollback, and
           // `setRemoteDescription(offer)` rolls back implicitly anyway.
           // Log and carry on rather than abandoning the answer.
           this.logger.debug('explicit rollback unavailable', (error as Error).message);
@@ -781,7 +781,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
   /**
    * A round ended: offer again if anything still needs one.
    *
-   * Two things can: the browser's own negotiation-needed bit, and Raven's
+   * Two things can: the browser's own negotiation-needed bit, and Livqeno's
    * requirement that our published tracks appear in the local description
    * by their real ids. See `publishedTracksMissingFromSdp()`.
    */
@@ -796,7 +796,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
    * Whether some published track's id is absent from the local
    * description's `a=msid:` lines.
    *
-   * Raven's SFU identifies a published track by the id in the SDP `msid`
+   * Livqeno's SFU identifies a published track by the id in the SDP `msid`
    * and matches it against the `track.publish` declaration that says
    * whether it is a camera or a screen share. So it is not enough for the
    * track to be *sending*: our id has to be the one on the wire.
@@ -1155,7 +1155,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
       // through `createCustomTrack()`.
       throw new RTCError(
         'MEDIA_ERROR',
-        'This track was not created by the Raven SDK. Wrap your own MediaStreamTrack with createCustomTrack() (or client.createCustomTrack()) before publishing it',
+        'This track was not created by the Livqeno SDK. Wrap your own MediaStreamTrack with createCustomTrack() (or client.createCustomTrack()) before publishing it',
       );
     }
 
@@ -1349,7 +1349,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
    *
    * A screen share is the one case where desired state can have expired
    * while we were away: ending the share is the user's own doing, through
-   * browser UI Raven never sees, and its track is dead for good. Restoring
+   * browser UI Livqeno never sees, and its track is dead for good. Restoring
    * a dead track would publish an m-section that never carries a frame, so
    * it is dropped and the room is told, exactly as if the user had stopped
    * sharing while connected.
@@ -1831,7 +1831,7 @@ function isArrayBufferLike(value: unknown): value is ArrayBuffer {
 /**
  * Reads which room this token was minted for.
  *
- * The token is a Raven JWT and its payload is readable, not secret. Same
+ * The token is a Livqeno JWT and its payload is readable, not secret. Same
  * information the server is going to act on. We decode it; we never trust
  * it. The server re-verifies the signature, and anything a client fiddles
  * with here only changes which room it *asks* for.

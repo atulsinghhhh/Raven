@@ -164,10 +164,10 @@ from "your body was malformed".
   not a stored analytics series — there is no historical viewer curve. See
   [Analytics](/live-streaming/analytics).
 - **No recording exists.** If your product needs a replay, you need to
-  build it outside Raven.
-- **Scale is unproven for large audiences.** Raven's own tests reach 100
+  build it outside Livqeno.
+- **Scale is unproven for large audiences.** Livqeno's own tests reach 100
   participants on loopback with synthetic media. A 10,000-viewer broadcast
-  is a different problem and is not something Raven has measured.
+  is a different problem and is not something Livqeno has measured.
 - **End your streams.** An abandoned `LIVE` stream keeps a room allocated.
   Wire `end()` into whatever your product treats as "the host left".
 

@@ -1,9 +1,9 @@
 ---
 title: Event catalogue
-description: Every event Raven emits, across all three surfaces, in one table. Generated claims verified against source.
+description: Every event Livqeno emits, across all three surfaces, in one table. Generated claims verified against source.
 ---
 
-Raven emits events on three surfaces. They are not the same list, and an
+Livqeno emits events on three surfaces. They are not the same list, and an
 event existing on one does not mean it exists on another.
 
 | Surface | Delivered to | Count | Reference |

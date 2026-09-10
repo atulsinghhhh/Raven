@@ -33,7 +33,7 @@ await room.unpublish(track);
 track.stop();               // release the camera light
 ```
 
-### A source Raven does not capture
+### A source Livqeno does not capture
 
 For anything the SDK has no capture path for — a `canvas.captureStream()`
 frame source, a Web Audio graph, a decoded file, a virtual camera — wrap
@@ -50,7 +50,7 @@ tile a subscriber puts the track in; it defaults to `camera` for video and
 `microphone` for audio. Everything downstream — muting, stats, effects,
 subscriber events — behaves exactly as it does for a captured track.
 
-Raven never captured this track, so stopping the canvas, the oscillator or
+Livqeno never captured this track, so stopping the canvas, the oscillator or
 the file stays yours to do. `room.unpublish(track)` stops the track itself,
 as it does for every other kind.
 
@@ -114,7 +114,7 @@ type TrackKind = 'camera' | 'microphone' | 'screenShare' | 'unknown';
 ```
 
 `unknown` is honest rather than a fallback guess. WebRTC carries no notion
-of what a stream is *of*, so Raven declares the source explicitly when
+of what a stream is *of*, so Livqeno declares the source explicitly when
 publishing; a track that arrives without one is reported as unknown rather
 than assumed to be a camera.
 

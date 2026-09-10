@@ -186,7 +186,7 @@ export default async function ErrorsPage({
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Errors"
-        description={`Every error your clients reported through the SDK, newest first. Raven keeps the ${formatCount(FETCH_LIMIT)} most recent records available here.`}
+        description={`Every error your clients reported through the SDK, newest first. Livqeno keeps the ${formatCount(FETCH_LIMIT)} most recent records available here.`}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">

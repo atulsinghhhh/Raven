@@ -1,12 +1,12 @@
 ---
 title: Installing from source
-description: How to use Raven's SDKs today, before they're published to npm and PyPI.
+description: How to use Livqeno's SDKs today, before they're published to npm and PyPI.
 ---
 
-None of Raven's SDKs are published to a package registry yet. Every
+None of Livqeno's SDKs are published to a package registry yet. Every
 `npm install @ravenkash/...` and `pip install` command in these docs shows
-what installation *will* look like once they are. Raven's source isn't
-public — this page is for a checkout your Raven contact has already
+what installation *will* look like once they are. Livqeno's source isn't
+public — this page is for a checkout your Livqeno contact has already
 given you access to, not something to clone from a public URL.
 
 > **Do not `pip install raven-sdk`.** That name already belongs to an
@@ -17,7 +17,7 @@ given you access to, not something to clone from a public URL.
 ## 1. Build the checkout
 
 ```bash
-cd <your Raven checkout>
+cd <your Livqeno checkout>
 pnpm install                              # setup — this is a pnpm workspace
 npm run build --workspaces --if-present
 ```
@@ -46,7 +46,7 @@ version:
 }
 ```
 
-Adjust the relative paths to wherever you cloned Raven, then
+Adjust the relative paths to wherever you cloned Livqeno, then
 `npm install` (or `pnpm install`). Imports then work exactly as the docs
 show them:
 
@@ -103,12 +103,12 @@ dependencies:
     path: ../path/to/your-checkout/sdks/flutter/raven_chat
 ```
 
-A path dependency, not a git one — Raven's source isn't a public
+A path dependency, not a git one — Livqeno's source isn't a public
 repository to point `flutter pub get` at.
 
-## 3. Run Raven itself
+## 3. Run Livqeno itself
 
-The SDKs need a Raven control plane to talk to. To run one locally:
+The SDKs need a Livqeno control plane to talk to. To run one locally:
 
 ```bash
 cp .env.example .env
@@ -119,7 +119,7 @@ npm run db:seed        # optional: a demo developer, project, key, and room
 ```
 
 `.env` needs a `DATABASE_URL` and `DIRECT_URL` before any of this works —
-Postgres is not part of the compose stack. Any Postgres will do; Raven's
+Postgres is not part of the compose stack. Any Postgres will do; Livqeno's
 own deployment uses managed Postgres on Supabase, whose free tier gives you
 both connection strings in a couple of minutes.
 

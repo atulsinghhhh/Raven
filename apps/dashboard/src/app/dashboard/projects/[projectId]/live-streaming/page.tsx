@@ -54,7 +54,7 @@ export default async function LiveStreamingOverviewPage({ params }: { params: Pr
         <EmptyState
           icon={<IconLiveStreaming className="size-7" />}
           title="No live streams yet"
-          description="Raven never creates streams from the dashboard. Your backend creates them with a project API key — raven.liveStreams.create() via @ravenkash/server or raven-sdk — and they appear here the moment they exist."
+          description="Livqeno never creates streams from the dashboard. Your backend creates them with a project API key — raven.liveStreams.create() via @ravenkash/server or raven-sdk — and they appear here the moment they exist."
           action={
             <>
               <ButtonLink href={`${base}/sdks`} variant="primary">
@@ -123,7 +123,7 @@ export default async function LiveStreamingOverviewPage({ params }: { params: Pr
       <section>
         <SectionHeader
           title="Watch time"
-          subtitle="Not tracked yet — Raven doesn't meter viewer-minutes in this phase. See the SDK Support Matrix in the docs for what's measured today."
+          subtitle="Not tracked yet — Livqeno doesn't meter viewer-minutes in this phase. See the SDK Support Matrix in the docs for what's measured today."
         />
         <Card>
           <NoDataYet label="Analytics coming soon" />

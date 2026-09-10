@@ -1,5 +1,5 @@
 #cloud-config
-# Minimal Docker host. Both Raven media-plane VMs use this.
+# Minimal Docker host. Both Livqeno media-plane VMs use this.
 #
 # Docker from Ubuntu's own repo rather than Docker's: fewer moving parts on
 # first boot, and neither VM needs a bleeding-edge engine. The compose

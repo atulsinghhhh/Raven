@@ -1,4 +1,4 @@
-// Command sfu is Raven's Selective Forwarding Unit.
+// Command sfu is Livqeno's Selective Forwarding Unit.
 //
 // Media comes in from publishers, goes back out to subscribers, all over
 // bog-standard WebRTC (ICE, DTLS-SRTP, RTP/RTCP) on top of Pion. No

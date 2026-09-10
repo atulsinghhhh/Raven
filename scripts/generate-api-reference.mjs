@@ -45,7 +45,7 @@ const GROUPS = [
     title: 'Auth & Account API',
     description: 'Registration, sign-in, email verification, password reset, OAuth, and the signed-in account.',
     match: (p) => /^\/v1\/(auth|users|onboarding)\b/.test(p),
-    intro: `These endpoints back the Raven dashboard and the CLI's \`raven login\`.
+    intro: `These endpoints back the Livqeno dashboard and the CLI's \`raven login\`.
 Your own application's users never touch them — they authenticate against
 your app, and your backend mints them a [token](/authentication/tokens).`,
   },
@@ -112,7 +112,7 @@ retry behaviour.`,
     description: 'Connection history, classified errors, usage metrics, dependency health, and telemetry ingest.',
     match: () => true,
     intro: `Everything here is read-only and reports what actually happened.
-Nothing is fabricated: a value Raven does not know comes back \`null\` or
+Nothing is fabricated: a value Livqeno does not know comes back \`null\` or
 absent rather than as a plausible-looking guess.
 
 Most of these exist twice — once under \`/v1/...\` for a project API key (what
@@ -308,10 +308,10 @@ function writeAllEndpoints(routes) {
   const page = [
     '---',
     'title: All endpoints',
-    'description: Every route the Raven API serves, generated from the controllers.',
+    'description: Every route the Livqeno API serves, generated from the controllers.',
     '---',
     '',
-    `Raven serves **${rows.length}** versioned endpoints under \`/v1\`, plus`,
+    `Livqeno serves **${rows.length}** versioned endpoints under \`/v1\`, plus`,
     `**${infra.length}** unversioned infrastructure routes. This page is generated`,
     'from `apps/api`, so it is the whole surface — not a curated subset.',
     '',
@@ -402,7 +402,7 @@ function writeEnvVars() {
         // In .env.example but nothing in this repository reads it: either a
         // container's own entrypoint consumes it (coturn's template does), or
         // it is stale. Said plainly rather than attributed to a guess.
-        if (notRead.has(k)) notes.push('in `.env.example`, but no Raven component reads it');
+        if (notRead.has(k)) notes.push('in `.env.example`, but no Livqeno component reads it');
         if (undocumented.has(k)) notes.push('**not in `.env.example`**');
         return `| \`${k}\` | ${notes.join('; ') || ' '} |`;
       });
@@ -431,10 +431,10 @@ function writeEnvVars() {
   const page = [
     '---',
     'title: Environment variables',
-    'description: Every variable any Raven component reads, grouped by what it configures. Generated from source.',
+    'description: Every variable any Livqeno component reads, grouped by what it configures. Generated from source.',
     '---',
     '',
-    `Raven's components read **${gtConfig.readByAnyComponent.length}** environment variables between them —`,
+    `Livqeno's components read **${gtConfig.readByAnyComponent.length}** environment variables between them —`,
     `**${gtConfig.readByApi.length}** by the control plane, **${gtConfig.readBySfu.length}** by the SFU,`,
     `**${gtConfig.readByDashboard.length}** by the dashboard. \`.env.example\` documents`,
     `**${gtConfig.inEnvExample.length}**, which leaves **${gtConfig.readButUndocumented.length}** read but`,
@@ -572,7 +572,7 @@ function writeLimits() {
     'self-hosted deployment can change any of them; a hosted one has whatever',
     'its operator set.',
     '',
-    'Nothing here is a billing quota. The one quota Raven does enforce is the',
+    'Nothing here is a billing quota. The one quota Livqeno does enforce is the',
     '20,000 free RTC minutes every account is granted — see',
     '[Usage](/concepts/usage). Everything below is a technical ceiling, and none',
     'of it is affected by how many minutes you have left.',

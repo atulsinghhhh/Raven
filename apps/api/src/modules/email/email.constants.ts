@@ -1,12 +1,12 @@
 import { createHash } from 'crypto';
 
 /**
- * Every transactional email Raven sends. The value is what appears in
+ * Every transactional email Livqeno sends. The value is what appears in
  * logs and in the `type` label on the Prometheus counters, so it is a
  * stable identifier rather than a display string — renaming one renames a
  * metric label.
  *
- * Deliberately short. Raven does not email a developer for every event;
+ * Deliberately short. Livqeno does not email a developer for every event;
  * this list is signup, the two credential flows, and being added to
  * someone else's project. Anything beyond that belongs in webhooks, which
  * already exist and are the right surface for product events.

@@ -7,7 +7,7 @@ What you'll build: two participants in a room, each publishing camera
 and microphone and seeing/hearing the other. Every step below is the
 real API — copy it, swap in your own token endpoint, and it runs.
 
-**Prerequisites:** a Raven project and a project API key (see
+**Prerequisites:** a Livqeno project and a project API key (see
 [API Keys](/authentication)) — RTC tokens are minted with it, server-side,
 and never in a browser or app.
 
@@ -345,9 +345,9 @@ await raven.leave();
 </Tab>
 </Tabs>
 
-## What Raven handles vs. what you handle
+## What Livqeno handles vs. what you handle
 
-**Raven handles:** signaling, media routing through the SFU, ICE/TURN
+**Livqeno handles:** signaling, media routing through the SFU, ICE/TURN
 negotiation, reconnection with backoff, and firing participant/track
 events as the room's state actually changes.
 

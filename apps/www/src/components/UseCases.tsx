@@ -1,8 +1,8 @@
 /**
  * The horizontal marquee, in the slot the reference fills with customer
- * testimonials. Raven has none to show, and inventing quotes or logos
+ * testimonials. Livqeno has none to show, and inventing quotes or logos
  * would be the one thing this page must never do, so the same
- * two-row, opposite-direction rail carries what Raven is actually
+ * two-row, opposite-direction rail carries what Livqeno is actually
  * built for instead.
  *
  * Pure CSS: each row holds its list twice and slides exactly half its

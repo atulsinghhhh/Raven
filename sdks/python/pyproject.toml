@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "raven-sdk"
 version = "0.1.0"
-description = "Raven server SDK — mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Never for use in a browser."
+description = "Livqeno server SDK — mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Never for use in a browser."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"

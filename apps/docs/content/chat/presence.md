@@ -60,7 +60,7 @@ heartbeat every 20 seconds.
 
 ## Expiry is the offline signal
 
-Raven doesn't rely on a client saying goodbye. A live connection keeps
+Livqeno doesn't rely on a client saying goodbye. A live connection keeps
 its key alive; if the process holding that socket dies — a crash, an OOM
 kill, a laptop lid closing — nothing announces it. The key simply
 expires, and the user goes offline within 45 seconds on its own.

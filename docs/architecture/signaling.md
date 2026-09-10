@@ -7,11 +7,11 @@
 > **First amendment (Phase 3).** The original decision below — no custom
 > signaling server, the media server owns it entirely — was overruled by a
 > specification calling for exactly the custom WebSocket layer this
-> document argued against. Both then existed side by side: Raven's own
+> document argued against. Both then existed side by side: Livqeno's own
 > WebSocket relayed SDP and ICE between browsers in a full mesh, while the
 > SFU-mediated path used the vendor's protocol.
 >
-> **Second amendment (the native migration).** That split is gone. Raven
+> **Second amendment (the native migration).** That split is gone. Livqeno
 > owns the signaling protocol outright, and it is SFU-oriented: a client
 > has exactly one peer — the node serving its room — so the server is a
 > party to the negotiation rather than a courier, and no message names a

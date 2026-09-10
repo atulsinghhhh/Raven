@@ -1,9 +1,9 @@
 ---
 title: Core concepts
-description: Every primitive Raven actually has, what it is for, and how it relates to the others.
+description: Every primitive Livqeno actually has, what it is for, and how it relates to the others.
 ---
 
-Raven has a small vocabulary. Learning it once makes the rest of the
+Livqeno has a small vocabulary. Learning it once makes the rest of the
 documentation short, because every page assumes these words mean exactly
 what this section says they mean.
 
@@ -25,7 +25,7 @@ Project                          you create one; everything belongs to it
  │    ├── Member                 who may read and write
  │    └── Message                durable, ordered, with reactions and threads
  ├── Live stream                 a room + a conversation, with roles
- └── Webhook endpoint            where Raven POSTs events
+ └── Webhook endpoint            where Livqeno POSTs events
 ```
 
 ## Control plane and media plane
@@ -36,9 +36,9 @@ The **control plane** manages records: projects, keys, rooms,
 conversations, tokens, webhooks. It is a REST API and it never carries
 audio or video.
 
-The **media plane** carries the actual bytes: Raven's own SFU, and TURN
+The **media plane** carries the actual bytes: Livqeno's own SFU, and TURN
 relays when a direct path is unavailable. Your client never addresses it.
-It connects to a signaling endpoint, and Raven allocates a media server on
+It connects to a signaling endpoint, and Livqeno allocates a media server on
 its behalf.
 
 That separation is why a client only ever holds a token, and why the media
@@ -62,13 +62,13 @@ server underneath could be replaced without an SDK release.
 | [Event](/concepts/event) | Something that happened — as an SDK callback or a webhook. |
 | [Webhook](/concepts/webhook) | A signed HTTP POST to your backend when an event fires. |
 
-## What Raven does not have
+## What Livqeno does not have
 
 Stated because their absence shapes designs:
 
 - **No recording.** Nothing captures a room or stream to storage.
 - **No usage metering or billing.**
-- **No user accounts for *your* users.** Raven has no idea who your users
+- **No user accounts for *your* users.** Livqeno has no idea who your users
   are; identity arrives as a string your backend chose when it minted a
   token.
 - **No "channel" primitive distinct from a conversation.** `CHANNEL` is one

@@ -23,7 +23,7 @@ as chat's, rather than a second mechanism.
 
 On the SDK side, `RTCErrorCode` gains `TOKEN_REVOKED` and
 `USAGE_LIMIT_EXCEEDED`. The second is the one worth noticing: running out of
-included Raven minutes previously surfaced as `SIGNALING_ERROR`, which is
+included Livqeno minutes previously surfaced as `SIGNALING_ERROR`, which is
 indistinguishable from signaling actually breaking. It is the one join
 failure whose remedy is commercial rather than technical, so an application
 can now show a billing prompt instead of a retry button. Both are treated as

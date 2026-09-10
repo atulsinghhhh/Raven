@@ -1,19 +1,23 @@
 import type { Metadata } from 'next';
 import { Fraunces, JetBrains_Mono, Lexend } from 'next/font/google';
 import './globals.css';
+import { SITE_URL } from '../lib/site';
 
-const TITLE = 'Raven — Infrastructure for real-time applications';
+const TITLE = 'Livqeno — Infrastructure for real-time applications';
 const DESCRIPTION =
   'Audio, video, chat, and live streaming infrastructure with the APIs and SDKs to build real-time applications — token-based auth, real diagnostics, and SDKs for web, mobile, and server.';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: TITLE,
+  alternates: { canonical: '/' },
   description: DESCRIPTION,
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,
     type: 'website',
-    siteName: 'Raven',
+    siteName: 'Livqeno',
+    url: '/',
   },
   twitter: {
     card: 'summary',

@@ -1,13 +1,13 @@
 # @ravenkash/effects
 
-Raven's real-time video effects pipeline — filters, presets, beauty
+Livqeno's real-time video effects pipeline — filters, presets, beauty
 smoothing, background processing and face detection.
 
 **Provider-agnostic**: takes a `MediaStreamTrack`, returns a processed
-`MediaStreamTrack`. Nothing in it is specific to Raven, so it works with
+`MediaStreamTrack`. Nothing in it is specific to Livqeno, so it works with
 any WebRTC stack.
 
-Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
+Part of [Livqeno](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
 
 ## Install
 

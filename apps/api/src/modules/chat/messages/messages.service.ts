@@ -55,7 +55,7 @@ export interface MessagePage {
 }
 
 /**
- * The durable half of Raven Chat.
+ * The durable half of Livqeno Chat.
  *
  * Everything here writes to Postgres first and publishes to Redis second. A
  * message is never reported as stored before it genuinely is (spec §15,

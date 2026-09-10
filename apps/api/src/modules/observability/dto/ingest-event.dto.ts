@@ -13,7 +13,7 @@ import { CONNECTION_EVENT_TYPES } from '../observability.constants';
 export class IngestEventDto {
   @ApiProperty({ example: 'conn_01J8Z3K9QK2Y8V6ZC7B5R9F0XN', description: "The client-generated connection ID (Room's own, stable for its lifetime)." })
   @IsString()
-  @Matches(/^conn_/, { message: 'connectionId must be a Raven connection ID (conn_...)' })
+  @Matches(/^conn_/, { message: 'connectionId must be a Livqeno connection ID (conn_...)' })
   @MaxLength(128)
   connectionId!: string;
 

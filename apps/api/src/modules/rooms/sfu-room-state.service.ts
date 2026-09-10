@@ -32,7 +32,7 @@ export interface LiveParticipantInfo {
  * # Why it's keyed by room id, not room name
  *
  * The old service took room *names*, because that's what LiveKit's API
- * indexed on. Raven's own media plane is addressed by room id throughout,
+ * indexed on. Livqeno's own media plane is addressed by room id throughout,
  * in allocation, signaling and the node link alike, so this takes the id.
  * Callers already hold the room row, so they've got it to hand.
  *

@@ -12,7 +12,7 @@ export function ProductSwitcher({ activeSlug }: { activeSlug?: string }) {
   const active = activeSlug ? productForSlug(activeSlug) : undefined;
 
   return (
-    <nav aria-label="Raven products" className="mono-label flex items-center gap-0.5 rounded-md border border-line bg-surface p-0.5 text-[11px]">
+    <nav aria-label="Livqeno products" className="mono-label flex items-center gap-0.5 rounded-md border border-line bg-surface p-0.5 text-[11px]">
       {PRODUCTS.map((product) => {
         const isActive = product.id === active;
         return (

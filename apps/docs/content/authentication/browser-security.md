@@ -3,19 +3,19 @@ title: Browser security & CORS
 description: What your frontend may hold, what it may not, and how per-project allowed origins work.
 ---
 
-Raven is used from the browser, and the browser is the one place where your
+Livqeno is used from the browser, and the browser is the one place where your
 code runs on hardware you do not control. This page is the whole story: what
 your frontend may hold, what it may not, and why running on
 `http://localhost:5173` does not require asking anyone's permission.
 
 The short version:
 
-- Your **Raven API key never reaches the browser.** Your backend mints
+- Your **Livqeno API key never reaches the browser.** Your backend mints
   short-lived grants; the page gets those.
 - **Localhost works out of the box**, on any port, with no configuration.
 - **Production origins** are declared per project, under Project Settings →
   Security → Allowed Origins.
-- CORS is a browser feature and cannot isolate tenants, so Raven does not
+- CORS is a browser feature and cannot isolate tenants, so Livqeno does not
   rely on it to. Tenancy is enforced in the server.
 
 ## 1. Why CORS exists, and what it is not
@@ -35,7 +35,7 @@ server. Blocking origins does not protect a token-authenticated API; it only
 inconveniences whoever is holding a legitimate token.
 
 **CORS does not apply to WebSockets at all.** There is no preflight on a
-WebSocket upgrade and no browser-side check. Raven's RTC and chat gateways
+WebSocket upgrade and no browser-side check. Livqeno's RTC and chat gateways
 therefore validate the `Origin` header themselves — see §6.
 
 ## 2. The recommended flow
@@ -43,7 +43,7 @@ therefore validate the `Origin` header themselves — see §6.
 Your backend holds the API key. The browser holds a grant.
 
 ```text
-Browser  ──▶  Your backend  ──▶  Raven Control Plane
+Browser  ──▶  Your backend  ──▶  Livqeno Control Plane
                 (API key)          │
                                    ▼
 Browser  ◀────────────────────  RTC / chat grant
@@ -78,7 +78,7 @@ const client = createRTCClient(grant);   // token, endpoint, iceServers
 const room = await client.join();        // the token names its own room
 ```
 
-Nothing in that frontend is a secret, and nothing in it is a Raven URL you
+Nothing in that frontend is a secret, and nothing in it is a Livqeno URL you
 chose. `endpoint`, `iceServers` and `telemetryUrl` all arrive inside the
 grant, so the same code runs against a local control plane and the hosted one
 with no change.
@@ -91,7 +91,7 @@ nothing to register.
 
 This is deliberate rather than accidental. A page on a loopback address is on
 the developer's own machine, and it still needs a valid grant to do anything;
-there is no version of this where registering port numbers with Raven would
+there is no version of this where registering port numbers with Livqeno would
 have made anyone safer.
 
 It is also **not** a wildcard. `https://localhost.evil.example` is a real DNS
@@ -146,7 +146,7 @@ does **not** cover `https://app.example.com`.
 
 Immediately, for connections made after you save.
 
-Raven caches each project's origin policy — the check runs on every
+Livqeno caches each project's origin policy — the check runs on every
 telemetry event, chat REST call and WebSocket upgrade, so it cannot be a
 database query each time — but saving a change invalidates that cache
 across the whole API fleet, not just whichever server handled your save.
@@ -163,7 +163,7 @@ need to cut existing sessions, close the room
 
 ## 5. Why the API key must stay server-side
 
-A Raven API key is long-lived and project-wide. It can mint tokens for any
+A Livqeno API key is long-lived and project-wide. It can mint tokens for any
 room and any identity, read your project's diagnostics, and manage your
 rooms. A grant, by contrast, is scoped to one identity, one room or
 conversation, and expires in an hour or less.
@@ -179,7 +179,7 @@ in §2 is the thing you actually want.
 
 ## 6. HTTP CORS vs WebSocket Origin validation
 
-These are genuinely different mechanisms and Raven treats them differently.
+These are genuinely different mechanisms and Livqeno treats them differently.
 
 **HTTP.** SDK surfaces — `/v1/telemetry/*` and `/v1/chat/*` — return
 permissive CORS headers, so the browser never blocks a legitimate SDK call
@@ -190,7 +190,7 @@ names the origin and the setting to change.
 
 That split exists because a preflight is unauthenticated by design. An
 `OPTIONS` request carries no `Authorization` header, so at the moment the
-browser asks "may I?", Raven does not yet know which project is asking. It
+browser asks "may I?", Livqeno does not yet know which project is asking. It
 cannot give a per-tenant answer, so it does not pretend to — the real answer
 comes on the request that actually carries a credential, and it comes as an
 error you can read.
@@ -285,7 +285,7 @@ reach a stream in another project: the project is fixed in the signature.
 | `403 Origin … is not allowed for this project` | The page's origin is not on the list. Add it under Project Settings → Security → Allowed Origins. |
 | `ORIGIN_NOT_ALLOWED` on connect | Same, on a WebSocket. Retrying will not help. |
 | `TOKEN_REVOKED` on connect | This token was revoked (`DELETE /v1/rooms/{roomId}/rtc-tokens/{tokenId}`). Mint a new one; retrying cannot help. See [RTC authentication](/rtc/authentication#revocation). |
-| `blocked by CORS policy` on your *own* API | The failing request is to your backend, not to Raven. Configure CORS there. |
+| `blocked by CORS policy` on your *own* API | The failing request is to your backend, not to Livqeno. Configure CORS there. |
 | Telemetry POST failing but calls working | Telemetry is best-effort and never blocks RTC. Pass `telemetry: false` to silence it. |
 
 ## Related

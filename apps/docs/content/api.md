@@ -3,7 +3,7 @@ title: API Reference
 description: One versioned REST API, shared by every SDK and the CLI. Base path /v1.
 ---
 
-Every Raven SDK and the CLI call the same REST API. There is no private
+Every Livqeno SDK and the CLI call the same REST API. There is no private
 surface: what an SDK does, you can do with `curl` and the same
 [credential](/authentication).
 

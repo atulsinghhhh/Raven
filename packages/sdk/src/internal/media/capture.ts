@@ -9,7 +9,7 @@ import { NativeLocalTrackDelegate } from './native-track';
  * All three on by default, because without them a call sounds dreadful in
  * the circumstances calls actually happen in. A laptop speaker and mic in
  * one room is an echo generator. This is the browser's own processing, not
- * anything Raven implements, and anyone who wants raw audio for music or
+ * anything Livqeno implements, and anyone who wants raw audio for music or
  * transcription can pass their own constraints.
  */
 const DEFAULT_AUDIO_CONSTRAINTS: MediaTrackConstraints = {
@@ -142,7 +142,7 @@ export interface CustomTrackOptions {
 /**
  * Wraps a `MediaStreamTrack` the application produced itself.
  *
- * For sources Raven has no capture path for and shouldn't:
+ * For sources Livqeno has no capture path for and shouldn't:
  * `canvas.captureStream()`, a Web Audio graph, a decoded file, a virtual
  * camera, a synthetic track in a test harness.
  *
@@ -156,7 +156,7 @@ export interface CustomTrackOptions {
  * exactly as they do for a captured track — with no loosening of what
  * `publish()` accepts.
  *
- * Raven does not own this track's lifetime: it never called
+ * Livqeno does not own this track's lifetime: it never called
  * `getUserMedia`, so stopping the canvas, the oscillator or the file is
  * the application's business. `unpublish()` still stops the track, in
  * keeping with every other track the SDK publishes.

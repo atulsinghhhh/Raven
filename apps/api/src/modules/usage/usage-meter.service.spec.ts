@@ -286,7 +286,7 @@ describe('UsageMeterService', () => {
 
     it('credits an abandoned session only up to its last confirmed-alive instant', async () => {
       // The participant stopped when the gateway died. Crediting to now
-      // would bill a developer for Raven's outage.
+      // would bill a developer for Livqeno's outage.
       const lastAlive = new Date(START.getTime() + 120_000);
       const session = store.seedSession({ startedAt: START, meteredSeconds: 60, lastMeteredAt: lastAlive });
 

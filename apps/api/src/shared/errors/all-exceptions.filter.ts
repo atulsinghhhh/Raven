@@ -35,7 +35,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const body = exception.getResponse();
 
       // Nest's own exceptions (ValidationPipe, 404 handler, guards) do not
-      // carry a Raven code, so one is derived from the status. Without
+      // carry a Livqeno code, so one is derived from the status. Without
       // this a caller would see a coded body from our services and an
       // uncoded one from the framework, for the same class of problem.
       const framework =

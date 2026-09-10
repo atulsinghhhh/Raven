@@ -190,9 +190,9 @@ var LocalTrack = class extends Track {
     this.mediaStreamTrack.stop();
   }
   /**
-   * Where Raven Effects (`@ravenkash/effects`) plugs in. The chain is
-   * Camera → Raven Video Track → Effects Pipeline → Processed Video Track →
-   * Raven RTC.
+   * Where Livqeno Effects (`@ravenkash/effects`) plugs in. The chain is
+   * Camera → Livqeno Video Track → Effects Pipeline → Processed Video Track →
+   * Livqeno RTC.
    *
    * Runs `pipeline` against this track's live camera feed and, if the track
    * is already published, swaps the sender's `MediaStreamTrack` in place
@@ -498,7 +498,7 @@ var NativeLocalTrackDelegate = class extends NativeTrackDelegate {
   /**
    * Replaces the outgoing track without renegotiating.
    *
-   * This is the trick that makes Raven Effects work mid-call.
+   * This is the trick that makes Livqeno Effects work mid-call.
    * `RTCRtpSender.replaceTrack` swaps the source of an established stream,
    * so a processed video track takes over from the raw camera with no
    * offer/answer and nobody else in the room noticing.
@@ -1063,7 +1063,7 @@ var RavenAdapter = class extends TypedEventEmitter {
    * Known gap, not an oversight. The old adapter passed through LiveKit's
    * server-computed verdict, which had a vantage point no client can get
    * near: the SFU sees loss and jitter on every leg of the room, not just
-   * this one. Raven's SFU doesn't work out an equivalent yet. Dressing a
+   * this one. Livqeno's SFU doesn't work out an equivalent yet. Dressing a
    * client-side guess up as a server verdict is precisely the fabricated
    * metric spec §19 rules out, so this says "unknown" until the SFU can
    * answer honestly. `room.getConnectionStats()` gives you real per-track
@@ -1533,7 +1533,7 @@ var RavenAdapter = class extends TypedEventEmitter {
     if (!(delegate instanceof NativeLocalTrackDelegate)) {
       throw new RTCError(
         "MEDIA_ERROR",
-        "This track was not created by the Raven SDK and cannot be published"
+        "This track was not created by the Livqeno SDK and cannot be published"
       );
     }
     const stream = typeof MediaStream !== "undefined" ? new MediaStream([track.mediaStreamTrack]) : void 0;

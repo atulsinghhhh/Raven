@@ -6,7 +6,7 @@ import type { TrackKind } from '../../track';
  * error codes.
  *
  * The whole classification is a short read of the `DOMException` names the
- * Media Capture spec defines, so Raven owns it instead of pulling in a
+ * Media Capture spec defines, so Livqeno owns it instead of pulling in a
  * library.
  *
  * Those names come from the spec's own error list (getUserMedia §9.2), not

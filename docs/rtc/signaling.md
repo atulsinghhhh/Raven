@@ -1,10 +1,10 @@
-# Raven RTC — Signaling protocol
+# Livqeno RTC — Signaling protocol
 
-The wire contract between a Raven client and the Raven API. One WebSocket
+The wire contract between a Livqeno client and the Livqeno API. One WebSocket
 per client, JSON text frames, at `/v1/rtc`.
 
-You do not need this to use Raven — the SDKs implement it. It is here for
-anyone writing a client for a platform Raven does not ship, debugging a
+You do not need this to use Livqeno — the SDKs implement it. It is here for
+anyone writing a client for a platform Livqeno does not ship, debugging a
 connection, or reading the server.
 
 > **This protocol is SFU-oriented, not peer-to-peer.** It replaced a
@@ -329,7 +329,7 @@ codes ships under `/v2/rtc` rather than silently changing this contract.
 Additive changes — a new message type, a new field, a new error code — are
 not breaking and will appear in v1. A client must therefore **ignore
 message types and fields it does not recognise** rather than treat them as
-errors; all three of Raven's own clients do.
+errors; all three of Livqeno's own clients do.
 
 Message *names* surviving a change of meaning is exactly what the mesh-to-
 SFU migration did, and it is why that is called out at the top of this

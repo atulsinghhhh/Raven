@@ -5,8 +5,8 @@ import { printInfo } from '../lib/output.js';
 export function registerVersionCommand(program: Command): void {
   program
     .command('version')
-    .description('Print the Raven CLI version')
+    .description('Print the Livqeno CLI version')
     .action(() => {
-      printInfo(`Raven CLI ${CLI_VERSION}`);
+      printInfo(`Livqeno CLI ${CLI_VERSION}`);
     });
 }

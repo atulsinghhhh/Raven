@@ -43,7 +43,7 @@ import { ParsedFrame, optionalString, parseClientFrame, requireString } from './
 import { DEFAULT_ENVIRONMENT } from '../../../shared/environment/environment.constants';
 
 /**
- * The Raven Chat WebSocket gateway.
+ * The Livqeno Chat WebSocket gateway.
  *
  * Kept separate from the RTC signaling gateway on purpose: different path,
  * different token, different protocol, different lifecycle. A media

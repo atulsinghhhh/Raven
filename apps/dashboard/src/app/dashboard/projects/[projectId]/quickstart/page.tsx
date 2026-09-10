@@ -234,7 +234,7 @@ const raven = new Raven({
 // Rooms are control-plane records. Create one, or reuse an ID from raven.rooms.list().
 const room = await raven.rooms.create({ name: 'standup' });
 
-// Your own auth decides who "alice" is. Raven only mints for who you say.
+// Your own auth decides who "alice" is. Livqeno only mints for who you say.
 const issued = await raven.tokens.create({
   room: room.id,
   identity: 'alice',

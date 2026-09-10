@@ -59,7 +59,7 @@ interface PendingRequest {
 }
 
 /**
- * The Raven Chat client.
+ * The Livqeno Chat client.
  *
  * Nobody using this constructs a `WebSocket`, reconnects by hand, sees a
  * frame type, or ever finds out which gateway instance is holding their
@@ -239,7 +239,7 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
 
   /**
    * Sends a message and resolves with the stored one: canonical server id,
-   * canonical timestamp. It only resolves after Raven has durably stored
+   * canonical timestamp. It only resolves after Livqeno has durably stored
    * it, so a resolved promise really does mean saved (spec §15).
    *
    * If you don't supply a `clientMessageId` we attach one, and that's what

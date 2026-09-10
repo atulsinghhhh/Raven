@@ -26,7 +26,7 @@ export interface VerifiedRtcToken {
 }
 
 /**
- * Verifies the same Raven RTC token the token endpoint mints: there's no
+ * Verifies the same Livqeno RTC token the token endpoint mints: there's no
  * separate signaling token format.
  *
  * The signed token is the only source of authorization. Anything the client
@@ -88,7 +88,7 @@ export class RtcTokenVerifierService {
     }
 
     // Only reachable once the signature checked out, so `claims.jti` is a
-    // value Raven minted rather than one the caller chose.
+    // value Livqeno minted rather than one the caller chose.
     if (await this.revocations.isRevoked(claims.jti)) {
       this.logger.warn(`RTC token rejected: TOKEN_REVOKED (${claims.jti})`);
       throw new SignalingError(

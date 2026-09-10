@@ -30,7 +30,7 @@ const raven = new Raven({
 enough: `baseUrl` defaults to `http://localhost:4100`, so a client
 constructed with just a key talks to a local dev stack and fails against
 any real deployment with `RAVEN_NETWORK_ERROR`. Pass both unless you are
-genuinely running Raven on localhost.
+genuinely running Livqeno on localhost.
 
 The SDK **never reads `process.env.RAVEN_API_KEY`, `RAVEN_API_URL`, or any
 other environment variable on its own** — you always pass them explicitly.
@@ -157,7 +157,7 @@ await raven.chat.deleteMessage(messageId);
 
 ### `raven.live` (also `raven.liveStreams`)
 
-Raven Live Streaming: one host, optional co-hosts, many viewers. Both names
+Livqeno Live Streaming: one host, optional co-hosts, many viewers. Both names
 are the same object, so pick whichever reads better.
 
 ```ts
@@ -183,7 +183,7 @@ Both return the same shape — `{ identity, role, rtc, chat? }` — where `rtc`
 is an ordinary RTC grant for `createRTCClient()` and `chat` an ordinary chat
 grant for `createChatClient()`. A stream is an RTC room and a chat
 conversation composed together, not a third realtime system: `stream.conversationId`
-is the conversation, so stream chat is Raven Chat with no extra API to learn.
+is the conversation, so stream chat is Livqeno Chat with no extra API to learn.
 
 ```ts
 const stream = await raven.live.get(streamId);
@@ -192,7 +192,7 @@ stream.conversationId;   // the stream's chat conversation
 ```
 
 `viewerCount` is `null`, never `0`, when the SFU could not be reached. The
-two are different facts and Raven does not collapse them.
+two are different facts and Livqeno does not collapse them.
 
 ## Error model
 

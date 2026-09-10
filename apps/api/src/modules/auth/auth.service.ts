@@ -81,7 +81,7 @@ export class AuthService {
     // has a row to answer from.
     await this.onboardingService.ensureStarted(user.id);
 
-    // The free Raven minutes every developer gets. Written here, next to
+    // The free Livqeno minutes every developer gets. Written here, next to
     // the onboarding row and for the same reason: "how many minutes does
     // this account have?" should always have a row to answer from, rather
     // than depending on whatever page happens to read it first.
@@ -171,7 +171,7 @@ export class AuthService {
    * Sends another verification link. Authenticated, so it takes the
    * address from the session rather than the body: a body-supplied
    * address would turn this into a way to mail arbitrary people from
-   * Raven's domain.
+   * Livqeno's domain.
    */
   async resendVerificationEmail(
     actor: AuthenticatedUser,

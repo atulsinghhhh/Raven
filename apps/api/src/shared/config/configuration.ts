@@ -87,7 +87,7 @@ export default () => ({
 
   rtcToken: {
     defaultTtlSeconds: parseInt(process.env.RTC_TOKEN_DEFAULT_TTL_SECONDS ?? '600', 10),
-    // Signing key for Raven's own RTC tokens (rtc-token-signer.service.ts).
+    // Signing key for Livqeno's own RTC tokens (rtc-token-signer.service.ts).
     // Separate from JWT_SECRET (dashboard sessions) and CHAT_TOKEN_SECRET
     // (chat), so no one credential can mint another's. Same reasoning as
     // chat.tokenSecret below.
@@ -98,7 +98,7 @@ export default () => ({
   },
 
   rtc: {
-    // Where the client SDK connects to run a call: Raven's own signaling
+    // Where the client SDK connects to run a call: Livqeno's own signaling
     // WebSocket, handed to clients as `endpoint` in the token-mint
     // response. This is the *control* path's address. Media gets negotiated
     // over it and never flows through it (spec §6).
@@ -263,12 +263,19 @@ export default () => ({
     // Resend (mail.ravenstack.online), not the apex the website uses. See
     // docs/email.md#domains.
     //
+    // Still on the ravenstack.online sending domain after the Livqeno
+    // rebrand, deliberately: the brand in the message body is Livqeno
+    // (see RESEND_FROM_NAME and the templates), but the envelope domain
+    // can only move once mail.livqeno.com is verified in Resend, which
+    // needs DNS. Until then this is the only domain that can actually
+    // deliver. See docs/deployment/livqeno-domain-cutover.md.
+    //
     // The default only ever applies while email is off: once
     // EMAIL_ENABLED=true, env.validation.ts requires this to be set
     // explicitly, because which mailbox a deployment sends as is a
     // decision, not something to inherit from a repository default.
     fromEmail: process.env.RESEND_FROM_EMAIL ?? 'hello@mail.ravenstack.online',
-    fromName: process.env.RESEND_FROM_NAME ?? 'Raven',
+    fromName: process.env.RESEND_FROM_NAME ?? 'Livqeno',
     // Where a human reply lands. Leave it unset and replies go to
     // fromEmail, which is fine only if somebody actually reads that
     // mailbox.
@@ -276,7 +283,9 @@ export default () => ({
     // Printed in email footers so a stuck user has somewhere to go.
     supportEmail: process.env.EMAIL_SUPPORT_EMAIL ?? 'support@mail.ravenstack.online',
     // Linked from the welcome email. A public documentation URL, not an
-    // app route, so it does not follow appUrl.
+    // app route, so it does not follow appUrl. Moves to docs.livqeno.com
+    // via DOCS_URL once that hostname resolves — the default stays on the
+    // live docs host so the welcome email never links into the void.
     docsUrl: process.env.DOCS_URL ?? 'https://docs.ravenstack.online',
 
     // Token lifetimes. Verification gets a generous day, because people

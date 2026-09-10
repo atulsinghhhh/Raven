@@ -1,4 +1,4 @@
-// Raven video-call example: built entirely on @ravenkash/rtc's public API.
+// Livqeno video-call example: built entirely on @ravenkash/rtc's public API.
 // No SDP, no ICE candidates, and no RTCPeerConnection appear anywhere in
 // this file.
 import { createRTCClient, isRTCError } from '@ravenkash/rtc';

@@ -462,7 +462,7 @@ export class LiveStreamsService {
 
     if (withLiveState) {
       // Addressed by room id, which the stream already holds. No name
-      // lookup needed; Raven's media plane is keyed by id.
+      // lookup needed; Livqeno's media plane is keyed by id.
       const liveParticipants = await this.roomState.listLiveParticipants(stream.roomId);
 
       if (liveParticipants) {

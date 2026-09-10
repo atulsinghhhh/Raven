@@ -1,7 +1,7 @@
 # Signaling — moved
 
 This document described the signaling layer as it was when a third-party
-SFU owned negotiation and Raven's own WebSocket relayed SDP and ICE
+SFU owned negotiation and Livqeno's own WebSocket relayed SDP and ICE
 between browsers in a full mesh. **That protocol no longer exists.** A
 client has exactly one peer now — the SFU node serving its room — so the
 server is a party to the negotiation rather than a courier, and every

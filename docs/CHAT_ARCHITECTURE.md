@@ -1,4 +1,4 @@
-# Raven Chat — Architecture
+# Livqeno Chat — Architecture
 
 This document explains the **current** architecture (verified against source, not aspirational) and the **target** architecture that closes the gaps identified in `CHAT_GAP_AUDIT.md`. It is scoped to the Chat module (`apps/api/src/modules/chat`), separate from the RTC/signaling plane — the two share nothing but an optional `Conversation.roomId` link, and either can fail without taking the other down.
 

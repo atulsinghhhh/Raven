@@ -1,4 +1,4 @@
-# Raven Chat — Presence
+# Livqeno Chat — Presence
 
 Who is here right now.
 
@@ -29,7 +29,7 @@ heartbeat every 20 seconds.
 This is the part worth understanding, because it's what makes presence
 survive things that would otherwise break it.
 
-Raven does not rely on a client saying goodbye. A live connection keeps its
+Livqeno does not rely on a client saying goodbye. A live connection keeps its
 key alive; if the process holding that socket dies — a crash, an OOM kill, a
 `docker kill`, a laptop lid closing — nothing announces it. The key simply
 expires, and the user goes offline on its own within 45 seconds.

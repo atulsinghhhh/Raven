@@ -9,11 +9,11 @@ import { safeInternalPath } from '@/lib/safe-path';
 import { LoginForm } from './login-form';
 
 export const metadata: Metadata = {
-  title: 'Sign in — Raven',
+  title: 'Sign in — Livqeno',
 };
 
 /**
- * Entry surface. Deliberately quiet: what Raven is, the sign-in methods
+ * Entry surface. Deliberately quiet: what Livqeno is, the sign-in methods
  * this deployment actually supports, and nothing else. OAuth buttons only
  * render for providers the Control API reports as configured.
  */
@@ -39,7 +39,7 @@ export default async function LoginPage({
 
   return (
     <AuthShell
-      title="Sign in to Raven"
+      title="Sign in to Livqeno"
       subtitle="Realtime infrastructure for your applications."
       footer={
         <>

@@ -74,10 +74,10 @@ describe('signaling error codes reach the developer as typed errors', () => {
   it('preserves the server message for USAGE_LIMIT_EXCEEDED', async () => {
     const error = await errorFromFrame(
       'USAGE_LIMIT_EXCEEDED',
-      'This account has used all of its included Raven minutes',
+      'This account has used all of its included Livqeno minutes',
     );
 
-    expect((error as unknown as Error).message).toContain('included Raven minutes');
+    expect((error as unknown as Error).message).toContain('included Livqeno minutes');
   });
 
   it('maps TOKEN_REVOKED to its own code, distinct from TOKEN_EXPIRED', async () => {

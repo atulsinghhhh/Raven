@@ -4,7 +4,7 @@ A minimal static page proving real WebRTC media through `@ravenkash/rtc` —
 actual camera/microphone, not a mock — plus a small FastAPI backend
 using `raven-sdk` to mint tokens and surface project diagnostics.
 
-This is built entirely on Raven's public SDKs: `app.js` never touches
+This is built entirely on Livqeno's public SDKs: `app.js` never touches
 SDP, ICE candidates, `RTCPeerConnection`, or any type specific to the
 media server underneath. `raven-rtc.js` is a vendored, self-contained
 ESM bundle (no build step, no CDN — see "Why an import map" below);
@@ -16,7 +16,7 @@ this exercises.
 
 ## Running it
 
-**1. Bring up Raven's infrastructure** (from the repo root):
+**1. Bring up Livqeno's infrastructure** (from the repo root):
 
 ```bash
 pnpm infra:up

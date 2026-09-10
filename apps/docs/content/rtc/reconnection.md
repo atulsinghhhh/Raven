@@ -3,7 +3,7 @@ title: Reconnection & Network Quality
 description: What happens when the network drops, and how much control you have over it — on every SDK.
 ---
 
-The SDK surfaces Raven's own reconnect policy — exponential backoff
+The SDK surfaces Livqeno's own reconnect policy — exponential backoff
 with a capped retry delay, then a clean `failed` state — rather than
 reimplementing reconnect logic on top of it. The policy is identical
 across platforms because it's the same underlying client.
@@ -147,7 +147,7 @@ setInterval(async () => {
 This works identically on Web and React Native (same `Room` class).
 
 If you're on the dashboard side rather than in the client, the same
-numbers are already flowing into Raven's own telemetry — see
+numbers are already flowing into Livqeno's own telemetry — see
 [Event Catalogue](/reference/events) and `raven connections inspect`.
 
 ## Common errors

@@ -7,7 +7,7 @@ import { useInView } from '../lib/useInView';
  * The full-bleed graph-paper band, in the slot the reference gives to
  * its scale numbers.
  *
- * Deliberately counts, not benchmarks. Raven publishes no uptime,
+ * Deliberately counts, not benchmarks. Livqeno publishes no uptime,
  * latency, concurrency, or customer figures here, because none of them
  * have been measured: see the no-fake-enterprise-claims note this page
  * was built against. Every number below is something you can verify by
@@ -49,7 +49,7 @@ export function ScaleBand() {
           </dl>
 
           <div className="md:justify-self-end">
-            <span className="mono-label text-[10px] text-muted">Components Raven runs for you</span>
+            <span className="mono-label text-[10px] text-muted">Components Livqeno runs for you</span>
             <ul className="mt-4 flex flex-col gap-2.5">
               {COMPONENTS.map((component) => (
                 <li key={component} className="mono-label flex items-center gap-2.5 text-[11px] text-muted">
@@ -63,7 +63,7 @@ export function ScaleBand() {
       </div>
 
       <p className="mx-auto max-w-2xl px-6 pt-6 text-center text-[12px] leading-relaxed text-muted">
-        Counts, not benchmarks. Raven doesn&apos;t quote uptime, latency, or concurrency figures on this page —
+        Counts, not benchmarks. Livqeno doesn&apos;t quote uptime, latency, or concurrency figures on this page —
         the connection numbers it does report come from live WebRTC stats in your own dashboard.
       </p>
     </section>

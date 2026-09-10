@@ -1,7 +1,7 @@
 # TURN Infrastructure (coturn)
 
 > **Decision record.** Why coturn, and what it was configured to do. This
-> decision was *not* reversed by the move to Raven's own SFU: coturn is
+> decision was *not* reversed by the move to Livqeno's own SFU: coturn is
 > still the TURN server, still authenticated with ephemeral HMAC
 > credentials, still a separate deployable unit. For how TURN works in
 > practice today — ports, firewall rules, forcing a relay path, diagnosing
@@ -21,7 +21,7 @@ and a direct cost center we must monitor and optimize (plan.md §18).
 
 **coturn**, per engineering rule 3. It is the de facto standard open-source
 TURN/STUN server, used in production by essentially every WebRTC
-platform. Raven does not implement the TURN protocol itself and has no
+platform. Livqeno does not implement the TURN protocol itself and has no
 plans to — this is the one part of the media path where "use the standard
 implementation" is unambiguously right.
 
@@ -37,9 +37,9 @@ rather than from the SFU.
 ```
 Client
   |
-  +------ direct (host / STUN-derived candidate) ------> Raven SFU
+  +------ direct (host / STUN-derived candidate) ------> Livqeno SFU
   |
-  +------ relayed ------------------------------------> coturn --> Raven SFU
+  +------ relayed ------------------------------------> coturn --> Livqeno SFU
 ```
 
 This shape survived the migration unchanged, which is the useful thing to

@@ -13,7 +13,7 @@ import { registerLocalSfu } from './helpers/register-local-sfu';
 import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics';
 
 /**
- * Real-browser end-to-end test of Phase 16 (Raven Effects) on Live
+ * Real-browser end-to-end test of Phase 16 (Livqeno Effects) on Live
  * Streaming. Reuses the exact same `e2e-harness/rtc-effects.html` page as
  * `effects-rtc.e2e-spec.ts`, on purpose: a live stream's host camera is
  * an ordinary `@ravenkash/rtc` `Room` underneath (`stream.room` in
@@ -69,7 +69,7 @@ interface RtcCredentials {
  * process reading a different database. A browser sent there would try to
  * join a stream whose room only exists in this suite's database and be
  * told `NO_RTC_CAPACITY`. Under LiveKit this never came up: every suite
- * shared one database, so "some Raven API" was good enough. It is not
+ * shared one database, so "some Livqeno API" was good enough. It is not
  * good enough now that the e2e suite runs against a scratch database of
  * its own.
  */
@@ -97,7 +97,7 @@ function harnessUrl(
   return `${baseUrl}/rtc-effects.html?${params.toString()}`;
 }
 
-describe('Raven Effects — Live Streaming (real browser e2e)', () => {
+describe('Livqeno Effects — Live Streaming (real browser e2e)', () => {
   let app: INestApplication;
   let harnessServer: Server;
   let harnessUrlBase: string;

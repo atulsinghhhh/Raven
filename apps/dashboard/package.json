@@ -2,7 +2,7 @@
   "name": "@raven/dashboard",
   "version": "0.0.0",
   "private": true,
-  "description": "Raven developer dashboard — projects, API keys, rooms, usage, SDK quickstart.",
+  "description": "Livqeno developer dashboard — projects, API keys, rooms, usage, SDK quickstart.",
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",

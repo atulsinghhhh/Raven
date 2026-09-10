@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Raven on Azure — shared configuration.
+# Livqeno on Azure — shared configuration.
 #
 # Sourced by every other script here. Contains NO secrets: only names,
 # sizes, regions and port numbers. Secrets live in Key Vault (06-secrets.sh)

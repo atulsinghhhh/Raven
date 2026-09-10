@@ -64,7 +64,7 @@ export interface RavenConfig {
 }
 
 /**
- * Raven for the browser, RTC and chat behind a single object.
+ * Livqeno for the browser, RTC and chat behind a single object.
  *
  * A facade, not a third implementation. `raven.rtc` is a genuine
  * `RTCClient` from `@ravenkash/rtc`, and `raven.chat` a genuine `ChatClient`
@@ -93,7 +93,7 @@ export class Raven {
   /** Not there for an RTC-only app. See the constructor. */
   readonly chat?: ChatClient;
   /**
-   * Raven Live Streaming. Unlike `rtc` and `chat` above, this doesn't care
+   * Livqeno Live Streaming. Unlike `rtc` and `chat` above, this doesn't care
    * what credentials the `Raven` instance was built with. A live stream's
    * host, co-host and viewer tokens are minted per stream and per role by
    * your backend (`POST /v1/live-streams/:id/hosts` or
@@ -116,14 +116,14 @@ export class Raven {
     // kinder than failing at join() with a baffling connection error.
     if (Boolean(config.token) !== Boolean(config.endpoint)) {
       throw new Error(
-        'Raven needs both `token` and `endpoint` for RTC, or neither for a messaging-only app. ' +
+        'Livqeno needs both `token` and `endpoint` for RTC, or neither for a messaging-only app. ' +
           'Both come from the same token-mint response.',
       );
     }
 
     if (!config.token && !config.chatToken) {
       throw new Error(
-        'Raven needs at least one credential: `token` + `endpoint` for calls, `chatToken` for messaging, or both.',
+        'Livqeno needs at least one credential: `token` + `endpoint` for calls, `chatToken` for messaging, or both.',
       );
     }
 
@@ -173,7 +173,7 @@ export class Raven {
   async join(roomId: string): Promise<Room> {
     if (!this.rtc) {
       throw new Error(
-        'This Raven instance has no RTC credentials, so it cannot join a room. ' +
+        'This Livqeno instance has no RTC credentials, so it cannot join a room. ' +
           'Pass `token` and `endpoint` to enable calls, or use `raven.chat` for messaging.',
       );
     }

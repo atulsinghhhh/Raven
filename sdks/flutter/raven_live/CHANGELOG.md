@@ -1,6 +1,6 @@
 ## 0.1.0
 
-Initial release (Raven Phase 14).
+Initial release (Livqeno Phase 14).
 
 * `RavenLiveStream.join()` — joins a stream's room and connects its chat,
   composing `raven_rtc` and `raven_chat` rather than reimplementing either.

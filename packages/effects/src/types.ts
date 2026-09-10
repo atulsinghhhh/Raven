@@ -1,4 +1,4 @@
-/** Platforms Raven Effects (or an individual effect) can run on. */
+/** Platforms Livqeno Effects (or an individual effect) can run on. */
 export type EffectPlatform = 'web' | 'react' | 'react-native' | 'flutter';
 
 /** How mature a capability is. Never claim "production" unless it's genuinely shipped and tested. */
@@ -63,7 +63,7 @@ export interface EffectInstance {
  * (RavenEffect, Phase 16 §19).
  *
  * Today only *internal and trusted* effects can be registered. There's no
- * sandboxed execution model yet, so Raven Effects never loads or runs
+ * sandboxed execution model yet, so Livqeno Effects never loads or runs
  * developer-supplied remote code, whether that's JS, WASM or shaders. See
  * security.ts.
  */

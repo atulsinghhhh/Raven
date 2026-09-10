@@ -14,7 +14,7 @@ import { RtcTokensService } from './rtc-tokens.service';
   providers: [RtcTokensService],
   // Live Streaming mints host/viewer RTC tokens through this same service
   // instead of a second token implementation (spec: "reuse the existing
-  // Raven token architecture where possible").
+  // Livqeno token architecture where possible").
   exports: [RtcTokensService],
 })
 export class RtcTokensModule {}

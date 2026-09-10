@@ -419,14 +419,14 @@ class CreateLiveStreamParams:
     """Registered as this stream's HOST — the only identity a stream is created with."""
     description: str | None = None
     thumbnail_url: str | None = None
-    """A URL you host — Raven does not accept or store thumbnail uploads."""
+    """A URL you host — Livqeno does not accept or store thumbnail uploads."""
     category: str | None = None
     tags: list[str] | None = None
     language: str | None = None
     visibility: LiveStreamVisibility | None = None
     metadata: dict[str, Any] | None = None
     scheduled_at: str | None = None
-    """ISO 8601. Raven does not auto-transition status at this time — call ``start()`` yourself."""
+    """ISO 8601. Livqeno does not auto-transition status at this time — call ``start()`` yourself."""
 
 
 @dataclass

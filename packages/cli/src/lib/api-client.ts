@@ -302,7 +302,7 @@ export class RavenApiClient {
           attempt++;
           continue;
         }
-        throw new CliError('network', `Could not reach the Raven API at ${this.apiUrl}.`, {
+        throw new CliError('network', `Could not reach the Livqeno API at ${this.apiUrl}.`, {
           suggestion: 'Check your network connection and `raven config get apiUrl`',
           cause: error,
         });

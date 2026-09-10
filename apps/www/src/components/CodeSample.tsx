@@ -57,7 +57,7 @@ const stream = await LiveStream.join({
 await stream.room.enableCamera();
 await stream.room.enableMicrophone();
 
-// A Raven Chat conversation comes attached automatically.
+// A Livqeno Chat conversation comes attached automatically.
 await stream.chat.sendMessage({ text: 'We\\'re live!' });`,
   },
   {

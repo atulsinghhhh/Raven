@@ -3,7 +3,7 @@ title: API credentials
 description: Create a project API key, store it server-side, and never ship it to a client.
 ---
 
-Your backend authenticates to Raven with a **project API key**. It is the
+Your backend authenticates to Livqeno with a **project API key**. It is the
 only credential that can mint tokens, and it must never leave your server.
 
 ## Create a key
@@ -18,7 +18,7 @@ The secret is printed exactly once:
 rvk_dev_8Kd2nQxwYtLm.aG9wZXlvdWFyZWhhdmluZ2Fsb3ZlbHlkYXk
 ```
 
-Store it as `RAVEN_API_KEY` in your backend's secret storage. Raven keeps
+Store it as `RAVEN_API_KEY` in your backend's secret storage. Livqeno keeps
 only a hash — there is no endpoint that returns a key secret again, so a
 lost key is replaced rather than recovered.
 

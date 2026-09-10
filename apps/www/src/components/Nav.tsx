@@ -32,7 +32,7 @@ export function Nav() {
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-8 px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2 text-[15px] font-medium tracking-tight text-fg">
           <RavenMark />
-          RAVEN
+          Livqeno
         </Link>
 
         <nav className="hidden items-center gap-1 text-[14px] text-muted md:flex">
@@ -47,7 +47,7 @@ export function Nav() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Stands in for the reference's repo-star pill. Raven is
+          {/* Stands in for the reference's repo-star pill. Livqeno is
               closed-source, so the community signal is Discord, and it
               carries no member count we'd have to keep truthful. */}
           <a

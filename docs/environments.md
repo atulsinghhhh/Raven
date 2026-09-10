@@ -1,6 +1,6 @@
 # Environments
 
-Every Raven project has three environments:
+Every Livqeno project has three environments:
 
 ```
 Project
@@ -159,8 +159,8 @@ in the development environment.
 
 ## A note on the word "environment"
 
-Raven uses it for a *project's* environment. It is unrelated to `NODE_ENV`
-or how the Raven server itself was deployed — a single Raven deployment
+Livqeno uses it for a *project's* environment. It is unrelated to `NODE_ENV`
+or how the Livqeno server itself was deployed — a single Livqeno deployment
 serves all three project environments. Where the codebase needs the
 deployment's own mode (the webhook SSRF guard, for one) it is called
 `deploymentEnv` to keep the two apart.

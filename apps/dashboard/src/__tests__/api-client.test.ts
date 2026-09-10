@@ -261,10 +261,10 @@ describe('ravenApi', () => {
       expect(url).toContain('/v1/projects/p_1/usage?days=7');
     });
 
-    it('surfaces an exhausted allowance as a 403 ApiError with the Raven code', async () => {
+    it('surfaces an exhausted allowance as a 403 ApiError with the Livqeno code', async () => {
       mockFetchOnce(403, {
         code: 'RAVEN_USAGE_LIMIT_EXCEEDED',
-        message: 'This account has used all 20000 of its included Raven minutes.',
+        message: 'This account has used all 20000 of its included Livqeno minutes.',
       });
 
       await expect(ravenApi.getUsage('token')).rejects.toMatchObject({

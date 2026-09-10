@@ -179,7 +179,7 @@ describe('leave', () => {
     await raven.leave();
 
     expect(audioCalls.stop).toBe(1);
-    // A listener that outlives the call is a leak. It keeps the Raven
+    // A listener that outlives the call is a leak. It keeps the Livqeno
     // instance alive forever, and the room it's holding with it (spec §19).
     expect(__appState.listeners.size).toBe(0);
     expect(raven.room).toBeUndefined();

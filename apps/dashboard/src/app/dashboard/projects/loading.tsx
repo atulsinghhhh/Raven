@@ -18,7 +18,7 @@ export default function ProjectsLoading() {
         <div className="mx-auto flex h-14 max-w-[85rem] items-center gap-3 px-4 lg:px-6">
           <span className="flex items-center gap-2">
             <RavenMark className="size-6" />
-            <span className="text-sm font-semibold tracking-tight text-fg">Raven</span>
+            <span className="text-sm font-semibold tracking-tight text-fg">Livqeno</span>
           </span>
           <div className="flex-1" />
           <Skeleton className="h-7 w-28 rounded-full" />

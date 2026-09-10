@@ -7,7 +7,7 @@ import { promisify } from 'util';
 const execFileAsync = promisify(execFile);
 
 /**
- * Builds and runs a real Raven SFU as a child process, for e2e tests that
+ * Builds and runs a real Livqeno SFU as a child process, for e2e tests that
  * need the media plane to actually exist.
  *
  * # Why a real node instead of a fake one

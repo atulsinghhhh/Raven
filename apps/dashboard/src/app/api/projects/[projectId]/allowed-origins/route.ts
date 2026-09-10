@@ -8,7 +8,7 @@ interface Params {
 
 /**
  * Proxies the origin allow-list update through the dashboard's own session,
- * like every other write here: the browser never holds a Raven credential,
+ * like every other write here: the browser never holds a Livqeno credential,
  * and the Control API is not called cross-origin from the page.
  *
  * The list is sent whole rather than as a delta — otherwise "remove this

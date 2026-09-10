@@ -88,7 +88,7 @@ export default async function ParticipantsPage({
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Participants"
-        description={`Derived from the ${CONNECTION_SCAN_LIMIT} most recent connection records in this project, grouped by participant identity. Raven does not store participants as a separate resource, so this is a recent-activity view rather than a complete historical roster.`}
+        description={`Derived from the ${CONNECTION_SCAN_LIMIT} most recent connection records in this project, grouped by participant identity. Livqeno does not store participants as a separate resource, so this is a recent-activity view rather than a complete historical roster.`}
       />
       <ProductTabs tabs={rtcTabs(base)} active="Participants" />
 

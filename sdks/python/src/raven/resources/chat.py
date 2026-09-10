@@ -1,7 +1,7 @@
-"""Raven Chat, server-side (Phase 12).
+"""Livqeno Chat, server-side (Phase 12).
 
 The important method here is ``create_token()``. The whole security model
-rests on it: your backend authenticates the user *its* way, then asks Raven
+rests on it: your backend authenticates the user *its* way, then asks Livqeno
 for a short-lived token scoped to that one user, and only that token reaches
 the browser or the mobile app. The project API key this SDK holds never does.
 

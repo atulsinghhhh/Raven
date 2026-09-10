@@ -1,18 +1,18 @@
 # WebRTC Fundamentals
 
-> **This is a primer, not a description of Raven.** It explains WebRTC
+> **This is a primer, not a description of Livqeno.** It explains WebRTC
 > itself — the standards, the vocabulary, the parts a real connection is
-> made of. That has not changed and will not. For how *Raven* is put
+> made of. That has not changed and will not. For how *Livqeno* is put
 > together, read [`../rtc/architecture.md`](../rtc/architecture.md).
 
-This document exists so everyone working on Raven shares the same mental
-model of WebRTC. Raven implements a fair amount of it now — the SFU side —
+This document exists so everyone working on Livqeno shares the same mental
+model of WebRTC. Livqeno implements a fair amount of it now — the SFU side —
 but the standards below are still standards, and the control plane, SDKs,
 and support engineering all need to reason about them correctly.
 
-Notably, Raven does **not** implement any of the transport-level pieces:
+Notably, Livqeno does **not** implement any of the transport-level pieces:
 ICE, DTLS, SRTP and SCTP come from [Pion](https://github.com/pion/webrtc)
-on the server and from the browser on the client. What Raven writes is the
+on the server and from the browser on the client. What Livqeno writes is the
 layer above — which tracks go to whom, and why.
 
 ## The problem WebRTC solves
@@ -27,8 +27,8 @@ and unreliable networks, without a plugin.
 A text format describing what a peer wants to send/receive: codecs,
 resolutions, encryption keys, network candidates. Peers exchange an
 **offer** and an **answer** during signaling to agree on a common session
-shape. Raven never hand-constructs SDP: Pion generates it on the server,
-the browser generates it on the client. Raven *reads* one line of it —
+shape. Livqeno never hand-constructs SDP: Pion generates it on the server,
+the browser generates it on the client. Livqeno *reads* one line of it —
 `a=msid:`, to learn the remote track id of an arriving track, because
 `RTCTrackEvent.track.id` is a locally-minted id and not the remote one.
 
@@ -57,7 +57,7 @@ RTP carries the actual encoded audio/video frames once a session is
 established. RTCP carries feedback (packet loss, jitter, receiver reports)
 used for congestion control and adaptive bitrate.
 
-Raven's SFU works directly with both: it rewrites RTP sequence numbers and
+Livqeno's SFU works directly with both: it rewrites RTP sequence numbers and
 timestamps when switching a subscriber between simulcast layers, and it
 relays a subscriber's RTCP keyframe requests (PLI/FIR) back to the
 publisher. Getting that relay wrong is a classic SFU bug whose symptom is
@@ -67,8 +67,8 @@ publisher. Getting that relay wrong is a classic SFU bug whose symptom is
 ### DTLS / SRTP
 DTLS performs a TLS-style handshake over UDP to derive encryption keys.
 SRTP then encrypts the actual RTP media using those keys. All WebRTC media
-is encrypted by default — there is no unencrypted mode, and Raven does not
-add one. Pion and the browser handle this transparently; Raven's only
+is encrypted by default — there is no unencrypted mode, and Livqeno does not
+add one. Pion and the browser handle this transparently; Livqeno's only
 involvement is that the SFU offers `a=setup:actpass`, letting the answerer
 pick the DTLS role.
 
@@ -76,11 +76,11 @@ pick the DTLS role.
 A media server that receives one upload per publisher and forwards
 (selectively, per-subscriber) copies to every other participant, instead of
 every participant uploading N-1 times (full mesh). This is what makes group
-calls scale, and it is what Raven's `services/sfu` is.
+calls scale, and it is what Livqeno's `services/sfu` is.
 
 `sfu-comparison.md` records why a third-party SFU was the right first
 choice; [`native-rtc-migration-map.md`](./native-rtc-migration-map.md#4-technology-decision)
-records why Raven now runs its own.
+records why Livqeno now runs its own.
 
 ### Simulcast
 A publisher sends multiple encoded qualities (e.g. low/medium/high) of the
@@ -95,19 +95,19 @@ transport-wide congestion control) and adjust encoding bitrate or simulcast
 layer selection accordingly, so a bad network degrades quality instead of
 breaking the call.
 
-## How Raven uses these pieces
+## How Livqeno uses these pieces
 
 ```
 Browser / Mobile SDK
       |
-      | 1. Ask your own backend for an access token; it asks Raven's
+      | 1. Ask your own backend for an access token; it asks Livqeno's
       |    Control Plane over HTTPS with a project API key.
       v
-Raven Control Plane --- issues a scoped, short-lived RTC token
+Livqeno Control Plane --- issues a scoped, short-lived RTC token
       |
-      | 2. Connect to Raven's own signaling WebSocket (/v1/rtc) with it.
+      | 2. Connect to Livqeno's own signaling WebSocket (/v1/rtc) with it.
       v
-Raven Signaling — SDP offer/answer + ICE candidates, between the client
+Livqeno Signaling — SDP offer/answer + ICE candidates, between the client
       |             and the SFU node serving its room. The server is a
       |             party to the negotiation, not a courier.
       | 3. ICE: try the direct path, then STUN-derived, then TURN relay.
@@ -115,7 +115,7 @@ Raven Signaling — SDP offer/answer + ICE candidates, between the client
 STUN (candidate discovery) / coturn (relay when needed)
       |
       v
-Raven SFU (Go/Pion) — receives publisher tracks, forwards to subscribers
+Livqeno SFU (Go/Pion) — receives publisher tracks, forwards to subscribers
       |
       +---- Participant A
       +---- Participant B
@@ -127,7 +127,7 @@ Two things are worth pulling out of that diagram.
 **The control plane still never touches SDP, ICE, RTP, or encryption.**
 Its job stops at "may this caller publish or subscribe in this room", and
 that has not changed — what changed is that the thing on the other side of
-the token is Raven's own SFU rather than a third party's. Media never
+the token is Livqeno's own SFU rather than a third party's. Media never
 passes through the API.
 
 **A client is never told the SFU's address.** It learns the node's *name*,

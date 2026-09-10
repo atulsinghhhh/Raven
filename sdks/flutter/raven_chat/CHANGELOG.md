@@ -1,6 +1,6 @@
 ## 0.1.0
 
-Initial release (Raven Phase 13).
+Initial release (Livqeno Phase 13).
 
 * `RavenChat` — connect, join rooms, send and receive, with bounded
   exponential-backoff reconnection.

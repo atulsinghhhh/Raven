@@ -129,7 +129,7 @@ export function OnboardingFlow({ initialState, hasProjects }: { initialState: On
         <header className="flex h-10 items-center justify-between">
           <span className="flex items-center gap-2">
             <RavenMark className="size-6" />
-            <span className="text-sm font-semibold tracking-tight text-fg">Raven</span>
+            <span className="text-sm font-semibold tracking-tight text-fg">Livqeno</span>
           </span>
           <div className="flex items-center gap-4">
             {step > 1 && <ProgressIndicator current={step - 1} total={TOTAL_PROGRESS_STEPS} />}
@@ -308,7 +308,7 @@ function WelcomeStep({ busy, onContinue }: { busy: boolean; onContinue: () => vo
   return (
     <div className="flex flex-1 flex-col justify-center py-4">
       <StepEyebrow>Getting started</StepEyebrow>
-      <h1 className="display text-3xl text-fg sm:text-4xl">Welcome to Raven</h1>
+      <h1 className="display text-3xl text-fg sm:text-4xl">Welcome to Livqeno</h1>
       <p className="mt-3 max-w-md text-base leading-relaxed text-muted">
         Realtime infrastructure for your applications.
       </p>
@@ -551,7 +551,7 @@ function CreateProjectStep({
   return (
     <div className="flex flex-1 flex-col">
       <StepEyebrow>First project</StepEyebrow>
-      <h1 className="text-2xl font-semibold tracking-tight text-fg">Create your first Raven project</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-fg">Create your first Livqeno project</h1>
       <p className="mt-2 text-sm text-muted">A project holds your rooms, conversations, streams, keys, and usage.</p>
 
       <form onSubmit={handleCreate} className="mt-8 flex flex-1 flex-col">
@@ -616,7 +616,7 @@ function ConnectStep({
   onContinue: () => void;
   onOpenQuickstart?: () => void;
 }) {
-  // Both halves, always. Raven's whole auth model is that the API key stays
+  // Both halves, always. Livqeno's whole auth model is that the API key stays
   // on a server and the browser only ever sees a short-lived grant, so a
   // working integration needs the backend package and the browser package
   // whatever stack the developer picked. Installing only one of them is the
@@ -628,7 +628,7 @@ function ConnectStep({
   // a snippet naming one sends a developer's first five minutes into a
   // TypeError. The grant is spread whole: it carries `endpoint`,
   // `iceServers` and `telemetryUrl`, and hand-picking fields off it is how
-  // people end up configuring infrastructure Raven means to hide.
+  // people end up configuring infrastructure Livqeno means to hide.
   const backendSnippet = `import { Raven } from '@ravenkash/server';
 
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });

@@ -279,7 +279,7 @@ describe('Control plane (e2e)', () => {
 
       // The claims actually inside the signed JWT must match, too: not
       // just the control-plane's own bookkeeping of what it asked for.
-      // `iat`/`exp`, not `nbf`: Raven's token format is its own, and the
+      // `iat`/`exp`, not `nbf`: Livqeno's token format is its own, and the
       // signer never issues a not-before.
       const [, payloadB64] = res.body.token.split('.');
       const claims = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
@@ -423,7 +423,7 @@ describe('Control plane (e2e)', () => {
         });
       });
 
-      it('classifies an ingested error into a Raven-facing category — never the raw SDK code as-is', async () => {
+      it('classifies an ingested error into a Livqeno-facing category — never the raw SDK code as-is', async () => {
         await request(app.getHttpServer())
           .post('/v1/telemetry/events')
           .set('Authorization', `Bearer ${rtcToken}`)

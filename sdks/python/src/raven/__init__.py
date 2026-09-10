@@ -1,4 +1,4 @@
-"""raven-sdk — Raven's official Python server SDK.
+"""raven-sdk — Livqeno's official Python server SDK.
 
     from raven import Raven, CreateTokenParams
     raven = Raven(

@@ -3,7 +3,7 @@ title: Errors
 description: Five error vocabularies, why they are separate, and every code in each with its cause and fix.
 ---
 
-Raven has **five** error vocabularies. They are separate on purpose: a chat
+Livqeno has **five** error vocabularies. They are separate on purpose: a chat
 failure, a media failure and a shader failure have almost nothing in
 common, and merging them would produce a list that describes none of them
 well.
@@ -35,7 +35,7 @@ response code.
 | Field | Notes |
 |---|---|
 | `code` | The canonical code. Switch on this. |
-| `legacyCode` | **Deprecated.** What that error used to emit before the namespace existed. Nothing in Raven reads it. |
+| `legacyCode` | **Deprecated.** What that error used to emit before the namespace existed. Nothing in Livqeno reads it. |
 | `message` | Human-readable, safe to log, never contains credentials or internals. |
 | `requestId` | Also returned as the `x-request-id` header, always the same value. Quote it in a bug report. |
 | `path` | The route that produced the error. |
@@ -53,7 +53,7 @@ you do not recognise rather than treating them as an error.
 | `RAVEN_TOKEN_EXPIRED` | 401 | The token expired | Mint a fresh one. Do **not** re-authenticate the user |
 | `RAVEN_PERMISSION_DENIED` | 403 | Authenticated, but not allowed | Check the token's permissions, or the caller's project role |
 | `RAVEN_OAUTH_ERROR` | 401 | OAuth sign-in could not complete — bad or expired `state`, failed code exchange, or the person cancelled | Always safe to retry from the start of the flow |
-| `RAVEN_OAUTH_EMAIL_UNAVAILABLE` | 400 | The provider returned no usable email, and Raven accounts are keyed by email | Fix is at the provider — e.g. GitHub with no verified primary address |
+| `RAVEN_OAUTH_EMAIL_UNAVAILABLE` | 400 | The provider returned no usable email, and Livqeno accounts are keyed by email | Fix is at the provider — e.g. GitHub with no verified primary address |
 | `RAVEN_OAUTH_EMAIL_UNVERIFIED` | 403 | An account exists for this email but the provider has not verified it | Verify at the provider. Linking otherwise would allow account takeover |
 
 ### Not found
@@ -117,7 +117,7 @@ namespace so one `switch` covers everything:
 |---|---|
 | `RAVEN_INVALID_CONFIG` | No config object, or a missing `apiKey` |
 | `RAVEN_TIMEOUT` | The request exceeded the client timeout (10s default) |
-| `RAVEN_NETWORK_ERROR` | The request never reached Raven |
+| `RAVEN_NETWORK_ERROR` | The request never reached Livqeno |
 | `RAVEN_UNKNOWN_ERROR` | Nothing more specific could be determined |
 
 When a proxy returns an HTML error page instead of JSON, the SDK derives
@@ -232,7 +232,7 @@ branch on the class rather than string-matching.
 | `ATTACHMENT_TOO_LARGE` | 413 | `RavenAttachmentError` | Over `STORAGE_MAX_ATTACHMENT_BYTES` |
 | `CONNECTION_FAILED` | — | `RavenChatConnectionError` | Could not connect, or reconnects exhausted |
 | `CONNECTION_CLOSED` | — | `RavenChatConnectionError` | The socket closed before the server replied |
-| `NETWORK_ERROR` | — | `RavenChatConnectionError` | The request never reached Raven |
+| `NETWORK_ERROR` | — | `RavenChatConnectionError` | The request never reached Livqeno |
 | `TIMEOUT` | — | `RavenChatConnectionError` | No response within the request timeout |
 | `INTERNAL_ERROR` | 500 | `RavenChatError` | Logged server-side in full |
 

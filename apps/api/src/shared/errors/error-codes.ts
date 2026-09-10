@@ -1,5 +1,5 @@
 /**
- * The canonical Raven error vocabulary.
+ * The canonical Livqeno error vocabulary.
  *
  * One namespace for every error the HTTP API can return, so a developer
  * can switch on `error.code` without caring which subsystem produced it.
@@ -28,14 +28,14 @@ export const RavenErrorCode = {
    *  a failed code exchange, or the person cancelling at the provider.
    *  Always safe to retry from the start of the flow. */
   OAUTH_ERROR: 'RAVEN_OAUTH_ERROR',
-  /** The provider returned no usable email address, and Raven accounts are
+  /** The provider returned no usable email address, and Livqeno accounts are
    *  keyed by email. GitHub: no verified primary address; the fix is on the
    *  provider side, so this is spelled out rather than folded into
    *  OAUTH_ERROR. */
   OAUTH_EMAIL_UNAVAILABLE: 'RAVEN_OAUTH_EMAIL_UNAVAILABLE',
-  /** A Raven account already exists for this email, but the provider has
+  /** A Livqeno account already exists for this email, but the provider has
    *  not verified the address — linking would let anyone claiming an email
-   *  at the provider take over the Raven account that owns it. */
+   *  at the provider take over the Livqeno account that owns it. */
   OAUTH_EMAIL_UNVERIFIED: 'RAVEN_OAUTH_EMAIL_UNVERIFIED',
 
   // --- Not found ----------------------------------------------------------
@@ -69,7 +69,7 @@ export const RavenErrorCode = {
   INVALID_CURSOR: 'RAVEN_INVALID_CURSOR',
 
   // --- Usage ---------------------------------------------------------------
-  /** The developer's included Raven minutes are spent. Not a payment
+  /** The developer's included Livqeno minutes are spent. Not a payment
    *  problem and not a rate limit: nothing the caller can retry into
    *  success, and there is no plan to upgrade to yet. Returned as 403 (see
    *  UsageLimitExceededError) rather than 402 — 402 would promise a

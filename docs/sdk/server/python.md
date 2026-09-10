@@ -10,7 +10,7 @@ Django, Flask, or plain Python — no framework-specific SDK.
 
 ```bash
 # Not on PyPI yet. `pip install raven-sdk` installs an UNRELATED third-party
-# package of that name ("Async Kafka and HTTP producer SDK for Raven AI
+# package of that name ("Async Kafka and HTTP producer SDK for Livqeno AI
 # logs"), not this SDK — see docs/releases.md#python--raven-sdk.
 pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"
 ```
@@ -33,7 +33,7 @@ raven = Raven(
 `api_key` is the only argument the SDK *validates*, but on its own it is
 not enough: `base_url` defaults to `http://localhost:4100`, so a client
 built from just a key talks to a local dev stack and fails against any
-real deployment. Pass both unless you are genuinely running Raven on
+real deployment. Pass both unless you are genuinely running Livqeno on
 localhost.
 
 The SDK **never reads
@@ -153,10 +153,10 @@ raven.metrics.get("1h")      # '15m' | '1h' | '24h' | '7d' — real aggregates; 
 raven.diagnostics.get()      # signaling/SFU/TURN health + this project's real active-connection count
 ```
 
-### `raven.chat` — Raven Chat, server-side
+### `raven.chat` — Livqeno Chat, server-side
 
 The important method is `create_token()`. The whole security model rests
-on it: your backend authenticates the user *its* way, then asks Raven for
+on it: your backend authenticates the user *its* way, then asks Livqeno for
 a short-lived token scoped to that one user. Only that token reaches the
 browser or the mobile app — the API key never does.
 

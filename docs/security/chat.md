@@ -1,4 +1,4 @@
-# Raven Chat security audit
+# Livqeno Chat security audit
 
 This is the Phase 12 security review (spec §39), written as a record of what
 was checked, what holds, and what doesn't. Each finding names the code that
@@ -111,7 +111,7 @@ confirm the id exists somewhere else, which is a tenant-enumeration oracle.
 - All database access is through Prisma's parameterised queries — no string
   interpolation anywhere in the chat module.
 
-**Message content is not HTML-escaped or sanitised.** Raven stores what it's
+**Message content is not HTML-escaped or sanitised.** Livqeno stores what it's
 given and returns it verbatim, because sanitising would corrupt legitimate
 content (code snippets, Markdown) and the correct escaping depends on where
 it's rendered. **Rendering safely is the client's job** — React escapes by

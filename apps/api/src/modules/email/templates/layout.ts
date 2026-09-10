@@ -131,7 +131,7 @@ export function renderLayout(input: LayoutInput): { html: string; text: string }
             <tr>
               <td style="padding:28px 28px 0;">
                 <a href="${attr(brand.appUrl)}" style="text-decoration:none;color:${FG};font-size:16px;font-weight:700;letter-spacing:-0.01em;">
-                  <span style="color:${ACCENT};">&#9679;</span>&nbsp;Raven
+                  <span style="color:${ACCENT};">&#9679;</span>&nbsp;Livqeno
                 </a>
               </td>
             </tr>
@@ -146,9 +146,9 @@ export function renderLayout(input: LayoutInput): { html: string; text: string }
               <td style="padding:0 28px 28px;">
                 <hr style="border:none;border-top:1px solid ${BORDER};margin:0 0 16px;" />
                 <p style="margin:0;font-size:12px;line-height:18px;color:${SUBTLE};">
-                  Raven &mdash; real-time communication infrastructure.<br />
+                  Livqeno &mdash; real-time communication infrastructure.<br />
                   Questions? <a href="mailto:${attr(brand.supportEmail)}" style="color:${MUTED};">${escapeHtml(brand.supportEmail)}</a><br />
-                  This is a transactional message about your Raven account, not marketing.
+                  This is a transactional message about your Livqeno account, not marketing.
                 </p>
               </td>
             </tr>
@@ -162,7 +162,7 @@ export function renderLayout(input: LayoutInput): { html: string; text: string }
   // The plain-text part is a real alternative, not a stripped-tags
   // afterthought: it is what a screen reader, a text-only client, and
   // most spam filters read.
-  const textParts = ['Raven', '', input.heading, '', ...input.paragraphs.flatMap((paragraph) => [paragraph, ''])];
+  const textParts = ['Livqeno', '', input.heading, '', ...input.paragraphs.flatMap((paragraph) => [paragraph, ''])];
   if (input.cta) {
     textParts.push(`${input.cta.label}: ${input.cta.url}`, '');
   }
@@ -174,9 +174,9 @@ export function renderLayout(input: LayoutInput): { html: string; text: string }
   }
   textParts.push(
     '--',
-    'Raven — real-time communication infrastructure.',
+    'Livqeno — real-time communication infrastructure.',
     `Questions? ${brand.supportEmail}`,
-    'This is a transactional message about your Raven account, not marketing.',
+    'This is a transactional message about your Livqeno account, not marketing.',
   );
 
   return { html, text: textParts.join('\n') };

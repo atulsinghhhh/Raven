@@ -90,9 +90,9 @@ export function AppShell({
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-line bg-surface-sunken lg:flex">
         <div className="flex h-14 items-center gap-2 px-4">
-          <Link href="/dashboard/projects" className="flex items-center gap-2" aria-label="Raven home">
+          <Link href="/dashboard/projects" className="flex items-center gap-2" aria-label="Livqeno home">
             <RavenMark className="size-6" />
-            <span className="mono-label text-[13px] font-medium text-fg">Raven</span>
+            <span className="mono-label text-[13px] font-medium text-fg">Livqeno</span>
           </Link>
         </div>
         {sidebarBody}
@@ -111,7 +111,7 @@ export function AppShell({
             <div className="flex h-14 items-center justify-between px-4">
               <span className="flex items-center gap-2">
                 <RavenMark className="size-6" />
-                <span className="text-sm font-semibold text-fg">Raven</span>
+                <span className="text-sm font-semibold text-fg">Livqeno</span>
               </span>
               <button
                 type="button"

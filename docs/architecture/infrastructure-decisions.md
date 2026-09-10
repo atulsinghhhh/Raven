@@ -4,7 +4,7 @@ Status: **Accepted, with one decision since reversed** — 2026-08-17
 
 This records what technology was chosen at the start of the project and
 why. Most of it still stands. **The SFU-and-signaling row does not:**
-Raven now runs its own SFU on Pion and owns its signaling protocol. See
+Livqeno now runs its own SFU on Pion and owns its signaling protocol. See
 [`native-rtc-migration-map.md`](./native-rtc-migration-map.md#4-technology-decision)
 for that decision and the reasoning that reversed this one.
 
@@ -17,7 +17,7 @@ decision record that quietly matches the present is not a record.
 
 | Component | Choice | Why |
 |---|---|---|
-| SFU + signaling | ~~**LiveKit** (self-hosted, Apache-2.0)~~ → **Raven's own SFU on [Pion](https://github.com/pion/webrtc)**, and Raven's own signaling protocol | **Reversed.** The original reasoning — ships signaling, room/participant/token model, simulcast and server SDKs together, fastest path to a working session — was correct, and it is what got Raven to a working session. What it did not price is that owning the protocol is the only way to change the media plane without an SDK release. See `sfu-comparison.md` for the original comparison and [`native-rtc-migration-map.md`](./native-rtc-migration-map.md#4-technology-decision) for the reversal. |
+| SFU + signaling | ~~**LiveKit** (self-hosted, Apache-2.0)~~ → **Livqeno's own SFU on [Pion](https://github.com/pion/webrtc)**, and Livqeno's own signaling protocol | **Reversed.** The original reasoning — ships signaling, room/participant/token model, simulcast and server SDKs together, fastest path to a working session — was correct, and it is what got Livqeno to a working session. What it did not price is that owning the protocol is the only way to change the media plane without an SDK release. See `sfu-comparison.md` for the original comparison and [`native-rtc-migration-map.md`](./native-rtc-migration-map.md#4-technology-decision) for the reversal. |
 | TURN/STUN | **coturn** | De facto open-source standard; engineering rule 3 mandates it; integrates as an external service alongside the SFU. Unchanged by the SFU reversal — the two were never coupled beyond the ICE candidate list. See `turn.md`. |
 | Backend language/runtime | **TypeScript on Node.js** | Engineering rule 4; strong ecosystem for both the control-plane API and the SDK sharing types/tooling. |
 | Backend architecture | **Modular monolith** (not microservices) | Engineering rule 3 and 7: one deployable API with clearly separated modules (Auth, Projects, Rooms, Tokens, Usage, Webhooks). Split into services only when a real scaling or ownership need forces it. |

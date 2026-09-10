@@ -3,7 +3,7 @@ packages:
   - "packages/*"
   - "services/*"
   - "test"
-# Every entry fixes a HIGH advisory in a package Raven does not depend on
+# Every entry fixes a HIGH advisory in a package Livqeno does not depend on
 # directly. Each is pinned by a parent we do not control — NestJS 10 and
 # Prisma 7 both pin exact versions — so bumping the parent cannot reach them
 # and an override is the only lever. `pnpm audit --prod --audit-level high`
@@ -35,7 +35,7 @@ overrides:
   # GHSA-96hv-2xvq-fx4p. @nestjs/platform-ws pins 8.18.0. apps/api's own
   # direct range is bumped alongside this.
   ws@^8: ^8.21.3
-  # GHSA in prisma's optional MySQL driver. Raven is Postgres-only and never
+  # GHSA in prisma's optional MySQL driver. Livqeno is Postgres-only and never
   # loads it, but --prod still counts it.
   mysql2: ^3.24.4
   # Major bump inside @prisma/config's loader — the one override here that

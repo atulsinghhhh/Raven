@@ -1,4 +1,4 @@
-# Raven Chat — Messages
+# Livqeno Chat — Messages
 
 ## Sending
 
@@ -44,7 +44,7 @@ Networks retry. Reconnects replay. Users double-click. Any of those can turn
 one intended message into two, and "sorry, it sent twice" is a bad
 experience.
 
-Pass a `clientMessageId` and Raven guarantees the send happens once:
+Pass a `clientMessageId` and Livqeno guarantees the send happens once:
 
 ```js
 await chat.sendMessage({ text: 'Hello', clientMessageId: 'client_123' });
@@ -124,7 +124,7 @@ Events: `message`, `messageUpdated`, `messageDeleted`, `reactionAdded`,
 
 ## Delivery semantics
 
-Raven distinguishes three things, and only promises the first:
+Livqeno distinguishes three things, and only promises the first:
 
 | State | What it means | Where it comes from |
 | --- | --- | --- |

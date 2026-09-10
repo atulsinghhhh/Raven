@@ -2,7 +2,7 @@
 
 Best-effort connection telemetry from the browser SDK to the Control API,
 feeding the dashboard's Observability tabs and the `raven connections`/
-`raven errors` CLI commands. This is the "Raven Telemetry API" from the
+`raven errors` CLI commands. This is the "Livqeno Telemetry API" from the
 Phase 9 architecture.
 
 ## Core rule: telemetry never affects RTC

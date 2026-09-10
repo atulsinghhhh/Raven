@@ -1,9 +1,9 @@
 ---
 title: Troubleshooting
-description: Start with the product you're integrating — most issues are specific to RTC, Chat, or Live Streaming, not general to Raven.
+description: Start with the product you're integrating — most issues are specific to RTC, Chat, or Live Streaming, not general to Livqeno.
 ---
 
-There's no single Raven-wide troubleshooting flow, because most issues
+There's no single Livqeno-wide troubleshooting flow, because most issues
 are specific to one product's transport and guarantees:
 
 - **[RTC → Troubleshooting](/rtc/troubleshooting)** — connection
@@ -22,5 +22,5 @@ reconnect).
 ## Still stuck?
 
 Check [Diagnostics](/rtc/diagnostics) for RTC-side connection stats, or
-[Event Catalogue](/reference/events) for what Raven itself logged
+[Event Catalogue](/reference/events) for what Livqeno itself logged
 around the time of the issue.

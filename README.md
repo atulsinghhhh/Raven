@@ -1,4 +1,4 @@
-# Raven
+# Livqeno
 
 **[ravenstack.online](https://ravenstack.online)** — live deployment ·
 [dashboard](https://app.ravenstack.online) ·
@@ -9,20 +9,20 @@ API at `https://api.ravenstack.online`
 chat and data to your own app — without running WebRTC or WebSocket
 infrastructure yourself.
 
-Raven is infrastructure, not a video-calling app: you get an API, SDKs and
+Livqeno is infrastructure, not a video-calling app: you get an API, SDKs and
 a dashboard, and you build the product. Comparable to LiveKit Cloud, Daily
 or Agora, except you can self-host the whole thing.
 
 ```
-Your backend  ──API key──▶  Raven Control API  ──▶ short-lived token
+Your backend  ──API key──▶  Livqeno Control API  ──▶ short-lived token
                                                         │
 Your frontend ◀─────────────────────────────────────────┘
       │
-      └──token──▶  Raven Signaling ──▶ Raven SFU ──▶ other participants
+      └──token──▶  Livqeno Signaling ──▶ Livqeno SFU ──▶ other participants
 ```
 
 - **Node.js ≥ 20**, **pnpm 11**, Docker, and a Postgres connection string.
-- Media plane is Raven's own SFU: Go, built on [Pion](https://github.com/pion/webrtc).
+- Media plane is Livqeno's own SFU: Go, built on [Pion](https://github.com/pion/webrtc).
 - Everything speaks standards-compliant WebRTC — ICE, DTLS-SRTP, RTP/RTCP.
 
 ---
@@ -48,7 +48,7 @@ const raven = new Raven({
   baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
 });
 
-// One route in YOUR app. The browser calls this; it never calls Raven.
+// One route in YOUR app. The browser calls this; it never calls Livqeno.
 app.post('/api/raven/grant', requireYourOwnAuth, async (req, res) => {
   const room = await raven.rooms.create({ name: `room-${req.user.orgId}` });
 
@@ -74,7 +74,7 @@ the route you just wrote, then forwards it untouched:
 ```ts
 import { createRTCClient } from '@ravenkash/rtc';
 
-// Your own endpoint, your own session cookie. Raven is not called from here.
+// Your own endpoint, your own session cookie. Livqeno is not called from here.
 const grant = await fetch('/api/raven/grant', { method: 'POST' }).then((r) => r.json());
 
 // Forward the whole grant. It already carries the endpoint, the ICE servers,
@@ -86,7 +86,7 @@ const room = await client.join();
 // telemetryUrl, so prefer passing `grant` above unless you have a reason:
 //   const client = createRTCClient({
 //     token: grant.token,
-//     endpoint: grant.endpoint,       // Raven's signaling WebSocket
+//     endpoint: grant.endpoint,       // Livqeno's signaling WebSocket
 //     iceServers: grant.iceServers,   // never hand-build STUN/TURN config
 //   });
 //   const room = await client.join(grant.roomId);
@@ -188,7 +188,7 @@ diagnostics. Security model: [docs/security/server-sdk.md](./docs/security/serve
 
 ## How it fits together
 
-Raven has **two planes, and they fail independently.**
+Livqeno has **two planes, and they fail independently.**
 
 ```
                     ┌──────────────────────────────────┐
@@ -272,7 +272,7 @@ npm run db:seed             # optional: demo developer, project, key, room
 
 Then: interactive API docs at <http://localhost:4100/docs>.
 
-**Postgres is not in the compose stack.** Raven's own deployment uses
+**Postgres is not in the compose stack.** Livqeno's own deployment uses
 managed Postgres, and `.env` needs `DATABASE_URL` and `DIRECT_URL` before
 anything works. Any Postgres will do.
 
@@ -370,7 +370,7 @@ Grouped by what you are trying to do.
 [Attachments](./docs/chat/attachments.md) ·
 [Webhooks](./docs/chat/webhooks.md)
 
-**Contribute to Raven**
+**Contribute to Livqeno**
 [Contributing guide](./CONTRIBUTING.md) ·
 [Security policy](./SECURITY.md) ·
 [Development — formatting, linting, testing](./docs/development.md) ·
@@ -408,7 +408,7 @@ backend, and a CLI walkthrough.
 Working, end to end, and verified against a live stack:
 
 - Control plane — auth, projects, API keys, rooms, RTC tokens, audit logs
-- Signaling and Raven's own SFU, with simulcast and RTCP recovery
+- Signaling and Livqeno's own SFU, with simulcast and RTCP recovery
 - TURN/STUN via coturn, with per-token ephemeral credentials
 - Browser, React, chat, effects, React Native and Flutter SDKs
 - TypeScript and Python backend SDKs

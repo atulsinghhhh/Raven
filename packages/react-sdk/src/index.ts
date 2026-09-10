@@ -50,7 +50,7 @@ export type { RavenConnectionState, RavenSnapshot } from './store';
 // doesn't need a direct @ravenkash/rtc import just to name a common type.
 //
 // No media-plane type is ever re-exported (Phase 11 spec §27). Everything
-// here is Raven's own vocabulary, which is exactly what let the SFU
+// here is Livqeno's own vocabulary, which is exactly what let the SFU
 // underneath get replaced without touching this file.
 export type {
   ConnectionState,

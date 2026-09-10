@@ -13,7 +13,7 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-// dataChannelLabel is the one channel Raven's `room.sendData()` rides on.
+// dataChannelLabel is the one channel Livqeno's `room.sendData()` rides on.
 //
 // One negotiated channel, not one per peer pair. This is an SFU: the node
 // is the only peer any client ever has, and "room-wide delivery" is really
@@ -49,7 +49,7 @@ type ParticipantEvents struct {
 //
 // Plenty of SFUs hand each client two PeerConnections, one to publish on
 // and one to subscribe on, so subscriber-side renegotiation can't disturb
-// the publisher side. Raven uses one. That buys a single ICE negotiation,
+// the publisher side. Livqeno uses one. That buys a single ICE negotiation,
 // a single DTLS handshake, one set of candidates to shove through a
 // firewall, and one thing to reconnect when it all falls over. The
 // renegotiation mess two connections would have dodged gets handled by the

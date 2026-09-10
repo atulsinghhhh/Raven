@@ -1,6 +1,6 @@
 ---
 title: Track
-description: One stream of media. Camera, microphone, or screen share — Raven's vocabulary, never WebRTC's.
+description: One stream of media. Camera, microphone, or screen share — Livqeno's vocabulary, never WebRTC's.
 ---
 
 A track is one stream of media a participant publishes.
@@ -9,7 +9,7 @@ A track is one stream of media a participant publishes.
 
 WebRTC has no notion of what a stream is *of* — a browser cannot even choose
 the ids that end up in the SDP. So a camera and a screen share look
-identical on the wire. Raven declares the source explicitly, which is what
+identical on the wire. Livqeno declares the source explicitly, which is what
 lets a UI put the screen share in the big tile.
 
 ## Kinds

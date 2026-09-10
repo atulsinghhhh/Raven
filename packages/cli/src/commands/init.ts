@@ -12,7 +12,7 @@ import type { Project } from '../lib/types.js';
 export function registerInitCommand(program: Command): void {
   program
     .command('init')
-    .description('Link this directory to a Raven project')
+    .description('Link this directory to a Livqeno project')
     .option('-p, --project <project>', 'project ID (skips the interactive picker)')
     .action(
       withErrorHandling(async (opts: { project?: string }) => {
@@ -24,11 +24,11 @@ export function registerInitCommand(program: Command): void {
         } else {
           const projects = await client.listProjects();
           if (projects.length === 0) {
-            throw new CliError('usage', 'You have no Raven projects yet.', {
+            throw new CliError('usage', 'You have no Livqeno projects yet.', {
               suggestion: 'Run `raven projects create <name>` first',
             });
           }
-          project = await selectFromList('Select Raven project:', projects, (p) => p.name);
+          project = await selectFromList('Select Livqeno project:', projects, (p) => p.name);
         }
 
         const path = await writeProjectConfig({ project: project.id });

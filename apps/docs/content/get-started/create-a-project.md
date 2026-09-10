@@ -11,12 +11,12 @@ You need one before you can mint a credential.
 
 ## First, find your deployment
 
-Raven is self-hostable, so there is no single dashboard URL to send you to.
+Livqeno is self-hostable, so there is no single dashboard URL to send you to.
 Yours is one of:
 
 | Situation | Dashboard |
 |---|---|
-| Your team runs Raven | The deployment's own dashboard host — linked in the top bar of this site |
+| Your team runs Livqeno | The deployment's own dashboard host — linked in the top bar of this site |
 | You are running it locally | `http://localhost:3000` (see [Docker Compose](/self-hosting/docker-compose)) |
 
 Running locally, `pnpm db:seed` creates a demo project **and prints an API

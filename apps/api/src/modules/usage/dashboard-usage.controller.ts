@@ -33,7 +33,7 @@ export class DashboardUsageController {
   ) {}
 
   @Get('usage')
-  @ApiOperation({ summary: "The caller's Raven minute allowance and how much of it is spent" })
+  @ApiOperation({ summary: "The caller's Livqeno minute allowance and how much of it is spent" })
   @ApiResponse({ status: 200, description: 'Included, used and remaining minutes, plus usage percentage' })
   async getUsage(@CurrentUser() user: AuthenticatedUser) {
     return this.allowances.getSummary(user.id);

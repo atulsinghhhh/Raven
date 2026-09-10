@@ -1,5 +1,5 @@
 /**
- * DTLS role probe for a Raven RTC browser session.
+ * DTLS role probe for a Livqeno RTC browser session.
  *
  * Paste into the DevTools console of a page that uses @ravenkash/rtc
  * *before* joining, or inject it with any automation tool. It installs a

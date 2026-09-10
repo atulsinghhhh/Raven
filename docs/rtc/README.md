@@ -1,6 +1,6 @@
-# Raven RTC
+# Livqeno RTC
 
-Raven's realtime communication infrastructure — Raven's own control
+Livqeno's realtime communication infrastructure — Livqeno's own control
 plane, signaling protocol and SFU, built on open WebRTC standards (ICE,
 DTLS-SRTP, RTP/RTCP). No custom media protocol, and no third-party media
 server.
@@ -33,8 +33,8 @@ Per-SDK references live alongside them: [web](../sdk/web.md),
 
 ## Migrating
 
-Raven previously ran on LiveKit. If you are upgrading an existing
-deployment, read **[Migrating from Raven + LiveKit](../migration/from-livekit.md)** —
+Livqeno previously ran on LiveKit. If you are upgrading an existing
+deployment, read **[Migrating from Livqeno + LiveKit](../migration/from-livekit.md)** —
 environment variables and mobile dependencies change, and five behaviours
 shift in ways worth knowing.
 
@@ -60,6 +60,6 @@ traversal been tested with a relay-only path — the largest untested
 surface in the stack. Both are recorded in the
 [test matrix](./test-matrix.md#5-network-conditions-and-nat-traversal-spec-41).
 
-Raven also does not claim a supported participant count for this release.
+Livqeno also does not claim a supported participant count for this release.
 See [scaling](./scaling.md#capacity-what-was-measured) for what was
 actually measured and what was not.

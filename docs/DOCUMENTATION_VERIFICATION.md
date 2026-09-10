@@ -1,8 +1,8 @@
-# Raven — Documentation Verification
+# Livqeno — Documentation Verification
 
 **Date:** 2026-09-08
 **Method:** followed the documented path end to end as a developer who has
-never used Raven, checking every claim against the source tree.
+never used Livqeno, checking every claim against the source tree.
 **Scope:** `apps/docs` (140 pages), verified against `apps/api`,
 `packages/*`, `sdks/*`, `services/sfu`, `scripts/*`.
 
@@ -26,7 +26,7 @@ Written for this pass, on top of the committed harness:
 
 | Check | Scale | Result |
 |---|---|---|
-| Every `receiver.method()` resolves to a declaration | 195 calls | pass (19 non-Raven built-ins skipped) |
+| Every `receiver.method()` resolves to a declaration | 195 calls | pass (19 non-Livqeno built-ins skipped) |
 | Server-SDK calls resolved **receiver-aware** to the right resource class | 137 | pass |
 | Object-literal parameter keys against the real param interface | 118 | pass |
 | Documented CLI flags against registered options | 22 | pass |
@@ -58,7 +58,7 @@ Manual, following the 13 steps in order.
 **Severity:** CRITICAL
 **Page:** `getting-started/quickstart`, `get-started/create-a-project`
 **Problem:**
-The quickstart opens with "Register in the Raven dashboard and create a
+The quickstart opens with "Register in the Livqeno dashboard and create a
 project", then `raven login`. A reader following it in order hits three
 dead ends at once:
 
@@ -69,7 +69,7 @@ dead ends at once:
 2. **`raven` is not a command they have.** The CLI is unpublished, stated
    on `sdk/cli` and `get-started/install-an-sdk` — both of which come
    *after* the quickstart.
-3. **No mention that Raven must be running somewhere.** Raven is
+3. **No mention that Livqeno must be running somewhere.** Livqeno is
    self-hostable; the quickstart silently assumes a deployment exists.
 
 Every one of the remaining twelve steps depends on the API key this step
@@ -248,7 +248,7 @@ and `API key (shown once — this run only)`.
 **Problem:** Snippets call `showPermissionHelp()`, `appendChat()`,
 `enqueue()`, `wireUp()`, `setQuality()` and similar without marking them as
 the reader's own code. Copying a block verbatim gives a `ReferenceError`.
-**Actual implementation:** No such functions exist in Raven, nor should they.
+**Actual implementation:** No such functions exist in Livqeno, nor should they.
 **Recommended fix:** A short convention note on `guides`, or an inline
 `// your function` on first use per page.
 **Status: NOT FIXED — reported.** Ordinary documentation practice, but worth
@@ -265,7 +265,7 @@ one sentence of convention.
 **Status: NOT FIXED.**
 
 ### LOW-2 — Two placeholder-host conventions
-**Page:** several · **Problem:** Raven's own host is
+**Page:** several · **Problem:** Livqeno's own host is
 `api.your-raven-deployment.example`, the reader's is `api.example.com`. The
 distinction is deliberate and useful but never stated. **Fix:** one line in
 `api/conventions`. **Status: NOT FIXED.**
@@ -290,7 +290,7 @@ obviously-fake secret is the safer choice. **Status: WON'T FIX, recorded.**
 |---|---|---|
 | 1. Create a project | CLI `projects create`, dashboard routes | **CRITICAL-1** — path blocked |
 | 2. Install the SDK | all 8 `package.json` names, peer deps | pass |
-| 3. Authenticate | `RavenClientOptions`, Python `Raven.__init__` | pass |
+| 3. Authenticate | `RavenClientOptions`, Python `Livqeno.__init__` | pass |
 | 4. Generate a token | `CreateTokenParams`, `CreateRtcTokenDto`, `IssuedToken` | pass |
 | 5. Connect | `RTCClientConfig`, `createRTCClient` | pass |
 | 6. Join a room | `client.join`, `assertTokenMatchesRoom` (id or name) | pass |

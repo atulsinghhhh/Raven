@@ -15,7 +15,7 @@ export interface ChatTokenClaims {
   jti: string;
   /** Subject: the developer's own user identity string. */
   sub: string;
-  /** Raven project id. */
+  /** Livqeno project id. */
   pid: string;
   /**
    * Environment. Signed, not sent, because a browser holding a
@@ -135,7 +135,7 @@ export class ChatTokenService {
 
     if (claims.aud !== 'raven-chat' || claims.iss !== 'raven') {
       // A dashboard session JWT or an RTC token lands here.
-      throw new ChatError(ChatErrorCode.INVALID_TOKEN, 'This token was not issued for Raven Chat');
+      throw new ChatError(ChatErrorCode.INVALID_TOKEN, 'This token was not issued for Livqeno Chat');
     }
     if (claims.exp * 1000 <= Date.now()) {
       throw new ChatError(ChatErrorCode.TOKEN_EXPIRED, 'Chat token has expired — mint a new one');

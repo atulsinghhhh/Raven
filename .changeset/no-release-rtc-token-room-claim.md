@@ -5,7 +5,7 @@
 `@ravenkash/rtc`'s `assertTokenMatchesRoom()` now actually works.
 
 It decoded the room from `video.room`, which was LiveKit's token claim
-shape. Raven's own signer emits `rid` (room id) and `rnm` (room name), so
+shape. Livqeno's own signer emits `rid` (room id) and `rnm` (room name), so
 the claim read back `undefined` and the check silently passed every room —
 `client.join('anything')` proceeded to a connection that then failed at the
 signaling gateway. It now reads `rid`/`rnm` and accepts either, which is

@@ -12,16 +12,16 @@ let registered = false;
  * implementation in `react-native-webrtc`. After that, nothing in
  * `@ravenkash/rtc` can tell it isn't in a browser.
  *
- * It matters more since Raven's own SFU replaced LiveKit. The web SDK now
+ * It matters more since Livqeno's own SFU replaced LiveKit. The web SDK now
  * drives `RTCPeerConnection` directly rather than handing off to a client
  * library, so what it wants from the platform is precisely the standard
  * WebRTC API. Which is precisely what `react-native-webrtc` gives it.
  *
- * And that's the whole architecture of this package. Raven's RTC and chat
+ * And that's the whole architecture of this package. Livqeno's RTC and chat
  * logic is shared with web, and only what genuinely differs lives here:
  * rendering, permissions, app lifecycle, audio routing.
  *
- * Has to run before any Raven client is constructed, and exactly once.
+ * Has to run before any Livqeno client is constructed, and exactly once.
  * `new Raven(...)` calls it for you so nobody has to remember. Calling it
  * yourself earlier, in `index.js` before the first render, is supported and
  * occasionally handy.

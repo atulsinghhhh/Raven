@@ -2,7 +2,7 @@ import { DEVELOPER_GITHUB_URL, DEVELOPER_X_URL } from '../lib/links';
 import { GitHubIcon, XIcon } from './icons';
 
 /**
- * A single credit line, not a team page. Raven is one person's
+ * A single credit line, not a team page. Livqeno is one person's
  * infrastructure — this says so plainly, once, and gets out of the way.
  * Deliberately flat: no photo, no role/title, no card grid — the things
  * that would make this read as a SaaS "our team" section instead of an
@@ -19,7 +19,7 @@ export function BuiltBy() {
               Built by <span className="kw">Atul</span>.
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted md:text-base">
-              No team, no company behind it — Raven is one developer&apos;s real-time infrastructure, designed,
+              No team, no company behind it — Livqeno is one developer&apos;s real-time infrastructure, designed,
               built, and run end to end by Atul.
             </p>
           </div>

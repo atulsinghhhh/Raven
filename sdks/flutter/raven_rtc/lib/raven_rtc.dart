@@ -1,4 +1,4 @@
-/// Raven for Flutter: real-time audio and video.
+/// Livqeno for Flutter: real-time audio and video.
 ///
 /// ```dart
 /// final raven = Raven(token: token, endpoint: endpoint);
@@ -8,7 +8,7 @@
 /// await room.enableMicrophone();
 /// ```
 ///
-/// The same concepts as Raven Web and Raven React Native: a room, a
+/// The same concepts as Livqeno Web and Livqeno React Native: a room, a
 /// participant, a camera, a microphone. Only the syntax follows Dart.
 ///
 /// For messaging, add `raven_chat`: the two are independent packages, so
@@ -49,7 +49,7 @@ export 'src/video_view.dart' show RavenVideoFit, RavenVideoView;
 
 // Deliberately not exported: flutter_webrtc, the signaling client, the
 // peer-connection engine, and every other implementation detail. A
-// developer using Raven should never need to name a WebRTC type (spec §2).
+// developer using Livqeno should never need to name a WebRTC type (spec §2).
 //
 // `RavenRenderableTrack` is the one borderline case: it carries a
 // flutter_webrtc MediaStream, and it is exported only so the type

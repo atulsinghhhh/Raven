@@ -28,7 +28,7 @@ const SUBSCRIBE_TIMEOUT_MS = 15_000;
  *
  * ## Staleness, and why it is bounded twice
  *
- * The cache is per-instance and in-memory, and Raven runs several API
+ * The cache is per-instance and in-memory, and Livqeno runs several API
  * instances (`infrastructure/k8s` deploys three; Azure Container Apps
  * scales to two). So a dashboard edit lands on whichever instance served
  * the `PATCH`, and clearing only that instance's map would leave every

@@ -64,8 +64,8 @@ describe('isRavenChatError', () => {
 describe('error surface', () => {
   it('keeps the underlying cause without exposing it in the message', () => {
     const cause = new TypeError('fetch failed: ECONNREFUSED 10.0.0.1:5432');
-    const error = new RavenChatConnectionError('Could not reach Raven', 'NETWORK_ERROR', cause);
-    expect(error.message).toBe('Could not reach Raven');
+    const error = new RavenChatConnectionError('Could not reach Livqeno', 'NETWORK_ERROR', cause);
+    expect(error.message).toBe('Could not reach Livqeno');
     expect(error.cause).toBe(cause);
   });
 

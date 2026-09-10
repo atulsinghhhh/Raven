@@ -105,7 +105,7 @@ export function ExhaustedNotice({ summary }: { summary: UsageSummary }) {
   return (
     <div role="alert" className="rounded-lg border border-danger-line bg-danger-subtle p-5">
       <p className="text-sm font-medium text-danger-text">
-        This account has used all {formatCount(summary.includedMinutes)} of its included Raven minutes.
+        This account has used all {formatCount(summary.includedMinutes)} of its included Livqeno minutes.
       </p>
       <ul className="mt-2.5 flex flex-col gap-1.5 text-sm leading-relaxed text-danger-text/85">
         <li>
@@ -217,7 +217,7 @@ export function UsageHistoryTable({
 
 /**
  * A session's outcome. `abandoned` is shown rather than smoothed into
- * "ended": it means Raven lost the gateway holding that session and
+ * "ended": it means Livqeno lost the gateway holding that session and
  * credited it only up to the last moment it was known to be alive, which
  * is exactly what a developer reconciling their minutes needs to see.
  */

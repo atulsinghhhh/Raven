@@ -92,7 +92,7 @@ describe('AuthApiUnreachable', () => {
     render(<AuthApiUnreachable />);
 
     const alert = screen.getByRole('alert');
-    expect(alert).toHaveTextContent(/can't reach the raven api/i);
+    expect(alert).toHaveTextContent(/can't reach the livqeno api/i);
     expect(alert).toHaveTextContent(/some may be missing from this page/i);
   });
 

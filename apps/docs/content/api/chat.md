@@ -151,7 +151,7 @@ Add or re-activate a member
 | Parameter | In | Type | Required | Notes |
 |---|---|---|---|---|
 | `room` | path | `string` | Yes | |
-| `userId` | body | `string` | Yes | 1–128 chars — Your own user identity string — Raven never owns end-user accounts. |
+| `userId` | body | `string` | Yes | 1–128 chars — Your own user identity string — Livqeno never owns end-user accounts. |
 | `role` | body | `ChatMemberRole` | No |  |
 | `metadata` | body | `Record<string, unknown>` | No |  |
 

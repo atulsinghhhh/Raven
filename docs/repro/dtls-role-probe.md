@@ -1,4 +1,4 @@
-# DTLS role probe: what Chrome sees during a Raven join + publish
+# DTLS role probe: what Chrome sees during a Livqeno join + publish
 
 Companion to [`dtls-role-probe.js`](./dtls-role-probe.js), which records
 every SDP the browser applies and the DTLS role each side ends up with.
@@ -13,7 +13,7 @@ Next.js, no application-level `RTCPeerConnection`.
 ## Why the probe looks at `a=setup`, not at whether media flows
 
 The DTLS role belongs to the transport, and a session cannot change it once
-the handshake has run. Raven negotiates in *both* directions on one
+the handshake has run. Livqeno negotiates in *both* directions on one
 `RTCPeerConnection`:
 
 | exchange | offerer | answerer |

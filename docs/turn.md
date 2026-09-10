@@ -1,6 +1,6 @@
 # TURN (coturn) — Operations Reference
 
-This is the operational reference for Raven's TURN/STUN deployment: exact
+This is the operational reference for Livqeno's TURN/STUN deployment: exact
 configuration, authentication mechanism, ports, TLS, abuse protection,
 metrics, and a production checklist. For *why* TURN exists at all and how
 it fits alongside the SFU at a design level, see
@@ -213,10 +213,10 @@ the same side of the host/container boundary and every party sees one
 consistent address for the SFU. The unresolved case below is specifically
 the browser-plus-containerised-SFU split.
 
-This limitation **survived the migration to Raven's own SFU unchanged**,
+This limitation **survived the migration to Livqeno's own SFU unchanged**,
 which is itself the useful finding: it was never about which SFU was
 running. The analysis below was done against LiveKit and applies verbatim
-to Raven's SFU, because the cause is the addressing topology, not the
+to Livqeno's SFU, because the cause is the addressing topology, not the
 media server.
 
 Root cause: the SFU advertises `SFU_PUBLIC_IP=127.0.0.1` so a browser on
@@ -242,7 +242,7 @@ directly" and "coturn, a peer container, correctly identifies the SFU's
 traffic."
 
 This is a Docker Desktop host/container networking limitation, not a defect
-in Raven's TURN integration or credential/config logic — coturn's relay
+in Livqeno's TURN integration or credential/config logic — coturn's relay
 engine itself is proven correct by the `turnutils_uclient` real-data tests
 above, and the identical topology on a native Linux Docker host (where the
 bridge network *is* directly routable from the host) would not hit this

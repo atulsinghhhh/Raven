@@ -16,7 +16,7 @@ import { SIGNALING_PATH } from '../signaling/signaling.constants';
 export interface IssuedRtcToken {
   id: string;
   token: string;
-  /** Where the client SDK connects to run the call. A Raven-owned contract, not tied to whichever SFU sits behind it. */
+  /** Where the client SDK connects to run the call. A Livqeno-owned contract, not tied to whichever SFU sits behind it. */
   endpoint: string;
   roomId: string;
   roomName: string;
@@ -188,7 +188,7 @@ export class RtcTokensService {
   }
 
   /**
-   * The `endpoint` clients connect to: Raven's own signaling WebSocket.
+   * The `endpoint` clients connect to: Livqeno's own signaling WebSocket.
    *
    * Derived from the API's public URL by default, so there's one address to
    * configure, not two. `ChatTokenService.chatUrl()` takes the same

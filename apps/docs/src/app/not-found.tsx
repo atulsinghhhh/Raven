@@ -29,7 +29,7 @@ export default function NotFound() {
         </div>
 
         <Link href="/" className="mt-8 text-sm text-accent-text hover:text-accent-hover hover:underline">
-          Back to Raven Docs
+          Back to Livqeno Docs
         </Link>
       </div>
     </>

@@ -329,7 +329,7 @@ export class ChatController {
   @ApiOperation({
     summary: 'Get a signed upload URL',
     description:
-      'Upload the bytes straight to object storage with the returned URL, call /complete, then send a message referencing the attachment id. Files never pass through Raven or the WebSocket.',
+      'Upload the bytes straight to object storage with the returned URL, call /complete, then send a message referencing the attachment id. Files never pass through Livqeno or the WebSocket.',
   })
   createAttachment(
     @CurrentChatActor() actor: ChatActor,

@@ -66,7 +66,7 @@ export default async function ProjectUsagePage({ params }: { params: Promise<{ p
       <PageHeader
         eyebrow="Project"
         title="Usage"
-        description="Raven minutes this project has metered, and the account allowance they come out of. Counted server-side by the signaling layer while calls run."
+        description="Livqeno minutes this project has metered, and the account allowance they come out of. Counted server-side by the signaling layer while calls run."
         actions={
           <ButtonLink href="/dashboard/usage" variant="secondary" size="sm">
             Account usage

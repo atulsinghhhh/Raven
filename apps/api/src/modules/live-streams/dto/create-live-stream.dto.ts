@@ -39,7 +39,7 @@ export class CreateLiveStreamDto {
   @MaxLength(2000)
   description?: string;
 
-  @ApiPropertyOptional({ description: 'A URL you host — Raven does not accept or store thumbnail uploads.' })
+  @ApiPropertyOptional({ description: 'A URL you host — Livqeno does not accept or store thumbnail uploads.' })
   @IsOptional()
   @IsString()
   @MaxLength(2048)
@@ -76,7 +76,7 @@ export class CreateLiveStreamDto {
 
   @ApiPropertyOptional({
     description:
-      'When set, the stream is created for a future start — see docs/live-streaming/overview.md#scheduled-streams. Raven does not automatically transition status at this time; your backend still calls start().',
+      'When set, the stream is created for a future start — see docs/live-streaming/overview.md#scheduled-streams. Livqeno does not automatically transition status at this time; your backend still calls start().',
   })
   @IsOptional()
   @IsDateString()

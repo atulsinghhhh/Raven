@@ -12,7 +12,7 @@ import { NAV, type NavItem } from '../lib/nav';
  * should feel like a dedicated product site. In practice it stranded the
  * reader: from RTC → Authentication there was no way to reach Chat or
  * the SDK reference without going back to the home page first, and the
- * only clue was a small "← All Raven docs" link. The tree is now the
+ * only clue was a small "← All Livqeno docs" link. The tree is now the
  * same everywhere, so the whole map is always one click away.
  *
  * Sections collapse, because fourteen of them fully expanded is far more

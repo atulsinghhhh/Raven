@@ -1,7 +1,7 @@
-# Raven RTC — Security
+# Livqeno RTC — Security
 
 Three credentials, three blast radiuses, three separate keys. Plus what
-the media plane refuses to trust even from Raven's own control plane.
+the media plane refuses to trust even from Livqeno's own control plane.
 
 ---
 
@@ -38,7 +38,7 @@ fallback.
 
 ## RTC tokens
 
-Raven's own HS256 JWT. Readable by whoever holds it — the same information
+Livqeno's own HS256 JWT. Readable by whoever holds it — the same information
 the server will act on — and not modifiable by them.
 
 ```json
@@ -93,7 +93,7 @@ const token = await raven.tokens.create({ room: 'room_123', identity: user.id })
 const client = createRTCClient({ token, endpoint, iceServers });
 ```
 
-Minting requires a Raven API key. An API key in a browser is a Raven API
+Minting requires a Livqeno API key. An API key in a browser is a Livqeno API
 key belonging to whoever opens the developer tools.
 
 ### Expiry and refresh
@@ -161,7 +161,7 @@ trust what arrives on it. That is the point.
 
 ## What is never trusted from a client
 
-| The client says | Raven uses |
+| The client says | Livqeno uses |
 |---|---|
 | `roomId` in `room.join` | The `rid` claim. A mismatch is rejected, not preferred. |
 | Its identity | The `sub` claim. |
@@ -171,7 +171,7 @@ trust what arrives on it. That is the point.
 | A track's source | This one *is* client-declared — see below. |
 
 A track's source (`camera` / `microphone` / `screenShare`) is the one
-piece of client-supplied metadata Raven accepts, because WebRTC provides
+piece of client-supplied metadata Livqeno accepts, because WebRTC provides
 no way to derive it and a page cannot control the ids that reach the SDP.
 It is metadata, not authorization: a client that mislabels its camera as a
 screen share has lied about a label in other people's UI, and gained no

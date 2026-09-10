@@ -42,7 +42,7 @@ describe('isSdkBrowserSurface', () => {
 describe('corsOriginFor', () => {
   it('reflects any origin on an SDK surface, so every developer origin works', () => {
     // The whole point: a developer on localhost:5173 must not have to ask
-    // Raven to add their port to a list.
+    // Livqeno to add their port to a list.
     expect(corsOriginFor('/v1/telemetry/events', ALLOWLIST)).toBe(true);
     expect(corsOriginFor('/v1/chat/conversations', ALLOWLIST)).toBe(true);
   });

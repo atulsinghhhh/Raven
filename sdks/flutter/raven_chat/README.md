@@ -1,10 +1,10 @@
 # raven_chat
 
-Raven Chat for Flutter — real-time messaging with durable history,
+Livqeno Chat for Flutter — real-time messaging with durable history,
 presence, typing indicators, reactions, read receipts and threads.
 Connect, send and listen without writing WebSocket code.
 
-Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
+Part of [Livqeno](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
 
 ## Requirements
 

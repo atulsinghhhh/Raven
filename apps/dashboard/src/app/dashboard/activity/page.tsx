@@ -13,7 +13,7 @@ import { IconAudit } from '@/components/ui/icons';
 import { formatRelative } from '@/lib/format';
 
 export const metadata: Metadata = {
-  title: 'Activity — Raven',
+  title: 'Activity — Livqeno',
 };
 
 /**

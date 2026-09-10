@@ -13,7 +13,7 @@ import { IconChevronRight, IconCli, IconExternal, IconGitHub, IconKeys, IconWebh
 import { DOCS_URL, GITHUB_URL } from '@/lib/nav';
 
 export const metadata: Metadata = {
-  title: 'Developers — Raven',
+  title: 'Developers — Livqeno',
 };
 
 /**
@@ -91,7 +91,7 @@ export default async function DevelopersPage() {
             <Card className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <IconCli className="size-4 text-subtle" />
-                <p className="text-sm font-medium text-fg">Raven CLI</p>
+                <p className="text-sm font-medium text-fg">Livqeno CLI</p>
               </div>
               <p className="text-sm text-muted">Manage projects, keys, and rooms from your terminal.</p>
               <CodeBlock code="npm install -g @ravenkash/cli" language="bash" />

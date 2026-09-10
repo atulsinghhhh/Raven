@@ -23,7 +23,7 @@ export interface ObservabilityOverview {
 }
 
 /**
- * Aggregates the `Connection`/`ErrorEvent` tables into the Raven-facing
+ * Aggregates the `Connection`/`ErrorEvent` tables into the Livqeno-facing
  * numbers the dashboard Overview and `raven status`/`raven diagnostics`
  * show (Phase 9 spec §15/§26). Every number here comes from real rows;
  * an empty project legitimately reports zeros/`null`, never a fabricated

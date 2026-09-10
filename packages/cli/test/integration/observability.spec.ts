@@ -156,7 +156,7 @@ describe('raven connections / errors / diagnostics (integration)', () => {
     expect(result.stdout).toContain('excellent');
   });
 
-  it('errors list shows the Raven-facing category, never a raw internal code', async () => {
+  it('errors list shows the Livqeno-facing category, never a raw internal code', async () => {
     mockApi({
       'GET /v1/projects/proj-1/errors': async () => ({
         status: 200,

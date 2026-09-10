@@ -31,7 +31,7 @@ type Config struct {
 	// traffic only. No media ever crosses it.
 	HTTPAddr string
 
-	// ControlPlaneURL is the Raven API this node registers with.
+	// ControlPlaneURL is the Livqeno API this node registers with.
 	ControlPlaneURL string
 	// RegistrationSecret authenticates this node to the control plane. It's
 	// fleet membership, not a client credential.

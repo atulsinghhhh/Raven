@@ -12,7 +12,7 @@ const CONFIG: Record<string, unknown> = {
   'email.enabled': true,
   'email.apiKey': 're_test_key_never_real',
   'email.fromEmail': 'hello@mail.ravenstack.online',
-  'email.fromName': 'Raven',
+  'email.fromName': 'Livqeno',
   'email.replyTo': undefined,
   'email.supportEmail': 'support@mail.ravenstack.online',
   'email.docsUrl': 'https://docs.ravenstack.online',
@@ -27,7 +27,7 @@ const CONFIG: Record<string, unknown> = {
 };
 
 const RENDERED = {
-  subject: 'Confirm your Raven email address',
+  subject: 'Confirm your Livqeno email address',
   html: '<p>hello</p>',
   text: 'hello',
 };
@@ -112,7 +112,7 @@ describe('EmailService', () => {
       const [payload] = send.mock.calls[0];
       expect(payload).toMatchObject({
         to: 'dev@example.com',
-        from: 'Raven <hello@mail.ravenstack.online>',
+        from: 'Livqeno <hello@mail.ravenstack.online>',
         subject: RENDERED.subject,
         html: RENDERED.html,
         text: RENDERED.text,

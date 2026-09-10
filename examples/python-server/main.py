@@ -1,5 +1,5 @@
-"""Minimal FastAPI backend for a frontend that joins Raven rooms and chats —
-the canonical flow: Browser -> your backend -> raven-sdk -> Raven -> a
+"""Minimal FastAPI backend for a frontend that joins Livqeno rooms and chats —
+the canonical flow: Browser -> your backend -> raven-sdk -> Livqeno -> a
 short-lived token -> back to the browser -> @ravenkash/rtc or @ravenkash/chat.
 
 RAVEN_API_KEY never leaves this process. Never send it to the browser.
@@ -47,7 +47,7 @@ class ChatTokenRequest(BaseModel):
 
 @app.exception_handler(RavenError)
 async def raven_error_handler(_request: Request, error: RavenError) -> JSONResponse:
-    print(f"Raven token creation failed [{error.code}] (request {error.request_id or 'n/a'})")
+    print(f"Livqeno token creation failed [{error.code}] (request {error.request_id or 'n/a'})")
     return JSONResponse(status_code=error.status_code or 502, content={"error": error.message, "code": error.code})
 
 
@@ -59,7 +59,7 @@ async def create_token(request: TokenRequest) -> dict:
     # In a real app, `identity` should come from your own authenticated
     # session, never trusted verbatim from the request body — see
     # docs/security/server-sdk.md#authorization-model. Kept simple here to
-    # focus the example on the Raven SDK call itself.
+    # focus the example on the Livqeno SDK call itself.
     token = raven.tokens.create(
         CreateTokenParams(
             room=request.room,
@@ -77,7 +77,7 @@ async def create_chat_token(request: ChatTokenRequest) -> dict:
 
     Same caveat as the RTC endpoint above: `user_id` must come from your
     own authenticated session in a real app. Whoever controls it controls
-    who Raven attributes messages to.
+    who Livqeno attributes messages to.
     """
     if not request.room or not request.user_id:
         raise HTTPException(status_code=400, detail="room and user_id are required")

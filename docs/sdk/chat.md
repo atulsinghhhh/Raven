@@ -1,6 +1,6 @@
 # @ravenkash/chat — Browser SDK
 
-`@ravenkash/chat` is Raven's browser SDK for real-time messaging. Connect, send,
+`@ravenkash/chat` is Livqeno's browser SDK for real-time messaging. Connect, send,
 listen — without writing a line of WebSocket code, a reconnect loop, a
 heartbeat, or message-ordering logic.
 
@@ -25,14 +25,14 @@ scope for this package.
 there.**
 
 ```
-Your backend  ──(project API key)──►  Raven Control API
+Your backend  ──(project API key)──►  Livqeno Control API
                                               │
                                               │  short-lived chat token
                                               ▼
                                       Your frontend
 ```
 
-Your backend authenticates the user however it already does, then asks Raven
+Your backend authenticates the user however it already does, then asks Livqeno
 for a token scoped to that one user:
 
 ```js
@@ -223,7 +223,7 @@ await chat.sendMessage({ type: 'attachment', attachmentId: attachment.id });
 const { url } = await chat.attachments.getDownloadUrl('att_…');
 ```
 
-Bytes go straight to object storage over a signed URL — never through Raven's
+Bytes go straight to object storage over a signed URL — never through Livqeno's
 API or the WebSocket. See [../chat/attachments.md](../chat/attachments.md).
 
 ## Errors
@@ -253,7 +253,7 @@ try {
 ```
 
 You will never see a raw `CloseEvent`, a Postgres constraint name, or a Redis
-timeout. Those are infrastructure Raven is supposed to be hiding.
+timeout. Those are infrastructure Livqeno is supposed to be hiding.
 
 An error correlated to a call you made rejects *that promise*. Connection-level
 errors fire the `error` event.

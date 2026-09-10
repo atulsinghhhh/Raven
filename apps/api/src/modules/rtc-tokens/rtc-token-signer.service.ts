@@ -32,10 +32,10 @@ export interface SignedRtcToken {
 }
 
 /**
- * Mints and verifies Raven's own RTC credential.
+ * Mints and verifies Livqeno's own RTC credential.
  *
  * This replaced `livekit-server-sdk`'s `AccessToken` and `TokenVerifier`.
- * Raven owns the token format end to end now, and that's what lets the SFU
+ * Livqeno owns the token format end to end now, and that's what lets the SFU
  * behind it be swapped without touching the public token API. Which was
  * rather the point of the migration; see
  * docs/architecture/native-rtc-migration-map.md.
@@ -138,7 +138,7 @@ export class RtcTokenSignerService {
     if (claims.aud !== 'raven-rtc' || claims.iss !== 'raven') {
       // A chat token or a dashboard session JWT lands here, if it somehow
       // shared our secret.
-      throw new RtcTokenError('INVALID_TOKEN', 'This token was not issued for Raven RTC');
+      throw new RtcTokenError('INVALID_TOKEN', 'This token was not issued for Livqeno RTC');
     }
     if (claims.exp * 1000 <= Date.now()) {
       throw new RtcTokenError('TOKEN_EXPIRED', 'RTC token has expired — mint a new one');

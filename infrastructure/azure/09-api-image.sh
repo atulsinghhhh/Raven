@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build and push the Raven API image to ACR.
+# Build and push the Livqeno API image to ACR.
 #
 # Reuses apps/api/Dockerfile unchanged. Build context is the REPO ROOT, not
 # apps/api — it is a pnpm workspace package and needs its siblings visible

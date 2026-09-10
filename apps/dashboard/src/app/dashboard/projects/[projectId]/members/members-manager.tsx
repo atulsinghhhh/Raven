@@ -153,7 +153,7 @@ export function MembersManager({
         <Card>
           <CardHeader
             title="Add a member"
-            subtitle="They need an existing Raven account — there's no invitation flow yet, so an unknown address is refused rather than left pending."
+            subtitle="They need an existing Livqeno account — there's no invitation flow yet, so an unknown address is refused rather than left pending."
           />
           <form onSubmit={handleAdd} className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <div className="flex-1">

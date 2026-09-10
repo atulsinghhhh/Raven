@@ -73,7 +73,7 @@ export class DiagnosticsService {
       api: 'up',
       authentication: 'ok',
       dependencies: {
-        // The Raven WS signaling gateway (Phase 3) shares this API
+        // The Livqeno WS signaling gateway (Phase 3) shares this API
         // process, so it's "up" whenever this request is being served.
         signaling: 'up',
         sfu: sfu ? 'up' : 'down',

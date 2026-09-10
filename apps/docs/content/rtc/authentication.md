@@ -152,7 +152,7 @@ token model across RTC and Chat.
 | `ROOM_NOT_FOUND` | The `roomId` passed to `join()` doesn't match the token's `room`. | Pass the exact same room id/name used in `tokens.create({ room })`. |
 | `TOKEN_REVOKED` | Someone called `DELETE /v1/rooms/{roomId}/rtc-tokens/{tokenId}` on this token. | Mint a new one. Retrying with the same token cannot succeed. |
 | `ORIGIN_NOT_ALLOWED` | The page's origin is not on the project's allow-list. | Add it under **Project Settings → Security → Allowed Origins**. See [Browser security](/authentication/browser-security). |
-| `USAGE_LIMIT_EXCEEDED` | The account has spent its included Raven minutes. | Nothing to retry — this one is a billing state, not a transient failure. Sessions already running are unaffected. |
+| `USAGE_LIMIT_EXCEEDED` | The account has spent its included Livqeno minutes. | Nothing to retry — this one is a billing state, not a transient failure. Sessions already running are unaffected. |
 
 ## Production notes
 

@@ -74,7 +74,7 @@ export class MessagesApi {
 
   /**
    * Edits a message. What comes back carries `edited: true` and an
-   * `editedAt`. Raven never quietly rewrites history (spec §24).
+   * `editedAt`. Livqeno never quietly rewrites history (spec §24).
    */
   update(messageId: string, changes: { text?: string; metadata?: Record<string, unknown> }): Promise<ChatMessage> {
     return this.rest.request<ChatMessage>(`/v1/chat/messages/${encodeURIComponent(messageId)}`, {

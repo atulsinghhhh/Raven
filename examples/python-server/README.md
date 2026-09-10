@@ -37,7 +37,7 @@ that straight into `createRTCClient()` from `@ravenkash/rtc` on the frontend
 ```
 Browser: fetch('/api/rtc/token', { method: 'POST', body: {room, identity} })
   → this server: raven.tokens.create(CreateTokenParams(room=..., identity=..., permissions=...))
-    → Raven Control API (authenticated by RAVEN_API_KEY, never sent to the browser)
+    → Livqeno Control API (authenticated by RAVEN_API_KEY, never sent to the browser)
       → a short-lived RTC token
   ← back to the browser
 Browser: createRTCClient({ token, endpoint, iceServers }).join(room)
@@ -48,7 +48,7 @@ full authorization model and security notes.
 
 ## Chat
 
-The same backend also mints Raven Chat tokens, because the security model
+The same backend also mints Livqeno Chat tokens, because the security model
 is identical: the API key stays here, and the browser gets a short-lived
 token scoped to one user.
 

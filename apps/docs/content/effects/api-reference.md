@@ -115,7 +115,7 @@ function isEffectsError(value: unknown): value is EffectsError;
 | `RAVEN_EFFECT_UNSUPPORTED` | This runtime can't run the pipeline (no DOM, or missing WebGL2/Canvas2D/`captureStream()`), or a capability (face detection, background, AR) hasn't shipped. |
 | `RAVEN_EFFECT_INVALID_CONFIG` | A parameter is out of range, unknown, or non-finite. |
 | `RAVEN_EFFECT_PROCESSING_FAILED` | A shader/frame failed to render mid-stream. |
-| `RAVEN_EFFECT_PERMISSION_DENIED` | An operation Raven Effects refuses on principle — e.g. loading a remote effect/shader/script. |
+| `RAVEN_EFFECT_PERMISSION_DENIED` | An operation Livqeno Effects refuses on principle — e.g. loading a remote effect/shader/script. |
 | `RAVEN_EFFECT_RESOURCE_LIMIT` | Pipeline length (16) or an asset's size/dimensions exceeded a security limit. |
 
 ## Capability detection
@@ -147,7 +147,7 @@ function validateParams(params: Record<string, number>, specs: Record<string, Ef
 function validateAsset(asset: { byteLength: number; mimeType: string; width?: number; height?: number }): void;
 ```
 
-Raven Effects never loads a shader, script, or WASM module from a URL —
+Livqeno Effects never loads a shader, script, or WASM module from a URL —
 there is no `loadEffectFromUrl()`-style API. See
 [Custom effects](#custom-effects) below.
 
@@ -170,7 +170,7 @@ pipeline.addCustomEffect(effect: RavenEffect, initialParams?: ColorOpParams): Ef
 ```
 
 `addCustomEffect()` accepts only an in-process object your own code
-already trusts — Raven Effects has no sandboxed execution model yet, so
+already trusts — Livqeno Effects has no sandboxed execution model yet, so
 there's deliberately no way to register an effect from an untrusted
 source. `initialize()` runs once on registration; `update()` runs on
 every `pipeline.update(effectId, params)` call, followed by `process()`

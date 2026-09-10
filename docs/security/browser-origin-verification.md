@@ -110,7 +110,7 @@ routes carry no ambient authority, `Access-Control-Allow-Credentials` is
 **absent** on all of them, and per-tenant enforcement happens after
 authentication. See `apps/api/src/shared/config/cors-policy.ts`.
 
-Credentials were **not** enabled. Raven's browser auth is a bearer token, not
+Credentials were **not** enabled. Livqeno's browser auth is a bearer token, not
 a cookie.
 
 ## 6. Per-project origin enforcement — PASS (local build)
@@ -188,7 +188,7 @@ source far enough to change what a browser test appears to prove.
 
 ## 9. Hosted RTC media — PASS
 
-Two participants in one page against **hosted** Raven and the production SFU.
+Two participants in one page against **hosted** Livqeno and the production SFU.
 This browser has no camera, so an animated `canvas.captureStream()` stood in
 via a `getUserMedia` shim — a real encoded video track, and the only way to
 exercise the publish direction at all here.
@@ -222,7 +222,7 @@ Measured from a real browser at `http://localhost:3000`, and by `curl`.
    failure is CORS rather than the network. No `Access-Control-Allow-Origin`
    for `http://localhost:3000`, `https://app.ravenstack.online`, or anything
    else tried, on either hostname. **Browser Chat REST and telemetry against
-   hosted Raven do not work today.**
+   hosted Livqeno do not work today.**
 
 2. **Chat WebSocket refuses localhost, RTC WebSocket checks nothing.** The
    chat gateway closes `4403 ORIGIN_NOT_ALLOWED` with the message *"This

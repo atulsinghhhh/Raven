@@ -1,9 +1,9 @@
 ---
 title: Filters & Effects
-description: Raven Effects, applied to a live stream host's camera — the same pipeline used on any RTC call, with no viewer-side dependency.
+description: Livqeno Effects, applied to a live stream host's camera — the same pipeline used on any RTC call, with no viewer-side dependency.
 ---
 
-Raven Live Streaming has a filters and effects pipeline as of Raven
+Livqeno Live Streaming has a filters and effects pipeline as of Livqeno
 Effects (`@ravenkash/effects`) — no separate implementation was built for
 Live Streaming, because `stream.room` is an ordinary
 [`@ravenkash/rtc` `Room`](/rtc) and effects attach the same way they do on

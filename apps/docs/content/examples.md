@@ -1,11 +1,11 @@
 ---
 title: Examples
-description: Real, runnable apps in the Raven repo — grouped by which product they exercise.
+description: Real, runnable apps in the Livqeno repo — grouped by which product they exercise.
 ---
 
 
 Every example below is a real, runnable app at `examples/<name>` in the
-Raven repo — not a code snippet. Each has its own README with exact
+Livqeno repo — not a code snippet. Each has its own README with exact
 setup steps.
 
 ## RTC
@@ -86,7 +86,7 @@ const stream = await LiveStream.join({
 await stream.room.enableCamera();
 await stream.room.enableMicrophone();
 
-// A Raven Chat conversation comes attached automatically.
+// A Livqeno Chat conversation comes attached automatically.
 await stream.chat.sendMessage({ text: "We're live!" });
 ```
 
