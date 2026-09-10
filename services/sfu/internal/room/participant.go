@@ -13,7 +13,7 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-// dataChannelLabel is the one channel Livqeno's `room.sendData()` rides on.
+// dataChannelLabel is the one channel Raven's `room.sendData()` rides on.
 //
 // One negotiated channel, not one per peer pair. This is an SFU: the node
 // is the only peer any client ever has, and "room-wide delivery" is really
@@ -49,7 +49,7 @@ type ParticipantEvents struct {
 //
 // Plenty of SFUs hand each client two PeerConnections, one to publish on
 // and one to subscribe on, so subscriber-side renegotiation can't disturb
-// the publisher side. Livqeno uses one. That buys a single ICE negotiation,
+// the publisher side. Raven uses one. That buys a single ICE negotiation,
 // a single DTLS handshake, one set of candidates to shove through a
 // firewall, and one thing to reconnect when it all falls over. The
 // renegotiation mess two connections would have dodged gets handled by the
@@ -80,28 +80,6 @@ type Participant struct {
 
 	dataChannel atomic.Pointer[webrtc.DataChannel]
 
-	// subMu serializes Subscribe and Unsubscribe for this participant.
-	//
-	// p.mu alone isn't enough. Subscribe has to check whether it is already
-	// subscribed, then build a track and a transceiver, then record it, and
-	// holding p.mu across the PeerConnection work would put every stats
-	// read behind it. Without a lock spanning the three, a joiner's initial
-	// sweep and a publisher's fan-out can both decide the same subscription
-	// is missing and each add a sender for it: two m-sections carrying one
-	// camera, and the first DownTrack orphaned in the subscriber's
-	// transceiver list with nothing ever writing to it or closing it.
-	subMu sync.Mutex
-
-	// ICE state, guarded by iceMu.
-	//
-	// The lock covers SetRemoteDescription as well as the candidate list,
-	// so a candidate arriving at the same moment as the description it
-	// belongs to can't slip past both the buffer and the flush.
-	iceMu sync.Mutex
-	// pendingRemoteCandidates holds candidates that turned up before we
-	// had a remote description to attach them to. See AddICECandidate.
-	pendingRemoteCandidates []webrtc.ICECandidateInit
-
 	// Negotiation state, guarded by negMu. The lock is held across the
 	// whole offer→answer round trip, not just offer creation.
 	//
@@ -126,6 +104,29 @@ type Participant struct {
 	negotiationTimer *time.Timer
 
 	closed atomic.Bool
+
+	// subMu serializes Subscribe and Unsubscribe for this participant.
+	//
+	// p.mu alone isn't enough. Subscribe has to check whether it is already
+	// subscribed, then build a track and a transceiver, then record it, and
+	// holding p.mu across the PeerConnection work would put every stats
+	// read behind it. Without a lock spanning the three, a joiner's initial
+	// sweep and a publisher's fan-out can both decide the same subscription
+	// is missing and each add a sender for it: two m-sections carrying one
+	// camera, and the first DownTrack orphaned in the subscriber's
+	// transceiver list with nothing ever writing to it or closing it.
+	subMu sync.Mutex
+
+	// ICE candidate buffering, guarded by iceMu.
+	//
+	// iceMu is held across SetRemoteDescription-and-flush so a candidate
+	// cannot slip in between the description landing and the buffer
+	// draining, which would leave it queued behind a description that has
+	// already been applied.
+	iceMu sync.Mutex
+	// pendingRemoteCandidates holds candidates that turned up before there
+	// was a remote description to attach them to.
+	pendingRemoteCandidates []webrtc.ICECandidateInit
 }
 
 func newParticipant(id, sessionID, roomID string, permissions Permissions, pc *webrtc.PeerConnection, events ParticipantEvents, logger *slog.Logger) *Participant {
@@ -387,7 +388,8 @@ func (p *Participant) Unsubscribe(publisherID, trackID string) bool {
 // Dropping our own record alone isn't enough. The publisher's subscriber
 // list would keep the DownTrack, and its forwarding loop would copy that
 // dead entry into its target slice for every packet it reads, for the rest
-// of the call.
+// of the call. PublishedTrack.RemoveSubscriber exists for this and had no
+// callers.
 func (p *Participant) detach(down *DownTrack) {
 	if down.source != nil {
 		down.source.RemoveSubscriber(p.ID)
@@ -570,6 +572,35 @@ func (p *Participant) releaseAfterFailure() {
 
 // AcceptAnswer applies the client's answer to our offer, then runs another
 // negotiation round if the track set moved while we were waiting.
+// setRemoteDescription applies a remote description and then drains any
+// candidates that arrived before it.
+//
+// The drain is the whole point: a buffered candidate that is never applied
+// is identical, from ICE's perspective, to the candidate having been
+// dropped — which is the bug this buffering exists to fix.
+func (p *Participant) setRemoteDescription(description webrtc.SessionDescription) error {
+	p.iceMu.Lock()
+	defer p.iceMu.Unlock()
+
+	if err := p.pc.SetRemoteDescription(description); err != nil {
+		return err
+	}
+
+	// Cleared before applying, so one rejected candidate cannot strand the
+	// rest in the buffer.
+	pending := p.pendingRemoteCandidates
+	p.pendingRemoteCandidates = nil
+	for _, candidate := range pending {
+		if err := p.pc.AddICECandidate(candidate); err != nil {
+			p.logger.Debug("buffered ICE candidate rejected", "err", err)
+		}
+	}
+	if len(pending) > 0 {
+		p.logger.Debug("applied buffered ICE candidates", "count", len(pending))
+	}
+	return nil
+}
+
 func (p *Participant) AcceptAnswer(sdp string) error {
 	err := p.setRemoteDescription(webrtc.SessionDescription{
 		Type: webrtc.SDPTypeAnswer,
@@ -632,46 +663,20 @@ func (p *Participant) AcceptOffer(sdp string) (*webrtc.SessionDescription, error
 	return &answer, nil
 }
 
-// setRemoteDescription applies a description and then drains any candidates
-// that beat it here.
-//
-// Every SetRemoteDescription on this connection goes through here. Applying
-// one without flushing would strand whatever the client trickled ahead of
-// it, which is the failure AddICECandidate's buffer exists to prevent.
-func (p *Participant) setRemoteDescription(description webrtc.SessionDescription) error {
-	p.iceMu.Lock()
-	defer p.iceMu.Unlock()
-
-	if err := p.pc.SetRemoteDescription(description); err != nil {
-		return err
-	}
-
-	pending := p.pendingRemoteCandidates
-	p.pendingRemoteCandidates = nil
-	for _, candidate := range pending {
-		if err := p.pc.AddICECandidate(candidate); err != nil {
-			p.logger.Debug("buffered ICE candidate rejected", "err", err)
-		}
-	}
-	if len(pending) > 0 {
-		p.logger.Debug("applied buffered ICE candidates", "count", len(pending))
-	}
-	return nil
-}
-
 // AddICECandidate hands the client's candidate to ICE, or holds on to it
-// until there's a description to attach it to.
+// until there is a description to attach it to.
 //
-// Trickle ICE sends candidates and the description they belong to as
-// separate signaling messages, and a client that gathers quickly routinely
-// gets its first candidate to us before its answer. Pion rejects those with
-// "remote description is not set", and a candidate rejected there is gone:
-// clients don't resend. Every one lost is a path ICE can't try, which on a
-// network where only one path works is the difference between the call
-// connecting and not.
+// Trickle ICE sends a candidate and the description it belongs to as
+// separate signaling messages, and nothing orders the two. A client that
+// gathers a host candidate quickly — on a LAN, essentially all of them —
+// sends it the instant setLocalDescription returns, well before its answer
+// has been serialised, queued and delivered to us.
 //
-// So they wait here instead, and setRemoteDescription applies them the
-// moment there's something to apply them to.
+// Pion rejects a candidate applied with no remote description
+// ("InvalidStateError: remote description is not set"), and that rejection
+// is terminal: clients do not resend. Every candidate lost there is a path
+// ICE never gets to try, and on a network where only one path works it is
+// the call not connecting.
 func (p *Participant) AddICECandidate(candidate webrtc.ICECandidateInit) error {
 	if p.closed.Load() {
 		return errors.New("participant is closed")

@@ -2,17 +2,31 @@
  * External links shown in the nav/footer. Centralized so the same URL
  * doesn't drift between the two places it's rendered.
  */
-// No public GitHub link for the *repository*: Livqeno is closed-source
-// infrastructure, not an open repository: see
-// docs/production/readiness-audit.md's closed-source note. Community
-// support still goes through Discord. (DEVELOPER_GITHUB_URL below is a
-// personal profile, not the Livqeno repo — no conflict with that note.)
-export const DISCORD_URL = 'https://discord.com/invite/HSWd9qMC7';
+// The repository, now the landing page's one community link in place of a
+// Discord invite.
+//
+// IT 404s FOR EVERYONE UNTIL THE REPO IS MADE PUBLIC. `atulsinghhhh/Raven`
+// is private today — an anonymous GET returns 404, which is how GitHub
+// hides a private repo rather than admitting it exists. The note that used
+// to stand here said a repo link was impossible for exactly this reason and
+// it was right; the link is wired up because it was asked for and because
+// the repo going public is one setting away, not because it resolves now.
+//
+// The docs and README have said "open source" all along; the repo setting
+// is what lags. docs/production/readiness-audit.md tracks the flip and
+// what resolves with it. (An earlier version of this comment claimed the
+// audit called Livqeno closed-source — it does not, and never did.)
+export const GITHUB_REPO_URL = 'https://github.com/atulsinghhhh/Raven';
 
-/** The developer behind Livqeno — credited in BuiltBy.tsx and the footer. */
-export const DEVELOPER_NAME = 'Atul';
-export const DEVELOPER_GITHUB_URL = 'https://github.com/atulsinghhhh/';
-export const DEVELOPER_X_URL = 'https://x.com/unfav_atul';
+/**
+ * Direct WhatsApp chat, shown in the footer's Community column.
+ *
+ * `wa.me` wants the full international number with no `+`, no spaces and
+ * no leading zero, so the country code is part of the string rather than
+ * something the link builds: 91 is India.
+ */
+export const WHATSAPP_NUMBER = '918624834271';
+export const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 
 /** Where the dashboard actually lives: a separate app in this monorepo (apps/dashboard). */
 export const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'http://localhost:3000';
