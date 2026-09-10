@@ -50,7 +50,7 @@ class Raven:
     def close(self) -> None:
         self._http.close()
 
-    def __enter__(self) -> Livqeno:
+    def __enter__(self) -> Raven:
         return self
 
     def __exit__(self, *exc_info: object) -> None:
