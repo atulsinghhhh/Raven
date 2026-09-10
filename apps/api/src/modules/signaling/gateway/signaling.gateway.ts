@@ -1,11 +1,6 @@
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  OnGatewayInit,
-  WebSocketGateway,
-} from '@nestjs/websockets';
+import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, WebSocketGateway } from '@nestjs/websockets';
 import { randomUUID } from 'crypto';
 import { IncomingMessage } from 'http';
 import { RawData, WebSocket } from 'ws';
@@ -39,6 +34,8 @@ import {
 // application use (RFC 6455 §7.4.2).
 const CLOSE_AUTH_FAILED = 4001;
 const CLOSE_REPLACED = 4002;
+const CLOSE_ROOM_CLOSED = 4003;
+const CLOSE_RTC_NODE_LOST = 4004;
 const CLOSE_RATE_LIMITED = 4029;
 
 /**
@@ -56,9 +53,7 @@ const CLOSE_RATE_LIMITED = 4029;
  * docs/rtc/scaling.md#a-room-split-across-api-instances.
  */
 @WebSocketGateway({ path: SIGNALING_PATH })
-export class SignalingGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
-{
+export class SignalingGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy {
   private readonly logger = new Logger(SignalingGateway.name);
   private readonly sessions = new Map<WebSocket, ParticipantSession>();
   /**
@@ -101,6 +96,7 @@ export class SignalingGateway
     // frame is always deliverable locally, with no Redis hop anywhere on
     // the latency-sensitive negotiation path.
     this.sfuLink.onFrame((frame) => void this.handleSfuFrame(frame));
+    this.sfuLink.onSessionsLost((serverName, sessionIds) => this.endSessionsStrandedOn(serverName, sessionIds));
     this.heartbeatTimer = setInterval(() => this.runHeartbeat(), HEARTBEAT_INTERVAL_MS);
     this.usageSweepTimer = setInterval(() => void this.runUsageSweep(), this.usageMeter.sweepIntervalMs);
     this.logger.log(`Signaling gateway listening on ${SIGNALING_PATH}`);
@@ -206,9 +202,7 @@ export class SignalingGateway
 
     this.sessions.set(client, session);
     this.sessionsByConnectionId.set(session.connectionId, session);
-    this.logger.log(
-      `connection authenticated: participant=${session.participantId} room=${session.roomId}`,
-    );
+    this.logger.log(`connection authenticated: participant=${session.participantId} room=${session.roomId}`);
 
     client.on('message', (data: RawData) => void this.handleMessage(session, data));
     client.on('pong', () => {
@@ -324,14 +318,56 @@ export class SignalingGateway
    * track appearing or going away, go through Redis, because the room's
    * other participants could be on any instance.
    */
+  /**
+   * Ends the sessions a node took with it when its link dropped.
+   *
+   * Their PeerConnections only ever existed in that node's memory, so a
+   * node that restarted comes back having never heard of them. Left alone
+   * the client sits on a PeerConnection stuck in `failed` while its
+   * signaling socket stays perfectly healthy — nothing on either side has
+   * a reason to renegotiate, and the media never returns. Measured at over
+   * two minutes with no recovery, and no recovery was coming.
+   *
+   * So the socket goes too. The SDK treats a dropped signaling socket as
+   * its cue to reconnect and rejoin, which allocates a node afresh and
+   * builds a new PeerConnection — the one path that actually restores
+   * media. The error is sent first so a client that has given up
+   * reconnecting still has something to show.
+   */
+  private endSessionsStrandedOn(serverName: string, sessionIds: string[]): void {
+    let ended = 0;
+    for (const sessionId of sessionIds) {
+      const session = this.sessionsByConnectionId.get(sessionId);
+      if (!session) {
+        continue;
+      }
+      for (const [socket, candidate] of this.sessions) {
+        if (candidate !== session) {
+          continue;
+        }
+        this.sendMessage(socket, {
+          type: ServerMessageType.ERROR,
+          code: SignalingErrorCode.RTC_SERVER_UNREACHABLE,
+          message: 'The media server holding this session went away — reconnecting',
+        });
+        socket.close(CLOSE_RTC_NODE_LOST, 'rtc node lost');
+        ended++;
+        break;
+      }
+    }
+    if (ended > 0) {
+      this.logger.warn(
+        `ended ${ended} session(s) stranded by the ${serverName} link dropping, so their clients rejoin`,
+      );
+    }
+  }
+
   private async handleSfuFrame(frame: NodeLinkFrame): Promise<void> {
     let action;
     try {
       action = await this.sfuFrames.handle(frame);
     } catch (err) {
-      this.logger.error(
-        `handling sfu frame ${frame.type} failed: ${(err as Error).message}`,
-      );
+      this.logger.error(`handling sfu frame ${frame.type} failed: ${(err as Error).message}`);
       return;
     }
 
@@ -341,9 +377,7 @@ export class SignalingGateway
         // Client disconnected while the SFU was answering. Common enough
         // not to warrant a warning; the node cleans up its side when the
         // PeerConnection dies.
-        this.logger.debug(
-          `dropping ${frame.type} — session ${action.toSession.sessionId} is gone`,
-        );
+        this.logger.debug(`dropping ${frame.type} — session ${action.toSession.sessionId} is gone`);
       } else {
         this.sendMessage(session.socket, action.toSession.message);
       }
@@ -381,6 +415,26 @@ export class SignalingGateway
             });
             socket.close(CLOSE_REPLACED, 'replaced');
           }
+        }
+        return;
+      }
+      case 'closed': {
+        // Everyone in the room, on this instance. The media plane has
+        // already been told to drop them, so without this they would sit
+        // on a PeerConnection that quietly stops working and a signaling
+        // socket that stays open — no event, no reason, nothing a client
+        // could render. Telling them first is what makes "the stream
+        // ended" observable rather than inferred from a stall.
+        for (const [socket, session] of this.sessions) {
+          if (session.roomId !== roomId) {
+            continue;
+          }
+          this.sendMessage(socket, {
+            type: ServerMessageType.ERROR,
+            code: SignalingErrorCode.ROOM_CLOSED,
+            message: 'This room was closed',
+          });
+          socket.close(CLOSE_ROOM_CLOSED, 'room closed');
         }
         return;
       }

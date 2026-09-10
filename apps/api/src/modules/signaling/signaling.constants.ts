@@ -82,6 +82,16 @@ export enum SignalingErrorCode {
   UNAUTHORIZED = 'UNAUTHORIZED',
   ROOM_NOT_FOUND = 'ROOM_NOT_FOUND',
   ROOM_FULL = 'ROOM_FULL',
+  /**
+   * The room was closed while this participant was in it — an operator
+   * called `DELETE /v1/rooms/:id`, or the live stream this room belongs to
+   * was ended. Terminal: the media session is gone and a fresh token
+   * against the same room will not get back in. Kept apart from
+   * UNAUTHORIZED because nothing was wrong with the credential, and from
+   * ROOM_NOT_FOUND because the room did exist and the participant was
+   * legitimately in it a moment ago.
+   */
+  ROOM_CLOSED = 'ROOM_CLOSED',
   INVALID_MESSAGE = 'INVALID_MESSAGE',
   INVALID_MESSAGE_TYPE = 'INVALID_MESSAGE_TYPE',
   PARTICIPANT_NOT_FOUND = 'PARTICIPANT_NOT_FOUND',
@@ -137,8 +147,7 @@ export const SignalingRedisKeys = {
   /** Set of participantIds currently in the room, fleet-wide. */
   roomParticipants: (roomId: string) => `raven:signaling:room:${roomId}:participants`,
   /** participantId -> {gatewayId}. Lets any instance find who's holding a target's socket. */
-  participant: (roomId: string, participantId: string) =>
-    `raven:signaling:room:${roomId}:participant:${participantId}`,
+  participant: (roomId: string, participantId: string) => `raven:signaling:room:${roomId}:participant:${participantId}`,
   /** Pub/sub channel for this room, one per room, subscribed to on demand. */
   roomChannel: (roomId: string) => `raven:signaling:room:${roomId}:events`,
 } as const;

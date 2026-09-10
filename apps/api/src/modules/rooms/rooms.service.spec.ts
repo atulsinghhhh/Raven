@@ -2,6 +2,7 @@ import { RoomStatus } from '../../generated/prisma/client';
 import { Environment } from '../../shared/environment/environment.constants';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { ConflictError, NotFoundError } from '../../shared/errors/app-error';
+import { RoomEventsService } from '../signaling/rooms/room-events.service';
 import { SfuRoomStateService } from './sfu-room-state.service';
 import { RoomsService } from './rooms.service';
 
@@ -21,7 +22,9 @@ describe('RoomsService', () => {
   let roomState: {
     listLiveParticipantCounts: jest.Mock;
     listLiveParticipants: jest.Mock;
+    closeLiveSession: jest.Mock;
   };
+  let roomEvents: { publish: jest.Mock };
 
   beforeEach(() => {
     prisma = {
@@ -30,10 +33,13 @@ describe('RoomsService', () => {
     roomState = {
       listLiveParticipantCounts: jest.fn(),
       listLiveParticipants: jest.fn(),
+      closeLiveSession: jest.fn().mockResolvedValue(true),
     };
+    roomEvents = { publish: jest.fn().mockResolvedValue(undefined) };
     service = new RoomsService(
       prisma as unknown as PrismaService,
       roomState as unknown as SfuRoomStateService,
+      roomEvents as unknown as RoomEventsService,
     );
   });
 
@@ -41,9 +47,7 @@ describe('RoomsService', () => {
     it('rejects a duplicate name within the same project', async () => {
       prisma.room.findUnique.mockResolvedValue({ id: 'r1' });
 
-      await expect(service.create(DEV, { name: 'lobby' })).rejects.toBeInstanceOf(
-        ConflictError,
-      );
+      await expect(service.create(DEV, { name: 'lobby' })).rejects.toBeInstanceOf(ConflictError);
       expect(prisma.room.create).not.toHaveBeenCalled();
     });
 
@@ -51,7 +55,9 @@ describe('RoomsService', () => {
       prisma.room.findUnique.mockResolvedValue(null);
       prisma.room.create.mockResolvedValue({ id: 'r1', projectId: 'project2', name: 'lobby' });
 
-      await expect(service.create({ projectId: 'project2', environment: Environment.DEVELOPMENT }, { name: 'lobby' })).resolves.toMatchObject({
+      await expect(
+        service.create({ projectId: 'project2', environment: Environment.DEVELOPMENT }, { name: 'lobby' }),
+      ).resolves.toMatchObject({
         projectId: 'project2',
       });
     });
@@ -59,11 +65,13 @@ describe('RoomsService', () => {
 
   describe('findOneForProject', () => {
     it('throws NotFoundError when the room belongs to a different project', async () => {
-      prisma.room.findUnique.mockResolvedValue({ id: 'r1', projectId: 'project-other', environment: Environment.DEVELOPMENT });
+      prisma.room.findUnique.mockResolvedValue({
+        id: 'r1',
+        projectId: 'project-other',
+        environment: Environment.DEVELOPMENT,
+      });
 
-      await expect(service.findOneForProject('r1', DEV)).rejects.toBeInstanceOf(
-        NotFoundError,
-      );
+      await expect(service.findOneForProject('r1', DEV)).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it('returns the room when it belongs to the given project', async () => {
@@ -156,7 +164,11 @@ describe('RoomsService', () => {
 
   describe('close', () => {
     it('soft-closes by setting status to CLOSED', async () => {
-      prisma.room.findUnique.mockResolvedValue({ id: 'r1', projectId: 'project1', environment: Environment.DEVELOPMENT });
+      prisma.room.findUnique.mockResolvedValue({
+        id: 'r1',
+        projectId: 'project1',
+        environment: Environment.DEVELOPMENT,
+      });
 
       await service.close('r1', DEV);
 
@@ -164,6 +176,58 @@ describe('RoomsService', () => {
         where: { id: 'r1' },
         data: { status: RoomStatus.CLOSED },
       });
+    });
+
+    /**
+     * Closing used to stop at the row, which left the media session
+     * running: the host still publishing, viewers still decoding, and
+     * nobody told. These three cover the rest of the close.
+     */
+    it('evicts the live media session, not just the row', async () => {
+      prisma.room.findUnique.mockResolvedValue({
+        id: 'r1',
+        projectId: 'project1',
+        environment: Environment.DEVELOPMENT,
+      });
+
+      await service.close('r1', DEV);
+
+      expect(roomState.closeLiveSession).toHaveBeenCalledWith('r1');
+    });
+
+    it('tells the participants the room closed, so a client can render an ending instead of a stall', async () => {
+      prisma.room.findUnique.mockResolvedValue({
+        id: 'r1',
+        projectId: 'project1',
+        environment: Environment.DEVELOPMENT,
+      });
+
+      await service.close('r1', DEV);
+
+      expect(roomEvents.publish).toHaveBeenCalledWith('r1', { kind: 'closed' });
+    });
+
+    it('still closes when the node cannot be reached — a degraded close, not a failed one', async () => {
+      prisma.room.findUnique.mockResolvedValue({
+        id: 'r1',
+        projectId: 'project1',
+        environment: Environment.DEVELOPMENT,
+      });
+      roomState.closeLiveSession.mockResolvedValue(false);
+
+      await expect(service.close('r1', DEV)).resolves.toBeUndefined();
+
+      expect(prisma.room.update).toHaveBeenCalled();
+      expect(roomEvents.publish).toHaveBeenCalled();
+    });
+
+    it('does not touch the media plane for a room in another project', async () => {
+      prisma.room.findUnique.mockResolvedValue({ id: 'r1', projectId: 'other', environment: Environment.DEVELOPMENT });
+
+      await expect(service.close('r1', DEV)).rejects.toBeInstanceOf(NotFoundError);
+
+      expect(roomState.closeLiveSession).not.toHaveBeenCalled();
+      expect(roomEvents.publish).not.toHaveBeenCalled();
     });
   });
 
@@ -211,7 +275,9 @@ describe('RoomsService', () => {
     });
 
     it('reports null (not 0) for every room when no node answered — distinct from genuinely idle', async () => {
-      prisma.room.findMany.mockResolvedValue([{ id: 'r1', projectId: 'project1', environment: Environment.DEVELOPMENT, name: 'lobby' }]);
+      prisma.room.findMany.mockResolvedValue([
+        { id: 'r1', projectId: 'project1', environment: Environment.DEVELOPMENT, name: 'lobby' },
+      ]);
       roomState.listLiveParticipantCounts.mockResolvedValue(undefined);
 
       const rooms = await service.findAllForProjectWithLiveState(DEV);
@@ -222,7 +288,12 @@ describe('RoomsService', () => {
 
   describe('findOneForProjectWithLiveState', () => {
     it('attaches live participants and a matching count when the SFU answers', async () => {
-      prisma.room.findUnique.mockResolvedValue({ id: 'r1', projectId: 'project1', environment: Environment.DEVELOPMENT, name: 'lobby' });
+      prisma.room.findUnique.mockResolvedValue({
+        id: 'r1',
+        projectId: 'project1',
+        environment: Environment.DEVELOPMENT,
+        name: 'lobby',
+      });
       const participants = [{ identity: 'alice', joinedAt: new Date(), tracks: [] }];
       roomState.listLiveParticipants.mockResolvedValue(participants);
 
@@ -233,7 +304,12 @@ describe('RoomsService', () => {
     });
 
     it('reports liveParticipants: null and liveParticipantCount: null when the node is unreachable', async () => {
-      prisma.room.findUnique.mockResolvedValue({ id: 'r1', projectId: 'project1', environment: Environment.DEVELOPMENT, name: 'lobby' });
+      prisma.room.findUnique.mockResolvedValue({
+        id: 'r1',
+        projectId: 'project1',
+        environment: Environment.DEVELOPMENT,
+        name: 'lobby',
+      });
       roomState.listLiveParticipants.mockResolvedValue(undefined);
 
       const room = await service.findOneForProjectWithLiveState('r1', DEV);
@@ -243,11 +319,13 @@ describe('RoomsService', () => {
     });
 
     it('still throws NotFoundError for a room in a different project, without asking any node', async () => {
-      prisma.room.findUnique.mockResolvedValue({ id: 'r1', projectId: 'project-other', environment: Environment.DEVELOPMENT });
+      prisma.room.findUnique.mockResolvedValue({
+        id: 'r1',
+        projectId: 'project-other',
+        environment: Environment.DEVELOPMENT,
+      });
 
-      await expect(service.findOneForProjectWithLiveState('r1', DEV)).rejects.toBeInstanceOf(
-        NotFoundError,
-      );
+      await expect(service.findOneForProjectWithLiveState('r1', DEV)).rejects.toBeInstanceOf(NotFoundError);
       expect(roomState.listLiveParticipants).not.toHaveBeenCalled();
     });
   });
