@@ -76,7 +76,14 @@ egress-filter the delivery worker at the network level. See
 
 ## Reporting a vulnerability
 
-Reach the team on [Discord](https://discord.com/invite/HSWd9qMC7), or
-your account contact if you have one — Raven's source and issue tracker
-aren't public, so a security report isn't something to post in the
-open.
+Use [GitHub private vulnerability reporting](https://github.com/atulsinghhhh/Raven/security/advisories/new).
+It stays private between you and the maintainers, and it issues the
+advisory when a fix ships.
+
+**Do not open a public issue.** That discloses the problem to everyone at
+once, including people who will use it before anyone can deploy the fix.
+If the link above 404s, private reporting is not enabled yet — open an
+issue titled "Security contact request" carrying *no technical detail at
+all* and we will reply with a private channel. The repository's
+[`SECURITY.md`](https://github.com/atulsinghhhh/Raven/blob/main/SECURITY.md) is the authoritative version of
+this policy.
