@@ -230,7 +230,13 @@ describe('reconnect() — the explicit call', () => {
     const next = await forceReconnect(client);
     next.emit({
       type: 'message',
-      message: { id: 'msg_1', room: 'room_123', senderId: 'bob', text: 'after reconnect', createdAt: new Date().toISOString() },
+      message: {
+        id: 'msg_1',
+        room: 'room_123',
+        senderId: 'bob',
+        text: 'after reconnect',
+        createdAt: new Date().toISOString(),
+      },
     });
     await Promise.resolve();
 

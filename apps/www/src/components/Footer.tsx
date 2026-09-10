@@ -1,11 +1,4 @@
-import {
-  DASHBOARD_URL,
-  DEVELOPER_GITHUB_URL,
-  DEVELOPER_X_URL,
-  DISCORD_URL,
-  DOCS_ROUTES,
-  DOCS_URL,
-} from '../lib/links';
+import { DASHBOARD_URL, DEVELOPER_GITHUB_URL, DEVELOPER_X_URL, DISCORD_URL, DOCS_ROUTES, DOCS_URL } from '../lib/links';
 import { DiscordIcon, GitHubIcon, RavenMark, XIcon } from './icons';
 
 const COLUMNS = [
