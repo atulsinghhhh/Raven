@@ -54,10 +54,7 @@ describe('Chat (e2e)', () => {
     // that say nothing about the code under test. (Same reset the
     // control-plane and signaling suites do.)
     const redis = app.get(RedisService);
-    const stale = [
-      ...(await redis.client.keys('ratelimit:*')),
-      ...(await redis.client.keys('raven:chat:ratelimit:*')),
-    ];
+    const stale = [...(await redis.client.keys('ratelimit:*')), ...(await redis.client.keys('raven:chat:ratelimit:*'))];
     if (stale.length > 0) await redis.client.del(...stale);
 
     const registered = await request(baseUrl)
@@ -111,7 +108,10 @@ describe('Chat (e2e)', () => {
   async function connect(token: string) {
     const socket = new WebSocket(`${wsBaseUrl}?token=${encodeURIComponent(token)}&sdkVersion=e2e&platform=node`);
     const inbox: Record<string, unknown>[] = [];
-    const waiters: Array<{ predicate: (f: Record<string, unknown>) => boolean; resolve: (f: Record<string, unknown>) => void }> = [];
+    const waiters: Array<{
+      predicate: (f: Record<string, unknown>) => boolean;
+      resolve: (f: Record<string, unknown>) => void;
+    }> = [];
 
     socket.on('message', (raw) => {
       const frame = JSON.parse(raw.toString()) as Record<string, unknown>;
@@ -141,7 +141,13 @@ describe('Chat (e2e)', () => {
             () => reject(new Error(`timed out; saw frames: ${inbox.map((f) => f.type).join(', ')}`)),
             timeoutMs,
           );
-          waiters.push({ predicate, resolve: (f) => { clearTimeout(timer); resolve(f); } });
+          waiters.push({
+            predicate,
+            resolve: (f) => {
+              clearTimeout(timer);
+              resolve(f);
+            },
+          });
         });
       },
       close: () => socket.close(),
@@ -169,7 +175,13 @@ describe('Chat (e2e)', () => {
 
     it('rejects a forged token', async () => {
       const forged = `${Buffer.from('{"alg":"HS256"}').toString('base64url')}.${Buffer.from(
-        JSON.stringify({ sub: 'mallory', pid: projectId, exp: Math.floor(Date.now() / 1000) + 600, aud: 'raven-chat', iss: 'raven' }),
+        JSON.stringify({
+          sub: 'mallory',
+          pid: projectId,
+          exp: Math.floor(Date.now() / 1000) + 600,
+          aud: 'raven-chat',
+          iss: 'raven',
+        }),
       ).toString('base64url')}.forged`;
 
       const socket = new WebSocket(`${wsBaseUrl}?token=${encodeURIComponent(forged)}`);
@@ -218,7 +230,7 @@ describe('Chat (e2e)', () => {
       bob?.close();
     });
 
-    it('delivers a message from A to B, and B\'s reply back to A', async () => {
+    it("delivers a message from A to B, and B's reply back to A", async () => {
       alice.send({ type: 'message.send', id: 'a1', room, text: 'Hello from Alice', clientMessageId: `a1-${suffix}` });
       const ack = await alice.waitFor((f) => f.type === 'ack' && f.id === 'a1');
       const first = (ack.data as { message: { id: string } }).message;
@@ -234,7 +246,9 @@ describe('Chat (e2e)', () => {
       expect(reply.replyTo).toBe(first.id);
       expect(reply.threadRootId).toBe(first.id);
 
-      const backToAlice = await alice.waitFor((f) => f.type === 'message' && (f.message as { id: string }).id === reply.id);
+      const backToAlice = await alice.waitFor(
+        (f) => f.type === 'message' && (f.message as { id: string }).id === reply.id,
+      );
       expect((backToAlice.message as { text: string }).text).toBe('Hello from Bob');
     });
 
@@ -299,7 +313,9 @@ describe('Chat (e2e)', () => {
 
       alice.send({ type: 'message.update', id: 'e1', messageId, text: 'Updated message' });
       await alice.waitFor((f) => f.type === 'ack' && f.id === 'e1');
-      const edited = await bob.waitFor((f) => f.type === 'message.updated' && (f.message as { id: string }).id === messageId);
+      const edited = await bob.waitFor(
+        (f) => f.type === 'message.updated' && (f.message as { id: string }).id === messageId,
+      );
       expect((edited.message as { text: string; edited: boolean }).text).toBe('Updated message');
       expect((edited.message as { edited: boolean }).edited).toBe(true);
 
@@ -367,7 +383,10 @@ describe('Chat (e2e)', () => {
 
       client.send({ type: 'room.join', id: 'hack', room });
       const error = await client.waitFor((f) => f.type === 'error');
-      expect(error.code).toBe('NOT_A_MEMBER');
+      // ROOM_NOT_FOUND, not NOT_A_MEMBER: a chat token belongs to one of the
+      // developer's end users, and answering "403, that one exists" would
+      // make conversation names enumerable by anyone holding one.
+      expect(error.code).toBe('ROOM_NOT_FOUND');
       client.close();
     });
 
@@ -376,7 +395,80 @@ describe('Chat (e2e)', () => {
       await request(baseUrl)
         .get(`/v1/chat/conversations/${room}/messages`)
         .set('Authorization', `Bearer ${outsider.token}`)
-        .expect(403);
+        // 404, not 403. See the existence-probing test below for why.
+        .expect(404);
+    });
+
+    it('does not let a chat token tell an existing conversation from a missing one', async () => {
+      // A chat token belongs to one of the developer's end users. If a
+      // conversation they are not in answered 403 while a nonexistent one
+      // answered 404, any such user could enumerate the project's
+      // conversation names — and those are developer-chosen and often
+      // meaningful (`order-1234`). Both must look identical.
+      const outsider = await mintToken('mallory', { conversations: [] });
+
+      const real = await request(baseUrl)
+        .get(`/v1/chat/conversations/${room}`)
+        .set('Authorization', `Bearer ${outsider.token}`);
+      const missing = await request(baseUrl)
+        .get('/v1/chat/conversations/conv_definitely_not_a_real_one')
+        .set('Authorization', `Bearer ${outsider.token}`);
+
+      expect(real.status).toBe(missing.status);
+      expect(real.body.code).toBe(missing.body.code);
+      expect(real.status).toBe(404);
+
+      // Both echo back the reference the caller passed — that is the
+      // caller's own input, not a disclosure, and both do it identically.
+      // What must not appear is anything only a member could know, so
+      // compare the two bodies with the echoed reference masked out.
+      const shape = (body: Record<string, unknown>, reference: string) =>
+        JSON.stringify(body)
+          .split(reference)
+          .join('<ref>')
+          .replace(/"requestId":"[^"]+"/, '');
+      expect(shape(real.body, room)).toBe(shape(missing.body, 'conv_definitely_not_a_real_one'));
+    });
+
+    it('cuts off fan-out to a member removed while their socket is open', async () => {
+      // Authorization is checked at room.join, so a subscription outlives
+      // the decision that granted it. Removing a member used to leave that
+      // socket receiving every message until it happened to disconnect.
+      const conversation = await request(baseUrl)
+        .post('/v1/chat/conversations')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .send({ name: `revoke-${suffix}`, members: [{ userId: 'alice' }, { userId: 'bob' }] })
+        .expect(201);
+      const revokeRoom = conversation.body.publicId;
+
+      const bobGrant = await request(baseUrl)
+        .post('/v1/chat/tokens')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .send({ userId: 'bob', conversations: [revokeRoom] })
+        .expect(201);
+
+      const victim = await connect(bobGrant.body.token);
+      victim.send({ type: 'room.join', id: 'j', room: revokeRoom });
+      await victim.waitFor((f) => f.type === 'room.joined');
+
+      await request(baseUrl)
+        .delete(`/v1/chat/conversations/${revokeRoom}/members/bob`)
+        .set('Authorization', `Bearer ${apiKey}`)
+        .expect(204);
+
+      // The gateway tells the client why its room went away.
+      await victim.waitFor((f) => f.type === 'error' && f.room === revokeRoom);
+
+      const before = victim.inbox.filter((f) => f.type === 'message').length;
+      await request(baseUrl)
+        .post(`/v1/chat/conversations/${revokeRoom}/messages`)
+        .set('Authorization', `Bearer ${apiKey}`)
+        .send({ senderId: 'alice', text: 'after the removal' })
+        .expect(201);
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+
+      expect(victim.inbox.filter((f) => f.type === 'message').length).toBe(before);
+      victim.close();
     });
 
     it('ignores a client-supplied senderId', async () => {
@@ -397,7 +489,7 @@ describe('Chat (e2e)', () => {
         .expect(403);
     });
 
-    it('refuses to let a member edit someone else\'s message', async () => {
+    it("refuses to let a member edit someone else's message", async () => {
       const posted = await request(baseUrl)
         .post(`/v1/chat/conversations/${room}/messages`)
         .set('Authorization', `Bearer ${aliceToken}`)
@@ -547,6 +639,47 @@ describe('Chat (e2e)', () => {
       const error = await client.waitFor((f) => f.type === 'error');
       expect(error.code).toBe('NOT_IN_ROOM');
       client.close();
+    });
+
+    it('keeps a user online when only one of their several sockets closes', async () => {
+      // Presence is a property of the person but is produced by
+      // connections, and people routinely have several (a laptop tab, a
+      // phone). Clearing the shared presence key on the first socket to
+      // close marked the user offline while they were plainly still there,
+      // and only the survivor's next heartbeat put it back — so every
+      // closed tab cost every participant an offline→online flap lasting
+      // up to the heartbeat interval.
+      const first = await connect(aliceToken);
+      first.send({ type: 'room.join', id: 'j1', room });
+      await first.waitFor((f) => f.type === 'room.joined');
+
+      const second = await connect(aliceToken);
+      second.send({ type: 'room.join', id: 'j2', room });
+      await second.waitFor((f) => f.type === 'room.joined');
+
+      const watcher = await connect(bobToken);
+      watcher.send({ type: 'room.join', id: 'j3', room });
+      await watcher.waitFor((f) => f.type === 'room.joined');
+      watcher.inbox.length = 0;
+
+      first.close();
+      await new Promise((resolve) => setTimeout(resolve, 1_500));
+
+      const presence = await request(baseUrl)
+        .get(`/v1/chat/conversations/${room}/presence`)
+        .set('Authorization', `Bearer ${apiKey}`)
+        .expect(200);
+      expect(presence.body).toContainEqual({ userId: 'alice', status: 'online' });
+
+      // And no spurious offline was broadcast to anyone else.
+      expect(
+        watcher.inbox.filter((f) => f.type === 'presence' && f.userId === 'alice' && f.status === 'offline'),
+      ).toHaveLength(0);
+
+      // Closing the last one does take her offline.
+      second.close();
+      await watcher.waitFor((f) => f.type === 'presence' && f.userId === 'alice' && f.status === 'offline');
+      watcher.close();
     });
 
     it('clears presence when a socket disconnects', async () => {

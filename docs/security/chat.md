@@ -58,7 +58,9 @@ operation passes through:
 | Check | Enforced |
 |---|---|
 | Cross-project access | `resolve()` scopes every lookup by `projectId` |
-| Non-member reads | `authorize()` → `NOT_A_MEMBER` |
+| Non-member reads | `authorize()` → `ROOM_NOT_FOUND` for a chat token, `NOT_A_MEMBER` for an API key |
+| Conversation-existence probing | A chat token gets the same 404 for "not a member" and "does not exist", so conversation names are not enumerable |
+| Membership revoked mid-session | `removeMember()` publishes `membership.revoked`; gateways force-leave that user's live sockets |
 | Non-member WebSocket subscribe | `handleRoomJoin()` calls `authorize()` before subscribing |
 | Editing another user's message | Author check in `MessagesService.update()` |
 | Deleting another user's message | Requires `chat:moderate` |

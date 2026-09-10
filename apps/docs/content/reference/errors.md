@@ -214,7 +214,7 @@ branch on the class rather than string-matching.
 | `TOKEN_REVOKED` | 401 | `RavenChatAuthenticationError` | Revoked before its natural expiry |
 | `UNAUTHORIZED` | 401 | `RavenChatAuthenticationError` | No usable credential presented |
 | `PERMISSION_DENIED` | 403 | `RavenChatPermissionError` | The scope or role does not allow this |
-| `NOT_A_MEMBER` | 403 | `RavenChatPermissionError` | Not a member of that conversation |
+| `NOT_A_MEMBER` | 403 | `RavenChatPermissionError` | Not a member of that conversation. Only reported to a project API key; a chat token gets `ROOM_NOT_FOUND` so conversation names stay unenumerable |
 | `ORIGIN_NOT_ALLOWED` | 403 | `RavenChatPermissionError` | The upgrade's `Origin` is not in `CORS_ORIGIN` |
 | `ROOM_NOT_FOUND` | 404 | `RavenRoomError` | No such conversation in this project |
 | `NOT_IN_ROOM` | 400 | `RavenRoomError` | This connection is not subscribed to that room |

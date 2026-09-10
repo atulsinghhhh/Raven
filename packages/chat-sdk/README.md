@@ -36,10 +36,23 @@ Postgres is the source of truth, so history survives a reconnect and
 messages arrive in a defined order rather than whatever the socket
 delivered.
 
+Reconnection is automatic, and so is catching up. If the connection drops,
+the SDK reconnects, re-joins your rooms, and replays whatever you missed
+through the same `message` handler — oldest first, de-duplicated, with
+nothing lost and nothing delivered twice. There is no catch-up call for you
+to make. Listen for `recovered` if you want to know when it has finished:
+
+```js
+chat.on('recovered', ({ recovered, gap }) => {
+  if (gap) reloadConversation();   // resume point was unusable; see the docs
+});
+```
+
 ## Exports
 
 `createChatClient`, `ChatClient`, `MessagesApi`, `AttachmentsApi`,
-`isRavenChatError`, and the message/presence/reaction types.
+`isRavenChatError`, and the message/presence/reaction types (plus
+`RecoverySummary` and `RoomRecoveryResult` for the `recovered` event).
 
 ## Documentation
 

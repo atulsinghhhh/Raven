@@ -688,8 +688,20 @@ model Message {
   // conversation so two clients can't collide on a generic key like "1".
   @@unique([conversationId, senderId, clientMessageId], map: "chat_messages_idempotency_key")
   // Covers the only hot read path: newest-first history for one
-  // conversation, keyset-paginated on (createdAt, id).
-  @@index([conversationId, createdAt, id])
+  // conversation, keyset-paginated on (createdAt, publicId).
+  //
+  // `publicId`, not `id`, because that is the column the cursor actually
+  // compares — cursors carry the public `msg_...` id so they cannot leak an
+  // internal uuid (see cursor.util.ts). With `id` here instead, the
+  // tiebreaker half of the keyset predicate fell outside the index and
+  // Postgres applied it as a filter: a 51-row page 150k rows deep read
+  // 11,084 buffers in 250ms rather than 10 buffers in 0.13ms, and got worse
+  // linearly with depth. That is precisely the OFFSET pathology keyset
+  // pagination exists to avoid, reintroduced by a column mismatch.
+  //
+  // Every other query that used the old index only ever used its
+  // `(conversationId, createdAt)` prefix, which is unchanged.
+  @@index([conversationId, createdAt, publicId])
   @@index([senderId, createdAt])
   @@index([threadRootId, createdAt])
   @@map("chat_messages")

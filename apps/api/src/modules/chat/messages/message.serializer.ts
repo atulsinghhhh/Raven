@@ -1,4 +1,5 @@
 import { Attachment, Conversation, Message, Reaction } from '../../../generated/prisma/client';
+import { encodeCursor } from './cursor.util';
 import { ChatAttachmentView, ChatMessageView, ChatReactionSummary } from '../realtime/chat-event.interface';
 
 export type MessageWithRelations = Message & {
@@ -27,6 +28,10 @@ export function toMessageView(
 
   return {
     id: message.publicId,
+    // Same encoding the history endpoint hands out, so a client resuming
+    // from a message it received over the socket and one resuming from a
+    // page boundary take identical paths through the server.
+    cursor: encodeCursor({ createdAt: message.createdAt, publicId: message.publicId }),
     roomId: conversation.publicId,
     conversationId: conversation.publicId,
     senderId: message.senderId,

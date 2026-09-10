@@ -1,12 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  AttachmentStatus,
-  Conversation,
-  Message,
-  MessageType,
-  Prisma,
-} from '../../../generated/prisma/client';
+import { AttachmentStatus, Conversation, Message, MessageType, Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { generateId } from '../../../shared/utils/crypto.util';
 import { RedisService } from '../../../shared/redis/redis.service';
@@ -21,7 +15,7 @@ import { ChatRateLimitService } from '../rate-limit/chat-rate-limit.service';
 import { ChatEventsService } from '../realtime/chat-events.service';
 import { toJsonInput } from '../json.util';
 import { ChatMessageView } from '../realtime/chat-event.interface';
-import { cursorFilter, decodeCursor, encodeCursor } from './cursor.util';
+import { MessageCursor, decodeCursor, encodeCursor } from './cursor.util';
 import { ListMessagesDto } from './dto/list-messages.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
@@ -129,12 +123,7 @@ export class MessagesService {
     // below is what actually guarantees correctness; this only saves a round
     // trip on the common retry path.
     if (dto.clientMessageId) {
-      const cached = await this.readIdempotencyCache(
-        actor.projectId,
-        conversation.id,
-        senderId,
-        dto.clientMessageId,
-      );
+      const cached = await this.readIdempotencyCache(actor.projectId, conversation.id, senderId, dto.clientMessageId);
       if (cached) {
         const existing = await this.findByPublicId(cached, conversation);
         if (existing) {
@@ -226,11 +215,16 @@ export class MessagesService {
     // Durable first, real-time second. Fan-out and webhooks are both
     // best-effort from here on. The message already exists, and neither is
     // allowed to fail the send.
-    await this.events.publish(actor.projectId, conversation.id, {
-      type: ChatServerFrame.MESSAGE,
-      conversationId: conversation.id,
-      message: view,
-    }, originConnectionId);
+    await this.events.publish(
+      actor.projectId,
+      conversation.id,
+      {
+        type: ChatServerFrame.MESSAGE,
+        conversationId: conversation.id,
+        message: view,
+      },
+      originConnectionId,
+    );
 
     this.metrics.increment(actor.projectId, 'messages_sent');
     this.metrics.recordLatency(actor.projectId, 'persist', persistLatencyMs);
@@ -271,23 +265,26 @@ export class MessagesService {
       ...(dto.includeDeleted ? {} : { deletedAt: null }),
     };
 
-    if (dto.before) {
-      Object.assign(where, cursorFilter(decodeCursor(dto.before), 'before'));
-    } else if (dto.after) {
-      Object.assign(where, cursorFilter(decodeCursor(dto.after), 'after'));
-    }
+    const cursor = dto.before
+      ? { value: decodeCursor(dto.before), direction: 'before' as const }
+      : dto.after
+        ? { value: decodeCursor(dto.after), direction: 'after' as const }
+        : null;
 
     // limit + 1 tells us whether another page exists, without a second
     // COUNT query over the same range.
-    const rows = await this.prisma.message.findMany({
-      where,
-      include: MESSAGE_INCLUDE,
-      // Tiebreak on publicId, matching what the cursor compares. Sort by
-      // one column and paginate on another and you quietly drop rows that
-      // share a timestamp.
-      orderBy: [{ createdAt: ascending ? 'asc' : 'desc' }, { publicId: ascending ? 'asc' : 'desc' }],
-      take: limit + 1,
-    });
+    //
+    // Tiebreak on publicId, matching what the cursor compares. Sort by one
+    // column and paginate on another and you quietly drop rows that share a
+    // timestamp.
+    const orderBy: Prisma.MessageOrderByWithRelationInput[] = [
+      { createdAt: ascending ? 'asc' : 'desc' },
+      { publicId: ascending ? 'asc' : 'desc' },
+    ];
+
+    const rows = cursor
+      ? await this.pageFromCursor(where, cursor, limit + 1, ascending)
+      : await this.prisma.message.findMany({ where, include: MESSAGE_INCLUDE, orderBy, take: limit + 1 });
 
     const hasMore = rows.length > limit;
     const page = hasMore ? rows.slice(0, limit) : rows;
@@ -306,6 +303,72 @@ export class MessagesService {
       previousCursor: newest ? encodeCursor({ createdAt: newest.createdAt, publicId: newest.publicId }) : null,
       hasMore,
     };
+  }
+
+  /**
+   * The cursor'd half of `list()`, and the reason it is not one Prisma call.
+   *
+   * A keyset page needs `(createdAt, publicId) < (?, ?)` as a *row-value*
+   * comparison. Prisma cannot express one, so `cursorFilter` expands it into
+   * `createdAt < ? OR (createdAt = ? AND publicId < ?)` — logically identical
+   * and, to Postgres, a completely different thing. A row-value comparison
+   * becomes an index *condition* and seeks straight to the cursor; the OR
+   * form becomes a *filter*, so the scan starts at the top of the
+   * conversation and discards every row before the cursor. Measured on a
+   * 200k-message conversation, a single 51-row page 150k rows deep:
+   *
+   *   OR form        7,218 buffers    98.9 ms   (Rows Removed by Filter: 150000)
+   *   row-value         13 buffers     1.1 ms
+   *
+   * and the gap grows linearly with depth — precisely the OFFSET behaviour
+   * keyset pagination exists to avoid.
+   *
+   * So the seek runs as raw SQL, but only far enough to get the page's ids;
+   * the rows themselves still come back through Prisma with the usual
+   * includes, so serialization, relations and types stay on one path. The
+   * extra round trip costs microseconds next to what it saves.
+   */
+  private async pageFromCursor(
+    where: Prisma.MessageWhereInput,
+    cursor: { value: MessageCursor; direction: 'before' | 'after' },
+    take: number,
+    ascending: boolean,
+  ): Promise<MessageWithRelations[]> {
+    const comparison = cursor.direction === 'before' ? Prisma.sql`<` : Prisma.sql`>`;
+    const direction = ascending ? Prisma.sql`ASC` : Prisma.sql`DESC`;
+
+    const conditions: Prisma.Sql[] = [
+      Prisma.sql`"conversationId" = ${where.conversationId as string}`,
+      Prisma.sql`("createdAt", "publicId") ${comparison} (${cursor.value.createdAt}, ${cursor.value.publicId})`,
+    ];
+    if (where.deletedAt === null) {
+      conditions.push(Prisma.sql`"deletedAt" IS NULL`);
+    }
+    if (typeof where.senderId === 'string') {
+      conditions.push(Prisma.sql`"senderId" = ${where.senderId}`);
+    }
+    if (typeof where.threadRootId === 'string') {
+      conditions.push(Prisma.sql`"threadRootId" = ${where.threadRootId}`);
+    }
+
+    const ids = await this.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT "id" FROM "chat_messages"
+      WHERE ${Prisma.join(conditions, ' AND ')}
+      ORDER BY "createdAt" ${direction}, "publicId" ${direction}
+      LIMIT ${take}
+    `);
+    if (ids.length === 0) {
+      return [];
+    }
+
+    // `IN` does not preserve order, so restore the seek's ordering rather
+    // than trusting whatever the planner returns.
+    const order = new Map(ids.map((row, index) => [row.id, index]));
+    const rows = await this.prisma.message.findMany({
+      where: { id: { in: ids.map((row) => row.id) } },
+      include: MESSAGE_INCLUDE,
+    });
+    return rows.sort((a, b) => order.get(a.id)! - order.get(b.id)!);
   }
 
   /** Every message in a thread, oldest-first: the root plus its replies (spec §26). */
@@ -408,7 +471,7 @@ export class MessagesService {
     if (!isAuthor) {
       // Deleting somebody else's message is moderation, and needs the
       // scope.
-      assertScope(scopes, 'chat:moderate', 'Deleting another member\'s message');
+      assertScope(scopes, 'chat:moderate', "Deleting another member's message");
     } else {
       assertScope(scopes, 'chat:send', 'Deleting your message');
     }
@@ -468,9 +531,7 @@ export class MessagesService {
     replyTarget?: Message | null,
   ): Promise<ChatMessageView> {
     const [replyToPublicId, threadRootPublicId] = await Promise.all([
-      replyTarget
-        ? Promise.resolve(replyTarget.publicId)
-        : this.publicIdFor(message.replyToMessageId),
+      replyTarget ? Promise.resolve(replyTarget.publicId) : this.publicIdFor(message.replyToMessageId),
       this.publicIdFor(message.threadRootId),
     ]);
     return toMessageView(message, conversation, { replyToPublicId, threadRootPublicId });
@@ -481,10 +542,7 @@ export class MessagesService {
    * with one extra query, not one per message. That's the difference
    * between 1 query and 51 on a 50-message page.
    */
-  private async buildViews(
-    messages: MessageWithRelations[],
-    conversation: Conversation,
-  ): Promise<ChatMessageView[]> {
+  private async buildViews(messages: MessageWithRelations[], conversation: Conversation): Promise<ChatMessageView[]> {
     const referenced = new Set<string>();
     for (const message of messages) {
       if (message.replyToMessageId) referenced.add(message.replyToMessageId);
@@ -502,8 +560,8 @@ export class MessagesService {
 
     return messages.map((message) =>
       toMessageView(message, conversation, {
-        replyToPublicId: message.replyToMessageId ? publicIds.get(message.replyToMessageId) ?? null : null,
-        threadRootPublicId: message.threadRootId ? publicIds.get(message.threadRootId) ?? null : null,
+        replyToPublicId: message.replyToMessageId ? (publicIds.get(message.replyToMessageId) ?? null) : null,
+        threadRootPublicId: message.threadRootId ? (publicIds.get(message.threadRootId) ?? null) : null,
       }),
     );
   }

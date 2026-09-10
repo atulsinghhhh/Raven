@@ -14,6 +14,16 @@ export interface MessageCursor {
  * arriving mid-scroll can't shift rows across page boundaries the way an
  * offset would.
  *
+ * "Index seek regardless of depth" is a property of the *row-value* form
+ * specifically, and it is conditional on the index carrying `publicId`
+ * (`chat_messages_conversationId_createdAt_publicId_idx`). Expanded into
+ * `createdAt < ? OR (createdAt = ? AND publicId < ?)` — the only shape
+ * Prisma's query builder can express — Postgres demotes it from an index
+ * condition to a filter and walks the conversation from the top, which is
+ * the OFFSET behaviour this was chosen to avoid. That is why the seek in
+ * `MessagesService.pageFromCursor` is raw SQL; the numbers are in its
+ * docstring.
+ *
  * The tiebreaker matters: two messages can share a millisecond, and
  * `createdAt` alone would silently skip or repeat one of them.
  *
@@ -48,24 +58,4 @@ export function decodeCursor(raw: string): MessageCursor {
   }
 
   return { createdAt, publicId };
-}
-
-/**
- * The row-value comparison Prisma can't express directly. Expands
- * `(createdAt, publicId) < (c.createdAt, c.publicId)` into the OR form.
- *
- * The range half is served by the `(conversationId, createdAt, ...)`
- * index; the `publicId` half only ever applies to the handful of rows
- * sharing an exact timestamp, so it costs nothing in practice while
- * keeping pagination stable when two messages land in the same
- * millisecond.
- */
-export function cursorFilter(cursor: MessageCursor, direction: 'before' | 'after') {
-  const comparison = direction === 'before' ? 'lt' : 'gt';
-  return {
-    OR: [
-      { createdAt: { [comparison]: cursor.createdAt } },
-      { createdAt: cursor.createdAt, publicId: { [comparison]: cursor.publicId } },
-    ],
-  };
 }
