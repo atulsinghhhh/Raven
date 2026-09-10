@@ -31,7 +31,7 @@ describe('resolveProjectId; precedence: --project flag > raven.json > global con
     await expect(resolveProjectId()).rejects.toMatchObject({ kind: 'usage' });
   });
 
-  it('falls back to the global config\'s currentProject when nothing else is set', async () => {
+  it("falls back to the global config's currentProject when nothing else is set", async () => {
     await writeCliConfig({ apiUrl: 'http://x', currentProject: 'proj-global' });
     await expect(resolveProjectId()).resolves.toBe('proj-global');
   });

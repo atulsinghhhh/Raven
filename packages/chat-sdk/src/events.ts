@@ -9,9 +9,7 @@
  */
 export type Unsubscribe = () => void;
 
-export class TypedEventEmitter<
-  EventMap extends { [K in keyof EventMap]: (...args: never[]) => void },
-> {
+export class TypedEventEmitter<EventMap extends { [K in keyof EventMap]: (...args: never[]) => void }> {
   private listeners = new Map<keyof EventMap, Set<(...args: never[]) => void>>();
 
   on<E extends keyof EventMap>(event: E, handler: EventMap[E]): Unsubscribe {

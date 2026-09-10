@@ -48,10 +48,7 @@ export function makeSession(overrides: Partial<ParticipantSession> = {}): Partic
  * at the control plane while telling the node something different, which
  * is not a state the real system can be in.
  */
-export function withPermissions(
-  session: ParticipantSession,
-  permissions: Partial<RtcPermissions>,
-): ParticipantSession {
+export function withPermissions(session: ParticipantSession, permissions: Partial<RtcPermissions>): ParticipantSession {
   const grant: RtcPermissions = { ...session.grant, ...permissions };
   return { ...session, grant, permissions: { ...grant } };
 }

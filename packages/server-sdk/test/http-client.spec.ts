@@ -1,7 +1,9 @@
 import { RavenHttpClient } from '../src/http-client';
 import { RavenError } from '../src/errors';
 
-function mockFetchSequence(...responses: Array<{ status: number; body?: unknown; headers?: Record<string, string> } | Error>) {
+function mockFetchSequence(
+  ...responses: Array<{ status: number; body?: unknown; headers?: Record<string, string> } | Error>
+) {
   const fn = jest.fn();
   for (const response of responses) {
     if (response instanceof Error) {

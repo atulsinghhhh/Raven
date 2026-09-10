@@ -3,20 +3,11 @@ import { TypedEventEmitter } from '../../events';
 import type { Logger } from '../../logger';
 import { LocalParticipant, RemoteParticipant } from '../../participant';
 import { LocalTrack, RemoteTrack, type TrackKind } from '../../track';
-import {
-  createCameraTrack,
-  createMicrophoneTrack,
-  createScreenShareTrack,
-} from '../media/capture';
+import { createCameraTrack, createMicrophoneTrack, createScreenShareTrack } from '../media/capture';
 import { NativeLocalTrackDelegate, NativeRemoteTrackDelegate } from '../media/native-track';
 import { listDevices } from '../devices/enumerate';
 import { connectionRoundTripTimeMs } from '../telemetry/rtc-stats';
-import {
-  ClientMessageType,
-  ServerMessageType,
-  type ServerMessage,
-  type ServerTrack,
-} from '../signaling/protocol';
+import { ClientMessageType, ServerMessageType, type ServerMessage, type ServerTrack } from '../signaling/protocol';
 import { SignalingClient, type JoinedPayload } from '../signaling/signaling-client';
 import type {
   ConnectionQuality,
@@ -163,7 +154,10 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
   private readonly announcedTracks = new Map<string, { participantId: string; track: ServerTrack }>();
 
   /** Tracks whose media arrived before the announcement. */
-  private readonly pendingMedia = new Map<string, { stream: MediaStream; track: MediaStreamTrack; receiver: RTCRtpReceiver }>();
+  private readonly pendingMedia = new Map<
+    string,
+    { stream: MediaStream; track: MediaStreamTrack; receiver: RTCRtpReceiver }
+  >();
 
   /** Last ICE/peer state the SFU told us about. Diagnostics only. */
   private sfuIceState?: string;
@@ -307,9 +301,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
       await this.handleJoined(joined);
     } catch (error) {
       this.setConnectionState('failed');
-      throw error instanceof RTCError
-        ? error
-        : new RTCError('CONNECTION_FAILED', 'Could not join the room', error);
+      throw error instanceof RTCError ? error : new RTCError('CONNECTION_FAILED', 'Could not join the room', error);
     }
   }
 
@@ -965,12 +957,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
       return;
     }
 
-    this.completeSubscription(
-      announcement.participantId,
-      announcement.track,
-      event.track,
-      event.receiver,
-    );
+    this.completeSubscription(announcement.participantId, announcement.track, event.track, event.receiver);
   }
 
   /**
@@ -994,9 +981,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     return msidTrackIdForMid(sdp, mid);
   }
 
-  private findAnnouncementForTrack(
-    trackId: string,
-  ): { participantId: string; track: ServerTrack } | undefined {
+  private findAnnouncementForTrack(trackId: string): { participantId: string; track: ServerTrack } | undefined {
     for (const announcement of this.announcedTracks.values()) {
       if (announcement.track.trackId === trackId) {
         return announcement;
@@ -1066,15 +1051,11 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
   // --- Publishing --------------------------------------------------------
 
   async enableCamera(enabled: boolean): Promise<LocalTrack | undefined> {
-    return enabled
-      ? this.publishKind('camera', () => createCameraTrack())
-      : this.unpublishKind('camera');
+    return enabled ? this.publishKind('camera', () => createCameraTrack()) : this.unpublishKind('camera');
   }
 
   async enableMicrophone(enabled: boolean): Promise<LocalTrack | undefined> {
-    return enabled
-      ? this.publishKind('microphone', () => createMicrophoneTrack())
-      : this.unpublishKind('microphone');
+    return enabled ? this.publishKind('microphone', () => createMicrophoneTrack()) : this.unpublishKind('microphone');
   }
 
   async enableScreenShare(enabled: boolean): Promise<LocalTrack | undefined> {
@@ -1105,10 +1086,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     return run;
   }
 
-  private async publishKind(
-    kind: TrackKind,
-    capture: () => Promise<LocalTrack>,
-  ): Promise<LocalTrack | undefined> {
+  private async publishKind(kind: TrackKind, capture: () => Promise<LocalTrack>): Promise<LocalTrack | undefined> {
     return this.withKindLock(kind, () => this.publishKindLocked(kind, capture));
   }
 
@@ -1211,8 +1189,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
       return;
     }
 
-    const stream =
-      typeof MediaStream !== 'undefined' ? new MediaStream([mediaStreamTrack]) : undefined;
+    const stream = typeof MediaStream !== 'undefined' ? new MediaStream([mediaStreamTrack]) : undefined;
 
     let sender: RTCRtpSender;
     try {
@@ -1607,11 +1584,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     try {
       channel.send(payload as Uint8Array<ArrayBuffer>);
     } catch (error) {
-      throw new RTCError(
-        'PERMISSION_DENIED',
-        'Could not send data; check the token grants publishData',
-        error,
-      );
+      throw new RTCError('PERMISSION_DENIED', 'Could not send data; check the token grants publishData', error);
     }
   }
 

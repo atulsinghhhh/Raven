@@ -55,7 +55,14 @@ export function ProfileForm({ initialName, email }: { initialName: string; email
           setSaved(false);
         }}
       />
-      <Field id="profile-email" label="Email" value={email} disabled readOnly hint="Email changes aren't supported yet — the address is the account key." />
+      <Field
+        id="profile-email"
+        label="Email"
+        value={email}
+        disabled
+        readOnly
+        hint="Email changes aren't supported yet — the address is the account key."
+      />
 
       <div className="flex items-center gap-3">
         <Button type="submit" loading={submitting} disabled={!dirty}>

@@ -14,10 +14,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   const { new: openCreate } = await searchParams;
   const email = decodeSessionEmail(token);
 
-  const [projectsResult, healthResult] = await Promise.allSettled([
-    ravenApi.listProjects(token),
-    ravenApi.getHealth(),
-  ]);
+  const [projectsResult, healthResult] = await Promise.allSettled([ravenApi.listProjects(token), ravenApi.getHealth()]);
 
   const systemStatus =
     healthResult.status === 'fulfilled' ? deriveSystemStatus(healthResult.value.dependencies) : 'unknown';

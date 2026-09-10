@@ -1,11 +1,5 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiForbiddenResponse,
-  ApiNotFoundResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiForbiddenResponse, ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/jwt-payload.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -72,7 +66,7 @@ export class ProjectMembersController {
   @ApiOperation({
     summary: "Change a member's role",
     description:
-      "A project always keeps at least one owner: demoting the last one is refused, because a project with no owner cannot be administered by anyone.",
+      'A project always keeps at least one owner: demoting the last one is refused, because a project with no owner cannot be administered by anyone.',
   })
   @ApiForbiddenResponse({ description: 'Your role does not allow this change' })
   async updateRole(

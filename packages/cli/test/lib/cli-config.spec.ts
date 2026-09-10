@@ -1,7 +1,13 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DEFAULT_API_URL, isConfigKey, readCliConfig, updateCliConfig, writeCliConfig } from '../../src/lib/cli-config.js';
+import {
+  DEFAULT_API_URL,
+  isConfigKey,
+  readCliConfig,
+  updateCliConfig,
+  writeCliConfig,
+} from '../../src/lib/cli-config.js';
 
 describe('cli-config', () => {
   let dir: string;

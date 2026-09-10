@@ -45,19 +45,13 @@ describe('cursorFilter', () => {
 
   it('walks backwards for `before`', () => {
     expect(cursorFilter(cursor, 'before')).toEqual({
-      OR: [
-        { createdAt: { lt: cursor.createdAt } },
-        { createdAt: cursor.createdAt, publicId: { lt: 'msg_mid' } },
-      ],
+      OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, publicId: { lt: 'msg_mid' } }],
     });
   });
 
   it('walks forwards for `after`', () => {
     expect(cursorFilter(cursor, 'after')).toEqual({
-      OR: [
-        { createdAt: { gt: cursor.createdAt } },
-        { createdAt: cursor.createdAt, publicId: { gt: 'msg_mid' } },
-      ],
+      OR: [{ createdAt: { gt: cursor.createdAt } }, { createdAt: cursor.createdAt, publicId: { gt: 'msg_mid' } }],
     });
   });
 

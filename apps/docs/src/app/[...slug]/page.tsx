@@ -65,7 +65,10 @@ export default async function DocPage({ params }: { params: Promise<{ slug: stri
 
           <article className="prose mt-10 border-t border-line pt-10">{doc.content}</article>
 
-          <nav aria-label="Previous and next page" className="mt-16 grid gap-3 border-t border-line pt-8 sm:grid-cols-2">
+          <nav
+            aria-label="Previous and next page"
+            className="mt-16 grid gap-3 border-t border-line pt-8 sm:grid-cols-2"
+          >
             {prev ? (
               <Link
                 href={`/${prev.slug}`}

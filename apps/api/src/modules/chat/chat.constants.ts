@@ -110,12 +110,10 @@ export const RedisKeys = {
   presence: (projectId: string, conversationId: string, userId: string) =>
     `raven:presence:${projectId}:${conversationId}:${userId}`,
   /** Sorted set of userId -> expiry ms, so listing a room's presence is one ZRANGEBYSCORE. */
-  presenceIndex: (projectId: string, conversationId: string) =>
-    `raven:presence:index:${projectId}:${conversationId}`,
+  presenceIndex: (projectId: string, conversationId: string) => `raven:presence:index:${projectId}:${conversationId}`,
   typing: (projectId: string, conversationId: string, userId: string) =>
     `raven:typing:${projectId}:${conversationId}:${userId}`,
-  typingIndex: (projectId: string, conversationId: string) =>
-    `raven:typing:index:${projectId}:${conversationId}`,
+  typingIndex: (projectId: string, conversationId: string) => `raven:typing:index:${projectId}:${conversationId}`,
   /** connectionId -> {gatewayId,userId,projectId}. Lets us find where a socket lives. */
   connection: (connectionId: string) => `raven:chat:conn:${connectionId}`,
   /** userId -> set of live connectionIds (a user may have several tabs). */

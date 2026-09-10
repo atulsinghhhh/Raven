@@ -45,7 +45,11 @@ export default async function AnalyticsPage({
     ravenApi.listLiveStreams(token, projectId),
   ]);
 
-  if (metricsResult.status === 'rejected' && metricsResult.reason instanceof ApiError && metricsResult.reason.status === 401) {
+  if (
+    metricsResult.status === 'rejected' &&
+    metricsResult.reason instanceof ApiError &&
+    metricsResult.reason.status === 401
+  ) {
     redirect('/login');
   }
 
@@ -64,7 +68,10 @@ export default async function AnalyticsPage({
         title="Analytics"
         description="RTC, chat, and live streaming activity for this project, side by side."
         actions={
-          <nav aria-label="Time range" className="flex items-center gap-0.5 rounded-md border border-line bg-surface p-0.5">
+          <nav
+            aria-label="Time range"
+            className="flex items-center gap-0.5 rounded-md border border-line bg-surface p-0.5"
+          >
             {RANGES.map((r) => (
               <a
                 key={r}
@@ -136,7 +143,11 @@ export default async function AnalyticsPage({
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <StatCard label="Conversations" value={formatCount(chat.conversations)} />
               <StatCard label="Messages sent" value={formatCount(chat.messagesSent)} hint={RANGE_LABEL[range]} />
-              <StatCard label="Messages failed" value={formatCount(chat.messagesFailed)} tone={chat.messagesFailed > 0 ? 'warning' : 'default'} />
+              <StatCard
+                label="Messages failed"
+                value={formatCount(chat.messagesFailed)}
+                tone={chat.messagesFailed > 0 ? 'warning' : 'default'}
+              />
               <StatCard label="Active connections" value={formatCount(chat.activeConnections)} />
             </div>
             <ButtonLink href={`${base}/chat`} variant="secondary" className="self-start">
@@ -151,8 +162,16 @@ export default async function AnalyticsPage({
         (liveStreams ? (
           <>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <StatCard label="Live now" value={formatCount(liveNow.length)} tone={liveNow.length > 0 ? 'success' : 'default'} />
-              <StatCard label="Peak viewers" value={formatCount(peakViewers)} hint="Highest recorded for any single stream" />
+              <StatCard
+                label="Live now"
+                value={formatCount(liveNow.length)}
+                tone={liveNow.length > 0 ? 'success' : 'default'}
+              />
+              <StatCard
+                label="Peak viewers"
+                value={formatCount(peakViewers)}
+                hint="Highest recorded for any single stream"
+              />
               <StatCard label="Streams today" value={formatCount(streamsToday)} hint="Created since 00:00 UTC" />
               <StatCard label="Total streams" value={formatCount(liveStreams.length)} hint="All time" />
             </div>

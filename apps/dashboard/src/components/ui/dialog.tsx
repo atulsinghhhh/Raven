@@ -166,10 +166,7 @@ export function Dialog({
   );
 
   return (
-    <div
-      className="fixed inset-0 z-100 flex items-start justify-center bg-scrim px-4 py-[10vh]"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-100 flex items-start justify-center bg-scrim px-4 py-[10vh]" onClick={onClose}>
       <div
         ref={panelRef}
         role="dialog"

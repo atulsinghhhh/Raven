@@ -29,9 +29,7 @@ describe('SfuRegistrationGuard', () => {
   });
 
   it('rejects a wrong secret', () => {
-    expect(() => guardWith(SECRET).canActivate(contextWith('Bearer nope'))).toThrow(
-      UnauthorizedError,
-    );
+    expect(() => guardWith(SECRET).canActivate(contextWith('Bearer nope'))).toThrow(UnauthorizedError);
   });
 
   it('rejects a secret of a different length without throwing on the compare', () => {
@@ -41,17 +39,13 @@ describe('SfuRegistrationGuard', () => {
   });
 
   it('rejects a non-Bearer scheme', () => {
-    expect(() => guardWith(SECRET).canActivate(contextWith(`Basic ${SECRET}`))).toThrow(
-      UnauthorizedError,
-    );
+    expect(() => guardWith(SECRET).canActivate(contextWith(`Basic ${SECRET}`))).toThrow(UnauthorizedError);
   });
 
   it('fails closed when no secret is configured', () => {
     // An unconfigured deployment must not have an open registration
     // endpoint: the node gets a clear error instead.
-    expect(() => guardWith(undefined).canActivate(contextWith('Bearer anything'))).toThrow(
-      UnauthorizedError,
-    );
+    expect(() => guardWith(undefined).canActivate(contextWith('Bearer anything'))).toThrow(UnauthorizedError);
   });
 
   it('fails closed even when the caller presents an empty bearer token', () => {

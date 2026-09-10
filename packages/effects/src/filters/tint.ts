@@ -9,7 +9,12 @@ export const tintDefinition: EffectDefinition = {
   type: 'tint',
   category: 'color',
   params: {
-    value: { min: -1, max: 1, default: 0, description: 'Green/magenta shift, -1 (green) to 1 (magenta). 0 = no change.' },
+    value: {
+      min: -1,
+      max: 1,
+      default: 0,
+      description: 'Green/magenta shift, -1 (green) to 1 (magenta). 0 = no change.',
+    },
   },
   op: {
     kind: 'color',

@@ -53,9 +53,7 @@ export function Menu({
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
     e.preventDefault();
 
-    const items = Array.from(
-      rootRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])') ?? [],
-    );
+    const items = Array.from(rootRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])') ?? []);
     if (items.length === 0) return;
 
     const index = items.indexOf(document.activeElement as HTMLElement);
@@ -118,7 +116,13 @@ export function MenuItem({
       {icon && <span className="shrink-0 text-muted">{icon}</span>}
       <span className="min-w-0 flex-1 truncate">{children}</span>
       {selected && (
-        <svg viewBox="0 0 16 16" className="size-3.5 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg
+          viewBox="0 0 16 16"
+          className="size-3.5 shrink-0 text-accent"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
           <path d="M3 8.5l3.5 3.5L13 5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )}

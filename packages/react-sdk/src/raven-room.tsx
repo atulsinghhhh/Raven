@@ -31,7 +31,14 @@ export interface RavenRoomProps extends RTCClientConfig {
  * Client-only. Never render it from a Server Component (see
  * docs/sdk/react.md#nextjs).
  */
-export function RavenRoom({ room: roomId, autoConnect = true, fallback, onError, children, ...config }: RavenRoomProps) {
+export function RavenRoom({
+  room: roomId,
+  autoConnect = true,
+  fallback,
+  onError,
+  children,
+  ...config
+}: RavenRoomProps) {
   const storeRef = useRef<RavenStore | null>(null);
   if (!storeRef.current) {
     storeRef.current = new RavenStore();
@@ -57,7 +64,11 @@ export function RavenRoom({ room: roomId, autoConnect = true, fallback, onError,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoConnect]);
 
-  const isConnectingOrFailed = autoConnect && (snapshot.connectionState === 'idle' || snapshot.connectionState === 'connecting' || snapshot.connectionState === 'failed');
+  const isConnectingOrFailed =
+    autoConnect &&
+    (snapshot.connectionState === 'idle' ||
+      snapshot.connectionState === 'connecting' ||
+      snapshot.connectionState === 'failed');
 
   return (
     <RavenStoreContext.Provider value={store}>

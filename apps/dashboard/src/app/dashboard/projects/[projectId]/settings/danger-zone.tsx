@@ -82,7 +82,9 @@ export function DangerZone({ projectId, projectName }: { projectId: string; proj
               {deleting ? 'Deleting…' : 'Delete project'}
             </Button>
           </div>
-          <p className="text-xs leading-relaxed text-subtle">Case-sensitive, and must match the project name exactly.</p>
+          <p className="text-xs leading-relaxed text-subtle">
+            Case-sensitive, and must match the project name exactly.
+          </p>
         </div>
       </div>
     </section>

@@ -100,12 +100,7 @@ export default tseslint.config(
   {
     // Tests reach for globals and loose typing that production code should
     // not. Jest's globals are injected, not imported.
-    files: [
-      '**/*.spec.{ts,tsx}',
-      '**/*.test.{ts,tsx}',
-      '**/*.e2e-spec.ts',
-      '**/test/**/*.{ts,tsx}',
-    ],
+    files: ['**/*.spec.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.e2e-spec.ts', '**/test/**/*.{ts,tsx}'],
     languageOptions: {
       globals: { ...globals.jest, ...globals.node },
     },
@@ -133,12 +128,7 @@ export default tseslint.config(
     // `require()` inside a test is how jest module mocking works, and how a
     // test reaches for a module it has just re-registered. Production code
     // has no such excuse and is still held to imports.
-    files: [
-      '**/*.spec.{ts,tsx}',
-      '**/*.test.{ts,tsx}',
-      '**/*.e2e-spec.ts',
-      '**/test/**/*.{ts,tsx}',
-    ],
+    files: ['**/*.spec.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.e2e-spec.ts', '**/test/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
     },

@@ -123,9 +123,7 @@ export class SocketTransport {
   }
 
   private open(): void {
-    const factory =
-      this.options.socketFactory ??
-      ((url: string) => new WebSocket(url) as unknown as WebSocketLike);
+    const factory = this.options.socketFactory ?? ((url: string) => new WebSocket(url) as unknown as WebSocketLike);
 
     // Token rides in the query string because the browser WebSocket API
     // can't set headers on an upgrade. It's also why chat tokens are
@@ -198,9 +196,7 @@ export class SocketTransport {
       });
 
       if (terminal) {
-        this.handlers.onError(
-          toRavenChatError(event.reason || 'UNAUTHORIZED', 'The chat connection was rejected'),
-        );
+        this.handlers.onError(toRavenChatError(event.reason || 'UNAUTHORIZED', 'The chat connection was rejected'));
         return;
       }
 

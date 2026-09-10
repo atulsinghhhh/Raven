@@ -1,12 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  AttachmentStatus,
-  Conversation,
-  Message,
-  MessageType,
-  Prisma,
-} from '../../../generated/prisma/client';
+import { AttachmentStatus, Conversation, Message, MessageType, Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { generateId } from '../../../shared/utils/crypto.util';
 import { RedisService } from '../../../shared/redis/redis.service';
@@ -129,12 +123,7 @@ export class MessagesService {
     // below is what actually guarantees correctness; this only saves a round
     // trip on the common retry path.
     if (dto.clientMessageId) {
-      const cached = await this.readIdempotencyCache(
-        actor.projectId,
-        conversation.id,
-        senderId,
-        dto.clientMessageId,
-      );
+      const cached = await this.readIdempotencyCache(actor.projectId, conversation.id, senderId, dto.clientMessageId);
       if (cached) {
         const existing = await this.findByPublicId(cached, conversation);
         if (existing) {
@@ -226,11 +215,16 @@ export class MessagesService {
     // Durable first, real-time second. Fan-out and webhooks are both
     // best-effort from here on. The message already exists, and neither is
     // allowed to fail the send.
-    await this.events.publish(actor.projectId, conversation.id, {
-      type: ChatServerFrame.MESSAGE,
-      conversationId: conversation.id,
-      message: view,
-    }, originConnectionId);
+    await this.events.publish(
+      actor.projectId,
+      conversation.id,
+      {
+        type: ChatServerFrame.MESSAGE,
+        conversationId: conversation.id,
+        message: view,
+      },
+      originConnectionId,
+    );
 
     this.metrics.increment(actor.projectId, 'messages_sent');
     this.metrics.recordLatency(actor.projectId, 'persist', persistLatencyMs);
@@ -408,7 +402,7 @@ export class MessagesService {
     if (!isAuthor) {
       // Deleting somebody else's message is moderation, and needs the
       // scope.
-      assertScope(scopes, 'chat:moderate', 'Deleting another member\'s message');
+      assertScope(scopes, 'chat:moderate', "Deleting another member's message");
     } else {
       assertScope(scopes, 'chat:send', 'Deleting your message');
     }
@@ -468,9 +462,7 @@ export class MessagesService {
     replyTarget?: Message | null,
   ): Promise<ChatMessageView> {
     const [replyToPublicId, threadRootPublicId] = await Promise.all([
-      replyTarget
-        ? Promise.resolve(replyTarget.publicId)
-        : this.publicIdFor(message.replyToMessageId),
+      replyTarget ? Promise.resolve(replyTarget.publicId) : this.publicIdFor(message.replyToMessageId),
       this.publicIdFor(message.threadRootId),
     ]);
     return toMessageView(message, conversation, { replyToPublicId, threadRootPublicId });
@@ -481,10 +473,7 @@ export class MessagesService {
    * with one extra query, not one per message. That's the difference
    * between 1 query and 51 on a 50-message page.
    */
-  private async buildViews(
-    messages: MessageWithRelations[],
-    conversation: Conversation,
-  ): Promise<ChatMessageView[]> {
+  private async buildViews(messages: MessageWithRelations[], conversation: Conversation): Promise<ChatMessageView[]> {
     const referenced = new Set<string>();
     for (const message of messages) {
       if (message.replyToMessageId) referenced.add(message.replyToMessageId);
@@ -502,8 +491,8 @@ export class MessagesService {
 
     return messages.map((message) =>
       toMessageView(message, conversation, {
-        replyToPublicId: message.replyToMessageId ? publicIds.get(message.replyToMessageId) ?? null : null,
-        threadRootPublicId: message.threadRootId ? publicIds.get(message.threadRootId) ?? null : null,
+        replyToPublicId: message.replyToMessageId ? (publicIds.get(message.replyToMessageId) ?? null) : null,
+        threadRootPublicId: message.threadRootId ? (publicIds.get(message.threadRootId) ?? null) : null,
       }),
     );
   }

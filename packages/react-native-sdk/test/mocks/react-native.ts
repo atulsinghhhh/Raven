@@ -12,8 +12,7 @@ export const Platform = {
   get OS() {
     return __platformState.OS;
   },
-  select: <T,>(spec: Record<string, T>): T | undefined =>
-    spec[__platformState.OS] ?? spec.default,
+  select: <T>(spec: Record<string, T>): T | undefined => spec[__platformState.OS] ?? spec.default,
 };
 
 export function __setPlatform(os: 'ios' | 'android' | 'web'): void {
@@ -63,7 +62,7 @@ export function __emitAppState(next: string): void {
 }
 
 export const StyleSheet = {
-  create: <T,>(styles: T): T => styles,
+  create: <T>(styles: T): T => styles,
   flatten: (style: unknown) => style,
 };
 

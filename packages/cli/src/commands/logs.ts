@@ -4,7 +4,7 @@ import { printInfo, printJson } from '../lib/output.js';
 export function registerLogsCommand(program: Command): void {
   program
     .command('logs')
-    .description("Stream developer-facing logs for the current project")
+    .description('Stream developer-facing logs for the current project')
     .option('-f, --follow', 'follow the log stream')
     .option('--json', 'output as JSON')
     .action(async (opts: { json?: boolean }) => {

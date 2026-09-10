@@ -63,8 +63,7 @@ for (const dir of dirs) {
   }
 
   // --- provenance links ---------------------------------------------------
-  const repoUrl =
-    typeof pkg.repository === 'string' ? pkg.repository : (pkg.repository?.url ?? '');
+  const repoUrl = typeof pkg.repository === 'string' ? pkg.repository : (pkg.repository?.url ?? '');
   if (!repoUrl) fail('no "repository"');
   else if (!repoUrl.includes(EXPECTED_REPO_URL)) {
     fail(`"repository" does not point at ${EXPECTED_REPO_URL} (got: ${repoUrl})`);
@@ -113,11 +112,8 @@ for (const dir of dirs) {
   }
 
   // --- the gate that survives a hand-run publish --------------------------
-  const usesWorkspaceProtocol = ['dependencies', 'peerDependencies', 'optionalDependencies'].some(
-    (field) =>
-      Object.values(pkg[field] ?? {}).some(
-        (range) => typeof range === 'string' && range.startsWith('workspace:'),
-      ),
+  const usesWorkspaceProtocol = ['dependencies', 'peerDependencies', 'optionalDependencies'].some((field) =>
+    Object.values(pkg[field] ?? {}).some((range) => typeof range === 'string' && range.startsWith('workspace:')),
   );
   if (usesWorkspaceProtocol && pkg.scripts?.prepublishOnly !== PREPUBLISH_GUARD) {
     fail(

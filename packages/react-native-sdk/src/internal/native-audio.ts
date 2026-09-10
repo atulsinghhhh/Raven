@@ -88,9 +88,7 @@ const ANDROID_ROUTES: Record<RavenAudioOutput, string> = {
 function loadInCallManager(): InCallManagerModule | undefined {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const loaded = require('react-native-incall-manager') as
-      | InCallManagerModule
-      | { default: InCallManagerModule };
+    const loaded = require('react-native-incall-manager') as InCallManagerModule | { default: InCallManagerModule };
     return 'default' in loaded ? loaded.default : loaded;
   } catch {
     return undefined;

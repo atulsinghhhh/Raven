@@ -1,5 +1,12 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiConflictResponse, ApiNotFoundResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthenticatedUser } from '../auth/jwt-payload.interface';
@@ -47,7 +54,10 @@ export class DashboardRoomsController {
 
   @Get()
   @ApiOperation({ summary: "List a project's rooms with live participant counts" })
-  @ApiResponse({ status: 200, description: 'Rooms, each with liveParticipantCount (null if the RTC server is unreachable)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Rooms, each with liveParticipantCount (null if the RTC server is unreachable)',
+  })
   @ApiNotFoundResponse({ description: 'Project not found, or not owned by the caller' })
   async findAll(
     @CurrentUser() user: AuthenticatedUser,

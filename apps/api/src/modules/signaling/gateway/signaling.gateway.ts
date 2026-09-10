@@ -1,11 +1,6 @@
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  OnGatewayInit,
-  WebSocketGateway,
-} from '@nestjs/websockets';
+import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, WebSocketGateway } from '@nestjs/websockets';
 import { randomUUID } from 'crypto';
 import { IncomingMessage } from 'http';
 import { RawData, WebSocket } from 'ws';
@@ -56,9 +51,7 @@ const CLOSE_RATE_LIMITED = 4029;
  * docs/rtc/scaling.md#a-room-split-across-api-instances.
  */
 @WebSocketGateway({ path: SIGNALING_PATH })
-export class SignalingGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
-{
+export class SignalingGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy {
   private readonly logger = new Logger(SignalingGateway.name);
   private readonly sessions = new Map<WebSocket, ParticipantSession>();
   /**
@@ -206,9 +199,7 @@ export class SignalingGateway
 
     this.sessions.set(client, session);
     this.sessionsByConnectionId.set(session.connectionId, session);
-    this.logger.log(
-      `connection authenticated: participant=${session.participantId} room=${session.roomId}`,
-    );
+    this.logger.log(`connection authenticated: participant=${session.participantId} room=${session.roomId}`);
 
     client.on('message', (data: RawData) => void this.handleMessage(session, data));
     client.on('pong', () => {
@@ -329,9 +320,7 @@ export class SignalingGateway
     try {
       action = await this.sfuFrames.handle(frame);
     } catch (err) {
-      this.logger.error(
-        `handling sfu frame ${frame.type} failed: ${(err as Error).message}`,
-      );
+      this.logger.error(`handling sfu frame ${frame.type} failed: ${(err as Error).message}`);
       return;
     }
 
@@ -341,9 +330,7 @@ export class SignalingGateway
         // Client disconnected while the SFU was answering. Common enough
         // not to warrant a warning; the node cleans up its side when the
         // PeerConnection dies.
-        this.logger.debug(
-          `dropping ${frame.type} — session ${action.toSession.sessionId} is gone`,
-        );
+        this.logger.debug(`dropping ${frame.type} — session ${action.toSession.sessionId} is gone`);
       } else {
         this.sendMessage(session.socket, action.toSession.message);
       }

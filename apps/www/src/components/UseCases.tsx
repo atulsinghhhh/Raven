@@ -11,11 +11,17 @@
  */
 const USE_CASES = [
   { title: 'Video calling', body: '1:1 and group calls without standing up your own SFU.' },
-  { title: 'Telehealth', body: 'Video visits with reconnection handled — a dropped signal shouldn’t end an appointment.' },
+  {
+    title: 'Telehealth',
+    body: 'Video visits with reconnection handled — a dropped signal shouldn’t end an appointment.',
+  },
   { title: 'Education', body: 'Live classes with screen sharing, chat, and participant lists built in.' },
   { title: 'Gaming', body: 'Voice rooms and party chat that reconnect through a lobby switch.' },
   { title: 'Social apps', body: 'Rooms, presence, and reactions for community and creator features.' },
-  { title: 'Customer support', body: 'Video and chat escalation from the same conversation a ticket already lives in.' },
+  {
+    title: 'Customer support',
+    body: 'Video and chat escalation from the same conversation a ticket already lives in.',
+  },
   { title: 'Events', body: 'Multi-host video with a live chat conversation attached from the start.' },
   { title: 'Live commerce', body: 'Host-led streams with viewer reactions and moderation on one connection.' },
 ];
@@ -32,8 +38,8 @@ export function UseCases() {
           One platform, every <span className="kw">real-time</span> surface
         </h2>
         <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">
-          Instead of stitching together a calling SDK, a chat service, and a streaming provider — with three
-          sets of credentials and three ideas of what a user is.
+          Instead of stitching together a calling SDK, a chat service, and a streaming provider — with three sets of
+          credentials and three ideas of what a user is.
         </p>
       </div>
 

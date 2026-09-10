@@ -110,9 +110,7 @@ export function MembersManager({
         return;
       }
 
-      setMembers((current) =>
-        current.map((m) => (m.userId === member.userId ? (payload as ProjectMember) : m)),
-      );
+      setMembers((current) => current.map((m) => (m.userId === member.userId ? (payload as ProjectMember) : m)));
     } catch {
       setError('Could not reach the Control API. Nothing was changed.');
     } finally {
@@ -145,9 +143,7 @@ export function MembersManager({
 
   return (
     <div className="flex flex-col gap-6">
-      {error && (
-        <ErrorState title="That didn't work" description={error} />
-      )}
+      {error && <ErrorState title="That didn't work" description={error} />}
 
       {canManage && (
         <Card>
@@ -209,9 +205,7 @@ export function MembersManager({
               <li key={member.userId} className="flex flex-wrap items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium text-fg">
-                      {member.name ?? member.email}
-                    </span>
+                    <span className="truncate text-sm font-medium text-fg">{member.name ?? member.email}</span>
                     {isSelf && (
                       <Badge tone="neutral" glyph={false}>
                         you
@@ -243,19 +237,15 @@ export function MembersManager({
                 )}
 
                 {mayEdit && (
-                  <Button
-                    variant="secondary"
-                    disabled={busy || isLastOwner}
-                    onClick={() => handleRemove(member)}
-                  >
+                  <Button variant="secondary" disabled={busy || isLastOwner} onClick={() => handleRemove(member)}>
                     {busy ? 'Working…' : 'Remove'}
                   </Button>
                 )}
 
                 {isLastOwner && (
                   <p className="w-full text-xs text-subtle">
-                    The only owner — promote someone else first. A project with no owner can&apos;t be
-                    administered by anyone.
+                    The only owner — promote someone else first. A project with no owner can&apos;t be administered by
+                    anyone.
                   </p>
                 )}
               </li>

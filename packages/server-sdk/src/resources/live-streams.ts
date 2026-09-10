@@ -83,10 +83,10 @@ export class LiveStreamsResource {
 
   /** Always subscribe-only on RTC and MEMBER on chat. See the class doc. */
   createViewerToken(streamId: string, identity: string): Promise<IssuedStreamCredential> {
-    return this.http.request<IssuedStreamCredential>(
-      `/v1/live-streams/${encodeURIComponent(streamId)}/viewer-tokens`,
-      { method: 'POST', body: { identity } },
-    );
+    return this.http.request<IssuedStreamCredential>(`/v1/live-streams/${encodeURIComponent(streamId)}/viewer-tokens`, {
+      method: 'POST',
+      body: { identity },
+    });
   }
 
   /**

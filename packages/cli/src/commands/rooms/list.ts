@@ -7,7 +7,7 @@ import { withErrorHandling } from '../../lib/run.js';
 export function registerRoomsListCommand(rooms: Command): void {
   rooms
     .command('list')
-    .description('List a project\'s rooms, with live participant counts from the SFU')
+    .description("List a project's rooms, with live participant counts from the SFU")
     .option('-p, --project <project>', 'project ID (overrides the current project context)')
     .option('--json', 'output as JSON')
     .action(
@@ -29,7 +29,10 @@ export function registerRoomsListCommand(rooms: Command): void {
         printTable(list, [
           { header: 'ROOM', value: (r) => r.name },
           // null = SFU unreachable, shown as "unknown" rather than faking a 0
-          { header: 'PARTICIPANTS', value: (r) => (r.liveParticipantCount === null ? 'unknown' : String(r.liveParticipantCount)) },
+          {
+            header: 'PARTICIPANTS',
+            value: (r) => (r.liveParticipantCount === null ? 'unknown' : String(r.liveParticipantCount)),
+          },
           { header: 'STATUS', value: (r) => roomStatusLabel(r.liveParticipantCount) },
           { header: 'CREATED', value: (r) => new Date(r.createdAt).toLocaleString() },
         ]);

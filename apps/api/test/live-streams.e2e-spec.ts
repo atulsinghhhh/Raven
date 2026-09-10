@@ -242,7 +242,7 @@ describe('Live Streaming (e2e)', () => {
       expect(forged.body.code).toBe('RAVEN_PERMISSION_DENIED');
     });
 
-    it('lets a viewer react to the stream\'s root message, aggregated on the existing reaction model', async () => {
+    it("lets a viewer react to the stream's root message, aggregated on the existing reaction model", async () => {
       const stream = await request(baseUrl)
         .get(`/v1/live-streams/${streamId}`)
         .set('Authorization', `Bearer ${apiKey}`)

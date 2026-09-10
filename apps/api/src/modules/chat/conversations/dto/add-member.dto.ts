@@ -3,7 +3,10 @@ import { IsIn, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'clas
 import { ChatMemberRole } from '../../../../generated/prisma/client';
 
 export class AddMemberDto {
-  @ApiProperty({ example: 'user-123', description: "Your own user identity string — Raven never owns end-user accounts." })
+  @ApiProperty({
+    example: 'user-123',
+    description: 'Your own user identity string — Raven never owns end-user accounts.',
+  })
   @IsString()
   @MinLength(1)
   @MaxLength(128)

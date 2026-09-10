@@ -48,15 +48,29 @@ describe('ravenApi', () => {
   });
 
   it('returns undefined for a 204 No Content response, without attempting to parse a body', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, status: 204, json: async () => {
-      throw new Error('should not be called for 204');
-    } });
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      json: async () => {
+        throw new Error('should not be called for 204');
+      },
+    });
 
     await expect(ravenApi.revokeApiKey('token', 'p1', 'k1')).resolves.toBeUndefined();
   });
 
   it('never includes the raw secret in any listApiKeys shape (type-level: ApiKeySummary has no `key` field)', async () => {
-    mockFetchOnce(200, [{ id: 'k1', projectId: 'p1', publicId: 'rvk_abc', name: null, status: 'ACTIVE', lastUsedAt: null, createdAt: '2026-01-01' }]);
+    mockFetchOnce(200, [
+      {
+        id: 'k1',
+        projectId: 'p1',
+        publicId: 'rvk_abc',
+        name: null,
+        status: 'ACTIVE',
+        lastUsedAt: null,
+        createdAt: '2026-01-01',
+      },
+    ]);
     const keys = await ravenApi.listApiKeys('token', 'p1');
     expect(keys[0]).not.toHaveProperty('key');
     expect(keys[0]).not.toHaveProperty('secretHash');
@@ -96,7 +110,16 @@ describe('ravenApi', () => {
     });
 
     it('getMetrics forwards the range query param', async () => {
-      mockFetchOnce(200, { range: '24h', activeRooms: 0, activeParticipants: 0, connections: 0, connectionSuccessRate: null, reconnectionRate: null, averageConnectionDurationMs: null, errors: 0 });
+      mockFetchOnce(200, {
+        range: '24h',
+        activeRooms: 0,
+        activeParticipants: 0,
+        connections: 0,
+        connectionSuccessRate: null,
+        reconnectionRate: null,
+        averageConnectionDurationMs: null,
+        errors: 0,
+      });
       await ravenApi.getMetrics('token', 'p1', '24h');
       const [url] = (global.fetch as jest.Mock).mock.calls[0];
       expect(url).toContain('range=24h');

@@ -82,12 +82,7 @@ export class PresenceService {
   }
 
   /** Explicit offline (a clean disconnect). Expiry covers the unclean ones. */
-  async clear(
-    projectId: string,
-    conversationId: string,
-    conversationPublicId: string,
-    userId: string,
-  ): Promise<void> {
+  async clear(projectId: string, conversationId: string, conversationPublicId: string, userId: string): Promise<void> {
     try {
       await this.redisService.client
         .multi()
@@ -121,12 +116,14 @@ export class PresenceService {
         ...userIds.map((userId) => RedisKeys.presence(projectId, conversationId, userId)),
       );
 
-      return userIds
-        .map((userId, index) => ({ userId, raw: statuses[index] }))
-        // A null status means the value key expired ahead of the index
-        // entry: treat that as gone, don't invent an "online".
-        .filter((entry): entry is { userId: string; raw: string } => entry.raw !== null)
-        .map(({ userId, raw }) => ({ userId, status: raw as PresenceStatus }));
+      return (
+        userIds
+          .map((userId, index) => ({ userId, raw: statuses[index] }))
+          // A null status means the value key expired ahead of the index
+          // entry: treat that as gone, don't invent an "online".
+          .filter((entry): entry is { userId: string; raw: string } => entry.raw !== null)
+          .map(({ userId, raw }) => ({ userId, status: raw as PresenceStatus }))
+      );
     } catch (err) {
       this.logger.warn(`presence read failed: ${(err as Error).message}`);
       throw new ChatError(ChatErrorCode.INTERNAL_ERROR, 'Presence is temporarily unavailable');

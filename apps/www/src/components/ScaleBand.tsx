@@ -63,8 +63,8 @@ export function ScaleBand() {
       </div>
 
       <p className="mx-auto max-w-2xl px-6 pt-6 text-center text-[12px] leading-relaxed text-muted">
-        Counts, not benchmarks. Raven doesn&apos;t quote uptime, latency, or concurrency figures on this page —
-        the connection numbers it does report come from live WebRTC stats in your own dashboard.
+        Counts, not benchmarks. Raven doesn&apos;t quote uptime, latency, or concurrency figures on this page — the
+        connection numbers it does report come from live WebRTC stats in your own dashboard.
       </p>
     </section>
   );

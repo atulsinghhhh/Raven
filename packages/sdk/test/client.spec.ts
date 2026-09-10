@@ -22,7 +22,14 @@ describe('RTCClient.join', () => {
     let capturedAdapter: FakeAdapter | undefined;
 
     const client = new RTCClient(
-      { token, endpoint: 'wss://rtc.example.com', iceServers, logLevel: 'silent', autoReconnect: true, telemetry: false },
+      {
+        token,
+        endpoint: 'wss://rtc.example.com',
+        iceServers,
+        logLevel: 'silent',
+        autoReconnect: true,
+        telemetry: false,
+      },
       () => {
         capturedAdapter = new FakeAdapter();
         return capturedAdapter;
@@ -39,10 +46,13 @@ describe('RTCClient.join', () => {
     const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
     let capturedAdapter: FakeAdapter | undefined;
 
-    const client = new RTCClient({ token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false }, () => {
-      capturedAdapter = new FakeAdapter();
-      return capturedAdapter;
-    });
+    const client = new RTCClient(
+      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      () => {
+        capturedAdapter = new FakeAdapter();
+        return capturedAdapter;
+      },
+    );
 
     await expect(client.join('a-different-room')).rejects.toMatchObject({ code: 'ROOM_NOT_FOUND' });
     expect(capturedAdapter).toBeUndefined();
@@ -124,11 +134,14 @@ describe('RTCClient.join', () => {
 
   it('propagates a connection failure from the adapter as a rejected promise', async () => {
     const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
-    const client = new RTCClient({ token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false }, () => {
-      const adapter = new FakeAdapter();
-      adapter.connect = jest.fn().mockRejectedValue(new RTCError('NETWORK_ERROR', 'unreachable'));
-      return adapter;
-    });
+    const client = new RTCClient(
+      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      () => {
+        const adapter = new FakeAdapter();
+        adapter.connect = jest.fn().mockRejectedValue(new RTCError('NETWORK_ERROR', 'unreachable'));
+        return adapter;
+      },
+    );
 
     await expect(client.join('room-1')).rejects.toMatchObject({ code: 'NETWORK_ERROR' });
   });
@@ -171,10 +184,13 @@ describe('RTCClient.leave', () => {
   it('leaves the most recently joined room', async () => {
     const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
     let capturedAdapter: FakeAdapter | undefined;
-    const client = new RTCClient({ token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false }, () => {
-      capturedAdapter = new FakeAdapter();
-      return capturedAdapter;
-    });
+    const client = new RTCClient(
+      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      () => {
+        capturedAdapter = new FakeAdapter();
+        return capturedAdapter;
+      },
+    );
 
     await client.join('room-1');
     await client.leave();
@@ -201,10 +217,13 @@ describe('RTCClient.setCamera / setMicrophone', () => {
   it('delegates to the joined room once one exists', async () => {
     const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
     let capturedAdapter: FakeAdapter | undefined;
-    const client = new RTCClient({ token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false }, () => {
-      capturedAdapter = new FakeAdapter();
-      return capturedAdapter;
-    });
+    const client = new RTCClient(
+      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      () => {
+        capturedAdapter = new FakeAdapter();
+        return capturedAdapter;
+      },
+    );
 
     await client.join('room-1');
     await client.setCamera('device-1');

@@ -170,7 +170,10 @@ describe('LocalTrack.getStats()', () => {
   });
 
   it('returns undefined when the delegate resolves to nothing', async () => {
-    const track = new LocalTrack(fakeDelegate({ getSenderStats: jest.fn().mockResolvedValue(undefined) }), 'microphone');
+    const track = new LocalTrack(
+      fakeDelegate({ getSenderStats: jest.fn().mockResolvedValue(undefined) }),
+      'microphone',
+    );
 
     await expect(track.getStats()).resolves.toBeUndefined();
   });
@@ -185,7 +188,10 @@ describe('LocalTrack.getStats()', () => {
   });
 
   it('picks the best simulcast layer out of an array (video-shaped) sample', async () => {
-    const layers: RawTrackStats[] = [{ timestamp: 1000, frameWidth: 320 }, { timestamp: 1000, frameWidth: 1280 }];
+    const layers: RawTrackStats[] = [
+      { timestamp: 1000, frameWidth: 320 },
+      { timestamp: 1000, frameWidth: 1280 },
+    ];
     const track = new LocalTrack(fakeDelegate({ getSenderStats: jest.fn().mockResolvedValue(layers) }), 'camera');
 
     const stats = await track.getStats();
@@ -234,10 +240,7 @@ describe('RemoteTrack.getStats()', () => {
 
   it('normalizes a receiver sample as a receive-direction stat', async () => {
     const raw: RawTrackStats = { timestamp: 1000, packetsLost: 2, packetsReceived: 98, mimeType: 'video/VP8' };
-    const track = new RemoteTrack(
-      fakeRemoteDelegate({ getReceiverStats: jest.fn().mockResolvedValue(raw) }),
-      'camera',
-    );
+    const track = new RemoteTrack(fakeRemoteDelegate({ getReceiverStats: jest.fn().mockResolvedValue(raw) }), 'camera');
 
     const stats = await track.getStats();
 

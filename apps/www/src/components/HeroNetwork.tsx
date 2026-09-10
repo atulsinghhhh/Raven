@@ -121,7 +121,14 @@ export function HeroNetwork() {
           />
           <g transform={`translate(${CORE.x}, ${CORE.y})`}>
             {/* Dashed orbit — spinning the dash pattern reads as slow rotation */}
-            <circle r="58" fill="none" stroke="var(--accent-line)" strokeWidth="1" strokeDasharray="2 7" className="raven-net-orbit" />
+            <circle
+              r="58"
+              fill="none"
+              stroke="var(--accent-line)"
+              strokeWidth="1"
+              strokeDasharray="2 7"
+              className="raven-net-orbit"
+            />
             <g className="raven-net-orbit-dot">
               <circle cx="58" cy="0" r="2.5" fill="var(--accent)" />
             </g>

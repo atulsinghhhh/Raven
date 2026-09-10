@@ -24,7 +24,9 @@ export default async function LogsPage({
   const product = (['rtc', 'chat', 'webhook', 'audit'] as const).includes(rawProduct as LogProduct)
     ? (rawProduct as LogProduct)
     : undefined;
-  const status = (['success', 'failed'] as const).includes(rawStatus as LogStatus) ? (rawStatus as LogStatus) : undefined;
+  const status = (['success', 'failed'] as const).includes(rawStatus as LogStatus)
+    ? (rawStatus as LogStatus)
+    : undefined;
 
   const token = await getSessionToken();
   if (!token) redirect('/login');
@@ -59,14 +61,21 @@ export default async function LogsPage({
         <StatCard label="Shown" value={filtered.length} hint={`Of ${allEntries.length} fetched`} />
         <StatCard label="Failed" value={failedCount} tone={failedCount > 0 ? 'warning' : 'default'} />
         <StatCard label="Webhooks scanned" value={sources.webhooksScanned} hint={`Of ${sources.webhooksTotal} total`} />
-        <StatCard label="Sources" value={sources.anySourceFailed ? 'Partial' : 'All reachable'} tone={sources.anySourceFailed ? 'warning' : 'success'} />
+        <StatCard
+          label="Sources"
+          value={sources.anySourceFailed ? 'Partial' : 'All reachable'}
+          tone={sources.anySourceFailed ? 'warning' : 'success'}
+        />
       </div>
 
       <LogFilters basePath={`${base}/logs`} product={product} status={status} q={q} />
 
       {filtered.length === 0 ? (
         sources.anySourceFailed ? (
-          <ErrorState title="Some log sources are unreachable" description="Try again in a moment — this doesn't affect stored data." />
+          <ErrorState
+            title="Some log sources are unreachable"
+            description="Try again in a moment — this doesn't affect stored data."
+          />
         ) : (
           <EmptyState
             icon={<IconLogs className="size-7" />}

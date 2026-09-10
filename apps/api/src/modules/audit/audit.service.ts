@@ -65,9 +65,7 @@ export class AuditService {
       });
     } catch (err) {
       this.logger.error(
-        `failed to record audit entry ${entry.action} for project ${entry.projectId}: ${
-          (err as Error).message
-        }`,
+        `failed to record audit entry ${entry.action} for project ${entry.projectId}: ${(err as Error).message}`,
       );
     }
   }

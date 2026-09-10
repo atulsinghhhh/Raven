@@ -67,10 +67,7 @@ export class MessageRouterService {
     private readonly usageMeter: UsageMeterService,
   ) {}
 
-  async route(
-    session: ParticipantSession,
-    message: InboundSignalingMessage,
-  ): Promise<SignalingActionResult> {
+  async route(session: ParticipantSession, message: InboundSignalingMessage): Promise<SignalingActionResult> {
     switch (message.type) {
       case ClientMessageType.ROOM_JOIN:
         return this.handleJoin(session, message);
@@ -93,10 +90,7 @@ export class MessageRouterService {
     }
   }
 
-  private async handleJoin(
-    session: ParticipantSession,
-    message: RoomJoinMessage,
-  ): Promise<SignalingActionResult> {
+  private async handleJoin(session: ParticipantSession, message: RoomJoinMessage): Promise<SignalingActionResult> {
     if (!session.permissions.join) {
       throw new SignalingError(SignalingErrorCode.PERMISSION_DENIED, 'join permission required');
     }
@@ -292,9 +286,7 @@ export class MessageRouterService {
     try {
       await this.usageMeter.settle(session.connectionId, { close: UsageCloseReason.LEFT });
     } catch (err) {
-      this.logger.warn(
-        `usage metering failed to settle session ${session.connectionId}: ${(err as Error).message}`,
-      );
+      this.logger.warn(`usage metering failed to settle session ${session.connectionId}: ${(err as Error).message}`);
     }
 
     // Release the room's node assignment once the last participant leaves,
@@ -345,10 +337,7 @@ export class MessageRouterService {
     return {};
   }
 
-  private async handleSdpOffer(
-    session: ParticipantSession,
-    message: SdpOfferMessage,
-  ): Promise<SignalingActionResult> {
+  private async handleSdpOffer(session: ParticipantSession, message: SdpOfferMessage): Promise<SignalingActionResult> {
     if (!session.permissions.publish) {
       // A client only ever offers in order to publish. Refusing here means
       // an unauthorized publish never reaches the media plane at all,
@@ -395,12 +384,7 @@ export class MessageRouterService {
       });
     }
 
-    await this.trackRegistry.setMuted(
-      session.roomId,
-      session.participantId,
-      message.trackId,
-      message.muted,
-    );
+    await this.trackRegistry.setMuted(session.roomId, session.participantId, message.trackId, message.muted);
 
     // Told to the room directly rather than waiting on the node to report
     // it. A mute has no effect on the wire beyond packets stopping, so
@@ -437,10 +421,7 @@ export class MessageRouterService {
     this.requireInRoom(session);
 
     if (!session.permissions.publish) {
-      throw new SignalingError(
-        SignalingErrorCode.PERMISSION_DENIED,
-        'publish permission required to publish a track',
-      );
+      throw new SignalingError(SignalingErrorCode.PERMISSION_DENIED, 'publish permission required to publish a track');
     }
 
     const server = await this.serverFor(session);
@@ -502,11 +483,7 @@ export class MessageRouterService {
    * a candidate and the connection stalls in silence, so the client needs to
    * hear about it and retry or reconnect.
    */
-  private async relayToNode(
-    session: ParticipantSession,
-    type: NodeLinkMessageType,
-    payload: unknown,
-  ): Promise<void> {
+  private async relayToNode(session: ParticipantSession, type: NodeLinkMessageType, payload: unknown): Promise<void> {
     this.requireInRoom(session);
 
     const server = await this.serverFor(session);

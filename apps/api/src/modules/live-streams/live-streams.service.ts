@@ -166,9 +166,7 @@ export class LiveStreamsService {
     // The list endpoint skips live state, i.e. viewer count. One SFU round
     // trip per row would make "list my streams" as slow as the slowest room
     // in it. Fetch a single stream if you want its live count.
-    return Promise.all(
-      streams.map(async (stream) => this.toView(stream, await this.activeHosts(stream.id), false)),
-    );
+    return Promise.all(streams.map(async (stream) => this.toView(stream, await this.activeHosts(stream.id), false)));
   }
 
   async update(scope: ProjectScope, streamId: string, dto: UpdateLiveStreamDto): Promise<LiveStreamView> {
@@ -452,11 +450,7 @@ export class LiveStreamsService {
    * `withLiveState=false`, which is list, create and update, skips the SFU
    * round trip entirely.
    */
-  private async toView(
-    stream: LiveStream,
-    hosts: LiveStreamHost[],
-    withLiveState: boolean,
-  ): Promise<LiveStreamView> {
+  private async toView(stream: LiveStream, hosts: LiveStreamHost[], withLiveState: boolean): Promise<LiveStreamView> {
     let viewerCount: number | null = null;
     let peakViewerCount = stream.peakViewerCount;
 

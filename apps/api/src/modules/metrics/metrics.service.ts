@@ -157,11 +157,7 @@ export class MetricsService {
       help: 'Media sessions this API instance owns across its RTC server links',
       registers: [this.registry],
       collect() {
-        this.set(
-          sfuLink
-            .getLinkedServers()
-            .reduce((total, server) => total + server.sessions, 0),
-        );
+        this.set(sfuLink.getLinkedServers().reduce((total, server) => total + server.sessions, 0));
       },
     });
 
@@ -197,7 +193,7 @@ export class MetricsService {
 
     new Gauge({
       name: 'raven_rtc_rooms_active',
-      help: 'Rooms the RTC fleet is serving, as of each node\'s last heartbeat. Fleet-wide, not per-instance.',
+      help: "Rooms the RTC fleet is serving, as of each node's last heartbeat. Fleet-wide, not per-instance.",
       registers: [this.registry],
       async collect() {
         try {
@@ -210,7 +206,7 @@ export class MetricsService {
 
     new Gauge({
       name: 'raven_rtc_participants_active',
-      help: 'Participants connected across the RTC fleet, as of each node\'s last heartbeat. Fleet-wide, not per-instance.',
+      help: "Participants connected across the RTC fleet, as of each node's last heartbeat. Fleet-wide, not per-instance.",
       registers: [this.registry],
       async collect() {
         try {
@@ -223,7 +219,7 @@ export class MetricsService {
 
     new Gauge({
       name: 'raven_rtc_room_capacity',
-      help: 'Total room capacity advertised by the RTC fleet. With rooms_active, this is the fleet\'s headroom.',
+      help: "Total room capacity advertised by the RTC fleet. With rooms_active, this is the fleet's headroom.",
       registers: [this.registry],
       async collect() {
         try {

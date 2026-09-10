@@ -102,7 +102,11 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     this.logger = createLogger(config.logLevel);
     this.rest = new RestClient(config.apiUrl, config.token);
     this.socketFactory = socketFactory;
-    this.messages = new MessagesApi(this.rest, () => this.defaultRoom(), (options) => this.sendMessage(options));
+    this.messages = new MessagesApi(
+      this.rest,
+      () => this.defaultRoom(),
+      (options) => this.sendMessage(options),
+    );
     this.attachments = new AttachmentsApi(this.rest, () => this.defaultRoom());
 
     const payload = decodeChatToken(config.token);
@@ -252,10 +256,10 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     // stored and fanned out to everyone else. Losing a connection should
     // not quietly lose whatever the user just typed.
     if (this.state !== 'connected') {
-      return this.rest.request<SendMessageResult>(
-        `/v1/chat/conversations/${encodeURIComponent(room)}/messages`,
-        { method: 'POST', body: { ...options, room: undefined, clientMessageId: options.clientMessageId ?? generateClientMessageId() } },
-      );
+      return this.rest.request<SendMessageResult>(`/v1/chat/conversations/${encodeURIComponent(room)}/messages`, {
+        method: 'POST',
+        body: { ...options, room: undefined, clientMessageId: options.clientMessageId ?? generateClientMessageId() },
+      });
     }
 
     const ack = await this.request<{ message: SendMessageResult; deduplicated: boolean }>('message.send', {
@@ -373,9 +377,7 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
   /** Sends a frame and waits for its correlated ack, with a timeout. */
   private request<T = unknown>(type: string, payload: Record<string, unknown>): Promise<T> {
     if (!this.transport?.isOpen) {
-      return Promise.reject(
-        new RavenChatConnectionError('Not connected; call connect() first', 'CONNECTION_CLOSED'),
-      );
+      return Promise.reject(new RavenChatConnectionError('Not connected; call connect() first', 'CONNECTION_CLOSED'));
     }
 
     const id = `r${++this.requestCounter}`;
@@ -525,9 +527,7 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
 
     for (const [, request] of this.pending) {
       clearTimeout(request.timer);
-      request.reject(
-        new RavenChatConnectionError('Connection closed before the server replied', 'CONNECTION_CLOSED'),
-      );
+      request.reject(new RavenChatConnectionError('Connection closed before the server replied', 'CONNECTION_CLOSED'));
     }
     this.pending.clear();
 

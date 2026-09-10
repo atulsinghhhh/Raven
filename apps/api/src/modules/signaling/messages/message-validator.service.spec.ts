@@ -118,10 +118,7 @@ describe('MessageValidatorService', () => {
   it('rejects ice.candidate whose candidate is an object', () => {
     // The mesh protocol carried an opaque object here; the SFU protocol
     // carries the candidate line as a string.
-    expectRejects(
-      '{"type":"ice.candidate","candidate":{"candidate":"..."}}',
-      SignalingErrorCode.INVALID_MESSAGE,
-    );
+    expectRejects('{"type":"ice.candidate","candidate":{"candidate":"..."}}', SignalingErrorCode.INVALID_MESSAGE);
   });
 
   it('rejects a non-integer sdpMLineIndex', () => {
@@ -138,16 +135,11 @@ describe('MessageValidatorService', () => {
 
   it('rejects track.mute without an explicit boolean', () => {
     // "muted": "true" from a hand-rolled client must not read as muted.
-    expectRejects(
-      '{"type":"track.mute","trackId":"cam-1","muted":"true"}',
-      SignalingErrorCode.INVALID_MESSAGE,
-    );
+    expectRejects('{"type":"track.mute","trackId":"cam-1","muted":"true"}', SignalingErrorCode.INVALID_MESSAGE);
   });
 
   it('accepts a well-formed subscription.update', () => {
-    const msg = validator.parse(
-      '{"type":"subscription.update","publisherId":"bob","trackId":"bob-cam","layer":"low"}',
-    );
+    const msg = validator.parse('{"type":"subscription.update","publisherId":"bob","trackId":"bob-cam","layer":"low"}');
     expect(msg).toEqual({
       type: ClientMessageType.SUBSCRIPTION_UPDATE,
       publisherId: 'bob',
@@ -157,9 +149,7 @@ describe('MessageValidatorService', () => {
   });
 
   it('accepts layer "auto"', () => {
-    const msg = validator.parse(
-      '{"type":"subscription.update","publisherId":"bob","trackId":"c","layer":"auto"}',
-    );
+    const msg = validator.parse('{"type":"subscription.update","publisherId":"bob","trackId":"c","layer":"auto"}');
     expect(msg).toMatchObject({ layer: 'auto' });
   });
 
@@ -172,10 +162,7 @@ describe('MessageValidatorService', () => {
   });
 
   it('rejects subscription.update missing publisherId', () => {
-    expectRejects(
-      '{"type":"subscription.update","trackId":"c","layer":"low"}',
-      SignalingErrorCode.INVALID_MESSAGE,
-    );
+    expectRejects('{"type":"subscription.update","trackId":"c","layer":"low"}', SignalingErrorCode.INVALID_MESSAGE);
   });
 
   it('accepts room.leave and ping with no extra fields', () => {

@@ -60,7 +60,10 @@ export function ProjectSettingsForm({
 
   return (
     <Card>
-      <CardHeader title="General" subtitle="How this project is labelled across the dashboard, CLI, and SDK examples." />
+      <CardHeader
+        title="General"
+        subtitle="How this project is labelled across the dashboard, CLI, and SDK examples."
+      />
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error && <ErrorState title="Could not save changes" description={error} />}
 

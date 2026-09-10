@@ -1,15 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  Param,
-  Patch,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiNotFoundResponse,
@@ -138,10 +127,7 @@ export class ChatController {
 
   @Get('conversations')
   @ApiOperation({ summary: "List the project's conversations" })
-  async listConversations(
-    @CurrentChatActor() actor: ChatActor,
-    @Query('includeArchived') includeArchived?: string,
-  ) {
+  async listConversations(@CurrentChatActor() actor: ChatActor, @Query('includeArchived') includeArchived?: string) {
     assertServerActor(actor, 'Listing every conversation in a project');
     return this.conversations.listForProject(actor, includeArchived === 'true');
   }
@@ -167,11 +153,7 @@ export class ChatController {
 
   @Post('conversations/:room/members')
   @ApiOperation({ summary: 'Add or re-activate a member' })
-  async addMember(
-    @CurrentChatActor() actor: ChatActor,
-    @Param('room') room: string,
-    @Body() dto: AddMemberDto,
-  ) {
+  async addMember(@CurrentChatActor() actor: ChatActor, @Param('room') room: string, @Body() dto: AddMemberDto) {
     assertServerActor(actor, 'Adding a member');
     return this.conversations.addMember(actor, room, dto);
   }
@@ -224,11 +206,7 @@ export class ChatController {
       'Returns only after the message is durably stored — the id and createdAt in the response are canonical. Pass clientMessageId to make retries idempotent.',
   })
   @ApiTooManyRequestsResponse({ description: 'Per-user send rate limit exceeded' })
-  async sendMessage(
-    @CurrentChatActor() actor: ChatActor,
-    @Param('room') room: string,
-    @Body() dto: SendMessageDto,
-  ) {
+  async sendMessage(@CurrentChatActor() actor: ChatActor, @Param('room') room: string, @Body() dto: SendMessageDto) {
     const result = await this.messages.send(actor, room, dto);
     return { ...result.message, deduplicated: result.deduplicated };
   }
@@ -240,7 +218,7 @@ export class ChatController {
   }
 
   @Get('messages/:messageId/thread')
-  @ApiOperation({ summary: 'Every message in this message\'s thread, oldest first' })
+  @ApiOperation({ summary: "Every message in this message's thread, oldest first" })
   listThread(@CurrentChatActor() actor: ChatActor, @Param('messageId') messageId: string) {
     return this.messages.listThread(actor, messageId);
   }
@@ -298,7 +276,7 @@ export class ChatController {
   }
 
   @Get('conversations/:room/read-receipts')
-  @ApiOperation({ summary: "Every member's read position — what a \"seen by\" row is built from" })
+  @ApiOperation({ summary: 'Every member\'s read position — what a "seen by" row is built from' })
   listReadReceipts(@CurrentChatActor() actor: ChatActor, @Param('room') room: string) {
     return this.readState.listForConversation(actor, room);
   }

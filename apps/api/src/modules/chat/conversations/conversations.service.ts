@@ -200,10 +200,7 @@ export class ConversationsService {
       !actor.conversationScope.includes(conversation.id) &&
       !actor.conversationScope.includes(conversation.publicId)
     ) {
-      throw new ChatError(
-        ChatErrorCode.PERMISSION_DENIED,
-        'This chat token is not scoped to that conversation',
-      );
+      throw new ChatError(ChatErrorCode.PERMISSION_DENIED, 'This chat token is not scoped to that conversation');
     }
 
     // A server actor holds the project's API key: it is already trusted
@@ -222,10 +219,7 @@ export class ConversationsService {
     });
 
     if (!member || member.status === ChatMemberStatus.LEFT) {
-      throw new ChatError(
-        ChatErrorCode.NOT_A_MEMBER,
-        'You are not a member of this conversation',
-      );
+      throw new ChatError(ChatErrorCode.NOT_A_MEMBER, 'You are not a member of this conversation');
     }
 
     const roleScopes = scopesForRole(member.role);

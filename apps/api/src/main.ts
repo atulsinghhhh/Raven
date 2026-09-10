@@ -33,7 +33,6 @@ async function bootstrap(): Promise<void> {
   // before this actually runs.
   app.enableShutdownHooks();
 
-
   // Signaling shares this same HTTP server/port as a raw WebSocket gateway.
   // Not using the platform-socket.io adapter here on purpose: it wraps
   // its own framing protocol, so clients would need a socket.io client
@@ -68,7 +67,7 @@ async function bootstrap(): Promise<void> {
           'Never carries video/audio media — see docs/control-plane.md. ' +
           'Two separate auth schemes: "jwt" for dashboard-style developer ' +
           'session endpoints (Auth, Projects, API Keys), "apiKey" for the ' +
-          'endpoints a developer\'s own backend calls at runtime (Rooms, RTC Tokens).',
+          "endpoints a developer's own backend calls at runtime (Rooms, RTC Tokens).",
       )
       .setVersion('1.0')
       .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'jwt')

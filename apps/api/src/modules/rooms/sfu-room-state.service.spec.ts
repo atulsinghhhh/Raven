@@ -49,7 +49,7 @@ describe('SfuRoomStateService', () => {
   });
 
   describe('listLiveParticipants', () => {
-    it('asks the room\'s assigned node for its state', async () => {
+    it("asks the room's assigned node for its state", async () => {
       sfuLink.request.mockResolvedValue({
         type: NodeLinkMessageType.ROOM_STATE_RESULT,
         payload: { roomId: 'room-1', participants: [] },
@@ -65,7 +65,7 @@ describe('SfuRoomStateService', () => {
       );
     });
 
-    it('maps participants and tracks into the API\'s shape', async () => {
+    it("maps participants and tracks into the API's shape", async () => {
       const joinedAtUnix = 1_760_000_000;
       sfuLink.request.mockResolvedValue({
         type: NodeLinkMessageType.ROOM_STATE_RESULT,
@@ -146,9 +146,7 @@ describe('SfuRoomStateService', () => {
               sessionId: 'conn-1',
               joinedAt: 1,
               peerState: 'connected',
-              tracks: [
-                { trackId: 't', kind: 'hologram', source: 'camera', muted: false, simulcast: false },
-              ],
+              tracks: [{ trackId: 't', kind: 'hologram', source: 'camera', muted: false, simulcast: false }],
             },
           ],
         },
@@ -212,9 +210,7 @@ describe('SfuRoomStateService', () => {
       // full partition is exactly the wrong thing to tell an operator.
       sfuLink.request.mockResolvedValue(null);
 
-      await expect(
-        service.listLiveParticipantCounts(['room-1', 'room-2']),
-      ).resolves.toBeUndefined();
+      await expect(service.listLiveParticipantCounts(['room-1', 'room-2'])).resolves.toBeUndefined();
     });
 
     it('counts an unassigned room as genuinely idle', async () => {

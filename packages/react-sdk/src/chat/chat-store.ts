@@ -103,7 +103,12 @@ export class RavenChatStore {
   async disconnect(): Promise<void> {
     await this.client?.disconnect();
     this.detach();
-    this.patch({ ...INITIAL_SNAPSHOT, connectionState: 'disconnected', client: this.client, userId: this.client?.userId });
+    this.patch({
+      ...INITIAL_SNAPSHOT,
+      connectionState: 'disconnected',
+      client: this.client,
+      userId: this.client?.userId,
+    });
   }
 
   /** Call this on unmount. Detaches every listener and closes the socket. */
@@ -241,10 +246,7 @@ export class RavenChatStore {
     this.typingTimers.clear();
   }
 
-  private applyReaction(
-    event: { messageId: string; userId: string; emoji: string },
-    action: 'add' | 'remove',
-  ): void {
+  private applyReaction(event: { messageId: string; userId: string; emoji: string }, action: 'add' | 'remove'): void {
     this.patch({
       messages: this.snapshot.messages.map((message) => {
         if (message.id !== event.messageId) return message;

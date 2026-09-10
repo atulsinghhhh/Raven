@@ -103,7 +103,8 @@ export function buildLogEntries(
       status: d.status === 'DELIVERED' ? 'success' : 'failed',
       timestamp: d.createdAt,
       requestId: null,
-      summary: d.status === 'DELIVERED' ? `Delivered (HTTP ${d.responseStatus ?? '—'})` : d.lastError ?? 'Delivery failed',
+      summary:
+        d.status === 'DELIVERED' ? `Delivered (HTTP ${d.responseStatus ?? '—'})` : (d.lastError ?? 'Delivery failed'),
       href: `${base}/webhooks`,
       payload: d as unknown as Record<string, unknown>,
     });

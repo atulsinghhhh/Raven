@@ -86,7 +86,7 @@ beforeEach(() => {
   // not called" assertions pick up calls from earlier tests.
   jest.clearAllMocks();
   resetWebrtcCalls();
-    resetAudioCalls();
+  resetAudioCalls();
   __appState.listeners.clear();
   __appState.current = 'active';
   __setPlatform('android');
@@ -241,11 +241,18 @@ describe('messaging-only', () => {
   it('constructs with a chat token and no RTC credentials', () => {
     // The whole point. A messaging app shouldn't have to mint a pointless
     // RTC token just to build this object.
-    expect(() => makeRaven({ token: undefined, endpoint: undefined, chatToken: fakeChatToken(), chatApiUrl: 'https://api.test' })).not.toThrow();
+    expect(() =>
+      makeRaven({ token: undefined, endpoint: undefined, chatToken: fakeChatToken(), chatApiUrl: 'https://api.test' }),
+    ).not.toThrow();
   });
 
   it('reports hasRtc: false so a UI can hide call controls', () => {
-    const raven = makeRaven({ token: undefined, endpoint: undefined, chatToken: fakeChatToken(), chatApiUrl: 'https://api.test' });
+    const raven = makeRaven({
+      token: undefined,
+      endpoint: undefined,
+      chatToken: fakeChatToken(),
+      chatApiUrl: 'https://api.test',
+    });
     expect(raven.hasRtc).toBe(false);
   });
 
@@ -254,13 +261,23 @@ describe('messaging-only', () => {
   });
 
   it('refuses join() with an error that says what to do', async () => {
-    const raven = makeRaven({ token: undefined, endpoint: undefined, chatToken: fakeChatToken(), chatApiUrl: 'https://api.test' });
+    const raven = makeRaven({
+      token: undefined,
+      endpoint: undefined,
+      chatToken: fakeChatToken(),
+      chatApiUrl: 'https://api.test',
+    });
 
     await expect(raven.join('room_123')).rejects.toThrow(/no RTC credentials/);
   });
 
   it('does not prompt for permissions on the way to that error', async () => {
-    const raven = makeRaven({ token: undefined, endpoint: undefined, chatToken: fakeChatToken(), chatApiUrl: 'https://api.test' });
+    const raven = makeRaven({
+      token: undefined,
+      endpoint: undefined,
+      chatToken: fakeChatToken(),
+      chatApiUrl: 'https://api.test',
+    });
 
     await raven.join('room_123').catch(() => undefined);
 
@@ -271,7 +288,12 @@ describe('messaging-only', () => {
   });
 
   it('leaves and disposes cleanly without an RTC client', async () => {
-    const raven = makeRaven({ token: undefined, endpoint: undefined, chatToken: fakeChatToken(), chatApiUrl: 'https://api.test' });
+    const raven = makeRaven({
+      token: undefined,
+      endpoint: undefined,
+      chatToken: fakeChatToken(),
+      chatApiUrl: 'https://api.test',
+    });
 
     await expect(raven.leave()).resolves.toBeUndefined();
     await expect(raven.dispose()).resolves.toBeUndefined();

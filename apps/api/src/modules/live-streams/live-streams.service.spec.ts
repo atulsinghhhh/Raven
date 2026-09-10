@@ -1,4 +1,9 @@
-import { ChatMemberRole, LiveStreamHostRole, LiveStreamStatus, LiveStreamVisibility } from '../../generated/prisma/client';
+import {
+  ChatMemberRole,
+  LiveStreamHostRole,
+  LiveStreamStatus,
+  LiveStreamVisibility,
+} from '../../generated/prisma/client';
 import { AppError } from '../../shared/errors/app-error';
 import { RavenErrorCode } from '../../shared/errors/error-codes';
 import { Environment } from '../../shared/environment/environment.constants';
@@ -61,7 +66,12 @@ describe('LiveStreamsService', () => {
       // write in toView() is a fire-and-forget background update that
       // most tests below never intend to exercise; only tests that
       // actually assert on update()'s behavior override this.
-      liveStream: { create: jest.fn(), update: jest.fn().mockResolvedValue({}), findUnique: jest.fn(), findMany: jest.fn() },
+      liveStream: {
+        create: jest.fn(),
+        update: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+      },
       liveStreamHost: { upsert: jest.fn(), update: jest.fn(), findUnique: jest.fn(), findMany: jest.fn() },
       room: { findUnique: jest.fn() },
       conversation: { findUnique: jest.fn() },
@@ -103,10 +113,7 @@ describe('LiveStreamsService', () => {
       await service.create(SCOPE, { title: 'My Stream', hostIdentity: 'alice' });
 
       expect(roomsService.create).toHaveBeenCalledWith(SCOPE, { name: expect.stringMatching(/^stream_/) });
-      expect(conversationsService.create).toHaveBeenCalledWith(
-        SCOPE,
-        expect.objectContaining({ roomId: 'room-uuid' }),
-      );
+      expect(conversationsService.create).toHaveBeenCalledWith(SCOPE, expect.objectContaining({ roomId: 'room-uuid' }));
     });
 
     it('registers the creator as HOST, not CO_HOST', async () => {
@@ -558,18 +565,14 @@ describe('LiveStreamsService', () => {
       const view = await service.get(SCOPE, 'stream_abc123');
 
       expect(view.peakViewerCount).toBe(3);
-      expect(prisma.liveStream.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { peakViewerCount: 3 } }),
-      );
+      expect(prisma.liveStream.update).toHaveBeenCalledWith(expect.objectContaining({ data: { peakViewerCount: 3 } }));
     });
 
     it('never lowers a stored peak just because fewer viewers are live right now', async () => {
       prisma.liveStream.findUnique.mockResolvedValue(baseStream({ peakViewerCount: 10 }));
       prisma.liveStreamHost.findMany.mockResolvedValue([]);
       prisma.room.findUnique.mockResolvedValue({ name: 'stream_abc123' });
-      sfuRoomState.listLiveParticipants.mockResolvedValue([
-        { identity: 'a', joinedAt: new Date(), tracks: [] },
-      ]);
+      sfuRoomState.listLiveParticipants.mockResolvedValue([{ identity: 'a', joinedAt: new Date(), tracks: [] }]);
 
       const view = await service.get(SCOPE, 'stream_abc123');
 

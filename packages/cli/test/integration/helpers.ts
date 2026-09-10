@@ -54,7 +54,10 @@ export async function runCli(args: string[]): Promise<CliRunResult> {
   return { exitCode, stdout: stdoutChunks.join(''), stderr: stderrChunks.join('') };
 }
 
-type FetchHandler = (url: string, init: RequestInit) => { status: number; body?: unknown } | Promise<{ status: number; body?: unknown }>;
+type FetchHandler = (
+  url: string,
+  init: RequestInit,
+) => { status: number; body?: unknown } | Promise<{ status: number; body?: unknown }>;
 
 /** Routes mocked fetch calls by "METHOD path", which keeps integration tests declarative, not dependent on call order. */
 export function mockApi(routes: Record<string, FetchHandler>) {

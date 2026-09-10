@@ -94,9 +94,7 @@ export class ChatEventsService implements OnModuleInit, OnModuleDestroy {
         JSON.stringify(envelope),
       );
     } catch (err) {
-      this.logger.error(
-        `real-time fan-out failed for conversation ${conversationId}: ${(err as Error).message}`,
-      );
+      this.logger.error(`real-time fan-out failed for conversation ${conversationId}: ${(err as Error).message}`);
     }
   }
 

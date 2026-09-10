@@ -1,16 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-  IsInt,
-  IsOptional,
-  IsString,
-  Matches,
-  Max,
-  MaxLength,
-  Min,
-  MinLength,
-  ValidateNested,
-} from 'class-validator';
+import { IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { RtcTokenPermissionsDto } from './rtc-token-permissions.dto';
 
 const IDENTITY_PATTERN = /^[a-zA-Z0-9_.-]+$/;
@@ -39,7 +29,8 @@ export class CreateRtcTokenDto {
     example: 600,
     minimum: 30,
     maximum: 21600,
-    description: 'Token lifetime in seconds. Defaults to RTC_TOKEN_DEFAULT_TTL_SECONDS. There is no way to request a non-expiring token — every RTC token is short-lived by design.',
+    description:
+      'Token lifetime in seconds. Defaults to RTC_TOKEN_DEFAULT_TTL_SECONDS. There is no way to request a non-expiring token — every RTC token is short-lived by design.',
   })
   @IsOptional()
   @IsInt()

@@ -103,5 +103,5 @@ app.post('/api/session', async (req, res) => {
 const port = process.env.PORT ?? 8791;
 app.listen(port, () => {
   console.log(`Raven mobile example backend listening on http://localhost:${port}`);
-  console.log('Devices on the same Wi-Fi should point BACKEND_URL at this machine\'s LAN IP, not localhost.');
+  console.log("Devices on the same Wi-Fi should point BACKEND_URL at this machine's LAN IP, not localhost.");
 });

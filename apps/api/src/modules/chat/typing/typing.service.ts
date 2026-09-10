@@ -59,7 +59,14 @@ export class TypingService {
     }
 
     if (!wasAlreadyTyping) {
-      await this.publish(ChatServerFrame.TYPING_STARTED, projectId, conversationId, conversationPublicId, userId, originConnectionId);
+      await this.publish(
+        ChatServerFrame.TYPING_STARTED,
+        projectId,
+        conversationId,
+        conversationPublicId,
+        userId,
+        originConnectionId,
+      );
     }
   }
 
@@ -83,7 +90,14 @@ export class TypingService {
     // Only announce a stop if there was a start to stop: otherwise a
     // client that fires stop on every blur floods the conversation.
     if (wasTyping) {
-      await this.publish(ChatServerFrame.TYPING_STOPPED, projectId, conversationId, conversationPublicId, userId, originConnectionId);
+      await this.publish(
+        ChatServerFrame.TYPING_STOPPED,
+        projectId,
+        conversationId,
+        conversationPublicId,
+        userId,
+        originConnectionId,
+      );
     }
   }
 

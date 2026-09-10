@@ -17,7 +17,7 @@ export class RtcServerHeartbeatDto {
   @Min(0)
   activeRooms!: number;
 
-  @ApiProperty({ example: 47, description: 'Participants currently connected across all of this node\'s rooms.' })
+  @ApiProperty({ example: 47, description: "Participants currently connected across all of this node's rooms." })
   @IsInt()
   @Min(0)
   activeParticipants!: number;
@@ -42,7 +42,11 @@ export class RtcServerHeartbeatDto {
   @Min(0)
   networkInBps?: number;
 
-  @ApiPropertyOptional({ example: 48_900_000, description: 'Outbound media throughput, bits per second. Expected to exceed inbound in an SFU — one publisher feeds many subscribers.' })
+  @ApiPropertyOptional({
+    example: 48_900_000,
+    description:
+      'Outbound media throughput, bits per second. Expected to exceed inbound in an SFU — one publisher feeds many subscribers.',
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)

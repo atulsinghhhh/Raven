@@ -72,12 +72,7 @@ export class OAuthService {
 
     const state = randomBytes(32).toString('base64url');
     const ttlSeconds = this.configService.get<number>('oauth.stateTtlSeconds')!;
-    await this.redisService.client.set(
-      `${STATE_KEY_PREFIX}${state}`,
-      providerSlug(provider),
-      'EX',
-      ttlSeconds,
-    );
+    await this.redisService.client.set(`${STATE_KEY_PREFIX}${state}`, providerSlug(provider), 'EX', ttlSeconds);
 
     return { authorizeUrl: this.buildAuthorizeUrl(provider, config, state), state };
   }
@@ -139,11 +134,7 @@ export class OAuthService {
     return url.toString();
   }
 
-  private async fetchProfile(
-    provider: AuthProvider,
-    config: OAuthProviderConfig,
-    code: string,
-  ): Promise<OAuthProfile> {
+  private async fetchProfile(provider: AuthProvider, config: OAuthProviderConfig, code: string): Promise<OAuthProfile> {
     try {
       return provider === AuthProvider.GITHUB
         ? await this.fetchGitHubProfile(config, code)
@@ -324,7 +315,12 @@ export class OAuthService {
 
       await this.prisma.$transaction(async (tx) => {
         await tx.authAccount.create({
-          data: { userId: existingUser.id, provider, providerAccountId: profile.providerAccountId, email: profile.email },
+          data: {
+            userId: existingUser.id,
+            provider,
+            providerAccountId: profile.providerAccountId,
+            email: profile.email,
+          },
         });
         // The provider just proved this address; an account that was
         // waiting on a verification email no longer needs to be.
@@ -398,10 +394,7 @@ export class OAuthService {
 
   private isUniqueViolation(error: unknown): boolean {
     return (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      (error as { code?: string }).code === 'P2002'
+      typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'P2002'
     );
   }
 

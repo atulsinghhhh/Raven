@@ -1,5 +1,12 @@
 import { isEffectsError } from '@/errors';
-import { assertNoRemoteCodeExecution, assertPipelineNotFull, EFFECT_SECURITY_LIMITS, validateAsset, validateParam, validateParams } from '@/security';
+import {
+  assertNoRemoteCodeExecution,
+  assertPipelineNotFull,
+  EFFECT_SECURITY_LIMITS,
+  validateAsset,
+  validateParam,
+  validateParams,
+} from '@/security';
 
 describe('validateParam', () => {
   const spec = { min: 0, max: 1, default: 0.5, description: 'test' };
@@ -53,7 +60,9 @@ describe('validateAsset', () => {
   });
 
   it('rejects an oversized asset', () => {
-    expect(() => validateAsset({ byteLength: EFFECT_SECURITY_LIMITS.MAX_ASSET_BYTES + 1, mimeType: 'image/png' })).toThrow();
+    expect(() =>
+      validateAsset({ byteLength: EFFECT_SECURITY_LIMITS.MAX_ASSET_BYTES + 1, mimeType: 'image/png' }),
+    ).toThrow();
   });
 
   it('rejects a disallowed mime type (e.g. SVG, script risk)', () => {

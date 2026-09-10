@@ -59,13 +59,7 @@ export class ReadStateService {
     // bottom and one at the top, mustn't un-read what the user has already
     // seen.
     if (existing && existing.lastReadAt >= message.createdAt) {
-      return this.view(
-        conversation.publicId,
-        userId,
-        existing.lastReadMessageId,
-        existing.lastReadAt,
-        conversation.id,
-      );
+      return this.view(conversation.publicId, userId, existing.lastReadMessageId, existing.lastReadAt, conversation.id);
     }
 
     const updated = await this.prisma.readState.upsert({
@@ -89,13 +83,7 @@ export class ReadStateService {
       at: new Date().toISOString(),
     });
 
-    return this.view(
-      conversation.publicId,
-      userId,
-      updated.lastReadMessageId,
-      updated.lastReadAt,
-      conversation.id,
-    );
+    return this.view(conversation.publicId, userId, updated.lastReadMessageId, updated.lastReadAt, conversation.id);
   }
 
   /** This user's own read position and unread count for one conversation. */

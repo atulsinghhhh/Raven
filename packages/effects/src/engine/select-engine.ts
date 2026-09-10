@@ -10,7 +10,10 @@ import { WebGLEngine } from './webgl-engine';
  * degrade gracefully, never fail the call). `onError` is how a caller hears
  * about a mid-stream processing failure without the video pipeline dying.
  */
-export function selectEngine(onError?: (error: EffectsError) => void, capabilities: EffectsCapabilities = detectCapabilities()): EffectsEngine {
+export function selectEngine(
+  onError?: (error: EffectsError) => void,
+  capabilities: EffectsCapabilities = detectCapabilities(),
+): EffectsEngine {
   switch (capabilities.recommendedEngine) {
     case 'webgl2':
       return new WebGLEngine(onError);

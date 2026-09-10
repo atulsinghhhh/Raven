@@ -173,11 +173,7 @@ export class SfuLinkService implements OnModuleDestroy {
    * honest thing for a dashboard to show. Quite different from "zero
    * participants", which is a fact about an idle room.
    */
-  async request(
-    server: RtcServer,
-    type: NodeLinkMessageType,
-    roomId: string,
-  ): Promise<NodeLinkFrame | null> {
+  async request(server: RtcServer, type: NodeLinkMessageType, roomId: string): Promise<NodeLinkFrame | null> {
     const requestId = `req-${++this.requestCounter}-${Date.now().toString(36)}`;
 
     const reply = new Promise<NodeLinkFrame | null>((resolve) => {
@@ -197,9 +193,7 @@ export class SfuLinkService implements OnModuleDestroy {
         clearTimeout(pending.timer);
         this.pendingRequests.delete(requestId);
       }
-      this.logger.warn(
-        `query ${type} could not be sent to ${server.name}: ${(err as Error).message}`,
-      );
+      this.logger.warn(`query ${type} could not be sent to ${server.name}: ${(err as Error).message}`);
       return null;
     }
 
@@ -404,9 +398,7 @@ export class SfuLinkService implements OnModuleDestroy {
     } catch (err) {
       // One bad frame mustn't kill the link's read loop, and every call on
       // that node with it.
-      this.logger.error(
-        `handling ${frame.type} from ${link.serverName} failed: ${(err as Error).message}`,
-      );
+      this.logger.error(`handling ${frame.type} from ${link.serverName} failed: ${(err as Error).message}`);
     }
   }
 

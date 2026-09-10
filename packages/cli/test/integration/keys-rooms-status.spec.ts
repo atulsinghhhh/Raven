@@ -13,7 +13,12 @@ describe('raven keys / rooms / status / whoami (integration)', () => {
     dir = await mkdtemp(join(tmpdir(), 'raven-cli-int-'));
     process.env.RAVEN_CONFIG_DIR = dir;
     await writeCliConfig({ apiUrl: 'http://api.test', currentProject: 'proj-1' });
-    await writeCredentials({ token: 'jwt-token', email: 'dev@example.com', apiUrl: 'http://api.test', createdAt: '2026-01-01T00:00:00.000Z' });
+    await writeCredentials({
+      token: 'jwt-token',
+      email: 'dev@example.com',
+      apiUrl: 'http://api.test',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
   });
 
   afterEach(async () => {
@@ -49,7 +54,19 @@ describe('raven keys / rooms / status / whoami (integration)', () => {
     mockApi({
       'GET /v1/projects/proj-1/api-keys': async () => ({
         status: 200,
-        body: [{ id: 'key-1', projectId: 'proj-1', publicId: 'rvk_abc', name: 'ci-key', environment: 'PRODUCTION', status: 'ACTIVE', lastUsedAt: null, createdAt: '2026-01-01T00:00:00.000Z', revokedAt: null }],
+        body: [
+          {
+            id: 'key-1',
+            projectId: 'proj-1',
+            publicId: 'rvk_abc',
+            name: 'ci-key',
+            environment: 'PRODUCTION',
+            status: 'ACTIVE',
+            lastUsedAt: null,
+            createdAt: '2026-01-01T00:00:00.000Z',
+            revokedAt: null,
+          },
+        ],
       }),
     });
 
@@ -152,9 +169,33 @@ describe('raven keys / rooms / status / whoami (integration)', () => {
       'GET /v1/projects/proj-1/rooms': async () => ({
         status: 200,
         body: [
-          { id: 'r1', projectId: 'proj-1', name: 'demo-room', status: 'ACTIVE', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', liveParticipantCount: 4 },
-          { id: 'r2', projectId: 'proj-1', name: 'idle-room', status: 'ACTIVE', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', liveParticipantCount: 0 },
-          { id: 'r3', projectId: 'proj-1', name: 'unknown-room', status: 'ACTIVE', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', liveParticipantCount: null },
+          {
+            id: 'r1',
+            projectId: 'proj-1',
+            name: 'demo-room',
+            status: 'ACTIVE',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+            liveParticipantCount: 4,
+          },
+          {
+            id: 'r2',
+            projectId: 'proj-1',
+            name: 'idle-room',
+            status: 'ACTIVE',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+            liveParticipantCount: 0,
+          },
+          {
+            id: 'r3',
+            projectId: 'proj-1',
+            name: 'unknown-room',
+            status: 'ACTIVE',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+            liveParticipantCount: null,
+          },
         ],
       }),
     });
@@ -179,7 +220,15 @@ describe('raven keys / rooms / status / whoami (integration)', () => {
       }),
       'GET /v1/projects/proj-1': async () => ({
         status: 200,
-        body: { id: 'proj-1', name: 'my-video-app', description: null, status: 'ACTIVE', ownerId: 'u1', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+        body: {
+          id: 'proj-1',
+          name: 'my-video-app',
+          description: null,
+          status: 'ACTIVE',
+          ownerId: 'u1',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
       }),
     });
 
@@ -212,7 +261,17 @@ describe('raven keys / rooms / status / whoami (integration)', () => {
     mockApi({
       'GET /v1/projects': async () => ({
         status: 200,
-        body: [{ id: 'proj-1', name: 'a', description: null, status: 'ACTIVE', ownerId: 'u1', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }],
+        body: [
+          {
+            id: 'proj-1',
+            name: 'a',
+            description: null,
+            status: 'ACTIVE',
+            ownerId: 'u1',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
       }),
     });
 
