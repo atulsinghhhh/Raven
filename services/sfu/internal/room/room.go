@@ -79,19 +79,7 @@ func (r *Room) AddParticipant(participantID, sessionID string, permissions Permi
 		return nil, ErrRoomFull
 	}
 
-	// Someone reconnecting (new network, refreshed tab) turns up with a new
-	// session id while the old one may still look perfectly alive to us.
-	// Evict the old one; don't let the two coexist. Two sessions for one
-	// identity puts a ghost in the room, and that ghost is sitting on a
-	// PeerConnection quietly forwarding media into the void.
-	staleSession, hasStale := r.sessionByParticipant[participantID]
 	r.mu.Unlock()
-
-	if hasStale && staleSession != sessionID {
-		r.logger.Info("evicting stale session for reconnecting participant",
-			"participantId", participantID, "staleSession", staleSession, "newSession", sessionID)
-		r.RemoveParticipant(staleSession)
-	}
 
 	participant := newParticipant(participantID, sessionID, r.ID, permissions, pc, ParticipantEvents{
 		OnNegotiationNeeded: r.renegotiate,
@@ -103,11 +91,65 @@ func (r *Room) AddParticipant(participantID, sessionID string, permissions Permi
 		OnData:              r.broadcastData,
 	}, r.logger)
 
+	// Someone reconnecting (new network, refreshed tab) turns up with a new
+	// session id while the old one may still look perfectly alive to us.
+	// Evict the old one; don't let the two coexist. Two sessions for one
+	// identity puts a ghost in the room, and that ghost is sitting on a
+	// PeerConnection quietly forwarding media into the void.
+	//
+	// Handing the identity over is one critical section, because it used to
+	// be three: read the stale session, unlock, evict it, lock again,
+	// insert. Two joins for the same identity arriving together — which is
+	// exactly what a control plane does while its link to us is flapping —
+	// both read the same stale session, both evicted it, and both inserted.
+	// The room was then left with a reverse mapping pointing at one session
+	// and a live PeerConnection belonging to another, and the follow-up
+	// cleanup closed both. The identity vanished from the room while its
+	// publisher was still sending, so every later subscriber was offered a
+	// room with nothing in it and correctly negotiated `inactive`. A viewer
+	// joining after a control-plane restart got a connection that came up
+	// perfectly and carried no media.
+	//
+	// So the read, the hand-over and the insert happen together, under one
+	// hold of r.mu: whoever gets the lock last is the authoritative session,
+	// and every displaced one is taken out of `participants` by the same
+	// goroutine that replaced it. Closing them is deliberately left until
+	// after the unlock — it fans out unsubscribes and renegotiates every
+	// remaining subscriber, which is far too much work to hold a room lock
+	// through.
 	r.mu.Lock()
+	superseded := make([]*Participant, 0, 2)
+	if staleSession, hasStale := r.sessionByParticipant[participantID]; hasStale && staleSession != sessionID {
+		// A mapping can outlive its participant (the session was already
+		// removed and only the reverse entry is left). Overwriting it below
+		// is all that case needs.
+		if stale := r.participants[staleSession]; stale != nil {
+			delete(r.participants, staleSession)
+			superseded = append(superseded, stale)
+		}
+	}
+	// The same session id being added twice would otherwise orphan the
+	// first object: still wired to the PeerConnection, no longer reachable.
+	if previous := r.participants[sessionID]; previous != nil {
+		superseded = append(superseded, previous)
+	}
 	r.participants[sessionID] = participant
 	r.sessionByParticipant[participantID] = sessionID
+	// Snapshotted after the displaced sessions are out, so a new arrival
+	// never subscribes to a publisher that is on its way out of the room.
 	existing := r.otherParticipantsLocked(sessionID)
 	r.mu.Unlock()
+
+	for _, stale := range superseded {
+		r.logger.Info("evicting stale session for reconnecting participant",
+			"participantId", participantID, "staleSession", stale.SessionID, "newSession", sessionID)
+		// Close, not RemoveParticipant: this session is already out of the
+		// room, and RemoveParticipant would look it up and find nothing.
+		// handleParticipantClosed still runs the unsubscribe fan-out, and
+		// its `r.participants[sessionID] == participant` guard means it
+		// cannot delete the reverse mapping this call just installed.
+		stale.Close()
+	}
 
 	// Subscribe to everything already in the room before we offer, so it
 	// all lands in the first SDP.
