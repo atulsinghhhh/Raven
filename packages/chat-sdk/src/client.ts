@@ -259,11 +259,23 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
    * Force a reconnect right now. Rarely needed, since the SDK reconnects
    * on its own, but handy when the app knows the network changed (an
    * `online` event, say) and doesn't fancy waiting out the backoff.
+   *
+   * Literally a `disconnect()` followed by a `connect()`, rather than its
+   * own teardown. It used to have one, and that copy had drifted: it
+   * dropped the transport but left `state` on `'connected'`, so the
+   * `connect()` on the next line took its already-up early return, found
+   * nothing to reconnect, and returned happily. The client was then
+   * permanently deaf — state `'connected'`, no socket, no error, no
+   * messages ever again — and the only way to notice was that nothing
+   * arrived. It also leaked the token-refresh and typing timers and left
+   * in-flight requests hanging until their own timeouts.
+   *
+   * Deferring to `disconnect()` means there is one teardown to be correct
+   * about instead of two to keep in step. Resume points survive it, so the
+   * new connection still catches up on whatever was missed.
    */
   async reconnect(): Promise<void> {
-    this.transport?.disconnect();
-    this.transport = undefined;
-    this.connectionId = undefined;
+    await this.disconnect();
     await this.connect();
   }
 
