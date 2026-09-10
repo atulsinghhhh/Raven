@@ -173,7 +173,12 @@ import { createChatClient } from '@ravenkash/chat';
 const grant = await fetch('/chat-token', { method: 'POST' }).then((r) => r.json());
 
 const client = createChatClient(grant);
-await client.connect();
+
+// Join as you connect. A connected client that has not joined a
+// conversation is subscribed to nothing: sends succeed, and no message
+// ever arrives — including your own echo. `connect({ rooms: [...] })`
+// takes several; `joinRoom()` adds one later.
+await client.connect({ room: 'demo-room' });
 
 client.on('message', (message) => console.log(message.text));
 await client.sendMessage({ room: 'demo-room', text: 'hello from the quickstart' });
