@@ -12,10 +12,10 @@
 // it was right; the link is wired up because it was asked for and because
 // the repo going public is one setting away, not because it resolves now.
 //
-// Two other places disagree about this and one of them is wrong: the README
-// calls Raven "open-source", docs/production/readiness-audit.md calls it
-// closed-source. The repo setting is the tiebreak, and it currently says
-// closed.
+// The docs and README have said "open source" all along; the repo setting
+// is what lags. docs/production/readiness-audit.md tracks the flip and
+// what resolves with it. (An earlier version of this comment claimed the
+// audit called Raven closed-source — it does not, and never did.)
 export const GITHUB_REPO_URL = 'https://github.com/atulsinghhhh/Raven';
 
 /**
