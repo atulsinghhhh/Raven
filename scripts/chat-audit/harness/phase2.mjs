@@ -2,16 +2,25 @@ import { http, must, Client, sleep } from './lib.mjs';
 import { test, note, eq, ok, summary } from './runner.mjs';
 import ctx from './ctx.json' with { type: 'json' };
 
-const { apiKey, projectId } = ctx;
+const { apiKey } = ctx;
 const S = Date.now().toString(36);
 let room, conv, aliceGrant, bobGrant;
 
 console.log('\n########## PHASE 2 — BASIC CHAT ##########\n');
 
 await test('7. create conversation (server actor)', async () => {
-  conv = must(await http('/v1/chat/conversations', { method: 'POST', token: apiKey, body: {
-    name: `p2-${S}`, members: [{ userId: 'alice', role: 'ADMIN' }, { userId: 'bob' }],
-  } }), 201, 'create conversation');
+  conv = must(
+    await http('/v1/chat/conversations', {
+      method: 'POST',
+      token: apiKey,
+      body: {
+        name: `p2-${S}`,
+        members: [{ userId: 'alice', role: 'ADMIN' }, { userId: 'bob' }],
+      },
+    }),
+    201,
+    'create conversation',
+  );
   room = conv.publicId;
   ok(room.startsWith('conv_'), `publicId should be conv_*, got ${room}`);
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -34,7 +43,11 @@ await test('9. get conversation by publicId and by name', async () => {
 });
 
 await test('10. add member', async () => {
-  const m = must(await http(`/v1/chat/conversations/${room}/members`, { method: 'POST', token: apiKey, body: { userId: 'carol' } }), 201, 'add member');
+  const m = must(
+    await http(`/v1/chat/conversations/${room}/members`, { method: 'POST', token: apiKey, body: { userId: 'carol' } }),
+    201,
+    'add member',
+  );
   eq(m.userId, 'carol', 'member userId');
   const members = must(await http(`/v1/chat/conversations/${room}/members`, { token: apiKey }), 200, 'list members');
   eq(members.map((m) => m.userId).sort(), ['alice', 'bob', 'carol'], 'member list');
@@ -48,8 +61,16 @@ await test('11. remove member (soft)', async () => {
 });
 
 await test('3. mint chat tokens', async () => {
-  aliceGrant = must(await http('/v1/chat/tokens', { method: 'POST', token: apiKey, body: { userId: 'alice', conversations: [room] } }), 201, 'mint alice');
-  bobGrant = must(await http('/v1/chat/tokens', { method: 'POST', token: apiKey, body: { userId: 'bob', conversations: [room] } }), 201, 'mint bob');
+  aliceGrant = must(
+    await http('/v1/chat/tokens', { method: 'POST', token: apiKey, body: { userId: 'alice', conversations: [room] } }),
+    201,
+    'mint alice',
+  );
+  bobGrant = must(
+    await http('/v1/chat/tokens', { method: 'POST', token: apiKey, body: { userId: 'bob', conversations: [room] } }),
+    201,
+    'mint bob',
+  );
   ok(aliceGrant.chatUrl?.startsWith('ws'), `chatUrl present: ${aliceGrant.chatUrl}`);
   ok(aliceGrant.apiUrl, 'apiUrl present');
   eq(aliceGrant.scopes, ['chat:read', 'chat:send', 'chat:moderate', 'chat:manage'], 'alice is ADMIN → all scopes');
@@ -123,13 +144,19 @@ await test('15. pagination — 25 messages, limit 10', async () => {
     await alice.request('message.send', { room, text: `p-${i}`, clientMessageId: `pg-${i}` });
   }
   const seen = [];
-  let cursor = null, pages = 0;
+  let cursor = null,
+    pages = 0;
   do {
     const q = new URLSearchParams({ limit: '10' });
     if (cursor) q.set('before', cursor);
-    const page = must(await http(`/v1/chat/conversations/${room}/messages?${q}`, { token: bobGrant.token }), 200, 'page');
+    const page = must(
+      await http(`/v1/chat/conversations/${room}/messages?${q}`, { token: bobGrant.token }),
+      200,
+      'page',
+    );
     seen.push(...page.data.map((m) => m.text));
-    cursor = page.nextCursor; pages++;
+    cursor = page.nextCursor;
+    pages++;
     if (pages > 10) throw new Error('pagination did not terminate');
   } while (cursor);
   eq(seen.length, 26, `saw all 26 messages across ${pages} pages`);

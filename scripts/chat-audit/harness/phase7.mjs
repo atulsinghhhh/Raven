@@ -5,13 +5,35 @@ const { apiKey } = ctx;
 const S = 'p7' + Date.now().toString(36);
 
 console.log('\n########## PHASE 7 — REACTIONS ##########\n');
-const conv = must(await http('/v1/chat/conversations', { method: 'POST', token: apiKey, body: {
-  name: S, members: [{ userId: 'alice' }, { userId: 'bob' }, { userId: 'carol' }] } }), 201, 'conv');
+const conv = must(
+  await http('/v1/chat/conversations', {
+    method: 'POST',
+    token: apiKey,
+    body: {
+      name: S,
+      members: [{ userId: 'alice' }, { userId: 'bob' }, { userId: 'carol' }],
+    },
+  }),
+  201,
+  'conv',
+);
 const room = conv.publicId;
-const grant = async (u) => must(await http('/v1/chat/tokens', { method: 'POST', token: apiKey, body: { userId: u, conversations: [room] } }), 201, u);
-const ag = await grant('alice'), bg = await grant('bob'), cg = await grant('carol');
-const alice = new Client(ag.token, 'alice'), bob = new Client(bg.token, 'bob'), carol = new Client(cg.token, 'carol');
-for (const c of [alice, bob, carol]) { await c.connect(); await c.request('room.join', { room }); }
+const grant = async (u) =>
+  must(
+    await http('/v1/chat/tokens', { method: 'POST', token: apiKey, body: { userId: u, conversations: [room] } }),
+    201,
+    u,
+  );
+const ag = await grant('alice'),
+  bg = await grant('bob'),
+  cg = await grant('carol');
+const alice = new Client(ag.token, 'alice'),
+  bob = new Client(bg.token, 'bob'),
+  carol = new Client(cg.token, 'carol');
+for (const c of [alice, bob, carol]) {
+  await c.connect();
+  await c.request('room.join', { room });
+}
 await sleep(200);
 
 const ack = await alice.request('message.send', { room, text: 'react to me', clientMessageId: `${S}-1` });
@@ -52,7 +74,15 @@ await test('multiple emojis on one message, sorted by count', async () => {
   await carol.request('reaction.add', { messageId: msgId, emoji: '🎉' });
   await alice.request('reaction.add', { messageId: msgId, emoji: '🔥' });
   const m = must(await http(`/v1/chat/messages/${msgId}`, { token: apiKey }), 200, 'get');
-  eq(m.reactions.map((r) => [r.emoji, r.count]), [['👍', 3], ['🎉', 2], ['🔥', 1]], 'grouped and sorted');
+  eq(
+    m.reactions.map((r) => [r.emoji, r.count]),
+    [
+      ['👍', 3],
+      ['🎉', 2],
+      ['🔥', 1],
+    ],
+    'grouped and sorted',
+  );
 });
 
 await test('Alice removes 👍 → Bob receives reaction.removed', async () => {
@@ -80,7 +110,11 @@ await test('removing a reaction that was never there succeeds (idempotent)', asy
 
 await test('reacting to a nonexistent message → MESSAGE_NOT_FOUND', async () => {
   let code = null;
-  try { await alice.request('reaction.add', { messageId: 'msg_doesnotexist', emoji: '👍' }); } catch (e) { code = e.code; }
+  try {
+    await alice.request('reaction.add', { messageId: 'msg_doesnotexist', emoji: '👍' });
+  } catch (e) {
+    code = e.code;
+  }
   eq(code, 'MESSAGE_NOT_FOUND', 'not found');
 });
 
@@ -88,28 +122,59 @@ await test('reacting to a deleted message is refused', async () => {
   const a = await alice.request('message.send', { room, text: 'delete me', clientMessageId: `${S}-del` });
   await alice.request('message.delete', { messageId: a.message.id });
   let code = null;
-  try { await bob.request('reaction.add', { messageId: a.message.id, emoji: '👍' }); } catch (e) { code = e.code; }
+  try {
+    await bob.request('reaction.add', { messageId: a.message.id, emoji: '👍' });
+  } catch (e) {
+    code = e.code;
+  }
   eq(code, 'MESSAGE_DELETED', 'refused');
 });
 
 await test('unauthorized user (non-member) cannot react', async () => {
-  const mg = must(await http('/v1/chat/tokens', { method: 'POST', token: apiKey, body: { userId: 'mallory' } }), 201, 'mint mallory');
-  const r = await http(`/v1/chat/messages/${msgId}/reactions`, { method: 'POST', token: mg.token, body: { emoji: '👍' } });
-  ok([403,404].includes(r.status), `non-member reaction refused (${r.status}) — 404 now, so the message's existence is not confirmed`);
+  const mg = must(
+    await http('/v1/chat/tokens', { method: 'POST', token: apiKey, body: { userId: 'mallory' } }),
+    201,
+    'mint mallory',
+  );
+  const r = await http(`/v1/chat/messages/${msgId}/reactions`, {
+    method: 'POST',
+    token: mg.token,
+    body: { emoji: '👍' },
+  });
+  ok(
+    [403, 404].includes(r.status),
+    `non-member reaction refused (${r.status}) — 404 now, so the message's existence is not confirmed`,
+  );
   const m = must(await http(`/v1/chat/messages/${msgId}`, { token: apiKey }), 200, 'get');
   ok(!m.reactions.some((x) => x.userIds.includes('mallory')), 'nothing written');
 });
 
 await test('read-only token cannot react', async () => {
-  const ro = must(await http('/v1/chat/tokens', { method: 'POST', token: apiKey, body: { userId: 'bob', conversations: [room], scopes: ['chat:read'] } }), 201, 'ro');
+  const ro = must(
+    await http('/v1/chat/tokens', {
+      method: 'POST',
+      token: apiKey,
+      body: { userId: 'bob', conversations: [room], scopes: ['chat:read'] },
+    }),
+    201,
+    'ro',
+  );
   eq(ro.scopes, ['chat:read'], 'narrowed');
-  const r = await http(`/v1/chat/messages/${msgId}/reactions`, { method: 'POST', token: ro.token, body: { emoji: '🚫' } });
-  ok([403,404].includes(r.status), `read-only refused (${r.status})`);
+  const r = await http(`/v1/chat/messages/${msgId}/reactions`, {
+    method: 'POST',
+    token: ro.token,
+    body: { emoji: '🚫' },
+  });
+  ok([403, 404].includes(r.status), `read-only refused (${r.status})`);
 });
 
 await test('emoji length is bounded', async () => {
   let code = null;
-  try { await alice.request('reaction.add', { messageId: msgId, emoji: 'x'.repeat(64) }); } catch (e) { code = e.code; }
+  try {
+    await alice.request('reaction.add', { messageId: msgId, emoji: 'x'.repeat(64) });
+  } catch (e) {
+    code = e.code;
+  }
   ok(code === 'INVALID_MESSAGE' || code === 'MESSAGE_TOO_LARGE', `bounded (${code})`);
 });
 
@@ -120,6 +185,8 @@ await test('database consistency: one row per (message,user,emoji)', async () =>
   note(JSON.stringify(m.reactions));
 });
 
-alice.close(); bob.close(); carol.close();
+alice.close();
+bob.close();
+carol.close();
 const res = summary('PHASE 7');
 process.exit(res.failures.length ? 1 : 0);

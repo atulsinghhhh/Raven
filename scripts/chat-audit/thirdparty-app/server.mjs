@@ -32,7 +32,11 @@ const server = http.createServer(async (req, res) => {
 
   const file = url.pathname === '/' ? '/index.html' : url.pathname;
   const path = join(HERE, 'public', file);
-  if (!existsSync(path)) { res.writeHead(404); res.end('not found'); return; }
+  if (!existsSync(path)) {
+    res.writeHead(404);
+    res.end('not found');
+    return;
+  }
   res.writeHead(200, { 'content-type': MIME[extname(path)] ?? 'application/octet-stream' });
   res.end(readFileSync(path));
 });

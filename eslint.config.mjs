@@ -64,6 +64,18 @@ export default tseslint.config(
   },
 
   {
+    // The chat-audit harness drives real Chrome through Playwright. These
+    // are Node scripts, but the callbacks handed to page.evaluate and
+    // waitForFunction are serialized and run inside the page, so `window`
+    // in them is the browser's. ESLint cannot scope globals any finer than
+    // a file, hence both sets here rather than a narrower glob.
+    files: ['scripts/chat-audit/harness/*.mjs'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+    },
+  },
+
+  {
     files: ['**/*.{ts,tsx,mts,cts}'],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },

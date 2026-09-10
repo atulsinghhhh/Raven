@@ -17,7 +17,11 @@ export async function http(path, { method = 'GET', token, body, headers = {} } =
   });
   const text = await res.text();
   let json;
-  try { json = text ? JSON.parse(text) : null; } catch { json = text; }
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    json = text;
+  }
   return { status: res.status, body: json, headers: res.headers };
 }
 
@@ -30,8 +34,12 @@ export function must(r, expected, what) {
 /** A chat WebSocket client with frame recording + awaiting. */
 export class Client {
   constructor(token, label = 'client', opts = {}) {
-    this.token = token; this.label = label; this.frames = []; this.waiters = [];
-    this.opts = opts; this.closes = [];
+    this.token = token;
+    this.label = label;
+    this.frames = [];
+    this.waiters = [];
+    this.opts = opts;
+    this.closes = [];
   }
   connect() {
     return new Promise((resolve, reject) => {
@@ -42,14 +50,30 @@ export class Client {
         const f = JSON.parse(raw.toString());
         this.frames.push(f);
         for (let i = this.waiters.length - 1; i >= 0; i--) {
-          if (this.waiters[i].pred(f)) { this.waiters[i].resolve(f); this.waiters.splice(i, 1); }
+          if (this.waiters[i].pred(f)) {
+            this.waiters[i].resolve(f);
+            this.waiters.splice(i, 1);
+          }
         }
-        if (f.type === 'connected') { this.connectionId = f.connectionId; resolve(f); }
+        if (f.type === 'connected') {
+          this.connectionId = f.connectionId;
+          resolve(f);
+        }
       });
-      this.ws.on('close', (code, reason) => { this.closes.push({ code, reason: reason.toString() }); });
+      this.ws.on('close', (code, reason) => {
+        this.closes.push({ code, reason: reason.toString() });
+      });
       this.ws.on('error', () => {});
       this.ws.on('unexpected-response', (_r, res) => reject(new Error(`upgrade rejected ${res.statusCode}`)));
-      setTimeout(() => reject(new Error(`${this.label}: no 'connected' frame in 10s (frames=${JSON.stringify(this.frames)}, closes=${JSON.stringify(this.closes)})`)), 10_000).unref?.();
+      setTimeout(
+        () =>
+          reject(
+            new Error(
+              `${this.label}: no 'connected' frame in 10s (frames=${JSON.stringify(this.frames)}, closes=${JSON.stringify(this.closes)})`,
+            ),
+          ),
+        10_000,
+      ).unref?.();
     });
   }
   waitFor(pred, ms = 5000, what = 'frame') {
@@ -60,22 +84,44 @@ export class Client {
       this.waiters.push(w);
       setTimeout(() => {
         const i = this.waiters.indexOf(w);
-        if (i >= 0) { this.waiters.splice(i, 1); reject(new Error(`${this.label}: timeout waiting for ${what}`)); }
+        if (i >= 0) {
+          this.waiters.splice(i, 1);
+          reject(new Error(`${this.label}: timeout waiting for ${what}`));
+        }
       }, ms).unref?.();
     });
   }
-  send(frame) { this.ws.send(JSON.stringify(frame)); }
+  send(frame) {
+    this.ws.send(JSON.stringify(frame));
+  }
   /** Send a frame with a correlation id and await its ack/error. */
   async request(type, payload = {}, ms = 8000) {
     const id = `q${Math.random().toString(36).slice(2, 10)}`;
-    const p = this.waitFor((f) => f.id === id && ['ack', 'error', 'room.joined', 'room.left'].includes(f.type), ms, `${type} reply`);
+    const p = this.waitFor(
+      (f) => f.id === id && ['ack', 'error', 'room.joined', 'room.left'].includes(f.type),
+      ms,
+      `${type} reply`,
+    );
     this.send({ type, id, ...payload });
     const f = await p;
-    if (f.type === 'error') { const e = new Error(f.message); e.code = f.code; e.frame = f; throw e; }
+    if (f.type === 'error') {
+      const e = new Error(f.message);
+      e.code = f.code;
+      e.frame = f;
+      throw e;
+    }
     return f.type === 'ack' ? f.data : f;
   }
-  close() { try { this.ws?.close(); } catch {} }
-  clear() { this.frames.length = 0; }
+  close() {
+    try {
+      this.ws?.close();
+    } catch {
+      // Best effort: the socket may already be closed, or never opened.
+    }
+  }
+  clear() {
+    this.frames.length = 0;
+  }
 }
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

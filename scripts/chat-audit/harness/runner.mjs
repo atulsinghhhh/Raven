@@ -16,14 +16,19 @@ export async function test(name, fn) {
   current = null;
 }
 
-export function note(msg) { if (current) current.checks.push(msg); console.log(`        · ${msg}`); }
+export function note(msg) {
+  if (current) current.checks.push(msg);
+  console.log(`        · ${msg}`);
+}
 
 export function eq(actual, expected, what) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new Error(`${what}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
   }
 }
-export function ok(cond, what) { if (!cond) throw new Error(what); }
+export function ok(cond, what) {
+  if (!cond) throw new Error(what);
+}
 
 export function summary(label) {
   const pass = results.filter((r) => r.ok).length;

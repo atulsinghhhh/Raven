@@ -5,7 +5,8 @@ import { readFileSync } from 'fs';
 const ctx = JSON.parse(readFileSync('./ctx.json', 'utf8'));
 const room = 'conv_bulk_idx_test';
 
-let cursor = null, page = 0;
+let cursor = null,
+  page = 0;
 const marks = new Set([1, 10, 50, 100, 200, 400]);
 const timings = [];
 while (page < 400) {
@@ -20,6 +21,12 @@ while (page < 400) {
   if (!cursor) break;
 }
 console.log('depth (rows into the conversation) → latency for one 50-row page:');
-for (const t of timings) console.log(`  page ${String(t.page).padStart(3)}  depth ${String(t.depth).padStart(6)}  ${String(t.ms).padStart(4)} ms  (${t.rows} rows)`);
-const first = timings[0].ms, last = timings.at(-1).ms;
-console.log(`\nflatness: page 1 = ${first}ms, page ${timings.at(-1).page} = ${last}ms → ratio ${(last / Math.max(first,1)).toFixed(2)}x`);
+for (const t of timings)
+  console.log(
+    `  page ${String(t.page).padStart(3)}  depth ${String(t.depth).padStart(6)}  ${String(t.ms).padStart(4)} ms  (${t.rows} rows)`,
+  );
+const first = timings[0].ms,
+  last = timings.at(-1).ms;
+console.log(
+  `\nflatness: page 1 = ${first}ms, page ${timings.at(-1).page} = ${last}ms → ratio ${(last / Math.max(first, 1)).toFixed(2)}x`,
+);

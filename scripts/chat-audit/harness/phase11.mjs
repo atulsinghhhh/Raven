@@ -16,19 +16,45 @@ const pg = (sql) => {
 };
 
 console.log('\n########## PHASE 11 — DATABASE / REDIS ##########\n');
-const conv = must(await http('/v1/chat/conversations', { method: 'POST', token: apiKey, body: {
-  name: S, members: [{ userId: 'alice' }, { userId: 'bob' }] } }), 201, 'conv');
+const conv = must(
+  await http('/v1/chat/conversations', {
+    method: 'POST',
+    token: apiKey,
+    body: {
+      name: S,
+      members: [{ userId: 'alice' }, { userId: 'bob' }],
+    },
+  }),
+  201,
+  'conv',
+);
 const room = conv.publicId;
-const grant = async (u) => must(await http('/v1/chat/tokens', { method: 'POST', token: apiKey, body: { userId: u, conversations: [room], ttlSeconds: 21600 } }), 201, u);
-const ag = await grant('alice'), bg = await grant('bob');
-let alice = new Client(ag.token, 'alice'), bob = new Client(bg.token, 'bob');
-await alice.connect(); await bob.connect();
-await alice.request('room.join', { room }); await bob.request('room.join', { room });
+const grant = async (u) =>
+  must(
+    await http('/v1/chat/tokens', {
+      method: 'POST',
+      token: apiKey,
+      body: { userId: u, conversations: [room], ttlSeconds: 21600 },
+    }),
+    201,
+    u,
+  );
+const ag = await grant('alice'),
+  bg = await grant('bob');
+let alice = new Client(ag.token, 'alice'),
+  bob = new Client(bg.token, 'bob');
+await alice.connect();
+await bob.connect();
+await alice.request('room.join', { room });
+await bob.request('room.join', { room });
 alice.send({ type: 'typing.start', room });
 await sleep(400);
 
 const sentIds = [];
-for (let i = 0; i < 20; i++) sentIds.push((await alice.request('message.send', { room, text: `pre-restart-${i}`, clientMessageId: `${S}-${i}` })).message.id);
+for (let i = 0; i < 20; i++)
+  sentIds.push(
+    (await alice.request('message.send', { room, text: `pre-restart-${i}`, clientMessageId: `${S}-${i}` })).message.id,
+  );
 await alice.request('reaction.add', { messageId: sentIds[0], emoji: '👍' });
 await bob.request('read.mark', { messageId: sentIds[10] });
 await sleep(300);
@@ -39,20 +65,36 @@ await test('Redis holds ONLY ephemeral/realtime state, and every key has a TTL',
   note(`namespaces: ${JSON.stringify(namespaces)}`);
   // One TTL round trip for the whole keyspace, not one per key.
   const ttlScript = keys.map((k) => `ttl ${k}`).join('\n');
-  const ttlOut = execSync(`docker exec -i raven-chat-audit-redis redis-cli`, { input: ttlScript }).toString().trim().split('\n');
+  const ttlOut = execSync(`docker exec -i raven-chat-audit-redis redis-cli`, { input: ttlScript })
+    .toString()
+    .trim()
+    .split('\n');
   const noTtl = keys.filter((_, i) => ttlOut[i] === '-1');
   eq(noTtl, [], `no key without a TTL (checked ${keys.length})`);
-  const durable = keys.filter((k) => /message|conversation|member|readstate|read_state/i.test(k) && !/idem|metrics/.test(k));
+  const durable = keys.filter(
+    (k) => /message|conversation|member|readstate|read_state/i.test(k) && !/idem|metrics/.test(k),
+  );
   eq(durable, [], 'no message/conversation/member/read-state records in Redis');
-  ok(keys.some((k) => k.startsWith('raven:presence:')), 'presence is in Redis');
-  ok(keys.some((k) => k.startsWith('raven:typing:')), 'typing is in Redis');
-  ok(keys.some((k) => k.startsWith('raven:chat:conn:')), 'connection routing is in Redis');
+  ok(
+    keys.some((k) => k.startsWith('raven:presence:')),
+    'presence is in Redis',
+  );
+  ok(
+    keys.some((k) => k.startsWith('raven:typing:')),
+    'typing is in Redis',
+  );
+  ok(
+    keys.some((k) => k.startsWith('raven:chat:conn:')),
+    'connection routing is in Redis',
+  );
 });
 
 await test('message bodies are never written to Redis', async () => {
   const keys = redis('--scan --count 5000').split('\n').filter(Boolean);
   // Dump every value in one round trip and search the lot.
-  const script = keys.flatMap((k) => [`type ${k}`, `get ${k}`, `hgetall ${k}`, `smembers ${k}`, `zrange ${k} 0 -1`]).join('\n');
+  const script = keys
+    .flatMap((k) => [`type ${k}`, `get ${k}`, `hgetall ${k}`, `smembers ${k}`, `zrange ${k} 0 -1`])
+    .join('\n');
   const dump = execSync(`docker exec -i raven-chat-audit-redis redis-cli`, { input: script }).toString();
   ok(!dump.includes('pre-restart-'), 'no message text found anywhere in Redis');
   note(`scanned ${keys.length} keys`);
@@ -75,7 +117,14 @@ await test('FLUSH Redis (simulating total loss of ephemeral state) — chat hist
 
 await test('RESTART Redis entirely — chat history still survives', async () => {
   execSync('docker restart raven-chat-audit-redis', { stdio: 'ignore' });
-  for (let i = 0; i < 40; i++) { try { redis('ping'); break; } catch { await sleep(500); } }
+  for (let i = 0; i < 40; i++) {
+    try {
+      redis('ping');
+      break;
+    } catch {
+      await sleep(500);
+    }
+  }
   await sleep(2000);
   const page = must(await http(`/v1/chat/conversations/${room}/messages?limit=100`, { token: apiKey }), 200, 'h');
   eq(page.data.length, 20, 'history intact after a Redis restart');
@@ -83,10 +132,15 @@ await test('RESTART Redis entirely — chat history still survives', async () =>
 
 await test('chat keeps working after Redis comes back (new sends, new fan-out)', async () => {
   // Existing sockets may be stale after the restart; reconnect as a client would.
-  alice.close(); bob.close(); await sleep(500);
-  alice = new Client(ag.token, 'alice2'); bob = new Client(bg.token, 'bob2');
-  await alice.connect(); await bob.connect();
-  await alice.request('room.join', { room }); await bob.request('room.join', { room });
+  alice.close();
+  bob.close();
+  await sleep(500);
+  alice = new Client(ag.token, 'alice2');
+  bob = new Client(bg.token, 'bob2');
+  await alice.connect();
+  await bob.connect();
+  await alice.request('room.join', { room });
+  await bob.request('room.join', { room });
   await sleep(400);
   bob.clear();
   const ack = await alice.request('message.send', { room, text: 'post-redis-restart', clientMessageId: `${S}-post` });
@@ -110,13 +164,43 @@ await test('idempotency still holds after the Redis cache was wiped (DB constrai
 });
 
 await test('cascade: deleting a conversation removes its messages/members/reactions/read-states', async () => {
-  const tmp = must(await http('/v1/chat/conversations', { method: 'POST', token: apiKey, body: {
-    name: S + '-cascade', members: [{ userId: 'alice' }] } }), 201, 'tmp');
-  const msg = must(await http(`/v1/chat/conversations/${tmp.publicId}/messages`, { method: 'POST', token: apiKey, body: { senderId: 'alice', text: 'doomed' } }), 201, 'send');
+  const tmp = must(
+    await http('/v1/chat/conversations', {
+      method: 'POST',
+      token: apiKey,
+      body: {
+        name: S + '-cascade',
+        members: [{ userId: 'alice' }],
+      },
+    }),
+    201,
+    'tmp',
+  );
+  const msg = must(
+    await http(`/v1/chat/conversations/${tmp.publicId}/messages`, {
+      method: 'POST',
+      token: apiKey,
+      body: { senderId: 'alice', text: 'doomed' },
+    }),
+    201,
+    'send',
+  );
   // A server actor has no identity of its own, so reacting and marking read
   // need a chat token — correct behaviour, not a workaround.
-  const cg = must(await http('/v1/chat/tokens', { method: 'POST', token: apiKey, body: { userId: 'alice', conversations: [tmp.publicId] } }), 201, 'mint');
-  must(await http(`/v1/chat/messages/${msg.id}/reactions`, { method: 'POST', token: cg.token, body: { emoji: '💥' } }), 201, 'react');
+  const cg = must(
+    await http('/v1/chat/tokens', {
+      method: 'POST',
+      token: apiKey,
+      body: { userId: 'alice', conversations: [tmp.publicId] },
+    }),
+    201,
+    'mint',
+  );
+  must(
+    await http(`/v1/chat/messages/${msg.id}/reactions`, { method: 'POST', token: cg.token, body: { emoji: '💥' } }),
+    201,
+    'react',
+  );
   must(await http(`/v1/chat/messages/${msg.id}/read`, { method: 'POST', token: cg.token, body: {} }), 201, 'read');
 
   // The API only ever speaks public ids now, so resolve the uuid here.
@@ -134,11 +218,16 @@ await test('cascade: deleting a conversation removes its messages/members/reacti
   note(`deleted conversation ${tmp.publicId} (${uuid}), message ${msg.id}`);
 });
 await test('unique constraints are real, not advisory', async () => {
-  const q = (sql) => { try { execSync(`docker exec raven-e2e-pg psql -U postgres -d postgres -tAc "${sql}" 2>&1`); return 'ok'; } catch (e) { return String(e.stdout ?? e.message); } };
-  const dup = execSync(`docker exec raven-e2e-pg psql -U postgres -d postgres -tAc "INSERT INTO chat_members (id,\\"conversationId\\",\\"projectId\\",\\"userId\\",role,status,\\"joinedAt\\") SELECT gen_random_uuid(), \\"conversationId\\",\\"projectId\\",\\"userId\\",role,status,\\"joinedAt\\" FROM chat_members LIMIT 1" 2>&1 || true`).toString();
-  ok(/duplicate key|unique constraint/i.test(dup), `duplicate membership rejected by the DB: ${dup.trim().split('\n')[0]}`);
+  const dup = execSync(
+    `docker exec raven-e2e-pg psql -U postgres -d postgres -tAc "INSERT INTO chat_members (id,\\"conversationId\\",\\"projectId\\",\\"userId\\",role,status,\\"joinedAt\\") SELECT gen_random_uuid(), \\"conversationId\\",\\"projectId\\",\\"userId\\",role,status,\\"joinedAt\\" FROM chat_members LIMIT 1" 2>&1 || true`,
+  ).toString();
+  ok(
+    /duplicate key|unique constraint/i.test(dup),
+    `duplicate membership rejected by the DB: ${dup.trim().split('\n')[0]}`,
+  );
 });
 
-alice.close(); bob.close();
+alice.close();
+bob.close();
 const res = summary('PHASE 11');
 process.exit(res.failures.length ? 1 : 0);

@@ -17,17 +17,46 @@ const API_CWD = process.env.API_CWD;
 console.log('\n########## PHASE 15 — AUTOMATIC MISSED-MESSAGE RECOVERY ##########\n');
 
 const mkRoom = async (name, users = ['alice', 'bob']) =>
-  (must(await http('/v1/chat/conversations', { method: 'POST', token: apiKey, body: {
-    name, members: users.map((u) => ({ userId: u })) } }), 201, 'conv')).publicId;
+  must(
+    await http('/v1/chat/conversations', {
+      method: 'POST',
+      token: apiKey,
+      body: {
+        name,
+        members: users.map((u) => ({ userId: u })),
+      },
+    }),
+    201,
+    'conv',
+  ).publicId;
 
 const grant = async (u, rooms) =>
-  must(await http('/v1/chat/tokens', { method: 'POST', token: apiKey, body: {
-    userId: u, conversations: rooms, ttlSeconds: 21600 } }), 201, `mint ${u}`);
+  must(
+    await http('/v1/chat/tokens', {
+      method: 'POST',
+      token: apiKey,
+      body: {
+        userId: u,
+        conversations: rooms,
+        ttlSeconds: 21600,
+      },
+    }),
+    201,
+    `mint ${u}`,
+  );
 
 /** A real SDK client with everything it emitted recorded. */
 async function client(user, rooms, label = user, opts = {}) {
   const g = await grant(user, rooms);
-  const c = createChatClient({ ...g, logLevel: 'silent', initialReconnectDelayMs: 200, maxReconnectDelayMs: 1000, maxReconnectAttempts: 40, autoReconnect: false, ...opts });
+  const c = createChatClient({
+    ...g,
+    logLevel: 'silent',
+    initialReconnectDelayMs: 200,
+    maxReconnectDelayMs: 1000,
+    maxReconnectAttempts: 40,
+    autoReconnect: false,
+    ...opts,
+  });
   const log = { messages: [], recoveries: [], states: [], errors: [], typing: [], presence: [], reads: [] };
   c.on('message', (m) => log.messages.push(m));
   c.on('recovered', (s) => log.recoveries.push(s));
@@ -82,8 +111,15 @@ async function sendAs(user, room, text, key) {
     token = (await grant(user, [room])).token;
     senderTokens.set(cacheKey, token);
   }
-  return must(await http(`/v1/chat/conversations/${room}/messages`, { method: 'POST', token,
-    body: { text, clientMessageId: key } }), 201, 'send');
+  return must(
+    await http(`/v1/chat/conversations/${room}/messages`, {
+      method: 'POST',
+      token,
+      body: { text, clientMessageId: key },
+    }),
+    201,
+    'send',
+  );
 }
 
 /**
@@ -204,7 +240,9 @@ await test('message sent exactly during reconnect arrives once, after the recove
   const room = await mkRoom(`${S}-during`);
   // Automatic reconnect, deliberately slow to open a usable outage window.
   const alice = await client('alice', [room], 'alice', {
-    autoReconnect: true, initialReconnectDelayMs: 4000, maxReconnectDelayMs: 6000,
+    autoReconnect: true,
+    initialReconnectDelayMs: 4000,
+    maxReconnectDelayMs: 6000,
   });
   await sendAs('bob', room, 'anchor', `${S}-r0`);
   await sleep(600);
@@ -215,7 +253,10 @@ await test('message sent exactly during reconnect arrives once, after the recove
   for (let i = 1; i <= 5; i++) await sendAs('bob', room, `pre-${i}`, `${S}-rp${i}`);
 
   // Fire a send at the moment the client is coming back up.
-  void (async () => { await sleep(500); await sendAs('bob', room, 'during', `${S}-rd`); })();
+  void (async () => {
+    await sleep(500);
+    await sendAs('bob', room, 'during', `${S}-rd`);
+  })();
 
   await nextRecovery(alice, before);
   await sleep(1500);
@@ -242,10 +283,22 @@ await test('gateway restart: recovery runs and loses nothing', async () => {
   await sleep(2500);
   // The API is the store too, so the missed messages go in after it returns.
   const { spawn } = await import('child_process');
-  const env = { ...process.env, CHAT_SEND_RATE_LIMIT: '100000', CHAT_CONNECTION_RATE_LIMIT: '100000', CHAT_SUBSCRIBE_RATE_LIMIT: '100000', CHAT_TYPING_RATE_LIMIT: '100000', CHAT_REACTION_RATE_LIMIT: '100000' };
+  const env = {
+    ...process.env,
+    CHAT_SEND_RATE_LIMIT: '100000',
+    CHAT_CONNECTION_RATE_LIMIT: '100000',
+    CHAT_SUBSCRIBE_RATE_LIMIT: '100000',
+    CHAT_TYPING_RATE_LIMIT: '100000',
+    CHAT_REACTION_RATE_LIMIT: '100000',
+  };
   spawn('node', ['dist/main.js'], { cwd: API_CWD, env, detached: true, stdio: 'ignore' }).unref();
   for (let i = 0; i < 120; i++) {
-    try { const r = await http('/health'); if (r.status === 200) break; } catch {}
+    try {
+      const r = await http('/health');
+      if (r.status === 200) break;
+    } catch {
+      // Connection refused while the API is still booting; keep polling.
+    }
     await sleep(500);
   }
   for (let i = 1; i <= 3; i++) await sendAs('bob', room, `g-${i}`, `${S}-g${i}`);
@@ -328,7 +381,9 @@ await test('multiple browser sessions each recover their own missed messages', a
   eq(texts(one.log), texts(two.log), 'both tabs converged on the same sequence');
   eq(new Set(ids(one.log)).size, one.log.messages.length, 'tab 1 saw no duplicates');
   eq(new Set(ids(two.log)).size, two.log.messages.length, 'tab 2 saw no duplicates');
-  await one.c.disconnect(); await two.c.disconnect(); await bob.c.disconnect();
+  await one.c.disconnect();
+  await two.c.disconnect();
+  await bob.c.disconnect();
 });
 
 await test('authorization is preserved: a removed member recovers nothing', async () => {
@@ -339,7 +394,11 @@ await test('authorization is preserved: a removed member recovers nothing', asyn
   eq(texts(alice.log), ['anchor'], 'alice saw the anchor while a member');
 
   const rec = await withOutage(alice, [room], async () => {
-    must(await http(`/v1/chat/conversations/${room}/members/alice`, { method: 'DELETE', token: apiKey }), 204, 'remove alice');
+    must(
+      await http(`/v1/chat/conversations/${room}/members/alice`, { method: 'DELETE', token: apiKey }),
+      204,
+      'remove alice',
+    );
     for (let i = 1; i <= 4; i++) await sendAs('bob', room, `z-${i}`, `${S}-z${i}`);
   });
   eq(rec.recovered, 0, 'a non-member recovers nothing');
@@ -356,7 +415,11 @@ await test('typing and presence are never replayed; read state stays persistent'
   await sendAs('bob', room, 'anchor', `${S}-e0`);
   await sleep(600);
 
-  const snapshot = { typing: alice.log.typing.length, presence: alice.log.presence.length, reads: alice.log.reads.length };
+  const snapshot = {
+    typing: alice.log.typing.length,
+    presence: alice.log.presence.length,
+    reads: alice.log.reads.length,
+  };
   let missed;
   const rec = await withOutage(alice, [room], async () => {
     // Plenty of ephemeral traffic while alice is away.
@@ -373,8 +436,12 @@ await test('typing and presence are never replayed; read state stays persistent'
 
   // Read state comes from its persistent record instead.
   const rs = await alice.c.getReadReceipts(room);
-  ok(rs.some((r) => r.userId === 'bob' && r.lastReadMessageId === missed.id), 'bob\'s read position is readable from persistent state');
-  await alice.c.disconnect(); await bob.c.disconnect();
+  ok(
+    rs.some((r) => r.userId === 'bob' && r.lastReadMessageId === missed.id),
+    "bob's read position is readable from persistent state",
+  );
+  await alice.c.disconnect();
+  await bob.c.disconnect();
 });
 
 await test('reactions on recovered messages reflect current persisted state', async () => {
@@ -390,8 +457,13 @@ await test('reactions on recovered messages reflect current persisted state', as
   });
   const recovered = alice.log.messages.find((m) => m.text === 'k-1');
   ok(recovered, 'message recovered');
-  eq(recovered.reactions, [{ emoji: '🎉', count: 1, userIds: ['bob'] }], 'reaction state came from the persisted message, not a replayed event');
-  await alice.c.disconnect(); await bob.c.disconnect();
+  eq(
+    recovered.reactions,
+    [{ emoji: '🎉', count: 1, userIds: ['bob'] }],
+    'reaction state came from the persisted message, not a replayed event',
+  );
+  await alice.c.disconnect();
+  await bob.c.disconnect();
 });
 
 await test('Postgres remains the source of truth for everything recovered', async () => {
@@ -406,7 +478,11 @@ await test('Postgres remains the source of truth for everything recovered', asyn
   const stored = must(await http(`/v1/chat/conversations/${room}/messages?limit=100`, { token: apiKey }), 200, 'h');
   const storedTexts = stored.data.map((m) => m.text).reverse();
   eq(texts(alice.log), storedTexts, 'what the client holds equals what Postgres holds, in the same order');
-  eq(stored.data.every((m) => typeof m.cursor === 'string' && m.cursor.length > 0), true, 'every stored message carries a resume point');
+  eq(
+    stored.data.every((m) => typeof m.cursor === 'string' && m.cursor.length > 0),
+    true,
+    'every stored message carries a resume point',
+  );
   await alice.c.disconnect();
 });
 
@@ -414,7 +490,9 @@ await test('AUTOMATIC path: an unexpected socket drop recovers with no applicati
   const room = await mkRoom(`${S}-auto`);
   // Slow the first reconnect so messages can genuinely be missed.
   const alice = await client('alice', [room], 'alice', {
-    autoReconnect: true, initialReconnectDelayMs: 5000, maxReconnectDelayMs: 7000,
+    autoReconnect: true,
+    initialReconnectDelayMs: 5000,
+    maxReconnectDelayMs: 7000,
   });
   await sendAs('bob', room, 'anchor', `${S}-au0`);
   await sleep(600);
