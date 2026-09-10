@@ -1,7 +1,7 @@
 {
   "name": "@ravenkash/rtc",
-  "version": "0.1.0",
-  "description": "Raven browser SDK \u2014 join a room, publish camera/microphone, subscribe to remote media. Hides SDP/ICE/STUN/TURN/SFU behind a small typed API.",
+  "version": "0.2.0",
+  "description": "Raven browser SDK — join a room, publish camera/microphone, subscribe to remote media. Hides SDP/ICE/STUN/TURN/SFU behind a small typed API.",
   "license": "MIT",
   "repository": {
     "type": "git",
