@@ -1,4 +1,4 @@
-import { DASHBOARD_URL, DISCORD_URL, DOCS_ROUTES } from '../lib/links';
+import { DASHBOARD_URL, DOCS_ROUTES, GITHUB_REPO_URL } from '../lib/links';
 
 /**
  * Left-aligned closing beat, matching the reference's last block: the
@@ -33,12 +33,12 @@ export function FinalCTA() {
             Read the quickstart
           </a>
           <a
-            href={DISCORD_URL}
+            href={GITHUB_REPO_URL}
             target="_blank"
             rel="noreferrer noopener"
             className="rounded-(--radius-panel) border border-accent-line px-4 py-2.5 text-[13px] font-medium text-fg transition-colors hover:border-accent-text hover:bg-canvas"
           >
-            Ask in Discord
+            Read the source
           </a>
         </div>
       </div>
