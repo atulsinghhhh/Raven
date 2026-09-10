@@ -1,6 +1,6 @@
 {
   "name": "@ravenkash/client",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Raven for the browser — RTC and chat behind one object. A thin facade over @ravenkash/rtc and @ravenkash/chat.",
   "license": "MIT",
   "repository": {
