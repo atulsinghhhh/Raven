@@ -99,6 +99,19 @@ need to re-attach media elements. A `disconnected` → `failed` transition
 is the signal that the room needs to be rejoined from scratch, not
 merely reconnected.
 
+Your own published tracks come back too. A reconnect gets a fresh SFU
+session, and with it a fresh `RTCPeerConnection`, so the SDK re-publishes
+whatever was live before the outage — microphone, camera, screen share —
+and re-declares each source to the new session. You do not call
+`enableCamera()` again, and nothing is published twice.
+
+One exception, and it is deliberate: a **screen share whose capture ended
+while you were disconnected is not restored**. Stopping a share is the
+user's own doing, through browser UI the SDK never sees, and the track is
+dead for good — re-publishing it would negotiate a stream that never
+carries a frame. You get `localTrackUnpublished` for it instead, exactly
+as if they had stopped sharing while connected.
+
 ## App lifecycle (React Native)
 
 The SDK watches `AppState` and reports transitions, but deliberately

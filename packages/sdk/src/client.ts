@@ -10,8 +10,10 @@ import { createLogger, type Logger } from './logger';
 import { listDevices } from './internal/devices/enumerate';
 import {
   createCameraTrack,
+  createCustomTrack,
   createMicrophoneTrack,
   createScreenShareTrack,
+  type CustomTrackOptions,
 } from './internal/media/capture';
 import { RavenAdapter } from './internal/sfu/raven-adapter';
 import type { DeviceInfo, DeviceKind, SFUAdapter } from './internal/sfu/types';
@@ -108,6 +110,28 @@ export class RTCClient {
   /** Captures a screen-share track without joining or publishing. Pair it with `room.publish(track)`. */
   async createScreenShareTrack(): Promise<LocalTrack> {
     return createScreenShareTrack();
+  }
+
+  /**
+   * Wraps a `MediaStreamTrack` your application produced — a
+   * `canvas.captureStream()` frame source, a Web Audio graph, a decoded
+   * file, a virtual camera — so it can be published like any other track.
+   *
+   * Synchronous, because there is nothing to capture: you already have the
+   * track. `source` decides how the SFU labels it for everyone else, and
+   * defaults to `camera` for video and `microphone` for audio.
+   *
+   * ```ts
+   * const canvasTrack = canvas.captureStream(30).getVideoTracks()[0];
+   * await room.publish(client.createCustomTrack(canvasTrack, { source: 'camera' }));
+   * ```
+   *
+   * Raven never captured this track, so stopping the underlying source is
+   * yours to do; `room.unpublish(track)` stops the track itself, as it
+   * does for every other kind.
+   */
+  createCustomTrack(mediaStreamTrack: MediaStreamTrack, options: CustomTrackOptions = {}): LocalTrack {
+    return createCustomTrack(mediaStreamTrack, options);
   }
 
   /** Lists available devices. Labels only fill in once permission has been granted at least once. */

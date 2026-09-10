@@ -204,6 +204,28 @@ describe('Room — actions delegate to the adapter', () => {
     });
   });
 
+  it('provisions a data channel as soon as something listens for data', () => {
+    // Receiving needs a channel of one's own — the SFU fans data out over
+    // each recipient's — and one is only created on demand. Subscribing to
+    // the event is the demand; without this, a page that never sends could
+    // not receive.
+    const adapter = new FakeAdapter();
+    const room = new Room(adapter, 'room-1', logger);
+
+    expect(adapter.ensureDataChannelCalls).toBe(0);
+
+    room.on('dataReceived', () => undefined);
+    expect(adapter.ensureDataChannelCalls).toBe(1);
+
+    // `once()` registers through `on()`, so it is covered by the same hook.
+    room.once('dataReceived', () => undefined);
+    expect(adapter.ensureDataChannelCalls).toBe(2);
+
+    // Any other event is none of this concern.
+    room.on('connected', () => undefined);
+    expect(adapter.ensureDataChannelCalls).toBe(2);
+  });
+
   it('sendData() encodes a string payload to bytes before handing it to the adapter', async () => {
     const adapter = new FakeAdapter();
     const room = new Room(adapter, 'room-1', logger);

@@ -36,6 +36,28 @@ const TOKEN = fakeToken({
   iss: 'raven',
 });
 
+/**
+ * Adapters a test has connected, torn down afterwards.
+ *
+ * The signaling client keeps retrying a dropped socket on a jittered
+ * timer. Leave one running and it opens sockets during whichever test
+ * happens to be executing next, where `FakeWebSocket.latest` then points
+ * at a stranger.
+ */
+const connectedAdapters: RavenAdapter[] = [];
+
+/** Waits for the signaling client's jittered backoff to open a new socket. */
+async function waitForNewSocket(previousCount: number): Promise<FakeWebSocket> {
+  for (let attempt = 0; attempt < 400; attempt++) {
+    if (FakeWebSocket.instances.length > previousCount) {
+      await flush();
+      return FakeWebSocket.latest;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  throw new Error('the signaling client never reconnected');
+}
+
 /** Connects an adapter and completes the join handshake. */
 async function connectAdapter(
   options: { autoReconnect?: boolean; participants?: { id: string; tracks?: unknown[] }[] } = {},
@@ -54,7 +76,27 @@ async function connectAdapter(
   });
 
   await connecting;
+  connectedAdapters.push(adapter);
   return { adapter, socket };
+}
+
+/**
+ * Answers every offer the adapter has outstanding, the way the SFU would,
+ * until negotiation goes quiet.
+ *
+ * A publish made while a round is in flight legitimately takes a second
+ * round trip — the point of the chain is that the two never overlap, not
+ * that they collapse into one. Bounded, so a test can't hang on a bug.
+ */
+async function settleNegotiation(socket: FakeWebSocket, pc: FakeRTCPeerConnection): Promise<void> {
+  for (let round = 0; round < 8; round++) {
+    await flush();
+    if (pc.signalingState !== 'have-local-offer') {
+      return;
+    }
+    socket.receive({ type: 'sdp.answer', sdp: `v=0 fake-server-answer-${round}` });
+  }
+  throw new Error('negotiation never settled');
 }
 
 /** Answers an SFU offer, which is what brings the PeerConnection into being. */
@@ -92,7 +134,10 @@ describe('RavenAdapter', () => {
     installFakeMediaDevices();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    while (connectedAdapters.length > 0) {
+      await connectedAdapters.pop()?.disconnect();
+    }
     teardown();
   });
 
@@ -158,7 +203,7 @@ describe('RavenAdapter', () => {
       const pc = await receiveOffer(socket);
 
       expect(pc.remoteDescription?.sdp).toBe('v=0 fake-server-offer');
-      expect(socket.lastSent('sdp.answer')).toMatchObject({ sdp: 'v=0 fake-client-answer' });
+      expect(String(socket.lastSent('sdp.answer')?.sdp)).toContain('fake-client-answer');
     });
 
     it('forwards local ICE candidates to the server', async () => {
@@ -506,7 +551,7 @@ describe('RavenAdapter', () => {
       expect(track?.kind).toBe('camera');
       expect(pc.addedTracks).toHaveLength(1);
       expect(socket.lastSent('track.publish')).toMatchObject({ source: 'camera' });
-      expect(socket.lastSent('sdp.offer')).toMatchObject({ sdp: 'v=0 fake-client-offer' });
+      expect(String(socket.lastSent('sdp.offer')?.sdp)).toContain('fake-client-offer');
     });
 
     it('configures three simulcast layers for a camera', async () => {
@@ -615,7 +660,281 @@ describe('RavenAdapter', () => {
       await flush();
       await flush();
 
-      expect(socket.lastSent('sdp.offer')).toMatchObject({ sdp: 'v=0 fake-client-offer' });
+      expect(String(socket.lastSent('sdp.offer')?.sdp)).toContain('fake-client-offer');
+    });
+
+    it('publishes a microphone and a camera back to back as one renegotiation', async () => {
+      // The developer-facing contract: no waiting between the two calls,
+      // and no second round trip for the second track.
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+
+      await adapter.enableMicrophone(true);
+      await adapter.enableCamera(true);
+      await flush();
+
+      expect(pc.activeSenders('audio')).toHaveLength(1);
+      expect(pc.activeSenders('video')).toHaveLength(1);
+      expect(pc.refusedDescriptions).toEqual([]);
+
+      // The camera was added while the microphone's offer was still out,
+      // so it rides the next round rather than racing this one. No
+      // competing offer, and nothing dropped.
+      expect(pc.signalingState).toBe('have-local-offer');
+      expect(socket.sentMessages().filter((message) => message.type === 'sdp.offer')).toHaveLength(1);
+
+      await settleNegotiation(socket, pc);
+
+      expect(pc.signalingState).toBe('stable');
+      for (const transceiver of pc.getTransceivers()) {
+        expect(transceiver.currentDirection).toBe('sendrecv');
+      }
+    });
+
+    it('does not offer into an incompatible signaling state when the sfu offers mid-createOffer', async () => {
+      // The race this whole chain exists for. `createOffer()` yields, and
+      // the SFU's offer lands in exactly that gap. The old code had
+      // already checked `signalingState` and went on to call
+      // `setLocalDescription`, which threw "Called in wrong state:
+      // have-remote-offer" and left a sender with no m-section.
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+
+      const errors: Error[] = [];
+      adapter.on('mediaError', (error) => errors.push(error));
+
+      // Freeze the interfering round with its remote description applied
+      // and its answer not yet built. That is the exact window.
+      let releaseAnswer = () => undefined as void;
+      pc.pauseCreateAnswer = new Promise<void>((resolve) => {
+        releaseAnswer = resolve;
+      });
+
+      let interfered = false;
+      pc.beforeCreateOffer = async () => {
+        if (interfered) {
+          return;
+        }
+        interfered = true;
+        // Delivered exactly like the socket would, and *applied* before
+        // createOffer resolves. Without the await this is not the race:
+        // the offer would sit on a microtask until after our own
+        // setLocalDescription had already gone through.
+        socket.receive({ type: 'sdp.offer', sdp: 'v=0 server-offer-mid-flight' });
+        await flush();
+      };
+
+      await adapter.enableCamera(true);
+      await flush();
+
+      // Let the frozen round finish, then let everything drain.
+      releaseAnswer();
+      pc.pauseCreateAnswer = undefined;
+      await flush();
+      await flush();
+      await flush();
+
+      // Nothing was ever handed to the connection in a state it could not
+      // take. This is the assertion the old code failed: it called
+      // setLocalDescription(offer) in have-remote-offer.
+      expect(pc.refusedDescriptions).toEqual([]);
+      expect(errors).toEqual([]);
+      // The interfering offer got answered, and our own publish still made
+      // it out afterwards.
+      expect(socket.lastSent('sdp.answer')).toBeDefined();
+      expect(socket.lastSent('sdp.offer')).toBeDefined();
+      expect(pc.activeSenders('video')).toHaveLength(1);
+      await settleNegotiation(socket, pc);
+      expect(pc.getTransceivers().every((t) => t.currentDirection === 'sendrecv')).toBe(true);
+    });
+
+    it('rolls its own offer back when the sfu offers at the same time, and re-offers after', async () => {
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+
+      await adapter.enableCamera(true);
+      await flush();
+      expect(pc.signalingState).toBe('have-local-offer');
+
+      // Glare: the SFU offers while our offer is still out. The SFU wins.
+      socket.receive({ type: 'sdp.offer', sdp: 'v=0 glare-server-offer' });
+      await flush();
+
+      expect(pc.descriptions).toEqual(
+        expect.arrayContaining([{ side: 'local', type: 'rollback' }]),
+      );
+      expect(socket.lastSent('sdp.answer')).toBeDefined();
+
+      // And our change is re-offered rather than dropped.
+      await flush();
+      const offers = socket.sentMessages().filter((message) => message.type === 'sdp.offer');
+      expect(offers.length).toBeGreaterThanOrEqual(2);
+      expect(pc.activeSenders('video')).toHaveLength(1);
+    });
+
+    it('never applies an answer in a state that cannot take one', async () => {
+      // "Failed to set remote answer sdp: Called in wrong state: stable"
+      // came from applying an answer whose offer no longer existed —
+      // rolled back for glare, or superseded. Dropping it is right; what
+      // matters is that it is never handed to the PeerConnection.
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+      const offerSdp = pc.remoteDescription?.sdp;
+
+      const errors: Error[] = [];
+      adapter.on('mediaError', (error) => errors.push(error));
+
+      expect(pc.signalingState).toBe('stable');
+      socket.receive({ type: 'sdp.answer', sdp: 'v=0 answer-to-a-dead-offer' });
+      await flush();
+
+      expect(errors).toEqual([]);
+      expect(pc.remoteDescription?.sdp).toBe(offerSdp);
+      expect(pc.signalingState).toBe('stable');
+      // Not "it threw and we swallowed it" — the connection was never
+      // asked in the first place.
+      expect(pc.refusedDescriptions).toEqual([]);
+    });
+
+    it('re-offers when the sfu refuses a publish as glare', async () => {
+      // The server-side half of the same tie-break. This used to be
+      // logged and dropped, which is how a camera ended up with a sender
+      // and no m-section to send on.
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+
+      await adapter.enableCamera(true);
+      await flush();
+      const before = socket.sentMessages().filter((message) => message.type === 'sdp.offer').length;
+
+      socket.receive({ type: 'error', code: 'NEGOTIATION_GLARE', message: 'negotiation in progress' });
+      await flush();
+      await flush();
+
+      // Nothing sent yet. The SFU's message says "answer it, then retry",
+      // and retrying before that offer arrives is how this turns into an
+      // offer/refusal loop that trips the connection's rate limit.
+      expect(socket.sentMessages().filter((message) => message.type === 'sdp.offer')).toHaveLength(
+        before,
+      );
+
+      // Whatever round the server was in ends by offering us one.
+      socket.receive({ type: 'sdp.offer', sdp: 'v=0 server-offer-after-glare' });
+      await flush();
+      await flush();
+
+      const after = socket.sentMessages().filter((message) => message.type === 'sdp.offer').length;
+      expect(after).toBeGreaterThan(before);
+      expect(pc.activeSenders('video')).toHaveLength(1);
+    });
+
+    it('coalesces mic, camera and screen share published in rapid succession', async () => {
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+
+      await Promise.all([
+        adapter.enableMicrophone(true),
+        adapter.enableCamera(true),
+        adapter.enableScreenShare(true),
+      ]);
+      await flush();
+
+      expect(pc.activeSenders('audio')).toHaveLength(1);
+      expect(pc.activeSenders('video')).toHaveLength(2);
+      expect(socket.sentMessages().filter((message) => message.type === 'sdp.offer')).toHaveLength(1);
+      expect(
+        socket.sentMessages().filter((message) => message.type === 'track.publish').map((message) => message.source),
+      ).toEqual(expect.arrayContaining(['microphone', 'camera', 'screenShare']));
+    });
+
+    it('shares one operation between overlapping enableCamera calls', async () => {
+      // Two clicks on the same button used to mean two getUserMedia
+      // prompts, two senders, and one of them orphaned in the map.
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+
+      const [first, second] = await Promise.all([adapter.enableCamera(true), adapter.enableCamera(true)]);
+      await flush();
+
+      expect(pc.activeSenders('video')).toHaveLength(1);
+      expect(first).toBeDefined();
+      // The second call found the track already published and unmuted it.
+      expect(second).toBe(first);
+    });
+
+    it('stops offering once the sfu\'s own offer has carried the change', async () => {
+      // The loop this cost us. Raven's SFU adds a receive slot for a track
+      // as soon as the client declares it, so its next offer often carries
+      // a just-published camera. An SDK that keeps its own "something
+      // changed" flag cannot tell, so it re-offers, collides with the next
+      // SFU offer, rolls back, and goes round again: 48 rounds on one join
+      // against the real SFU, until the connection's rate limit tripped.
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+      pc.offerCoversPendingChanges = true;
+
+      await adapter.enableCamera(true);
+      await flush();
+
+      // Our offer went out, and the SFU offers at the same moment.
+      socket.receive({ type: 'sdp.offer', sdp: 'v=0 sfu-offer-carrying-the-camera' });
+      await flush();
+      await flush();
+      await flush();
+
+      const offers = socket.sentMessages().filter((message) => message.type === 'sdp.offer').length;
+
+      // Several more rounds of the SFU offering, which is what a busy room
+      // looks like. Nothing new of ours to negotiate, so nothing new sent.
+      for (let round = 0; round < 5; round++) {
+        socket.receive({ type: 'sdp.offer', sdp: `v=0 sfu-offer-${round}` });
+        await flush();
+        await flush();
+      }
+
+      expect(socket.sentMessages().filter((message) => message.type === 'sdp.offer')).toHaveLength(
+        offers,
+      );
+      expect(pc.signalingState).toBe('stable');
+      expect(pc.activeSenders('video')).toHaveLength(1);
+    });
+
+    it("offers again when the wire still carries somebody else's msid", async () => {
+      // Raven's SFU identifies a published track by the id in the SDP
+      // `msid` and matches it to the `track.publish` declaration that says
+      // camera or screen share. The SFU pre-creates a receive slot for a
+      // declared track, `addTrack` reuses that transceiver, and if the
+      // SFU's own next offer covers the m-line then the browser is
+      // satisfied while the wire still names the SFU's msid. RTP flows and
+      // the SFU has no idea whose track it is — a screen share arrives
+      // labelled as a camera. So "the browser is happy" is not the whole
+      // invariant; our ids have to be on the wire.
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+
+      // The m-section keeps announcing a track that is not ours, however
+      // many descriptions get applied.
+      pc.msidOverrides.set('0', 'a-track-the-sfu-made-up');
+      pc.offerCoversPendingChanges = true;
+
+      await adapter.enableScreenShare(true);
+      await flush();
+      await flush();
+
+      // An offer went out to put our id on the wire, even though the
+      // browser's own negotiation-needed bit was clear.
+      expect(socket.lastSent('sdp.offer')).toBeDefined();
+
+      // And it stops once the id is there: no offer/answer treadmill.
+      pc.msidOverrides.delete('0');
+      await settleNegotiation(socket, pc);
+      const offers = socket.sentMessages().filter((m) => m.type === 'sdp.offer').length;
+      for (let round = 0; round < 4; round++) {
+        socket.receive({ type: 'sdp.offer', sdp: `v=0 sfu-offer-${round}` });
+        await flush();
+        await flush();
+      }
+      expect(socket.sentMessages().filter((m) => m.type === 'sdp.offer')).toHaveLength(offers);
     });
 
     it('refuses to publish a track it did not create', async () => {
@@ -640,10 +959,20 @@ describe('RavenAdapter', () => {
       const pc = await receiveOffer(socket);
       expect(pc.dataChannels).toHaveLength(0);
 
-      await adapter.sendData(new TextEncoder().encode('hello') as Uint8Array<ArrayBuffer>);
+      const sending = adapter.sendData(new TextEncoder().encode('hello') as Uint8Array<ArrayBuffer>);
+      await flush();
 
+      // Creating the channel needs an `m=application` section, so the
+      // adapter offers on its own initiative.
       expect(pc.dataChannels).toHaveLength(1);
       expect(pc.dataChannels[0].label).toBe('raven-data');
+      expect(socket.lastSent('sdp.offer')).toBeDefined();
+
+      // The channel opens with the round trip, and the queued payload goes.
+      socket.receive({ type: 'sdp.answer', sdp: 'v=0 fake-server-answer' });
+      await sending;
+
+      expect(pc.dataChannels[0].readyState).toBe('open');
       expect(pc.dataChannels[0].sent).toHaveLength(1);
     });
 
@@ -684,6 +1013,285 @@ describe('RavenAdapter', () => {
       channel.receive(new TextEncoder().encode('nope').buffer as ArrayBuffer);
 
       expect(received).toHaveLength(0);
+    });
+  });
+
+  describe('data channel bootstrap', () => {
+    it('sends data in an empty room with no media published', async () => {
+      // The developer-facing contract: join, then send. No camera, no
+      // microphone, no knowledge of SDP. Before this, the first send threw
+      // "The data channel is not open yet" and only worked if a media
+      // publish happened to renegotiate the channel along the way.
+      const { adapter, socket } = await connectAdapter();
+
+      const sending = adapter.sendData(new TextEncoder().encode('hello') as Uint8Array<ArrayBuffer>);
+      await flush();
+
+      const pc = FakeRTCPeerConnection.latest;
+      expect(pc.senders).toHaveLength(0);
+      expect(pc.dataChannels).toHaveLength(1);
+      expect(socket.lastSent('sdp.offer')).toBeDefined();
+
+      socket.receive({ type: 'sdp.answer', sdp: 'v=0 fake-server-answer' });
+      await sending;
+
+      expect(pc.dataChannels[0].readyState).toBe('open');
+      expect(pc.dataChannels[0].sent).toHaveLength(1);
+    });
+
+    it('queues payloads sent before the channel opens, in order', async () => {
+      const { adapter, socket } = await connectAdapter();
+
+      const sends = [
+        adapter.sendData(new TextEncoder().encode('one') as Uint8Array<ArrayBuffer>),
+        adapter.sendData(new TextEncoder().encode('two') as Uint8Array<ArrayBuffer>),
+        adapter.sendData(new TextEncoder().encode('three') as Uint8Array<ArrayBuffer>),
+      ];
+      await flush();
+
+      const pc = FakeRTCPeerConnection.latest;
+      // Exactly one channel, however many concurrent senders there are: a
+      // second would be an SCTP stream the SFU closes as unrecognised.
+      expect(pc.dataChannels).toHaveLength(1);
+      expect(pc.dataChannels[0].sent).toHaveLength(0);
+
+      socket.receive({ type: 'sdp.answer', sdp: 'v=0 fake-server-answer' });
+      await Promise.all(sends);
+
+      const decoded = pc.dataChannels[0].sent.map((payload) =>
+        new TextDecoder().decode(payload as Uint8Array),
+      );
+      expect(decoded).toEqual(['one', 'two', 'three']);
+    });
+
+    it('sends straight away once the channel is open', async () => {
+      const { adapter, socket } = await connectAdapter();
+      const first = adapter.sendData(new TextEncoder().encode('first') as Uint8Array<ArrayBuffer>);
+      await flush();
+      socket.receive({ type: 'sdp.answer', sdp: 'v=0 fake-server-answer' });
+      await first;
+
+      const pc = FakeRTCPeerConnection.latest;
+      const offersBefore = socket.sentMessages().filter((message) => message.type === 'sdp.offer').length;
+
+      await adapter.sendData(new TextEncoder().encode('second') as Uint8Array<ArrayBuffer>);
+
+      expect(pc.dataChannels).toHaveLength(1);
+      expect(pc.dataChannels[0].sent).toHaveLength(2);
+      // No renegotiation for a channel that already exists.
+      expect(socket.sentMessages().filter((message) => message.type === 'sdp.offer')).toHaveLength(
+        offersBefore,
+      );
+    });
+
+    it('opens a channel for a participant that only listens for data', async () => {
+      // The SFU fans data out over each recipient's own channel, so a
+      // participant with no channel cannot receive. Nothing in this test
+      // ever sends.
+      const { adapter, socket } = await connectAdapter();
+      await receiveOffer(socket);
+
+      adapter.ensureDataChannel();
+      await flush();
+
+      const pc = FakeRTCPeerConnection.latest;
+      expect(pc.dataChannels).toHaveLength(1);
+      expect(socket.lastSent('sdp.offer')).toBeDefined();
+
+      // Idempotent: a page with three `dataReceived` listeners still has
+      // one channel.
+      adapter.ensureDataChannel();
+      adapter.ensureDataChannel();
+      await flush();
+      expect(pc.dataChannels).toHaveLength(1);
+    });
+
+    it('rejects rather than hanging when the connection dies before the channel opens', async () => {
+      // Waiting internally must not turn a dead connection into a promise
+      // that never settles.
+      const { adapter, socket } = await connectAdapter({ autoReconnect: false });
+      const sending = adapter.sendData(new TextEncoder().encode('hello') as Uint8Array<ArrayBuffer>);
+      await flush();
+
+      socket.close(1006);
+
+      await expect(sending).rejects.toMatchObject({ code: 'CONNECTION_FAILED' });
+    });
+
+    it('works after media has already been published', async () => {
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+
+      await adapter.enableCamera(true);
+      await settleNegotiation(socket, pc);
+
+      const sending = adapter.sendData(new TextEncoder().encode('with-media') as Uint8Array<ArrayBuffer>);
+      await settleNegotiation(socket, pc);
+      await sending;
+
+      expect(pc.dataChannels).toHaveLength(1);
+      expect(pc.dataChannels[0].sent).toHaveLength(1);
+      expect(pc.activeSenders('video')).toHaveLength(1);
+    });
+  });
+
+  describe('restoring local media after a reconnect', () => {
+    /** Drops the socket and completes the rejoin the SDK does on its own. */
+    async function reconnect(
+      socket: FakeWebSocket,
+      participants: { id: string; tracks?: unknown[] }[] = [],
+    ): Promise<{ socket: FakeWebSocket; pc: FakeRTCPeerConnection }> {
+      const before = FakeWebSocket.instances.length;
+      socket.close(1006);
+      await flush();
+      const next = await waitForNewSocket(before);
+      next.receive({
+        type: 'room.joined',
+        roomId: 'room-1',
+        participants,
+        rtcServer: 'sfu-local-01',
+        region: 'local',
+      });
+      await flush();
+      return { socket: next, pc: FakeRTCPeerConnection.latest };
+    }
+
+    it('re-publishes the microphone and camera onto the replacement connection', async () => {
+      // The reported failure: signaling and ICE recovered, the new
+      // connection had no senders at all, and the room went quiet while
+      // the SDK still reported both tracks published.
+      const { adapter, socket } = await connectAdapter({ autoReconnect: true });
+      const first = await receiveOffer(socket);
+
+      await adapter.enableMicrophone(true);
+      await adapter.enableCamera(true);
+      await settleNegotiation(socket, first);
+      expect(first.activeSenders('audio')).toHaveLength(1);
+      expect(first.activeSenders('video')).toHaveLength(1);
+
+      const { socket: rejoined, pc: replacement } = await reconnect(socket);
+
+      expect(first.closed).toBe(true);
+      expect(replacement).not.toBe(first);
+      expect(replacement.activeSenders('audio')).toHaveLength(1);
+      expect(replacement.activeSenders('video')).toHaveLength(1);
+
+      // The new SFU session has never heard of these tracks, so their
+      // sources are declared again.
+      const declared = rejoined
+        .sentMessages()
+        .filter((message) => message.type === 'track.publish')
+        .map((message) => message.source);
+      expect(declared).toEqual(expect.arrayContaining(['microphone', 'camera']));
+
+      // And it renegotiates, so the m-sections actually exist.
+      expect(rejoined.lastSent('sdp.offer')).toBeDefined();
+      await settleNegotiation(rejoined, replacement);
+      for (const transceiver of replacement.getTransceivers()) {
+        expect(transceiver.currentDirection).toBe('sendrecv');
+      }
+    });
+
+    it('restores a screen share whose source is still live', async () => {
+      const { adapter, socket } = await connectAdapter({ autoReconnect: true });
+      const first = await receiveOffer(socket);
+      await adapter.enableScreenShare(true);
+      await settleNegotiation(socket, first);
+
+      const { socket: rejoined, pc: replacement } = await reconnect(socket);
+
+      expect(replacement.activeSenders('video')).toHaveLength(1);
+      expect(
+        rejoined.sentMessages().filter((message) => message.type === 'track.publish').map((m) => m.source),
+      ).toContain('screenShare');
+    });
+
+    it('drops a screen share the user stopped while disconnected', async () => {
+      // Ending a share is the user's own doing, through browser UI Raven
+      // never sees. Restoring the dead track would publish an m-section
+      // that never carries a frame.
+      const { adapter, socket } = await connectAdapter({ autoReconnect: true });
+      const first = await receiveOffer(socket);
+      const share = await adapter.enableScreenShare(true);
+      await settleNegotiation(socket, first);
+
+      const unpublished: TrackKind[] = [];
+      adapter.on('localTrackUnpublished', (track) => unpublished.push(track.kind));
+
+      // Stops during the outage, so no unpublish round trip happens.
+      const before = FakeWebSocket.instances.length;
+      const connectionsBefore = FakeRTCPeerConnection.instances.length;
+      socket.close(1006);
+      await flush();
+      (share!.mediaStreamTrack as unknown as FakeMediaStreamTrack).stop();
+
+      const rejoined = await waitForNewSocket(before);
+      rejoined.receive({
+        type: 'room.joined',
+        roomId: 'room-1',
+        participants: [],
+        rtcServer: 'sfu-local-01',
+        region: 'local',
+      });
+      await flush();
+
+      expect(unpublished).toEqual(['screenShare']);
+      expect(adapter.localParticipant.tracks).toHaveLength(0);
+      // Nothing left to publish, so no replacement connection was built
+      // and nothing was re-declared to the new session.
+      expect(FakeRTCPeerConnection.instances).toHaveLength(connectionsBefore);
+      expect(rejoined.lastSent('track.publish')).toBeUndefined();
+    });
+
+    it('does not add a second sender when the server re-sends room state', async () => {
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+      await adapter.enableCamera(true);
+      await settleNegotiation(socket, pc);
+
+      // Same connection, room state again. Restoring must be idempotent.
+      socket.receive({
+        type: 'room.joined',
+        roomId: 'room-1',
+        participants: [],
+        rtcServer: 'sfu-local-01',
+        region: 'local',
+      });
+      await flush();
+
+      expect(pc.activeSenders('video')).toHaveLength(1);
+      expect(pc.addedTracks).toHaveLength(1);
+    });
+
+    it('reopens the data channel on the replacement connection', async () => {
+      const { adapter, socket } = await connectAdapter({ autoReconnect: true });
+      const first = adapter.sendData(new TextEncoder().encode('before') as Uint8Array<ArrayBuffer>);
+      await flush();
+      socket.receive({ type: 'sdp.answer', sdp: 'v=0 fake-server-answer' });
+      await first;
+
+      const before = FakeWebSocket.instances.length;
+      socket.close(1006);
+      await flush();
+      const rejoined = await waitForNewSocket(before);
+      rejoined.receive({
+        type: 'room.joined',
+        roomId: 'room-1',
+        participants: [],
+        rtcServer: 'sfu-local-01',
+        region: 'local',
+      });
+      await flush();
+
+      const replacement = FakeRTCPeerConnection.latest;
+      expect(replacement.dataChannels).toHaveLength(1);
+
+      // The replacement channel needs its own round trip, exactly like the
+      // first one did.
+      await settleNegotiation(rejoined, replacement);
+      await adapter.sendData(new TextEncoder().encode('after') as Uint8Array<ArrayBuffer>);
+      expect(replacement.dataChannels[0].readyState).toBe('open');
+      expect(replacement.dataChannels[0].sent).toHaveLength(1);
     });
   });
 

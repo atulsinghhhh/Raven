@@ -295,7 +295,28 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
     await this.adapter.enableScreenShare(false);
   }
 
-  /** Publishes a track you made with `client.createCameraTrack()` and friends. */
+  /**
+   * Listening for `dataReceived` is what provisions this participant's
+   * data channel.
+   *
+   * The SFU fans data out over each recipient's own channel, and a channel
+   * is only created on demand — most calls never send a byte, and an SCTP
+   * association for every participant regardless is a cost with nothing
+   * behind it. So a page that never called `sendData()` could not
+   * *receive* either, which made data one-way in exactly the setup people
+   * try first. Subscribing to the event is the signal that one is wanted.
+   */
+  on<E extends keyof RoomEventMap>(event: E, handler: RoomEventMap[E]): this {
+    if (event === 'dataReceived') {
+      this.adapter.ensureDataChannel?.();
+    }
+    return super.on(event, handler);
+  }
+
+  /**
+   * Publishes a track you made with `client.createCameraTrack()` and
+   * friends, or one you wrapped with `client.createCustomTrack()`.
+   */
   async publish(track: LocalTrack): Promise<void> {
     await this.adapter.publish(track);
   }
@@ -334,6 +355,12 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
    * Sends a small payload to everyone, or to specific people if the
    * underlying SFU adapter supports targeting. Requires the token's
    * `publishData` grant; throws PERMISSION_DENIED without it.
+   *
+   * Works in an empty room with nothing published. The first call has to
+   * negotiate a data channel — one round trip — which this awaits on your
+   * behalf; payloads sent while the channel is still opening are queued
+   * and go out in order. Rejects with CONNECTION_FAILED if the connection
+   * dies before the channel can open, rather than hanging.
    */
   async sendData(payload: string | Uint8Array): Promise<void> {
     // Rewrap as a plain ArrayBuffer-backed Uint8Array, so callers never

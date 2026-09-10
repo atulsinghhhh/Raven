@@ -7,6 +7,8 @@ export type { ConnectionDiagnostics, ConnectionStats, ConnectionState, RoomEvent
 export { Participant, LocalParticipant, RemoteParticipant } from './participant';
 
 export { Track, LocalTrack, RemoteTrack } from './track';
+export { createCustomTrack } from './internal/media/capture';
+export type { CustomTrackOptions, CustomTrackSource } from './internal/media/capture';
 export type { TrackKind, TrackStats } from './track';
 /**
  * The structural interfaces a `Track` wraps.
