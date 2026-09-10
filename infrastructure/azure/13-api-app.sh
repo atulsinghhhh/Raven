@@ -14,7 +14,8 @@ source "$(dirname "$0")/00-variables.sh"
 
 export RAVEN_CAE="${RAVEN_CAE:-raven-env}"
 APP="${RAVEN_API_APP:-raven-api}"
-TAG="${RAVEN_IMAGE_TAG:-latest}"
+# Same tag source as 09-api-image.sh; see 00-variables.sh.
+TAG="${RAVEN_IMAGE_TAG}"
 
 ENVID="$(az containerapp env show -n "${RAVEN_CAE}" -g "${RAVEN_RG}" --query id -o tsv)"
 DOMAIN="$(az containerapp env show -n "${RAVEN_CAE}" -g "${RAVEN_RG}" --query properties.defaultDomain -o tsv)"

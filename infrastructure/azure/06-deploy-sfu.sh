@@ -15,7 +15,8 @@ SSH_OPTS=(-i "${RAVEN_SSH_KEY}" -o StrictHostKeyChecking=accept-new -o ConnectTi
 SFU_PUBLIC_IP="$(az network public-ip show -g "${RAVEN_RG}" -n "${RAVEN_SFU_IP_NAME}" --query ipAddress -o tsv)"
 SFU_PRIVATE_IP="$(az vm show -g "${RAVEN_RG}" -n "${RAVEN_SFU_VM}" -d --query privateIps -o tsv)"
 LOGIN_SERVER="$(az acr show -n "${RAVEN_ACR}" -g "${RAVEN_RG}" --query loginServer -o tsv)"
-TAG="${RAVEN_IMAGE_TAG:-latest}"
+# Same tag source as 04-images.sh; see 00-variables.sh.
+TAG="${RAVEN_IMAGE_TAG}"
 
 echo "==> Target ${RAVEN_SFU_VM}  public=${SFU_PUBLIC_IP}  private=${SFU_PRIVATE_IP}"
 
@@ -134,10 +135,34 @@ printf '%s\n' "${COMPOSE}" | ssh "${SSH_OPTS[@]}" "${RAVEN_ADMIN_USER}@${SFU_PUB
 printf '%s\n' "${ENVFILE}" | ssh "${SSH_OPTS[@]}" "${RAVEN_ADMIN_USER}@${SFU_PUBLIC_IP}" \
   "umask 077 && cat > /opt/raven/.env && chmod 600 /opt/raven/.env"
 
-echo "==> Logging in to ACR and starting"
+# `docker login` writes the credential to the *invoking user's*
+# ~/.docker/config.json. Logging in only as ${RAVEN_ADMIN_USER} therefore
+# leaves root with no credential at all, and every pull that runs as root —
+# `sudo docker compose pull`, a systemd unit, or `az vm run-command`, which
+# is the usual fallback when raven-sfu-nsg's SSH allowlist does not include
+# your current address — fails with:
+#
+#   error from registry: authentication required, visit https://aka.ms/acr/authorization
+#
+# That message reads like a broken registry, an expired token or a disabled
+# admin user, and is none of those: the image is there, the admin
+# credential is valid, and the same pull succeeds as ${RAVEN_ADMIN_USER}.
+# Both users get the credential so the failure cannot recur.
+#
+# The password travels on ssh's stdin rather than inside the remote command
+# string. A command string is visible in the VM's process table while it
+# runs, and in this shell's own argv.
+echo "==> Logging in to ACR as ${RAVEN_ADMIN_USER}"
+printf '%s' "${ACR_PASS}" | ssh "${SSH_OPTS[@]}" "${RAVEN_ADMIN_USER}@${SFU_PUBLIC_IP}" \
+  "docker login ${LOGIN_SERVER} -u '${ACR_USER}' --password-stdin >/dev/null"
+
+echo "==> Logging in to ACR as root (sudo is NOPASSWD on this VM)"
+printf '%s' "${ACR_PASS}" | ssh "${SSH_OPTS[@]}" "${RAVEN_ADMIN_USER}@${SFU_PUBLIC_IP}" \
+  "sudo -n docker login ${LOGIN_SERVER} -u '${ACR_USER}' --password-stdin >/dev/null"
+
+echo "==> Pulling ${LOGIN_SERVER}/raven-sfu:${TAG} and starting"
 ssh "${SSH_OPTS[@]}" "${RAVEN_ADMIN_USER}@${SFU_PUBLIC_IP}" \
-  "echo '${ACR_PASS}' | docker login ${LOGIN_SERVER} -u '${ACR_USER}' --password-stdin >/dev/null \
-   && cd /opt/raven \
+  "cd /opt/raven \
    && docker compose --env-file .env pull -q \
    && docker compose --env-file .env up -d"
 

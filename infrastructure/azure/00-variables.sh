@@ -97,6 +97,25 @@ export RAVEN_ADMIN_USER="ravenadmin"
 # Key Vault names are globally unique across Azure.
 export RAVEN_KV="${RAVEN_KV:-raven-kv-ea1}"
 
+# --- Image tag ---------------------------------------------------------
+# The one tag both 04-images.sh (build/push) and 06-deploy-sfu.sh (pull)
+# read. It lives here because it used to be defaulted independently in each
+# script — 04 defaulted to the short commit SHA, 06 defaulted to `latest` —
+# so a build and the deploy that followed it could disagree about which
+# image was being shipped, and a pull of a tag that was never pushed
+# reports "authentication required" rather than anything about a missing
+# tag.
+#
+# Default `latest` matches what is deployed today. Set it explicitly to
+# ship and run a specific build:
+#
+#   RAVEN_IMAGE_TAG=dtls-role-fix ./infrastructure/azure/04-images.sh
+#   RAVEN_IMAGE_TAG=dtls-role-fix ./infrastructure/azure/06-deploy-sfu.sh
+#
+# 04-images.sh also pushes the immutable short-SHA tag on every build, so
+# provenance survives regardless of what this is set to.
+export RAVEN_IMAGE_TAG="${RAVEN_IMAGE_TAG:-latest}"
+
 # Container Apps environment + API app.
 export RAVEN_CAE="${RAVEN_CAE:-raven-env}"
 export RAVEN_API_APP="${RAVEN_API_APP:-raven-api}"
