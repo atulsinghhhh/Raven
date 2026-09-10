@@ -1,5 +1,4 @@
 import { AnnouncementBar } from '../components/AnnouncementBar';
-import { BuiltBy } from '../components/BuiltBy';
 import { CodeShowcase } from '../components/CodeShowcase';
 import { DashboardPreview } from '../components/DashboardPreview';
 import { FinalCTA } from '../components/FinalCTA';
@@ -13,6 +12,7 @@ import { Reliability } from '../components/Reliability';
 import { SDKSection } from '../components/SDKSection';
 import { ScaleBand } from '../components/ScaleBand';
 import { UseCases } from '../components/UseCases';
+import { WhatsAppFloat } from '../components/WhatsAppFloat';
 
 export default function LandingPage() {
   return (
@@ -31,9 +31,9 @@ export default function LandingPage() {
         <DashboardPreview />
         <UseCases />
         <FinalCTA />
-        <BuiltBy />
       </main>
       <Footer />
+      <WhatsAppFloat />
     </>
   );
 }

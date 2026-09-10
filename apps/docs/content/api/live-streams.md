@@ -108,7 +108,7 @@ Register a host/co-host and mint their RTC + chat credentials
 |---|---|---|---|---|
 | `streamId` | path | `string` | Yes | |
 | `identity` | body | `string` | Yes | 1–128 chars, pattern-checked |
-| `role` | body | `LiveStreamHostRole` | No | HOST and CO_HOST get identical RTC/chat grants — the difference is bookkeeping, not permissions. A stream already has a HOST (set at creation); this is normally CO_HOST. |
+| `role` | body | `LiveStreamHostRole` | No | HOST and CO_HOST get identical RTC/chat grants — the difference is bookkeeping, not permissions. A stream already has a HOST (set at creation); this is normally CO_HOST. Omit it for someone already registered and their existing role is kept, so re-minting a host's credentials never demotes them. |
 
 ### DELETE `/v1/live-streams/{streamId}/hosts/{identity}`
 

@@ -85,6 +85,94 @@ node scripts/verify-package-metadata.mjs
 node scripts/verify-pack-manifests.mjs
 ```
 
+### Publishing is trusted publishing — there is no token
+
+`release.yml` holds no npm credential. pnpm asks GitHub for an OIDC
+id-token scoped to `npm:registry.npmjs.org`, exchanges it at
+`/-/npm/v1/oidc/token/exchange/package/<name>` for a short-lived
+credential, and publishes with that. Two consequences worth knowing:
+
+- **Every package must name this repo as its trusted publisher**, because
+  the exchange is per package. A package that has not been configured
+  fails the exchange and is skipped, not published.
+- **Provenance is automatic.** pnpm attaches an attestation when it
+  publishes through OIDC, so a released tarball is verifiably built by
+  this workflow.
+
+Setup, once per package, on npmjs.com → the package → *Settings* →
+*Trusted Publisher* → **GitHub Actions**:
+
+| Field | Value |
+| --- | --- |
+| Organization or user | `atulsinghhhh` |
+| Repository | `Raven` |
+| Workflow filename | `release.yml` |
+| Environment | *(leave empty)* |
+
+The workflow filename must match exactly. Renaming `release.yml` breaks
+publishing for every package until each one is updated.
+
+`Publishing access` on the same settings page can stay at either option —
+npm's own note says all of them are compatible with a trusted publisher.
+The stricter *"Require two-factor authentication and disallow bypass 2fa
+tokens"* is the better choice once OIDC works, because it then blocks
+token-based publishing entirely.
+
+### If publishing fails on 2FA
+
+This is what the old `NPM_TOKEN` setup died of, and what trusted
+publishing exists to avoid:
+
+```
+🦋  error an error occurred while publishing @ravenkash/client: ERR_PNPM_OTP_NON_INTERACTIVE
+🦋  error $ node ../../scripts/assert-publish-safe.mjs
+🦋  packages failed to publish:
+🦋  @ravenkash/client@0.1.3
+🦋  @ravenkash/rtc@0.3.1
+```
+
+The registry accepted the credential and then challenged the **write**
+with two-factor authentication, answering with an `authUrl` for npm's
+browser confirmation flow. pnpm raises `OTP_NON_INTERACTIVE` because there
+is no terminal to complete it in —
+
+> The registry requires additional authentication, but pnpm is not running
+> in an interactive terminal
+
+`--otp` does not help; it takes a human-typed code.
+
+Seeing this now means the OIDC exchange did not happen and pnpm fell back
+to whatever credential it could find. Check, in this order:
+
+1. **`id-token: write` is still in the job's `permissions`.** The
+   `Preflight — can this job mint an npm credential?` step fails fast when
+   it is missing, so a green preflight rules this out.
+2. **The package has a trusted publisher configured**, with the workflow
+   filename matching `release.yml` exactly. A missing or mismatched entry
+   shows up in the log as `Skipped OIDC:` followed by the exchange error.
+3. **No `NPM_TOKEN` has been reintroduced** into the publish step's `env`.
+
+Historical note, since it is easy to reach for: the fix is *not* a new
+token. npm no longer issues classic tokens at all — *Generate New Token*
+goes straight to the granular form — and a granular token publishes only
+when it was created with **Bypass two-factor authentication (2FA)**
+checked *and* the package allows bypass tokens. The token this repo used
+had no bypass, which is exactly why every run failed.
+
+Two things this failure is **not**, both of which the log implicates by
+proximity:
+
+- **`assert-publish-safe.mjs` did not reject anything.** pnpm echoes the
+  `prepublishOnly` script line next to the error. The guard ran and passed.
+- **Not the workspace-protocol bug.** `Verify packed manifests are
+  installable` passes in the same run; the tarballs are fine.
+
+Nothing is published when this happens — it fails before the first upload,
+so there is no partial release to clean up. Once the cause is fixed,
+`gh workflow run release.yml` picks up where it stopped: `main` already
+carries the bumped versions, and `changeset publish` publishes any package
+whose version is not yet on the registry.
+
 ### Never publish with npm
 
 `pnpm publish` rewrites `workspace:*` to a concrete version when it packs.
@@ -140,14 +228,11 @@ and there must be exactly one copy of `@ravenkash/rtc` in the tree.
 
 ### Authentication
 
-**Preferred: npm trusted publishing (OIDC).** Configure each package on
-npmjs.com to trust `atulsinghhhh/Raven` and the `Release` workflow. The
-`id-token: write` permission in `release.yml` is already set; the token is
-minted per run and expires, and nothing long-lived is stored in GitHub.
-
-**Fallback: `NPM_TOKEN`.** A granular automation token in repository
-secrets, for packages not yet migrated. It is never echoed, and the publish
-fails loudly if it is missing rather than publishing anonymously.
+npm **trusted publishing (OIDC)**, and nothing else. Each package on
+npmjs.com trusts `atulsinghhhh/Raven` + `release.yml`; the credential is
+minted per package per run and expires; nothing long-lived is stored in
+GitHub. There is no token fallback, deliberately — see
+[Publishing is trusted publishing](#publishing-is-trusted-publishing--there-is-no-token).
 
 > The `@ravenkash` npm scope must exist and be owned by the publishing
 > account before the first publish — scoped packages fail outright
@@ -239,8 +324,9 @@ One-off, before the first real release:
 
 - [x] Own the `@ravenkash` scope on npmjs.com — all eight packages are
       published at 0.1.0
-- [ ] Enable npm trusted publishing per package, **or** set the `NPM_TOKEN`
-      repository secret
+- [ ] Enable npm trusted publishing per package (`atulsinghhhh/Raven`,
+      `release.yml`) — required for every package, not just the ones
+      releasing today
 - [ ] Settle the PyPI `raven-sdk` name conflict
 - [ ] Confirm `.changeset/config.json`'s `ignore` list still matches the
       private apps

@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { DASHBOARD_URL, DISCORD_URL, DOCS_ROUTES, DOCS_URL } from '../lib/links';
-import { DiscordIcon, RavenMark } from './icons';
+import { DASHBOARD_URL, DOCS_ROUTES, DOCS_URL, GITHUB_REPO_URL } from '../lib/links';
+import { GitHubIcon, RavenMark } from './icons';
 
 const PRODUCT_LINKS = [
   { label: 'RTC', href: DOCS_ROUTES.rtc },
@@ -32,7 +32,7 @@ export function Nav() {
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-8 px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2 text-[15px] font-medium tracking-tight text-fg">
           <RavenMark />
-          Livqeno
+          LIVQENO
         </Link>
 
         <nav className="hidden items-center gap-1 text-[14px] text-muted md:flex">
@@ -47,19 +47,19 @@ export function Nav() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Stands in for the reference's repo-star pill. Livqeno is
-              closed-source, so the community signal is Discord, and it
-              carries no member count we'd have to keep truthful. */}
+          {/* The repo, not a star count: a number rendered here would have
+              to be fetched to stay truthful, and a stale one is worse than
+              none. */}
           <a
-            href={DISCORD_URL}
+            href={GITHUB_REPO_URL}
             target="_blank"
             rel="noreferrer noopener"
             className="hidden items-center gap-2 rounded-(--radius-panel) px-2.5 py-1.5 text-[13px] text-muted transition-colors hover:text-fg lg:inline-flex"
           >
-            <DiscordIcon className="h-4 w-4" />
-            discord
+            <GitHubIcon className="h-4 w-4" />
+            github
             <span className="mono-label rounded-sm border border-line bg-surface px-1.5 py-0.5 text-[10px] text-muted">
-              community
+              source
             </span>
           </a>
           <a

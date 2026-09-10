@@ -1,7 +1,7 @@
 {
   "name": "@ravenkash/client",
-  "version": "0.1.0",
-  "description": "Livqeno for the browser \u2014 RTC and chat behind one object. A thin facade over @ravenkash/rtc and @ravenkash/chat.",
+  "version": "0.1.4",
+  "description": "Livqeno for the browser — RTC and chat behind one object. A thin facade over @ravenkash/rtc and @ravenkash/chat.",
   "license": "MIT",
   "repository": {
     "type": "git",
