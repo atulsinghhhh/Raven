@@ -1,4 +1,7 @@
-# Browser security & CORS
+---
+title: Browser security & CORS
+description: What your frontend may hold, what it may not, and how per-project allowed origins work.
+---
 
 Raven is used from the browser, and the browser is the one place where your
 code runs on hardware you do not control. This page is the whole story: what
