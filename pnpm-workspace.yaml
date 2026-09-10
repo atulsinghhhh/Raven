@@ -2,6 +2,47 @@ packages:
   - "apps/*"
   - "packages/*"
   - "services/*"
+  - "test"
+# Every entry fixes a HIGH advisory in a package Raven does not depend on
+# directly. Each is pinned by a parent we do not control — NestJS 10 and
+# Prisma 7 both pin exact versions — so bumping the parent cannot reach them
+# and an override is the only lever. `pnpm audit --prod --audit-level high`
+# is the gate these exist to keep green; drop an entry the moment its parent
+# ships a release that already carries the fix.
+#
+# Ranges are scoped by major (`js-yaml@^4`, `ws@^8`) wherever a second, older
+# copy of the same package lives elsewhere in the graph: gray-matter still
+# uses js-yaml 3.x, and two transitive deps still use ws 6.x/7.x. An unscoped
+# override would drag those across a major boundary to fix a vulnerability
+# they never had.
+#
+# These belong here rather than in package.json's `pnpm` field: pnpm 11 no
+# longer reads that field and ignores it *with a warning rather than an
+# error*, so the overrides would silently do nothing.
+overrides:
+  # GHSA-wc9g-mqfw-jrwm, GHSA-535w-7cp7-47q4 + 4 more. @nestjs/platform-express
+  # pins 2.0.2; 2.3.0 is the same major.
+  multer: ^2.3.0
+  # GHSA-52cp-r559-cp3m, GHSA-2883-xcg3-v3hh + 2 more. @nestjs/swagger pins
+  # 4.1.0. Held inside v4 — v5 is a major with a changed API.
+  js-yaml@^4: ^4.3.2
+  # Same family of advisories against the 3.x line, reached through
+  # gray-matter in apps/docs. A patch bump inside 3.15.
+  js-yaml@^3: ^3.15.2
+  # GHSA-r5fr-rjxr-66jc. Vulnerable through 4.17.23, so 4.18 is the floor —
+  # there is no patched 4.17.
+  lodash: ^4.18.1
+  # GHSA-96hv-2xvq-fx4p. @nestjs/platform-ws pins 8.18.0. apps/api's own
+  # direct range is bumped alongside this.
+  ws@^8: ^8.21.3
+  # GHSA in prisma's optional MySQL driver. Raven is Postgres-only and never
+  # loads it, but --prod still counts it.
+  mysql2: ^3.24.4
+  # Major bump inside @prisma/config's loader — the one override here that
+  # crosses a major, so `prisma generate`/`migrate status` are verified
+  # explicitly after any change to it.
+  deepmerge-ts: ^8.0.2
+
 allowBuilds:
   '@nestjs/core': true
   '@parcel/watcher': true

@@ -45,7 +45,13 @@ export default async function QuickstartPage({ params }: { params: Promise<{ pro
             samples={[
               { label: 'Browser', language: 'bash', code: 'npm install @ravenkash/rtc' },
               { label: 'Node.js backend', language: 'bash', code: 'npm install @ravenkash/server' },
-              { label: 'Python backend', language: 'bash', code: 'pip install raven-sdk' },
+              // Deliberately not `pip install raven-sdk`: that name on PyPI is an
+              // unrelated third-party package. See docs/releases.md#python--raven-sdk.
+              {
+                label: 'Python backend',
+                language: 'bash',
+                code: 'pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"',
+              },
             ]}
           />
         </Step>

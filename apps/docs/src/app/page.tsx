@@ -131,7 +131,10 @@ export default function DocsHome() {
               <pre className="overflow-x-auto px-4 py-3.5 text-[12.5px] leading-relaxed">
                 <code>{`import { Raven } from '@ravenkash/server';
 
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY!,
+  baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
+});
 const room = await raven.rooms.create({ name: 'demo' });
 
 const credentials = await raven.tokens.create({
@@ -145,6 +148,9 @@ const credentials = await raven.tokens.create({
               </div>
               <pre className="overflow-x-auto px-4 py-3.5 text-[12.5px] leading-relaxed">
                 <code>{`import { createRTCClient } from '@ravenkash/rtc';
+
+// Fetched from your own route, which returned what it minted above.
+const credentials = await fetch('/api/raven/grant').then((r) => r.json());
 
 const client = createRTCClient(credentials);
 const room = await client.join(credentials.roomId);

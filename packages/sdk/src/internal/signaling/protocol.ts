@@ -53,6 +53,7 @@ export const ServerMessageType = {
 export type SignalingErrorCode =
   | 'INVALID_TOKEN'
   | 'TOKEN_EXPIRED'
+  | 'TOKEN_REVOKED'
   | 'UNAUTHORIZED'
   | 'ROOM_NOT_FOUND'
   | 'ROOM_FULL'
@@ -61,7 +62,9 @@ export type SignalingErrorCode =
   | 'PARTICIPANT_NOT_FOUND'
   | 'NOT_IN_ROOM'
   | 'PERMISSION_DENIED'
+  | 'ORIGIN_NOT_ALLOWED'
   | 'RATE_LIMITED'
+  | 'USAGE_LIMIT_EXCEEDED'
   | 'NO_RTC_CAPACITY'
   | 'RTC_SERVER_UNREACHABLE'
   | 'NEGOTIATION_FAILED'
@@ -119,7 +122,20 @@ export type ClientMessage =
 export const FATAL_ERROR_CODES: ReadonlySet<SignalingErrorCode> = new Set([
   'INVALID_TOKEN',
   'TOKEN_EXPIRED',
+  // Someone killed this credential on purpose. Retrying re-presents the
+  // same dead token; the application's backend has to mint a new one.
+  'TOKEN_REVOKED',
   'UNAUTHORIZED',
   'ROOM_NOT_FOUND',
   'PERMISSION_DENIED',
+  // Reconnecting cannot help: the page's origin is not on the project's
+  // allow-list, and that is changed in the dashboard, not by retrying.
+  'ORIGIN_NOT_ALLOWED',
+  // Not a credential problem, but just as terminal, and it belongs here
+  // for the reconnect behaviour rather than the reason. The account is out
+  // of included minutes: unlike RATE_LIMITED there is no window to wait
+  // out, so backing off and retrying would spin against a wall until the
+  // attempt budget ran out. A fresh token would not help either — the
+  // limit is on the account, not the token.
+  'USAGE_LIMIT_EXCEEDED',
 ]);

@@ -33,6 +33,17 @@ permissions:
 
 env:
   NODE_VERSION: "22"
+  # `prisma generate` loads apps/api/prisma.config.ts, which resolves this
+  # eagerly and aborts with PrismaConfigEnvError when it is unset — even
+  # though generating a client never opens a connection. That is what broke
+  # every release run before this line existed: the workflow died at
+  # "Generate Prisma client" and nothing was ever published.
+  #
+  # Deliberately unreachable rather than a real database. If a step ever
+  # does try to connect with it, we want a loud connection error against
+  # port 1 rather than a silent write to something real. ci.yml carries the
+  # identical value for the identical reason — keep the two in step.
+  DATABASE_URL: "postgresql://ci:ci@127.0.0.1:1/raven_generate_only"
 
 jobs:
   release:
@@ -89,21 +100,16 @@ jobs:
         run: node scripts/verify-package-metadata.mjs
 
       # Every publishable package is packed with the real packer and the
-      # contents inspected, without contacting the registry.
-      - name: npm pack dry-run
-        run: |
-          set -euo pipefail
-          for dir in packages/*/; do
-            name="$(node -p "require('./${dir}package.json').name")"
-            private="$(node -p "require('./${dir}package.json').private === true")"
-            if [ "$private" = "true" ]; then
-              echo "skip (private): $name"
-              continue
-            fi
-            echo "::group::pack $name"
-            ( cd "$dir" && npm publish --dry-run )
-            echo "::endgroup::"
-          done
+      # manifest inside the tarball inspected, without contacting the
+      # registry.
+      #
+      # This step used to run `npm publish --dry-run`, which lists the files
+      # in the tarball but never validates dependency ranges — so it passed
+      # happily on @ravenkash/rtc@0.1.0, whose published manifest still read
+      # `"@ravenkash/effects": "workspace:*"` and failed for every installer
+      # on earth with EUNSUPPORTEDPROTOCOL.
+      - name: Verify packed manifests are installable
+        run: node scripts/verify-pack-manifests.mjs
 
       - name: Changesets — version PR or publish
         id: changesets

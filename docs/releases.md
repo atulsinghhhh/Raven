@@ -65,9 +65,12 @@ runs again and, before anything is published, re-runs on the exact tree:
 - `pnpm -r test`
 - `node scripts/verify-package-metadata.mjs` — name, version, description,
   MIT licence, `repository`/`homepage`/`bugs`, `publishConfig.access`,
-  `files`, an entry point, a README and a LICENSE on disk, and no
-  `file:`/`link:` dependency ranges
-- `npm publish --dry-run` in each package
+  `files`, an entry point, a README and a LICENSE on disk, no
+  `file:`/`link:`/`portal:` dependency ranges, and a `prepublishOnly` guard
+  on any package using the workspace protocol
+- `node scripts/verify-pack-manifests.mjs` — packs each package and reads
+  the manifest *inside the tarball*, which is the only artefact npm will
+  serve
 
 Then `changeset publish` publishes only packages whose version is not
 already on the registry, in dependency order, tags each `<package>@<version>`,
@@ -77,9 +80,46 @@ and creates one GitHub Release per package from its changelog entry.
 
 ```bash
 pnpm changeset:status              # what would be released, and at what bump
+pnpm --filter "./packages/*" run build   # verify-pack-manifests packs ["dist"]
 node scripts/verify-package-metadata.mjs
-pnpm --filter @ravenkash/rtc exec npm publish --dry-run
+node scripts/verify-pack-manifests.mjs
 ```
+
+### Never publish with npm
+
+`pnpm publish` rewrites `workspace:*` to a concrete version when it packs.
+`npm publish` does not — it uploads the manifest verbatim. Publishing a
+workspace package with npm therefore produces a tarball that no installer
+on earth can resolve.
+
+This is not hypothetical. `@ravenkash/rtc@0.1.0` and
+`@ravenkash/client@0.1.0` were published by hand with npm, bypassing this
+workflow, and reached the registry with `workspace:*` intact:
+
+```
+npm  install @ravenkash/rtc → EUNSUPPORTEDPROTOCOL Unsupported URL Type "workspace:"
+pnpm add     @ravenkash/rtc → ERR_PNPM_WORKSPACE_PKG_NOT_FOUND
+```
+
+They were public, downloadable and completely uninstallable for the entire
+time they were the latest version, which made step 2 of the README
+quickstart impossible to follow. `npm unpublish` is restricted to 72 hours,
+so the fix had to be a `0.1.1` republish; 0.1.0 stays broken forever.
+
+Three gates now cover that path, and the first is the one that matters
+because it is the only one that survives a publish run from a laptop:
+
+1. `scripts/assert-publish-safe.mjs`, wired as `prepublishOnly` in every
+   publishable package. Refuses an npm-driven publish of anything using the
+   workspace protocol, and refuses `file:`/`link:`/`portal:` ranges
+   regardless of packer.
+2. `scripts/verify-pack-manifests.mjs` in CI — packs and inspects the real
+   tarball manifest. The step it replaced, `npm publish --dry-run`, lists
+   tarball contents but validates no dependency ranges, which is why it
+   passed on the broken 0.1.0.
+3. `scripts/verify-package-metadata.mjs` fails any workspace-protocol
+   package whose `prepublishOnly` guard is missing, so removing gate 1 does
+   not go unnoticed.
 
 ### Versioning policy
 
@@ -197,7 +237,8 @@ are on pub.dev.
 
 One-off, before the first real release:
 
-- [ ] Own the `@ravenkash` scope on npmjs.com
+- [x] Own the `@ravenkash` scope on npmjs.com — all eight packages are
+      published at 0.1.0
 - [ ] Enable npm trusted publishing per package, **or** set the `NPM_TOKEN`
       repository secret
 - [ ] Settle the PyPI `raven-sdk` name conflict

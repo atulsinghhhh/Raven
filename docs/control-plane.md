@@ -234,14 +234,40 @@ above:
 
 ## CORS
 
-Configured via `CORS_ORIGIN` (`main.ts`): a comma-separated allow-list of
-browser origins, or `*` for local development. `*` is the `.env.example`
-default *for local dev only* — every deployed environment must set an
-explicit origin list. Since Raven's auth model uses bearer tokens in an
-`Authorization` header (never cookies), an open CORS policy doesn't carry
-the CSRF risk it would for a cookie-authenticated API, but it still allows
-any website to read response bodies via `fetch`, which is reason enough to
-lock it down outside local dev.
+CORS is decided **per route**, because two kinds of browser caller reach
+this API and they need opposite answers. The policy lives in
+`shared/config/cors-policy.ts`; `main.ts` applies it.
+
+**SDK surfaces — `/v1/telemetry/*` and `/v1/chat/*` — reflect the caller's
+origin.** These are the endpoints a Raven SDK calls from the page:
+`@ravenkash/rtc` posting connection telemetry, `@ravenkash/chat` reading
+history and uploading attachments. They run on origins Raven cannot
+enumerate — a different localhost port for every developer, a different
+domain for every customer — so a fixed allow-list is wrong for them by
+construction. `CORS_ORIGIN` does **not** govern these.
+
+**Everything else uses `CORS_ORIGIN`**: a comma-separated allow-list, or
+`*` for local development. `*` is the `.env.example` default *for local dev
+only* — every deployed environment must set an explicit list. This covers
+the dashboard and developer-session routes (`JwtAuthGuard`), where origin
+restriction genuinely earns its keep, and the backend-to-backend routes
+(`ApiKeyAuthGuard`), which have no browser in the picture.
+
+Reflecting any origin on the SDK surfaces is safe because those routes
+carry no ambient authority. `credentials` is off, so a browser never
+attaches cookies cross-origin, and the only credential is a short-lived
+token the developer's own backend minted. A hostile page has to already
+hold a valid token, and anything holding one can use it from `curl` with no
+browser at all — so the token is the control, not the origin. The reason to
+keep the allow-list on session routes is the mirror image: those *are*
+reachable with a developer's own session, and an open policy would let any
+site read their response bodies.
+
+The eventual answer for SDK surfaces is per-project origins a developer
+declares in the dashboard. That is not implemented: an HTTP preflight is
+unauthenticated by design — `OPTIONS` carries no `Authorization` header —
+so there is no project to look up at the point the decision must be made.
+Doing it properly means identifying the project from the request path.
 
 ## API documentation
 

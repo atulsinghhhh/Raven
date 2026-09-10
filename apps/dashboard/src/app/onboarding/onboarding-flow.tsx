@@ -215,7 +215,6 @@ export function OnboardingFlow({ initialState, hasProjects }: { initialState: On
           {step === 6 && (
             <ConnectStep
               project={project}
-              stack={stack}
               busy={busy}
               onBack={() => saveAndGo(5)}
               onContinue={() => saveAndGo(7)}
@@ -606,21 +605,52 @@ function CreateProjectStep({
 
 function ConnectStep({
   project,
-  stack,
   busy,
   onBack,
   onContinue,
   onOpenQuickstart,
 }: {
   project: CreatedProject | null;
-  stack: string[];
   busy: boolean;
   onBack: () => void;
   onContinue: () => void;
   onOpenQuickstart?: () => void;
 }) {
-  const wantsServer = stack.includes('nodejs') || stack.includes('python');
-  const installCommand = wantsServer ? 'npm install @ravenkash/server' : 'npm install @ravenkash/rtc';
+  // Both halves, always. Raven's whole auth model is that the API key stays
+  // on a server and the browser only ever sees a short-lived grant, so a
+  // working integration needs the backend package and the browser package
+  // whatever stack the developer picked. Installing only one of them is the
+  // shape of integration that ends with an API key in a bundle.
+  const installCommand = 'npm install @ravenkash/server   # your backend\nnpm install @ravenkash/rtc      # your browser app';
+
+  // Kept verbatim-runnable against the published SDKs. `createRTCClient` is
+  // the real export — there is no `RavenClient` class in @ravenkash/rtc, and
+  // a snippet naming one sends a developer's first five minutes into a
+  // TypeError. The grant is spread whole: it carries `endpoint`,
+  // `iceServers` and `telemetryUrl`, and hand-picking fields off it is how
+  // people end up configuring infrastructure Raven means to hide.
+  const backendSnippet = `import { Raven } from '@ravenkash/server';
+
+const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+
+// Identity comes from *your* session, never from the request body.
+app.post('/api/raven-token', async (req, res) => {
+  const room = await raven.rooms.create({ name: 'my-first-room' });
+  const grant = await raven.tokens.create({
+    room: room.id,
+    identity: req.user.id,
+    permissions: { join: true, subscribe: true, publish: true },
+  });
+  res.json(grant); // { token, endpoint, iceServers, ... } — no API key
+});`;
+
+  const browserSnippet = `import { createRTCClient } from '@ravenkash/rtc';
+
+const grant = await fetch('/api/raven-token', { method: 'POST' }).then((r) => r.json());
+
+const room = await createRTCClient(grant).join(grant.roomName);
+await room.enableCamera();
+await room.enableMicrophone();`;
   // The real key never renders here — it was shown exactly once on the
   // previous step. The placeholder keeps this snippet honest and paste-safe.
   const keyPlaceholder = project?.apiKey
@@ -631,7 +661,7 @@ function ConnectStep({
     <div className="flex flex-1 flex-col">
       <StepEyebrow>Connect</StepEyebrow>
       <h1 className="text-2xl font-semibold tracking-tight text-fg">Connect your app</h1>
-      <p className="mt-2 text-sm text-muted">Three steps from zero to a live RTC session.</p>
+      <p className="mt-2 text-sm text-muted">Four steps from zero to a live RTC session.</p>
 
       <ol className="mt-8 flex flex-col gap-5">
         <QuickstartItem index={1} title="Install the SDK">
@@ -640,11 +670,11 @@ function ConnectStep({
         <QuickstartItem index={2} title="Configure your API key">
           <CodeBlock code={`RAVEN_API_KEY=${keyPlaceholder}`} language="bash" filename=".env" />
         </QuickstartItem>
-        <QuickstartItem index={3} title="Create your first RTC session">
-          <CodeBlock
-            code={`import { RavenClient } from '@ravenkash/rtc';\n\nconst client = new RavenClient({ token });\nawait client.join({ room: 'my-first-room' });`}
-            language="typescript"
-          />
+        <QuickstartItem index={3} title="Mint a grant on your backend">
+          <CodeBlock code={backendSnippet} language="typescript" filename="server.ts" />
+        </QuickstartItem>
+        <QuickstartItem index={4} title="Connect from the browser">
+          <CodeBlock code={browserSnippet} language="typescript" filename="call.ts" />
         </QuickstartItem>
       </ol>
 

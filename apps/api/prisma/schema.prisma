@@ -229,6 +229,22 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  /// Browser origins allowed to reach this project's SDK surfaces
+  /// (telemetry, chat REST, and both WebSocket gateways). Stored already
+  /// normalized by normalizeOriginList, so matching is a plain string
+  /// comparison.
+  ///
+  /// Empty means unconfigured, and unconfigured is open — every project
+  /// predating this column has an empty list, and defaulting those to deny
+  /// would break live applications for a setting nobody could have filled
+  /// in. Enforcement begins when a project adds its first origin. See
+  /// shared/origins/origin-policy.ts.
+  allowedOrigins        String[] @default([])
+  /// Whether http(s)://localhost and the other loopback hosts are allowed
+  /// on any port regardless of allowedOrigins. On by default so that
+  /// configuring production domains never breaks local development.
+  allowLocalhostOrigins Boolean  @default(true)
+
   members     ProjectMember[]
   auditLogs   AuditLog[]
   apiKeys     ApiKey[]

@@ -4,7 +4,10 @@ Authenticates with a permanent project API key; never expose that key, or an
 instance of this class, to a browser (Phase 10 spec Section 2).
 
     from raven import Raven
-    raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+    raven = Raven(
+        api_key=os.environ["RAVEN_API_KEY"],
+        base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+    )
     token = raven.tokens.create(CreateTokenParams(room=room_id, identity="user-42"))
 """
 

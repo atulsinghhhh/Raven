@@ -33,8 +33,9 @@ No. All packages are at `0.1.0` and unpublished. Install from a checkout —
 ### How long should a token last?
 
 As short as your join flow tolerates. The default is 600 seconds and that
-is a good answer for most apps. There is no revocation for an issued RTC
-token, so the lifetime *is* the control.
+is a good answer for most apps. A token can be revoked before it expires,
+but revocation cannot end a call already in progress, so the lifetime is
+still what bounds a leaked token.
 
 ### What happens when a token expires mid-call?
 
@@ -47,12 +48,19 @@ different: wire `onTokenExpiring` or the connection ends at expiry.
 No. Identity is signed into the token, and two clients presenting the same
 identity in one room conflict. Mint one per participant.
 
-### Why can't I revoke a token?
+### Can I revoke a token?
 
-RTC tokens have no revocation list — by design. If you need to eject
-someone, close the room or stop minting them tokens. Chat tokens are
-checked against a revocation set at connect, but no public endpoint
-currently triggers a revocation; see
+Yes, for RTC: `DELETE /v1/rooms/{roomId}/rtc-tokens/{tokenId}`, with the
+`id` from the mint response.
+
+Be clear about what it does, though. It refuses the token for **new**
+connections, which then fail with `TOKEN_REVOKED`. It does **not** eject
+someone already in the call — authorization is checked when a connection
+opens, not on every frame. To eject a live participant, close the room
+(`DELETE /v1/rooms/{roomId}`).
+
+Chat tokens are checked against the same kind of revocation set at
+connect, but no public endpoint triggers a chat revocation yet; see
 [Known limitations](/reference/known-limitations).
 
 ## Rooms and calls

@@ -16,18 +16,25 @@ npm install @ravenkash/rtc
 
 The token and endpoint come from your own backend — never mint them in a
 browser. See [`@ravenkash/server`](https://www.npmjs.com/package/@ravenkash/server)
-or [`raven-sdk`](https://pypi.org/project/raven-sdk/) for Python.
+or [Raven's Python SDK](https://github.com/atulsinghhhh/Raven/tree/main/sdks/python) for Python (not on PyPI yet — the
+`raven-sdk` name there belongs to an unrelated project).
 
 ```ts
 import { createRTCClient } from '@ravenkash/rtc';
 
-const client = createRTCClient({
-  token: grant.token,
-  endpoint: grant.endpoint,       // Raven's signaling WebSocket
-  iceServers: grant.iceServers,   // forward as-is; never hand-build STUN/TURN config
-});
+// `grant` is your backend's RTC token-mint response, forwarded verbatim.
+// It already carries the endpoint, the ICE servers and the room, so there
+// is nothing here to configure and no URL to hand-build.
+const client = createRTCClient(grant);
+const room = await client.join();
 
-const room = await client.join(roomId);
+// Spelling out the same thing, if you prefer to be explicit:
+//   const client = createRTCClient({
+//     token: grant.token,
+//     endpoint: grant.endpoint,       // Raven's signaling WebSocket
+//     iceServers: grant.iceServers,   // never hand-build STUN/TURN config
+//   });
+//   const room = await client.join(grant.roomName);
 
 await room.enableCamera();
 await room.enableMicrophone();

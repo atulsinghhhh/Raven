@@ -126,19 +126,22 @@ function QuickstartCard() {
       <pre className="overflow-x-auto px-4 py-3.5 font-mono text-xs leading-6 text-muted">
         <code>
           <span className="text-accent-text">import</span>
-          {' { RavenClient } '}
+          {' { createRTCClient } '}
           <span className="text-accent-text">from</span> <span className="text-success-text">{"'@ravenkash/rtc'"}</span>
           {';\n\n'}
+          <span className="text-subtle">{'// grant minted by your backend — never an API key\n'}</span>
           <span className="text-accent-text">const</span>
-          {' client = '}
-          <span className="text-accent-text">new</span>
-          {' RavenClient({ token });\n'}
+          {' room = '}
           <span className="text-accent-text">await</span>
-          {' client.'}
+          {' '}
+          <span className="text-info-text">createRTCClient</span>
+          {'(grant).'}
           <span className="text-info-text">join</span>
-          {'({ room: '}
-          <span className="text-success-text">{"'launch-day'"}</span>
-          {' });\n'}
+          {'(grant.roomName);\n'}
+          <span className="text-accent-text">await</span>
+          {' room.'}
+          <span className="text-info-text">enableCamera</span>
+          {'();\n'}
           <span className="text-subtle">{'// video, chat & presence — live.'}</span>
         </code>
       </pre>

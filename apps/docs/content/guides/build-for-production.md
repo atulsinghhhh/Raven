@@ -62,9 +62,13 @@ const credentials = await raven.tokens.create({
 });
 ```
 
-An RTC token cannot be revoked once issued — the lifetime *is* the control.
-Ten minutes is plenty; the SDK holds the connection open past expiry, and a
-reconnect mints a fresh one from your endpoint.
+Keep the lifetime short. A token *can* be revoked before it expires
+(`DELETE /v1/rooms/{roomId}/rtc-tokens/{tokenId}`), but revocation only
+blocks new connections — it does not hang up a call already in progress —
+so the lifetime is still the control that bounds a leak. Ten minutes is
+plenty; the SDK holds the connection open past expiry, and a reconnect
+mints a fresh one from your endpoint. See
+[RTC authentication](/rtc/authentication#revocation).
 
 For chat, wire the refresh callback. This is the most common production
 chat bug:

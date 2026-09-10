@@ -8,9 +8,19 @@ export interface ChatClientConfig {
    */
   token: string;
   /**
-   * WebSocket URL, i.e. the `chatUrl` field from the same mint response.
-   * Optional: leave it out and the SDK derives it from the token's issuer,
-   * so the common case really is just `createChatClient({ token })`.
+   * WebSocket URL: the `chatUrl` field from the same mint response.
+   *
+   * Optional only in the sense that `apiUrl` can stand in for it — the SDK
+   * derives one from the other. One of the two is required, because a chat
+   * token carries no address: its claims are `sub`/`pid`/`cvs`/`scopes`/
+   * `exp`/`jti` and nothing else, so there is nothing to self-locate from.
+   * Both fields come out of the mint response together, so forward the
+   * response and neither has to be thought about:
+   *
+   * ```ts
+   * const grant = await fetch('/api/chat/token').then((r) => r.json());
+   * createChatClient(grant);   // token + chatUrl + apiUrl, verbatim
+   * ```
    */
   chatUrl?: string;
   /** REST base for history and attachments. The `apiUrl` from the same response. */
@@ -99,7 +109,9 @@ export function validateConfig(config: ChatClientConfig): ResolvedChatClientConf
   const chatUrl = config.chatUrl ?? deriveChatUrl(config.apiUrl);
   if (!chatUrl) {
     throw new RavenChatAuthenticationError(
-      'config.chatUrl is required; the "chatUrl" field from the same response as config.token',
+      'createChatClient needs an address as well as a token: pass "chatUrl" or "apiUrl". ' +
+        'Both are fields of the POST /v1/chat/tokens response, so forwarding that whole ' +
+        'response — createChatClient(grant) — satisfies this.',
     );
   }
 

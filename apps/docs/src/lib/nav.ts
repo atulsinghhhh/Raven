@@ -195,6 +195,7 @@ export const NAV: NavSection[] = [
       { slug: 'authentication/tokens', title: 'Access tokens' },
       { slug: 'authentication/permissions', title: 'Permissions' },
       { slug: 'authentication/security', title: 'Security' },
+      { slug: 'authentication/browser-security', title: 'Browser security & CORS' },
       { slug: 'webhooks', title: 'Webhooks' },
       { slug: 'backend/idempotency', title: 'Idempotency' },
       { slug: 'backend/telemetry', title: 'Telemetry & privacy' },

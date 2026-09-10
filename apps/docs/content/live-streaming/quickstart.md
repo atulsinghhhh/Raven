@@ -21,7 +21,10 @@ chat conversation and the host's row in one call:
 
 ```ts
 import { Raven } from '@ravenkash/server';
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY,
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
+});
 
 const stream = await raven.liveStreams.create({ title: 'Launch Day', hostIdentity: 'alice' });
 // { id: 'stream_jRoD1T3EXh0PMJRGG4zYzQ', status: 'CREATED',
@@ -36,7 +39,10 @@ const stream = await raven.liveStreams.create({ title: 'Launch Day', hostIdentit
 ```python
 from raven import Raven, CreateLiveStreamParams
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 stream = raven.live_streams.create(CreateLiveStreamParams(title="Launch Day", host_identity="alice"))
 ```
 

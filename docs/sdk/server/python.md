@@ -9,7 +9,10 @@ Django, Flask, or plain Python — no framework-specific SDK.
 ## Installation
 
 ```bash
-pip install raven-sdk
+# Not on PyPI yet. `pip install raven-sdk` installs an UNRELATED third-party
+# package of that name ("Async Kafka and HTTP producer SDK for Raven AI
+# logs"), not this SDK — see docs/releases.md#python--raven-sdk.
+pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"
 ```
 
 Requires Python ≥3.10. Uses modern typing (`dataclasses`, `TypedDict`,
@@ -21,17 +24,26 @@ Requires Python ≥3.10. Uses modern typing (`dataclasses`, `TypedDict`,
 import os
 from raven import Raven
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 ```
 
-`api_key` is the only required argument. The SDK **never reads
-`RAVEN_API_KEY` (or any other environment variable) on its own** — you
-always pass it explicitly.
+`api_key` is the only argument the SDK *validates*, but on its own it is
+not enough: `base_url` defaults to `http://localhost:4100`, so a client
+built from just a key talks to a local dev stack and fails against any
+real deployment. Pass both unless you are genuinely running Raven on
+localhost.
+
+The SDK **never reads
+`RAVEN_API_KEY`, `RAVEN_API_URL`, or any other environment variable on its
+own** — you always pass them explicitly.
 
 ```python
 raven = Raven(
     api_key=os.environ["RAVEN_API_KEY"],
-    base_url="https://your-raven-deployment.example",  # defaults to http://localhost:4100
+    base_url="https://api.ravenstack.online",  # or your own deployment; defaults to http://localhost:4100
     timeout=10.0,     # seconds, defaults to 10 — a request never hangs indefinitely
     max_retries=2,    # defaults to 2
 )
@@ -40,7 +52,10 @@ raven = Raven(
 Use it as a context manager to close the underlying connection pool:
 
 ```python
-with Raven(api_key=os.environ["RAVEN_API_KEY"]) as raven:
+with Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+) as raven:
     ...
 ```
 
@@ -50,7 +65,10 @@ with Raven(api_key=os.environ["RAVEN_API_KEY"]) as raven:
 from raven import AsyncRaven, CreateTokenParams
 
 async def main():
-    async with AsyncRaven(api_key=os.environ["RAVEN_API_KEY"]) as raven:
+    async with AsyncRaven(
+        api_key=os.environ["RAVEN_API_KEY"],
+        base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+    ) as raven:
         token = await raven.tokens.create(CreateTokenParams(room=room_id, identity="user-42"))
 ```
 

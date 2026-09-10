@@ -20,6 +20,15 @@ describe('Raven', () => {
     expect(raven.diagnostics).toBeDefined();
     expect(raven.chat).toBeDefined();
     expect(raven.liveStreams).toBeDefined();
+    expect(raven.live).toBeDefined();
+  });
+
+  it('exposes raven.live as the very same object as raven.liveStreams', () => {
+    // An alias, not a second implementation: identity is the guarantee that
+    // the two spellings can never drift apart.
+    const raven = new Raven({ apiKey: 'k' });
+
+    expect(raven.live).toBe(raven.liveStreams);
   });
 
   it('never exposes the API key through JSON.stringify or String() on the client itself', () => {

@@ -201,7 +201,22 @@ changes. **Answer it** with `sdp.answer`.
 
 ### `sdp.answer`
 
-The SFU's answer to a client-initiated offer.
+The SFU's answer to a client-initiated offer. Always carries
+`a=setup:passive`.
+
+That is a guarantee, not an accident. Because negotiation runs in both
+directions on one peer connection, the DTLS role has to be identical
+whichever side offered — it belongs to the transport and cannot change once
+the handshake has run. **The client is always the DTLS client and the SFU is
+always the DTLS server.** So the SFU offers `a=setup:actpass` (answer it
+`active`) and answers `a=setup:passive`, and a client never has to reason
+about the role at all.
+
+Getting this wrong is not a subtle degradation. A client that answers the
+SFU's join offer `active` and is then answered `active` when it publishes is
+being asked to swap roles mid-session; Chrome rejects the SDP outright with
+"Failed to set SSL role for the transport", and the publish never
+negotiates.
 
 ### `ice.candidate`
 
@@ -268,6 +283,7 @@ a diagnosis rather than a contradiction.
 | `TOKEN_EXPIRED` | With a new token | Refresh and reconnect. |
 | `UNAUTHORIZED` | No | The token does not authorize this. |
 | `PERMISSION_DENIED` | No | The grant does not include this action. |
+| `ORIGIN_NOT_ALLOWED` | No | The page's `Origin` is not on the project's allow-list. The token was valid; the page holding it was not expected. Fixed in the dashboard under Project Settings, Security, Allowed Origins — not by retrying. CORS does not apply to a WebSocket upgrade, so this gateway checks `Origin` itself. |
 | `ROOM_NOT_FOUND` | No | No such room in this project and environment. |
 | `ROOM_FULL` | No | The room hit its participant limit. |
 | `NOT_IN_ROOM` | After rejoining | An action was attempted before `room.join`, or the media session is gone. |

@@ -26,7 +26,10 @@ The role determines the scopes described in
 
 ```ts
 import { Raven } from '@ravenkash/server';
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY,
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
+});
 
 const member = await raven.chat.addMember('support-room-42', { userId: 'carol', role: 'MODERATOR' });
 // { userId: 'carol', role: 'MODERATOR', status: 'ACTIVE', joinedAt: '...', leftAt: null }
@@ -35,7 +38,10 @@ const member = await raven.chat.addMember('support-room-42', { userId: 'carol', 
 ```python
 from raven import Raven, ChatMemberRole
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 member = raven.chat.add_member("support-room-42", "carol", role=ChatMemberRole.MODERATOR)
 ```
 

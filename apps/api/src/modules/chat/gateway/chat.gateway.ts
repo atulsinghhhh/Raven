@@ -35,6 +35,7 @@ import { ChatRateLimitService } from '../rate-limit/chat-rate-limit.service';
 import { ChatEventEnvelope } from '../realtime/chat-event.interface';
 import { ChatEventsService } from '../realtime/chat-events.service';
 import { ChatTokenService } from '../tokens/chat-token.service';
+import { ProjectOriginService } from '../../../shared/origins/project-origin.service';
 import { TypingService } from '../typing/typing.service';
 import { ChatSession, RoomSubscription } from './chat-session.interface';
 import { ConnectionRegistryService } from './connection-registry.service';
@@ -83,6 +84,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     private readonly metrics: ChatMetricsService,
     private readonly registry: ConnectionRegistryService,
     private readonly configService: ConfigService,
+    private readonly origins: ProjectOriginService,
   ) {}
 
   afterInit(): void {
@@ -120,15 +122,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     const clientIp = extractClientIp(request);
 
-    if (!this.isOriginAllowed(request)) {
-      this.logger.warn(`chat connection rejected: disallowed origin from ${clientIp}`);
-      this.rejectConnection(
-        socket,
-        new ChatError(ChatErrorCode.ORIGIN_NOT_ALLOWED, 'This origin is not allowed to open a chat connection'),
-        CHAT_CLOSE_FORBIDDEN,
-      );
-      return;
-    }
+    // The origin check lives *after* token verification, further down: it is
+    // per-project now, and the project is a claim in the token. Rate
+    // limiting still comes first, so a bad origin cannot buy free
+    // signature verifications either.
 
     // Rate-limit by IP *before* verifying the token. Otherwise an attacker
     // gets free signature verifications, and that's the expensive part.
@@ -153,6 +150,26 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         socket,
         chatError,
         chatError.chatCode === ChatErrorCode.TOKEN_EXPIRED ? CHAT_CLOSE_TOKEN_EXPIRED : CHAT_CLOSE_AUTH_FAILED,
+      );
+      return;
+    }
+
+    // Per-project origin policy. CORS does not apply to a WebSocket
+    // upgrade, so this is the only thing standing between a page on an
+    // unlisted origin and a chat connection — and unlike HTTP, the token is
+    // in hand here, so the project is known and the check is genuinely
+    // per-tenant.
+    if (!(await this.origins.isAllowed(claims.pid, request.headers.origin))) {
+      this.logger.warn(
+        `chat connection rejected: origin ${request.headers.origin} not allowed for project ${claims.pid}`,
+      );
+      this.rejectConnection(
+        socket,
+        new ChatError(
+          ChatErrorCode.ORIGIN_NOT_ALLOWED,
+          'This origin is not allowed for this project. Add it under Project Settings, Security, Allowed Origins.',
+        ),
+        CHAT_CLOSE_FORBIDDEN,
       );
       return;
     }
@@ -672,29 +689,6 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     this.send(socket, error.toFrame());
     socket.resume();
     socket.close(closeCode, error.chatCode);
-  }
-
-  /**
-   * Origin check for the upgrade (spec §39).
-   *
-   * Browsers always send Origin. Non-browser clients, a server-side bot or a
-   * load test, legitimately don't. So a missing Origin is allowed while a
-   * *wrong* one isn't. Page JavaScript can't forge the header, and that's
-   * the attack this actually defends against.
-   */
-  private isOriginAllowed(request: IncomingMessage): boolean {
-    const configured = this.configService.get<string>('cors.origin')!;
-    if (configured === '*') {
-      return true;
-    }
-    const origin = request.headers.origin;
-    if (!origin) {
-      return true;
-    }
-    return configured
-      .split(',')
-      .map((allowed) => allowed.trim())
-      .includes(origin);
   }
 
   /** Live counts, for /health and the dashboard. */

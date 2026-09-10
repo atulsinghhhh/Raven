@@ -23,6 +23,7 @@ import { AttachmentsService } from '../attachments/attachments.service';
 import { CreateAttachmentDto } from '../attachments/dto/create-attachment.dto';
 import { ChatActor } from '../auth/chat-actor.interface';
 import { ChatAuthGuard } from '../auth/chat-auth.guard';
+import { ProjectOriginGuard } from '../../../shared/origins/project-origin.guard';
 import { CurrentChatActor } from '../auth/decorators/current-chat-actor.decorator';
 import { AddMemberDto } from '../conversations/dto/add-member.dto';
 import { CreateConversationDto } from '../conversations/dto/create-conversation.dto';
@@ -56,7 +57,9 @@ import { ChatErrorCode } from '../chat.constants';
 @ApiBearerAuth('apiKey')
 @ApiBearerAuth('chatToken')
 @Controller('v1/chat')
-@UseGuards(ChatAuthGuard)
+// ProjectOriginGuard second, always: it reads the project off the
+// credential ChatAuthGuard just verified.
+@UseGuards(ChatAuthGuard, ProjectOriginGuard)
 export class ChatController {
   constructor(
     private readonly conversations: ConversationsService,

@@ -38,7 +38,10 @@ for a token scoped to that one user:
 ```js
 // backend
 import { Raven } from '@ravenkash/server';
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY,
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
+});
 
 const token = await raven.chat.createToken({
   userId: req.user.id,          // from YOUR session, never the request body

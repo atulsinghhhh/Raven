@@ -54,12 +54,20 @@ then the media plane could not change without breaking that client.
 // on your frontend, having fetched `resp` from your own backend:
 import { createRTCClient } from '@ravenkash/rtc';
 
+// The mint response is already the config: forward it whole.
+const client = createRTCClient(resp);
+
+// Or field by field, which is the same call:
 const client = createRTCClient({
   token: resp.token,
   endpoint: resp.endpoint,
   iceServers: resp.iceServers, // never hand-construct STUN/TURN config yourself
 });
 ```
+
+Passing the response verbatim works because `RTCClientConfig` is a subset
+of it — the extra fields (`roomId`, `permissions`, `expiresAt`, …) are
+ignored. There is deliberately no separate `fromGrant()` helper to learn.
 
 `iceServers` is optional only so tests/advanced setups can omit it — in
 normal use, always forward it from the token response. See
@@ -68,13 +76,23 @@ normal use, always forward it from the token response. See
 ## Joining a room
 
 ```js
-const room = await client.join('room-123');
+const room = await client.join();          // the room the token names
+const room = await client.join('room-123'); // or say it explicitly
 ```
 
-`roomId` must match the room your token was minted for — the SDK decodes
-(never verifies; the server is the source of truth) the token client-side
-and throws `ROOM_NOT_FOUND` immediately if it doesn't match, rather than
-letting you hit a confusing connection failure later.
+The argument is optional. A token carries its room in the `rnm`/`rid`
+claims, so a client built from a grant already knows where it is going and
+`join()` needs nothing further. Raven told you the room; you should not
+have to tell Raven.
+
+Pass one explicitly and it still has to match the room the token was minted
+for — the SDK decodes (never verifies; the server is the source of truth)
+the token client-side and throws `ROOM_NOT_FOUND` immediately if it
+doesn't, rather than letting you hit a confusing connection failure later.
+
+A token carrying neither claim has nothing to default to, so `join()` with
+no argument throws `ROOM_NOT_FOUND` naming the fix. Only hand-built tokens
+and pre-`rnm` ones are in that position.
 
 Handling participants already in the room when you join:
 

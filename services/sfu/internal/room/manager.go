@@ -106,6 +106,37 @@ func NewManager(cfg *config.Config, events RoomEvents, logger *slog.Logger) (*Ma
 	// time on every single join.
 	settings.SetICEMulticastDNSMode(ice.MulticastDNSModeDisabled)
 
+	// Always be the DTLS server, whichever side happened to offer.
+	//
+	// This SFU negotiates in both directions on one PeerConnection: it
+	// offers (Participant.CreateOffer, on join and on every renegotiation)
+	// and it answers (Participant.AcceptOffer, when a client starts
+	// publishing). The DTLS role has to come out the same either way,
+	// because it is a property of the transport and cannot be changed once
+	// the handshake has run.
+	//
+	// Pion's default does not give us that. defaultDtlsRoleAnswer is
+	// DTLSRoleClient, so:
+	//
+	//   join      SFU offers a=setup:actpass -> client answers active
+	//             => client is DTLS client, SFU is DTLS server
+	//   publish   client offers a=setup:actpass -> SFU answers active
+	//             => SFU claims the client role it just gave away
+	//
+	// The second exchange asks both peers to swap roles mid-session.
+	// Chrome rejects the answer outright with "Failed to set SSL role for
+	// the transport", the publish never negotiates, and — because the SFU
+	// offers first at join — this hits the *first* participant in every
+	// room, whose publish is always the second exchange. Later joiners
+	// answer an SFU offer first and happen to line up.
+	//
+	// Pinning the answering role to server makes both paths agree: the
+	// client is the DTLS client, we are the DTLS server, always. That is
+	// also the conventional arrangement for an SFU, which is a server.
+	if err := settings.SetAnsweringDTLSRole(webrtc.DTLSRoleServer); err != nil {
+		return nil, fmt.Errorf("pin answering DTLS role to server: %w", err)
+	}
+
 	api := webrtc.NewAPI(
 		webrtc.WithMediaEngine(mediaEngine),
 		webrtc.WithInterceptorRegistry(registry),

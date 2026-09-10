@@ -13,10 +13,6 @@ and never in a browser or app.
 
 ## 1. Install
 
-> **Not published to npm yet.** The commands below are what installation
-> will look like once these packages are released. Until then, install
-> from a local checkout — see [Installing from source](/getting-started/installing-from-source).
-
 <Tabs>
 <Tab title="Web">
 
@@ -71,7 +67,10 @@ Mint a token on your backend — never construct one client-side:
 
 ```ts
 import { Raven } from '@ravenkash/server';
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY,
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
+});
 
 app.post('/join-room', async (req, res) => {
   const room = await raven.rooms.create({ name: 'demo-room' });
@@ -90,7 +89,10 @@ app.post('/join-room', async (req, res) => {
 ```python
 from raven import Raven, CreateTokenParams, TokenPermissions
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 
 @app.post("/join-room")
 def join_room(request):
