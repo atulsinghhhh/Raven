@@ -1,13 +1,5 @@
-import {
-  DASHBOARD_URL,
-  DEVELOPER_GITHUB_URL,
-  DEVELOPER_X_URL,
-  DISCORD_URL,
-  DOCS_ROUTES,
-  DOCS_URL,
-  WHATSAPP_URL,
-} from '../lib/links';
-import { DiscordIcon, GitHubIcon, RavenMark, WhatsAppIcon, XIcon } from './icons';
+import { DASHBOARD_URL, DOCS_ROUTES, DOCS_URL, GITHUB_REPO_URL, WHATSAPP_URL } from '../lib/links';
+import { GitHubIcon, RavenMark, WhatsAppIcon } from './icons';
 
 const COLUMNS = [
   {
@@ -32,7 +24,7 @@ const COLUMNS = [
   {
     title: 'Community',
     links: [
-      { label: 'Discord', href: DISCORD_URL },
+      { label: 'GitHub', href: GITHUB_REPO_URL },
       { label: 'WhatsApp', href: WHATSAPP_URL },
       { label: 'Dashboard', href: DASHBOARD_URL },
     ],
@@ -68,7 +60,7 @@ export function Footer() {
                       }
                       className="flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-fg"
                     >
-                      {link.label === 'Discord' && <DiscordIcon className="h-4 w-4" />}
+                      {link.label === 'GitHub' && <GitHubIcon className="h-4 w-4" />}
                       {link.label === 'WhatsApp' && <WhatsAppIcon className="h-4 w-4" />}
                       {link.label}
                     </a>
@@ -79,29 +71,8 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col gap-3 border-t border-line pt-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 border-t border-line pt-6 text-sm text-muted">
           <p>&copy; Raven. All rights reserved.</p>
-          <p className="flex items-center gap-1.5">
-            Built by Atul
-            <a
-              href={DEVELOPER_GITHUB_URL}
-              target="_blank"
-              rel="noreferrer noopener"
-              aria-label="Atul on GitHub"
-              className="text-muted transition-colors hover:text-fg"
-            >
-              <GitHubIcon className="h-3.5 w-3.5" />
-            </a>
-            <a
-              href={DEVELOPER_X_URL}
-              target="_blank"
-              rel="noreferrer noopener"
-              aria-label="Atul on X"
-              className="text-muted transition-colors hover:text-fg"
-            >
-              <XIcon className="h-3.5 w-3.5" />
-            </a>
-          </p>
         </div>
       </div>
     </footer>
