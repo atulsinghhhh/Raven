@@ -1,8 +1,8 @@
 -- Per-project browser origin allow-lists.
 --
--- Livqeno is multi-tenant, so "which origins may talk to us" is a property of
+-- Raven is multi-tenant, so "which origins may talk to us" is a property of
 -- a project, not of the deployment. A global CORS_ORIGIN list cannot express
--- it and cannot isolate one tenant from another: it either names Livqeno's own
+-- it and cannot isolate one tenant from another: it either names Raven's own
 -- first-party origins (and then no customer's app works) or it names
 -- everybody's (and then project A's origin is as good as project B's).
 --

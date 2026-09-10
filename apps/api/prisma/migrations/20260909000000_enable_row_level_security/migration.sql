@@ -1,7 +1,7 @@
 -- Lock down Supabase's auto-exposed Data API (PostgREST) for every table
 -- Prisma manages.
 --
--- Livqeno never uses Supabase Auth, supabase-js, or PostgREST: the backend
+-- Raven never uses Supabase Auth, supabase-js, or PostgREST: the backend
 -- authenticates its own users with its own JWT (see AuthService) and talks
 -- to Postgres only through Prisma, connected as the `postgres` role
 -- (DATABASE_URL/DIRECT_URL — see prisma.service.ts). Supabase nonetheless
@@ -10,7 +10,7 @@
 -- holding this project's anon key could read or write any row here through
 -- the auto-generated REST API. Since `postgres` (and `service_role`) carry
 -- BYPASSRLS, enabling RLS here has zero effect on the application itself —
--- Livqeno's real authorization (project membership, capability roles; see
+-- Raven's real authorization (project membership, capability roles; see
 -- project-permissions.ts) already lives entirely in the NestJS layer and is
 -- unchanged by this migration.
 --

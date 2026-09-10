@@ -1,4 +1,4 @@
--- Free-tier usage metering: every developer gets a fixed allowance of Livqeno
+-- Free-tier usage metering: every developer gets a fixed allowance of Raven
 -- minutes, and every RTC participant-session spends against it.
 --
 -- Two tables, and the split is the design: `usage_allowances` is the
