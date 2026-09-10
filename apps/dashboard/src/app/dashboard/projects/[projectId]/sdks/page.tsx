@@ -79,7 +79,7 @@ room.on('trackSubscribed', (track) => {
     install: { language: 'bash', code: 'npm install @ravenkash/server' },
     usage: {
       language: 'typescript',
-      code: `import { Livqeno } from '@ravenkash/server';
+      code: `import { Raven } from '@ravenkash/server';
 
 const raven = new Raven({
   apiKey: process.env.RAVEN_API_KEY!,

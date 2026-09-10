@@ -129,7 +129,7 @@ export default function DocsHome() {
                 <span className="mono-label text-[11px] text-muted">Your backend — mint a token</span>
               </div>
               <pre className="overflow-x-auto px-4 py-3.5 text-[12.5px] leading-relaxed">
-                <code>{`import { Livqeno } from '@ravenkash/server';
+                <code>{`import { Raven } from '@ravenkash/server';
 
 const raven = new Raven({
   apiKey: process.env.RAVEN_API_KEY!,

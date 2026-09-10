@@ -77,7 +77,7 @@ await camera.attachEffects(pipeline);`,
     id: 'server',
     label: 'Server (Python)',
     filename: 'server.py',
-    code: `from raven import Livqeno, CreateTokenParams, TokenPermissions
+    code: `from raven import Raven, CreateTokenParams, TokenPermissions
 
 raven = Raven(
     api_key=os.environ["RAVEN_API_KEY"],

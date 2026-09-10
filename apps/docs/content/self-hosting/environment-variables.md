@@ -6,7 +6,7 @@ description: Every variable any Livqeno component reads, grouped by what it conf
 Livqeno's components read **117** environment variables between them —
 **97** by the control plane, **16** by the SFU,
 **6** by the dashboard. `.env.example` documents
-**105**, which leaves **22** read but
+**106**, which leaves **21** read but
 undocumented there; those are marked below.
 
 This page is generated from the source, so it is the complete set.
@@ -51,7 +51,7 @@ openssl rand -hex 32   # TURN_SECRET
 | `API_PUBLIC_URL` | **not in `.env.example`** |
 | `APP_URL` |   |
 | `CORS_ORIGIN` |   |
-| `DOCS_URL` | **not in `.env.example`** |
+| `DOCS_URL` |   |
 | `LOG_LEVEL` |   |
 | `NODE_ENV` | **not in `.env.example`** |
 

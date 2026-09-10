@@ -223,7 +223,7 @@ function Step({
   );
 }
 
-const NODE_TOKEN = `import { Livqeno } from '@ravenkash/server';
+const NODE_TOKEN = `import { Raven } from '@ravenkash/server';
 
 // The SDK never reads env vars on its own: pass the key explicitly.
 const raven = new Raven({

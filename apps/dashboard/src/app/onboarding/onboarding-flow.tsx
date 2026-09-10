@@ -629,7 +629,7 @@ function ConnectStep({
   // TypeError. The grant is spread whole: it carries `endpoint`,
   // `iceServers` and `telemetryUrl`, and hand-picking fields off it is how
   // people end up configuring infrastructure Livqeno means to hide.
-  const backendSnippet = `import { Livqeno } from '@ravenkash/server';
+  const backendSnippet = `import { Raven } from '@ravenkash/server';
 
 const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
 

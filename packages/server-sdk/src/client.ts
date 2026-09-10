@@ -16,7 +16,7 @@ import { TokensResource } from './resources/tokens';
  * or an instance of this class, to a browser (Phase 10 spec §2).
  *
  * ```ts
- * import { Livqeno } from '@ravenkash/server';
+ * import { Raven } from '@ravenkash/server';
  * const raven = new Raven({
  *   apiKey: process.env.RAVEN_API_KEY!,
  *   baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
