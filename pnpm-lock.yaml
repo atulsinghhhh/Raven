@@ -652,12 +652,6 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
-  test:
-    dependencies:
-      '@ravenkash/server':
-        specifier: workspace:*
-        version: link:../packages/server-sdk
-
 packages:
 
   '@adobe/css-tools@4.5.0':
