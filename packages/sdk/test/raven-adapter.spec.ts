@@ -99,6 +99,32 @@ async function settleNegotiation(socket: FakeWebSocket, pc: FakeRTCPeerConnectio
   throw new Error('negotiation never settled');
 }
 
+/**
+ * An offer shaped like the one Raven's SFU sends at join: a recvonly
+ * m-section per kind, each carrying an msid of the SFU's own.
+ *
+ * `Manager.AddParticipant` adds those two transceivers up front so a first
+ * publish costs no extra renegotiation. `addTrack` then reuses them, and
+ * the m-section keeps the SFU's msid — which is the whole reason a
+ * publication id has to be read back off the SDP.
+ */
+function sfuJoinOffer(tag = 'sfu-join'): string {
+  return [
+    'v=0',
+    'o=- 0 0 IN IP4 127.0.0.1',
+    's=-',
+    't=0 0',
+    'm=audio 9 UDP/TLS/RTP/SAVPF 111',
+    'a=mid:0',
+    `a=msid:${tag}-audio-stream ${tag}-audio-slot`,
+    'a=recvonly',
+    'm=video 9 UDP/TLS/RTP/SAVPF 96',
+    'a=mid:1',
+    `a=msid:${tag}-video-stream ${tag}-video-slot`,
+    'a=recvonly',
+  ].join('\r\n');
+}
+
 /** Answers an SFU offer, which is what brings the PeerConnection into being. */
 async function receiveOffer(socket: FakeWebSocket, sdp = 'v=0 fake-server-offer'): Promise<FakeRTCPeerConnection> {
   socket.receive({ type: 'sdp.offer', sdp });
@@ -937,6 +963,132 @@ describe('RavenAdapter', () => {
       expect(socket.sentMessages().filter((m) => m.type === 'sdp.offer')).toHaveLength(offers);
     });
 
+    it('declares the source under the publication id the wire actually carries', async () => {
+      // A publication's identity in this protocol is the track id in the
+      // SDP `a=msid:` line: the SFU keys its published-track map, its
+      // source declaration, its mute lookups and the id it announces to
+      // subscribers on exactly that. The SFU also pre-creates a recvonly
+      // transceiver per kind, `addTrack` reuses it, and the m-section can
+      // keep an msid the browser will not rewrite — so the declared id and
+      // the wire id came apart, the SFU matched nothing, and it inferred
+      // the source from the codec kind. A screen share inferred that way
+      // is a camera.
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+
+      // What a reused transceiver looks like: the m-section announces an
+      // id that is not the track's.
+      pc.msidOverrides.set('0', 'id-the-sfu-put-there');
+
+      const share = await adapter.enableScreenShare(true);
+      await flush();
+      await flush();
+
+      const localId = share!.mediaStreamTrack.id;
+      const declarations = socket
+        .sentMessages()
+        .filter((message) => message.type === 'track.publish')
+        .map((message) => ({ trackId: message.trackId, source: message.source }));
+
+      // Declared again under the wire id, still as a screen share.
+      expect(declarations).toContainEqual({
+        trackId: 'id-the-sfu-put-there',
+        source: 'screenShare',
+      });
+      // And the correction arrived after the first, hopeful, declaration.
+      expect(declarations.at(-1)).toEqual({
+        trackId: 'id-the-sfu-put-there',
+        source: 'screenShare',
+      });
+      expect(localId).not.toBe('id-the-sfu-put-there');
+    });
+
+    it('sends the corrected id on the same socket before the description it describes', async () => {
+      // Ordering is the whole reason this needs no delay: one socket,
+      // FIFO, so a declaration queued before the answer reaches the SFU
+      // before the media that answer unblocks.
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+      pc.msidOverrides.set('0', 'wire-id');
+
+      await adapter.enableCamera(true);
+      await flush();
+      await flush();
+
+      const order = socket
+        .sentMessages()
+        .map((message, index) => ({ index, type: message.type, trackId: message.trackId }));
+      const corrected = order.find((m) => m.type === 'track.publish' && m.trackId === 'wire-id');
+      const description = order.filter((m) => m.type === 'sdp.offer' || m.type === 'sdp.answer').at(-1);
+
+      expect(corrected).toBeDefined();
+      expect(description).toBeDefined();
+      expect(corrected!.index).toBeLessThan(description!.index);
+    });
+
+    it('mutes by the corrected publication id, not the local track id', async () => {
+      // Mute lookups are keyed on the same id, so they were missing the
+      // track for exactly the same reason.
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+      pc.msidOverrides.set('0', 'wire-id');
+
+      await adapter.enableCamera(true);
+      await settleNegotiation(socket, pc);
+
+      // Enabling an already-published kind unmutes it over signaling.
+      await adapter.enableCamera(true);
+      await flush();
+
+      expect(socket.lastSent('track.mute')).toMatchObject({ trackId: 'wire-id', muted: false });
+    });
+
+    it('leaves the id alone when the wire already agrees', async () => {
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+
+      const camera = await adapter.enableCamera(true);
+      await settleNegotiation(socket, pc);
+
+      const declarations = socket
+        .sentMessages()
+        .filter((message) => message.type === 'track.publish');
+      expect(declarations).toHaveLength(1);
+      expect(declarations[0]).toMatchObject({
+        trackId: camera!.mediaStreamTrack.id,
+        source: 'camera',
+      });
+    });
+
+    it('keeps a camera and a screen share apart, by id and by source', async () => {
+      // Two video m-sections, one of them reusing the SFU's slot. Reading
+      // the msid by mid is what keeps them from being labelled alike.
+      const { adapter, socket } = await connectAdapter();
+      const pc = await receiveOffer(socket);
+      pc.msidOverrides.set('0', 'sfu-video-slot');
+
+      const camera = await adapter.enableCamera(true);
+      await settleNegotiation(socket, pc);
+      const share = await adapter.enableScreenShare(true);
+      await settleNegotiation(socket, pc);
+
+      const bySource = new Map(
+        socket
+          .sentMessages()
+          .filter((message) => message.type === 'track.publish')
+          .map((message) => [message.source as string, message.trackId as string]),
+      );
+
+      // The reused slot's id belongs to whichever track landed on it, and
+      // the other keeps its own. Either way the two are distinct and each
+      // carries its own source.
+      expect(bySource.get('camera')).toBeDefined();
+      expect(bySource.get('screenShare')).toBeDefined();
+      expect(bySource.get('camera')).not.toBe(bySource.get('screenShare'));
+      expect([camera!.mediaStreamTrack.id, 'sfu-video-slot']).toContain(bySource.get('camera'));
+      expect([share!.mediaStreamTrack.id, 'sfu-video-slot']).toContain(bySource.get('screenShare'));
+    });
+
     it('refuses to publish a track it did not create', async () => {
       const { adapter, socket } = await connectAdapter();
       await receiveOffer(socket);
@@ -1013,6 +1165,216 @@ describe('RavenAdapter', () => {
       channel.receive(new TextEncoder().encode('nope').buffer as ArrayBuffer);
 
       expect(received).toHaveLength(0);
+    });
+  });
+
+  describe('publication identity across a source lifecycle', () => {
+    /**
+     * The SFU's view of this participant's publications, built the way the
+     * SFU builds it.
+     *
+     * `track.publish` declares a source against a publication id; the RTP
+     * stream announces an id of its own in the SDP `msid`. The SFU matches
+     * the two and, failing that, infers the source from the codec kind —
+     * which cannot tell a screen share from a camera. Asserting on this
+     * rather than on what the SDK meant is the point: it is the server's
+     * conclusion that consumers read.
+     */
+    function sfuView(socket: FakeWebSocket, pc: FakeRTCPeerConnection) {
+      const declared = new Map<string, string>();
+      for (const message of socket.sentMessages()) {
+        if (message.type === 'track.publish') {
+          declared.set(message.trackId as string, message.source as string);
+        }
+      }
+
+      const wireIds = new Map<string, string>();
+      let mid: string | undefined;
+      for (const line of (pc.localDescription?.sdp ?? '').split(/\r?\n/)) {
+        if (line.startsWith('a=mid:')) {
+          mid = line.slice('a=mid:'.length).trim();
+        }
+        if (line.startsWith('a=msid:') && mid) {
+          const trackId = line.slice('a=msid:'.length).trim().split(/\s+/)[1];
+          if (trackId) {
+            wireIds.set(mid, trackId);
+          }
+        }
+      }
+
+      return pc
+        .getTransceivers()
+        .filter((transceiver) => transceiver.sender.track !== null)
+        .map((transceiver) => {
+          const publicationId = wireIds.get(transceiver.mid) ?? transceiver.sender.track!.id;
+          const kind = transceiver.sender.track!.kind;
+          return {
+            publicationId,
+            kind,
+            source: declared.get(publicationId) ?? (kind === 'audio' ? 'microphone' : 'camera'),
+            guessed: !declared.has(publicationId),
+          };
+        });
+    }
+
+    /** Joins, then answers the SFU's slot-bearing offer. */
+    async function joined(): Promise<{
+      adapter: RavenAdapter;
+      socket: FakeWebSocket;
+      pc: FakeRTCPeerConnection;
+    }> {
+      const { adapter, socket } = await connectAdapter({ autoReconnect: true });
+      socket.receive({ type: 'sdp.offer', sdp: sfuJoinOffer() });
+      await flush();
+      return { adapter, socket, pc: FakeRTCPeerConnection.latest };
+    }
+
+    async function rejoin(
+      socket: FakeWebSocket,
+    ): Promise<{ socket: FakeWebSocket; pc: FakeRTCPeerConnection }> {
+      const before = FakeWebSocket.instances.length;
+      socket.close(1006);
+      await flush();
+      const next = await waitForNewSocket(before);
+      next.receive({
+        type: 'room.joined',
+        roomId: 'room-1',
+        participants: [],
+        rtcServer: 'sfu-local-01',
+        region: 'local',
+      });
+      await flush();
+      // The new session offers its own slots, as the old one did.
+      next.receive({ type: 'sdp.offer', sdp: sfuJoinOffer('sfu-rejoin') });
+      await flush();
+      return { socket: next, pc: FakeRTCPeerConnection.latest };
+    }
+
+    it('classifies a camera and a screen share unambiguously, and keeps doing so', async () => {
+      // 1. join
+      const { adapter, socket, pc } = await joined();
+
+      // 2. publish camera — this is the publish that reuses the SFU's
+      // video slot and inherits its msid.
+      await adapter.enableCamera(true);
+      await settleNegotiation(socket, pc);
+
+      // 3. publish screen share
+      await adapter.enableScreenShare(true);
+      await settleNegotiation(socket, pc);
+
+      // 4. two video publications. 5/6. one camera, one screen share,
+      // neither of them guessed.
+      let view = sfuView(socket, pc);
+      expect(view.filter((publication) => publication.kind === 'video')).toHaveLength(2);
+      expect(view.map((publication) => publication.source).sort()).toEqual([
+        'camera',
+        'screenShare',
+      ]);
+      expect(view.every((publication) => !publication.guessed)).toBe(true);
+      expect(new Set(view.map((publication) => publication.publicationId)).size).toBe(2);
+
+      // 9. reconnect. 10. the sources survive it.
+      const rejoined = await rejoin(socket);
+      await settleNegotiation(rejoined.socket, rejoined.pc);
+
+      view = sfuView(rejoined.socket, rejoined.pc);
+      expect(view.filter((publication) => publication.kind === 'video')).toHaveLength(2);
+      expect(view.map((publication) => publication.source).sort()).toEqual([
+        'camera',
+        'screenShare',
+      ]);
+      expect(view.every((publication) => !publication.guessed)).toBe(true);
+
+      // 11. stop the screen share.
+      await adapter.enableScreenShare(false);
+      await settleNegotiation(rejoined.socket, rejoined.pc);
+      expect(
+        sfuView(rejoined.socket, rejoined.pc).map((publication) => publication.source),
+      ).toEqual(['camera']);
+
+      // 12. start it again. 13. still classified as a screen share.
+      await adapter.enableScreenShare(true);
+      await settleNegotiation(rejoined.socket, rejoined.pc);
+      view = sfuView(rejoined.socket, rejoined.pc);
+      expect(view.map((publication) => publication.source).sort()).toEqual([
+        'camera',
+        'screenShare',
+      ]);
+      expect(view.every((publication) => !publication.guessed)).toBe(true);
+    });
+
+    it('camera, stopped, then a screen share onto the freed slot', async () => {
+      const { adapter, socket, pc } = await joined();
+
+      await adapter.enableCamera(true);
+      await settleNegotiation(socket, pc);
+      await adapter.enableCamera(false);
+      await settleNegotiation(socket, pc);
+      await adapter.enableScreenShare(true);
+      await settleNegotiation(socket, pc);
+
+      const view = sfuView(socket, pc);
+      expect(view.map((publication) => publication.source)).toEqual(['screenShare']);
+      expect(view.every((publication) => !publication.guessed)).toBe(true);
+    });
+
+    it('screen share, stopped, then a camera onto the freed slot', async () => {
+      const { adapter, socket, pc } = await joined();
+
+      await adapter.enableScreenShare(true);
+      await settleNegotiation(socket, pc);
+      await adapter.enableScreenShare(false);
+      await settleNegotiation(socket, pc);
+      await adapter.enableCamera(true);
+      await settleNegotiation(socket, pc);
+
+      const view = sfuView(socket, pc);
+      expect(view.map((publication) => publication.source)).toEqual(['camera']);
+      expect(view.every((publication) => !publication.guessed)).toBe(true);
+    });
+
+    it('camera and screen share published concurrently', async () => {
+      const { adapter, socket, pc } = await joined();
+
+      await Promise.all([adapter.enableCamera(true), adapter.enableScreenShare(true)]);
+      await settleNegotiation(socket, pc);
+
+      const view = sfuView(socket, pc);
+      expect(view.map((publication) => publication.source).sort()).toEqual([
+        'camera',
+        'screenShare',
+      ]);
+      expect(view.every((publication) => !publication.guessed)).toBe(true);
+      expect(new Set(view.map((publication) => publication.publicationId)).size).toBe(2);
+    });
+
+    it('reconnects while screen sharing', async () => {
+      const { adapter, socket, pc } = await joined();
+      await adapter.enableScreenShare(true);
+      await settleNegotiation(socket, pc);
+
+      const rejoined = await rejoin(socket);
+      await settleNegotiation(rejoined.socket, rejoined.pc);
+
+      const view = sfuView(rejoined.socket, rejoined.pc);
+      expect(view).toHaveLength(1);
+      expect(view[0].kind).toBe('video');
+      expect(view[0].source).toBe('screenShare');
+      expect(view[0].guessed).toBe(false);
+    });
+
+    it('a microphone still classifies as a microphone through the same reuse', async () => {
+      const { adapter, socket, pc } = await joined();
+
+      await adapter.enableMicrophone(true);
+      await settleNegotiation(socket, pc);
+
+      const view = sfuView(socket, pc);
+      expect(view).toHaveLength(1);
+      expect(view[0].kind).toBe('audio');
+      expect(view[0].source).toBe('microphone');
+      expect(view[0].guessed).toBe(false);
     });
   });
 

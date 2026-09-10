@@ -661,6 +661,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
           this.msidRefreshAttempted.add(entry.trackId);
         }
       }
+      this.reconcilePublicationIds(pc);
       // Send `pc.localDescription`: by now it may carry candidates the
       // pre-set copy doesn't.
       signaling.send({
@@ -705,6 +706,10 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
       await pc.setRemoteDescription({ type: 'offer', sdp });
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
+
+      // Before the answer goes out, so the SFU knows which publication is
+      // which by the time this description lets media flow.
+      this.reconcilePublicationIds(pc);
 
       this.signaling?.send({
         type: ClientMessageType.SDP_ANSWER,
@@ -986,22 +991,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     if (!mid || !sdp) {
       return undefined;
     }
-
-    // First chunk is the session section and has no m= line. Everything
-    // after it is one media description.
-    const sections = sdp.split(/\r?\nm=/).slice(1);
-    for (const section of sections) {
-      const lines = section.split(/\r?\n/);
-      if (!lines.some((line) => line.trim() === `a=mid:${mid}`)) {
-        continue;
-      }
-      const msid = lines.find((line) => line.startsWith('a=msid:'));
-      // `a=msid:<stream-id> <track-id>`. The stream-only form is legal
-      // and has no track id in it to hand back.
-      const trackId = msid?.slice('a=msid:'.length).trim().split(/\s+/)[1];
-      return trackId && trackId.length > 0 ? trackId : undefined;
-    }
-    return undefined;
+    return msidTrackIdForMid(sdp, mid);
   }
 
   private findAnnouncementForTrack(
@@ -1259,6 +1249,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     }
 
     entry.sender = sender;
+    entry.trackId = mediaStreamTrack.id;
     entry.delegate.setSender(sender);
     await this.applySimulcast(sender, kind);
 
@@ -1274,6 +1265,77 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     // case the bit does not cover: a reused transceiver whose m-section
     // still announces somebody else's msid.
     this.scheduleNegotiationIfNeeded();
+  }
+
+  /**
+   * Makes the publication ids we told the SFU match the ids on the wire.
+   *
+   * A publication's identity in this protocol is the track id in the SDP
+   * `a=msid:` line. The SFU keys everything on it — the published-track
+   * map, the `track.publish` source declaration, mute lookups, and the id
+   * it announces to subscribers — and it reads that id off the RTP stream
+   * as `TrackRemote.ID()`. Nothing else in the exchange identifies a
+   * publication, which is why the id has to be right rather than merely
+   * plausible.
+   *
+   * It was not always right. The SFU pre-creates one recvonly audio and
+   * one recvonly video transceiver for every subscribing participant, so
+   * that a first publish costs no extra renegotiation. `addTrack` reuses
+   * those, and the m-section can keep the msid it already had —
+   * Chrome will not rewrite an id it did not author. So the SFU received a
+   * stream announcing one id while the declaration named another, found no
+   * match, and fell back to inferring the source from the codec kind:
+   * right for a camera, right for a microphone, and wrong for a screen
+   * share, which then arrives labelled `camera` and lands in the face tile
+   * of every layout keyed on source.
+   *
+   * The fix is to read what the browser actually wrote and declare that.
+   * Called immediately after our own `setLocalDescription` and before the
+   * description goes out, so the corrected declaration reaches the SFU
+   * ahead of the media it describes — same socket, so ordering holds
+   * without waiting for anything.
+   *
+   * No SDP is rewritten and no identifier is invented: this is the
+   * protocol's existing publication id, finally taken from the one place
+   * that knows it.
+   */
+  private reconcilePublicationIds(pc: RTCPeerConnection): void {
+    const sdp = pc.localDescription?.sdp;
+    if (!sdp || this.published.size === 0) {
+      return;
+    }
+
+    for (const [kind, entry] of this.published) {
+      if (!entry.sender) {
+        continue;
+      }
+      const mid = pc.getTransceivers().find((t) => t.sender === entry.sender)?.mid;
+      if (!mid) {
+        // No mid until a description has been applied to this m-section.
+        continue;
+      }
+      const onTheWire = msidTrackIdForMid(sdp, mid);
+      if (!onTheWire || onTheWire === entry.trackId) {
+        continue;
+      }
+
+      this.logger.debug(
+        'publication id corrected from the sdp',
+        `${kind}: ${entry.trackId} -> ${onTheWire} (mid ${mid})`,
+      );
+      entry.trackId = onTheWire;
+
+      // Re-declared under the id the SFU will actually see. Everything
+      // else keyed on `trackId` — mute, unpublish — now agrees with it too.
+      const source = declaredSourceFor(kind);
+      if (source) {
+        this.signaling?.send({
+          type: ClientMessageType.TRACK_PUBLISH,
+          trackId: onTheWire,
+          source,
+        });
+      }
+    }
   }
 
   /**
@@ -1689,6 +1751,31 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     this._connectionState = state;
     this.emit('connectionStateChanged', state);
   }
+}
+
+/**
+ * The track id in the `a=msid:` line of the m-section with this mid.
+ *
+ * `a=msid:<stream-id> <track-id>`; the stream-only form is legal and names
+ * no track, and a section can carry no msid at all, so this returns
+ * undefined rather than guessing. Read by mid rather than by scanning for
+ * the first msid, because a participant publishing a camera and a screen
+ * share has two video m-sections and picking the wrong one mislabels both.
+ */
+function msidTrackIdForMid(sdp: string, mid: string): string | undefined {
+  // First chunk is the session section and has no m= line. Everything
+  // after it is one media description.
+  const sections = sdp.split(/\r?\nm=/).slice(1);
+  for (const section of sections) {
+    const lines = section.split(/\r?\n/);
+    if (!lines.some((line) => line.trim() === `a=mid:${mid}`)) {
+      continue;
+    }
+    const msid = lines.find((line) => line.startsWith('a=msid:'));
+    const trackId = msid?.slice('a=msid:'.length).trim().split(/\s+/)[1];
+    return trackId && trackId.length > 0 ? trackId : undefined;
+  }
+  return undefined;
 }
 
 function subscriptionKey(participantId: string, trackId: string): string {
