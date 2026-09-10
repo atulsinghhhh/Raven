@@ -52,9 +52,7 @@ describe('createCustomTrack', () => {
   });
 
   it('refuses a source that contradicts the track kind', () => {
-    expect(() => createCustomTrack(canvasLikeTrack('audio'), { source: 'camera' })).toThrow(
-      /video MediaStreamTrack/,
-    );
+    expect(() => createCustomTrack(canvasLikeTrack('audio'), { source: 'camera' })).toThrow(/video MediaStreamTrack/);
     expect(() => createCustomTrack(canvasLikeTrack('video'), { source: 'microphone' })).toThrow(
       /audio MediaStreamTrack/,
     );

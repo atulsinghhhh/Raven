@@ -281,6 +281,23 @@ export class FakeRTCPeerConnection {
   addTrack(track: FakeMediaStreamTrack): FakeRTCRtpSender {
     this.markLocalChange();
     this.addedTracks.push(track);
+
+    // Reuse a free receive-only transceiver of the same kind before
+    // creating one, which is what `RTCPeerConnection.addTrack()` does.
+    // The reused m-section keeps whatever msid it arrived with.
+    const reusable = this.transceivers.find(
+      (candidate) =>
+        candidate.kind === track.kind &&
+        candidate.direction === 'recvonly' &&
+        candidate.sender.track === null,
+    );
+    if (reusable) {
+      reusable.sender.track = track;
+      reusable.direction = 'sendrecv';
+      this.senders.push(reusable.sender);
+      return reusable.sender;
+    }
+
     const sender = new FakeRTCRtpSender(track, this.nextSenderEncodings);
     this.senders.push(sender);
     this.transceivers.push({
@@ -301,6 +318,30 @@ export class FakeRTCPeerConnection {
     if (transceiver) {
       transceiver.direction = 'recvonly';
     }
+  }
+
+  /**
+   * A transceiver of its own for an outgoing track, which is what the
+   * adapter uses so the m-section carries our `msid` and not one
+   * inherited from the SFU's offer.
+   */
+  addTransceiver(
+    track: FakeMediaStreamTrack,
+    init?: { direction?: RTCRtpTransceiverDirection; streams?: FakeMediaStream[] },
+  ): FakeTransceiver {
+    this.markLocalChange();
+    this.addedTracks.push(track);
+    const sender = new FakeRTCRtpSender(track, this.nextSenderEncodings);
+    this.senders.push(sender);
+    const transceiver: FakeTransceiver = {
+      mid: String(this.transceivers.length),
+      kind: track.kind,
+      sender,
+      direction: init?.direction ?? 'sendrecv',
+      currentDirection: null,
+    };
+    this.transceivers.push(transceiver);
+    return transceiver;
   }
 
   getSenders(): FakeRTCRtpSender[] {
@@ -361,7 +402,10 @@ export class FakeRTCPeerConnection {
     for (const transceiver of this.transceivers) {
       lines.push(`m=${transceiver.kind} 9 UDP/TLS/RTP/SAVPF 96`);
       lines.push(`a=mid:${transceiver.mid}`);
-      const trackId = this.msidOverrides.get(transceiver.mid) ?? transceiver.sender.track?.id;
+      const trackId =
+        this.msidOverrides.get(transceiver.mid) ??
+        this.pinnedMsid.get(transceiver.mid) ??
+        transceiver.sender.track?.id;
       if (trackId) {
         lines.push(`a=msid:stream-${transceiver.mid} ${trackId}`);
       }
@@ -377,6 +421,19 @@ export class FakeRTCPeerConnection {
    * the m-line — so the wire still carries the SFU's msid and not ours.
    */
   readonly msidOverrides = new Map<string, string>();
+
+  /**
+   * The msid an m-section the *remote* side created already carries, by
+   * mid.
+   *
+   * Raven's SFU adds a recvonly transceiver per kind to every offer, so a
+   * first publish costs no extra renegotiation. `addTrack` reuses those,
+   * and the m-section keeps the msid it came with — a browser will not
+   * rewrite an id it did not author. That is the whole mechanism behind a
+   * screen share arriving labelled as a camera, so the fake reproduces it
+   * rather than leaving it to a hand-set override.
+   */
+  private readonly pinnedMsid = new Map<string, string>();
 
   async createAnswer(): Promise<RTCSessionDescriptionInit> {
     if (this.pauseCreateAnswer) {
@@ -452,11 +509,47 @@ export class FakeRTCPeerConnection {
       this.changesCoveredByOffer = 0;
     }
 
+    if (type === 'offer') {
+      this.adoptRemoteSections(description.sdp ?? '');
+    }
+
     this.remoteDescription = description as RTCSessionDescription;
     this.descriptions.push({ side: 'remote', type });
     if (this.signalingState === 'stable') {
       this.completeNegotiation();
       this.maybeFireNegotiationNeeded();
+    }
+  }
+
+  /**
+   * Creates a receive-only transceiver for every m-section in a remote
+   * offer we have no transceiver for yet, pinning the msid the offer
+   * carried.
+   *
+   * An offer with no m-sections (most of these tests) changes nothing.
+   */
+  private adoptRemoteSections(sdp: string): void {
+    const sections = sdp.split(/\r?\nm=/).slice(1);
+    for (const section of sections) {
+      const kind = section.startsWith('audio') ? 'audio' : section.startsWith('video') ? 'video' : undefined;
+      if (!kind) {
+        continue;
+      }
+      const mid = (/a=mid:(\S+)/.exec(section) ?? [])[1];
+      if (!mid || this.transceivers.some((transceiver) => transceiver.mid === mid)) {
+        continue;
+      }
+      const msid = (/a=msid:\S+\s+(\S+)/.exec(section) ?? [])[1];
+      if (msid) {
+        this.pinnedMsid.set(mid, msid);
+      }
+      this.transceivers.push({
+        mid,
+        kind,
+        sender: new FakeRTCRtpSender(null, this.nextSenderEncodings),
+        direction: 'recvonly',
+        currentDirection: null,
+      });
     }
   }
 
