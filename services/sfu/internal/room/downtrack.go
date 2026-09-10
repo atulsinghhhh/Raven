@@ -92,6 +92,12 @@ type DownTrack struct {
 	// local is what the subscriber's PeerConnection is actually sending.
 	local  *webrtc.TrackLocalStaticRTP
 	sender *webrtc.RTPSender
+	// source is the publisher's track this is a copy of. Held so a
+	// subscription can be torn down from the subscriber's side alone: the
+	// publisher's subscriber list has to lose this DownTrack too, or its
+	// forwarding loop keeps copying a dead entry into its target slice for
+	// every packet it reads.
+	source *PublishedTrack
 
 	mimeType string
 	kind     webrtc.RTPCodecType
@@ -131,9 +137,10 @@ type DownTrack struct {
 	closed atomic.Bool
 }
 
-func newDownTrack(subscriberID string, local *webrtc.TrackLocalStaticRTP, sender *webrtc.RTPSender, mimeType string, kind webrtc.RTPCodecType, initialLayer LayerID) *DownTrack {
+func newDownTrack(subscriberID string, source *PublishedTrack, local *webrtc.TrackLocalStaticRTP, sender *webrtc.RTPSender, mimeType string, kind webrtc.RTPCodecType, initialLayer LayerID) *DownTrack {
 	return &DownTrack{
 		SubscriberID:   subscriberID,
+		source:         source,
 		local:          local,
 		sender:         sender,
 		mimeType:       mimeType,

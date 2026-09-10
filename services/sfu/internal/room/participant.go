@@ -80,6 +80,28 @@ type Participant struct {
 
 	dataChannel atomic.Pointer[webrtc.DataChannel]
 
+	// subMu serializes Subscribe and Unsubscribe for this participant.
+	//
+	// p.mu alone isn't enough. Subscribe has to check whether it is already
+	// subscribed, then build a track and a transceiver, then record it, and
+	// holding p.mu across the PeerConnection work would put every stats
+	// read behind it. Without a lock spanning the three, a joiner's initial
+	// sweep and a publisher's fan-out can both decide the same subscription
+	// is missing and each add a sender for it: two m-sections carrying one
+	// camera, and the first DownTrack orphaned in the subscriber's
+	// transceiver list with nothing ever writing to it or closing it.
+	subMu sync.Mutex
+
+	// ICE state, guarded by iceMu.
+	//
+	// The lock covers SetRemoteDescription as well as the candidate list,
+	// so a candidate arriving at the same moment as the description it
+	// belongs to can't slip past both the buffer and the flush.
+	iceMu sync.Mutex
+	// pendingRemoteCandidates holds candidates that turned up before we
+	// had a remote description to attach them to. See AddICECandidate.
+	pendingRemoteCandidates []webrtc.ICECandidateInit
+
 	// Negotiation state, guarded by negMu. The lock is held across the
 	// whole offer→answer round trip, not just offer creation.
 	//
@@ -267,6 +289,9 @@ func (p *Participant) Subscribe(track *PublishedTrack) error {
 		return nil
 	}
 
+	p.subMu.Lock()
+	defer p.subMu.Unlock()
+
 	key := subscriptionKey(track.ParticipantID, track.ID)
 	p.mu.RLock()
 	_, already := p.subscriptions[key]
@@ -292,7 +317,7 @@ func (p *Participant) Subscribe(track *PublishedTrack) error {
 		return fmt.Errorf("add track to peer connection: %w", err)
 	}
 
-	down := newDownTrack(p.ID, local, sender, track.MimeType, track.Kind, LayerNone)
+	down := newDownTrack(p.ID, track, local, sender, track.MimeType, track.Kind, LayerNone)
 
 	p.mu.Lock()
 	p.subscriptions[key] = down
@@ -340,6 +365,9 @@ func (p *Participant) forwardSubscriberFeedback(sender *webrtc.RTPSender, track 
 
 // Unsubscribe detaches a track. Same as Subscribe: no renegotiation.
 func (p *Participant) Unsubscribe(publisherID, trackID string) bool {
+	p.subMu.Lock()
+	defer p.subMu.Unlock()
+
 	key := subscriptionKey(publisherID, trackID)
 
 	p.mu.Lock()
@@ -350,12 +378,25 @@ func (p *Participant) Unsubscribe(publisherID, trackID string) bool {
 		return false
 	}
 
+	p.detach(down)
+	return true
+}
+
+// detach undoes one subscription on both sides.
+//
+// Dropping our own record alone isn't enough. The publisher's subscriber
+// list would keep the DownTrack, and its forwarding loop would copy that
+// dead entry into its target slice for every packet it reads, for the rest
+// of the call.
+func (p *Participant) detach(down *DownTrack) {
+	if down.source != nil {
+		down.source.RemoveSubscriber(p.ID)
+	}
 	down.Close()
 	if err := p.pc.RemoveTrack(down.Sender()); err != nil {
 		// Already gone, usually because the PeerConnection is closing.
 		p.logger.Debug("remove track failed", "err", err)
 	}
-	return true
 }
 
 // SetSubscriptionLayer applies a per-subscriber simulcast preference.
@@ -530,7 +571,7 @@ func (p *Participant) releaseAfterFailure() {
 // AcceptAnswer applies the client's answer to our offer, then runs another
 // negotiation round if the track set moved while we were waiting.
 func (p *Participant) AcceptAnswer(sdp string) error {
-	err := p.pc.SetRemoteDescription(webrtc.SessionDescription{
+	err := p.setRemoteDescription(webrtc.SessionDescription{
 		Type: webrtc.SDPTypeAnswer,
 		SDP:  sdp,
 	})
@@ -574,7 +615,7 @@ func (p *Participant) AcceptOffer(sdp string) (*webrtc.SessionDescription, error
 	// instead of waiting on a separate frame. So release before returning.
 	defer p.releaseAfterFailure()
 
-	if err := p.pc.SetRemoteDescription(webrtc.SessionDescription{
+	if err := p.setRemoteDescription(webrtc.SessionDescription{
 		Type: webrtc.SDPTypeOffer,
 		SDP:  sdp,
 	}); err != nil {
@@ -591,7 +632,58 @@ func (p *Participant) AcceptOffer(sdp string) (*webrtc.SessionDescription, error
 	return &answer, nil
 }
 
+// setRemoteDescription applies a description and then drains any candidates
+// that beat it here.
+//
+// Every SetRemoteDescription on this connection goes through here. Applying
+// one without flushing would strand whatever the client trickled ahead of
+// it, which is the failure AddICECandidate's buffer exists to prevent.
+func (p *Participant) setRemoteDescription(description webrtc.SessionDescription) error {
+	p.iceMu.Lock()
+	defer p.iceMu.Unlock()
+
+	if err := p.pc.SetRemoteDescription(description); err != nil {
+		return err
+	}
+
+	pending := p.pendingRemoteCandidates
+	p.pendingRemoteCandidates = nil
+	for _, candidate := range pending {
+		if err := p.pc.AddICECandidate(candidate); err != nil {
+			p.logger.Debug("buffered ICE candidate rejected", "err", err)
+		}
+	}
+	if len(pending) > 0 {
+		p.logger.Debug("applied buffered ICE candidates", "count", len(pending))
+	}
+	return nil
+}
+
+// AddICECandidate hands the client's candidate to ICE, or holds on to it
+// until there's a description to attach it to.
+//
+// Trickle ICE sends candidates and the description they belong to as
+// separate signaling messages, and a client that gathers quickly routinely
+// gets its first candidate to us before its answer. Pion rejects those with
+// "remote description is not set", and a candidate rejected there is gone:
+// clients don't resend. Every one lost is a path ICE can't try, which on a
+// network where only one path works is the difference between the call
+// connecting and not.
+//
+// So they wait here instead, and setRemoteDescription applies them the
+// moment there's something to apply them to.
 func (p *Participant) AddICECandidate(candidate webrtc.ICECandidateInit) error {
+	if p.closed.Load() {
+		return errors.New("participant is closed")
+	}
+
+	p.iceMu.Lock()
+	defer p.iceMu.Unlock()
+
+	if p.pc.RemoteDescription() == nil {
+		p.pendingRemoteCandidates = append(p.pendingRemoteCandidates, candidate)
+		return nil
+	}
 	return p.pc.AddICECandidate(candidate)
 }
 
@@ -680,7 +772,10 @@ func (p *Participant) Close() {
 		}
 	}
 	for _, down := range subscriptions {
-		down.Close()
+		// Same detach as Unsubscribe, so leaving a call takes this
+		// participant out of every publisher's subscriber list rather than
+		// leaving them writing into a closed copy.
+		p.detach(down)
 	}
 
 	if channel := p.dataChannel.Load(); channel != nil {
