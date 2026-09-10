@@ -14,7 +14,8 @@ set -euo pipefail
 source "$(dirname "$0")/00-variables.sh"
 export RAVEN_CAE="${RAVEN_CAE:-raven-env}"
 JOB="${RAVEN_MIGRATE_JOB:-raven-migrate}"
-TAG="${RAVEN_IMAGE_TAG:-latest}"
+# Same tag source as 09-api-image.sh; see 00-variables.sh.
+TAG="${RAVEN_IMAGE_TAG}"
 
 LOGIN_SERVER="$(az acr show -n "${RAVEN_ACR}" -g "${RAVEN_RG}" --query loginServer -o tsv)"
 ACR_USER="$(az acr credential show -n "${RAVEN_ACR}" --query username -o tsv)"

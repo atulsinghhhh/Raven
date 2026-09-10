@@ -45,8 +45,8 @@ type Manager struct {
 // reimplement them. Spec §9 says use standards-compliant WebRTC, and in
 // practice this line is what that means.
 func NewManager(cfg *config.Config, events RoomEvents, logger *slog.Logger) (*Manager, error) {
-	mediaEngine := &webrtc.MediaEngine{}
-	if err := mediaEngine.RegisterDefaultCodecs(); err != nil {
+	mediaEngine, err := newMediaEngine()
+	if err != nil {
 		return nil, fmt.Errorf("register codecs: %w", err)
 	}
 

@@ -38,6 +38,23 @@ Every error the REST API returns has the same shape:
 Some errors add fields — a 429 carries `retryAfterSeconds`, for example.
 Unknown fields should be ignored rather than treated as an error.
 
+### 429 and 503 are not the same thing
+
+Both are retryable and both carry `retryAfterSeconds`, so it is tempting to
+handle them together. Don't:
+
+- **429 `RAVEN_RATE_LIMITED`** — your key has spent its budget for this
+  window. Waiting is the only thing that helps, and the wait is a whole
+  window.
+- **503 `RAVEN_CAPACITY_EXCEEDED`** — the service is momentarily full. This
+  typically clears in milliseconds, and a retry very likely succeeds.
+
+A client that backs off a full window for a 503 turns a blip into an
+outage. And a developer shown a 429 goes looking at their own call rate for
+something that was never about them. See
+[production/capacity.md](production/capacity.md) for the measured
+behaviour and the configured ceilings.
+
 ## Request IDs
 
 Every response carries `x-request-id`. Error bodies repeat it as `requestId`
@@ -80,7 +97,10 @@ new one. Generated IDs look like `req_` followed by 24 hex characters.
 | `RAVEN_PAYLOAD_TOO_LARGE` | 413 | Generic size limit. |
 | `RAVEN_MESSAGE_TOO_LARGE` | 413 | The message body limit specifically. |
 | `RAVEN_ATTACHMENT_TOO_LARGE` | 413 | The attachment limit, configured separately from the above. |
-| `RAVEN_RATE_LIMITED` | 429 | Carries `retryAfterSeconds`. |
+| `RAVEN_RATE_LIMITED` | 429 | *You* asked too often. Carries `retryAfterSeconds`; the budget refills on a known schedule. |
+| `RAVEN_CAPACITY_EXCEEDED` | 503 | *We* are momentarily full — a server-side concurrency ceiling, not your call rate. Carries `retryAfterSeconds` and `limit`, and usually clears in about one request's time. Retry it. |
+| `RAVEN_NO_RTC_CAPACITY` | 503 | No healthy RTC server had room for a **new** room. An operator problem; retry, or try another region. |
+| `RAVEN_RTC_SERVER_UNAVAILABLE` | 503 | The RTC server hosting **this existing room** is unhealthy, and the room cannot be moved while it still holds participants. Retry — do not rejoin a different room. |
 | `RAVEN_CONNECTION_FAILED` | — | A realtime connection could not be established. |
 | `RAVEN_WEBHOOK_FAILED` | — | A webhook delivery failed. |
 | `RAVEN_NOT_CONFIGURED` | 501 | The deployment has not enabled this feature. An operator fix, not a caller one. |

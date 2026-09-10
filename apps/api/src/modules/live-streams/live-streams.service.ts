@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   ChatMemberRole,
   LiveStream,
@@ -84,6 +84,51 @@ export interface IssuedStreamCredential {
  */
 @Injectable()
 export class LiveStreamsService {
+  private readonly logger = new Logger(LiveStreamsService.name);
+
+  /**
+   * One line per Live Streaming lifecycle event, in the repo's existing
+   * `key=value` idiom (see RtcServerRegistryService, MessageRouterService).
+   *
+   * ## Why this exists
+   *
+   * It did not. Live Streaming had no server-side logging at all — not one
+   * line across create, start, end, host registration or credential
+   * minting. Every one of those is a durable state transition on somebody's
+   * production stream, and when one went wrong the only evidence an
+   * operator had was the HTTP status the caller reported. "The stream
+   * wouldn't start" was not answerable from the API's own logs.
+   *
+   * ## What goes in, and what deliberately does not
+   *
+   * In: the identifiers needed to correlate a failure across the control
+   * plane, the media plane and the customer's own report — project,
+   * environment, stream, room, participant identity, the action, and for a
+   * failure its reason.
+   *
+   * Not in, ever: the minted RTC or chat token, the API key, or the
+   * stream's own metadata blob. A token in a log file is a credential in a
+   * log file, and these lines outlive the credential's TTL by months. The
+   * `identity` is included because it is the developer's own opaque
+   * participant handle and is the only way to trace one viewer's journey —
+   * it authorizes nothing by itself.
+   */
+  private event(
+    scope: ProjectScope,
+    action: string,
+    fields: Record<string, string | number | null | undefined>,
+  ): string {
+    const parts = [
+      `action=${action}`,
+      `project=${scope.projectId}`,
+      `env=${scope.environment}`,
+      ...Object.entries(fields)
+        .filter(([, value]) => value !== undefined && value !== null)
+        .map(([key, value]) => `${key}=${String(value)}`),
+    ];
+    return parts.join(' ');
+  }
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly roomsService: RoomsService,
@@ -144,6 +189,15 @@ export class LiveStreamsService {
       include: { hosts: true },
     });
 
+    this.logger.log(
+      this.event(scope, 'stream.created', {
+        stream: stream.publicId,
+        room: room.id,
+        host: dto.hostIdentity,
+        visibility: stream.visibility,
+      }),
+    );
+
     void this.webhooks.emit(scope, 'live_stream.created', {
       streamId: stream.publicId,
       title: stream.title,
@@ -176,7 +230,7 @@ export class LiveStreamsService {
 
   async update(scope: ProjectScope, streamId: string, dto: UpdateLiveStreamDto): Promise<LiveStreamView> {
     const stream = await this.resolveRaw(scope, streamId);
-    this.assertNotEnded(stream);
+    this.assertNotEnded(stream, scope, 'update');
 
     const updated = await this.prisma.liveStream.update({
       where: { id: stream.id },
@@ -228,6 +282,16 @@ export class LiveStreamsService {
       // whatever the winner set, and that is what the caller should be
       // told they lost to.
       const current = await this.resolveRaw(scope, streamId);
+      // Warn, not error: losing a start race is a caller-side duplicate,
+      // not a fault. It is logged because a burst of these is the signal
+      // that an integration is retrying a non-idempotent call.
+      this.logger.warn(
+        this.event(scope, 'stream.start_rejected', {
+          stream: current.publicId,
+          room: current.roomId,
+          reason: `already ${current.status}`,
+        }),
+      );
       throw new ConflictError(
         `Cannot start a stream that is ${current.status} — only a CREATED stream can be started`,
         RavenErrorCode.STREAM_INVALID_STATE,
@@ -235,6 +299,14 @@ export class LiveStreamsService {
     }
 
     const updated = await this.resolveRaw(scope, streamId);
+
+    this.logger.log(
+      this.event(scope, 'stream.started', {
+        stream: updated.publicId,
+        room: updated.roomId,
+        startedAt: startedAt.toISOString(),
+      }),
+    );
 
     void this.webhooks.emit(scope, 'live_stream.started', {
       streamId: updated.publicId,
@@ -269,6 +341,13 @@ export class LiveStreamsService {
     });
     if (count === 0) {
       const current = await this.resolveRaw(scope, streamId);
+      this.logger.warn(
+        this.event(scope, 'stream.end_rejected', {
+          stream: current.publicId,
+          room: current.roomId,
+          reason: `already ${current.status}`,
+        }),
+      );
       throw new ConflictError(
         `Cannot end a stream that is ${current.status} — only a LIVE stream can be ended`,
         RavenErrorCode.STREAM_INVALID_STATE,
@@ -278,10 +357,22 @@ export class LiveStreamsService {
     const updated = await this.resolveRaw(scope, streamId);
     await this.roomsService.close(stream.roomId, scope);
 
+    // durationMs is the one number an operator asks for first when a
+    // customer reports a stream "cutting out": a stream that ends seconds
+    // after starting failed, whatever status the end call returned.
+    const durationMs = updated.startedAt ? endedAt.getTime() - updated.startedAt.getTime() : null;
+    this.logger.log(
+      this.event(scope, 'stream.ended', {
+        stream: updated.publicId,
+        room: updated.roomId,
+        durationMs,
+      }),
+    );
+
     void this.webhooks.emit(scope, 'live_stream.ended', {
       streamId: updated.publicId,
       endedAt: endedAt.toISOString(),
-      durationMs: updated.startedAt ? endedAt.getTime() - updated.startedAt.getTime() : null,
+      durationMs,
     });
 
     return this.toView(updated, await this.activeHosts(updated.id), false);
@@ -303,7 +394,7 @@ export class LiveStreamsService {
    */
   async addHost(scope: ProjectScope, streamId: string, dto: AddHostDto): Promise<IssuedStreamCredential> {
     const stream = await this.resolveRaw(scope, streamId);
-    this.assertNotEnded(stream);
+    this.assertNotEnded(stream, scope, 'addHost');
 
     const host = await this.upsertHost(stream.id, dto.identity, dto.role);
 
@@ -311,6 +402,17 @@ export class LiveStreamsService {
       rtcPublish: true,
       chatRole: host.role === LiveStreamHostRole.HOST ? ChatMemberRole.ADMIN : ChatMemberRole.MODERATOR,
     });
+
+    this.logger.log(
+      this.event(scope, 'stream.host_registered', {
+        stream: stream.publicId,
+        room: stream.roomId,
+        identity: dto.identity,
+        role: host.role,
+        // Which credentials were handed out, never the credentials.
+        chat: stream.conversationId ? 'yes' : 'no',
+      }),
+    );
 
     void this.webhooks.emit(scope, 'live_stream.host_joined', {
       streamId: stream.publicId,
@@ -341,6 +443,15 @@ export class LiveStreamsService {
       }
     }
 
+    this.logger.log(
+      this.event(scope, 'stream.host_removed', {
+        stream: stream.publicId,
+        room: stream.roomId,
+        identity,
+        role: host.role,
+      }),
+    );
+
     void this.webhooks.emit(scope, 'live_stream.host_left', {
       streamId: stream.publicId,
       identity,
@@ -357,12 +468,25 @@ export class LiveStreamsService {
    */
   async createViewerToken(scope: ProjectScope, streamId: string, identity: string): Promise<IssuedStreamCredential> {
     const stream = await this.resolveRaw(scope, streamId);
-    this.assertNotEnded(stream);
+    this.assertNotEnded(stream, scope, 'createViewerToken');
 
     const credential = await this.mintCredential(scope, stream, identity, {
       rtcPublish: false,
       chatRole: ChatMemberRole.MEMBER,
     });
+
+    // Debug, not log. This is the highest-volume line in Live Streaming by
+    // a wide margin — one per viewer arriving — and at info level a single
+    // popular stream would bury every other line in this file. The
+    // aggregate belongs on /metrics; this level is for tracing one named
+    // viewer who complained.
+    this.logger.debug(
+      this.event(scope, 'stream.viewer_credential_minted', {
+        stream: stream.publicId,
+        room: stream.roomId,
+        identity,
+      }),
+    );
 
     void this.webhooks.emit(scope, 'live_stream.viewer_joined', {
       streamId: stream.publicId,
@@ -451,8 +575,29 @@ export class LiveStreamsService {
     return stream;
   }
 
-  private assertNotEnded(stream: LiveStream): void {
+  /**
+   * `attempted` names the operation that was refused, so the log line says
+   * *what* was tried against the ended stream rather than only that
+   * something was.
+   *
+   * This is the single most-asked operational question in Live Streaming —
+   * "why are my viewers getting 409?" — and the usual answer is a client
+   * still minting credentials against a stream whose host ended it minutes
+   * ago. Without a line here that is invisible server-side.
+   */
+  private assertNotEnded(stream: LiveStream, scope?: ProjectScope, attempted?: string): void {
     if (stream.status === LiveStreamStatus.ENDED) {
+      if (scope) {
+        this.logger.warn(
+          this.event(scope, 'stream.rejected_after_end', {
+            stream: stream.publicId,
+            room: stream.roomId,
+            attempted,
+            reason: 'stream already ENDED',
+            endedAt: stream.endedAt?.toISOString(),
+          }),
+        );
+      }
       throw new ConflictError(
         'This stream has ended and can no longer be modified',
         RavenErrorCode.STREAM_INVALID_STATE,

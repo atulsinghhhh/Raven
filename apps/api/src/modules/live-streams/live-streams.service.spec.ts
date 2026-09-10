@@ -4,7 +4,8 @@ import {
   LiveStreamStatus,
   LiveStreamVisibility,
 } from '../../generated/prisma/client';
-import { AppError } from '../../shared/errors/app-error';
+import { Logger } from '@nestjs/common';
+import { AppError, ConflictError } from '../../shared/errors/app-error';
 import { RavenErrorCode } from '../../shared/errors/error-codes';
 import { Environment } from '../../shared/environment/environment.constants';
 import { LiveStreamsService } from './live-streams.service';
@@ -777,6 +778,132 @@ describe('LiveStreamsService', () => {
 
       expect(view.peakViewerCount).toBe(10);
       expect(prisma.liveStream.update).not.toHaveBeenCalled();
+    });
+  });
+  /**
+   * Lifecycle logging (see `LiveStreamsService.event`).
+   *
+   * Live Streaming had no server-side logging whatsoever, which made "why
+   * did this stream fail" unanswerable from the API's own output. These
+   * assert both halves of fixing that: the identifiers an operator needs
+   * are present, and the credentials they must never see are not.
+   */
+  describe('observability', () => {
+    /** Captures everything written at every level, in one place. */
+    function captureLogs() {
+      const lines: string[] = [];
+      const record = (message: unknown) => {
+        lines.push(String(message));
+      };
+      const spies = [
+        jest.spyOn(Logger.prototype, 'log').mockImplementation(record),
+        jest.spyOn(Logger.prototype, 'warn').mockImplementation(record),
+        jest.spyOn(Logger.prototype, 'error').mockImplementation(record),
+        jest.spyOn(Logger.prototype, 'debug').mockImplementation(record),
+      ];
+      return { lines, restore: () => spies.forEach((spy) => spy.mockRestore()) };
+    }
+
+    it('records the identifiers needed to correlate a stream across planes', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream());
+      prisma.liveStream.updateMany.mockResolvedValue({ count: 1 });
+      prisma.liveStreamHost.findMany.mockResolvedValue([]);
+      const captured = captureLogs();
+
+      try {
+        await service.start(SCOPE, 'stream_abc123');
+      } finally {
+        captured.restore();
+      }
+
+      const line = captured.lines.find((entry) => entry.includes('stream.started'));
+      expect(line).toBeDefined();
+      // Project and environment are what make a line attributable at all in
+      // a multi-tenant log stream; stream and room are what join it to the
+      // media plane's own lines.
+      expect(line).toContain('project=p1');
+      expect(line).toContain('env=DEVELOPMENT');
+      expect(line).toContain('stream=stream_abc123');
+      expect(line).toContain('room=room-uuid');
+    });
+
+    it('never writes a minted token to the log', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream());
+      prisma.conversation.findUnique.mockResolvedValue({ id: 'conv-uuid', publicId: 'conv_xyz789' });
+      prisma.liveStreamHost.findMany.mockResolvedValue([]);
+      const captured = captureLogs();
+
+      try {
+        // The viewer path mints both an RTC and a chat credential, so one
+        // call covers both token kinds.
+        await service.createViewerToken(SCOPE, 'stream_abc123', 'dave');
+      } finally {
+        captured.restore();
+      }
+
+      // These lines outlive the credential's TTL by months. A token in a
+      // log file is a credential in a log file.
+      const all = captured.lines.join('\n');
+      expect(all).not.toContain('rtc-jwt');
+      expect(all).not.toContain('chat-jwt');
+      // The identity is deliberately present — it is the developer's own
+      // opaque handle, authorizes nothing, and is the only way to trace one
+      // viewer who complained.
+      expect(all).toContain('identity=dave');
+    });
+
+    it('says what was attempted against an already-ended stream', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.ENDED }));
+      const captured = captureLogs();
+
+      try {
+        await expect(service.createViewerToken(SCOPE, 'stream_abc123', 'dave')).rejects.toBeInstanceOf(ConflictError);
+      } finally {
+        captured.restore();
+      }
+
+      // The most-asked operational question in Live Streaming is "why are
+      // my viewers getting 409?", and the usual answer is a client still
+      // minting against a stream the host ended. Invisible without this.
+      const line = captured.lines.find((entry) => entry.includes('stream.rejected_after_end'));
+      expect(line).toBeDefined();
+      expect(line).toContain('attempted=createViewerToken');
+      expect(line).toContain('reason=stream already ENDED');
+    });
+
+    it('records why a lost start/end race was refused', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.LIVE }));
+      prisma.liveStream.updateMany.mockResolvedValue({ count: 0 });
+      const captured = captureLogs();
+
+      try {
+        await expect(service.start(SCOPE, 'stream_abc123')).rejects.toBeInstanceOf(ConflictError);
+      } finally {
+        captured.restore();
+      }
+
+      const line = captured.lines.find((entry) => entry.includes('stream.start_rejected'));
+      expect(line).toBeDefined();
+      expect(line).toContain('reason=already LIVE');
+    });
+
+    it('logs how long a stream actually ran', async () => {
+      const startedAt = new Date(Date.now() - 5_000);
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.LIVE, startedAt }));
+      prisma.liveStream.updateMany.mockResolvedValue({ count: 1 });
+      prisma.liveStreamHost.findMany.mockResolvedValue([]);
+      const captured = captureLogs();
+
+      try {
+        await service.end(SCOPE, 'stream_abc123');
+      } finally {
+        captured.restore();
+      }
+
+      // A stream that ends seconds after starting failed, whatever status
+      // the end call returned. This is the first number an operator wants.
+      const line = captured.lines.find((entry) => entry.includes('stream.ended'));
+      expect(line).toMatch(/durationMs=\d+/);
     });
   });
 });
