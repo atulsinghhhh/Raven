@@ -79,6 +79,51 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Publishing is the last step of a four-minute job, so a credential
+      # that cannot publish is discovered four minutes late. This costs ~5
+      # seconds and moves that discovery to the front.
+      #
+      # It cannot prove the token is OTP-exempt — no read-only endpoint
+      # reports that — so it checks the two things it can, and names the
+      # third. See docs/releases.md#the-token-must-be-a-classic-automation-token.
+      - name: Preflight — can this credential publish?
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::error::NPM_TOKEN is not set. The publish step would authenticate as nobody."
+            exit 1
+          fi
+
+          if ! who="$(npm whoami 2>err.txt)"; then
+            echo "::error::NPM_TOKEN does not authenticate. npm said:"
+            sed 's/^/    /' err.txt >&2
+            exit 1
+          fi
+          echo "authenticated as: ${who}"
+
+          # `npm token list` is a classic-token endpoint. A granular access
+          # token gets 403 here, and a granular token is also the kind that
+          # is NOT exempt from the account's 2FA on writes — which surfaces
+          # only at publish time, as:
+          #
+          #   ERR_PNPM_OTP_NON_INTERACTIVE
+          #   The registry requires additional authentication, but pnpm is
+          #   not running in an interactive terminal
+          #
+          # So a 403 here is a strong signal the release is about to die at
+          # the last step. It is a signal and not a proof, so this warns
+          # rather than fails: a classic read-only token would also 403, and
+          # refusing to release on a heuristic is worse than a loud warning.
+          if npm token list >/dev/null 2>&1; then
+            echo "token class: classic (can list tokens)"
+          else
+            echo "::warning::This looks like a granular access token - 'npm token list' was refused. Granular tokens are not exempt from the account 2FA on writes, so the publish step will fail with ERR_PNPM_OTP_NON_INTERACTIVE. A classic Automation token is what publishes unattended. See docs/releases.md."
+          fi
+
+
       # Publishing a broken tarball cannot be undone — npm unpublish is
       # heavily restricted. So the same gates that guard main run again
       # here, on the exact tree about to be packed.
@@ -145,6 +190,30 @@ jobs:
           # ---------------------------------------------------------------
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # The publish failure that actually happens. pnpm reports it as a bare
+      # error code and echoes the prepublishOnly script line next to it,
+      # which reads as though the guard rejected the publish. It did not.
+      - name: Explain a publish that failed on 2FA
+        if: failure() && steps.changesets.outcome == 'failure'
+        run: |
+          {
+            echo "### Publish failed"
+            echo
+            echo "If the log above shows \`ERR_PNPM_OTP_NON_INTERACTIVE\`, the token"
+            echo "authenticated and the registry then challenged the *write* with 2FA."
+            echo "pnpm has no terminal to answer it in, so it gave up rather than prompting."
+            echo
+            echo "The \`assert-publish-safe.mjs\` line printed beside the error is the"
+            echo "prepublishOnly script being echoed. It is not the cause."
+            echo
+            echo "Fix: replace NPM_TOKEN with a classic **Automation** token"
+            echo "(npmjs.com -> Access Tokens -> Generate New Token -> Classic -> Automation)."
+            echo "Automation tokens are exempt from 2FA on writes; granular tokens are not."
+            echo "Alternative: set the account 2FA level to *Authorization only*."
+            echo
+            echo "Nothing was published — see docs/releases.md."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Summary
         run: |
