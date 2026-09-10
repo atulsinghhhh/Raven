@@ -17,7 +17,7 @@ export class AddHostDto {
     enum: ROLE_VALUES,
     default: LiveStreamHostRole.CO_HOST,
     description:
-      'HOST and CO_HOST get identical RTC/chat grants — the difference is bookkeeping, not permissions. A stream already has a HOST (set at creation); this is normally CO_HOST.',
+      "HOST and CO_HOST get identical RTC/chat grants — the difference is bookkeeping, not permissions. A stream already has a HOST (set at creation); this is normally CO_HOST. Omit it for someone already registered and their existing role is kept, so re-minting a host's credentials never demotes them.",
   })
   @IsOptional()
   @IsIn(ROLE_VALUES)

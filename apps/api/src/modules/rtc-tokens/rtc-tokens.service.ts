@@ -58,11 +58,7 @@ export class RtcTokensService {
     private readonly revocations: RtcTokenRevocationService,
   ) {}
 
-  async create(
-    scope: ProjectScope,
-    roomId: string,
-    dto: CreateRtcTokenDto,
-  ): Promise<IssuedRtcToken> {
+  async create(scope: ProjectScope, roomId: string, dto: CreateRtcTokenDto): Promise<IssuedRtcToken> {
     // Confirms the room exists and belongs to this project *and*
     // environment. The same check used everywhere else in here.
     const room = await this.roomsService.findOneForProject(roomId, scope);
@@ -75,14 +71,9 @@ export class RtcTokensService {
     // from, instead of a WebSocket close their client has to interpret.
     await this.usageAllowances.assertProjectWithinAllowance(scope.projectId);
 
-    const ttlSeconds =
-      dto.ttlSeconds ?? this.configService.get<number>('rtcToken.defaultTtlSeconds')!;
+    const ttlSeconds = dto.ttlSeconds ?? this.configService.get<number>('rtcToken.defaultTtlSeconds')!;
 
-    const participant = await this.prisma.participant.upsert({
-      where: { roomId_identity: { roomId, identity: dto.participantIdentity } },
-      create: { roomId, identity: dto.participantIdentity, metadata: dto.metadata },
-      update: { metadata: dto.metadata },
-    });
+    const participant = await this.upsertParticipant(roomId, dto.participantIdentity, dto.metadata);
 
     // Resolved once, right here, so the row we persist and the claims we
     // sign record exactly the same grant. Have each of them re-derive it
@@ -200,6 +191,35 @@ export class RtcTokensService {
    * allocates one and negotiates on their behalf, and that's what lets the
    * media plane be re-shaped, or replaced outright, without an SDK release.
    */
+  /**
+   * The participant row a token is issued against, created if this is the
+   * identity's first token in this room.
+   *
+   * A plain `upsert` is one statement but not an atomic one: it looks the
+   * row up, finds nothing, and inserts, and two requests for the same
+   * identity can both reach the insert. One then loses on
+   * `participants_roomId_identity_key` and Prisma surfaces it as an error
+   * rather than retrying, which reached callers as a 500. Minting several
+   * credentials for one identity at once is ordinary — a host re-mints on
+   * two devices, a backend retries — so this treats the collision as what
+   * it is: the row now exists, which was the goal.
+   */
+  private async upsertParticipant(roomId: string, identity: string, metadata: CreateRtcTokenDto['metadata']) {
+    const where = { roomId_identity: { roomId, identity } };
+    try {
+      return await this.prisma.participant.upsert({
+        where,
+        create: { roomId, identity, metadata },
+        update: { metadata },
+      });
+    } catch (err) {
+      if ((err as { code?: string })?.code !== 'P2002') {
+        throw err;
+      }
+      return this.prisma.participant.update({ where, data: { metadata } });
+    }
+  }
+
   private signalingEndpoint(): string {
     const configured = this.configService.get<string>('rtc.signalingUrl');
     if (configured) {
