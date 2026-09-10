@@ -467,7 +467,14 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
       this.flushDeferredPublishes();
     } catch (error) {
       this.logger.error('failed to answer offer', (error as Error).message);
-      this.emit('mediaError', new Error('Could not answer the server\'s offer'));
+      // Carry the browser's own reason. Without it this surfaces as a bare
+      // "Could not answer the server's offer", which says that
+      // renegotiation broke but not why — and renegotiation is exactly
+      // where an m-line or direction mismatch shows up.
+      // Not `Error.cause`: this package's TS target predates it, and the
+      // message is what actually reaches a developer's console anyway.
+      const reason = error instanceof Error ? error.message : String(error);
+      this.emit('mediaError', new Error(`Could not answer the server's offer: ${reason}`));
     }
   }
 
