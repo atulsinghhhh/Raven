@@ -86,6 +86,13 @@ type Server struct {
 	// orphanedAt records when a session lost its owner, for the sweep.
 	orphanedAt map[string]time.Time
 
+	// queueMu guards queues and every field inside the sessionQueues it
+	// holds. One mutex for both so there is no lock ordering to get wrong.
+	queueMu sync.Mutex
+	// queues holds the inbound backlog of each session that currently has
+	// one. See sessionQueue.
+	queues map[string]*sessionQueue
+
 	sweepStop chan struct{}
 	sweepOnce sync.Once
 }
@@ -98,6 +105,7 @@ func NewServer(manager *room.Manager, secret string, logger *slog.Logger) *Serve
 		links:      make(map[*link]struct{}),
 		owners:     make(map[string]*link),
 		orphanedAt: make(map[string]time.Time),
+		queues:     make(map[string]*sessionQueue),
 		sweepStop:  make(chan struct{}),
 	}
 }
@@ -205,10 +213,113 @@ func (s *Server) serve(ctx context.Context, conn *websocket.Conn) {
 			continue
 		}
 
-		// Own goroutine. Building a PeerConnection and gathering ICE takes
-		// long enough that doing it inline would stall every other
-		// participant's frames behind it.
-		go s.handle(frame)
+		// Frames naming a session are handled one at a time, in arrival
+		// order. Everything else gets its own goroutine.
+		if frame.SessionID == "" {
+			go s.handle(frame)
+
+			continue
+		}
+		s.enqueue(frame)
+	}
+}
+
+// sessionQueue is one session's inbound backlog.
+//
+// # Why a session's frames cannot simply each get a goroutine
+//
+// They used to. Building a PeerConnection and gathering ICE takes long
+// enough that handling frames inline on the read loop would stall every
+// other participant, so each one was dispatched with `go s.handle(frame)`.
+// That fixed the stalling and quietly threw away ordering, which the
+// control plane had gone to the trouble of giving us: a session's frames
+// arrive on one WebSocket, in the order the client sent them.
+//
+// Negotiation does not survive losing it. A client that glares sends its
+// offer, then — having rolled that offer back and answered ours — an
+// answer. Handle the answer first and it releases the negotiation round
+// trip (Participant.AcceptAnswer), so the offer behind it, which the client
+// has already abandoned, sails through the glare check and gets applied on
+// top of the description that superseded it. Under load that reordering
+// happened on roughly a third of glare events.
+//
+// So: concurrency across sessions, order within one. A session's frames
+// wait for each other and nobody else's. That also means a client's first
+// candidate or offer no longer has to race participant.add and lose,
+// getting answered with "no such session on this node".
+type sessionQueue struct {
+	// pending is the backlog, oldest first. Guarded by Server.queueMu.
+	pending []Frame
+	// running says a drain goroutine owns this queue. Guarded by
+	// Server.queueMu.
+	running bool
+	// warned stops a wedged session logging its depth on every frame.
+	warned bool
+}
+
+// queueDepthWarning is the backlog at which a session looks stuck.
+//
+// Nothing is dropped when it's crossed. A session's frames are its
+// negotiation, and losing an answer or a candidate stalls the connection in
+// silence — the same reason the control plane sends them with `send` rather
+// than `trySend`. A depth like this means one frame is taking far too long,
+// and the useful thing to do is say so.
+const queueDepthWarning = 64
+
+// enqueue adds a frame to its session's backlog, starting a drain if one
+// isn't already running.
+func (s *Server) enqueue(frame Frame) {
+	s.queueMu.Lock()
+
+	queue, found := s.queues[frame.SessionID]
+	if !found {
+		queue = &sessionQueue{}
+		s.queues[frame.SessionID] = queue
+	}
+	queue.pending = append(queue.pending, frame)
+
+	depth := len(queue.pending)
+	warn := depth >= queueDepthWarning && !queue.warned
+	if warn {
+		queue.warned = true
+	}
+
+	start := !queue.running
+	queue.running = true
+	s.queueMu.Unlock()
+
+	if warn {
+		s.logger.Warn("session frame backlog is deep; a frame handler is taking too long",
+			"sessionId", frame.SessionID, "depth", depth)
+	}
+	if start {
+		go s.drainSession(frame.SessionID, queue)
+	}
+}
+
+// drainSession handles one session's frames until it runs out, then lets
+// the queue go.
+//
+// The goroutine exits with the backlog rather than living as long as the
+// session, so an idle call costs nothing.
+func (s *Server) drainSession(sessionID string, queue *sessionQueue) {
+	for {
+		s.queueMu.Lock()
+		if len(queue.pending) == 0 {
+			queue.running = false
+			delete(s.queues, sessionID)
+			s.queueMu.Unlock()
+
+			return
+		}
+		frame := queue.pending[0]
+		// Release the slot so a long backlog doesn't pin every frame it
+		// has already handled.
+		queue.pending[0] = Frame{}
+		queue.pending = queue.pending[1:]
+		s.queueMu.Unlock()
+
+		s.handle(frame)
 	}
 }
 
