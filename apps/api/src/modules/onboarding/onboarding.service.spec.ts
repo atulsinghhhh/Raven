@@ -57,7 +57,14 @@ describe('OnboardingService', () => {
 
   describe('update', () => {
     it('persists only the fields the step actually answered', async () => {
-      prisma.userOnboarding.findUnique.mockResolvedValue({ step: 3, completedAt: null, useCases: ['saas'], experienceLevel: null, stack: [], createdFirstProject: false });
+      prisma.userOnboarding.findUnique.mockResolvedValue({
+        step: 3,
+        completedAt: null,
+        useCases: ['saas'],
+        experienceLevel: null,
+        stack: [],
+        createdFirstProject: false,
+      });
       await service.update('u1', { step: 3, useCases: ['saas'] });
       expect(prisma.userOnboarding.upsert).toHaveBeenCalledWith({
         where: { userId: 'u1' },
@@ -69,7 +76,14 @@ describe('OnboardingService', () => {
 
   describe('complete', () => {
     it('stamps completion conditionally so a second call keeps the original timestamp', async () => {
-      prisma.userOnboarding.findUnique.mockResolvedValue({ step: 7, completedAt: new Date(), useCases: [], experienceLevel: null, stack: [], createdFirstProject: true });
+      prisma.userOnboarding.findUnique.mockResolvedValue({
+        step: 7,
+        completedAt: new Date(),
+        useCases: [],
+        experienceLevel: null,
+        stack: [],
+        createdFirstProject: true,
+      });
       await service.complete('u1');
       expect(prisma.userOnboarding.updateMany).toHaveBeenCalledWith({
         where: { userId: 'u1', completedAt: null },

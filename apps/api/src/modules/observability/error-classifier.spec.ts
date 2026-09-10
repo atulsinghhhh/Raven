@@ -64,9 +64,16 @@ describe('classifyError', () => {
 
   it('never states certainty — every explanation uses hedged language', () => {
     const allCodes = [
-      'INVALID_TOKEN', 'TOKEN_EXPIRED', 'PERMISSION_DENIED', 'ROOM_NOT_FOUND',
-      'CAMERA_PERMISSION_DENIED', 'TIMEOUT', 'NETWORK_ERROR', 'SIGNALING_ERROR',
-      'CONNECTION_FAILED', undefined,
+      'INVALID_TOKEN',
+      'TOKEN_EXPIRED',
+      'PERMISSION_DENIED',
+      'ROOM_NOT_FOUND',
+      'CAMERA_PERMISSION_DENIED',
+      'TIMEOUT',
+      'NETWORK_ERROR',
+      'SIGNALING_ERROR',
+      'CONNECTION_FAILED',
+      undefined,
     ];
     for (const code of allCodes) {
       const result = classifyError({ code });

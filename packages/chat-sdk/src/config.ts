@@ -132,7 +132,10 @@ export function validateConfig(config: ChatClientConfig): ResolvedChatClientConf
 /** `https://api.example.com` -> `wss://api.example.com/v1/chat/ws` */
 function deriveChatUrl(apiUrl?: string): string | undefined {
   if (!apiUrl) return undefined;
-  const ws = apiUrl.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:').replace(/\/$/, '');
+  const ws = apiUrl
+    .replace(/^http:/, 'ws:')
+    .replace(/^https:/, 'wss:')
+    .replace(/\/$/, '');
   return `${ws}/v1/chat/ws`;
 }
 

@@ -190,11 +190,7 @@ export default async function ConnectionDetailPage({
               <NetworkRow label="Signaling state" value={c.signalingState} />
               <div className="flex items-baseline justify-between gap-3">
                 <dt className="text-xs font-medium text-muted">Reconnect count</dt>
-                <dd
-                  className={`tabular text-sm font-medium ${
-                    c.reconnectCount > 0 ? 'text-warning-text' : 'text-fg'
-                  }`}
-                >
+                <dd className={`tabular text-sm font-medium ${c.reconnectCount > 0 ? 'text-warning-text' : 'text-fg'}`}>
                   {c.reconnectCount}
                 </dd>
               </div>

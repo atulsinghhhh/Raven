@@ -174,8 +174,7 @@ export default async function MetricsPage({
   // imply a quiet period that never happened.
   const connectionsTruncated =
     metrics !== undefined && connections.length >= FETCH_LIMIT && metrics.connections > connectionSeries.covered;
-  const errorsTruncated =
-    metrics !== undefined && errors.length >= FETCH_LIMIT && metrics.errors > errorSeries.covered;
+  const errorsTruncated = metrics !== undefined && errors.length >= FETCH_LIMIT && metrics.errors > errorSeries.covered;
 
   return (
     <div className="flex flex-col gap-8">
@@ -261,7 +260,8 @@ export default async function MetricsPage({
             <h3 className="text-sm font-semibold text-fg">Connections started</h3>
             <p className="mt-1 mb-4 text-xs leading-relaxed text-muted">
               Derived from the {FETCH_LIMIT} most recent connection records, bucketed by their real{' '}
-              <code className="font-mono text-[0.6875rem] text-fg">startedAt</code> across {RANGE_LABEL[range].toLowerCase()}.
+              <code className="font-mono text-[0.6875rem] text-fg">startedAt</code> across{' '}
+              {RANGE_LABEL[range].toLowerCase()}.
               {connectionsResult.status === 'rejected' && ' The connection list failed to load.'}
             </p>
             <BarChart
@@ -284,7 +284,8 @@ export default async function MetricsPage({
             <h3 className="text-sm font-semibold text-fg">Errors reported</h3>
             <p className="mt-1 mb-4 text-xs leading-relaxed text-muted">
               Derived from the {FETCH_LIMIT} most recent error records, bucketed by their real{' '}
-              <code className="font-mono text-[0.6875rem] text-fg">timestamp</code> across {RANGE_LABEL[range].toLowerCase()}.
+              <code className="font-mono text-[0.6875rem] text-fg">timestamp</code> across{' '}
+              {RANGE_LABEL[range].toLowerCase()}.
               {errorsResult.status === 'rejected' && ' The error list failed to load.'}
             </p>
             <BarChart
@@ -310,8 +311,8 @@ export default async function MetricsPage({
           <Card>
             <h3 className="text-sm font-semibold text-fg">Connection states</h3>
             <p className="mt-1 mb-4 text-xs leading-relaxed text-muted">
-              Last reported state of the {formatCount(windowConnections.length)} fetched connections that started in this
-              window.
+              Last reported state of the {formatCount(windowConnections.length)} fetched connections that started in
+              this window.
             </p>
             <DistributionBar
               segments={CONNECTION_STATES.map((s) => ({

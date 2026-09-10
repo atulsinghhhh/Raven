@@ -45,7 +45,9 @@ export function registerChatConversationsCommand(chat: Command): void {
 
         // Stated instead of implied: this command shows activity, not
         // content, and there is no flag that would change that.
-        process.stdout.write('\nMessage contents are never returned to this surface; see docs/security/chat.md#privacy.\n');
+        process.stdout.write(
+          '\nMessage contents are never returned to this surface; see docs/security/chat.md#privacy.\n',
+        );
       }),
     );
 }

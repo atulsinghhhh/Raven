@@ -10,7 +10,12 @@ export const exposureDefinition: EffectDefinition = {
   type: 'exposure',
   category: 'color',
   params: {
-    stops: { min: -2, max: 2, default: 0, description: 'Exposure adjustment in stops, -2 to 2. Each +1 doubles brightness. 0 = no change.' },
+    stops: {
+      min: -2,
+      max: 2,
+      default: 0,
+      description: 'Exposure adjustment in stops, -2 to 2. Each +1 doubles brightness. 0 = no change.',
+    },
   },
   op: {
     kind: 'color',

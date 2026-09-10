@@ -621,7 +621,8 @@ function ConnectStep({
   // working integration needs the backend package and the browser package
   // whatever stack the developer picked. Installing only one of them is the
   // shape of integration that ends with an API key in a bundle.
-  const installCommand = 'npm install @ravenkash/server   # your backend\nnpm install @ravenkash/rtc      # your browser app';
+  const installCommand =
+    'npm install @ravenkash/server   # your backend\nnpm install @ravenkash/rtc      # your browser app';
 
   // Kept verbatim-runnable against the published SDKs. `createRTCClient` is
   // the real export — there is no `RavenClient` class in @ravenkash/rtc, and

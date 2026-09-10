@@ -1,13 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import type {
-  ChatClient,
-  ChatConnectionState,
-  ChatMessage,
-  PresenceStatus,
-  RavenChatError,
-} from '@ravenkash/chat';
+import type { ChatClient, ChatConnectionState, ChatMessage, PresenceStatus, RavenChatError } from '@ravenkash/chat';
 import { useRavenChatStore } from './chat-context';
 import type { RavenChatSnapshot } from './chat-store';
 
@@ -49,7 +43,11 @@ export function useChat(): UseChatResult {
 /** The underlying `ChatClient`, for whatever the hooks don't cover. */
 export function useChatClient(): ChatClient | undefined {
   const store = useRavenChatStore();
-  return useSyncExternalStore(store.subscribe, () => store.getSnapshot().client, () => store.getSnapshot().client);
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().client,
+    () => store.getSnapshot().client,
+  );
 }
 
 export function useChatConnectionState(): ChatConnectionState {
@@ -63,7 +61,11 @@ export function useChatConnectionState(): ChatConnectionState {
 
 export function useChatError(): RavenChatError | undefined {
   const store = useRavenChatStore();
-  return useSyncExternalStore(store.subscribe, () => store.getSnapshot().error, () => store.getSnapshot().error);
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().error,
+    () => store.getSnapshot().error,
+  );
 }
 
 export interface UseMessagesResult {

@@ -251,7 +251,7 @@ describe('Room — telemetry (best-effort, Phase 9)', () => {
     return { connectionId: 'conn_test123', send: jest.fn() };
   }
 
-  it('exposes the telemetry client\'s connectionId as its own public connectionId', () => {
+  it("exposes the telemetry client's connectionId as its own public connectionId", () => {
     const adapter = new FakeAdapter();
     const telemetry = fakeTelemetry();
     const room = new Room(adapter, 'room-1', logger, telemetry);

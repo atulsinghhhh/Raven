@@ -28,7 +28,10 @@ export const EFFECT_SECURITY_LIMITS = {
  */
 export function validateParam(name: string, value: number, spec: EffectParamSpec): void {
   if (typeof value !== 'number' || Number.isNaN(value) || !Number.isFinite(value)) {
-    throw new EffectsError('RAVEN_EFFECT_INVALID_CONFIG', `Parameter "${name}" must be a finite number, got ${String(value)}.`);
+    throw new EffectsError(
+      'RAVEN_EFFECT_INVALID_CONFIG',
+      `Parameter "${name}" must be a finite number, got ${String(value)}.`,
+    );
   }
   if (value < spec.min || value > spec.max) {
     throw new EffectsError(

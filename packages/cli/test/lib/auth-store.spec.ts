@@ -22,7 +22,12 @@ describe('auth-store', () => {
   });
 
   it('round-trips written credentials exactly', async () => {
-    const stored = { token: 'jwt.value.here', email: 'dev@example.com', apiUrl: 'http://localhost:4100', createdAt: '2026-01-01T00:00:00.000Z' };
+    const stored = {
+      token: 'jwt.value.here',
+      email: 'dev@example.com',
+      apiUrl: 'http://localhost:4100',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
     await writeCredentials(stored);
     await expect(readCredentials()).resolves.toEqual(stored);
   });
@@ -31,13 +36,13 @@ describe('auth-store', () => {
     await writeCredentials({ token: 't', email: 'e@x.com', apiUrl: 'http://x', createdAt: '2026-01-01T00:00:00.000Z' });
     const info = await stat(credentialsFilePath());
     // Mask off the file-type bits, keep just the permission bits.
-    expect((info.mode & 0o777)).toBe(0o600);
+    expect(info.mode & 0o777).toBe(0o600);
   });
 
   it('creates ~/.raven with owner-only directory permissions (chmod 700)', async () => {
     await writeCredentials({ token: 't', email: 'e@x.com', apiUrl: 'http://x', createdAt: '2026-01-01T00:00:00.000Z' });
     const info = await stat(ravenHomeDir());
-    expect((info.mode & 0o777)).toBe(0o700);
+    expect(info.mode & 0o777).toBe(0o700);
   });
 
   it('clearCredentials removes the file without throwing when it does not exist', async () => {

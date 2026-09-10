@@ -58,7 +58,7 @@ export class ApiObservabilityController {
   }
 
   @Get('metrics')
-  @ApiOperation({ summary: 'Real aggregate connection/error metrics for the API key\'s project' })
+  @ApiOperation({ summary: "Real aggregate connection/error metrics for the API key's project" })
   @ApiQuery({ name: 'range', required: false, enum: ['15m', '1h', '24h', '7d'] })
   getMetrics(@CurrentProjectId() projectId: string, @Query('range') range?: string) {
     return this.metricsService.getOverview(projectId, range);

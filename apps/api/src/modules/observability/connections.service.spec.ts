@@ -84,7 +84,9 @@ describe('ConnectionsService', () => {
       await service.recordEvent(ctx, { connectionId: 'conn_abc', type: 'reconnecting' });
 
       expect(prisma.connection.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ reconnectCount: 3, state: ConnectionState.RECONNECTING }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ reconnectCount: 3, state: ConnectionState.RECONNECTING }),
+        }),
       );
     });
 
@@ -100,7 +102,9 @@ describe('ConnectionsService', () => {
       });
 
       expect(prisma.connection.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ durationMs: 5000, state: ConnectionState.DISCONNECTED }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ durationMs: 5000, state: ConnectionState.DISCONNECTED }),
+        }),
       );
     });
 
@@ -216,9 +220,7 @@ describe('ConnectionsService', () => {
       // Telemetry is best-effort and the wire payload is caller-supplied;
       // a shape that doesn't match must degrade to "nothing extracted",
       // not crash the ingest endpoint for every other event in flight.
-      await expect(
-        statsEvent({ local: 'not-an-array', remote: null, connectionQuality: 42 }),
-      ).resolves.toBeUndefined();
+      await expect(statsEvent({ local: 'not-an-array', remote: null, connectionQuality: 42 })).resolves.toBeUndefined();
 
       const { data } = prisma.connection.update.mock.calls[0][0];
       expect('connectionQuality' in data).toBe(false);

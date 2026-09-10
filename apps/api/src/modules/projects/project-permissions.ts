@@ -100,11 +100,7 @@ const CAPABILITIES: Record<ProjectRole, readonly Capability[]> = {
     Capability.UsageRead,
   ],
 
-  [ProjectRole.BILLING]: [
-    Capability.ProjectRead,
-    Capability.UsageRead,
-    Capability.BillingManage,
-  ],
+  [ProjectRole.BILLING]: [Capability.ProjectRead, Capability.UsageRead, Capability.BillingManage],
 };
 
 export function can(role: ProjectRole, capability: Capability): boolean {

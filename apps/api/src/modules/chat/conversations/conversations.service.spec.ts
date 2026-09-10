@@ -34,10 +34,7 @@ describe('ConversationsService — webhook events', () => {
     };
     webhooks = { emit: jest.fn().mockResolvedValue(undefined) };
 
-    service = new ConversationsService(
-      prisma as unknown as PrismaService,
-      webhooks as unknown as WebhookEventsService,
-    );
+    service = new ConversationsService(prisma as unknown as PrismaService, webhooks as unknown as WebhookEventsService);
   });
 
   describe('create()', () => {

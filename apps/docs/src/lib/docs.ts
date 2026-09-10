@@ -53,10 +53,7 @@ const MDX_OPTIONS = {
   rehypePlugins: [
     rehypeSlug,
     [rehypeAutolinkHeadings, { behavior: 'wrap' }],
-    [
-      rehypePrettyCode,
-      { theme: { light: 'github-light', dark: 'github-dark' }, keepBackground: false },
-    ],
+    [rehypePrettyCode, { theme: { light: 'github-light', dark: 'github-dark' }, keepBackground: false }],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- rehype plugin tuples aren't typed generically by CompileOptions
   ] as any,
 };

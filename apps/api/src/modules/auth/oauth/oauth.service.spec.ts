@@ -236,7 +236,9 @@ describe('OAuthService', () => {
       const winner = { id: 'u4', email: 'octo@example.com' };
       // First resolution: nothing exists, create collides (P2002). Second:
       // the winner's link is found.
-      prisma.authAccount.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'a9', email: 'octo@example.com', user: winner });
+      prisma.authAccount.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'a9', email: 'octo@example.com', user: winner });
       prisma.user.findUnique.mockResolvedValueOnce(null);
       prisma.user.create.mockRejectedValueOnce({ code: 'P2002' });
 

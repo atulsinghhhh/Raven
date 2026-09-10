@@ -1,9 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RtcServerAllocatorService } from '../rtc-servers/rtc-server-allocator.service';
-import {
-  NodeLinkMessageType,
-  RoomStateResultPayload,
-} from '../signaling/sfu/node-link.interface';
+import { NodeLinkMessageType, RoomStateResultPayload } from '../signaling/sfu/node-link.interface';
 import { SfuLinkService } from '../signaling/sfu/sfu-link.service';
 
 export interface LiveTrackInfo {

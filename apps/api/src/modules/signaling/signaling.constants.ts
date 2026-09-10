@@ -137,8 +137,7 @@ export const SignalingRedisKeys = {
   /** Set of participantIds currently in the room, fleet-wide. */
   roomParticipants: (roomId: string) => `raven:signaling:room:${roomId}:participants`,
   /** participantId -> {gatewayId}. Lets any instance find who's holding a target's socket. */
-  participant: (roomId: string, participantId: string) =>
-    `raven:signaling:room:${roomId}:participant:${participantId}`,
+  participant: (roomId: string, participantId: string) => `raven:signaling:room:${roomId}:participant:${participantId}`,
   /** Pub/sub channel for this room, one per room, subscribed to on demand. */
   roomChannel: (roomId: string) => `raven:signaling:room:${roomId}:events`,
 } as const;

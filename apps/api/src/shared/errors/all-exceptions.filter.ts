@@ -1,11 +1,4 @@
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { LEGACY_ERROR_CODE, RavenErrorCode } from './error-codes';
 
@@ -38,10 +31,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       // carry a Raven code, so one is derived from the status. Without
       // this a caller would see a coded body from our services and an
       // uncoded one from the framework, for the same class of problem.
-      const framework =
-        typeof body === 'string'
-          ? { message: body }
-          : (body as Record<string, unknown>);
+      const framework = typeof body === 'string' ? { message: body } : (body as Record<string, unknown>);
       const code = (framework.code as string | undefined) ?? codeForStatus(status);
 
       response.status(status).json({

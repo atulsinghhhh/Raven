@@ -61,9 +61,7 @@ describe('WebhookEventsService', () => {
     });
 
     it('skips an endpoint that did not subscribe to this type', async () => {
-      prisma.webhookEndpoint.findMany.mockResolvedValue([
-        { id: 'e1', enabledEvents: ['message.deleted'] },
-      ]);
+      prisma.webhookEndpoint.findMany.mockResolvedValue([{ id: 'e1', enabledEvents: ['message.deleted'] }]);
 
       await service.emit(DEV, 'message.created', {});
 

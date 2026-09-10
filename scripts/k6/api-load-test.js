@@ -59,9 +59,7 @@ export const options = {
     // report's methodology calls for, read off the ramp's VU count at
     // the moment of abort.
     http_req_failed: [{ threshold: 'rate<0.01', abortOnFail: true }],
-    'http_req_duration{expected_response:true}': [
-      { threshold: 'p(95)<500', abortOnFail: true },
-    ],
+    'http_req_duration{expected_response:true}': [{ threshold: 'p(95)<500', abortOnFail: true }],
   },
 };
 
@@ -78,11 +76,10 @@ export default function (data) {
   };
 
   const roomName = `k6-room-${__VU}-${__ITER}-${Date.now()}`;
-  const createRes = http.post(
-    `${base}/v1/rooms`,
-    JSON.stringify({ name: roomName }),
-    { headers, tags: { name: 'create_room' } },
-  );
+  const createRes = http.post(`${base}/v1/rooms`, JSON.stringify({ name: roomName }), {
+    headers,
+    tags: { name: 'create_room' },
+  });
   const created = check(createRes, {
     'create_room status 201': (r) => r.status === 201,
   });

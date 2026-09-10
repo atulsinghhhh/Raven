@@ -74,8 +74,8 @@ function JoinForm({ onParsed }: { onParsed: (token: ParsedToken) => void }) {
       <h1>Raven video-call example (@ravenkash/react)</h1>
       <p>
         Paste the full JSON body returned by <code>POST /v1/rooms/:roomId/rtc-tokens</code> (mint one via Swagger at{' '}
-        <code>/docs</code>, or use two different <code>participantIdentity</code> values in the same room to test a
-        call between two tabs).
+        <code>/docs</code>, or use two different <code>participantIdentity</code> values in the same room to test a call
+        between two tabs).
       </p>
       <textarea rows={8} value={raw} onChange={(e) => setRaw(e.target.value)} />
       {error && <p style={{ color: '#ff6b6b' }}>{error}</p>}

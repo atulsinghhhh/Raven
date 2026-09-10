@@ -96,13 +96,7 @@ export interface MessageDeletedEvent {
  * is one retrying can't fix, like a revoked token. `disconnected` means the
  * connection ended and nothing is being retried.
  */
-export type ChatConnectionState =
-  | 'idle'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'disconnected'
-  | 'failed';
+export type ChatConnectionState = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'failed';
 
 export interface ReadState {
   roomId: string;

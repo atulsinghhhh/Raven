@@ -146,9 +146,7 @@ describe('RavenChatStore', () => {
     client.emit('reactionAdded', { messageId: 'msg_1', userId: 'bob', emoji: '👍', roomId: 'conv_1', at: 'now' });
     client.emit('reactionAdded', { messageId: 'msg_1', userId: 'carol', emoji: '👍', roomId: 'conv_1', at: 'now' });
 
-    expect(store.getSnapshot().messages[0].reactions).toEqual([
-      { emoji: '👍', count: 2, userIds: ['bob', 'carol'] },
-    ]);
+    expect(store.getSnapshot().messages[0].reactions).toEqual([{ emoji: '👍', count: 2, userIds: ['bob', 'carol'] }]);
 
     client.emit('reactionRemoved', { messageId: 'msg_1', userId: 'bob', emoji: '👍', roomId: 'conv_1', at: 'now' });
     expect(store.getSnapshot().messages[0].reactions).toEqual([{ emoji: '👍', count: 1, userIds: ['carol'] }]);

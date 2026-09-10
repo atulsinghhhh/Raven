@@ -20,7 +20,7 @@ export class CreateChatTokenDto {
   @ApiProperty({
     example: 'user-123',
     description:
-      "The end user this token speaks for. Everything they send is attributed to this identity — the browser can never override it.",
+      'The end user this token speaks for. Everything they send is attributed to this identity — the browser can never override it.',
   })
   @IsString()
   @MinLength(1)

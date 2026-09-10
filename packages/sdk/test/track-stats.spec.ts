@@ -48,24 +48,14 @@ describe('normalizeTrackStats', () => {
 
   describe('packet loss', () => {
     it('computes a percentage for the send direction from packetsSent', () => {
-      const stats = normalizeTrackStats(
-        raw({ packetsLost: 5, packetsSent: 95 }),
-        undefined,
-        'microphone',
-        'send',
-      );
+      const stats = normalizeTrackStats(raw({ packetsLost: 5, packetsSent: 95 }), undefined, 'microphone', 'send');
 
       expect(stats.packetsLost).toBe(5);
       expect(stats.packetLossPercent).toBeCloseTo(5); // 5 / (95 + 5) * 100
     });
 
     it('computes a percentage for the receive direction from packetsReceived', () => {
-      const stats = normalizeTrackStats(
-        raw({ packetsLost: 10, packetsReceived: 90 }),
-        undefined,
-        'camera',
-        'receive',
-      );
+      const stats = normalizeTrackStats(raw({ packetsLost: 10, packetsReceived: 90 }), undefined, 'camera', 'receive');
 
       expect(stats.packetLossPercent).toBeCloseTo(10);
     });
@@ -147,11 +137,7 @@ describe('normalizeTrackStats', () => {
 
 describe('pickBestLayer', () => {
   it('picks the widest simulcast layer as the representative one', () => {
-    const layers: RawTrackStats[] = [
-      raw({ frameWidth: 320 }),
-      raw({ frameWidth: 1280 }),
-      raw({ frameWidth: 640 }),
-    ];
+    const layers: RawTrackStats[] = [raw({ frameWidth: 320 }), raw({ frameWidth: 1280 }), raw({ frameWidth: 640 })];
 
     expect(pickBestLayer(layers)?.frameWidth).toBe(1280);
   });

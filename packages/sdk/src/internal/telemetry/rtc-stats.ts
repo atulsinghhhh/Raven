@@ -28,10 +28,7 @@ export type { RawTrackStats } from './track-stats';
  * quality figures, and "0% loss" versus "no report yet" is exactly the
  * distinction that matters.
  */
-export function rawStatsFromReport(
-  report: RTCStatsReport,
-  wanted: 'outbound-rtp' | 'inbound-rtp',
-): RawTrackStats[] {
+export function rawStatsFromReport(report: RTCStatsReport, wanted: 'outbound-rtp' | 'inbound-rtp'): RawTrackStats[] {
   const codecs = new Map<string, string>();
   const remoteInbound: RemoteInboundStats[] = [];
   const rtpEntries: RtpStats[] = [];
@@ -145,9 +142,7 @@ function toRawStats(
  * video-only or receive-only connection, where there's no audio
  * `remote-inbound-rtp` report to carry one.
  */
-export async function connectionRoundTripTimeMs(
-  connection: RTCPeerConnection,
-): Promise<number | undefined> {
+export async function connectionRoundTripTimeMs(connection: RTCPeerConnection): Promise<number | undefined> {
   const report = await connection.getStats();
   let rttSeconds: number | undefined;
 

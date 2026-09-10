@@ -57,7 +57,7 @@ describe('RtcServerAllocatorService', () => {
     );
   });
 
-  it('reuses the room\'s existing assignment without consulting the fleet', async () => {
+  it("reuses the room's existing assignment without consulting the fleet", async () => {
     // Every participant in a room must land on the same SFU: that is what
     // makes it an SFU, not a mesh.
     const assigned = server({ name: 'sfu-already' });
@@ -150,9 +150,7 @@ describe('RtcServerAllocatorService', () => {
 
     it('re-checks after acquiring the lock, so the loser does no work', async () => {
       const winner = server({ id: 'srv-winner' });
-      prisma.room.findUnique
-        .mockResolvedValueOnce({ rtcServer: null })
-        .mockResolvedValueOnce({ rtcServer: winner });
+      prisma.room.findUnique.mockResolvedValueOnce({ rtcServer: null }).mockResolvedValueOnce({ rtcServer: winner });
 
       await expect(service.allocate('room-1')).resolves.toBe(winner);
       expect(prisma.rtcServer.findMany).not.toHaveBeenCalled();

@@ -11,9 +11,7 @@ import { Prisma } from '../../generated/prisma/client';
  * the bridge ever needs to do real work (size checks, key filtering),
  * there's one place to put it.
  */
-export function toJsonInput(
-  value: Record<string, unknown> | null | undefined,
-): Prisma.InputJsonValue | undefined {
+export function toJsonInput(value: Record<string, unknown> | null | undefined): Prisma.InputJsonValue | undefined {
   if (value === null || value === undefined) {
     return undefined;
   }

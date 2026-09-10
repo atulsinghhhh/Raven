@@ -132,9 +132,7 @@ function QuickstartCard() {
           <span className="text-subtle">{'// grant minted by your backend — never an API key\n'}</span>
           <span className="text-accent-text">const</span>
           {' room = '}
-          <span className="text-accent-text">await</span>
-          {' '}
-          <span className="text-info-text">createRTCClient</span>
+          <span className="text-accent-text">await</span> <span className="text-info-text">createRTCClient</span>
           {'(grant).'}
           <span className="text-info-text">join</span>
           {'(grant.roomName);\n'}

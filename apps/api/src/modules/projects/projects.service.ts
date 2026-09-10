@@ -72,11 +72,7 @@ export class ProjectsService {
    *   project exists, so hiding it achieves nothing and a 404 would send
    *   them hunting for a bug instead of asking for access.
    */
-  async authorize(
-    projectId: string,
-    userId: string,
-    capability: Capability,
-  ): Promise<AuthorizedProject> {
+  async authorize(projectId: string, userId: string, capability: Capability): Promise<AuthorizedProject> {
     const membership = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
       include: { project: true },
@@ -116,11 +112,7 @@ export class ProjectsService {
    * where a human is present to read the error — rather than stored and
    * quietly never matched.
    */
-  async updateAllowedOrigins(
-    id: string,
-    userId: string,
-    dto: UpdateAllowedOriginsDto,
-  ): Promise<Project> {
+  async updateAllowedOrigins(id: string, userId: string, dto: UpdateAllowedOriginsDto): Promise<Project> {
     await this.authorize(id, userId, Capability.ProjectWrite);
 
     const { origins, invalid } = normalizeOriginList(dto.allowedOrigins);
@@ -135,9 +127,7 @@ export class ProjectsService {
       where: { id },
       data: {
         allowedOrigins: origins,
-        ...(dto.allowLocalhostOrigins === undefined
-          ? {}
-          : { allowLocalhostOrigins: dto.allowLocalhostOrigins }),
+        ...(dto.allowLocalhostOrigins === undefined ? {} : { allowLocalhostOrigins: dto.allowLocalhostOrigins }),
       },
     });
 

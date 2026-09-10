@@ -74,7 +74,10 @@ export function optionalString(frame: ParsedFrame, field: string, maxLength = 25
     return undefined;
   }
   if (typeof value !== 'string' || value.length > maxLength) {
-    throw new ChatError(ChatErrorCode.INVALID_MESSAGE, `"${field}" must be a string of at most ${maxLength} characters`);
+    throw new ChatError(
+      ChatErrorCode.INVALID_MESSAGE,
+      `"${field}" must be a string of at most ${maxLength} characters`,
+    );
   }
   return value;
 }

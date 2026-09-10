@@ -33,7 +33,7 @@ class FakeChatClient {
 
 function fakeStream(overrides: { isHost?: boolean; room?: FakeRoom; chat?: FakeChatClient | null } = {}) {
   const room = overrides.room ?? new FakeRoom('room-1');
-  const chat = overrides.chat === null ? undefined : overrides.chat ?? new FakeChatClient();
+  const chat = overrides.chat === null ? undefined : (overrides.chat ?? new FakeChatClient());
   const role = overrides.isHost ? 'HOST' : 'VIEWER';
   return {
     streamId: 'stream_1',
@@ -56,11 +56,19 @@ import { useLiveStream, useLiveStreamHost, useLiveStreamViewer } from '../src/li
 import { useParticipants } from '../src/hooks';
 import { useMessages } from '../src/chat/chat-hooks';
 
-const CREDENTIALS = { streamId: 'stream_1', role: 'VIEWER' as const, rtc: { token: 't', endpoint: 'wss://rtc.example.com' } };
+const CREDENTIALS = {
+  streamId: 'stream_1',
+  role: 'VIEWER' as const,
+  rtc: { token: 't', endpoint: 'wss://rtc.example.com' },
+};
 
 function StatusProbe() {
   const { status, isHost } = useLiveStream();
-  return <div data-testid="status">{status}:{String(isHost)}</div>;
+  return (
+    <div data-testid="status">
+      {status}:{String(isHost)}
+    </div>
+  );
 }
 
 function ParticipantsProbe() {

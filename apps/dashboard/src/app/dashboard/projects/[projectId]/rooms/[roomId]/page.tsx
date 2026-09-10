@@ -263,7 +263,11 @@ function LiveQualitySummary({ connections }: { connections: ConnectionSummary[] 
         hint={`Across ${formatCount(withStats.length)} of ${formatCount(live.length)} connected`}
       />
       <StatCard label="Highest RTT" value={formatMs(rtt) ?? <NoDataYet label="Unknown" />} hint="Send direction" />
-      <StatCard label="Highest jitter" value={formatMs(jitter) ?? <NoDataYet label="Unknown" />} hint="Worst track per connection" />
+      <StatCard
+        label="Highest jitter"
+        value={formatMs(jitter) ?? <NoDataYet label="Unknown" />}
+        hint="Worst track per connection"
+      />
       <StatCard
         label="Highest packet loss"
         value={loss === null ? <NoDataYet label="Unknown" /> : `${loss}%`}

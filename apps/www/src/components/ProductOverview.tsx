@@ -67,7 +67,10 @@ function WaveIcon() {
 function BubbleIcon() {
   return (
     <svg viewBox="0 0 18 18" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
-      <path d="M2.5 5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H8l-4 3.2V12a1.5 1.5 0 0 1-1.5-1.5V5Z" strokeLinejoin="round" />
+      <path
+        d="M2.5 5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H8l-4 3.2V12a1.5 1.5 0 0 1-1.5-1.5V5Z"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -76,7 +79,10 @@ function BroadcastIcon() {
   return (
     <svg viewBox="0 0 18 18" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
       <circle cx="9" cy="9" r="2" />
-      <path d="M5.2 5.2a5.4 5.4 0 0 0 0 7.6M12.8 12.8a5.4 5.4 0 0 0 0-7.6M2.6 2.6a9 9 0 0 0 0 12.8M15.4 15.4a9 9 0 0 0 0-12.8" strokeLinecap="round" />
+      <path
+        d="M5.2 5.2a5.4 5.4 0 0 0 0 7.6M12.8 12.8a5.4 5.4 0 0 0 0-7.6M2.6 2.6a9 9 0 0 0 0 12.8M15.4 15.4a9 9 0 0 0 0-12.8"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -84,7 +90,10 @@ function BroadcastIcon() {
 function SparkIcon() {
   return (
     <svg viewBox="0 0 18 18" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
-      <path d="M9 2v3.4M9 12.6V16M2 9h3.4M12.6 9H16M4.4 4.4l2.4 2.4M11.2 11.2l2.4 2.4M13.6 4.4l-2.4 2.4M6.8 11.2l-2.4 2.4" strokeLinecap="round" />
+      <path
+        d="M9 2v3.4M9 12.6V16M2 9h3.4M12.6 9H16M4.4 4.4l2.4 2.4M11.2 11.2l2.4 2.4M13.6 4.4l-2.4 2.4M6.8 11.2l-2.4 2.4"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

@@ -1,71 +1,125 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8" />
-<title>Raven Effects Demo</title>
-<style>
-  :root { color-scheme: light dark; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 900px; margin: 1.5rem auto; padding: 0 1rem; }
-  h1 { font-size: 1.2rem; }
-  p.sub { font-size: 0.85rem; opacity: 0.75; }
-  .layout { display: flex; gap: 1rem; flex-wrap: wrap; }
-  .video-col { flex: 1; min-width: 320px; }
-  video { width: 100%; background: #000; border-radius: 6px; aspect-ratio: 16/9; object-fit: cover; }
-  .label { font-size: 0.75rem; text-align: center; margin-top: 0.3rem; opacity: 0.8; }
-  #filters button { margin: 0.25rem 0.35rem 0.25rem 0; padding: 0.4rem 0.9rem; cursor: pointer; }
-  #filters button[aria-pressed="true"] { font-weight: 700; outline: 2px solid currentColor; }
-  #status { font-size: 0.8rem; margin-top: 0.5rem; }
-  #stats { font-family: monospace; font-size: 0.72rem; margin-top: 0.4rem; opacity: 0.85; }
-  #log { height: 120px; overflow-y: auto; background: #111; color: #ddd; font-family: monospace; font-size: 0.7rem; padding: 0.5rem; border-radius: 6px; margin-top: 1rem; }
-</style>
-</head>
-<body>
-  <h1>Raven Effects Demo</h1>
-  <p class="sub">
-    Built entirely on <code>@ravenkash/effects</code> — a real camera track,
-    a real WebGL/Canvas2D pipeline, no screenshots or CSS overlays faking
-    the result. Grant camera access, then pick a filter below; the
-    "Processed" video updates live.
-  </p>
-
-  <fieldset id="filters">
-    <legend>Filter</legend>
-    <button data-filter="original" aria-pressed="true">Original</button>
-    <button data-filter="warm">Warm</button>
-    <button data-filter="cool">Cool</button>
-    <button data-filter="cinematic">Cinematic</button>
-    <button data-filter="vivid">Vivid</button>
-    <button data-filter="vintage">Vintage</button>
-    <button data-filter="beauty">Beauty</button>
-    <button data-filter="blur">Blur</button>
-  </fieldset>
-
-  <div class="layout">
-    <div class="video-col">
-      <video id="originalVideo" autoplay playsinline muted></video>
-      <div class="label">Original camera</div>
-    </div>
-    <div class="video-col">
-      <video id="processedVideo" autoplay playsinline muted></video>
-      <div class="label">Processed by Raven Effects</div>
-    </div>
-  </div>
-
-  <p id="status">Requesting camera access…</p>
-  <p id="stats"></p>
-
-  <fieldset>
-    <legend>Log</legend>
-    <div id="log"></div>
-  </fieldset>
-
-  <script type="importmap">
-    {
-      "imports": {
-        "@ravenkash/effects": "./raven-effects.js"
+  <head>
+    <meta charset="UTF-8" />
+    <title>Raven Effects Demo</title>
+    <style>
+      :root {
+        color-scheme: light dark;
       }
-    }
-  </script>
-  <script type="module" src="app.js"></script>
-</body>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        max-width: 900px;
+        margin: 1.5rem auto;
+        padding: 0 1rem;
+      }
+      h1 {
+        font-size: 1.2rem;
+      }
+      p.sub {
+        font-size: 0.85rem;
+        opacity: 0.75;
+      }
+      .layout {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .video-col {
+        flex: 1;
+        min-width: 320px;
+      }
+      video {
+        width: 100%;
+        background: #000;
+        border-radius: 6px;
+        aspect-ratio: 16/9;
+        object-fit: cover;
+      }
+      .label {
+        font-size: 0.75rem;
+        text-align: center;
+        margin-top: 0.3rem;
+        opacity: 0.8;
+      }
+      #filters button {
+        margin: 0.25rem 0.35rem 0.25rem 0;
+        padding: 0.4rem 0.9rem;
+        cursor: pointer;
+      }
+      #filters button[aria-pressed='true'] {
+        font-weight: 700;
+        outline: 2px solid currentColor;
+      }
+      #status {
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+      }
+      #stats {
+        font-family: monospace;
+        font-size: 0.72rem;
+        margin-top: 0.4rem;
+        opacity: 0.85;
+      }
+      #log {
+        height: 120px;
+        overflow-y: auto;
+        background: #111;
+        color: #ddd;
+        font-family: monospace;
+        font-size: 0.7rem;
+        padding: 0.5rem;
+        border-radius: 6px;
+        margin-top: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Raven Effects Demo</h1>
+    <p class="sub">
+      Built entirely on <code>@ravenkash/effects</code> — a real camera track, a real WebGL/Canvas2D pipeline, no
+      screenshots or CSS overlays faking the result. Grant camera access, then pick a filter below; the "Processed"
+      video updates live.
+    </p>
+
+    <fieldset id="filters">
+      <legend>Filter</legend>
+      <button data-filter="original" aria-pressed="true">Original</button>
+      <button data-filter="warm">Warm</button>
+      <button data-filter="cool">Cool</button>
+      <button data-filter="cinematic">Cinematic</button>
+      <button data-filter="vivid">Vivid</button>
+      <button data-filter="vintage">Vintage</button>
+      <button data-filter="beauty">Beauty</button>
+      <button data-filter="blur">Blur</button>
+    </fieldset>
+
+    <div class="layout">
+      <div class="video-col">
+        <video id="originalVideo" autoplay playsinline muted></video>
+        <div class="label">Original camera</div>
+      </div>
+      <div class="video-col">
+        <video id="processedVideo" autoplay playsinline muted></video>
+        <div class="label">Processed by Raven Effects</div>
+      </div>
+    </div>
+
+    <p id="status">Requesting camera access…</p>
+    <p id="stats"></p>
+
+    <fieldset>
+      <legend>Log</legend>
+      <div id="log"></div>
+    </fieldset>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "@ravenkash/effects": "./raven-effects.js"
+        }
+      }
+    </script>
+    <script type="module" src="app.js"></script>
+  </body>
 </html>

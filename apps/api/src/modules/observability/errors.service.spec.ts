@@ -45,7 +45,11 @@ describe('ErrorsService', () => {
 
   describe('getDetail', () => {
     it('throws NotFoundError for an error belonging to a different project', async () => {
-      prisma.errorEvent.findUnique.mockResolvedValue({ publicId: 'err_abc', projectId: 'other-project', connection: null });
+      prisma.errorEvent.findUnique.mockResolvedValue({
+        publicId: 'err_abc',
+        projectId: 'other-project',
+        connection: null,
+      });
 
       await expect(service.getDetail('project-1', 'err_abc')).rejects.toBeInstanceOf(NotFoundError);
     });

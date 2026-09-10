@@ -13,14 +13,7 @@ import { EffectsError } from '../errors';
  */
 
 export type FaceLandmarkName =
-  | 'leftEye'
-  | 'rightEye'
-  | 'noseTip'
-  | 'mouthLeft'
-  | 'mouthRight'
-  | 'leftEyebrow'
-  | 'rightEyebrow'
-  | 'jawline';
+  'leftEye' | 'rightEye' | 'noseTip' | 'mouthLeft' | 'mouthRight' | 'leftEyebrow' | 'rightEyebrow' | 'jawline';
 
 export interface FaceLandmark {
   name: FaceLandmarkName;

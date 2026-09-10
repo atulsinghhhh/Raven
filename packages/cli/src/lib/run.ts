@@ -38,7 +38,9 @@ function printError(error: unknown): void {
 
   process.stderr.write(`${chalk.red('Error:')} An unexpected error occurred.\n`);
   if (isDebugEnabled()) {
-    process.stderr.write(`\n${chalk.dim('Stack (--debug):')}\n${error instanceof Error ? error.stack : String(error)}\n`);
+    process.stderr.write(
+      `\n${chalk.dim('Stack (--debug):')}\n${error instanceof Error ? error.stack : String(error)}\n`,
+    );
   } else {
     process.stderr.write(`\n${chalk.dim('Re-run with --debug for details.')}\n`);
   }

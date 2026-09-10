@@ -1,9 +1,6 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@3.1.4/schema.json",
-  "changelog": [
-    "@changesets/changelog-github",
-    { "repo": "atulsinghhhh/Raven" }
-  ],
+  "changelog": ["@changesets/changelog-github", { "repo": "atulsinghhhh/Raven" }],
   "commit": false,
   "fixed": [],
   "linked": [],
@@ -13,10 +10,5 @@
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
     "onlyUpdatePeerDependentsWhenOutOfRange": true
   },
-  "ignore": [
-    "@raven/api",
-    "@raven/dashboard",
-    "@raven/docs",
-    "@raven/www"
-  ]
+  "ignore": ["@raven/api", "@raven/dashboard", "@raven/docs", "@raven/www"]
 }

@@ -20,9 +20,7 @@ export const WEBHOOK_TOLERANCE_SECONDS = 300;
  * breaking every existing receiver at once.
  */
 export function signWebhookPayload(rawBody: string, secret: string, timestampSeconds: number): string {
-  const signature = createHmac('sha256', secret)
-    .update(`${timestampSeconds}.${rawBody}`)
-    .digest('hex');
+  const signature = createHmac('sha256', secret).update(`${timestampSeconds}.${rawBody}`).digest('hex');
   return `t=${timestampSeconds},v1=${signature}`;
 }
 

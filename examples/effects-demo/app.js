@@ -24,7 +24,9 @@ const FILTERS = {
 
 async function main() {
   const caps = effects.detectCapabilities();
-  log(`Capabilities: webgl2=${caps.webgl2} captureStream=${caps.captureStream} recommendedEngine=${caps.recommendedEngine}`);
+  log(
+    `Capabilities: webgl2=${caps.webgl2} captureStream=${caps.captureStream} recommendedEngine=${caps.recommendedEngine}`,
+  );
 
   let cameraTrack;
   try {

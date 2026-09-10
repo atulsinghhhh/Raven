@@ -1,11 +1,6 @@
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  OnGatewayInit,
-  WebSocketGateway,
-} from '@nestjs/websockets';
+import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, WebSocketGateway } from '@nestjs/websockets';
 import { IncomingMessage } from 'http';
 import { RawData, WebSocket } from 'ws';
 import { generateId } from '../../../shared/utils/crypto.util';
@@ -243,12 +238,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     for (const [conversationId, subscription] of session.rooms) {
       this.removeFromRoomIndex(conversationId, session.socket);
       await subscription.unsubscribe();
-      await this.presence.clear(
-        session.projectId,
-        conversationId,
-        subscription.conversationPublicId,
-        session.userId,
-      );
+      await this.presence.clear(session.projectId, conversationId, subscription.conversationPublicId, session.userId);
       await this.typing.stop(
         session.projectId,
         conversationId,
@@ -338,10 +328,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         return this.handleTyping(session, frame);
 
       case ChatClientFrame.READ_MARK: {
-        const state = await this.readState.markRead(
-          this.actorFor(session),
-          requireString(frame, 'messageId', 64),
-        );
+        const state = await this.readState.markRead(this.actorFor(session), requireString(frame, 'messageId', 64));
         this.ack(session, frame.id, state);
         return;
       }
@@ -615,7 +602,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       // on a token that has since expired (spec §39).
       if (session.tokenExpiresAt <= now) {
         this.logger.log(`closing chat connection ${session.connectionId}: token expired`);
-        this.send(socket, new ChatError(ChatErrorCode.TOKEN_EXPIRED, 'Chat token expired — reconnect with a new one').toFrame());
+        this.send(
+          socket,
+          new ChatError(ChatErrorCode.TOKEN_EXPIRED, 'Chat token expired — reconnect with a new one').toFrame(),
+        );
         await this.teardownSession(session, 'token_expired');
         this.sessions.delete(socket);
         socket.close(CHAT_CLOSE_TOKEN_EXPIRED, 'token expired');

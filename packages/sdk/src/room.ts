@@ -345,7 +345,10 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
     if (typeof document !== 'undefined') {
       const probe = document.createElement('audio') as HTMLAudioElement & { setSinkId?: unknown };
       if (typeof probe.setSinkId !== 'function') {
-        throw new RTCError('DEVICE_NOT_FOUND', "This browser doesn't support selecting an audio output device (no setSinkId)");
+        throw new RTCError(
+          'DEVICE_NOT_FOUND',
+          "This browser doesn't support selecting an audio output device (no setSinkId)",
+        );
       }
     }
     await this.adapter.setDevice('audiooutput', deviceId);

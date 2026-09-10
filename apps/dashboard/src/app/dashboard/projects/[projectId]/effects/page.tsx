@@ -132,9 +132,9 @@ export default async function EffectsOverviewPage({ params }: { params: Promise<
 
       <section className="rounded-lg border border-info-line bg-info-subtle p-4">
         <p className="text-sm leading-relaxed text-info-text">
-          <span className="font-medium">Effects run once, on the publisher.</span> A pipeline processes the local
-          camera track before it&apos;s published; every remote participant or viewer receives the already-processed
-          video. Nothing re-runs per viewer.
+          <span className="font-medium">Effects run once, on the publisher.</span> A pipeline processes the local camera
+          track before it&apos;s published; every remote participant or viewer receives the already-processed video.
+          Nothing re-runs per viewer.
         </p>
       </section>
 
@@ -158,12 +158,18 @@ await camera.attachEffects(effects);
       </Card>
 
       <Card padded={false}>
-        <CardHeaderRow title="Filters &amp; presets" subtitle="Every filter in packages/effects's registry, by platform." />
+        <CardHeaderRow
+          title="Filters &amp; presets"
+          subtitle="Every filter in packages/effects's registry, by platform."
+        />
         <CapabilityTable rows={FILTER_ROWS} />
       </Card>
 
       <Card padded={false}>
-        <CardHeaderRow title="Pipeline &amp; integration" subtitle="Lifecycle, RTC/Live Streaming wiring, and the not-yet-implemented foundations." />
+        <CardHeaderRow
+          title="Pipeline &amp; integration"
+          subtitle="Lifecycle, RTC/Live Streaming wiring, and the not-yet-implemented foundations."
+        />
         <CapabilityTable rows={CAPABILITY_ROWS} />
       </Card>
 
@@ -197,7 +203,8 @@ await camera.attachEffects(effects);
             <span className="font-medium text-fg">Face detection, background blur/replacement, AR overlays.</span> The
             extension points exist (<span className="font-mono text-xs">FaceDetector</span>,{' '}
             <span className="font-mono text-xs">BackgroundProcessor</span>,{' '}
-            <span className="font-mono text-xs">AROverlay</span> in <span className="font-mono text-xs">@ravenkash/effects</span>
+            <span className="font-mono text-xs">AROverlay</span> in{' '}
+            <span className="font-mono text-xs">@ravenkash/effects</span>
             ), and every one of them reports itself unsupported rather than faking a result.
           </li>
           <li>

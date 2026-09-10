@@ -9,17 +9,7 @@ import { KeyValue, KeyValueGrid } from '@/components/ui/mono';
 import { PageHeader } from '@/components/ui/page-header';
 import { ProductTabs, rtcTabs } from '@/components/shell/product-tabs';
 import { ErrorState, NoDataYet } from '@/components/ui/states';
-import {
-  MobileList,
-  MobileRow,
-  Table,
-  TableWrap,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from '@/components/ui/table';
+import { MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { formatCount } from '@/lib/format';
 
 /**
@@ -118,7 +108,8 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ pr
       scope: 'This project',
       status: diagnostics?.dependencies.turn ?? health?.dependencies.turn ?? 'unknown',
       role: 'Relays media when a direct path is blocked by NAT or a restrictive firewall.',
-      ifDown: 'Connections still succeed on permissive networks and fail on corporate or mobile ones — often reported as "works for me".',
+      ifDown:
+        'Connections still succeed on permissive networks and fail on corporate or mobile ones — often reported as "works for me".',
     },
     {
       key: 'database',
@@ -134,7 +125,8 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ pr
       scope: 'Platform',
       status: health?.dependencies.redis ?? 'unknown',
       role: 'Shares signaling state across API instances so any node can answer for any room.',
-      ifDown: 'Participants handled by different nodes can lose sight of each other, and reconnects behave inconsistently.',
+      ifDown:
+        'Participants handled by different nodes can lose sight of each other, and reconnects behave inconsistently.',
     },
   ];
 
@@ -304,15 +296,7 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ pr
             </KeyValue>
             <KeyValue label="Project name">{diagnostics?.project.name ?? <NoDataYet label="Unverified" />}</KeyValue>
             <KeyValue label="Platform health">
-              {health ? (
-                health.status === 'ok' ? (
-                  'ok'
-                ) : (
-                  'degraded'
-                )
-              ) : (
-                <NoDataYet label="Unverified" />
-              )}
+              {health ? health.status === 'ok' ? 'ok' : 'degraded' : <NoDataYet label="Unverified" />}
             </KeyValue>
             <KeyValue label="Checks failing">
               <span className="tabular">

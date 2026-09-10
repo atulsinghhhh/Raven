@@ -59,7 +59,13 @@ describe('createTelemetryClient', () => {
     const fetchMock = jest.fn();
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    const client = createTelemetryClient({ enabled: false, telemetryUrl: 'http://api.test', token: 't', sdkVersion: '0.1.0', logger });
+    const client = createTelemetryClient({
+      enabled: false,
+      telemetryUrl: 'http://api.test',
+      token: 't',
+      sdkVersion: '0.1.0',
+      logger,
+    });
     client.send('connection_started');
 
     expect(fetchMock).not.toHaveBeenCalled();
@@ -105,7 +111,13 @@ describe('createTelemetryClient', () => {
   it('never throws, and never returns a rejected promise the caller must handle, when fetch rejects', async () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('ECONNREFUSED')) as unknown as typeof fetch;
 
-    const client = createTelemetryClient({ enabled: true, telemetryUrl: 'http://api.test', token: 't', sdkVersion: '0.1.0', logger });
+    const client = createTelemetryClient({
+      enabled: true,
+      telemetryUrl: 'http://api.test',
+      token: 't',
+      sdkVersion: '0.1.0',
+      logger,
+    });
 
     expect(() => client.send('connection_started')).not.toThrow();
     // Let the swallowed microtask run without ever surfacing.
@@ -117,7 +129,13 @@ describe('createTelemetryClient', () => {
       throw new Error('synchronous network failure');
     }) as unknown as typeof fetch;
 
-    const client = createTelemetryClient({ enabled: true, telemetryUrl: 'http://api.test', token: 't', sdkVersion: '0.1.0', logger });
+    const client = createTelemetryClient({
+      enabled: true,
+      telemetryUrl: 'http://api.test',
+      token: 't',
+      sdkVersion: '0.1.0',
+      logger,
+    });
 
     expect(() => client.send('connection_started')).not.toThrow();
   });

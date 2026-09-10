@@ -9,7 +9,12 @@ export const saturationDefinition: EffectDefinition = {
   type: 'saturation',
   category: 'color',
   params: {
-    value: { min: 0, max: 2, default: 1, description: 'Saturation multiplier, 0 (grayscale) to 2 (double). 1 = no change.' },
+    value: {
+      min: 0,
+      max: 2,
+      default: 1,
+      description: 'Saturation multiplier, 0 (grayscale) to 2 (double). 1 = no change.',
+    },
   },
   op: {
     kind: 'color',

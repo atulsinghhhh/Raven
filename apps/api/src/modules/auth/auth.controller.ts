@@ -40,7 +40,8 @@ export class AuthController {
   @RateLimit(5)
   @ApiOperation({
     summary: 'Create a developer account',
-    description: 'Rate limited to 5 requests/window/IP. Passwords are hashed with bcrypt — never stored or logged in plaintext.',
+    description:
+      'Rate limited to 5 requests/window/IP. Passwords are hashed with bcrypt — never stored or logged in plaintext.',
   })
   @ApiResponse({ status: 201, description: 'Account created', schema: { example: AUTH_RESULT_EXAMPLE } })
   @ApiResponse({ status: 409, description: 'An account with this email already exists' })
@@ -53,7 +54,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(RateLimitGuard)
   @RateLimit(10)
-  @ApiOperation({ summary: 'Exchange email/password for a session JWT', description: 'Rate limited to 10 requests/window/IP.' })
+  @ApiOperation({
+    summary: 'Exchange email/password for a session JWT',
+    description: 'Rate limited to 10 requests/window/IP.',
+  })
   @ApiResponse({ status: 200, description: 'Authenticated', schema: { example: AUTH_RESULT_EXAMPLE } })
   @ApiUnauthorizedResponse({ description: 'Invalid email or password' })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
@@ -70,7 +74,11 @@ export class AuthController {
     description:
       'Unauthenticated: the link is opened from a mail client, often on another device. The token is single-use and expires (EMAIL_VERIFICATION_TTL_MINUTES). Invalid, used and expired tokens all return the same 400 — telling them apart would help someone guessing.',
   })
-  @ApiResponse({ status: 200, description: 'Address confirmed', schema: { example: { email: 'dev@example.com', verifiedAt: '2026-09-08T10:31:00.000Z' } } })
+  @ApiResponse({
+    status: 200,
+    description: 'Address confirmed',
+    schema: { example: { email: 'dev@example.com', verifiedAt: '2026-09-08T10:31:00.000Z' } },
+  })
   @ApiResponse({ status: 400, description: 'Link invalid, already used, or expired' })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
   verifyEmail(@Body() dto: VerifyEmailDto) {
@@ -134,7 +142,8 @@ export class AuthController {
   @ApiBearerAuth('jwt')
   @ApiOperation({
     summary: 'Invalidate the current session JWT',
-    description: 'Blocklists this specific token (by jti) in Redis until it would have expired naturally. JWTs are stateless, so this is the only way to make one stop working before its exp claim.',
+    description:
+      'Blocklists this specific token (by jti) in Redis until it would have expired naturally. JWTs are stateless, so this is the only way to make one stop working before its exp claim.',
   })
   @ApiResponse({ status: 204, description: 'Logged out' })
   async logout(@CurrentUser() user: AuthenticatedUser): Promise<void> {

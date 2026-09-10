@@ -54,10 +54,7 @@ describe('Chat (e2e)', () => {
     // that say nothing about the code under test. (Same reset the
     // control-plane and signaling suites do.)
     const redis = app.get(RedisService);
-    const stale = [
-      ...(await redis.client.keys('ratelimit:*')),
-      ...(await redis.client.keys('raven:chat:ratelimit:*')),
-    ];
+    const stale = [...(await redis.client.keys('ratelimit:*')), ...(await redis.client.keys('raven:chat:ratelimit:*'))];
     if (stale.length > 0) await redis.client.del(...stale);
 
     const registered = await request(baseUrl)
@@ -111,7 +108,10 @@ describe('Chat (e2e)', () => {
   async function connect(token: string) {
     const socket = new WebSocket(`${wsBaseUrl}?token=${encodeURIComponent(token)}&sdkVersion=e2e&platform=node`);
     const inbox: Record<string, unknown>[] = [];
-    const waiters: Array<{ predicate: (f: Record<string, unknown>) => boolean; resolve: (f: Record<string, unknown>) => void }> = [];
+    const waiters: Array<{
+      predicate: (f: Record<string, unknown>) => boolean;
+      resolve: (f: Record<string, unknown>) => void;
+    }> = [];
 
     socket.on('message', (raw) => {
       const frame = JSON.parse(raw.toString()) as Record<string, unknown>;
@@ -141,7 +141,13 @@ describe('Chat (e2e)', () => {
             () => reject(new Error(`timed out; saw frames: ${inbox.map((f) => f.type).join(', ')}`)),
             timeoutMs,
           );
-          waiters.push({ predicate, resolve: (f) => { clearTimeout(timer); resolve(f); } });
+          waiters.push({
+            predicate,
+            resolve: (f) => {
+              clearTimeout(timer);
+              resolve(f);
+            },
+          });
         });
       },
       close: () => socket.close(),
@@ -169,7 +175,13 @@ describe('Chat (e2e)', () => {
 
     it('rejects a forged token', async () => {
       const forged = `${Buffer.from('{"alg":"HS256"}').toString('base64url')}.${Buffer.from(
-        JSON.stringify({ sub: 'mallory', pid: projectId, exp: Math.floor(Date.now() / 1000) + 600, aud: 'raven-chat', iss: 'raven' }),
+        JSON.stringify({
+          sub: 'mallory',
+          pid: projectId,
+          exp: Math.floor(Date.now() / 1000) + 600,
+          aud: 'raven-chat',
+          iss: 'raven',
+        }),
       ).toString('base64url')}.forged`;
 
       const socket = new WebSocket(`${wsBaseUrl}?token=${encodeURIComponent(forged)}`);
@@ -218,7 +230,7 @@ describe('Chat (e2e)', () => {
       bob?.close();
     });
 
-    it('delivers a message from A to B, and B\'s reply back to A', async () => {
+    it("delivers a message from A to B, and B's reply back to A", async () => {
       alice.send({ type: 'message.send', id: 'a1', room, text: 'Hello from Alice', clientMessageId: `a1-${suffix}` });
       const ack = await alice.waitFor((f) => f.type === 'ack' && f.id === 'a1');
       const first = (ack.data as { message: { id: string } }).message;
@@ -234,7 +246,9 @@ describe('Chat (e2e)', () => {
       expect(reply.replyTo).toBe(first.id);
       expect(reply.threadRootId).toBe(first.id);
 
-      const backToAlice = await alice.waitFor((f) => f.type === 'message' && (f.message as { id: string }).id === reply.id);
+      const backToAlice = await alice.waitFor(
+        (f) => f.type === 'message' && (f.message as { id: string }).id === reply.id,
+      );
       expect((backToAlice.message as { text: string }).text).toBe('Hello from Bob');
     });
 
@@ -299,7 +313,9 @@ describe('Chat (e2e)', () => {
 
       alice.send({ type: 'message.update', id: 'e1', messageId, text: 'Updated message' });
       await alice.waitFor((f) => f.type === 'ack' && f.id === 'e1');
-      const edited = await bob.waitFor((f) => f.type === 'message.updated' && (f.message as { id: string }).id === messageId);
+      const edited = await bob.waitFor(
+        (f) => f.type === 'message.updated' && (f.message as { id: string }).id === messageId,
+      );
       expect((edited.message as { text: string; edited: boolean }).text).toBe('Updated message');
       expect((edited.message as { edited: boolean }).edited).toBe(true);
 
@@ -397,7 +413,7 @@ describe('Chat (e2e)', () => {
         .expect(403);
     });
 
-    it('refuses to let a member edit someone else\'s message', async () => {
+    it("refuses to let a member edit someone else's message", async () => {
       const posted = await request(baseUrl)
         .post(`/v1/chat/conversations/${room}/messages`)
         .set('Authorization', `Bearer ${aliceToken}`)

@@ -43,11 +43,7 @@ export function buildIceServers(opts: {
   participantIdentity: string;
   ttlSeconds: number;
 }): IceServer[] {
-  const { username, credential } = generateTurnCredential(
-    opts.turnSecret,
-    opts.ttlSeconds,
-    opts.participantIdentity,
-  );
+  const { username, credential } = generateTurnCredential(opts.turnSecret, opts.ttlSeconds, opts.participantIdentity);
   const hostPort = `${opts.turnHost}:${opts.turnPort}`;
 
   const servers: IceServer[] = [

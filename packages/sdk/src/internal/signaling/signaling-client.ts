@@ -156,12 +156,7 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
         // by design: saying why a connection failed would be a cross-origin
         // information leak. So this message lists what to check instead of
         // pretending to know.
-        reject(
-          new RTCError(
-            'NETWORK_ERROR',
-            `Could not reach the signaling endpoint at ${this.options.endpoint}`,
-          ),
-        );
+        reject(new RTCError('NETWORK_ERROR', `Could not reach the signaling endpoint at ${this.options.endpoint}`));
       };
     });
   }
@@ -198,11 +193,7 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
             };
             this.joined = true;
             this.reconnectAttempts = 0;
-            this.logger.info(
-              'joined room',
-              message.roomId,
-              message.rtcServer ? `via ${message.rtcServer}` : '',
-            );
+            this.logger.info('joined room', message.roomId, message.rtcServer ? `via ${message.rtcServer}` : '');
             settle(() => resolve(payload));
             this.emit('joined', payload);
             return;
@@ -268,10 +259,7 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
       return;
     }
     if (!this.options.autoReconnect) {
-      this.emit(
-        'failed',
-        new RTCError('NETWORK_ERROR', `The signaling connection closed (code ${event.code})`),
-      );
+      this.emit('failed', new RTCError('NETWORK_ERROR', `The signaling connection closed (code ${event.code})`));
       return;
     }
 
@@ -286,10 +274,7 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
     if (this.reconnectAttempts >= RECONNECT_MAX_ATTEMPTS) {
       this.emit(
         'failed',
-        new RTCError(
-          'CONNECTION_FAILED',
-          `Could not re-establish signaling after ${RECONNECT_MAX_ATTEMPTS} attempts`,
-        ),
+        new RTCError('CONNECTION_FAILED', `Could not re-establish signaling after ${RECONNECT_MAX_ATTEMPTS} attempts`),
       );
       return;
     }
@@ -310,9 +295,7 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
     // fleet that all dropped together doesn't all come back together.
     const delay = Math.random() * backoff;
 
-    this.logger.info(
-      `signaling reconnect attempt ${this.reconnectAttempts} in ${Math.round(delay)}ms`,
-    );
+    this.logger.info(`signaling reconnect attempt ${this.reconnectAttempts} in ${Math.round(delay)}ms`);
 
     this.reconnectTimer = setTimeout(() => {
       void this.openAndJoin().catch((error) => {

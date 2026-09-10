@@ -102,10 +102,7 @@ export async function createScreenShareTrack(): Promise<LocalTrack> {
     // Mobile browsers and older engines have no getDisplayMedia at all,
     // and spec §16 says don't assume screen share exists. So: a clear
     // typed refusal, rather than some obscure TypeError.
-    throw new RTCError(
-      'NOT_SUPPORTED',
-      'Screen sharing is not available on this platform (no getDisplayMedia)',
-    );
+    throw new RTCError('NOT_SUPPORTED', 'Screen sharing is not available on this platform (no getDisplayMedia)');
   }
 
   let stream: MediaStream;
@@ -161,18 +158,12 @@ export interface CustomTrackOptions {
  * the application's business. `unpublish()` still stops the track, in
  * keeping with every other track the SDK publishes.
  */
-export function createCustomTrack(
-  mediaStreamTrack: MediaStreamTrack,
-  options: CustomTrackOptions = {},
-): LocalTrack {
+export function createCustomTrack(mediaStreamTrack: MediaStreamTrack, options: CustomTrackOptions = {}): LocalTrack {
   if (!mediaStreamTrack || typeof mediaStreamTrack !== 'object' || typeof mediaStreamTrack.kind !== 'string') {
     throw new RTCError('MEDIA_ERROR', 'createCustomTrack() needs a MediaStreamTrack');
   }
   if (mediaStreamTrack.kind !== 'audio' && mediaStreamTrack.kind !== 'video') {
-    throw new RTCError(
-      'MEDIA_ERROR',
-      `A MediaStreamTrack of kind "${mediaStreamTrack.kind}" cannot be published`,
-    );
+    throw new RTCError('MEDIA_ERROR', `A MediaStreamTrack of kind "${mediaStreamTrack.kind}" cannot be published`);
   }
   if (mediaStreamTrack.readyState === 'ended') {
     // Publishing an ended track negotiates an m-section that will never

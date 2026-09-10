@@ -189,9 +189,7 @@ export class RoomRegistryService {
     try {
       return await this.redisService.client.scard(SignalingRedisKeys.roomParticipants(roomId));
     } catch (err) {
-      this.logger.warn(
-        `fleet count failed for room ${roomId}, assuming not empty: ${(err as Error).message}`,
-      );
+      this.logger.warn(`fleet count failed for room ${roomId}, assuming not empty: ${(err as Error).message}`);
       return 1;
     }
   }

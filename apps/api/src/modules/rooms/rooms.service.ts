@@ -30,9 +30,7 @@ export class RoomsService {
     });
 
     if (existing) {
-      throw new ConflictError(
-        `A room named "${dto.name}" already exists in this project's ${environment} environment`,
-      );
+      throw new ConflictError(`A room named "${dto.name}" already exists in this project's ${environment} environment`);
     }
 
     return this.prisma.room.create({ data: { projectId, environment, name: dto.name } });
@@ -81,7 +79,7 @@ export class RoomsService {
 
     return rooms.map((room) => ({
       ...room,
-      liveParticipantCount: liveCounts ? liveCounts.get(room.id) ?? null : null,
+      liveParticipantCount: liveCounts ? (liveCounts.get(room.id) ?? null) : null,
     }));
   }
 

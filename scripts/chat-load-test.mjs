@@ -124,7 +124,9 @@ async function main() {
   }
 
   const connectMs = Date.now() - connectStarted;
-  console.log(`\n  ${metrics.connectionsOpened} connected in ${(connectMs / 1000).toFixed(1)}s (${metrics.connectionsFailed} failed)\n`);
+  console.log(
+    `\n  ${metrics.connectionsOpened} connected in ${(connectMs / 1000).toFixed(1)}s (${metrics.connectionsFailed} failed)\n`,
+  );
 
   if (clients.length === 0) {
     console.error('no connections opened — aborting');

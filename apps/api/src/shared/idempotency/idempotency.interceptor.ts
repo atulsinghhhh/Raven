@@ -96,7 +96,9 @@ export class IdempotencyInterceptor implements NestInterceptor {
   }
 
   private hashBody(body: unknown): string {
-    return createHash('sha256').update(JSON.stringify(body ?? null)).digest('hex');
+    return createHash('sha256')
+      .update(JSON.stringify(body ?? null))
+      .digest('hex');
   }
 
   private async readCached(redisKey: string): Promise<CachedResponse | undefined> {

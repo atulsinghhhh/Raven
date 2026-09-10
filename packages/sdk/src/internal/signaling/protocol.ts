@@ -85,7 +85,13 @@ export interface ServerParticipant {
 }
 
 export type ServerMessage =
-  | { type: typeof ServerMessageType.ROOM_JOINED; roomId: string; participants: ServerParticipant[]; rtcServer?: string; region?: string }
+  | {
+      type: typeof ServerMessageType.ROOM_JOINED;
+      roomId: string;
+      participants: ServerParticipant[];
+      rtcServer?: string;
+      region?: string;
+    }
   | { type: typeof ServerMessageType.ROOM_LEFT; roomId: string }
   | { type: typeof ServerMessageType.PARTICIPANT_JOINED; participant: ServerParticipant }
   | { type: typeof ServerMessageType.PARTICIPANT_LEFT; participant: ServerParticipant }
@@ -95,7 +101,13 @@ export type ServerMessage =
   | { type: typeof ServerMessageType.TRACK_UNMUTED; participantId: string; trackId: string }
   | { type: typeof ServerMessageType.SDP_OFFER; sdp: string }
   | { type: typeof ServerMessageType.SDP_ANSWER; sdp: string }
-  | { type: typeof ServerMessageType.ICE_CANDIDATE; candidate: string; sdpMid?: string; sdpMLineIndex?: number; usernameFragment?: string }
+  | {
+      type: typeof ServerMessageType.ICE_CANDIDATE;
+      candidate: string;
+      sdpMid?: string;
+      sdpMLineIndex?: number;
+      usernameFragment?: string;
+    }
   | { type: typeof ServerMessageType.CONNECTION_STATE; iceState: string; peerState: string }
   | { type: typeof ServerMessageType.ERROR; code: SignalingErrorCode; message: string }
   | { type: typeof ServerMessageType.PONG };
@@ -105,10 +117,21 @@ export type ClientMessage =
   | { type: typeof ClientMessageType.ROOM_LEAVE }
   | { type: typeof ClientMessageType.SDP_ANSWER; sdp: string }
   | { type: typeof ClientMessageType.SDP_OFFER; sdp: string }
-  | { type: typeof ClientMessageType.ICE_CANDIDATE; candidate: string; sdpMid?: string; sdpMLineIndex?: number; usernameFragment?: string }
+  | {
+      type: typeof ClientMessageType.ICE_CANDIDATE;
+      candidate: string;
+      sdpMid?: string;
+      sdpMLineIndex?: number;
+      usernameFragment?: string;
+    }
   | { type: typeof ClientMessageType.TRACK_MUTE; trackId: string; muted: boolean }
   | { type: typeof ClientMessageType.TRACK_PUBLISH; trackId: string; source: 'camera' | 'microphone' | 'screenShare' }
-  | { type: typeof ClientMessageType.SUBSCRIPTION_UPDATE; publisherId: string; trackId: string; layer: 'low' | 'medium' | 'high' | 'auto' }
+  | {
+      type: typeof ClientMessageType.SUBSCRIPTION_UPDATE;
+      publisherId: string;
+      trackId: string;
+      layer: 'low' | 'medium' | 'high' | 'auto';
+    }
   | { type: typeof ClientMessageType.PING };
 
 /**

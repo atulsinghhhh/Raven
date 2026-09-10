@@ -40,7 +40,9 @@ describe('RoomsResource', () => {
 
   describe('participants', () => {
     it('list() returns the live participant list', async () => {
-      const http = { request: jest.fn().mockResolvedValue([{ identity: 'alice', joinedAt: '2026-01-01', tracks: [] }]) };
+      const http = {
+        request: jest.fn().mockResolvedValue([{ identity: 'alice', joinedAt: '2026-01-01', tracks: [] }]),
+      };
       const resource = new RoomsResource(http as unknown as RavenHttpClient);
 
       const participants = await resource.participants.list('r1');

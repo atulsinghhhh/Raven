@@ -23,7 +23,9 @@ export const RavenLiveStreamContext = createContext<RavenLiveStreamContextValue 
 export function useRavenLiveStreamContext(): RavenLiveStreamContextValue {
   const value = useContext(RavenLiveStreamContext);
   if (!value) {
-    throw new Error('@ravenkash/react Live Streaming hooks must be used inside a <RavenLiveStream>; see docs/sdk/react.md#live-streaming.');
+    throw new Error(
+      '@ravenkash/react Live Streaming hooks must be used inside a <RavenLiveStream>; see docs/sdk/react.md#live-streaming.',
+    );
   }
   return value;
 }

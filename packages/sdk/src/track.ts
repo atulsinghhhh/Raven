@@ -1,5 +1,10 @@
 import type { EffectsPipeline } from '@ravenkash/effects';
-import { normalizeTrackStats, pickBestLayer, type RawTrackStats, type TrackStats } from './internal/telemetry/track-stats';
+import {
+  normalizeTrackStats,
+  pickBestLayer,
+  type RawTrackStats,
+  type TrackStats,
+} from './internal/telemetry/track-stats';
 import { RTCError } from './errors';
 
 export type { TrackStats } from './internal/telemetry/track-stats';
@@ -130,7 +135,10 @@ export class LocalTrack extends Track {
       throw new RTCError('MEDIA_ERROR', `attachEffects() is only supported on camera tracks, not "${this.kind}".`);
     }
     if (!this.localDelegate.replaceTrack) {
-      throw new RTCError('MEDIA_ERROR', 'This track cannot be swapped in place; the current adapter does not support replaceTrack().');
+      throw new RTCError(
+        'MEDIA_ERROR',
+        'This track cannot be swapped in place; the current adapter does not support replaceTrack().',
+      );
     }
     if (this.attachedEffectsPipeline) {
       await this.detachEffects();

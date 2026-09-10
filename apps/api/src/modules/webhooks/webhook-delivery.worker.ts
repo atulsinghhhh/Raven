@@ -1,9 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  WebhookDeliveryStatus,
-  WebhookEndpointStatus,
-} from '../../generated/prisma/client';
+import { WebhookDeliveryStatus, WebhookEndpointStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { RedisService } from '../../shared/redis/redis.service';
 import { Environment } from '../../shared/environment/environment.constants';

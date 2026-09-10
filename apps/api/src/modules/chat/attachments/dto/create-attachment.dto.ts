@@ -21,8 +21,7 @@ export class CreateAttachmentDto {
 
   @ApiProperty({
     example: 184320,
-    description:
-      'Declared size in bytes, checked against STORAGE_MAX_ATTACHMENT_BYTES before a URL is issued.',
+    description: 'Declared size in bytes, checked against STORAGE_MAX_ATTACHMENT_BYTES before a URL is issued.',
   })
   @IsInt()
   @Min(1)

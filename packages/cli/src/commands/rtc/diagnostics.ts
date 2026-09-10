@@ -40,9 +40,7 @@ export function registerRtcDiagnosticsCommand(rtc: Command): void {
           );
           if (fleet.healthyServers === 0) {
             process.stdout.write(
-              `\n${chalk.red(
-                'No healthy RTC server is registered; no room can be served until one is.',
-              )}\n`,
+              `\n${chalk.red('No healthy RTC server is registered; no room can be served until one is.')}\n`,
             );
             return;
           }
@@ -91,9 +89,7 @@ export function registerRtcDiagnosticsCommand(rtc: Command): void {
           const detail =
             participant.tracks.length === 0
               ? chalk.yellow('publishing nothing')
-              : participant.tracks
-                  .map((track) => `${track.name}${track.muted ? chalk.dim('(muted)') : ''}`)
-                  .join(' ');
+              : participant.tracks.map((track) => `${track.name}${track.muted ? chalk.dim('(muted)') : ''}`).join(' ');
           process.stdout.write(`  ${chalk.bold(participant.identity.padEnd(20))} ${detail}\n`);
         }
 

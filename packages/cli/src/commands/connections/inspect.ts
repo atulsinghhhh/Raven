@@ -8,7 +8,7 @@ import { withErrorHandling } from '../../lib/run.js';
 export function registerConnectionsInspectCommand(connections: Command): void {
   connections
     .command('inspect <connectionId>')
-    .description('Show one connection\'s full detail and event timeline')
+    .description("Show one connection's full detail and event timeline")
     .option('-p, --project <project>', 'project ID (overrides the current project context)')
     .option('--json', 'output as JSON')
     .action(

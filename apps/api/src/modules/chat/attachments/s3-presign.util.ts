@@ -76,12 +76,7 @@ export function presignS3Url(input: PresignInput): string {
     'UNSIGNED-PAYLOAD',
   ].join('\n');
 
-  const stringToSign = [
-    'AWS4-HMAC-SHA256',
-    amzDate,
-    credentialScope,
-    sha256Hex(canonicalRequest),
-  ].join('\n');
+  const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, sha256Hex(canonicalRequest)].join('\n');
 
   const signature = hmac(signingKey(input.secretAccessKey, dateStamp, input.region), stringToSign).toString('hex');
 
@@ -109,10 +104,7 @@ function encodeS3Key(key: string): string {
 }
 
 function encodeRfc3986(value: string): string {
-  return encodeURIComponent(value).replace(
-    /[!'()*]/g,
-    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
-  );
+  return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 }
 
 function signingKey(secretAccessKey: string, dateStamp: string, region: string): Buffer {

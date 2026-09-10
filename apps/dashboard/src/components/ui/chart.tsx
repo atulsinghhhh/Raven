@@ -46,7 +46,11 @@ export function BarChart({
     <figure>
       <div className="flex items-end gap-[2px]" style={{ height }} aria-hidden="true">
         {data.map((d, i) => (
-          <div key={i} className="group relative flex flex-1 items-end justify-center" title={d.hint ?? `${d.label}: ${d.value}`}>
+          <div
+            key={i}
+            className="group relative flex flex-1 items-end justify-center"
+            title={d.hint ?? `${d.label}: ${d.value}`}
+          >
             <div
               className={`w-full rounded-t-[2px] transition-opacity group-hover:opacity-80 ${
                 d.value === 0 ? 'bg-line' : barColor
@@ -128,9 +132,21 @@ export function DistributionBar({ segments, caption }: { segments: Segment[]; ca
  * thresholds, not hardcoded: a 90% success rate is good for one project
  * and alarming for another.
  */
-export function RateBar({ value, tone = 'accent' }: { value: number; tone?: 'accent' | 'success' | 'warning' | 'danger' }) {
+export function RateBar({
+  value,
+  tone = 'accent',
+}: {
+  value: number;
+  tone?: 'accent' | 'success' | 'warning' | 'danger';
+}) {
   const color =
-    tone === 'success' ? 'bg-success' : tone === 'warning' ? 'bg-warning' : tone === 'danger' ? 'bg-danger' : 'bg-accent';
+    tone === 'success'
+      ? 'bg-success'
+      : tone === 'warning'
+        ? 'bg-warning'
+        : tone === 'danger'
+          ? 'bg-danger'
+          : 'bg-accent';
 
   return (
     <div

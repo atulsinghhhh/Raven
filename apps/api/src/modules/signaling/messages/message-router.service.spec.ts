@@ -313,9 +313,9 @@ describe('MessageRouterService', () => {
     it('reports no capacity as a distinct, actionable error', async () => {
       allocator.allocate.mockRejectedValue(new NoRtcCapacityError('asia-south'));
 
-      await expect(
-        router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN }),
-      ).rejects.toMatchObject({ code: SignalingErrorCode.NO_RTC_CAPACITY });
+      await expect(router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN })).rejects.toMatchObject({
+        code: SignalingErrorCode.NO_RTC_CAPACITY,
+      });
     });
 
     it('rolls the registration back when the node is unreachable', async () => {
@@ -325,9 +325,9 @@ describe('MessageRouterService', () => {
       sfuLink.send.mockRejectedValue(new Error('connect ECONNREFUSED'));
       const session = makeSession();
 
-      await expect(
-        router.route(session, { type: ClientMessageType.ROOM_JOIN }),
-      ).rejects.toMatchObject({ code: SignalingErrorCode.RTC_SERVER_UNREACHABLE });
+      await expect(router.route(session, { type: ClientMessageType.ROOM_JOIN })).rejects.toMatchObject({
+        code: SignalingErrorCode.RTC_SERVER_UNREACHABLE,
+      });
 
       expect(session.joinedRoom).toBe(false);
       expect(session.rtcServerId).toBeUndefined();
@@ -340,8 +340,7 @@ describe('MessageRouterService', () => {
       const bob = makeSession({ connectionId: 'conn-bob', participantId: 'bob' });
       await router.route(bob, { type: ClientMessageType.ROOM_JOIN });
 
-      const trackRegistry = (router as unknown as { trackRegistry: RoomTrackRegistryService })
-        .trackRegistry;
+      const trackRegistry = (router as unknown as { trackRegistry: RoomTrackRegistryService }).trackRegistry;
       await trackRegistry.publish('room-1', 'bob', {
         trackId: 'bob-cam',
         kind: 'video',
@@ -460,9 +459,9 @@ describe('MessageRouterService', () => {
       await router.route(session, { type: ClientMessageType.ROOM_JOIN });
       sfuLink.send.mockRejectedValue(new Error('socket closed'));
 
-      await expect(
-        router.route(session, { type: ClientMessageType.SDP_ANSWER, sdp: 'v=0' }),
-      ).rejects.toMatchObject({ code: SignalingErrorCode.RTC_SERVER_UNREACHABLE });
+      await expect(router.route(session, { type: ClientMessageType.SDP_ANSWER, sdp: 'v=0' })).rejects.toMatchObject({
+        code: SignalingErrorCode.RTC_SERVER_UNREACHABLE,
+      });
     });
 
     it('fails a relay when the room has no assigned server', async () => {
@@ -471,9 +470,9 @@ describe('MessageRouterService', () => {
       allocator.serverById.mockResolvedValue(null);
       allocator.assignedServerFor.mockResolvedValue(null);
 
-      await expect(
-        router.route(session, { type: ClientMessageType.SDP_ANSWER, sdp: 'v=0' }),
-      ).rejects.toMatchObject({ code: SignalingErrorCode.RTC_SERVER_UNREACHABLE });
+      await expect(router.route(session, { type: ClientMessageType.SDP_ANSWER, sdp: 'v=0' })).rejects.toMatchObject({
+        code: SignalingErrorCode.RTC_SERVER_UNREACHABLE,
+      });
     });
   });
 
@@ -591,7 +590,7 @@ describe('MessageRouterService', () => {
       expect(session.joinedRoom).toBe(false);
     });
 
-    it('releases the room\'s server assignment once the last participant leaves', async () => {
+    it("releases the room's server assignment once the last participant leaves", async () => {
       // Keeping a stale assignment would pin an empty room to a node that
       // may since have been drained or replaced.
       const session = makeSession();
@@ -613,9 +612,9 @@ describe('MessageRouterService', () => {
     });
 
     it('rejects leaving before joining', async () => {
-      await expect(
-        router.route(makeSession(), { type: ClientMessageType.ROOM_LEAVE }),
-      ).rejects.toBeInstanceOf(SignalingError);
+      await expect(router.route(makeSession(), { type: ClientMessageType.ROOM_LEAVE })).rejects.toBeInstanceOf(
+        SignalingError,
+      );
     });
   });
 
