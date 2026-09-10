@@ -104,6 +104,17 @@ type Participant struct {
 	negotiationTimer *time.Timer
 
 	closed atomic.Bool
+
+	// ICE candidate buffering, guarded by iceMu.
+	//
+	// iceMu is held across SetRemoteDescription-and-flush so a candidate
+	// cannot slip in between the description landing and the buffer
+	// draining, which would leave it queued behind a description that has
+	// already been applied.
+	iceMu sync.Mutex
+	// pendingRemoteCandidates holds candidates that turned up before there
+	// was a remote description to attach them to.
+	pendingRemoteCandidates []webrtc.ICECandidateInit
 }
 
 func newParticipant(id, sessionID, roomID string, permissions Permissions, pc *webrtc.PeerConnection, events ParticipantEvents, logger *slog.Logger) *Participant {
@@ -529,8 +540,37 @@ func (p *Participant) releaseAfterFailure() {
 
 // AcceptAnswer applies the client's answer to our offer, then runs another
 // negotiation round if the track set moved while we were waiting.
+// setRemoteDescription applies a remote description and then drains any
+// candidates that arrived before it.
+//
+// The drain is the whole point: a buffered candidate that is never applied
+// is identical, from ICE's perspective, to the candidate having been
+// dropped — which is the bug this buffering exists to fix.
+func (p *Participant) setRemoteDescription(description webrtc.SessionDescription) error {
+	p.iceMu.Lock()
+	defer p.iceMu.Unlock()
+
+	if err := p.pc.SetRemoteDescription(description); err != nil {
+		return err
+	}
+
+	// Cleared before applying, so one rejected candidate cannot strand the
+	// rest in the buffer.
+	pending := p.pendingRemoteCandidates
+	p.pendingRemoteCandidates = nil
+	for _, candidate := range pending {
+		if err := p.pc.AddICECandidate(candidate); err != nil {
+			p.logger.Debug("buffered ICE candidate rejected", "err", err)
+		}
+	}
+	if len(pending) > 0 {
+		p.logger.Debug("applied buffered ICE candidates", "count", len(pending))
+	}
+	return nil
+}
+
 func (p *Participant) AcceptAnswer(sdp string) error {
-	err := p.pc.SetRemoteDescription(webrtc.SessionDescription{
+	err := p.setRemoteDescription(webrtc.SessionDescription{
 		Type: webrtc.SDPTypeAnswer,
 		SDP:  sdp,
 	})
@@ -574,7 +614,7 @@ func (p *Participant) AcceptOffer(sdp string) (*webrtc.SessionDescription, error
 	// instead of waiting on a separate frame. So release before returning.
 	defer p.releaseAfterFailure()
 
-	if err := p.pc.SetRemoteDescription(webrtc.SessionDescription{
+	if err := p.setRemoteDescription(webrtc.SessionDescription{
 		Type: webrtc.SDPTypeOffer,
 		SDP:  sdp,
 	}); err != nil {
@@ -591,7 +631,32 @@ func (p *Participant) AcceptOffer(sdp string) (*webrtc.SessionDescription, error
 	return &answer, nil
 }
 
+// AddICECandidate hands the client's candidate to ICE, or holds on to it
+// until there is a description to attach it to.
+//
+// Trickle ICE sends a candidate and the description it belongs to as
+// separate signaling messages, and nothing orders the two. A client that
+// gathers a host candidate quickly — on a LAN, essentially all of them —
+// sends it the instant setLocalDescription returns, well before its answer
+// has been serialised, queued and delivered to us.
+//
+// Pion rejects a candidate applied with no remote description
+// ("InvalidStateError: remote description is not set"), and that rejection
+// is terminal: clients do not resend. Every candidate lost there is a path
+// ICE never gets to try, and on a network where only one path works it is
+// the call not connecting.
 func (p *Participant) AddICECandidate(candidate webrtc.ICECandidateInit) error {
+	if p.closed.Load() {
+		return errors.New("participant is closed")
+	}
+
+	p.iceMu.Lock()
+	defer p.iceMu.Unlock()
+
+	if p.pc.RemoteDescription() == nil {
+		p.pendingRemoteCandidates = append(p.pendingRemoteCandidates, candidate)
+		return nil
+	}
 	return p.pc.AddICECandidate(candidate)
 }
 
