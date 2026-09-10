@@ -218,7 +218,13 @@ describe('MessageRouterService', () => {
 
       const result = await router.route(session, { type: ClientMessageType.ROOM_JOIN });
 
-      expect(allocator.allocate).toHaveBeenCalledWith('room-1', undefined);
+      expect(allocator.allocate).toHaveBeenCalledWith('room-1', {
+        requestedRegion: undefined,
+        // The probe is what lets the allocator tell "this room is live on a
+        // dead node, preserve it" apart from "this room is empty on a dead
+        // node, reallocate it".
+        isRoomOccupied: expect.any(Function),
+      });
       expect(session.joinedRoom).toBe(true);
       expect(session.rtcServerName).toBe('sfu-local-01');
 
@@ -245,7 +251,10 @@ describe('MessageRouterService', () => {
 
     it('passes a requested region through to the allocator', async () => {
       await router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN, region: 'asia-south' });
-      expect(allocator.allocate).toHaveBeenCalledWith('room-1', 'asia-south');
+      expect(allocator.allocate).toHaveBeenCalledWith(
+        'room-1',
+        expect.objectContaining({ requestedRegion: 'asia-south' }),
+      );
     });
 
     it('never tells the client the server address, only its name', async () => {

@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RoomStatus, RtcServer } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { NoRtcCapacityError, RtcServerAllocatorService } from '../../rtc-servers/rtc-server-allocator.service';
+import {
+  NoRtcCapacityError,
+  RtcServerAllocatorService,
+  RtcServerUnavailableError,
+} from '../../rtc-servers/rtc-server-allocator.service';
 import { ParticipantSession } from '../interfaces/participant-session.interface';
 import {
   IceCandidateMessage,
@@ -261,8 +265,33 @@ export class MessageRouterService {
 
   private async allocateServer(session: ParticipantSession, requestedRegion?: string): Promise<RtcServer> {
     try {
-      return await this.allocator.allocate(session.roomId, requestedRegion);
+      return await this.allocator.allocate(session.roomId, {
+        requestedRegion,
+        // Only consulted when the room's pinned node has gone unhealthy, and
+        // it is what decides between preserving the room and reallocating
+        // it. Fleet-wide, not this instance's view: the participants keeping
+        // a room alive are very often on other instances, and `countFleetWide`
+        // already answers "assume occupied" if Redis is unreachable, which is
+        // the same safe direction the allocator defaults to.
+        isRoomOccupied: async () => (await this.roomRegistry.countFleetWide(session.roomId)) > 0,
+      });
     } catch (err) {
+      if (err instanceof RtcServerUnavailableError) {
+        this.logger.error(
+          `room ${session.roomId} is pinned to an unhealthy rtc server and still occupied — ` +
+            `refusing participant ${session.participantId} rather than migrating live media`,
+        );
+        // Reported as RTC_SERVER_UNREACHABLE on the wire, not as a new code.
+        // It means the same thing to a client — the node serving this room
+        // cannot take you, retry — and every SDK already handles it as
+        // retryable. The finer-grained RAVEN_RTC_SERVER_UNAVAILABLE is kept
+        // for REST callers and for the log line above, where an operator is
+        // the audience and the distinction is worth having.
+        throw new SignalingError(
+          SignalingErrorCode.RTC_SERVER_UNREACHABLE,
+          'The RTC server for this room is not currently healthy — please retry',
+        );
+      }
       if (err instanceof NoRtcCapacityError) {
         this.logger.error(
           `no rtc capacity for room ${session.roomId} (requested region ${requestedRegion ?? 'default'})`,
