@@ -5,8 +5,9 @@ import {
   DISCORD_URL,
   DOCS_ROUTES,
   DOCS_URL,
+  WHATSAPP_URL,
 } from '../lib/links';
-import { DiscordIcon, GitHubIcon, RavenMark, XIcon } from './icons';
+import { DiscordIcon, GitHubIcon, RavenMark, WhatsAppIcon, XIcon } from './icons';
 
 const COLUMNS = [
   {
@@ -32,6 +33,7 @@ const COLUMNS = [
     title: 'Community',
     links: [
       { label: 'Discord', href: DISCORD_URL },
+      { label: 'WhatsApp', href: WHATSAPP_URL },
       { label: 'Dashboard', href: DASHBOARD_URL },
     ],
   },
@@ -67,6 +69,7 @@ export function Footer() {
                       className="flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-fg"
                     >
                       {link.label === 'Discord' && <DiscordIcon className="h-4 w-4" />}
+                      {link.label === 'WhatsApp' && <WhatsAppIcon className="h-4 w-4" />}
                       {link.label}
                     </a>
                   </li>
