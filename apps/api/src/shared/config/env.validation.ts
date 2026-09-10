@@ -18,6 +18,69 @@ class EnvironmentVariables {
   @IsNotEmpty()
   REDIS_URL!: string;
 
+  /**
+   * Postgres pool sizing. Optional — configuration.ts and
+   * prisma.service.ts both carry the same defaults — but validated when
+   * present, because these were previously read with a bare
+   * `parseInt(... ?? '10')` that turns a typo into `NaN` and hands `pg` a
+   * pool with no size. The failure then arrives as unexplained query
+   * errors under load rather than as a boot error.
+   *
+   * The ceiling matters as much as the floor: every pod's pool competes
+   * for one Postgres `max_connections`, so `N pods x this` is the real
+   * limit on horizontal API scaling. See configuration.ts's `database`
+   * comment and docs/production/capacity.md.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  DATABASE_POOL_MAX?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1000)
+  DATABASE_POOL_IDLE_TIMEOUT_MS?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(500)
+  DATABASE_POOL_CONNECTION_TIMEOUT_MS?: number;
+
+  /**
+   * Admission control. Optional, with derived defaults; validated when
+   * set, and cross-checked against DATABASE_POOL_MAX in
+   * validateCapacityConfig() below, since a ceiling above the pool it is
+   * meant to protect is not a ceiling at all.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10_000)
+  CAPACITY_MINT_CONCURRENCY?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100_000)
+  CAPACITY_MINT_QUEUE_DEPTH?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(100)
+  CAPACITY_MINT_QUEUE_TIMEOUT_MS?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(3600)
+  API_KEY_VERIFY_CACHE_TTL_SECONDS?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  API_KEY_VERIFY_CACHE_MAX_ENTRIES?: number;
+
   @IsInt()
   @Min(1)
   @Max(65535)
@@ -411,6 +474,54 @@ function validateOAuthConfig(config: EnvironmentVariables): void {
 }
 
 /**
+ * Runs in every environment.
+ *
+ * Both checks here are about a limit that silently isn't one. An admission
+ * ceiling set above the database pool it exists to protect lets the surplus
+ * queue inside `pg` again, which is the exact 500-under-burst this
+ * machinery was added to prevent. And a queue whose deadline is shorter
+ * than the time it takes to drain that queue refuses the tail of every
+ * legitimate burst, which looks like a capacity problem and is really a
+ * configuration one.
+ *
+ * Neither can be caught by a range check on one variable, which is why they
+ * live here rather than as decorators above.
+ */
+function validateCapacityConfig(config: EnvironmentVariables): void {
+  const problems: string[] = [];
+  const poolMax = config.DATABASE_POOL_MAX ?? 10;
+  const concurrency = config.CAPACITY_MINT_CONCURRENCY ?? poolMax;
+
+  if (concurrency > poolMax) {
+    problems.push(
+      `CAPACITY_MINT_CONCURRENCY (${concurrency}) must not exceed DATABASE_POOL_MAX (${poolMax}) — ` +
+        'admitting more concurrent database-heavy requests than the pool has connections is how the surplus ' +
+        'ends up queueing inside pg and failing as an unexplained 500 (see docs/production/capacity.md)',
+    );
+  }
+
+  if (config.CAPACITY_MINT_QUEUE_DEPTH !== undefined && config.CAPACITY_MINT_QUEUE_TIMEOUT_MS !== undefined) {
+    // A rough floor, not a model of throughput: one queued request cannot
+    // clear faster than the requests ahead of it, so a deadline shorter
+    // than "drain the queue at 100ms per admitted request" guarantees the
+    // tail of a full queue is refused whatever the hardware.
+    const minimumDrainMs = Math.ceil(config.CAPACITY_MINT_QUEUE_DEPTH / concurrency) * 100;
+    if (config.CAPACITY_MINT_QUEUE_TIMEOUT_MS < minimumDrainMs) {
+      problems.push(
+        `CAPACITY_MINT_QUEUE_TIMEOUT_MS (${config.CAPACITY_MINT_QUEUE_TIMEOUT_MS}ms) is too short for ` +
+          `CAPACITY_MINT_QUEUE_DEPTH (${config.CAPACITY_MINT_QUEUE_DEPTH}) at concurrency ${concurrency} — ` +
+          `a full queue cannot drain in under roughly ${minimumDrainMs}ms, so its tail would always be refused. ` +
+          'Raise the timeout or lower the depth.',
+      );
+    }
+  }
+
+  if (problems.length > 0) {
+    throw new Error(`Invalid capacity configuration: ${problems.join('; ')}`);
+  }
+}
+
+/**
  * Extra checks that only apply once NODE_ENV=production. Local dev should
  * never crash on these. A misconfigured prod deploy should never start.
  */
@@ -493,6 +604,7 @@ export function validateEnv(config: Record<string, unknown>) {
 
   validateEmailConfig(validated);
   validateOAuthConfig(validated);
+  validateCapacityConfig(validated);
   validateProductionConfig(validated);
 
   return validated;

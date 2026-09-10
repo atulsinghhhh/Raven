@@ -44,6 +44,31 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return;
     }
 
+    // Pool exhaustion is the one "unexpected" failure that is really a
+    // capacity answer, and it must never leave here as a 500. See
+    // isPoolExhaustion below.
+    if (isPoolExhaustion(exception)) {
+      // Full detail server-side — which route, which request — because
+      // this is the line an operator uses to decide whether to raise
+      // DATABASE_POOL_MAX or add an instance. Never the connection string:
+      // the message is matched, not echoed.
+      this.logger.error(
+        `database connection pool exhausted on ${request.method} ${request.url} ` +
+          `[${requestId ?? 'no-request-id'}] — returning 503 ${RavenErrorCode.CAPACITY_EXCEEDED}`,
+      );
+      response.status(HttpStatus.SERVICE_UNAVAILABLE).json({
+        message:
+          'The service is at database capacity right now — retry shortly. ' +
+          'This is a server-side limit, not a problem with your request.',
+        code: RavenErrorCode.CAPACITY_EXCEEDED,
+        legacyCode: LEGACY_ERROR_CODE[RavenErrorCode.CAPACITY_EXCEEDED],
+        retryAfterSeconds: 1,
+        ...(requestId ? { requestId } : {}),
+        path: request.url,
+      });
+      return;
+    }
+
     this.logger.error(
       `Unhandled exception on ${request.method} ${request.url} [${requestId ?? 'no-request-id'}]`,
       exception instanceof Error ? exception.stack : String(exception),
@@ -57,6 +82,45 @@ export class AllExceptionsFilter implements ExceptionFilter {
       path: request.url,
     });
   }
+}
+
+/**
+ * Whether this exception is `pg` giving up on acquiring a pool connection.
+ *
+ * `AdmissionControlService` is what should normally stop a burst reaching
+ * this point, and it bounds the paths it is applied to. This is the
+ * backstop for every other path — a slow query holding connections, a
+ * background sweep, an endpoint nobody thought to bound — and it exists
+ * because the alternative is what shipped before: pool exhaustion arriving
+ * as `500 RAVEN_INTERNAL_ERROR`, a response that tells a developer their
+ * integration is broken and that no client retries.
+ *
+ * ## Why this matches on a message
+ *
+ * Because there is nothing better to match on. `pg`'s pool rejects with a
+ * plain `Error` carrying no code (`Error: timeout exceeded when trying to
+ * connect`), and Prisma's driver adapter passes it through unwrapped. So
+ * the string is the contract. It is narrow — the phrase is `pg`'s own, and
+ * appears nowhere else — and the failure mode of a miss is simply the
+ * previous behaviour, a 500, rather than a wrong answer.
+ *
+ * Deliberately *not* matched: statement timeouts, `ECONNREFUSED`, and
+ * anything else meaning the database is unreachable rather than busy.
+ * Those are genuine faults, not capacity, and a client should not be told
+ * to retry in a second.
+ */
+function isPoolExhaustion(exception: unknown): boolean {
+  const message = exception instanceof Error ? exception.message : '';
+  if (!message) {
+    return false;
+  }
+  return (
+    message.includes('timeout exceeded when trying to connect') ||
+    // pg-pool's other refusal: the pool was ended, or its queue was capped
+    // by `maxWaitingClients`, which a deployment may well set.
+    message.includes('Cannot use a pool after calling end') ||
+    message.includes('too many clients already')
+  );
 }
 
 function codeForStatus(status: number): RavenErrorCode {

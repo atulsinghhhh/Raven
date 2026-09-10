@@ -86,6 +86,35 @@ export const RavenErrorCode = {
   /** A feature the deployment has not enabled: an operator fix, not a
    *  caller one, and returned with 501, not 4xx. */
   NOT_CONFIGURED: 'RAVEN_NOT_CONFIGURED',
+  /**
+   * The deployment is at its configured concurrency ceiling for this
+   * operation and shed the request instead of queueing it indefinitely.
+   *
+   * Deliberately not RATE_LIMITED. A rate limit says "you, specifically,
+   * have asked too often, and the budget refills on a known schedule"; this
+   * says "the service is momentarily full, retry in a moment and you will
+   * very likely get through". Both carry `retryAfterSeconds`, but a caller
+   * that treats them the same will back off a whole window for something
+   * that clears in milliseconds — and, worse, a developer debugging a
+   * 429 goes looking at their own call rate rather than at capacity.
+   *
+   * Returned as 503, so it is unambiguously ours rather than the caller's,
+   * and so proxies and SDKs already retry it by convention. See
+   * docs/production/capacity.md.
+   */
+  CAPACITY_EXCEEDED: 'RAVEN_CAPACITY_EXCEEDED',
+  /**
+   * The RTC server this room is pinned to is not healthy, and the room
+   * cannot be safely moved because it still holds participants.
+   *
+   * Distinct from NO_RTC_CAPACITY (the fleet had nowhere to *put* a new
+   * room) and from CONNECTION_FAILED (a transport problem): here there is a
+   * specific node that owns this room's media session and is not answering.
+   * The remedy is the node's, not the caller's, and the caller should retry
+   * rather than rejoin a different room. See
+   * docs/rtc/sfu.md#health-aware-allocation.
+   */
+  RTC_SERVER_UNAVAILABLE: 'RAVEN_RTC_SERVER_UNAVAILABLE',
   /** The only code an unexpected exception is ever allowed to surface as. */
   INTERNAL_ERROR: 'RAVEN_INTERNAL_ERROR',
 } as const;
@@ -130,5 +159,10 @@ export const LEGACY_ERROR_CODE: Record<RavenErrorCode, string> = {
   [RavenErrorCode.NO_RTC_CAPACITY]: 'CONNECTION_FAILED',
   [RavenErrorCode.WEBHOOK_FAILED]: 'WEBHOOK_FAILED',
   [RavenErrorCode.NOT_CONFIGURED]: 'ATTACHMENTS_NOT_CONFIGURED',
+  // Both are new in this release, so nothing can already be switching on
+  // an older spelling. They map to the nearest pre-existing legacy value
+  // purely so `legacyCode` is never absent from a body that has `code`.
+  [RavenErrorCode.CAPACITY_EXCEEDED]: 'RATE_LIMITED',
+  [RavenErrorCode.RTC_SERVER_UNAVAILABLE]: 'CONNECTION_FAILED',
   [RavenErrorCode.INTERNAL_ERROR]: 'INTERNAL_ERROR',
 };

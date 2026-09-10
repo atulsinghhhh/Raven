@@ -84,3 +84,38 @@ export class TooManyRequestsError extends AppError {
     super(message, HttpStatus.TOO_MANY_REQUESTS, RavenErrorCode.RATE_LIMITED, details);
   }
 }
+
+/**
+ * The deployment is at its configured concurrency ceiling for this
+ * operation.
+ *
+ * ## Why this exists at all
+ *
+ * Before it did, a burst of roughly a hundred simultaneous credential
+ * mints exhausted the `pg` pool: every connection was busy, the surplus
+ * queued inside the pool, and after
+ * `DATABASE_POOL_CONNECTION_TIMEOUT_MS` the acquisition gave up. Prisma
+ * surfaced that as an error nothing recognised, so it left the API as
+ * `500 RAVEN_INTERNAL_ERROR` — a response that tells a developer their
+ * integration is broken when in fact the service was simply full, and one
+ * that no sane client retries. Worse, the whole process stayed wedged
+ * afterwards, because the backlog outlived the requests that created it.
+ *
+ * So overload gets a name. 503 rather than 429 because the limit is ours
+ * rather than the caller's, and `retryAfterSeconds` because unlike a rate
+ * limit this genuinely does clear in about as long as one request takes.
+ *
+ * See docs/production/capacity.md for the configured limits and the
+ * measured numbers behind them.
+ */
+export class CapacityExceededError extends AppError {
+  constructor(operation: string, details?: { retryAfterSeconds?: number; limit?: number }) {
+    super(
+      `${operation} is at capacity right now — retry shortly. ` +
+        'This is a server-side concurrency limit, not a per-key rate limit.',
+      HttpStatus.SERVICE_UNAVAILABLE,
+      RavenErrorCode.CAPACITY_EXCEEDED,
+      details,
+    );
+  }
+}

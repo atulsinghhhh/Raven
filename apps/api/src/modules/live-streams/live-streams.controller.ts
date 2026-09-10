@@ -19,6 +19,7 @@ import {
   ApiOperation,
   ApiQuery,
   ApiResponse,
+  ApiServiceUnavailableResponse,
   ApiTags,
   ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
@@ -26,6 +27,9 @@ import { LiveStreamStatus } from '../../generated/prisma/client';
 import { ProjectScope } from '../../shared/environment/environment.constants';
 import { Idempotent } from '../../shared/idempotency/idempotent.decorator';
 import { IdempotencyInterceptor } from '../../shared/idempotency/idempotency.interceptor';
+import { ADMISSION_LANE } from '../../shared/capacity/admission-control.service';
+import { Admission } from '../../shared/capacity/admission.decorator';
+import { AdmissionInterceptor } from '../../shared/capacity/admission.interceptor';
 import { RateLimit } from '../../shared/rate-limit/rate-limit.decorator';
 import { RateLimitGuard } from '../../shared/rate-limit/rate-limit.guard';
 import { CurrentScope } from '../api-keys/decorators/current-scope.decorator';
@@ -113,6 +117,8 @@ export class LiveStreamsController {
   @Post(':streamId/hosts')
   @UseGuards(RateLimitGuard)
   @RateLimit(60)
+  @UseInterceptors(AdmissionInterceptor)
+  @Admission(ADMISSION_LANE.CREDENTIAL_MINT)
   @ApiOperation({
     summary: 'Register a host/co-host and mint their RTC + chat credentials',
     description:
@@ -122,6 +128,10 @@ export class LiveStreamsController {
   @ApiNotFoundResponse({ description: "Stream doesn't exist, or belongs to a different project" })
   @ApiConflictResponse({ description: 'This stream has ended and can no longer be modified' })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
+  @ApiServiceUnavailableResponse({
+    description:
+      'RAVEN_CAPACITY_EXCEEDED — this instance is at its configured concurrency ceiling for credential minting. Retryable; see retryAfterSeconds and docs/production/capacity.md.',
+  })
   addHost(@CurrentScope() scope: ProjectScope, @Param('streamId') streamId: string, @Body() dto: AddHostDto) {
     return this.streams.addHost(scope, streamId, dto);
   }
@@ -142,6 +152,12 @@ export class LiveStreamsController {
   @Post(':streamId/viewer-tokens')
   @UseGuards(RateLimitGuard)
   @RateLimit(120)
+  // The most concurrency-exposed endpoint in Live Streaming: one call per
+  // viewer arriving, and they all arrive at once when a host goes live.
+  // Before this ceiling existed, 95 of 100 simultaneous mints came back
+  // 500 RAVEN_INTERNAL_ERROR — see docs/production/capacity.md.
+  @UseInterceptors(AdmissionInterceptor)
+  @Admission(ADMISSION_LANE.CREDENTIAL_MINT)
   @ApiOperation({
     summary: "Mint a viewer's RTC + chat credentials",
     description:
@@ -151,6 +167,10 @@ export class LiveStreamsController {
   @ApiNotFoundResponse({ description: "Stream doesn't exist, or belongs to a different project" })
   @ApiConflictResponse({ description: 'This stream has ended and can no longer be modified' })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
+  @ApiServiceUnavailableResponse({
+    description:
+      'RAVEN_CAPACITY_EXCEEDED — this instance is at its configured concurrency ceiling for credential minting. Retryable; see retryAfterSeconds and docs/production/capacity.md.',
+  })
   createViewerToken(
     @CurrentScope() scope: ProjectScope,
     @Param('streamId') streamId: string,
