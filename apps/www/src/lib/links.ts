@@ -9,6 +9,16 @@
 // personal profile, not the Livqeno repo — no conflict with that note.)
 export const DISCORD_URL = 'https://discord.com/invite/HSWd9qMC7';
 
+/**
+ * Direct WhatsApp chat, shown in the footer's Community column.
+ *
+ * `wa.me` wants the full international number with no `+`, no spaces and
+ * no leading zero, so the country code is part of the string rather than
+ * something the link builds: 91 is India.
+ */
+export const WHATSAPP_NUMBER = '918624834271';
+export const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
+
 /** The developer behind Livqeno — credited in BuiltBy.tsx and the footer. */
 export const DEVELOPER_NAME = 'Atul';
 export const DEVELOPER_GITHUB_URL = 'https://github.com/atulsinghhhh/';
