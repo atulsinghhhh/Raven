@@ -118,7 +118,21 @@ jobs:
           # rather than fails: a classic read-only token would also 403, and
           # refusing to release on a heuristic is worse than a loud warning.
           if npm token list >/dev/null 2>&1; then
-            echo "token class: classic (can list tokens)"
+            # Classic, but that is necessary and not sufficient. Classic
+            # tokens come in three kinds — Read-only, Publish, Automation —
+            # and only Automation is exempt from the account's 2FA on
+            # writes. npm does not expose which kind a token is: there is no
+            # automation flag in `npm token list`, and it is not in the
+            # tokens API either. So this cannot be checked here, only named.
+            #
+            # A classic Publish token reaches exactly this line, prints
+            # nothing alarming, and then dies at the publish step with
+            # ERR_PNPM_OTP_NON_INTERACTIVE. That happened on run
+            # 34506280616.
+            echo "token class: classic — NOT verified to be an Automation token"
+            echo "  Only classic *Automation* tokens publish unattended. A classic"
+            echo "  Publish token authenticates fine and is still challenged for an OTP."
+            echo "  Unverifiable from here; see docs/releases.md if the publish fails."
           else
             echo "::warning::This looks like a granular access token - 'npm token list' was refused. Granular tokens are not exempt from the account 2FA on writes, so the publish step will fail with ERR_PNPM_OTP_NON_INTERACTIVE. A classic Automation token is what publishes unattended. See docs/releases.md."
           fi
