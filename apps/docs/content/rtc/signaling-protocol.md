@@ -1,13 +1,13 @@
 ---
 title: Signaling Protocol
-description: The RTC signaling wire contract — for a client where Raven ships no SDK, or for reading what is actually on the socket.
+description: The RTC signaling wire contract — for a client where Livqeno ships no SDK, or for reading what is actually on the socket.
 ---
 
-You do not need this page to use Raven. `@ravenkash/rtc`, the React Native
+You do not need this page to use Livqeno. `@ravenkash/rtc`, the React Native
 SDK and `raven_rtc` all speak this protocol so you do not have to, and the
 SDK is the supported interface.
 
-This is for writing a client in a language Raven does not ship, or for
+This is for writing a client in a language Livqeno does not ship, or for
 reading frames in devtools.
 
 ## Endpoint
@@ -136,8 +136,8 @@ handshake — before any token has been verified.
 
 ## What you never learn
 
-Which media server you got. Clients connect here and Raven allocates on
-their behalf. That indirection is what let Raven's media plane be replaced
+Which media server you got. Clients connect here and Livqeno allocates on
+their behalf. That indirection is what let Livqeno's media plane be replaced
 wholesale without an SDK release, and it means there is no server address
 to configure.
 

@@ -10,7 +10,7 @@ import (
 
 // LayerID names a simulcast spatial layer.
 //
-// Raven's own vocabulary, not whatever RIDs a browser feels like sending.
+// Livqeno's own vocabulary, not whatever RIDs a browser feels like sending.
 // Chrome says "f"/"h"/"q", other stacks say "high"/"low", and the SDK's
 // public API shouldn't change shape because a browser did. layerFromRID
 // handles the translation.
@@ -30,7 +30,7 @@ const (
 	LayerNone LayerID = ""
 )
 
-// layerFromRID maps a publisher's RID onto Raven's layer names.
+// layerFromRID maps a publisher's RID onto Livqeno's layer names.
 //
 // An empty RID means no simulcast at all. That's the common case for audio,
 // and for video from a client that turned it off.

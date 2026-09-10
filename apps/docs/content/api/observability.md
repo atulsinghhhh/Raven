@@ -4,7 +4,7 @@ description: Connection history, classified errors, usage metrics, dependency he
 ---
 
 Everything here is read-only and reports what actually happened.
-Nothing is fabricated: a value Raven does not know comes back `null` or
+Nothing is fabricated: a value Livqeno does not know comes back `null` or
 absent rather than as a plausible-looking guess.
 
 Most of these exist twice — once under `/v1/...` for a project API key (what
@@ -213,7 +213,7 @@ Best-effort ingestion of one RTC connection/participant/error event
 
 ### GET `/v1/usage`
 
-The caller's Raven minute allowance and how much of it is spent
+The caller's Livqeno minute allowance and how much of it is spent
 
 **Credential** Dashboard session (JWT)
 

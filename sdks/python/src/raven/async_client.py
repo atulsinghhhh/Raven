@@ -1,4 +1,4 @@
-"""Raven's async server SDK client — same surface as ``Raven``, awaited.
+"""Livqeno's async server SDK client — same surface as ``Raven``, awaited.
 
 from raven import AsyncRaven
 raven = AsyncRaven(

@@ -39,7 +39,7 @@ const PRODUCTS = [
     label: 'Live Streaming',
     icon: <BroadcastIcon />,
     headline: 'Turn any product into a live experience.',
-    body: 'A host publishes, viewers watch, co-hosts join in — with a Raven Chat conversation attached automatically for live comments and reactions. Same rooms and tokens as RTC, one join call.',
+    body: 'A host publishes, viewers watch, co-hosts join in — with a Livqeno Chat conversation attached automatically for live comments and reactions. Same rooms and tokens as RTC, one join call.',
     bullets: ['Hosts, co-hosts, and viewers', 'Live chat attached on join', 'Reactions and moderation on one connection'],
     href: DOCS_ROUTES.liveStreaming,
     demo: <LiveDemo />,
@@ -65,7 +65,7 @@ export function ProductShowcase() {
       <div
         className="mono-label inline-flex max-w-full gap-1 overflow-x-auto rounded-(--radius-panel) border border-line bg-surface-raised p-1 text-[11px]"
         role="tablist"
-        aria-label="Raven products"
+        aria-label="Livqeno products"
       >
         {PRODUCTS.map((p) => (
           <button

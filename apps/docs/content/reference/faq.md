@@ -120,13 +120,13 @@ By default, yes. Set `CHAT_RETENTION_DAYS` or a per-conversation override.
 
 ### How many viewers can a stream take?
 
-Unproven at scale. Raven's own tests reach 100 participants on loopback
+Unproven at scale. Livqeno's own tests reach 100 participants on loopback
 with synthetic media. A large broadcast is a different problem and has not
 been measured.
 
 ### Can I record a stream?
 
-No. Recording does not exist anywhere in Raven.
+No. Recording does not exist anywhere in Livqeno.
 
 ### Can a viewer become a host mid-stream?
 
@@ -138,7 +138,7 @@ permission is signed into the token.
 
 ### Do I have to self-host?
 
-No, but Raven is open source and self-hosting is a first-class path. See
+No, but Livqeno is open source and self-hosting is a first-class path. See
 [Self-hosting](/self-hosting).
 
 ### Why isn't Postgres in the Docker Compose stack?
@@ -158,7 +158,7 @@ In practice yes. Without a relay, a share of users on corporate and mobile
 networks get calls that connect and carry nothing. See
 [TURN & NAT traversal](/self-hosting/turn).
 
-### What does Raven send about my users?
+### What does Livqeno send about my users?
 
 Connection lifecycle and media statistics. No media, no message content,
 no credentials. Switch it off with `telemetry: false`. See

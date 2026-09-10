@@ -61,7 +61,7 @@ by hand. See [docs/releases.md](../docs/releases.md).
   `@raven/www` are `private: true` applications. They are deployed, not
   published, and have no version anyone consumes.
 
-Note that `@ravenkash/react` and `@ravenkash/react-native` take their Raven
+Note that `@ravenkash/react` and `@ravenkash/react-native` take their Livqeno
 siblings as `peerDependencies: "*"` on purpose — the application chooses
 the version, and there must be exactly one copy of `@ravenkash/rtc` in the
 tree. Changesets does not rewrite peer ranges, which is the behaviour we

@@ -63,7 +63,7 @@ export function notLoggedInError(): CliError {
 }
 
 export function noProjectSelectedError(): CliError {
-  return new CliError('usage', 'No Raven project selected.', {
+  return new CliError('usage', 'No Livqeno project selected.', {
     suggestion: 'Run `raven init` in this directory, or `raven projects use <project>`',
   });
 }

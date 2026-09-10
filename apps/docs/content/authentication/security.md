@@ -42,7 +42,7 @@ Because identity would then be self-asserted. A client that names its own
 downstream is built on that string.
 
 Your backend takes identity from its **own** authenticated session and
-passes it to Raven. Raven signs it. Nothing after that can change it.
+passes it to Livqeno. Livqeno signs it. Nothing after that can change it.
 
 ## What the SDKs guarantee
 
@@ -84,7 +84,7 @@ implementation and explains each of the three.
 
 Stated rather than implied:
 
-- **Webhook SSRF protection is hostname-level only.** Raven refuses
+- **Webhook SSRF protection is hostname-level only.** Livqeno refuses
   non-HTTP schemes, loopback and private-range literals, and production
   additionally requires `https://`. It does **not** resolve DNS, so a
   hostname that resolves to a private address still passes, as does a

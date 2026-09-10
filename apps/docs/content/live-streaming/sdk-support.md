@@ -1,6 +1,6 @@
 ---
 title: SDK Support Matrix
-description: What every Raven SDK implements for Live Streaming, and what's deliberately absent.
+description: What every Livqeno SDK implements for Live Streaming, and what's deliberately absent.
 ---
 
 Every SDK exposes the same concepts — `LiveStream`, `Host`, `Co-host`,

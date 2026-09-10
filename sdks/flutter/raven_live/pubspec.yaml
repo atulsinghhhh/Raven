@@ -1,6 +1,6 @@
 name: raven_live
 description: >-
-  Raven Live Streaming for Flutter — join a stream as a host or a viewer,
+  Livqeno Live Streaming for Flutter — join a stream as a host or a viewer,
   with the room and the live chat that come with it. Composes raven_rtc and
   raven_chat; adds no media or messaging stack of its own.
 version: 0.1.0

@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Common failure modes for Raven Effects, and what to check first.
+description: Common failure modes for Livqeno Effects, and what to check first.
 ---
 
 ## `attachEffects()` resolves but the video looks unchanged
@@ -25,7 +25,7 @@ pipeline renders the identity pass, which looks like no change because it
 
 The value is outside the documented range for that parameter — see
 [Filters](/effects/filters) for every filter's exact range. This is
-intentional: Raven Effects rejects invalid values rather than silently
+intentional: Livqeno Effects rejects invalid values rather than silently
 clamping them, so the bug surfaces immediately instead of shipping a
 slightly-wrong filter to production.
 

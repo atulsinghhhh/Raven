@@ -1,18 +1,18 @@
-# Migrating from Raven + LiveKit
+# Migrating from Livqeno + LiveKit
 
-Raven used to run its media plane on LiveKit. It now runs its own: Raven's
-signaling protocol, Raven's SFU, standards-compliant WebRTC.
+Livqeno used to run its media plane on LiveKit. It now runs its own: Livqeno's
+signaling protocol, Livqeno's SFU, standards-compliant WebRTC.
 
 ```text
 Before                          After
 
 Application                     Application
     │                               │
-Raven SDK                       Raven SDK
+Livqeno SDK                       Livqeno SDK
     │                               │
-livekit-client                  Raven Signaling  (WebSocket)
+livekit-client                  Livqeno Signaling  (WebSocket)
     │                               │
-LiveKit Server                  Raven SFU        (Go/Pion)
+LiveKit Server                  Livqeno SFU        (Go/Pion)
     │                               │
 WebRTC                          WebRTC
                                 (ICE/DTLS/SRTP/RTP/RTCP)
@@ -27,7 +27,7 @@ from. Nothing here describes a runtime dependency — see
 
 ## The short version
 
-If you use the Raven SDKs and did not hand-configure anything, **your
+If you use the Livqeno SDKs and did not hand-configure anything, **your
 application code does not change.** Update the SDK, update your
 deployment's environment variables, run an SFU. That is the whole
 migration for most callers.
@@ -54,8 +54,8 @@ change to a default.
 
 | Removed | Replaced by | Notes |
 |---|---|---|
-| `LIVEKIT_URL` | *(nothing)* | Clients now connect to Raven's own signaling. `endpoint` in the token-mint response is derived from `API_PUBLIC_URL`; override with `RTC_SIGNALING_URL` only if signaling is fronted on a separate hostname. |
-| `LIVEKIT_API_KEY` | *(nothing)* | Raven's tokens are Raven's own. There is no second party to authenticate to. |
+| `LIVEKIT_URL` | *(nothing)* | Clients now connect to Livqeno's own signaling. `endpoint` in the token-mint response is derived from `API_PUBLIC_URL`; override with `RTC_SIGNALING_URL` only if signaling is fronted on a separate hostname. |
+| `LIVEKIT_API_KEY` | *(nothing)* | Livqeno's tokens are Livqeno's own. There is no second party to authenticate to. |
 | `LIVEKIT_API_SECRET` | `RTC_TOKEN_SECRET` | Not a rename — a different key for a different token format. Generate a fresh one. |
 | `LIVEKIT_INTERNAL_URL` | *(nothing)* | The control plane finds RTC servers through the registry; there is no address to configure. |
 | — | `SFU_REGISTRATION_SECRET` | **New, required in production.** How an SFU authenticates to the control plane. Must differ from `RTC_TOKEN_SECRET`. |
@@ -75,7 +75,7 @@ openssl rand -hex 32   # SFU_REGISTRATION_SECRET
 
 ### 2. Run an SFU
 
-LiveKit was one container. Raven's SFU is one container too, but it needs
+LiveKit was one container. Livqeno's SFU is one container too, but it needs
 a **published UDP range** for media, because media does not go through
 your API's ingress — ICE hands clients a host and port and they connect
 to it directly.
@@ -140,7 +140,7 @@ Six things a careful caller may notice. Everything else is unchanged.
 The one change that can affect working code. LiveKit's `connect()`
 resolved only once the media connection was established, so
 `await client.join(...)` returning meant `connectionState` was
-already `'connected'`. Raven's resolves when the **control plane** has
+already `'connected'`. Livqeno's resolves when the **control plane** has
 admitted you: the room is joined, you know who else is in it, and you can
 publish — but ICE and DTLS complete a moment later.
 
@@ -176,10 +176,10 @@ subscriber joining a room where nobody is publishing may sit in
 negotiate — which is why `waitUntilConnected()` takes a timeout and why
 the event is the better default.
 
-### `endpoint` now points at Raven, not at a media server
+### `endpoint` now points at Livqeno, not at a media server
 
 The token-mint response's `endpoint` was LiveKit's `wss://` URL; it is now
-Raven's signaling WebSocket (`wss://your-api/v1/rtc`). If you forwarded it
+Livqeno's signaling WebSocket (`wss://your-api/v1/rtc`). If you forwarded it
 to the SDK as documented, nothing changes. If you hard-coded a LiveKit URL
 anywhere, remove it.
 
@@ -192,7 +192,7 @@ SDK release.
 Same shape in the response, different claims inside. If you were
 inspecting the token's payload yourself, the claim names changed:
 
-| LiveKit claim | Raven claim |
+| LiveKit claim | Livqeno claim |
 |---|---|
 | `video.room` | `rnm` (room name), `rid` (room id) |
 | `sub` | `sub` (unchanged) |
@@ -210,7 +210,7 @@ SDK reads only the room id from it.
 
 LiveKit computed a server-side quality verdict from a vantage point a
 client cannot have — it sees loss and jitter on every leg of a room.
-Raven's SFU does not compute an equivalent yet.
+Livqeno's SFU does not compute an equivalent yet.
 
 Rather than return a client-side guess dressed up as a server verdict, it
 returns `'unknown'`. **This is a real regression, and it is temporary.**
@@ -259,7 +259,7 @@ Additive — no existing code changed meaning.
 
 `Raven(dynacast: true)` still compiles and is still accepted. Dynacast
 means the *server* stops relaying simulcast layers nobody subscribes to;
-Raven's SFU does not implement that yet, so today it changes nothing.
+Livqeno's SFU does not implement that yet, so today it changes nothing.
 
 It is kept in the constructor rather than removed so existing code
 compiles unchanged, and it will start having an effect when the SFU gains
@@ -270,7 +270,7 @@ requesting a simulcast layer per view size.
 
 ## The signaling protocol changed shape
 
-Only relevant if you wrote a client against Raven's WebSocket directly
+Only relevant if you wrote a client against Livqeno's WebSocket directly
 rather than using an SDK.
 
 The old protocol was a **full mesh relay**: every SDP and ICE message

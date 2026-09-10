@@ -2,7 +2,7 @@ import { randomBytes } from 'crypto';
 
 /**
  * Request IDs follow the same shape as every other public identifier in
- * Raven (`conv_`, `rvk_`, `ccn_`): a short prefix and an opaque body. A
+ * Livqeno (`conv_`, `rvk_`, `ccn_`): a short prefix and an opaque body. A
  * developer reading a log line or an error response can tell what kind of
  * thing they are holding without being told.
  */

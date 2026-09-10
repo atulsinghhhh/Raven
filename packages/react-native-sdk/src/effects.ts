@@ -1,9 +1,9 @@
 /**
- * Raven Effects on React Native. Phase 16 architecture; no native engine
+ * Livqeno Effects on React Native. Phase 16 architecture; no native engine
  * yet.
  *
  * Filter and preset *configuration* is real and fully shared with every
- * other Raven SDK. `effects.createPipeline()`, `effects.filters.*` and
+ * other Livqeno SDK. `effects.createPipeline()`, `effects.filters.*` and
  * `effects.presets.*` are plain validated JS/TS with no native code
  * anywhere near them, re-exported straight from `@ravenkash/effects`.
  *
@@ -18,7 +18,7 @@
  *
  * The PLANNED architecture, once a native engine ships:
  *
- *   React Native → Raven Effects API → Native Effects Engine → GPU → Raven RTC
+ *   React Native → Livqeno Effects API → Native Effects Engine → GPU → Livqeno RTC
  *
  * iOS gets a Metal/Core Image frame processor bridged in as a
  * `MediaStreamTrack` transform; Android an OpenGL ES/Camera2 pipeline.

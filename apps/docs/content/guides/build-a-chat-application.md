@@ -198,4 +198,4 @@ honest about a browser that crashed.
 ## Next steps
 
 - [Chat overview](/chat) · [Messages](/chat/messages) · [Chat events](/chat/events)
-- [WebSocket protocol](/chat/websocket) — if you need a client Raven does not ship.
+- [WebSocket protocol](/chat/websocket) — if you need a client Livqeno does not ship.

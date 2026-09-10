@@ -1,4 +1,4 @@
-# golangci-lint configuration for the Raven SFU.
+# golangci-lint configuration for the Livqeno SFU.
 #
 # The SFU is the media plane: a bug here drops live calls rather than
 # returning a 500 someone can retry. The linter set below is chosen for

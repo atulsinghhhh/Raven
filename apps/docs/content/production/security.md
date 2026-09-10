@@ -77,6 +77,6 @@ egress-filter the delivery worker at the network level. See
 ## Reporting a vulnerability
 
 Reach the team on [Discord](https://discord.com/invite/HSWd9qMC7), or
-your account contact if you have one — Raven's source and issue tracker
+your account contact if you have one — Livqeno's source and issue tracker
 aren't public, so a security report isn't something to post in the
 open.

@@ -39,8 +39,8 @@ describe('email templates', () => {
     expect(email.text).not.toContain('<td');
   });
 
-  it.each(rendered)('%s carries Raven branding and a support address', (_name, email) => {
-    expect(email.html).toContain('Raven');
+  it.each(rendered)('%s carries Livqeno branding and a support address', (_name, email) => {
+    expect(email.html).toContain('Livqeno');
     expect(email.html).toContain('support@mail.ravenstack.online');
     expect(email.text).toContain('support@mail.ravenstack.online');
   });

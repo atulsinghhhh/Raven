@@ -3,7 +3,7 @@ title: Known limitations
 description: What is not built, what is built but unverified, and what that means for you. Stated rather than left to be discovered.
 ---
 
-Raven's documentation is only useful if it is honest about the edges. This
+Livqeno's documentation is only useful if it is honest about the edges. This
 page is the list. Everything here comes from the repository's own testing
 and deployment notes, not from guesswork.
 
@@ -77,7 +77,7 @@ a feature your deployment may not have. Check before promising it.
 
 ### Webhook SSRF protection is hostname-level only
 
-Raven refuses non-HTTP schemes, loopback and private-range **literals**,
+Livqeno refuses non-HTTP schemes, loopback and private-range **literals**,
 and production additionally requires `https://`. It does **not** resolve
 DNS, so a hostname resolving to a private address passes, as does a
 redirect to one.
@@ -99,7 +99,7 @@ dashboard-session routes, not token minting or the media path.
 ## How to read this page
 
 Nothing here is a promise about when it changes. It is a description of
-what is true now, so you can decide whether Raven fits what you are
+what is true now, so you can decide whether Livqeno fits what you are
 building — and so that if you hit one of these, you recognise it instead of
 debugging your own code for a day.
 

@@ -1,7 +1,7 @@
 """The one error type this SDK raises.
 
 Built purely from the parsed response body (``{"message": ..., "code": ...}``,
-matching ``AppError`` on the Raven API side) plus response metadata — never
+matching ``AppError`` on the Livqeno API side) plus response metadata — never
 from anything that could carry the API key, so there is no path by which a
 key could end up here. Never includes a stack trace from the server, a
 database error, or TURN/RTC credentials (Phase 10 spec Section 10).

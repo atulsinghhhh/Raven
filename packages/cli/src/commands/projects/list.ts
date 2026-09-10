@@ -6,7 +6,7 @@ import { withErrorHandling } from '../../lib/run.js';
 export function registerProjectsListCommand(projects: Command): void {
   projects
     .command('list')
-    .description('List your Raven projects')
+    .description('List your Livqeno projects')
     .option('--json', 'output as JSON')
     .action(
       withErrorHandling(async (opts: { json?: boolean }) => {

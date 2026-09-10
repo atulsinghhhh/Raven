@@ -52,13 +52,13 @@ Create a live stream — a dedicated RTC room plus an attached chat conversation
 | `title` | body | `string` | Yes | 1–200 chars |
 | `hostIdentity` | body | `string` | Yes | 1–128 chars, pattern-checked — The developer's own identity for whoever is starting this stream. Registered as its HOST — the only identity a stream is created with, and the only one whose role is ever HOST rather than CO_HOST. |
 | `description` | body | `string` | No | 0–2000 chars |
-| `thumbnailUrl` | body | `string` | No | 0–2048 chars — A URL you host — Raven does not accept or store thumbnail uploads. |
+| `thumbnailUrl` | body | `string` | No | 0–2048 chars — A URL you host — Livqeno does not accept or store thumbnail uploads. |
 | `category` | body | `string` | No | 0–64 chars |
 | `tags` | body | `string[]` | No | array |
 | `language` | body | `string` | No | 0–16 chars |
 | `visibility` | body | `LiveStreamVisibility` | No |  |
 | `metadata` | body | `Record<string, unknown>` | No | Your own JSON, capped at 4 KB — same convention as Room/Conversation metadata. |
-| `scheduledAt` | body | `string` | No | When set, the stream is created for a future start — see docs/live-streaming/overview.md#scheduled-streams. Raven does not automatically transition status at this time; your backend still calls start(). |
+| `scheduledAt` | body | `string` | No | When set, the stream is created for a future start — see docs/live-streaming/overview.md#scheduled-streams. Livqeno does not automatically transition status at this time; your backend still calls start(). |
 
 ### GET `/v1/live-streams/{streamId}`
 
@@ -175,13 +175,13 @@ Create a live stream in this project
 | `title` | body | `string` | Yes | 1–200 chars |
 | `hostIdentity` | body | `string` | Yes | 1–128 chars, pattern-checked — The developer's own identity for whoever is starting this stream. Registered as its HOST — the only identity a stream is created with, and the only one whose role is ever HOST rather than CO_HOST. |
 | `description` | body | `string` | No | 0–2000 chars |
-| `thumbnailUrl` | body | `string` | No | 0–2048 chars — A URL you host — Raven does not accept or store thumbnail uploads. |
+| `thumbnailUrl` | body | `string` | No | 0–2048 chars — A URL you host — Livqeno does not accept or store thumbnail uploads. |
 | `category` | body | `string` | No | 0–64 chars |
 | `tags` | body | `string[]` | No | array |
 | `language` | body | `string` | No | 0–16 chars |
 | `visibility` | body | `LiveStreamVisibility` | No |  |
 | `metadata` | body | `Record<string, unknown>` | No | Your own JSON, capped at 4 KB — same convention as Room/Conversation metadata. |
-| `scheduledAt` | body | `string` | No | When set, the stream is created for a future start — see docs/live-streaming/overview.md#scheduled-streams. Raven does not automatically transition status at this time; your backend still calls start(). |
+| `scheduledAt` | body | `string` | No | When set, the stream is created for a future start — see docs/live-streaming/overview.md#scheduled-streams. Livqeno does not automatically transition status at this time; your backend still calls start(). |
 
 ### GET `/v1/projects/{projectId}/live-streams/{streamId}`
 

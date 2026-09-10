@@ -9,16 +9,16 @@ a client.
 
 ## Before you start
 
-Raven is software that runs somewhere, so you need one of two things:
+Livqeno is software that runs somewhere, so you need one of two things:
 
-- **A Raven deployment you can reach** — your team's, or a hosted one. Its
+- **A Livqeno deployment you can reach** — your team's, or a hosted one. Its
   dashboard is linked in the top bar of this site.
 - **A local one.** `docker compose up` brings up everything except
   Postgres. See [Docker Compose](/self-hosting/docker-compose).
 
 You also need the dashboard or the CLI to create your first API key.
 
-Every Raven SDK is published on npm under the `@ravenkash` scope, so
+Every Livqeno SDK is published on npm under the `@ravenkash` scope, so
 nothing here needs a checkout. The two you want for a first integration are
 the backend one and the browser one:
 
@@ -32,13 +32,13 @@ Add `@ravenkash/chat` for messaging, `@ravenkash/react` for hooks, or
 used below. The full list is on
 [Install an SDK](/get-started/install-an-sdk).
 
-Python is the one exception: Raven's Python SDK is **not** on PyPI, and the
+Python is the one exception: Livqeno's Python SDK is **not** on PyPI, and the
 name `raven-sdk` there belongs to an unrelated project — see
 [Python SDK](/sdk/python) before installing anything.
 
 ## 1. Create a project and a key
 
-### If you are running Raven locally
+### If you are running Livqeno locally
 
 The seed script is the fastest route to a working credential. It creates a
 demo developer, project and room, and **prints an API key**:
@@ -80,7 +80,7 @@ else — not a mobile app, not a browser bundle, not a committed file.
 
 ## 2. Allow the origin your frontend runs on
 
-Raven checks the browser's `Origin` on every SDK connection, so the page
+Livqeno checks the browser's `Origin` on every SDK connection, so the page
 you are about to build has to be on the project's list before it can
 connect. Dashboard → your project → **Settings → Security → Allowed
 Origins**.
@@ -104,7 +104,7 @@ cause is visible in your console. The reasoning, and the full model, is in
 ## 3. Mint a grant on your backend
 
 Your backend decides who a user is from its own session — never from a
-value the client sends. It asks Raven for a token scoped to exactly what
+value the client sends. It asks Livqeno for a token scoped to exactly what
 that user should be able to do.
 
 ```ts
@@ -131,7 +131,7 @@ app.post('/join-room', async (req, res) => {
 ## 4. Return the grant to the browser and connect
 
 Hand your backend's response to the SDK whole. Every field in it —
-`endpoint`, `iceServers`, `telemetryUrl` — is an address Raven chose for
+`endpoint`, `iceServers`, `telemetryUrl` — is an address Livqeno chose for
 this session, and picking them apart is how people end up hard-coding
 infrastructure that is meant to move without an SDK release.
 
@@ -186,7 +186,7 @@ name, so a browser holding it cannot read a room you did not list. See
 
 ## Local development
 
-Running Raven's own control plane locally, rather than against a hosted
+Running Livqeno's own control plane locally, rather than against a hosted
 instance:
 
 ```bash
@@ -198,7 +198,7 @@ pnpm db:seed        # optional: a demo developer + project + key + room
 ```
 
 `.env` needs a `DATABASE_URL` and `DIRECT_URL` before any of this works —
-Postgres is not part of the compose stack. Any Postgres will do; Raven's
+Postgres is not part of the compose stack. Any Postgres will do; Livqeno's
 own deployment uses managed Postgres on Supabase, whose free tier gives you
 both connection strings in a couple of minutes.
 

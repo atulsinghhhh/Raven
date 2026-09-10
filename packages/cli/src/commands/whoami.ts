@@ -8,7 +8,7 @@ import { withErrorHandling } from '../lib/run.js';
 export function registerWhoamiCommand(program: Command): void {
   program
     .command('whoami')
-    .description('Show the currently authenticated Raven account')
+    .description('Show the currently authenticated Livqeno account')
     .option('--json', 'output as JSON')
     .action(
       withErrorHandling(async (opts: { json?: boolean }) => {

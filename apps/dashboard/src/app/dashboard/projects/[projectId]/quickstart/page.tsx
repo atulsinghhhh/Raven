@@ -223,7 +223,7 @@ function Step({
   );
 }
 
-const NODE_TOKEN = `import { Raven } from '@ravenkash/server';
+const NODE_TOKEN = `import { Livqeno } from '@ravenkash/server';
 
 // The SDK never reads env vars on its own: pass the key explicitly.
 const raven = new Raven({
@@ -234,7 +234,7 @@ const raven = new Raven({
 // Rooms are control-plane records. Create one, or reuse an ID from raven.rooms.list().
 const room = await raven.rooms.create({ name: 'standup' });
 
-// Your own auth decides who "alice" is. Raven only mints for who you say.
+// Your own auth decides who "alice" is. Livqeno only mints for who you say.
 const issued = await raven.tokens.create({
   room: room.id,
   identity: 'alice',

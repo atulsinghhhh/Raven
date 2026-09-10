@@ -1319,7 +1319,7 @@ describe('RavenAdapter', () => {
 
     it('exposes ICE and signaling state, which the previous adapter could not', async () => {
       // `Room.getDiagnostics()` reported these as undefined for as long as
-      // LiveKit owned the connection. Raven's own adapter has the peer
+      // LiveKit owned the connection. Livqeno's own adapter has the peer
       // connection right there. These are the states that actually explain
       // a failed connection in a bug report.
       const { adapter, socket } = await connectAdapter();

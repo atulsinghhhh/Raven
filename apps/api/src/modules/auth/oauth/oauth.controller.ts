@@ -52,7 +52,7 @@ export class OAuthController {
   @ApiOperation({
     summary: 'Complete an OAuth sign-in',
     description:
-      'Burns the state, exchanges the authorization code with the provider server-to-server, finds or creates the Raven user (a returning provider account never creates a duplicate), and returns the same session shape as /login. Provider tokens are used once and discarded, never stored, never logged.',
+      'Burns the state, exchanges the authorization code with the provider server-to-server, finds or creates the Livqeno user (a returning provider account never creates a duplicate), and returns the same session shape as /login. Provider tokens are used once and discarded, never stored, never logged.',
   })
   @ApiResponse({ status: 200, description: 'Authenticated' })
   @ApiResponse({ status: 400, description: 'Provider shared no usable email' })

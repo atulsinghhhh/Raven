@@ -37,7 +37,7 @@ check() {
   rm -f "/tmp/raven-verify-$$.log"
 }
 
-echo "Raven — infrastructure verification"
+echo "Livqeno — infrastructure verification"
 echo "===================================="
 
 echo

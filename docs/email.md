@@ -1,12 +1,18 @@
 # Transactional email
 
-Raven sends transactional email through [Resend](https://resend.com). One
+> **Rebrand in progress.** Emails already say Livqeno — sender name,
+> templates and footers. The *envelope* domain is still
+> `mail.ravenstack.online`, because that is what is verified in Resend.
+> Moving it needs DNS: see
+> [`deployment/livqeno-domain-cutover.md`](./deployment/livqeno-domain-cutover.md) §6.
+
+Livqeno sends transactional email through [Resend](https://resend.com). One
 service (`apps/api/src/modules/email/`) owns the integration; nothing else
 in the repository constructs a Resend client, and nothing outside the API
 process ever sees the key.
 
 ```text
-Browser  ──signup / reset / member-add──▶  Raven API
+Browser  ──signup / reset / member-add──▶  Livqeno API
                                               │
                                               ▼
                                          EmailService
@@ -56,7 +62,7 @@ or a mobile app, and none of them may ever carry a `NEXT_PUBLIC_` or
 | `EMAIL_ENABLED` | `false` | Master switch. False logs instead of sending. |
 | `RESEND_API_KEY` | — | The Resend key. Required when enabled; boot fails without it. |
 | `RESEND_FROM_EMAIL` | `hello@mail.ravenstack.online` | Must be on a domain verified in Resend. The default applies only while email is **off** — with `EMAIL_ENABLED=true`, boot requires it to be set explicitly, because the sending identity is a deployment decision and not something to inherit silently. |
-| `RESEND_FROM_NAME` | `Raven` | Display name on the From header. |
+| `RESEND_FROM_NAME` | `Livqeno` | Display name on the From header. |
 | `EMAIL_REPLY_TO` | unset | Where a human reply goes. Unset = replies land on the From address. |
 | `EMAIL_SUPPORT_EMAIL` | `support@mail.ravenstack.online` | Printed in every footer. |
 | `APP_URL` | `http://localhost:3000` | **The dashboard's origin.** Every emailed link is built from it. |
@@ -64,8 +70,8 @@ or a mobile app, and none of them may ever carry a `NEXT_PUBLIC_` or
 | `EMAIL_VERIFICATION_TTL_MINUTES` | `1440` | Verification link lifetime. |
 | `PASSWORD_RESET_TTL_MINUTES` | `60` | Reset link lifetime. |
 | `EMAIL_COOLDOWN_SECONDS` | `60` | Per-recipient, per-type send cooldown. |
-| `EMAIL_DAILY_LIMIT` | `100` | Raven's own daily cap (free tier). |
-| `EMAIL_MONTHLY_LIMIT` | `3000` | Raven's own monthly cap (free tier). |
+| `EMAIL_DAILY_LIMIT` | `100` | Livqeno's own daily cap (free tier). |
+| `EMAIL_MONTHLY_LIMIT` | `3000` | Livqeno's own monthly cap (free tier). |
 | `EMAIL_MAX_ATTEMPTS` | `3` | Attempts per message, transient failures only. |
 | `EMAIL_RETRY_BASE_MS` | `500` | Backoff base: 500ms, 1s, 2s… |
 | `EMAIL_DEV_PREVIEW` | `false` | Local only. Prints rendered emails, **including live links**. Refused in production. |
@@ -83,7 +89,7 @@ No validation message ever contains the key's value.
 
 ---
 
-## Which emails Raven sends
+## Which emails Livqeno sends
 
 Five, and no more. Product events belong in
 [webhooks](./chat/webhooks.md), not in a developer's inbox.
@@ -103,7 +109,7 @@ Verification also proves the address is deliverable, which is the first
 moment a welcome is worth spending.
 
 **Why the member email is not an invitation.**
-`ProjectMembersService.add()` requires the person to already have a Raven
+`ProjectMembersService.add()` requires the person to already have a Livqeno
 account — there is no invitation flow, and the email says so rather than
 implying a pending state with no endpoint behind it.
 
@@ -150,12 +156,12 @@ POST /v1/auth/password-reset/confirm ─▶ validate + consume ─▶ new hash �
 - **No user enumeration.** The endpoint answers 202 with the same body for
   a registered and an unregistered address. The dashboard's form shows the
   same screen either way, and surfaces only a 429.
-- Passwords are never emailed, and cannot be: Raven stores a bcrypt hash.
+- Passwords are never emailed, and cannot be: Livqeno stores a bcrypt hash.
 - Reset tokens are never logged.
 - Completing a reset invalidates every other outstanding reset link.
 
 **Known limitation.** Sessions issued *before* a reset keep working until
-they expire (12h by default). Raven's JWTs are stateless and `logout`
+they expire (12h by default). Livqeno's JWTs are stateless and `logout`
 blocklists one `jti` at a time, so there is no list of a user's live
 tokens to revoke. The password-changed notification is what closes this
 gap operationally — a victim finds out immediately. Fixing it properly
@@ -170,7 +176,7 @@ Default state of a fresh clone: `EMAIL_ENABLED=false`. Nothing is sent,
 nothing hits the network, and every flow still works. Each attempt logs:
 
 ```text
-email skipped (EMAIL_ENABLED=false) type=email_verification recipientDomain=example.com subject="Confirm your Raven email address"
+email skipped (EMAIL_ENABLED=false) type=email_verification recipientDomain=example.com subject="Confirm your Livqeno email address"
 ```
 
 The result object says `skipped`, never `sent` — no code path claims a
@@ -181,7 +187,7 @@ SHA-256 in Postgres, so there is nothing to look up. Two options:
 
 1. `EMAIL_DEV_PREVIEW=true` — prints the rendered text part, links
    included, to your terminal. Off by default, refused in production, and
-   the only place Raven ever writes a live token to a log.
+   the only place Livqeno ever writes a live token to a log.
 2. Set `EMAIL_ENABLED=true` with a real key and send to an address you
    control. Resend allows sending to your own account address before a
    domain is verified.
@@ -205,7 +211,7 @@ Three guards run before the API call, in order:
    retry loop, a double-clicked button, or an impatient user turning one
    signup into fifty sends. The password-changed notification opts out:
    if an attacker changes a password twice, the victim must see both.
-3. **Quota** — Raven's own daily and monthly counters, in UTC to match
+3. **Quota** — Livqeno's own daily and monthly counters, in UTC to match
    Resend's windows. Hitting our counter costs nothing; hitting theirs
    means the month is gone.
 
@@ -237,7 +243,7 @@ Errors are classified, not blindly retried
 An unknown code defaults to permanent: retrying something we do not
 understand is how a bad address becomes a rate-limit ban.
 
-**No queue.** Raven has no general job queue — the webhook worker polls
+**No queue.** Livqeno has no general job queue — the webhook worker polls
 Postgres directly (`docs/deployment/production.md` §11.1) — and email did
 not justify introducing one. The limitation, stated plainly: a message
 that exhausts its attempts is lost, and the user must ask again. For
@@ -263,7 +269,7 @@ single exception is `EMAIL_DEV_PREVIEW`, which is off by default and
 refused in production.
 
 The Resend message id is worth keeping: it is the join key between a
-Raven log line and the delivery record in Resend's own dashboard.
+Livqeno log line and the delivery record in Resend's own dashboard.
 
 ---
 
@@ -279,7 +285,7 @@ Four counters on the existing `/metrics` endpoint:
 | `raven_emails_skipped_total` | `type`, `reason` |
 
 `sent` means **accepted by Resend**, not delivered — bounces, complaints
-and opens live in Resend's dashboard, and Raven does not try to
+and opens live in Resend's dashboard, and Livqeno does not try to
 reimplement them.
 
 Worth alerting on: any `skipped{reason="daily_quota"}` or
@@ -298,7 +304,7 @@ On the **API's** deployment only (Azure Container Apps per
 EMAIL_ENABLED=true
 RESEND_API_KEY=<from the Resend dashboard, via your secret store>
 RESEND_FROM_EMAIL=hello@mail.ravenstack.online
-RESEND_FROM_NAME=Raven
+RESEND_FROM_NAME=Livqeno
 EMAIL_SUPPORT_EMAIL=support@mail.ravenstack.online
 APP_URL=https://app.ravenstack.online
 ```

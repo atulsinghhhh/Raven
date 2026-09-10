@@ -4,7 +4,7 @@ description: HMAC-signed, retried, environment-scoped delivery — and how to ve
 ---
 
 Webhooks let your backend react to events without polling. Register a
-URL from the dashboard or the API, and Raven POSTs each event to it.
+URL from the dashboard or the API, and Livqeno POSTs each event to it.
 
 Webhooks are project-scoped, one pipeline for every event source — see
 [Event Catalogue](/reference/events) for what's available today.
@@ -119,10 +119,10 @@ and retried, turning slow processing into duplicates.
 ## Security
 
 **Signing secrets are shown once**, at creation, never returned again.
-Unlike an API key secret, Raven does store it — signing each delivery
+Unlike an API key secret, Livqeno does store it — signing each delivery
 requires it. Rotation is delete-and-recreate.
 
-**SSRF is partially mitigated.** Raven refuses obvious internal
+**SSRF is partially mitigated.** Livqeno refuses obvious internal
 targets: non-HTTP schemes, loopback, and private-range addresses
 (outside local development); production additionally requires
 `https://`. This check is hostname-level only — it doesn't resolve DNS,

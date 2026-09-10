@@ -1,9 +1,9 @@
 ---
 title: RTC Overview
-description: Rooms, participants, and tracks — the shape of a Raven call.
+description: Rooms, participants, and tracks — the shape of a Livqeno call.
 ---
 
-Raven's RTC plane runs on a managed SFU. You never touch SDP, ICE
+Livqeno's RTC plane runs on a managed SFU. You never touch SDP, ICE
 candidates, or `RTCPeerConnection` directly — the SDK's
 job is to make those disappear.
 
@@ -126,6 +126,6 @@ try {
 - [Diagnostics](/rtc/diagnostics) — real per-track stats: RTT, jitter,
   packet loss, bitrate, codec.
 
-Need messaging alongside your call? See [Raven Chat](/chat). Building a
+Need messaging alongside your call? See [Livqeno Chat](/chat). Building a
 one-to-many broadcast instead of a call? See
-[Raven Live Streaming](/live-streaming).
+[Livqeno Live Streaming](/live-streaming).

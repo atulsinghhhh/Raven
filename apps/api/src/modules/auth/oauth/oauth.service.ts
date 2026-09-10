@@ -85,7 +85,7 @@ export class OAuthService {
   /**
    * Completes the dance: burns the state, exchanges the code with the
    * provider (the only moment the client secret is used), resolves the
-   * profile to a Raven user, and issues the same session JWT a password
+   * profile to a Livqeno user, and issues the same session JWT a password
    * login would — indistinguishable downstream, same logout, same
    * revocation.
    */
@@ -278,11 +278,11 @@ export class OAuthService {
   // -----------------------------------------------------------------------
 
   /**
-   * Resolves a provider profile to exactly one Raven user:
+   * Resolves a provider profile to exactly one Livqeno user:
    *
    * 1. A link already exists → that user. Returning logins can never mint
    *    a duplicate, whatever their email now says.
-   * 2. No link, but a Raven account owns the profile's email → link them,
+   * 2. No link, but a Livqeno account owns the profile's email → link them,
    *    but only when the provider verified the address (see OAuthProfile).
    * 3. Nobody → a fresh account with no password, plus an onboarding row,
    *    same as register() creates.
@@ -316,7 +316,7 @@ export class OAuthService {
     if (existingUser) {
       if (!profile.emailVerified) {
         throw new AppError(
-          `A Raven account already exists for ${profile.email}, but ${providerLabel(provider)} has not verified that address. Verify it with ${providerLabel(provider)} first, or sign in with your password.`,
+          `A Livqeno account already exists for ${profile.email}, but ${providerLabel(provider)} has not verified that address. Verify it with ${providerLabel(provider)} first, or sign in with your password.`,
           HttpStatus.FORBIDDEN,
           RavenErrorCode.OAUTH_EMAIL_UNVERIFIED,
         );
@@ -358,7 +358,7 @@ export class OAuthService {
         return created;
       });
 
-      // The free Raven minutes, same as the password-registration path.
+      // The free Livqeno minutes, same as the password-registration path.
       // Outside the transaction because it is idempotent and its own
       // service's concern: an account that exists without an allowance row
       // gets one on the next read anyway, so failing here must not undo a

@@ -10,12 +10,12 @@ description: Direct-to-storage uploads — files never pass through the WebSocke
 > [Known limitations](/reference/known-limitations).
 
 
-Files never pass through Raven's API and never through the WebSocket.
+Files never pass through Livqeno's API and never through the WebSocket.
 The browser uploads directly to object storage using a short-lived
 signed URL.
 
 ```
-Client                    Raven                Object storage
+Client                    Livqeno                Object storage
   │  POST .../attachments   │                        │
   ├────────────────────────►│                        │
   │  signed PUT URL         │                        │
@@ -34,7 +34,7 @@ A WebSocket is a single ordered stream. A 20 MB file pushed through it
 blocks every message behind it — one person sharing a screenshot stalls
 the conversation for everyone on that connection. Base64-encoding it
 (the usual workaround) also inflates it by a third. Direct-to-storage
-uploads cost Raven no bandwidth, no memory, and no head-of-line
+uploads cost Livqeno no bandwidth, no memory, and no head-of-line
 blocking, and can be resumed or retried without touching the messaging
 path at all.
 
@@ -75,7 +75,7 @@ const { url, expiresAt } = await chat.attachments.getDownloadUrl('att_…');
 Mint one when the user actually clicks. **Don't cache these** — they
 expire, and that expiry is what stops a link shared in a screenshot from
 becoming permanent access to a private file. Access is checked on
-Raven's side (project, conversation membership, `chat:read`) before a
+Livqeno's side (project, conversation membership, `chat:read`) before a
 URL is issued, so a leaked URL grants one file for a few minutes rather
 than the bucket forever.
 

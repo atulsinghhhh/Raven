@@ -2,7 +2,7 @@ import { Environment } from '../../shared/environment/environment.constants';
 import { RtcTokenPermissionsDto } from './dto/rtc-token-permissions.dto';
 
 /**
- * Raven's own RTC permission vocabulary, resolved to explicit booleans.
+ * Livqeno's own RTC permission vocabulary, resolved to explicit booleans.
  *
  * Same field names as `RtcTokenPermissionsDto`, on purpose. The public API,
  * the signed claim, the signaling layer's authorization checks and the SFU
@@ -41,7 +41,7 @@ export interface RtcTokenClaims {
   jti: string;
   /** Subject: the participant identity the developer's backend chose. */
   sub: string;
-  /** Raven project id. */
+  /** Livqeno project id. */
   pid: string;
   /**
    * Environment. Signed instead of sent, for the same reason `sub` is: a

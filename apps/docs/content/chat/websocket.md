@@ -1,11 +1,11 @@
 ---
 title: WebSocket Protocol
-description: For writing a client where Raven doesn't ship an SDK, or for debugging what's on the wire.
+description: For writing a client where Livqeno doesn't ship an SDK, or for debugging what's on the wire.
 ---
 
-You don't need this page to use Raven Chat — `@ravenkash/chat` speaks this
+You don't need this page to use Livqeno Chat — `@ravenkash/chat` speaks this
 protocol so you don't have to, and the SDK is the supported interface.
-This is for a client in a language Raven doesn't ship an SDK for, or for
+This is for a client in a language Livqeno doesn't ship an SDK for, or for
 reading what's actually on the wire in devtools.
 
 ## Endpoint
@@ -62,7 +62,7 @@ RTC token being replayed here even if a key were somehow shared.
 ### Origin
 
 Browsers always send `Origin` on an upgrade, and page JavaScript can't
-forge it. Raven checks it against the configured allow-list and rejects
+forge it. Livqeno checks it against the configured allow-list and rejects
 a mismatch with close code `4403`. A *missing* `Origin` is allowed —
 non-browser clients legitimately don't send one.
 

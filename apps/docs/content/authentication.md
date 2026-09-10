@@ -3,15 +3,15 @@ title: Authentication
 description: Three separate credential types, and why the client never sees your API key.
 ---
 
-Raven has three authentication layers. Confusing them is the most common
+Livqeno has three authentication layers. Confusing them is the most common
 integration mistake, so it's worth being precise about each.
 
 ```
-Your application's auth      your users log into your app — Raven has no part in this
+Your application's auth      your users log into your app — Livqeno has no part in this
         ≠
-Raven API auth                your backend ↔ Raven, via a permanent API key
+Livqeno API auth                your backend ↔ Livqeno, via a permanent API key
         ≠
-Client auth (RTC/chat)         a browser or device ↔ Raven, via a short-lived token
+Client auth (RTC/chat)         a browser or device ↔ Livqeno, via a short-lived token
 ```
 
 ## The flow
@@ -23,12 +23,12 @@ User logged into your app
 Your backend checks your own app's permissions for this user
         │
         ▼
-Your backend calls Raven with its API key:
+Your backend calls Livqeno with its API key:
   raven.tokens.create({ room, identity, permissions })
   raven.chat.createToken({ userId, conversations, scopes })
         │
         ▼
-Raven mints a short-lived, narrowly scoped token
+Livqeno mints a short-lived, narrowly scoped token
         │
         ▼
 Client uses that token with @ravenkash/rtc or @ravenkash/chat — never the API key
@@ -41,13 +41,13 @@ that could name its own identity could impersonate any other user.
 
 ## Why a project API key at all?
 
-Raven is multi-tenant: one Raven deployment serves many projects, and every
+Livqeno is multi-tenant: one Livqeno deployment serves many projects, and every
 room, conversation, and quota belongs to exactly one of them. The API key is
 how a server call identifies *which* project it's acting on — without it,
-there's no way for Raven to know whose rooms to create, whose data to bill,
+there's no way for Livqeno to know whose rooms to create, whose data to bill,
 or whose rate limits apply.
 
-That identification has to happen on a credential Raven can trust, which is
+That identification has to happen on a credential Livqeno can trust, which is
 why it's a permanent secret held only by your backend rather than something
 derived from the request itself:
 

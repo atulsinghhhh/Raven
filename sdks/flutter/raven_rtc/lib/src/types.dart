@@ -17,7 +17,7 @@ enum RavenConnectionState {
 /// a server upgrade it didn't ask for.
 enum RavenTrackKind { camera, microphone, screenShare, unknown }
 
-/// @internal Maps the wire protocol's source string onto Raven's enum.
+/// @internal Maps the wire protocol's source string onto Livqeno's enum.
 RavenTrackKind trackKindFromSource(String source) => switch (source) {
       'camera' => RavenTrackKind.camera,
       'microphone' => RavenTrackKind.microphone,

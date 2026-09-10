@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# Raven SFU — the media plane.
+# Livqeno SFU — the media plane.
 #
 # Two things about this image are unusual for a service in this repo, and
 # both follow from it carrying media rather than requests:

@@ -22,7 +22,7 @@ interface ReadinessResponse {
   dependencies: {
     database: DependencyStatus;
     redis: DependencyStatus;
-    /** The media server behind Raven's RTC plane. Not named after whichever one it happens to be today. */
+    /** The media server behind Livqeno's RTC plane. Not named after whichever one it happens to be today. */
     sfu: DependencyStatus;
     turn: DependencyStatus;
   };

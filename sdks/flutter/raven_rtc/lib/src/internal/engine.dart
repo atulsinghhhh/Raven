@@ -56,7 +56,7 @@ class PublishedTrack {
   bool muted = false;
 }
 
-/// Drives the peer connection against Raven's signaling.
+/// Drives the peer connection against Livqeno's signaling.
 ///
 /// # Negotiation
 ///
@@ -69,8 +69,8 @@ class PublishedTrack {
 ///
 /// # What this replaced
 ///
-/// `livekit_client` owned all of this. The engine exists because Raven's
-/// SFU speaks Raven's protocol, and because that is the whole point of
+/// `livekit_client` owned all of this. The engine exists because Livqeno's
+/// SFU speaks Livqeno's protocol, and because that is the whole point of
 /// the migration: no client library sits between the app and the media
 /// plane, so the media plane can change without an SDK release.
 class RavenEngine {

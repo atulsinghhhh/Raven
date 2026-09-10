@@ -19,7 +19,7 @@ export interface AttachmentUploadTicket {
  * `chat.attachments.*`.
  *
  * Bytes go straight from the browser to object storage over a short-lived
- * signed URL. They never pass through Raven's API and never touch the
+ * signed URL. They never pass through Livqeno's API and never touch the
  * WebSocket (spec §30). Storage credentials stay server-side, and the
  * browser only ever holds a URL that expires and addresses exactly one
  * object.

@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     port: 8902,
     // Everything under /api goes to this example's own backend: the
-    // browser never talks to the Raven Control API directly, and never
+    // browser never talks to the Livqeno Control API directly, and never
     // holds a project API key.
     proxy: { '/api': 'http://localhost:8788' },
   },

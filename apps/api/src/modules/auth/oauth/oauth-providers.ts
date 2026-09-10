@@ -1,7 +1,7 @@
 import { AuthProvider } from '../../../generated/prisma/client';
 
 /**
- * What Raven needs to know about a person after the provider has vouched
+ * What Livqeno needs to know about a person after the provider has vouched
  * for them. Everything else the provider returns — access tokens, avatar
  * URLs, follower counts — is dropped on the floor here, on purpose: the
  * exchange proves identity and nothing is persisted beyond the link.
@@ -12,9 +12,9 @@ export interface OAuthProfile {
   email: string | null;
   /**
    * Whether the *provider* has verified that email. Gates account linking:
-   * an unverified provider email must never attach to an existing Raven
+   * an unverified provider email must never attach to an existing Livqeno
    * account, or anyone could claim an address at the provider and take
-   * over the Raven account that owns it.
+   * over the Livqeno account that owns it.
    */
   emailVerified: boolean;
   name: string | null;

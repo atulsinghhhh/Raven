@@ -88,7 +88,7 @@ function normalize(status: AppStateStatus): RavenAppState {
  *
  * `@react-native-community/netinfo` is an *optional* peer dependency. It's
  * the standard way to observe connectivity in React Native, but it's also
- * another native module to link, and Raven works fine without it: ICE
+ * another native module to link, and Livqeno works fine without it: ICE
  * notices a dead path on its own eventually. Having it just makes recovery
  * quicker. So this resolves it lazily and falls back to a no-op when it
  * isn't installed.

@@ -21,7 +21,7 @@ import { ChatTokenService } from './tokens/chat-token.service';
 import { TypingService } from './typing/typing.service';
 
 /**
- * Raven Chat: messaging, entirely separate from the RTC plane.
+ * Livqeno Chat: messaging, entirely separate from the RTC plane.
  *
  * Nothing in here imports SignalingModule or anything under it. The only link
  * between the two planes is `Conversation.roomId`, which lets a video

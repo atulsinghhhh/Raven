@@ -1,4 +1,4 @@
-// Backend for the Raven Chat example.
+// Backend for the Livqeno Chat example.
 //
 // The whole point of this file is the boundary it draws: RAVEN_API_KEY
 // lives here and only here. The browser authenticates against *this*
@@ -63,7 +63,7 @@ app.post('/api/chat/token', async (req, res) => {
     res.json({ ...token, roomId: conversation.publicId, roomName: conversation.name });
   } catch (error) {
     if (error instanceof RavenError) {
-      console.error(`Raven chat token failed [${error.code}] (request ${error.requestId ?? 'n/a'})`);
+      console.error(`Livqeno chat token failed [${error.code}] (request ${error.requestId ?? 'n/a'})`);
       res.status(error.statusCode ?? 502).json({ error: error.message, code: error.code });
       return;
     }
@@ -97,6 +97,6 @@ app.post('/api/chat/announce', async (req, res) => {
 
 const port = process.env.PORT ?? 8788;
 app.listen(port, () => {
-  console.log(`Raven chat example backend listening on http://localhost:${port}`);
+  console.log(`Livqeno chat example backend listening on http://localhost:${port}`);
   console.log(`Conversation: ${ROOM}`);
 });

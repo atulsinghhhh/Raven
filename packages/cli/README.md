@@ -1,9 +1,9 @@
 # @ravenkash/cli
 
-Raven from the terminal — manage projects, API keys, rooms and live
+Livqeno from the terminal — manage projects, API keys, rooms and live
 streams, and wire up a local app for RTC development.
 
-Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
+Part of [Livqeno](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
 
 ## Install
 
@@ -24,7 +24,7 @@ raven login                    # authenticate
 raven whoami                   # who am I, against which deployment
 raven projects create my-app   # create a project
 raven keys create              # mint an API key for it
-raven init                     # scaffold Raven into the app in this directory
+raven init                     # scaffold Livqeno into the app in this directory
 raven dev                      # run against a local stack
 ```
 

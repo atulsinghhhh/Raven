@@ -1,6 +1,6 @@
 # Releases
 
-How every artefact Raven ships gets versioned and published: eight npm
+How every artefact Livqeno ships gets versioned and published: eight npm
 packages, one Python package, three Dart packages, and two container
 images.
 
@@ -134,7 +134,7 @@ both `rtc` and `chat`, all via `workspace:*`. pnpm rewrites those to the
 exact published version at pack time, and `updateInternalDependencies:
 "patch"` gives dependents a patch bump when a dependency is released.
 
-`@ravenkash/react` and `@ravenkash/react-native` take their Raven siblings as
+`@ravenkash/react` and `@ravenkash/react-native` take their Livqeno siblings as
 `peerDependencies: "*"` deliberately — the application picks the version,
 and there must be exactly one copy of `@ravenkash/rtc` in the tree.
 

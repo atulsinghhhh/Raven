@@ -3,7 +3,7 @@ title: API key
 description: Your backend's permanent credential. The only thing that can mint tokens.
 ---
 
-An API key identifies your backend to Raven. Treat it like a database
+An API key identifies your backend to Livqeno. Treat it like a database
 password.
 
 ```

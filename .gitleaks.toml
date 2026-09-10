@@ -1,4 +1,4 @@
-# Gitleaks configuration for Raven.
+# Gitleaks configuration for Livqeno.
 #
 # Extends the upstream rule set rather than replacing it — that is where
 # provider-specific detection (AWS, GitHub, Slack, Stripe, private keys,
@@ -14,7 +14,7 @@
 useDefault = true
 
 [allowlist]
-description = "Raven-specific false positives"
+description = "Livqeno-specific false positives"
 
 paths = [
   # The 89-variable template developers copy to .env. Every value in it is

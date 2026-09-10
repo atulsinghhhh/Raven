@@ -1,6 +1,6 @@
 # @ravenkash/react-native
 
-Raven on iOS and Android, with the same API as Raven Web.
+Livqeno on iOS and Android, with the same API as Livqeno Web.
 
 ```tsx
 import { Raven, RavenVideoView } from '@ravenkash/react-native';
@@ -84,18 +84,18 @@ no reconnect logic.
 
 ## Authentication
 
-**Never put a Raven API key in a mobile app.** An app binary is
+**Never put a Livqeno API key in a mobile app.** An app binary is
 downloadable and inspectable; anything inside it is public.
 
 ```
 Mobile app
     │  your own authenticated request
     ▼
-Your backend  ──(@ravenkash/server, API key)──►  Raven
+Your backend  ──(@ravenkash/server, API key)──►  Livqeno
     │                                          │
     │◄────────── short-lived token ────────────┘
     ▼
-Mobile app  ──────►  Raven
+Mobile app  ──────►  Livqeno
 ```
 
 Your backend decides the participant identity from *its own* session —
@@ -377,6 +377,6 @@ cause.
         └── react-native-incall-manager → call-audio routing (optional)
 ```
 
-Raven's RTC and messaging logic is shared with web. Only the parts that
+Livqeno's RTC and messaging logic is shared with web. Only the parts that
 genuinely differ live in this package. That's why the APIs match — and
 why a fix to connection handling lands on both platforms at once.

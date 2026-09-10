@@ -10,13 +10,13 @@ import { withErrorHandling } from '../lib/run.js';
 export function registerDevCommand(program: Command): void {
   program
     .command('dev')
-    .description('Check that this directory is ready for Raven development')
+    .description('Check that this directory is ready for Livqeno development')
     .option('--json', 'output as JSON')
     .action(
       withErrorHandling(async (opts: { json?: boolean }) => {
         const projectConfig = await readProjectConfig();
         if (!projectConfig) {
-          throw new CliError('usage', 'This directory is not linked to a Raven project.', {
+          throw new CliError('usage', 'This directory is not linked to a Livqeno project.', {
             suggestion: 'Run `raven init`',
           });
         }
@@ -44,7 +44,7 @@ export function registerDevCommand(program: Command): void {
           return;
         }
 
-        printField('Raven project', project.name);
+        printField('Livqeno project', project.name);
         printField('Project ID', project.id);
         process.stdout.write('\n');
         process.stdout.write(`API:\n${checkLine(apiConnected, 'Connected', 'Could not reach the Control API')}\n\n`);

@@ -12,7 +12,7 @@ import { RedisService } from '../src/shared/redis/redis.service';
  * plane, so this suite stays runnable with just the data stores up.
  *
  * OAuth's provider round-trip (GitHub/Google's own servers) can't run in a
- * test, so what's covered here is everything on Raven's side of the wall:
+ * test, so what's covered here is everything on Livqeno's side of the wall:
  * provider discovery, refusing unconfigured providers, and state
  * validation. The exchange logic itself is unit-tested with the provider
  * HTTP mocked (oauth.service.spec.ts).

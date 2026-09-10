@@ -1,4 +1,4 @@
-/// Raven Chat for Flutter: real-time messaging.
+/// Livqeno Chat for Flutter: real-time messaging.
 ///
 /// ```dart
 /// final chat = RavenChat(token: token, apiUrl: apiUrl);
@@ -8,7 +8,7 @@
 /// await chat.send('Hello everyone!');
 /// ```
 ///
-/// Talks to the same Raven Chat service as the web and React Native
+/// Talks to the same Livqeno Chat service as the web and React Native
 /// SDKs, over the same protocol: there is no mobile-specific backend.
 /// Durable history, presence, typing, reactions, read receipts and
 /// threads all behave identically across platforms.
@@ -35,5 +35,5 @@ export 'src/models.dart'
         RavenTypingEvent;
 
 // Deliberately not exported: the WebSocket channel, the REST client, the
-// frame vocabulary, and the backoff policy. A developer using Raven Chat
+// frame vocabulary, and the backoff policy. A developer using Livqeno Chat
 // should never need to know a WebSocket is involved.

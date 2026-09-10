@@ -14,7 +14,7 @@ export interface PasswordResetEmailInput {
  * not optional — an unexpected reset email is the first signal a person
  * gets that someone is trying their address.
  *
- * It never contains the password, old or new. It cannot: Raven only ever
+ * It never contains the password, old or new. It cannot: Livqeno only ever
  * stores a bcrypt hash.
  */
 export function renderPasswordResetEmail(input: PasswordResetEmailInput): RenderedEmail {
@@ -22,11 +22,11 @@ export function renderPasswordResetEmail(input: PasswordResetEmailInput): Render
   const expiry = formatDuration(input.expiresInMinutes);
 
   const { html, text } = renderLayout({
-    heading: 'Reset your Raven password',
+    heading: 'Reset your Livqeno password',
     preheader: `Choose a new password — this link is valid for ${expiry}.`,
     paragraphs: [
       greeting,
-      'Someone asked to reset the password for the Raven account registered to this address. Choose a new one using the link below.',
+      'Someone asked to reset the password for the Livqeno account registered to this address. Choose a new one using the link below.',
     ],
     cta: { label: 'Choose a new password', url: input.resetUrl },
     ctaFootnote: `This link expires in ${expiry} and can be used once.`,
@@ -35,5 +35,5 @@ export function renderPasswordResetEmail(input: PasswordResetEmailInput): Render
     brand: input.brand,
   });
 
-  return { subject: 'Reset your Raven password', html, text };
+  return { subject: 'Reset your Livqeno password', html, text };
 }

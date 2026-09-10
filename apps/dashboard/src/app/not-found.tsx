@@ -5,7 +5,7 @@ import { EmptyState } from '@/components/ui/states';
 import { DOCS_URL } from '@/lib/nav';
 
 export const metadata: Metadata = {
-  title: 'Page not found — Raven',
+  title: 'Page not found — Livqeno',
 };
 
 /**
@@ -20,7 +20,7 @@ export default function NotFound() {
         <div className="flex justify-center">
           <span className="flex items-center gap-2">
             <RavenMark className="size-7" />
-            <span className="text-base font-semibold tracking-tight text-fg">Raven</span>
+            <span className="text-base font-semibold tracking-tight text-fg">Livqeno</span>
           </span>
         </div>
 

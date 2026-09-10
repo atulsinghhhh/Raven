@@ -157,9 +157,9 @@ jobs:
             type=ref,event=pr
             type=sha,format=long
           labels: |
-            org.opencontainers.image.title=Raven SFU
-            org.opencontainers.image.description=Raven's SFU — the media plane. Go, built on Pion.
-            org.opencontainers.image.vendor=Raven
+            org.opencontainers.image.title=Livqeno SFU
+            org.opencontainers.image.description=Livqeno's SFU — the media plane. Go, built on Pion.
+            org.opencontainers.image.vendor=Livqeno
             org.opencontainers.image.licenses=MIT
             org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/blob/main/docs/rtc/sfu.md
 

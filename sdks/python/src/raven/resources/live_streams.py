@@ -1,4 +1,4 @@
-"""Raven Live Streaming, server-side (Phase 14). A stream composes an RTC
+"""Livqeno Live Streaming, server-side (Phase 14). A stream composes an RTC
 room and a chat conversation — this resource only owns lifecycle and role
 bookkeeping on top of them, the same reuse discipline the backend itself
 follows.
@@ -117,7 +117,7 @@ class LiveStreamsResource:
     def leave(self, stream_id: str, identity: str) -> None:
         """A clean-leave signal for ``live_stream.viewer_left``, not a disconnect detector.
 
-        Raven has no way to observe an abrupt viewer disconnect in this phase.
+        Livqeno has no way to observe an abrupt viewer disconnect in this phase.
         """
         self._http.request(f"/v1/live-streams/{stream_id}/leave", method="POST", body={"identity": identity})
 

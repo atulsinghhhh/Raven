@@ -6,7 +6,7 @@
 //
 //   1. every `METHOD /v1/...` in the prose resolves to a real route
 //   2. every `RAVEN_*` code exists in the API's error vocabulary
-//   3. every symbol imported from a Raven package is actually exported
+//   3. every symbol imported from a Livqeno package is actually exported
 //   4. every `raven <command>` is registered on the CLI
 //   5. every `RAVEN_*`/config env var referenced is one the API reads
 //   6. internal links and heading anchors resolve
@@ -127,8 +127,8 @@ const ENV_ALLOWLIST = new Set([
   'PROJECT_ID',
   'ROOM_ID',
   'STREAM_ID',
-  'RAVEN_API_KEY', // read by the developer's own backend, not by Raven
-  'RAVEN_WEBHOOK_SECRET', // ditto: where they keep the signing secret Raven issued
+  'RAVEN_API_KEY', // read by the developer's own backend, not by Livqeno
+  'RAVEN_WEBHOOK_SECRET', // ditto: where they keep the signing secret Livqeno issued
   'RAVEN_API_URL', // read by the CLI
   'RAVEN_TOKEN', // read by the CLI
   'NEXT_PUBLIC_DOCS_URL', // read by apps/docs
@@ -199,7 +199,7 @@ function checkTsImports(files, gt) {
         const specifier = m[2];
         const known = symbols.get(specifier);
         if (!known) {
-          fail('imports', slug, `imports from '${specifier}', which is not a Raven package entry point`);
+          fail('imports', slug, `imports from '${specifier}', which is not a Livqeno package entry point`);
           continue;
         }
         for (const raw of m[1].split(',')) {
@@ -303,7 +303,7 @@ function envVocabulary(gt) {
   return known;
 }
 
-// Prefixes that mean "this is meant to be a Raven env var", so a typo in one
+// Prefixes that mean "this is meant to be a Livqeno env var", so a typo in one
 // is a finding rather than an unrelated SCREAMING_SNAKE word.
 const ENV_PREFIX =
   /^(API|APP|CHAT|CORS|DATABASE|DIRECT|EMAIL|GITHUB|GOOGLE|JWT|LOG|OAUTH|OBSERVABILITY|PASSWORD|RATE_LIMIT|REDIS|RESEND|RTC|SFU|SIGNALING|STORAGE|TURN|WEBHOOK|DOCS)_/;
@@ -319,7 +319,7 @@ function checkEnvVars(files, gt) {
         bump('envVars');
         continue;
       }
-      fail('envVars', slug, `${name} — looks like a Raven env var but nothing reads it`);
+      fail('envVars', slug, `${name} — looks like a Livqeno env var but nothing reads it`);
     }
   }
 }

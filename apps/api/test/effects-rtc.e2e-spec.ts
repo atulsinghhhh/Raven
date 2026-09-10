@@ -13,7 +13,7 @@ import { registerLocalSfu } from './helpers/register-local-sfu';
 import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics';
 
 /**
- * Real-browser end-to-end test of Phase 16 (Raven Effects) on RTC: a real
+ * Real-browser end-to-end test of Phase 16 (Livqeno Effects) on RTC: a real
  * Chromium instance, a real SFU connection (`docker compose up -d`,
  * same as every other suite in this file's family), and the actual
  * `@ravenkash/rtc`/`@ravenkash/effects` browser builds. Chrome's fake camera
@@ -81,7 +81,7 @@ interface RtcCredentials {
  * join a room that only exists in this suite's database and be told
  * `NO_RTC_CAPACITY`, because the room row the allocator needs is not
  * there. Under LiveKit this never came up: every suite shared one
- * database, so "some Raven API" was good enough. It is not good enough
+ * database, so "some Livqeno API" was good enough. It is not good enough
  * now that the e2e suite runs against a scratch database of its own.
  */
 function localSignalingEndpoint(app: INestApplication): string {
@@ -108,7 +108,7 @@ function harnessUrl(
   return `${baseUrl}/rtc-effects.html?${params.toString()}`;
 }
 
-describe('Raven Effects — RTC (real browser e2e)', () => {
+describe('Livqeno Effects — RTC (real browser e2e)', () => {
   let app: INestApplication;
   let harnessServer: Server;
   let harnessUrlBase: string;
@@ -247,7 +247,7 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
     }
   });
 
-  // Real browser-to-browser media through Raven's SFU: two Chromium
+  // Real browser-to-browser media through Livqeno's SFU: two Chromium
   // contexts, a real camera-like track, a real GPU pipeline on the
   // publisher, and the subscriber must actually decode frames: not
   // merely receive a track object. See the module doc for why this was

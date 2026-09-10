@@ -106,7 +106,7 @@ class RavenRestClient {
       // _decode.
       throw RavenChatException(
         RavenChatErrorCode.networkError,
-        'Could not reach Raven.',
+        'Could not reach Livqeno.',
         cause: error,
       );
     }
@@ -123,13 +123,13 @@ class RavenRestClient {
     } catch (error) {
       throw RavenChatException(
         RavenChatErrorCode.internalError,
-        'Raven returned a response that could not be parsed.',
+        'Livqeno returned a response that could not be parsed.',
         cause: error,
       );
     }
 
     if (response.statusCode >= 400) {
-      // Surface the server's own Raven code rather than the HTTP status,
+      // Surface the server's own Livqeno code rather than the HTTP status,
       // so a caller can tell MESSAGE_TOO_LARGE from ATTACHMENT_TOO_LARGE
       // even though both are 413.
       if (payload is Map<String, dynamic>) {

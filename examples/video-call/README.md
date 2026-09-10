@@ -1,4 +1,4 @@
-# Raven video-call example
+# Livqeno video-call example
 
 A minimal two-participant video call built entirely on `@ravenkash/rtc`'s public
 API — `app.js` never touches SDP, ICE candidates, or `RTCPeerConnection`.
@@ -19,7 +19,7 @@ room.on('trackSubscribed', (track, participant) => {
 
 ## Running it
 
-1. Bring up Raven's infrastructure (from the repo root) and build the SDK:
+1. Bring up Livqeno's infrastructure (from the repo root) and build the SDK:
    ```bash
    pnpm infra:up
    pnpm --filter @ravenkash/rtc build

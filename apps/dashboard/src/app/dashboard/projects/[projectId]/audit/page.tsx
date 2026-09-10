@@ -179,7 +179,7 @@ export default async function AuditPage({
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Audit log"
-        description={`Who changed what, and when. Read-only — entries cannot be edited or deleted by anyone, including you. Raven keeps the ${formatCount(FETCH_LIMIT)} most recent records available here.`}
+        description={`Who changed what, and when. Read-only — entries cannot be edited or deleted by anyone, including you. Livqeno keeps the ${formatCount(FETCH_LIMIT)} most recent records available here.`}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">

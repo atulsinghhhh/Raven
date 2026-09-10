@@ -3,7 +3,7 @@ title: Stream Events
 description: The seven live-stream webhooks, their payloads, and the client events that are not webhooks.
 ---
 
-Live streaming emits seven webhook event types. They are the only Raven
+Live streaming emits seven webhook event types. They are the only Livqeno
 webhooks that are not chat events.
 
 ## The seven
@@ -80,7 +80,7 @@ recognise rather than failing.
 await raven.liveStreams.leave(stream.id, 'user-99');
 ```
 
-Raven does not infer it from the media connection dropping. If you never
+Livqeno does not infer it from the media connection dropping. If you never
 call `leave()`, the event never fires and your own analytics will show
 viewers who joined and never left. Wire it into whatever your product
 treats as "closed the page".

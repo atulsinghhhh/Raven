@@ -2,7 +2,7 @@
   "name": "@raven/www",
   "version": "0.0.0",
   "private": true,
-  "description": "Raven's public marketing site \u2014 the front door before the dashboard.",
+  "description": "Livqeno's public marketing site \u2014 the front door before the dashboard.",
   "scripts": {
     "dev": "next dev -p 3100",
     "build": "next build",

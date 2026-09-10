@@ -16,7 +16,7 @@ import { UserTokensService } from './user-tokens.service';
   imports: [
     UsersModule,
     OnboardingModule,
-    // Registration provisions the account's free Raven minutes. The
+    // Registration provisions the account's free Livqeno minutes. The
     // metering module carries no module dependencies of its own, which is
     // what keeps this import from closing a cycle back through
     // ProjectsModule — see UsageMeteringModule.

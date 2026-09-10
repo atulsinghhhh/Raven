@@ -24,10 +24,10 @@ import {
 import type { ChatMessage } from '@ravenkash/chat';
 
 /**
- * A Raven video call with a chat panel, on a phone.
+ * A Livqeno video call with a chat panel, on a phone.
  *
- * Everything here is real: real WebRTC media through Raven's SFU, real
- * messages through Raven Chat into Postgres. There are no mock arrays and
+ * Everything here is real: real WebRTC media through Livqeno's SFU, real
+ * messages through Livqeno Chat into Postgres. There are no mock arrays and
  * no fake participants anywhere in this file (spec §11).
  *
  * Note what the app never does: construct a WebSocket, register WebRTC
@@ -67,7 +67,7 @@ function JoinScreen({ onJoined }: { onJoined: (session: Session) => void }) {
     setBusy(true);
     setError(null);
     try {
-      // The app authenticates against its OWN backend. A Raven API key
+      // The app authenticates against its OWN backend. A Livqeno API key
       // never exists on the device (spec §15).
       const response = await fetch(`${BACKEND_URL}/api/session`, {
         method: 'POST',
@@ -86,7 +86,7 @@ function JoinScreen({ onJoined }: { onJoined: (session: Session) => void }) {
 
   return (
     <View style={styles.centered}>
-      <Text style={styles.title}>Raven</Text>
+      <Text style={styles.title}>Livqeno</Text>
       <Text style={styles.subtitle}>Video and chat, on the same screen.</Text>
 
       <TextInput style={styles.input} value={identity} onChangeText={setIdentity} placeholder="Your identity" autoCapitalize="none" />
@@ -108,7 +108,7 @@ function CallScreen({ session, onLeave }: { session: Session; onLeave: () => voi
   const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
-    // One Raven instance for the life of this screen. Constructing it
+    // One Livqeno instance for the life of this screen. Constructing it
     // registers the WebRTC globals; nothing else has to.
     const instance = new Raven({
       token: session.rtc.token,
@@ -274,7 +274,7 @@ function ChatPanel({ chat, identity }: { chat?: RavenChatHandle; identity: strin
     if (!text || !chat) return;
     setDraft('');
     await chat.stopTyping().catch(() => undefined);
-    // Resolves once Raven has durably stored it. The message itself
+    // Resolves once Livqeno has durably stored it. The message itself
     // arrives through the normal event stream.
     await chat.send(text).catch(() => undefined);
   }, [draft, chat]);

@@ -23,7 +23,7 @@ export function registerDiagnosticsCommand(program: Command): void {
           return;
         }
 
-        printDependency('Raven API', diagnostics.api);
+        printDependency('Livqeno API', diagnostics.api);
         printDependency('Authentication', diagnostics.authentication === 'ok' ? 'up' : 'down');
         printDependency('Signaling', diagnostics.dependencies.signaling);
         printDependency('SFU', diagnostics.dependencies.sfu);

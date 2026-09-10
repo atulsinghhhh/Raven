@@ -57,7 +57,7 @@ const stream = await LiveStream.join({
 await stream.room.enableCamera();
 await stream.room.enableMicrophone();
 
-// A Raven Chat conversation comes attached automatically.
+// A Livqeno Chat conversation comes attached automatically.
 await stream.chat.sendMessage({ text: 'We\\'re live!' });`,
   },
   {
@@ -77,7 +77,7 @@ await camera.attachEffects(pipeline);`,
     id: 'server',
     label: 'Server (Python)',
     filename: 'server.py',
-    code: `from raven import Raven, CreateTokenParams, TokenPermissions
+    code: `from raven import Livqeno, CreateTokenParams, TokenPermissions
 
 raven = Raven(
     api_key=os.environ["RAVEN_API_KEY"],

@@ -16,7 +16,7 @@ import { RtcServerRegistryService } from './rtc-server-registry.service';
  * The SFU fleet's own endpoints: not part of the public developer API.
  *
  * Excluded from the published OpenAPI document on purpose: these are an
- * internal contract between Raven's control plane and Raven's media
+ * internal contract between Livqeno's control plane and Livqeno's media
  * plane, and documenting them alongside the developer-facing API would
  * invite applications to call them. The contract itself is documented in
  * docs/rtc/sfu.md, for whoever operates the fleet.

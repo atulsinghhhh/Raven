@@ -143,7 +143,7 @@ export class AttachmentsService {
   }
 
   /**
-   * A short-lived signed GET. Access gets checked here, on Raven's side. The
+   * A short-lived signed GET. Access gets checked here, on Livqeno's side. The
    * object itself stays private in the bucket, so a leaked URL grants one
    * file for a few minutes, not the whole bucket forever.
    */

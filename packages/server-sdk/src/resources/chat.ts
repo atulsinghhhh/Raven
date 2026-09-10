@@ -12,11 +12,11 @@ import type {
 } from '../types';
 
 /**
- * Raven Chat, server-side (Phase 12).
+ * Livqeno Chat, server-side (Phase 12).
  *
  * `tokens.create()` is the method that matters; the whole security model
  * rests on it. Your backend authenticates the user *its* way, then asks
- * Raven for a short-lived token scoped to that one user, and only that
+ * Livqeno for a short-lived token scoped to that one user, and only that
  * token ever reaches the browser. The project API key never does.
  *
  * Everything else here exists for what a backend genuinely needs to do:

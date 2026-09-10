@@ -96,7 +96,7 @@ Filtering by `resourceId` gives you the whole life of one thing:
 ## Entries cannot be changed
 
 There is no endpoint that updates or deletes an entry, and no code path in
-Raven that does either. An audit log an administrator can edit is not an
+Livqeno that does either. An audit log an administrator can edit is not an
 audit log.
 
 ## When the write fails

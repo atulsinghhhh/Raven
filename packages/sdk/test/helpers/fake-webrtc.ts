@@ -681,7 +681,7 @@ export function installFakeMediaDevices(options: { devices?: MediaDeviceInfo[] }
   });
 }
 
-/** Builds an unsigned Raven RTC token the SDK can read claims off. */
+/** Builds an unsigned Livqeno RTC token the SDK can read claims off. */
 export function fakeToken(claims: Record<string, unknown>): string {
   const encode = (value: unknown) =>
     Buffer.from(JSON.stringify(value), 'utf8').toString('base64url');

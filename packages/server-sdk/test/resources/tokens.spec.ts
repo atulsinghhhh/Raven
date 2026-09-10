@@ -2,7 +2,7 @@ import { TokensResource } from '../../src/resources/tokens';
 import type { RavenHttpClient } from '../../src/http-client';
 
 describe('TokensResource', () => {
-  it('POSTs to /v1/rooms/:room/rtc-tokens with the Raven permission vocabulary', async () => {
+  it('POSTs to /v1/rooms/:room/rtc-tokens with the Livqeno permission vocabulary', async () => {
     const http = { request: jest.fn().mockResolvedValue({ token: 't', expiresAt: '2026-01-01T00:00:00Z' }) };
     const resource = new TokensResource(http as unknown as RavenHttpClient);
 

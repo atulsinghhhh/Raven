@@ -10,7 +10,7 @@ import type { DependencyStatus } from '../lib/types.js';
 export function registerStatusCommand(program: Command): void {
   program
     .command('status')
-    .description("Show Raven infrastructure health and the current project")
+    .description("Show Livqeno infrastructure health and the current project")
     .option('-p, --project <project>', 'project ID (overrides the current project context)')
     .option('--json', 'output as JSON')
     .action(

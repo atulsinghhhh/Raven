@@ -108,8 +108,8 @@ if [ -n "${CREDS}" ]; then
     python3 "${HERE}/turn_allocate.py" "${TURN}" 3478 "$(echo "${CREDS}" | cut -f1)" "$(echo "${CREDS}" | cut -f2)" \
       2>/dev/null | grep -q '^PASS' && { alloc_ok=1; break; }
   done
-  [ "$alloc_ok" = "1" ] && ok "valid Raven credential accepted, relay on the public IP" \
-                        || bad "valid Raven credential rejected (3 attempts)"
+  [ "$alloc_ok" = "1" ] && ok "valid Livqeno credential accepted, relay on the public IP" \
+                        || bad "valid Livqeno credential rejected (3 attempts)"
   python3 "${HERE}/turn_allocate.py" "${TURN}" 3478 "9999999999:forged" "bm90LXRoZS1zZWNyZXQ=" 2>/dev/null \
     | grep -q '^PASS' && bad "FORGED credential ACCEPTED — open relay, stop coturn now" \
                       || ok "forged credential rejected (401)"

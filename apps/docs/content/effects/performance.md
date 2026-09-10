@@ -1,9 +1,9 @@
 ---
 title: Performance
-description: How Raven Effects picks an engine, what it measures, and what it guarantees — and doesn't.
+description: How Livqeno Effects picks an engine, what it measures, and what it guarantees — and doesn't.
 ---
 
-Raven Effects makes no blanket performance claim like "60 FPS" — actual
+Livqeno Effects makes no blanket performance claim like "60 FPS" — actual
 throughput depends on the device's GPU, the number of active filters, and
 the resolution being processed. What it does guarantee is graceful
 degradation: a call or stream never fails because effects can't keep up.

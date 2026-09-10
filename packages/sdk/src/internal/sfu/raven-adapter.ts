@@ -66,7 +66,7 @@ interface SubscribedTrack {
 }
 
 /**
- * Raven's native `SFUAdapter`: an `RTCPeerConnection` driven by Raven's own
+ * Livqeno's native `SFUAdapter`: an `RTCPeerConnection` driven by Livqeno's own
  * signaling.
  *
  * This replaced the LiveKit adapter. `Room` and `RTCClient` were already
@@ -233,7 +233,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
    * Known gap, not an oversight. The old adapter passed through LiveKit's
    * server-computed verdict, which had a vantage point no client can get
    * near: the SFU sees loss and jitter on every leg of the room, not just
-   * this one. Raven's SFU doesn't work out an equivalent yet. Dressing a
+   * this one. Livqeno's SFU doesn't work out an equivalent yet. Dressing a
    * client-side guess up as a server verdict is precisely the fabricated
    * metric spec §19 rules out, so this says "unknown" until the SFU can
    * answer honestly. `room.getConnectionStats()` gives you real per-track
@@ -1165,7 +1165,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
       // through `createCustomTrack()`.
       throw new RTCError(
         'MEDIA_ERROR',
-        'This track was not created by the Raven SDK. Wrap your own MediaStreamTrack with createCustomTrack() (or client.createCustomTrack()) before publishing it',
+        'This track was not created by the Livqeno SDK. Wrap your own MediaStreamTrack with createCustomTrack() (or client.createCustomTrack()) before publishing it',
       );
     }
 
@@ -1744,7 +1744,7 @@ function isArrayBufferLike(value: unknown): value is ArrayBuffer {
 /**
  * Reads which room this token was minted for.
  *
- * The token is a Raven JWT and its payload is readable, not secret. Same
+ * The token is a Livqeno JWT and its payload is readable, not secret. Same
  * information the server is going to act on. We decode it; we never trust
  * it. The server re-verifies the signature, and anything a client fiddles
  * with here only changes which room it *asks* for.

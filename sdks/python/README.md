@@ -1,27 +1,27 @@
 # raven-sdk
 
-Raven's official **Python server SDK** — mint short-lived RTC and chat
+Livqeno's official **Python server SDK** — mint short-lived RTC and chat
 tokens, manage rooms and live streams, and read connection/error
 diagnostics from your own backend.
 
-Raven is open-source real-time communication infrastructure: video, voice,
+Livqeno is open-source real-time communication infrastructure: video, voice,
 chat and data for your app, without running WebRTC or WebSocket servers
 yourself. Full project: <https://github.com/atulsinghhhh/Raven>
 
 > **Backend only.** This package holds a permanent project API key. It must
 > never be imported into browser, mobile or any other client-side code. The
-> browser talks to Raven with a short-lived token that *this* SDK mints.
+> browser talks to Livqeno with a short-lived token that *this* SDK mints.
 
 ## Requirements
 
 - Python **3.10+**
-- A Raven project API key
+- A Livqeno project API key
 
 ## Install
 
 ```bash
 # Not on PyPI yet. `pip install raven-sdk` installs an UNRELATED third-party
-# package of that name ("Async Kafka and HTTP producer SDK for Raven AI
+# package of that name ("Async Kafka and HTTP producer SDK for Livqeno AI
 # logs"), not this SDK — see docs/releases.md#python--raven-sdk.
 pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"
 ```
@@ -44,7 +44,7 @@ grant = raven.tokens.create(CreateTokenParams(room="room-1", identity="user-42")
 
 # grant is a TypedDict, keyed exactly as the API returns it:
 #   grant["token"]        short-lived, safe to hand to a browser
-#   grant["endpoint"]     Raven's signaling WebSocket
+#   grant["endpoint"]     Livqeno's signaling WebSocket
 #   grant["iceServers"]   never hand-build STUN/TURN config
 #   grant["expiresAt"]
 ```

@@ -1,4 +1,4 @@
-// Raven Live Streaming demo: built entirely on @ravenkash/client's
+// Livqeno Live Streaming demo: built entirely on @ravenkash/client's
 // LiveStream API (raven.live.join()). No SDP and no
 // RTCPeerConnection anywhere in this file: `stream.room` and
 // `stream.chat` are real @ravenkash/rtc/@ravenkash/chat objects, used exactly as

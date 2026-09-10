@@ -1,6 +1,6 @@
-# Raven CLI — `@ravenkash/cli`
+# Livqeno CLI — `@ravenkash/cli`
 
-A terminal workflow tool for Raven, sitting alongside the dashboard
+A terminal workflow tool for Livqeno, sitting alongside the dashboard
 (visual control center) and the SDK (integration library). The CLI talks
 **only** to the Control API (`apps/api`, the same `/v1/...` surface the
 dashboard uses) — it never touches PostgreSQL, Redis, the SFU, or coturn
@@ -43,7 +43,7 @@ dashboard itself uses) through a short-lived local bridge:
    random port, and generates a random `state` value.
 2. It opens (or prints) `http://<dashboard>/cli-auth?port=<port>&state=<state>`.
 3. The dashboard — where you're presumably already logged in, or will
-   log in normally — shows an explicit "Authorize Raven CLI" screen
+   log in normally — shows an explicit "Authorize Livqeno CLI" screen
    naming your account and the local port.
 4. On approval, the dashboard hands its own existing session token back
    to your browser (no new credential type is minted), which then POSTs
@@ -377,7 +377,7 @@ All four support `--json` and `-p/--project`.
 
 ```
 $ raven diagnostics
-✓ Raven API: Healthy
+✓ Livqeno API: Healthy
 ✓ Authentication: Healthy
 ✓ Signaling: Healthy
 ✓ SFU: Healthy
@@ -441,7 +441,7 @@ Authenticate with `RAVEN_TOKEN` — see [Authentication](#authentication).
 A complete GitHub Actions step:
 
 ```yaml
-- name: List Raven projects
+- name: List Livqeno projects
   env:
     RAVEN_TOKEN: ${{ secrets.RAVEN_TOKEN }}
     RAVEN_API_URL: https://api.raven.example
@@ -505,7 +505,7 @@ token is never in scope to leak.
 - No auto-update mechanism — `raven version` compares against the
   installed build only; there's no background version check in this
   phase.
-- No telemetry, so there's no built-in way for the Raven team to see
+- No telemetry, so there's no built-in way for the Livqeno team to see
   aggregate CLI usage (deliberately, until an opt-in policy exists).
 - `raven chat` is read-only. Sending messages, minting chat tokens and
   creating conversations all require a project API key, which belongs in

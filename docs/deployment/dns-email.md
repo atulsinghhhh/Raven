@@ -1,6 +1,11 @@
 # DNS for `mail.ravenstack.online`
 
-The sending domain for Raven's transactional email. **Verified in Resend
+> **Rebrand in progress.** This page documents the sending domain that is
+> verified in Resend *today*. Livqeno mail will send from
+> `mail.livqeno.com`; the records are the same shape in a different zone.
+> See [`livqeno-domain-cutover.md`](./livqeno-domain-cutover.md) §6.
+
+The sending domain for Livqeno's transactional email. **Verified in Resend
 on 2026-09-08**, region `ap-northeast-1` (Tokyo).
 
 DNS for `ravenstack.online` is **not** served by the registrar. The domain
@@ -16,7 +21,7 @@ Records live in the zone `ravenstack.online`, resource group
 that delegation stands — a trap worth knowing before spending an afternoon
 on records that were never authoritative.
 
-**Raven never changes DNS from code.** This is a manual checklist.
+**Livqeno never changes DNS from code.** This is a manual checklist.
 
 ---
 
@@ -116,7 +121,7 @@ Step 3 is the one that settles it.
 
 ## Free-tier limits
 
-3,000 emails/month, 100/day, 3 verified domains. Raven enforces its own
+3,000 emails/month, 100/day, 3 verified domains. Livqeno enforces its own
 copy of the first two before calling Resend
 ([email.md](../email.md#free-tier-protection)) so a retry loop cannot
 spend the month's allowance in an afternoon.

@@ -1,6 +1,6 @@
-# Raven Chat — Overview
+# Livqeno Chat — Overview
 
-Raven Chat is a managed real-time messaging service. You get durable messages,
+Livqeno Chat is a managed real-time messaging service. You get durable messages,
 presence, typing indicators, read receipts, reactions, threads, and webhooks
 through one SDK call — and you never run a WebSocket server, a Redis cluster,
 or a message fan-out layer yourself.
@@ -15,13 +15,13 @@ The WebSocket is an implementation detail; the guarantees are the product:
 
 ## Chat and RTC are separate
 
-Raven has two planes, and they stay separate on purpose:
+Livqeno has two planes, and they stay separate on purpose:
 
 | | RTC | Chat |
 | --- | --- | --- |
 | What it carries | audio, video, screen share | messages |
 | SDK | `@ravenkash/rtc` | `@ravenkash/chat` |
-| Transport | WebRTC via Raven's SFU | WebSocket |
+| Transport | WebRTC via Livqeno's SFU | WebSocket |
 | Credential | RTC token | chat token |
 | Storage | none — media is live or gone | Postgres |
 
@@ -34,7 +34,7 @@ address both.
 ## The shape of an integration
 
 ```
-Your backend  ──(project API key)──►  Raven Control API
+Your backend  ──(project API key)──►  Livqeno Control API
                                               │
                                               │  short-lived chat token
                                               ▼
@@ -42,7 +42,7 @@ Your backend  ──(project API key)──►  Raven Control API
                                               │
                                               │  wss://
                                               ▼
-                                      Raven Chat gateway
+                                      Livqeno Chat gateway
 ```
 
 Three steps, and the first two are yours:
@@ -121,7 +121,7 @@ Every place that takes a `room` accepts any of:
 - the conversation name — `support-room-42`
 - the id of an attached RTC room — `8d86361a-…`
 
-So `chat.connect({ room })` works whether you carry Raven's id around or your
+So `chat.connect({ room })` works whether you carry Livqeno's id around or your
 own name for the thing.
 
 ## Message types

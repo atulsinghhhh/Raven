@@ -16,11 +16,11 @@ import { formatCount, formatDuration } from '@/lib/format';
 import { DOCS_URL } from '@/lib/nav';
 
 export const metadata: Metadata = {
-  title: 'Usage — Raven',
+  title: 'Usage — Livqeno',
 };
 
 /**
- * The developer's Raven-minute allowance.
+ * The developer's Livqeno-minute allowance.
  *
  * Account-level, not project-level, because the allowance is: every
  * project a developer owns spends the same minutes. The per-project page
@@ -72,7 +72,7 @@ export default async function AccountUsagePage() {
         <PageHeader
           eyebrow="Account"
           title="Usage"
-          description="Raven minutes included with this account, what has been used, and the sessions that used them. Metered server-side by the signaling layer — a client cannot report, reduce, or suppress its own usage."
+          description="Livqeno minutes included with this account, what has been used, and the sessions that used them. Metered server-side by the signaling layer — a client cannot report, reduce, or suppress its own usage."
           actions={
             <ButtonLink href={`${DOCS_URL}/concepts/usage`} variant="secondary" size="sm">
               How metering works

@@ -97,7 +97,7 @@ export enum SignalingErrorCode {
   ORIGIN_NOT_ALLOWED = 'ORIGIN_NOT_ALLOWED',
   RATE_LIMITED = 'RATE_LIMITED',
   /**
-   * The developer account behind this project has spent its included Raven
+   * The developer account behind this project has spent its included Livqeno
    * minutes. Terminal for this join: unlike RATE_LIMITED there is nothing
    * to wait for, and unlike NO_RTC_CAPACITY it is not an operator problem.
    * Sessions already in progress are never cut off by it.

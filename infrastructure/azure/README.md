@@ -1,4 +1,4 @@
-# Raven on Azure — media plane (Phase 2)
+# Livqeno on Azure — media plane (Phase 2)
 
 Azure CLI scripts, run in order. Every one is idempotent: re-running skips
 what already exists. There is no Bicep or Terraform here on purpose — the
@@ -261,7 +261,7 @@ database-url  direct-url          # copied from local .env, not generated
 boot in production otherwise (`apps/api/src/shared/config/env.validation.ts`),
 so a leak of one cannot mint the others.
 
-`turn-secret` is the *entire* coupling between Raven and coturn. Raven mints
+`turn-secret` is the *entire* coupling between Livqeno and coturn. Livqeno mints
 `username="<expiry>:<identity>"`, `credential=base64(HMAC-SHA1(secret, username))`
 per token; coturn recomputes the same hash. There is no API→coturn control
 channel and none should be added.
@@ -280,7 +280,7 @@ az keyvault secret set --vault-name raven-kv-ea1 -n turn-secret \
 `07-deploy-coturn.sh` reads Key Vault at *deploy* time and bakes the value
 into `/opt/raven/turnserver.conf`, while the API and `08-verify.sh` read Key
 Vault *live*. Rotate without the second step and every reader moves except
-the relay, which then rejects every Raven-minted credential with a 401 while
+the relay, which then rejects every Livqeno-minted credential with a 401 while
 the forged-credential control still passes — auth is working, the two sides
 just disagree about the key. It reads as a broken HMAC implementation and is
 not one. `08-verify.sh` now prints both fingerprints and names this on

@@ -71,7 +71,7 @@ room.participantChanges.listen((participants) {
 </Tabs>
 
 `metadata` is whatever your backend attached when it minted the token —
-Raven never inspects or interprets it.
+Livqeno never inspects or interprets it.
 
 ## Device selection
 

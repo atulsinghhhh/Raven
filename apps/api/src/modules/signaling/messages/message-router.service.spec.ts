@@ -302,7 +302,7 @@ describe('MessageRouterService', () => {
 
     it('lets the join succeed when metering itself fails', async () => {
       // A database blip must not take down calling. Under-counting on a
-      // Raven fault is the right side to err on.
+      // Livqeno fault is the right side to err on.
       usageMeter.startSession.mockRejectedValue(new Error('database down'));
 
       await expect(router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN })).resolves.toMatchObject({

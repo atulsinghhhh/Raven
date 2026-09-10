@@ -141,14 +141,14 @@ List a project's members and what each of them may do
 
 ### POST `/v1/projects/{projectId}/members`
 
-Add an existing Raven user to this project
+Add an existing Livqeno user to this project
 
 **Credential** Dashboard session (JWT)
 
 | Parameter | In | Type | Required | Notes |
 |---|---|---|---|---|
 | `projectId` | path | `string` | Yes | |
-| `email` | body | `string` | Yes | They must already have a Raven account — there is no invitation flow yet. |
+| `email` | body | `string` | Yes | They must already have a Livqeno account — there is no invitation flow yet. |
 | `role` | body | `ProjectRole` | No | Only an owner may grant the owner role. |
 
 ### DELETE `/v1/projects/{projectId}/members/{userId}`

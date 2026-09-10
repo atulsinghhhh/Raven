@@ -9,7 +9,7 @@ import { NativeLocalTrackDelegate } from './native-track';
  * All three on by default, because without them a call sounds dreadful in
  * the circumstances calls actually happen in. A laptop speaker and mic in
  * one room is an echo generator. This is the browser's own processing, not
- * anything Raven implements, and anyone who wants raw audio for music or
+ * anything Livqeno implements, and anyone who wants raw audio for music or
  * transcription can pass their own constraints.
  */
 const DEFAULT_AUDIO_CONSTRAINTS: MediaTrackConstraints = {

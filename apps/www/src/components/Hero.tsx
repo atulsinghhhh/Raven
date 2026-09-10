@@ -31,7 +31,7 @@ export function Hero() {
 
         <p className="mx-auto mt-7 max-w-xl text-base leading-relaxed text-muted md:text-lg">
           Audio, video, chat, and live streaming infrastructure — with the APIs and SDKs to put real-time inside
-          your application. Your app connects; Raven runs the network.
+          your application. Your app connects; Livqeno runs the network.
         </p>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">

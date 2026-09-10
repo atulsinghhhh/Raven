@@ -131,7 +131,7 @@ class SignalingClient {
     } catch (error) {
       throw RavenException(
         RavenErrorCode.networkError,
-        'Could not reach the Raven signaling endpoint at $endpoint.',
+        'Could not reach the Livqeno signaling endpoint at $endpoint.',
         error,
       );
     }
@@ -345,7 +345,7 @@ class SignalingClient {
 
   Map<String, dynamic>? _parse(dynamic raw) {
     if (raw is! String) {
-      // Raven's signaling is text-only. A binary frame means something
+      // Livqeno's signaling is text-only. A binary frame means something
       // else is on this socket, and guessing at it would be worse than
       // ignoring it.
       return null;

@@ -1,4 +1,4 @@
-# Raven — Documentation Audit
+# Livqeno — Documentation Audit
 
 **Date:** 2026-09-08
 **Scope:** Full repository + both documentation sets. Audit only, with one
@@ -13,12 +13,12 @@ config key. Where I could not verify something, it is marked
 
 ## 0. How to read this
 
-Raven has **two separate documentation sets**, and that is the single most
+Livqeno has **two separate documentation sets**, and that is the single most
 important structural fact in this audit:
 
 | Set | Path | Audience | Published? | Pages | Last substantive change |
 |---|---|---|---|---|---|
-| **Product docs** | `apps/docs/content/` | developers integrating Raven | Yes — Next.js site, `docs.ravenstack.online` | 79 `.md` | **2026-08-24** |
+| **Product docs** | `apps/docs/content/` | developers integrating Livqeno | Yes — Next.js site, `docs.ravenstack.online` | 79 `.md` | **2026-08-24** |
 | **Internal docs** | `docs/` | contributors, operators, the author | No — GitHub only | 76 `.md` | **2026-09-08** |
 
 Both sets are unusually high quality for a project this young. The problem
@@ -55,7 +55,7 @@ apps/
 packages/
   sdk             @ravenkash/rtc           browser RTC SDK
   chat-sdk        @ravenkash/chat          browser chat SDK
-  client          @ravenkash/client        Raven facade (rtc + chat) + LiveStream
+  client          @ravenkash/client        Livqeno facade (rtc + chat) + LiveStream
   effects         @ravenkash/effects       video effects pipeline
   react-sdk       @ravenkash/react         React hooks/components (+ ./chat entry)
   react-native-sdk @ravenkash/react-native React Native SDK
@@ -304,7 +304,7 @@ appear in the product switcher.
 
 | Path | Title | Purpose | Status | Problems | Action |
 |---|---|---|---|---|---|
-| `getting-started/introduction.md` | Introduction | What Raven is/isn't | **Incomplete** | "Concretely, Raven owns" lists control plane, tokens, rooms, chat, webhooks — omits **Live Streaming** and **Effects**, both shipped with 13 and 13 doc pages respectively | Rewrite the capability list to five products |
+| `getting-started/introduction.md` | Introduction | What Livqeno is/isn't | **Incomplete** | "Concretely, Livqeno owns" lists control plane, tokens, rooms, chat, webhooks — omits **Live Streaming** and **Effects**, both shipped with 13 and 13 doc pages respectively | Rewrite the capability list to five products |
 | `getting-started/architecture.md` | Architecture | Control plane vs RTC plane | Correct | Thin (71 lines) for the load it carries; no diagram of chat/live/effects planes | Expand; add the two WS planes and the SFU fleet registry |
 | `getting-started/quickstart.md` | Quickstart | Project → token → call | **Incorrect (minor)** | `raven.rooms.create({name:'demo-room'})` then `client.join('demo-room')` — the token is minted for `room.id`; joining by *name* snippet was flagged during this audit and is now correct (§4.1). Still tells the reader to "register from the [dashboard](/)" — a link to the docs root, not `app.ravenstack.online` | Fix the dashboard link |
 | `getting-started/installing-from-source.md` | Installing from source | Pre-publish install path | Correct | — | Keep |
@@ -402,7 +402,7 @@ nav item rather than an SDK row, and there is no page for
 | Path | Title | Status | Problems | Action |
 |---|---|---|---|---|
 | `authentication.md` | Authentication | Correct | — | Keep |
-| `authentication/tokens.md` | Tokens | **Outdated** | "Raven's own permission vocabulary… is translated internally into the underlying SFU's grant shape. That indirection means the public API contract doesn't change if the SFU underneath ever does." The translation layer (`rtc-token-grant.mapper.ts`) **was deleted**; `rtc-token.claims.ts` says explicitly "no translation into a third party's grant shape". The paragraph describes a removed component | Rewrite the paragraph; the *conclusion* still holds, the *mechanism* doesn't |
+| `authentication/tokens.md` | Tokens | **Outdated** | "Livqeno's own permission vocabulary… is translated internally into the underlying SFU's grant shape. That indirection means the public API contract doesn't change if the SFU underneath ever does." The translation layer (`rtc-token-grant.mapper.ts`) **was deleted**; `rtc-token.claims.ts` says explicitly "no translation into a third party's grant shape". The paragraph describes a removed component | Rewrite the paragraph; the *conclusion* still holds, the *mechanism* doesn't |
 | `webhooks.md` | Webhooks | Correct | Retries, backoff, timeout, 50-failure auto-disable, SSRF caveat, header names — all match source exactly | Keep |
 | `api-reference.md` | REST API | **Incomplete** | Calls itself "the full resource map" but omits ~25 live routes (see §4.2), including the entire API-key observability surface both server SDKs call | Either complete it or restate the scope |
 | `cli.md` | CLI | **Incomplete** | Omits 8 shipped commands and the whole `raven rtc` group (see §4.3) | Add the missing commands |
@@ -415,8 +415,8 @@ nav item rather than an SDK row, and there is no page for
 | `production/rate-limits.md` | Rate Limits | **Incomplete** | Table lists 5 routes; 16 `@RateLimit()` decorators exist (see §4.5) | Complete the table |
 | `production/security.md` | Security | Correct | "Four credentials, none of which can mint another" — verified: separate secrets for JWT / RTC / chat / SFU registration, distinct `aud` claims | Keep |
 | `production/observability.md` | Observability | Correct | — | Keep |
-| `reference/errors.md` | Error Codes | **Incomplete** | Opens "Raven has three error vocabularies" — there are five. Omits 5 shipped `RAVEN_*` codes; omits the Effects and signaling vocabularies entirely (see §4.6) | Add the missing codes and two vocabularies |
-| `reference/events.md` | Event Catalogue | **Incorrect + Incomplete** | (a) Says RTC events are available in `@ravenkash/react` "as `useRoomEvent`" — **no such export exists** anywhere in the repo. (b) Claims to catalogue "Every event Raven emits" but the webhook table has 8 of 15 rows — all 7 `live_stream.*` events are missing | Fix the hook reference; add the 7 live-stream events |
+| `reference/errors.md` | Error Codes | **Incomplete** | Opens "Livqeno has three error vocabularies" — there are five. Omits 5 shipped `RAVEN_*` codes; omits the Effects and signaling vocabularies entirely (see §4.6) | Add the missing codes and two vocabularies |
+| `reference/events.md` | Event Catalogue | **Incorrect + Incomplete** | (a) Says RTC events are available in `@ravenkash/react` "as `useRoomEvent`" — **no such export exists** anywhere in the repo. (b) Claims to catalogue "Every event Livqeno emits" but the webhook table has 8 of 15 rows — all 7 `live_stream.*` events are missing | Fix the hook reference; add the 7 live-stream events |
 
 **Link hygiene:** all 73 internal `](/…)` links resolve to a real content
 file. All 32 in-page anchors resolve to a real heading. No broken links
@@ -450,7 +450,7 @@ counterpart.
 
 | File | Status | Problems |
 |---|---|---|
-| `README.md` (16 KB) | **Outdated** | (a) Its whole Documentation section links to `./docs/*.md`; it links to the published site once, in the header, and never routes a reader there by topic. (b) Status section says "Relay-only NAT traversal is untested… no test has ever forced media through coturn. This is the largest untested surface" — **fixed on 2026-09-07** (commit `c22296e`, `services/sfu/internal/room/turn_relay_test.go`, and `docs/rtc/test-matrix.md` now says "The relay path is now tested"). (c) Says "Working, end to end, and verified against a live stack: … Signaling and Raven's own SFU" while `docs/issues/09` says no browser peer connection has ever been established in production |
+| `README.md` (16 KB) | **Outdated** | (a) Its whole Documentation section links to `./docs/*.md`; it links to the published site once, in the header, and never routes a reader there by topic. (b) Status section says "Relay-only NAT traversal is untested… no test has ever forced media through coturn. This is the largest untested surface" — **fixed on 2026-09-07** (commit `c22296e`, `services/sfu/internal/room/turn_relay_test.go`, and `docs/rtc/test-matrix.md` now says "The relay path is now tested"). (c) Says "Working, end to end, and verified against a live stack: … Signaling and Livqeno's own SFU" while `docs/issues/09` says no browser peer connection has ever been established in production |
 | `CONTRIBUTING.md`, `SECURITY.md`, `PUBLISHING.md`, `LICENSE` | Correct | — |
 | `.env.example` | **Incomplete** | 10 missing keys (§1.7) |
 | `services/sfu/` | **Missing** | No README in a 20-file Go service. Docker label points at `docs/rtc/sfu.md` |
@@ -536,7 +536,7 @@ Things a developer would reasonably need, where **no page exists**.
 ### 4.1 Code defect surfaced by the audit — **FIXED**
 
 `packages/sdk/src/config.ts` decoded the token's room from
-`json.video.room`, which was **LiveKit's** claim path. Raven's own signer
+`json.video.room`, which was **LiveKit's** claim path. Livqeno's own signer
 emits `rid` (room id) and `rnm` (room name) at the top level
 (`rtc-token.claims.ts`), so the claim read back `undefined` and
 `assertTokenMatchesRoom()` never fired — despite its docstring promising a
@@ -753,7 +753,7 @@ Adding these matters more than any single rewrite below.
 
 ## 7. Proposed target information architecture
 
-Adapted from the requested starting point to match what Raven actually
+Adapted from the requested starting point to match what Livqeno actually
 ships. Changes from the proposal, each with a reason:
 
 - **Effects is promoted to a top-level product** (13 pages, own package,
@@ -768,7 +768,7 @@ ships. Changes from the proposal, each with a reason:
 - **"RTC → Rooms/Participants/Audio/Video/Tracks" collapses to four
   pages.** The existing split already matches the SDK surface; five
   thinner pages would fragment `Room`'s API across files.
-- **A "Self-hosting" section is added.** Raven is open source with a
+- **A "Self-hosting" section is added.** Livqeno is open source with a
   Docker Compose stack, a Go SFU, coturn, and 92 env vars; the proposed
   IA had nowhere to put any of it.
 - **"Signaling Protocol" is added under RTC**, publishing
@@ -776,7 +776,7 @@ ships. Changes from the proposal, each with a reason:
 
 ```
 Introduction
-  What is Raven?                    ← rewrite: five products, not three
+  What is Livqeno?                    ← rewrite: five products, not three
   Architecture                      ← expand: control plane, RTC plane,
                                        chat plane, effects (client-side),
                                        SFU fleet registry
@@ -834,7 +834,7 @@ Effects
 
 SDKs
   Web (@ravenkash/rtc, @ravenkash/chat)
-  Raven Client (@ravenkash/client)    ← NEW (facade + LiveStream)
+  Livqeno Client (@ravenkash/client)    ← NEW (facade + LiveStream)
   React (@ravenkash/react)            ← + useRavenClient/useRavenError/useChatError
   React Native (@ravenkash/react-native)
   Flutter (raven_rtc / raven_chat / raven_live)
@@ -903,7 +903,7 @@ Resources
 **Also recommended, structurally:**
 
 1. **Give the two doc sets an explicit contract.** `apps/docs/content/` =
-   "how to use Raven". `docs/` = "how Raven is built and operated". Then
+   "how to use Livqeno". `docs/` = "how Livqeno is built and operated". Then
    move the duplicated `docs/chat/*` (11 files, product content) and
    `docs/sdk/*` (8 files) into the published set, keeping only
    `docs/chat/architecture.md` and the architecture/deployment/issues
@@ -929,7 +929,7 @@ than typical for its age. Shipped and verified in source:
   verification, password reset, onboarding, 5 project roles, audit log,
   environments, Redis-backed rate limiting, idempotency, Prometheus
   metrics, three-way health probes.
-- **RTC** — Raven's own Go/Pion SFU with simulcast and RTCP recovery, own
+- **RTC** — Livqeno's own Go/Pion SFU with simulcast and RTCP recovery, own
   signaling protocol on `/v1/rtc`, coturn with per-token ephemeral
   credentials, fleet registry with heartbeat/drain/region allocation.
 - **Chat** — durable messages, threads, reactions, read receipts,

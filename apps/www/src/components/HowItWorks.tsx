@@ -17,7 +17,7 @@ import { useInView } from '../lib/useInView';
 const STEPS = [
   {
     title: 'Mint a token on your backend',
-    body: 'Your server holds the API key and decides who a user is. It asks Raven for a short-lived token scoped to one room and one set of permissions.',
+    body: 'Your server holds the API key and decides who a user is. It asks Livqeno for a short-lived token scoped to one room and one set of permissions.',
   },
   {
     title: 'Connect from the client',

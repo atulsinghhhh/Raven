@@ -1,6 +1,6 @@
 ---
 title: Browser Support
-description: What Raven needs from a browser, what it checks, and the honest state of interop testing.
+description: What Livqeno needs from a browser, what it checks, and the honest state of interop testing.
 ---
 
 ## What a call needs
@@ -66,7 +66,7 @@ recorded in [Known limitations](/reference/known-limitations).
 
 ## Known platform quirks
 
-Real constraints of the platforms, not Raven bugs:
+Real constraints of the platforms, not Livqeno bugs:
 
 - **iOS Safari needs `playsInline`.** `track.attach()` sets it. This is
   why `attach()` returns an element instead of asking for one — video that

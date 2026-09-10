@@ -17,7 +17,7 @@ predict — get calls that connect and then carry nothing.
 
 ## How credentials work
 
-You do not issue TURN credentials. Raven does, per token:
+You do not issue TURN credentials. Livqeno does, per token:
 
 ```
 POST /v1/rooms/{roomId}/rtc-tokens

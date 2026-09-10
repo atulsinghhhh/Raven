@@ -26,7 +26,7 @@ import {
  * Real WebSocket clients (the `ws` package: indistinguishable from a
  * browser's native WebSocket at the protocol level) talk to the real
  * running app, backed by the real Postgres and Redis (`docker compose up
- * -d postgres redis`), which in turn talks to a **real Raven SFU** built
+ * -d postgres redis`), which in turn talks to a **real Livqeno SFU** built
  * from `services/sfu` and spawned as a child process. Nothing between the
  * client and Pion is faked.
  *

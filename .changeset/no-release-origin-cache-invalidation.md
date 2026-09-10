@@ -7,7 +7,7 @@ the instance that served the edit.
 `ProjectOriginService` caches each project's browser-origin policy because
 the check runs on every telemetry event, chat REST call and WebSocket
 upgrade. That cache was per-process with a 30-second TTL and a local-only
-`invalidate()`, while Raven runs several API instances (`infrastructure/k8s`
+`invalidate()`, while Livqeno runs several API instances (`infrastructure/k8s`
 deploys three; Azure Container Apps scales to two). So an edit cleared one
 instance's map and left the others answering from a stale copy. For an
 *added* origin that reads as the setting not working; for a *removed* one it

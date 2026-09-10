@@ -1,4 +1,4 @@
-# Native Raven RTC — Migration Map
+# Native Livqeno RTC — Migration Map
 
 Status: **stages 1–5 complete and tested; mobile SDKs, observability, CLI,
 full test matrix, LiveKit removal and documentation outstanding.** See the
@@ -6,7 +6,7 @@ full test matrix, LiveKit removal and documentation outstanding.** See the
 [known gaps](#gaps-stated-plainly).
 
 This document is the output of the pre-implementation audit. It records what
-LiveKit currently does for Raven, what replaces each piece, and the order in
+LiveKit currently does for Livqeno, what replaces each piece, and the order in
 which the replacement can safely land. It is the reference for every
 subsequent stage of the migration, and it supersedes the decision recorded in
 [`sfu-comparison.md`](./sfu-comparison.md) (see [Technology decision](#4-technology-decision)).
@@ -20,14 +20,14 @@ CURRENT                             TARGET
 
 Application                         Application
     │                                   │
-Raven SDK (@ravenkash/rtc)           Raven SDK (@ravenkash/rtc)
+Livqeno SDK (@ravenkash/rtc)           Livqeno SDK (@ravenkash/rtc)
     │                                   │
     │  LiveKitAdapter                   │  RavenAdapter
     ▼                                   ▼
-livekit-client                      Raven Signaling (WebSocket)
+livekit-client                      Livqeno Signaling (WebSocket)
     │                                   │
     │  LiveKit signaling protocol       ▼
-    ▼                               Raven SFU (Go/Pion)
+    ▼                               Livqeno SFU (Go/Pion)
 LiveKit Server                          │
     │                                   ▼
     ▼                               Native WebRTC
@@ -40,11 +40,11 @@ sits behind it:
 ```text
 CURRENT                     TARGET
 
-Raven API                   Raven API
+Livqeno API                   Livqeno API
     ↓                           ↓
-livekit-server-sdk          Raven Signaling
+livekit-server-sdk          Livqeno Signaling
 (AccessToken,                   ↓
- TokenVerifier,             Raven SFU
+ TokenVerifier,             Livqeno SFU
  RoomServiceClient)             ↓
     ↓                       WebRTC
 LiveKit Server
@@ -65,13 +65,13 @@ here. Tokens are LiveKit `AccessToken` JWTs minted by
 attributes (`ravenProjectId`, `ravenRoomId`, `ravenEnvironment`).
 
 **Path B — a P2P mesh signaling relay.** `apps/api/src/modules/signaling/*` is
-a complete, tested, Raven-owned WebSocket signaling server — but it relays
+a complete, tested, Livqeno-owned WebSocket signaling server — but it relays
 `sdp_offer` / `sdp_answer` / `ice_candidate` between *participants*
 (`targetParticipantId`), which is a full-mesh peer-to-peer topology. It has no
 SFU on the other end and no track model. It authenticates with the same
 LiveKit-format JWT via `RtcTokenVerifierService`.
 
-This is the single most important finding: **Raven already owns a signaling
+This is the single most important finding: **Livqeno already owns a signaling
 server, but it signals the wrong topology.** Path B is not a stepping stone
 toward the SFU architecture the target requires — its message contract
 (`targetParticipantId` on every SDP/ICE message) encodes mesh assumptions.
@@ -85,11 +85,11 @@ Three pieces of good news for the migration:
    `livekit-client`. `RTCClient`'s constructor already takes an injectable
    `adapterFactory`. A native adapter is a drop-in, with **no public API
    change**.
-2. `RtcTokensService` already returns a Raven-owned response shape
+2. `RtcTokensService` already returns a Livqeno-owned response shape
    (`token` / `endpoint` / `iceServers` / `telemetryUrl`), documented as "a
-   Raven-owned contract, not tied to whatever SFU sits behind it". Only the
+   Livqeno-owned contract, not tied to whatever SFU sits behind it". Only the
    token's internal format is LiveKit's.
-3. TURN is already Raven-owned: `turn-credential.util.ts` mints ephemeral
+3. TURN is already Livqeno-owned: `turn-credential.util.ts` mints ephemeral
    HMAC coturn credentials per token, sharing the token's TTL. Nothing about
    TURN depends on LiveKit.
 
@@ -117,7 +117,7 @@ Every LiveKit touchpoint, categorized `REMOVE` / `REPLACE` / `KEEP` / `ADAPT`.
 
 `KEEP` means the code stays as-is and is not LiveKit-coupled beyond a comment
 or a name. `ADAPT` means the logic survives but is reworked. `REPLACE` means a
-Raven-native implementation takes over the same responsibility. `REMOVE` means
+Livqeno-native implementation takes over the same responsibility. `REMOVE` means
 the capability is gone or absorbed elsewhere.
 
 ### 3.1 Runtime package dependencies
@@ -128,18 +128,18 @@ the capability is gone or absorbed elsewhere.
 | `livekit-client@^2.22.0` | `packages/sdk`, `packages/react-native-sdk` | **REMOVE** — replaced by `RavenAdapter` on native `RTCPeerConnection` |
 | `@livekit/react-native@^2.12.0` | `packages/react-native-sdk` | **REPLACE** → `react-native-webrtc` (globals, audio session) |
 | `@livekit/react-native-webrtc@^144.1.2` | `packages/react-native-sdk` | **REPLACE** → `react-native-webrtc` (this is a fork of it) |
-| `livekit_client@^2.11.0` | `sdks/flutter/raven_rtc` | **REPLACE** → `flutter_webrtc` + Dart Raven signaling client |
+| `livekit_client@^2.11.0` | `sdks/flutter/raven_rtc` | **REPLACE** → `flutter_webrtc` + Dart Livqeno signaling client |
 | `minimumReleaseAgeExclude: livekit-client@2.22.0` | `pnpm-workspace.yaml` | **REMOVE** |
 
 ### 3.2 Control plane (`apps/api`)
 
 | File | LiveKit surface used | Action | Replacement |
 |---|---|---|---|
-| `modules/rtc-tokens/rtc-tokens.service.ts` | `AccessToken` | **REPLACE** | `RavenTokenService` — Raven JWT, Raven claim vocabulary. Response shape unchanged. |
+| `modules/rtc-tokens/rtc-tokens.service.ts` | `AccessToken` | **REPLACE** | `RavenTokenService` — Livqeno JWT, Livqeno claim vocabulary. Response shape unchanged. |
 | `modules/rtc-tokens/rtc-token-grant.mapper.ts` | `VideoGrant`, `TrackSource` | **REMOVE** | Permissions serialize directly; no foreign grant vocabulary to translate into |
 | `modules/rtc-tokens/rtc-token-grant.mapper.spec.ts` | — | **REPLACE** | Tests move to the native token service |
-| `modules/signaling/authentication/rtc-token-verifier.service.ts` | `TokenVerifier`, `fromLiveKitGrant` | **REPLACE** | Verifies Raven's own JWT |
-| `modules/rooms/livekit-room.service.ts` | `RoomServiceClient` | **REPLACE** | `SfuControlService` — queries Raven SFU nodes via the registry |
+| `modules/signaling/authentication/rtc-token-verifier.service.ts` | `TokenVerifier`, `fromLiveKitGrant` | **REPLACE** | Verifies Livqeno's own JWT |
+| `modules/rooms/livekit-room.service.ts` | `RoomServiceClient` | **REPLACE** | `SfuControlService` — queries Livqeno SFU nodes via the registry |
 | `modules/rooms/rooms.service.ts`, `rooms.module.ts`, `dashboard-rooms.controller.ts` | `LiveKitRoomService` injection | **ADAPT** | Same shape, new provider |
 | `modules/live-streams/live-streams.service.ts` | `LiveKitRoomService` for viewer counts | **ADAPT** | Same |
 | `modules/signaling/interfaces/signaling-message.interface.ts` | mesh protocol (`targetParticipantId`) | **REPLACE** | SFU-oriented protocol (§6 of spec) |
@@ -150,10 +150,10 @@ the capability is gone or absorbed elsewhere.
 | `shared/config/configuration.ts` | `livekit.{url,apiKey,apiSecret,internalUrl}` | **REPLACE** | `sfu.*` + `rtcToken.signingSecret` |
 | `shared/config/env.validation.ts` | `LIVEKIT_*` required vars | **REPLACE** | `SFU_*`, `RTC_TOKEN_SECRET` |
 | `modules/health/dependency-checks.util.ts`, `health.controller.ts` | LiveKit reachability probe | **ADAPT** | Probe the SFU registry / SFU health endpoint |
-| `modules/observability/error-classifier.ts` | LiveKit error strings | **ADAPT** | Classify Raven SFU + native WebRTC failures |
+| `modules/observability/error-classifier.ts` | LiveKit error strings | **ADAPT** | Classify Livqeno SFU + native WebRTC failures |
 | `modules/observability/diagnostics.service.ts` | comment only | **KEEP** | |
 | `modules/observability/guards/telemetry-ingest.guard.ts` | comment only | **KEEP** | |
-| `modules/rtc-tokens/turn-credential.util.ts` | comment only | **KEEP** | Already Raven-native ephemeral TURN creds |
+| `modules/rtc-tokens/turn-credential.util.ts` | comment only | **KEEP** | Already Livqeno-native ephemeral TURN creds |
 | `modules/rtc-tokens/dto/rtc-token-permissions.dto.ts` | doc comment | **KEEP** | Public API vocabulary — must not change |
 | `modules/chat/tokens/chat-token.service.ts`, `chat.module.ts`, `realtime/chat-event.interface.ts` | comparison comments | **KEEP** | Chat is a separate service; no LiveKit coupling |
 | `prisma/schema.prisma` | doc comments only | **ADAPT** | Comments updated; new `RtcServer` + room assignment models added |
@@ -172,10 +172,10 @@ the capability is gone or absorbed elsewhere.
 | `internal/telemetry/track-stats.ts` | **ADAPT** | Parse `RTCStatsReport` directly |
 | `test/setup.ts`, `test/browser-support.spec.ts` | **ADAPT** | Mocks change |
 | `package.json`, `scripts/print-bundle-size.mjs` | **ADAPT** | Drop the dependency; bundle-size baseline changes |
-| `index.ts`, `errors.ts`, `events.ts`, `participant.ts`, `config.ts`, `logger.ts` | **KEEP** | No LiveKit coupling. One exception: `config.ts:decodeTokenPayload` reads `json.video.room` — a LiveKit claim path — and must move to Raven's claim shape |
+| `index.ts`, `errors.ts`, `events.ts`, `participant.ts`, `config.ts`, `logger.ts` | **KEEP** | No LiveKit coupling. One exception: `config.ts:decodeTokenPayload` reads `json.video.room` — a LiveKit claim path — and must move to Livqeno's claim shape |
 
 > **`getConnectionQuality()` semantics.** Today this reads LiveKit's own
-> server-computed quality verdict. Raven's SFU must compute and report an
+> server-computed quality verdict. Livqeno's SFU must compute and report an
 > equivalent, because the current doc comment is right that the SFU has the
 > better vantage point. Until the SFU reports it, the adapter must return
 > `'unknown'` — **not** a client-side guess dressed up as a server verdict.
@@ -256,7 +256,7 @@ This reverses `sfu-comparison.md`'s conclusion, deliberately and for a reason
 that document itself anticipated: it rejected Pion as "too low-level to be a
 Phase 1 foundation" and rejected mediasoup as needing "a signaling server you
 build yourself". Both objections were correct *when the goal was reaching a
-working room fastest*. The goal is now the opposite — Raven must own the
+working room fastest*. The goal is now the opposite — Livqeno must own the
 control plane and the media plane — so the cost that made Pion unattractive is
 now the requirement, and "LiveKit owns the signaling protocol and much of the
 media-routing decision logic", the trade-off that document knowingly accepted,
@@ -284,7 +284,7 @@ Pion wins those, and its lower per-core throughput is addressed by scaling out
 rather than up — which the architecture requires anyway.
 
 **mediasoup remains the documented fallback** if per-node density becomes the
-binding constraint. Because the SDK talks to Raven's own signaling protocol and
+binding constraint. Because the SDK talks to Livqeno's own signaling protocol and
 never to the SFU's native protocol, swapping the media plane later does not
 break SDK users — which is exactly the property spec §4 demands.
 
@@ -299,21 +299,21 @@ implementation.
 
 ## 5. Capability matrix
 
-Per spec §47 — nothing here may be marked done until Raven has a **tested**
+Per spec §47 — nothing here may be marked done until Livqeno has a **tested**
 equivalent. Status is updated as stages land.
 
-| LiveKit capability | Raven implementation | Where | Status |
+| LiveKit capability | Livqeno implementation | Where | Status |
 |---|---|---|---|
-| Room model | Raven Room | Prisma `Room` + SFU room manager | **Done** — SFU room lifecycle tested (create, join, reap) |
-| Participant model | Raven Participant | Prisma `Participant` + SFU peer | **Done** — incl. stale-session eviction on reconnect |
-| Access tokens | Raven RTC token (own JWT, own claims) | `modules/rtc-tokens/rtc-token-signer.service.ts` | **Done** — 49 tests, incl. tamper/expiry/audience |
+| Room model | Livqeno Room | Prisma `Room` + SFU room manager | **Done** — SFU room lifecycle tested (create, join, reap) |
+| Participant model | Livqeno Participant | Prisma `Participant` + SFU peer | **Done** — incl. stale-session eviction on reconnect |
+| Access tokens | Livqeno RTC token (own JWT, own claims) | `modules/rtc-tokens/rtc-token-signer.service.ts` | **Done** — 49 tests, incl. tamper/expiry/audience |
 | Token verification | `RtcTokenVerifierService` over the same signer | `modules/signaling/authentication` | **Done** |
 | Permissions / RBAC | `RtcPermissions`, enforced at signaling *and* on the node | `rtc-token.claims.ts`, `room/permissions.go` | **Done** — SFU independently rejects an unauthorized publish |
-| Signaling protocol | Raven Signaling, SFU-oriented | `modules/signaling` | **Done** — mesh protocol replaced; 546 API unit tests plus 33 e2e against a real node |
-| SFU / media routing | Raven SFU | `services/sfu` (Go/Pion) | **Done** — real RTP verified through 71 Go tests, race-clean |
+| Signaling protocol | Livqeno Signaling, SFU-oriented | `modules/signaling` | **Done** — mesh protocol replaced; 546 API unit tests plus 33 e2e against a real node |
+| SFU / media routing | Livqeno SFU | `services/sfu` (Go/Pion) | **Done** — real RTP verified through 71 Go tests, race-clean |
 | ICE / DTLS / SRTP | Pion (server), browser WebRTC (client) | `services/sfu`, `packages/sdk` | **Done** — real ICE/DTLS in SFU media tests |
-| RTP/RTCP, NACK, PLI, TWCC | Pion interceptors + Raven's PLI coalescing and subscriber-feedback relay | `services/sfu/internal/room` | **Done** — standards-compliant, not reimplemented |
-| Simulcast + layer selection | Raven SFU layer selector; SDK configures the 3-layer ladder | `downtrack.go`, `raven-adapter.ts` | **Done for VP8/VP9/H.264** — keyframe-gated switching and sequence rewriting. A switch cannot complete on AV1 or H.265, whose keyframes are not detected; those forward fine single-layer |
+| RTP/RTCP, NACK, PLI, TWCC | Pion interceptors + Livqeno's PLI coalescing and subscriber-feedback relay | `services/sfu/internal/room` | **Done** — standards-compliant, not reimplemented |
+| Simulcast + layer selection | Livqeno SFU layer selector; SDK configures the 3-layer ladder | `downtrack.go`, `raven-adapter.ts` | **Done for VP8/VP9/H.264** — keyframe-gated switching and sequence rewriting. A switch cannot complete on AV1 or H.265, whose keyframes are not detected; those forward fine single-layer |
 | Bandwidth / congestion control | *Not implemented* | — | **Gap** — see [Known risks](#7-known-risks) |
 | Data channels | SCTP channel + `room.sendData()` | `participant.go`, `raven-adapter.ts` | **Done** — server-side fan-out; 64 KiB payload limit |
 | Reconnection | SDK reconnect with jittered backoff, full rejoin, token refresh | `signaling-client.ts` | **Partial** — reconnect eviction and rejoin tested end to end; a real network switch (Wi-Fi ↔ cellular) is untested |
@@ -321,14 +321,14 @@ equivalent. Status is updated as stages land.
 | Network stats / quality | Real `getStats()` parsing, both directions | `internal/telemetry/rtc-stats.ts` | **Partial** — per-track numbers are real; the SFU-side *quality verdict* is a gap (below) |
 | Live room state (`RoomServiceClient`) | `SfuRoomStateService` over the node link, plus a Redis track cache | `modules/rooms/sfu-room-state.service.ts` | **Done** — `LiveKitRoomService` deleted; keeps serving / idle / unknown distinct end to end |
 | Server discovery / region | RTC server registry + allocator | `modules/rtc-servers` | **Done** — 36 tests incl. region fallback and concurrent allocation |
-| TURN | coturn, Raven-minted ephemeral credentials | `turn-credential.util.ts` | **Done** — already Raven-native before this migration |
+| TURN | coturn, Livqeno-minted ephemeral credentials | `turn-credential.util.ts` | **Done** — already Livqeno-native before this migration |
 | Mobile WebRTC bindings | `react-native-webrtc`, `flutter_webrtc` | mobile SDKs | **Partial** — both SDKs ported and unit-tested (76 RN, 32 Flutter); neither has run on a device |
 | Browser interoperability | Standards-compliant WebRTC, feature-detected support | `packages/sdk/src/browser-support.ts` | **Partial** — Chromium publish/subscribe/decode automated in CI; Firefox, Safari and Edge untested. See [test matrix](../rtc/test-matrix.md#4-browser-interoperability-spec-40) |
 | NAT traversal over a relay | coturn, ephemeral credentials, bounded UDP range | `turn-credential.util.ts`, `services/sfu` | **Gap** — implemented and configured, but no test has ever forced media onto a relay. The largest untested surface in the stack |
 
 ### Gaps, stated plainly
 
-Two things LiveKit did that Raven does not do yet, plus two things that
+Two things LiveKit did that Livqeno does not do yet, plus two things that
 have been built but not verified. All four are recorded here rather than
 quietly marked complete, per §47. The full accounting of what is and is
 not tested is in the [test matrix](../rtc/test-matrix.md).
@@ -385,13 +385,13 @@ in this repo would notice them either.
 Sequenced so that each stage is independently testable and nothing is deleted
 before its replacement passes tests (spec §42).
 
-1. **Native token service** — Raven JWT, own claims, plus verifier. Unblocks
+1. **Native token service** — Livqeno JWT, own claims, plus verifier. Unblocks
    everything, removes `livekit-server-sdk` from the token path, and is
    independently unit-testable. Public token API response unchanged.
 2. **RTC server registry + allocation** — `RtcServer` model, heartbeat ingest,
    health, region selection, room→SFU assignment. Needed before the SFU has
    anywhere to report to.
-3. **Raven SFU (`services/sfu`)** — Pion room manager, peer connections, RTP
+3. **Livqeno SFU (`services/sfu`)** — Pion room manager, peer connections, RTP
    forwarding, track lifecycle, data channels, metrics, heartbeat. Testable
    headlessly against Pion-based synthetic clients.
 4. **SFU-oriented signaling protocol** — replaces the mesh protocol; bridges
@@ -419,7 +419,7 @@ Stage 5 depends on 4; stage 4 depends on 3.
   treat aggressive estimation as a later optimization rather than a launch
   requirement.
 - **`getConnectionQuality()` regression window.** Between removing LiveKit's
-  server-side quality verdict and shipping Raven's, the honest answer is
+  server-side quality verdict and shipping Livqeno's, the honest answer is
   `'unknown'`. Reporting anything else would violate §19.
 - **Mobile is a second full client implementation.** RN and Flutter each need
   their own signaling client and negotiation logic. Sharing the protocol
@@ -499,7 +499,7 @@ and a test-setup comment asserting `@ravenkash/rtc` pulls `livekit-client`
 in transitively.
 
 **4. Category comparison in `README.md`.** "Category peers: LiveKit Cloud,
-Daily, Agora" — a factual statement about what kind of product Raven is,
+Daily, Agora" — a factual statement about what kind of product Livqeno is,
 unrelated to what it is built on, plus one pointer to the migration guide.
 
 **5. Documentation that is deliberately about the past.** Three shapes,

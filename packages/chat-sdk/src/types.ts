@@ -1,4 +1,4 @@
-/** Message kinds Raven understands today. New ones widen this; they don't break it. */
+/** Message kinds Livqeno understands today. New ones widen this; they don't break it. */
 export type ChatMessageType = 'text' | 'system' | 'event' | 'attachment';
 
 export interface ChatAttachment {
@@ -24,7 +24,7 @@ export interface ChatReaction {
  * a room.
  */
 export interface ChatMessage {
-  /** Raven's canonical `msg_...` id. */
+  /** Livqeno's canonical `msg_...` id. */
   id: string;
   /** The conversation's public id, the same value you passed to `connect({ room })`. */
   roomId: string;

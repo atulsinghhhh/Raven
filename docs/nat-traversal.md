@@ -1,6 +1,6 @@
 # NAT traversal — moved
 
-This document covered why TURN is necessary, the connection types Raven
+This document covered why TURN is necessary, the connection types Livqeno
 distinguishes, how to force a relay-only path, and an honest matrix of
 which network conditions had actually been exercised. All of that still
 matters; most of it has moved, and the parts that described reaching into
@@ -12,7 +12,7 @@ rather than relocated.
 | What you came here for | Where it is now |
 |---|---|
 | Why NAT traversal is needed at all | [rtc/networking.md#how-a-connection-is-actually-made](./rtc/networking.md#how-a-connection-is-actually-made) |
-| Host / srflx / relay, in Raven's terms | [rtc/networking.md#how-a-connection-is-actually-made](./rtc/networking.md#how-a-connection-is-actually-made) |
+| Host / srflx / relay, in Livqeno's terms | [rtc/networking.md#how-a-connection-is-actually-made](./rtc/networking.md#how-a-connection-is-actually-made) |
 | Forcing a relay-only path, and verifying it relayed | [rtc/networking.md#forcing-a-relay-only-path](./rtc/networking.md#forcing-a-relay-only-path) |
 | Ports and firewall rules | [rtc/networking.md#ports](./rtc/networking.md#ports) |
 | Diagnosing a failed connection | [rtc/networking.md#diagnosing-a-failed-connection](./rtc/networking.md#diagnosing-a-failed-connection) |

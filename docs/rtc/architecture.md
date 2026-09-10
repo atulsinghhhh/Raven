@@ -1,6 +1,6 @@
-# Raven RTC — Architecture
+# Livqeno RTC — Architecture
 
-Raven owns its realtime communication infrastructure end to end: the
+Livqeno owns its realtime communication infrastructure end to end: the
 control plane that authorizes calls, the signaling protocol that
 negotiates them, and the SFU that forwards the media. It is built on open
 WebRTC standards — ICE, DTLS-SRTP, RTP/RTCP — and implements no custom
@@ -8,19 +8,19 @@ media protocol.
 
 ```text
 ┌─────────────────────────────────────────────┐
-│              Raven Client SDKs               │
+│              Livqeno Client SDKs               │
 │  Web · React · React Native · Flutter        │
 └──────────────────────┬──────────────────────┘
                        │  WebSocket + HTTPS
 ┌──────────────────────▼──────────────────────┐
-│             Raven Control Plane              │
+│             Livqeno Control Plane              │
 │  Auth · Projects · Rooms · Participants      │
 │  Permissions · Tokens · Signaling            │
 │  Server selection                            │
 └──────────────────────┬──────────────────────┘
                        │  node link (WebSocket)
 ┌──────────────────────▼──────────────────────┐
-│               Raven SFU Layer                │
+│               Livqeno SFU Layer                │
 │  ICE · DTLS · SRTP · RTP/RTCP                │
 │  Track routing · Simulcast · Data channels    │
 └─────────┬────────────────────────┬──────────┘
@@ -36,12 +36,12 @@ the SFU node serving its room, over WebRTC.
 
 ## The two planes
 
-Everything in Raven RTC divides into a **control plane** and a **media
+Everything in Livqeno RTC divides into a **control plane** and a **media
 plane**, and almost every design decision follows from keeping them apart.
 
 | | Control plane | Media plane |
 |---|---|---|
-| What | Raven API (NestJS) | Raven SFU (Go/Pion) |
+| What | Livqeno API (NestJS) | Livqeno SFU (Go/Pion) |
 | Carries | Authorization, room state, negotiation | Audio, video, screen, data |
 | Protocol | HTTPS + WebSocket | ICE / DTLS-SRTP / RTP |
 | State | Durable (Postgres), shared (Redis) | Per-call, in-process |
@@ -50,7 +50,7 @@ plane**, and almost every design decision follows from keeping them apart.
 
 ### Why clients never address the SFU
 
-A client is given `endpoint` — Raven's signaling WebSocket — and never an
+A client is given `endpoint` — Livqeno's signaling WebSocket — and never an
 SFU's address. It learns the serving node's *name*, for support, and
 nothing more.
 
@@ -76,7 +76,7 @@ Application backend                          Client
         │     (your own auth, your own rules)   │
         │                                       │
         ▼                                       │
-   Raven API ── mints a short-lived token ──────┤
+   Livqeno API ── mints a short-lived token ──────┤
         │                                       │
         │  2. { token, endpoint, iceServers }   │
         └──────────────────────────────────────►│
@@ -84,12 +84,12 @@ Application backend                          Client
                         3. WebSocket connect + room.join
                                                 │
                                                 ▼
-                                        Raven Signaling
+                                        Livqeno Signaling
                                                 │
                               4. verify token, allocate a node
                                                 │
                                                 ▼
-                                          Raven SFU
+                                          Livqeno SFU
                                                 │
                               5. create PeerConnection, offer
                                                 │
@@ -98,8 +98,8 @@ Application backend                          Client
                                     ICE → DTLS → SRTP → media
 ```
 
-**1–2. Token.** Your backend asks Raven for a token, with its own rules
-about who may join what. Raven never sees your users. The response carries
+**1–2. Token.** Your backend asks Livqeno for a token, with its own rules
+about who may join what. Livqeno never sees your users. The response carries
 everything the SDK needs: the token, the signaling `endpoint`, and
 `iceServers` (STUN plus TURN credentials minted fresh for this token).
 Forward all three as-is.
@@ -146,7 +146,7 @@ classic WebRTC failure, and a room where several people join at once
 produces it constantly: every join changes everyone else's subscribed
 track set, so renegotiations start moments apart.
 
-Raven resolves it by rule, not by luck:
+Livqeno resolves it by rule, not by luck:
 
 - The SFU holds a negotiation from creating an offer until its answer is
   applied — not merely while building the offer. A track change arriving

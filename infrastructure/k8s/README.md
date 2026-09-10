@@ -1,4 +1,4 @@
-# Raven on Kubernetes
+# Livqeno on Kubernetes
 
 ## What's here
 
@@ -30,7 +30,7 @@ exists.
 
 ## What's deliberately not here
 
-- **Postgres, Redis, the Raven SFU, coturn.** Their production topology
+- **Postgres, Redis, the Livqeno SFU, coturn.** Their production topology
   (replication/failover, Sentinel/Cluster, a real TURN relay behind
   NAT) needs infrastructure this pass didn't have access to — tracked
   as P1 in `docs/production/capacity-report.md`. `docker-compose.yml`

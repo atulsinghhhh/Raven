@@ -4,7 +4,7 @@ React hooks and optional UI primitives for [`@ravenkash/rtc`](https://www.npmjs.
 and [`@ravenkash/chat`](https://www.npmjs.com/package/@ravenkash/chat).
 Headless by default — no UI lock-in.
 
-Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
+Part of [Livqeno](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
 
 ## Install
 

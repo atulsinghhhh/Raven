@@ -2,7 +2,7 @@ import { EffectsError } from './errors';
 import type { EffectParamSpec } from './types';
 
 /**
- * Limits on anything Raven Effects loads or accepts from a developer.
+ * Limits on anything Livqeno Effects loads or accepts from a developer.
  *
  * These exist because effects sit right in the real-time video path. An
  * oversized asset or a pathological parameter doesn't just stall the
@@ -13,7 +13,7 @@ export const EFFECT_SECURITY_LIMITS = {
   MAX_ASSET_BYTES: 5 * 1024 * 1024,
   /** Max width/height for an effect asset, to bound GPU texture memory. */
   MAX_ASSET_DIMENSION: 4096,
-  /** Asset MIME types Raven Effects will decode. Never SVG (script risk), never arbitrary binary. */
+  /** Asset MIME types Livqeno Effects will decode. Never SVG (script risk), never arbitrary binary. */
   ALLOWED_ASSET_TYPES: ['image/png', 'image/jpeg', 'image/webp'] as const,
   /** A pipeline is real-time infrastructure, not a compositor. Cap the chain length. */
   MAX_PIPELINE_LENGTH: 16,
@@ -22,7 +22,7 @@ export const EFFECT_SECURITY_LIMITS = {
 /**
  * Checks a numeric effect parameter against its documented range.
  *
- * Raven Effects rejects an invalid value rather than quietly clamping it,
+ * Livqeno Effects rejects an invalid value rather than quietly clamping it,
  * so the bug surfaces there and then instead of shipping a slightly-wrong
  * filter to production.
  */
@@ -96,7 +96,7 @@ export function validateAsset(asset: AssetDescriptor): void {
 }
 
 /**
- * Raven Effects never loads a shader, script or WASM module from a
+ * Livqeno Effects never loads a shader, script or WASM module from a
  * caller-supplied URL.
  *
  * Custom `RavenEffect`s (§19) have to be registered as in-memory objects
@@ -108,7 +108,7 @@ export function validateAsset(asset: AssetDescriptor): void {
 export function assertNoRemoteCodeExecution(_source: unknown): asserts _source is never {
   throw new EffectsError(
     'RAVEN_EFFECT_PERMISSION_DENIED',
-    'Raven Effects does not support loading effects, shaders, or scripts from a URL. ' +
+    'Livqeno Effects does not support loading effects, shaders, or scripts from a URL. ' +
       'Register a RavenEffect object directly from code you already trust.',
   );
 }

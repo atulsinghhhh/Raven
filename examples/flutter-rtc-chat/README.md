@@ -1,11 +1,11 @@
-# Raven Flutter example — video call with chat
+# Livqeno Flutter example — video call with chat
 
-A real Raven call in Flutter: WebRTC media through Raven's SFU, messages
-through Raven Chat into Postgres. No mocks anywhere.
+A real Livqeno call in Flutter: WebRTC media through Livqeno's SFU, messages
+through Livqeno Chat into Postgres. No mocks anywhere.
 
 ## Running it
 
-Needs the Raven stack up (`pnpm infra:up` from the repo root) and a
+Needs the Livqeno stack up (`pnpm infra:up` from the repo root) and a
 project API key.
 
 ```bash

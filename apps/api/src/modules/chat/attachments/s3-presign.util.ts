@@ -26,7 +26,7 @@ export interface PresignInput extends S3PresignConfig {
  * Hand-rolled instead of pulling in @aws-sdk/client-s3 +
  * @aws-sdk/s3-request-presigner: those add several megabytes and a large
  * transitive tree to the API image for what is, here, one signing
- * algorithm. Raven only ever needs presigned GET and PUT: no multipart,
+ * algorithm. Livqeno only ever needs presigned GET and PUT: no multipart,
  * no bucket management, no streaming, and this keeps the deployment to
  * Postgres + Redis + object storage with nothing else bolted on (spec §60).
  *

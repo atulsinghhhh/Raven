@@ -1,4 +1,4 @@
-# Raven RTC — Networking
+# Livqeno RTC — Networking
 
 What has to be reachable for a call to work, and what to do when it is
 not.
@@ -14,9 +14,9 @@ handled, by different mechanisms.
 
 | What | Port | Protocol | Who connects | Published? |
 |---|---|---|---|---|
-| Raven API + signaling | 443 (4000 locally) | TCP | Clients | Yes, via your ingress |
+| Livqeno API + signaling | 443 (4000 locally) | TCP | Clients | Yes, via your ingress |
 | SFU media | `SFU_UDP_PORT_MIN`–`MAX` (51000–51200 by default) | **UDP** | Clients, directly | **Yes, one-to-one** |
-| SFU control | 7000 | TCP | The Raven API only | Internal network only |
+| SFU control | 7000 | TCP | The Livqeno API only | Internal network only |
 | STUN / TURN | 3478 | UDP + TCP | Clients | Yes |
 | TURNS | 5349 | TCP (TLS) | Clients | Yes, in production |
 
@@ -70,7 +70,7 @@ ICE gathers three kinds of candidate and tries them in preference order.
 ```
 
 ```text
-Client                                              Raven SFU
+Client                                              Livqeno SFU
   │                                                     │
   ├── host candidate ─────────────────────────────────► │   same LAN
   │                                                     │
@@ -80,7 +80,7 @@ Client                                              Raven SFU
                                                             corporate firewall
 ```
 
-Raven does not choose. ICE does, per connection, and it picks the first
+Livqeno does not choose. ICE does, per connection, and it picks the first
 path that works — which means a client on a restrictive network pays for
 a relay while a client on the same LAN as the node does not.
 
@@ -92,7 +92,7 @@ TURN is what makes the difference between "works for most users" and
 "works". Roughly 5–15% of real-world connections need a relay; behind a
 strict corporate firewall it is 100%.
 
-Raven mints **ephemeral TURN credentials** per token, sharing the token's
+Livqeno mints **ephemeral TURN credentials** per token, sharing the token's
 lifetime, using coturn's standard HMAC scheme:
 
 ```json
@@ -141,7 +141,7 @@ holding that secret create peer connections on your node.
 
 ### For your users' networks
 
-If you are asked what to allow for Raven to work:
+If you are asked what to allow for Livqeno to work:
 
 ```text
 outbound  TCP  443                     required
@@ -207,12 +207,12 @@ without it, direct connectivity is broken — go back to step 3.
 
 ## Forcing a relay-only path
 
-The single most valuable thing you can test, and the one Raven's own
+The single most valuable thing you can test, and the one Livqeno's own
 test suite does not: media that has to go through coturn because no
 direct path exists.
 
 `iceTransportPolicy: 'relay'` is the browser's own mechanism — no custom
-ICE logic anywhere in Raven. It restricts the local ICE agent to
+ICE logic anywhere in Livqeno. It restricts the local ICE agent to
 surfacing only `relay` candidates, so every connectivity check, and
 therefore all media, goes through TURN even where a direct path would
 have worked.

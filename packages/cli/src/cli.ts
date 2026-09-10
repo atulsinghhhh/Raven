@@ -27,7 +27,7 @@ export function buildCli(): Command {
 
   program
     .name('raven')
-    .description('Raven CLI; manage projects, API keys, rooms, RTC, chat, and live streams from the terminal.')
+    .description('Livqeno CLI; manage projects, API keys, rooms, RTC, chat, and live streams from the terminal.')
     .version(CLI_VERSION, '--version', 'output the current version')
     .option('--debug', 'print verbose request/response logs (never includes secrets)')
     .hook('preAction', (thisCommand) => {

@@ -3,7 +3,7 @@ title: Install an SDK
 description: One package for your backend, one for your client. Pick by platform.
 ---
 
-Raven splits along one line: your **backend** holds the API key and mints
+Livqeno splits along one line: your **backend** holds the API key and mints
 tokens; your **client** holds a token and joins. Those are different
 packages, and neither can do the other's job.
 
@@ -64,7 +64,7 @@ npm install @ravenkash/rtc @ravenkash/react
 ```
 
 Add `@ravenkash/chat` for a chat panel, `@ravenkash/effects` for camera
-filters. `@ravenkash/react` takes its Raven siblings as peer dependencies, so
+filters. `@ravenkash/react` takes its Livqeno siblings as peer dependencies, so
 your application chooses the versions and there is exactly one copy of each
 in the tree.
 

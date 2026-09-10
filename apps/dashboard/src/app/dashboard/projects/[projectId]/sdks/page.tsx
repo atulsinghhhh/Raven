@@ -49,7 +49,7 @@ const SDKS: SdkEntry[] = [
     surface: 'browser',
     headline: 'Join rooms and publish media from the browser',
     description:
-      'Raven browser SDK — join a room, publish camera/microphone, subscribe to remote media. Hides SDP/ICE/STUN/TURN/SFU behind a small typed API. It never holds an API key: it only ever receives a token your backend already minted.',
+      'Livqeno browser SDK — join a room, publish camera/microphone, subscribe to remote media. Hides SDP/ICE/STUN/TURN/SFU behind a small typed API. It never holds an API key: it only ever receives a token your backend already minted.',
     install: { language: 'bash', code: 'npm install @ravenkash/rtc' },
     usage: {
       language: 'typescript',
@@ -75,11 +75,11 @@ room.on('trackSubscribed', (track) => {
     surface: 'server',
     headline: 'Mint tokens and read project data from Node.js',
     description:
-      'Raven server SDK — mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Requires Node.js 20 or newer, and ships both ESM and CommonJS builds with full types. Never for use in a browser.',
+      'Livqeno server SDK — mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Requires Node.js 20 or newer, and ships both ESM and CommonJS builds with full types. Never for use in a browser.',
     install: { language: 'bash', code: 'npm install @ravenkash/server' },
     usage: {
       language: 'typescript',
-      code: `import { Raven } from '@ravenkash/server';
+      code: `import { Livqeno } from '@ravenkash/server';
 
 const raven = new Raven({
   apiKey: process.env.RAVEN_API_KEY!,
@@ -106,7 +106,7 @@ const issued = await raven.tokens.create({
     surface: 'server',
     headline: 'The same server API, for Python backends',
     description:
-      'Raven server SDK for Python — mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Requires Python 3.10 or newer, and ships both a synchronous Raven client and an async AsyncRaven. Never for use in a browser.',
+      'Livqeno server SDK for Python — mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Requires Python 3.10 or newer, and ships both a synchronous Livqeno client and an async AsyncRaven. Never for use in a browser.',
     // Not `pip install raven-sdk` — that PyPI name is an unrelated project.
     install: {
       language: 'bash',
@@ -177,7 +177,7 @@ export default async function SdksPage({ params }: { params: Promise<{ projectId
     <div className="flex flex-col gap-8">
       <PageHeader
         title="SDKs"
-        description="Official Raven client libraries. Every package listed here is built from this repository — versions and descriptions come straight from each package's own manifest."
+        description="Official Livqeno client libraries. Every package listed here is built from this repository — versions and descriptions come straight from each package's own manifest."
         actions={
           <ButtonLink href={`${base}/quickstart`} variant="primary">
             Quickstart

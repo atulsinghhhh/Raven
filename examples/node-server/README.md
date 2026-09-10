@@ -13,7 +13,7 @@ pnpm --filter @ravenkash/server build
 cd examples/node-server
 npm install     # resolves @ravenkash/server via a local file: dependency
 RAVEN_API_KEY=rvk_xxxx.yyyy npm start
-# → Raven node-server example listening on http://localhost:8787
+# → Livqeno node-server example listening on http://localhost:8787
 ```
 
 Get a real `RAVEN_API_KEY` via `raven keys create` (see `docs/cli.md`) or
@@ -37,7 +37,7 @@ that straight into `createRTCClient()` from `@ravenkash/rtc` on the frontend
 ```
 Browser: fetch('/api/rtc/token', { method: 'POST', body: { room, identity } })
   → this server: raven.tokens.create({ room, identity, permissions })
-    → Raven Control API (authenticated by RAVEN_API_KEY, never sent to the browser)
+    → Livqeno Control API (authenticated by RAVEN_API_KEY, never sent to the browser)
       → a short-lived RTC token
   ← back to the browser
 Browser: createRTCClient({ token, endpoint, iceServers }).join(room)

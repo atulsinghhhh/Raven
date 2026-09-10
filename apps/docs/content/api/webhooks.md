@@ -60,7 +60,7 @@ Delete an endpoint and its delivery history
 
 ### PATCH `/v1/projects/{projectId}/webhooks/{webhookId}`
 
-Update an endpoint, or re-enable one Raven auto-disabled
+Update an endpoint, or re-enable one Livqeno auto-disabled
 
 **Credential** Dashboard session (JWT)
 
@@ -71,7 +71,7 @@ Update an endpoint, or re-enable one Raven auto-disabled
 | `url` | body | `string` | No | 0–2048 chars |
 | `description` | body | `string` | No | 0–256 chars |
 | `events` | body | `string[]` | No | array |
-| `status` | body | `WebhookEndpointStatus` | No | Set back to ACTIVE to re-enable an endpoint Raven auto-disabled after repeated failures. |
+| `status` | body | `WebhookEndpointStatus` | No | Set back to ACTIVE to re-enable an endpoint Livqeno auto-disabled after repeated failures. |
 
 ### GET `/v1/projects/{projectId}/webhooks/{webhookId}/deliveries`
 

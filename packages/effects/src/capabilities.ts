@@ -5,14 +5,14 @@ export interface EffectsCapabilities {
   offscreenCanvas: boolean;
   captureStream: boolean;
   requestVideoFrameCallback: boolean;
-  /** The engine Raven Effects will actually use, given what this browser can do. */
+  /** The engine Livqeno Effects will actually use, given what this browser can do. */
   recommendedEngine: EngineKind;
 }
 
 /**
  * Works out what this runtime can genuinely do. Nothing here is assumed.
  *
- * `passthrough` means Raven Effects hands the original camera track
+ * `passthrough` means Livqeno Effects hands the original camera track
  * straight through, unmodified, instead of failing the call (§9/§31). A
  * video call has to keep working even where effects can't run at all.
  */

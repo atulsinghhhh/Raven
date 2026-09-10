@@ -26,7 +26,7 @@ export class EmailMetricsService {
 
     this.attempted = new Counter({
       name: 'raven_emails_attempted_total',
-      help: 'Emails Raven tried to send, including ones the free-tier guard then skipped',
+      help: 'Emails Livqeno tried to send, including ones the free-tier guard then skipped',
       labelNames: ['type'],
       registers: [registry],
     });

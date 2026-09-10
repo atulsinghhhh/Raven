@@ -3,7 +3,7 @@ title: Webhook
 description: A signed HTTP POST to your backend when something happens. Retried, environment-scoped, and deduplicable.
 ---
 
-A webhook endpoint is a URL you register. Raven POSTs each subscribed event
+A webhook endpoint is a URL you register. Livqeno POSTs each subscribed event
 to it, signed.
 
 ## Why it exists

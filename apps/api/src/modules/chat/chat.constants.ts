@@ -1,4 +1,4 @@
-// Wire protocol + shared vocabulary for Raven Chat. The full contract is
+// Wire protocol + shared vocabulary for Livqeno Chat. The full contract is
 // documented in docs/chat/websocket.md: this file is its source of truth,
 // same arrangement as signaling.constants.ts for the RTC plane.
 //

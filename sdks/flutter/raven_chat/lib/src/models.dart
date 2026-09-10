@@ -1,4 +1,4 @@
-/// Message kinds Raven understands. `unknown` exists so a newer server
+/// Message kinds Livqeno understands. `unknown` exists so a newer server
 /// sending a type this version predates widens the model instead of
 /// throwing on an app the developer didn't change.
 enum RavenMessageType { text, system, event, attachment, unknown }
@@ -128,7 +128,7 @@ class RavenMessage {
         deletedAt: _parseDate(json['deletedAt']),
       );
 
-  /// Raven's canonical `msg_…` id.
+  /// Livqeno's canonical `msg_…` id.
   final String id;
 
   /// The conversation's public id: the same string passed to `connect`.

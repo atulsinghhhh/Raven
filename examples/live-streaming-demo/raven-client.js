@@ -74,17 +74,17 @@ var LiveStream = class _LiveStream {
 function joinLiveStream(credentials) {
   return LiveStream.join(credentials);
 }
-var Raven = class {
+var Livqeno = class {
   constructor(config) {
     this.live = { join: (credentials) => LiveStream.join(credentials) };
     if (Boolean(config.token) !== Boolean(config.endpoint)) {
       throw new Error(
-        "Raven needs both `token` and `endpoint` for RTC, or neither for a messaging-only app. Both come from the same token-mint response."
+        "Livqeno needs both `token` and `endpoint` for RTC, or neither for a messaging-only app. Both come from the same token-mint response."
       );
     }
     if (!config.token && !config.chatToken) {
       throw new Error(
-        "Raven needs at least one credential: `token` + `endpoint` for calls, `chatToken` for messaging, or both."
+        "Livqeno needs at least one credential: `token` + `endpoint` for calls, `chatToken` for messaging, or both."
       );
     }
     if (config.token && config.endpoint) {
@@ -128,7 +128,7 @@ var Raven = class {
   async join(roomId) {
     if (!this.rtc) {
       throw new Error(
-        "This Raven instance has no RTC credentials, so it cannot join a room. Pass `token` and `endpoint` to enable calls, or use `raven.chat` for messaging."
+        "This Livqeno instance has no RTC credentials, so it cannot join a room. Pass `token` and `endpoint` to enable calls, or use `raven.chat` for messaging."
       );
     }
     this.currentRoom = await this.rtc.join(roomId);

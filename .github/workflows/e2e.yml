@@ -1,6 +1,6 @@
 name: E2E
 
-# Boots the real infra stack (Redis, the Raven SFU, coturn — see
+# Boots the real infra stack (Redis, the Livqeno SFU, coturn — see
 # docker-compose.yml), runs the SFU's own Go tests against real Pion
 # peers, then runs apps/api's e2e suite against the stack, same as a
 # developer would locally.
@@ -11,12 +11,12 @@ name: E2E
 # See docs/rtc/test-matrix.md for what each layer proves.
 #
 # The one deliberate difference from a developer's setup: the database is a
-# throwaway Postgres service container, not the Supabase database Raven
+# throwaway Postgres service container, not the Supabase database Livqeno
 # actually runs on (docs/deployment/managed-postgres.md). The e2e suite
 # applies migrations and writes freely, and two concurrent CI runs would
 # corrupt each other's fixtures — neither is acceptable against a shared
 # hosted database. CI is the only place a local Postgres remains, and it is
-# a test fixture rather than Raven's database.
+# a test fixture rather than Livqeno's database.
 
 on:
   push:
@@ -101,7 +101,7 @@ jobs:
 
       # The effects suites drive two real Chromium contexts against the
       # SFU — the only tests anywhere in this repo where browser WebRTC
-      # talks to Raven's media plane. Worth the download: they are what
+      # talks to Livqeno's media plane. Worth the download: they are what
       # caught the msid mismatch that every fake-transport test agreed was
       # fine. See docs/rtc/test-matrix.md.
       - name: Install Chromium for Playwright

@@ -3,7 +3,7 @@
 What runs automatically against this repository, what each scanner is
 responsible for, and what to do when one goes red.
 
-This page is about *scanning*. The design of Raven's own security model —
+This page is about *scanning*. The design of Livqeno's own security model —
 token scoping, key hashing, TURN credentials, plane separation — lives in
 [rtc/security.md](./rtc/security.md),
 [security/server-sdk.md](./security/server-sdk.md) and

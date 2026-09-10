@@ -7,7 +7,7 @@ import type { TrackKind } from '../../track';
  * file survived the move off LiveKit's stats objects to reading an
  * `RTCStatsReport` directly (see `internal/telemetry/rtc-stats.ts`). Every
  * field is a raw WebRTC stat in the units the spec uses, so seconds, not
- * milliseconds. `normalizeTrackStats` below translates into Raven's own
+ * milliseconds. `normalizeTrackStats` below translates into Livqeno's own
  * vocabulary.
  */
 export interface RawTrackStats {
@@ -31,7 +31,7 @@ export interface RawTrackStats {
 }
 
 /**
- * Raven's own normalized shape. A raw WebRTC stats object never appears on
+ * Livqeno's own normalized shape. A raw WebRTC stats object never appears on
  * a public class.
  *
  * Every field is optional, and gets omitted, not set to `0` or
@@ -60,7 +60,7 @@ export interface TrackStats {
 const MS_PER_SECOND = 1000;
 
 /**
- * Turns one raw WebRTC sample into Raven's `TrackStats`, using the previous
+ * Turns one raw WebRTC sample into Livqeno's `TrackStats`, using the previous
  * sample where there is one to work bitrate out as a delta over time.
  *
  * Packet loss comes back as a percentage via the usual loss-rate

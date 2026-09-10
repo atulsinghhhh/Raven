@@ -86,7 +86,7 @@ var EFFECT_SECURITY_LIMITS = {
   MAX_ASSET_BYTES: 5 * 1024 * 1024,
   /** Max width/height for an effect asset, to bound GPU texture memory. */
   MAX_ASSET_DIMENSION: 4096,
-  /** Asset MIME types Raven Effects will decode. Never SVG (script risk), never arbitrary binary. */
+  /** Asset MIME types Livqeno Effects will decode. Never SVG (script risk), never arbitrary binary. */
   ALLOWED_ASSET_TYPES: ["image/png", "image/jpeg", "image/webp"],
   /** A pipeline is real-time infrastructure, not a compositor. Cap the chain length. */
   MAX_PIPELINE_LENGTH: 16
@@ -1021,7 +1021,7 @@ var EffectsPipeline = class extends TypedEventEmitter {
   /**
    * Registers a trusted, in-process custom effect (Phase 16 §19).
    *
-   * Raven Effects never loads an effect from a URL and never executes
+   * Livqeno Effects never loads an effect from a URL and never executes
    * untrusted code. `effect` has to already be a real object in the host
    * application's own bundle. See security.ts.
    */
@@ -1144,7 +1144,7 @@ var EffectsPipeline = class extends TypedEventEmitter {
     if (!hasDocument()) {
       this.emit(
         "error",
-        new EffectsError("RAVEN_EFFECT_UNSUPPORTED", "Raven Effects has no DOM to render into in this environment; the camera track is unmodified.")
+        new EffectsError("RAVEN_EFFECT_UNSUPPORTED", "Livqeno Effects has no DOM to render into in this environment; the camera track is unmodified.")
       );
       return sourceTrack;
     }
@@ -1247,7 +1247,7 @@ var UnsupportedFaceDetector = class {
   async detect() {
     throw new EffectsError(
       "RAVEN_EFFECT_UNSUPPORTED",
-      "Face detection is planned but not implemented in this Raven Effects release. isSupported() reports this; check it before calling detect()."
+      "Face detection is planned but not implemented in this Livqeno Effects release. isSupported() reports this; check it before calling detect()."
     );
   }
   onFacesChanged() {
@@ -1267,7 +1267,7 @@ var UnsupportedBackgroundProcessor = class {
   configure() {
     throw new EffectsError(
       "RAVEN_EFFECT_UNSUPPORTED",
-      "Background blur/replacement is planned but not implemented in this Raven Effects release; it requires a segmentation model this release does not ship."
+      "Background blur/replacement is planned but not implemented in this Livqeno Effects release; it requires a segmentation model this release does not ship."
     );
   }
 };
@@ -1286,7 +1286,7 @@ var UnsupportedAROverlay = class {
   attach() {
     throw new EffectsError(
       "RAVEN_EFFECT_UNSUPPORTED",
-      "AR overlays are planned but not implemented in this Raven Effects release; they require face tracking, which this release does not ship."
+      "AR overlays are planned but not implemented in this Livqeno Effects release; they require face tracking, which this release does not ship."
     );
   }
   detach() {

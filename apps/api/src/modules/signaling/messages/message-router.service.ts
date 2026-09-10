@@ -127,7 +127,7 @@ export class MessageRouterService {
       );
       throw new SignalingError(
         SignalingErrorCode.USAGE_LIMIT_EXCEEDED,
-        'This account has used all of its included Raven minutes — no new sessions can be started',
+        'This account has used all of its included Livqeno minutes — no new sessions can be started',
       );
     }
 
@@ -185,7 +185,7 @@ export class MessageRouterService {
     // Best-effort on purpose. Metering must not be able to fail a join —
     // a database blip would otherwise take down calling itself — so the
     // failure is logged and the session runs unmetered rather than being
-    // refused. Under-counting on a Raven fault is the right side to err on.
+    // refused. Under-counting on a Livqeno fault is the right side to err on.
     try {
       await this.usageMeter.startSession({
         sessionKey: session.connectionId,

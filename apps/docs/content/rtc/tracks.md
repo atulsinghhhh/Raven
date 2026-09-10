@@ -114,7 +114,7 @@ type TrackKind = 'camera' | 'microphone' | 'screenShare' | 'unknown';
 ```
 
 `unknown` is honest rather than a fallback guess. WebRTC carries no notion
-of what a stream is *of*, so Raven declares the source explicitly when
+of what a stream is *of*, so Livqeno declares the source explicitly when
 publishing; a track that arrives without one is reported as unknown rather
 than assumed to be a camera.
 

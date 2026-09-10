@@ -1,4 +1,4 @@
-# Raven frontends on Vercel
+# Livqeno frontends on Vercel
 
 Three Next.js 16 apps, one Vercel project each, all deployed from this
 pnpm workspace.
@@ -147,6 +147,12 @@ curl -X PATCH -H "Authorization: Bearer $VERCEL_TOKEN" \
 ```
 
 ## Custom domains
+
+> **Rebrand in progress.** The product is now Livqeno and the target domain
+> is `livqeno.com`. Nothing below has changed yet: these are the hostnames
+> that resolve today. The new domain is added alongside them — see
+> [`livqeno-domain-cutover.md`](./livqeno-domain-cutover.md). The Vercel
+> *project* names stay `raven-*` regardless.
 
 `ravenstack.online` is registered on all three projects:
 

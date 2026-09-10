@@ -8,7 +8,7 @@ shown in full — nothing is elided, and there's no starter template to
 clone. At the end you'll have two browser tabs seeing and hearing each
 other.
 
-You need Node 20+, a Raven control plane running locally (see
+You need Node 20+, a Livqeno control plane running locally (see
 [Installing from source](/getting-started/installing-from-source)), and
 about fifteen minutes.
 
@@ -33,7 +33,7 @@ npm init -y
 npm install express
 ```
 
-Then link the SDKs from your Raven checkout — they aren't published yet:
+Then link the SDKs from your Livqeno checkout — they aren't published yet:
 
 ```bash
 npm install file:../Raven/packages/server-sdk file:../Raven/packages/sdk
@@ -126,7 +126,7 @@ Create `public/index.html`:
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Raven call</title>
+    <title>Livqeno call</title>
     <style>
       body { font-family: system-ui; max-width: 800px; margin: 2rem auto; }
       video { width: 320px; background: #000; border-radius: 8px; margin: 0.5rem; }
@@ -134,7 +134,7 @@ Create `public/index.html`:
     </style>
   </head>
   <body>
-    <h1>Raven call</h1>
+    <h1>Livqeno call</h1>
 
     <p>
       <input id="name" placeholder="Your name" />
@@ -173,7 +173,7 @@ document.getElementById('join').onclick = async () => {
   const identity = document.getElementById('name').value.trim();
   if (!identity) return alert('Enter a name first');
 
-  // 1. Ask YOUR server for a token. The browser never talks to Raven's
+  // 1. Ask YOUR server for a token. The browser never talks to Livqeno's
   //    control plane directly, and never holds an API key.
   const res = await fetch('/api/token', {
     method: 'POST',
@@ -272,7 +272,7 @@ camera under "You" and the other tab's under "Others".
 ## What just happened
 
 ```
-Tab A                   Your server              Raven              Tab B
+Tab A                   Your server              Livqeno              Tab B
   │  POST /api/token         │                     │                  │
   ├─────────────────────────►│                     │                  │
   │                          │  tokens.create()    │                  │
@@ -292,7 +292,7 @@ identity, one room, and an explicit permission set, expiring in an hour.
 ## Common problems
 
 **"Cannot find module '@ravenkash/rtc'"** — the packages need building
-first: `pnpm --filter "./packages/*" run build` in your Raven checkout.
+first: `pnpm --filter "./packages/*" run build` in your Livqeno checkout.
 
 **Camera works, but the other tab sees nothing** — check that both tabs
 used *different* identities. Two participants with the same identity in

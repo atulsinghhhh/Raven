@@ -1,4 +1,4 @@
-/// Raven Live Streaming for Flutter.
+/// Livqeno Live Streaming for Flutter.
 ///
 /// ```dart
 /// final stream = await RavenLiveStream.join(credentials);
@@ -15,7 +15,7 @@
 /// await stream.leave();
 /// ```
 ///
-/// The same concepts as Raven Web, React, and React Native: a stream, a
+/// The same concepts as Livqeno Web, React, and React Native: a stream, a
 /// host, co-hosts, viewers, live chat, reactions. Only the syntax follows
 /// Dart.
 ///

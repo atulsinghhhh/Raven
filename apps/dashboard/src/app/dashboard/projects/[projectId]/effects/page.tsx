@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { DOCS_URL } from '@/lib/nav';
 
 /**
- * Raven Effects has no per-project data of its own: there is no
+ * Livqeno Effects has no per-project data of its own: there is no
  * "effects" resource in the Control API, nothing to fetch. This page is a
  * capability reference, the same kind of static page as SDKs: what ships,
  * on which platform, at what maturity. Every row here is transcribed from
@@ -122,7 +122,7 @@ export default async function EffectsOverviewPage({ params }: { params: Promise<
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Effects"
-        description="Camera filters and real-time video effects, shared by Raven RTC and Raven Live Streaming — one pipeline, applied to the publisher's video before it reaches either."
+        description="Camera filters and real-time video effects, shared by Livqeno RTC and Livqeno Live Streaming — one pipeline, applied to the publisher's video before it reaches either."
         actions={
           <ButtonLink href={`${DOCS_URL}/effects.md`} variant="primary">
             Effects docs
@@ -202,7 +202,7 @@ await camera.attachEffects(effects);
           </li>
           <li>
             <span className="font-medium text-fg">Arbitrary custom shaders/scripts.</span> Custom effects register as
-            trusted, in-process objects only — Raven Effects never loads code, shaders, or WASM from a URL.
+            trusted, in-process objects only — Livqeno Effects never loads code, shaders, or WASM from a URL.
           </li>
         </ul>
         <div className="mt-4">

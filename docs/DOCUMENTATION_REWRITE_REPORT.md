@@ -1,4 +1,4 @@
-# Raven — Documentation Rewrite Report
+# Livqeno — Documentation Rewrite Report
 
 **Date:** 2026-09-08
 **Input:** the repository source tree, and `docs/DOCUMENTATION_AUDIT.md`
@@ -18,7 +18,7 @@ So the rewrite starts with tooling, and the content is written on top of it:
 
 | Script | Does |
 |---|---|
-| `scripts/docs-groundtruth.mjs` | Extracts Raven's public surface from source into `apps/docs/groundtruth.json` — routes, DTOs, package exports, error vocabularies, event maps, CLI commands, env vars, effects definitions, limits |
+| `scripts/docs-groundtruth.mjs` | Extracts Livqeno's public surface from source into `apps/docs/groundtruth.json` — routes, DTOs, package exports, error vocabularies, event maps, CLI commands, env vars, effects definitions, limits |
 | `scripts/generate-api-reference.mjs` | **Writes** 10 reference pages from that artifact |
 | `scripts/verify-docs.mjs` | **Fails the build** when prose documents something that does not exist |
 
@@ -74,7 +74,7 @@ how it works → production considerations → next steps.
 `self-hosting`, `docker-compose`, `environment-variables` (generated),
 `turn`, `sfu`, `health-and-metrics`
 
-An entirely new section. Raven is open source with a Compose stack, a Go
+An entirely new section. Livqeno is open source with a Compose stack, a Go
 SFU, coturn and 112 env vars, and the published docs previously said almost
 nothing about running any of it.
 
@@ -103,9 +103,9 @@ had a published wire protocol, RTC did not.
 | `rtc/diagnostics` | Claimed `iceConnectionState`/`signalingState` are "always undefined". The native adapter reports both, and two remote fields were undocumented entirely |
 | `authentication/tokens` | Described a translation into "the underlying SFU's grant shape" — that mapper was deleted; there is one vocabulary end to end |
 | `reference/errors` | Said "three error vocabularies" when there are **five**; omitted 5 `RAVEN_*` codes, the signaling vocabulary (15 codes) and the effects vocabulary. Rewritten to 300 lines covering all five with cause and fix per code |
-| `reference/events` | Claimed "every event Raven emits" with 8 of 15 webhooks; referenced a `useRoomEvent` hook that **does not exist**. Rewritten as a three-surface router |
+| `reference/events` | Claimed "every event Livqeno emits" with 8 of 15 webhooks; referenced a `useRoomEvent` hook that **does not exist**. Rewritten as a three-surface router |
 | `production/rate-limits` | Listed 5 of 16 rate-limited routes |
-| `getting-started/introduction` | Listed three products; Raven ships five. Live Streaming and Effects were absent |
+| `getting-started/introduction` | Listed three products; Livqeno ships five. Live Streaming and Effects were absent |
 | `getting-started/quickstart` | `[dashboard](/)` linked to the docs root |
 | `sdk/web` | `POST /v1/rtc/tokens` — **a route that does not exist**. Found by the verifier, not by hand |
 | `sdk/react` | Missing `useRavenClient`, `useRavenError`, `useChatError` |

@@ -7,9 +7,9 @@ import type { RavenConfig, RavenChatHandle } from './types';
 import { createChatHandle } from './internal/chat-handle';
 
 /**
- * Raven on React Native.
+ * Livqeno on React Native.
  *
- * The API is the same shape as Raven Web on purpose. The mental model is
+ * The API is the same shape as Livqeno Web on purpose. The mental model is
  * the thing genuinely worth keeping identical across platforms (spec §10):
  *
  * ```ts
@@ -64,7 +64,7 @@ export class Raven {
   constructor(config: RavenConfig) {
     // First thing, before anything else. Without the WebRTC globals in
     // place, constructing an RTC client fails in ways that look like a
-    // Raven bug, not a missing polyfill.
+    // Livqeno bug, not a missing polyfill.
     bootstrapRavenNative();
 
     this.config = config;
@@ -72,7 +72,7 @@ export class Raven {
     // Only build an RTC client if there are RTC credentials to build one
     // from. A messaging-only app shouldn't have to mint a pointless RTC
     // token just to construct this class. The two planes are independent
-    // everywhere else in Raven, and that has to hold here as well.
+    // everywhere else in Livqeno, and that has to hold here as well.
     if (config.token && config.endpoint) {
       this.client = createRTCClient({
         token: config.token,
@@ -88,14 +88,14 @@ export class Raven {
       // great deal kinder than failing at join() with a connection error.
       throw new RTCError(
         'INVALID_TOKEN',
-        'Raven needs both `token` and `endpoint` for RTC, or neither for a messaging-only app. Both come from the same token-mint response.',
+        'Livqeno needs both `token` and `endpoint` for RTC, or neither for a messaging-only app. Both come from the same token-mint response.',
       );
     }
 
     if (!config.token && !config.chatToken) {
       throw new RTCError(
         'INVALID_TOKEN',
-        'Raven needs at least one credential: `token` + `endpoint` for calls, `chatToken` for messaging, or both.',
+        'Livqeno needs at least one credential: `token` + `endpoint` for calls, `chatToken` for messaging, or both.',
       );
     }
 
@@ -156,7 +156,7 @@ export class Raven {
       // way to an error.
       throw new RTCError(
         'INVALID_TOKEN',
-        'This Raven instance has no RTC credentials, so it cannot join a room. Pass `token` and `endpoint` to enable calls, or use `raven.chat` for messaging.',
+        'This Livqeno instance has no RTC credentials, so it cannot join a room. Pass `token` and `endpoint` to enable calls, or use `raven.chat` for messaging.',
       );
     }
 

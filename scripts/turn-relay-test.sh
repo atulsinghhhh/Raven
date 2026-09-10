@@ -136,7 +136,7 @@ cat <<'NOTE'
 What this proves
 
   Media published by one relay-only client reaches another relay-only
-  client through Raven's SFU: both legs of the path are TURN-relayed, and
+  client through Livqeno's SFU: both legs of the path are TURN-relayed, and
   the assertion is on the nominated ICE candidate pair's candidate types
   (local=relay) plus RTP read off the subscriber's track. coturn
   authenticated both allocations against the time-limited HMAC credential

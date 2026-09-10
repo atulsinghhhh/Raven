@@ -6,7 +6,7 @@ import { registerProjectsDeleteCommand } from './delete.js';
 import { registerProjectsUseCommand } from './use.js';
 
 export function registerProjectsCommand(program: Command): void {
-  const projects = program.command('projects').description('Manage Raven projects');
+  const projects = program.command('projects').description('Manage Livqeno projects');
 
   registerProjectsCreateCommand(projects);
   registerProjectsListCommand(projects);

@@ -15,7 +15,7 @@ import { ProfileForm } from './profile-form';
 import { VerifyEmailNudge } from './verify-email-nudge';
 
 export const metadata: Metadata = {
-  title: 'Settings — Raven',
+  title: 'Settings — Livqeno',
 };
 
 /**

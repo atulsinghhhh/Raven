@@ -1,6 +1,6 @@
 ---
 title: Filters
-description: Every basic filter Raven Effects ships, its parameters, valid ranges, and what invalid input does.
+description: Every basic filter Livqeno Effects ships, its parameters, valid ranges, and what invalid input does.
 ---
 
 Every filter below is exported from `effects.filters` (`@ravenkash/effects`,

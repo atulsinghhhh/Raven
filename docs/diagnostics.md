@@ -34,7 +34,7 @@ const diagnostics = room.getDiagnostics();
 
 This can **only** come from an actual running `@ravenkash/rtc` client with a
 live (or recently live) connection — a CLI process or a server has no
-way to know a specific browser's ICE state, and Raven never fabricates
+way to know a specific browser's ICE state, and Livqeno never fabricates
 it. `raven diagnostics` explicitly does not attempt to show this data;
 it points to `room.getDiagnostics()` instead. See `docs/telemetry.md#client-side-diagnostics`.
 

@@ -1,6 +1,6 @@
-# Raven RTC — test matrix
+# Livqeno RTC — test matrix
 
-What Raven's native WebRTC stack is actually tested against, what those
+What Livqeno's native WebRTC stack is actually tested against, what those
 tests prove, and what has not been tested yet.
 
 This document exists because "we tested it" is not a claim anyone can act
@@ -133,7 +133,7 @@ capacity figure is claimed anywhere in these docs.**
 
 Two Chromium contexts driven by Playwright, against a real SFU, with
 Chrome's synthetic camera standing in for hardware. These are the only
-tests in the repo where actual browser WebRTC talks to Raven's media
+tests in the repo where actual browser WebRTC talks to Livqeno's media
 plane.
 
 | Capability | Test |

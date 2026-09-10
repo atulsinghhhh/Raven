@@ -200,7 +200,7 @@ describe('rank — page description as context', () => {
 describe('rank — natural-language queries', () => {
   const pages = [
     record({ slug: 'rtc/audio-and-video', title: 'Audio & Video', text: 'Mute the microphone with setMicrophoneEnabled(false).' }),
-    record({ slug: 'getting-started/introduction', title: 'Introduction', text: 'How Raven fits together, and what it is for.' }),
+    record({ slug: 'getting-started/introduction', title: 'Introduction', text: 'How Livqeno fits together, and what it is for.' }),
   ];
 
   it('answers a question phrased as a question', () => {

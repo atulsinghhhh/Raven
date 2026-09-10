@@ -11,7 +11,7 @@ export interface ProjectMemberAddedEmailInput {
 }
 
 /**
- * Raven has no invitation flow: `ProjectMembersService.add()` requires the
+ * Livqeno has no invitation flow: `ProjectMembersService.add()` requires the
  * person to already have an account (it 404s otherwise). So this is a
  * notification of access granted, not an invitation to accept — and the
  * copy says that rather than pretending there is a pending state to
@@ -28,10 +28,10 @@ export function renderProjectMemberAddedEmail(input: ProjectMemberAddedEmailInpu
 
   const { html, text } = renderLayout({
     heading: `You were added to ${input.projectName}`,
-    preheader: `${input.invitedBy} added you to the Raven project ${input.projectName}.`,
+    preheader: `${input.invitedBy} added you to the Livqeno project ${input.projectName}.`,
     paragraphs: [
       greeting,
-      `${input.invitedBy} added you to the Raven project “${input.projectName}” as ${role === 'owner' || role === 'admin' ? 'an' : 'a'} ${role}.`,
+      `${input.invitedBy} added you to the Livqeno project “${input.projectName}” as ${role === 'owner' || role === 'admin' ? 'an' : 'a'} ${role}.`,
       'It is available in your dashboard now — no invitation to accept.',
     ],
     cta: { label: 'Open your projects', url: `${input.brand.appUrl}/dashboard/projects` },
@@ -39,5 +39,5 @@ export function renderProjectMemberAddedEmail(input: ProjectMemberAddedEmailInpu
     brand: input.brand,
   });
 
-  return { subject: `You were added to ${input.projectName} on Raven`, html, text };
+  return { subject: `You were added to ${input.projectName} on Livqeno`, html, text };
 }
