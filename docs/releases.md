@@ -117,7 +117,25 @@ Fix, in order of preference:
 
 1. npmjs.com → *Access Tokens* → *Generate New Token* → **Classic Token**
    → **Automation**, then `gh secret set NPM_TOKEN`.
-2. Or set the account's 2FA level to *Authorization only* instead of
+
+   **It has to be Automation specifically.** Classic tokens come in three
+   kinds — Read-only, Publish, Automation — and only Automation is exempt
+   from 2FA on writes. A classic *Publish* token authenticates, passes the
+   preflight, and then fails at publish with the same
+   `ERR_PNPM_OTP_NON_INTERACTIVE`. That is what happened on run
+   `34506280616`, where the preflight reported `token class: classic` and
+   the publish still died. npm exposes no way to tell the two apart from
+   CI — there is no automation flag in `npm token list` or in the tokens
+   API — so the preflight names the requirement instead of checking it.
+
+2. Check each package's **publishing access** on npmjs.com → the package →
+   *Settings* → *Publishing access*. It must be
+   *"Require two-factor authentication or automation tokens"*. The
+   stricter *"Require two-factor authentication"* rejects automation
+   tokens outright, so no CI token of any kind can publish while it is
+   set.
+
+3. Or set the account's 2FA level to *Authorization only* instead of
    *Authorization and writes*. This works but lowers security for
    interactive logins too.
 
