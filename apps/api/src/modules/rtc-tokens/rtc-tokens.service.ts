@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NotFoundError } from '../../shared/errors/app-error';
+import { RavenErrorCode } from '../../shared/errors/error-codes';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { CreateRtcTokenDto } from './dto/create-rtc-token.dto';
 import { UsageAllowanceService } from '../usage/usage-allowance.service';
+import { RtcTokenRevocationService } from './rtc-token-revocation.service';
 import { RtcTokenSignerService } from './rtc-token-signer.service';
 import { resolvePermissions, toPermissionsDto } from './rtc-token.claims';
 import { buildIceServers, IceServer } from './turn-credential.util';
@@ -32,6 +35,18 @@ export interface IssuedRtcToken {
   createdAt: Date;
 }
 
+export interface RevokedRtcToken {
+  id: string;
+  revoked: true;
+  /**
+   * The token's own expiry, unchanged. Echoed back because it is when the
+   * revocation record itself lapses — after this instant the token is
+   * refused for having expired rather than for having been revoked, and
+   * the two are separate codes on the wire.
+   */
+  expiresAt: Date;
+}
+
 @Injectable()
 export class RtcTokensService {
   constructor(
@@ -40,6 +55,7 @@ export class RtcTokensService {
     private readonly configService: ConfigService,
     private readonly signer: RtcTokenSignerService,
     private readonly usageAllowances: UsageAllowanceService,
+    private readonly revocations: RtcTokenRevocationService,
   ) {}
 
   async create(
@@ -123,6 +139,52 @@ export class RtcTokensService {
       expiresAt: signed.expiresAt,
       createdAt: rtcToken.createdAt,
     };
+  }
+
+  /**
+   * Revokes a minted token before it expires.
+   *
+   * Scoped through the room, not just `rtc_tokens.projectId`, so the same
+   * project-and-environment rule that governs every other room-scoped
+   * endpoint governs this one: a production key cannot revoke a
+   * development token, and no key can revoke another project's. A token
+   * that does not match resolves to the same "not found" as one that never
+   * existed, so this endpoint never confirms the existence of a token id
+   * belonging to somebody else.
+   *
+   * ## What revocation does and does not do
+   *
+   * It stops the token being used to *establish* anything new: the next
+   * signaling connect and the next telemetry POST are refused with
+   * `TOKEN_REVOKED`. It does **not** tear down a session already running
+   * on that token. Authorization is checked when a connection is
+   * established, and an established connection is not re-authorized
+   * per-frame, so a participant who joined a moment before revocation
+   * stays in the call until they leave, the token expires and their client
+   * fails to renew, or an operator closes the room
+   * (`DELETE /v1/rooms/:id`), which is the control that does cut live
+   * sessions.
+   *
+   * That boundary is deliberate rather than incidental — see
+   * docs/rtc/tokens.md — and it is why a short TTL matters more than
+   * revocation does for containing a leaked token.
+   */
+  async revoke(scope: ProjectScope, roomId: string, tokenId: string): Promise<RevokedRtcToken> {
+    // Establishes the room belongs to this project *and* environment
+    // before anything is looked up under it.
+    await this.roomsService.findOneForProject(roomId, scope);
+
+    const token = await this.prisma.rtcToken.findFirst({
+      where: { id: tokenId, roomId, projectId: scope.projectId },
+      select: { id: true, expiresAt: true },
+    });
+    if (!token) {
+      throw new NotFoundError('RTC token', RavenErrorCode.NOT_FOUND);
+    }
+
+    await this.revocations.revoke(token.id, token.expiresAt);
+
+    return { id: token.id, revoked: true, expiresAt: token.expiresAt };
   }
 
   /**

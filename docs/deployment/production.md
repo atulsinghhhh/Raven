@@ -299,9 +299,11 @@ handlers, which then call the Control API server-side.
   handling does not support.
 - Setting `NEXT_PUBLIC_API_URL` would have no effect at all.
 - **The dashboard generates no cross-origin browser traffic**, so CORS is
-  not what makes the dashboard work. `CORS_ORIGIN` still matters — for SDK
-  consumers and for the browser WebSocket paths below — but a CORS
-  misconfiguration will not break dashboard login.
+  not what makes the dashboard work, and a CORS misconfiguration will not
+  break dashboard login. Note that `CORS_ORIGIN` no longer governs SDK
+  consumers or the chat WebSocket either — those reflect the caller's
+  origin and authenticate by token (docs/control-plane.md#cors). It applies
+  to the dashboard and developer-session routes.
 - The existing `NEXT_PUBLIC_*` vars are `NEXT_PUBLIC_DASHBOARD_URL`,
   `NEXT_PUBLIC_DOCS_URL`, `NEXT_PUBLIC_WWW_URL` — cross-links between the
   three sites, not API endpoints.

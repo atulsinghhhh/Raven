@@ -70,6 +70,15 @@ export enum ServerMessageType {
 export enum SignalingErrorCode {
   INVALID_TOKEN = 'INVALID_TOKEN',
   TOKEN_EXPIRED = 'TOKEN_EXPIRED',
+  /**
+   * The token was revoked before it expired. Terminal, and kept apart from
+   * both INVALID_TOKEN and TOKEN_EXPIRED because the remedy differs: the
+   * signature was ours and the clock was fine, someone deliberately killed
+   * this credential. A client should ask its backend for a new one rather
+   * than retry, and a developer seeing this in logs should be looking for
+   * whoever called revoke, not for a clock skew or a secret mismatch.
+   */
+  TOKEN_REVOKED = 'TOKEN_REVOKED',
   UNAUTHORIZED = 'UNAUTHORIZED',
   ROOM_NOT_FOUND = 'ROOM_NOT_FOUND',
   ROOM_FULL = 'ROOM_FULL',
@@ -78,6 +87,14 @@ export enum SignalingErrorCode {
   PARTICIPANT_NOT_FOUND = 'PARTICIPANT_NOT_FOUND',
   NOT_IN_ROOM = 'NOT_IN_ROOM',
   PERMISSION_DENIED = 'PERMISSION_DENIED',
+  /**
+   * The page's `Origin` is not on this project's allow-list. Terminal for
+   * this connection and not something the client can retry its way out of:
+   * the fix is in the dashboard, under Project Settings, Security, Allowed
+   * Origins. Kept apart from UNAUTHORIZED because the token was perfectly
+   * valid — it was the page holding it that was not expected.
+   */
+  ORIGIN_NOT_ALLOWED = 'ORIGIN_NOT_ALLOWED',
   RATE_LIMITED = 'RATE_LIMITED',
   /**
    * The developer account behind this project has spent its included Raven

@@ -9,6 +9,7 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './shared/errors/all-exceptions.filter';
 import { SIGNALING_PATH } from './modules/signaling/signaling.constants';
 import { CHAT_PATH } from './modules/chat/chat.constants';
+import { corsOriginFor, parseCorsAllowlist } from './shared/config/cors-policy';
 
 async function bootstrap(): Promise<void> {
   // bufferLogs holds any log calls made before app.useLogger() runs below
@@ -49,9 +50,13 @@ async function bootstrap(): Promise<void> {
   );
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  const corsOrigin = configService.get<string>('cors.origin')!;
-  app.enableCors({
-    origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o) => o.trim()),
+  // Per-route CORS. SDK browser surfaces reflect the caller's origin
+  // because Raven cannot enumerate developers' origins; everything else
+  // keeps the deployment's allowlist. The reasoning, and why this is safe,
+  // is in shared/config/cors-policy.ts.
+  const allowlist = parseCorsAllowlist(configService.get<string>('cors.origin')!);
+  app.enableCors((request: { url?: string }, callback) => {
+    callback(null, { origin: corsOriginFor(request.url, allowlist) });
   });
 
   const swaggerDocument = SwaggerModule.createDocument(

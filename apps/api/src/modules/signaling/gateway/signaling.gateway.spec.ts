@@ -25,6 +25,10 @@ describe('SignalingGateway heartbeat', () => {
       {} as never, // sfuLink
       {} as never, // sfuFrames
       { sweepIntervalMs: 30_000, sweep: jest.fn(), settle: jest.fn() } as never, // usageMeter
+      // Origin policy. These tests drive the heartbeat sweep directly and
+      // never reach the connection handler, so an allow-all stub keeps
+      // them about what they are about.
+      { isAllowed: jest.fn().mockResolvedValue(true) } as never, // origins
     );
     // Reach into the private sessions map: see the comment above.
     const sessions = (gateway as unknown as { sessions: Map<unknown, ParticipantSession> }).sessions;

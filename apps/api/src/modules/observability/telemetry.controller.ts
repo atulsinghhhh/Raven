@@ -6,6 +6,7 @@ import { ConnectionsService } from './connections.service';
 import { CurrentTelemetryContext } from './decorators/current-telemetry-context.decorator';
 import { IngestEventDto } from './dto/ingest-event.dto';
 import { TelemetryIngestGuard } from './guards/telemetry-ingest.guard';
+import { ProjectOriginGuard } from '../../shared/origins/project-origin.guard';
 import { VerifiedRtcToken } from '../signaling/authentication/rtc-token-verifier.service';
 
 /**
@@ -20,7 +21,9 @@ import { VerifiedRtcToken } from '../signaling/authentication/rtc-token-verifier
 @ApiTags('Telemetry')
 @ApiBearerAuth('rtcToken')
 @Controller('v1/telemetry')
-@UseGuards(TelemetryIngestGuard)
+// ProjectOriginGuard second, always: it reads the project off the
+// credential TelemetryIngestGuard just verified.
+@UseGuards(TelemetryIngestGuard, ProjectOriginGuard)
 export class TelemetryController {
   constructor(private readonly connectionsService: ConnectionsService) {}
 

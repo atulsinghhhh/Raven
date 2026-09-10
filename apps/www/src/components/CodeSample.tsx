@@ -79,7 +79,10 @@ await camera.attachEffects(pipeline);`,
     filename: 'server.py',
     code: `from raven import Raven, CreateTokenParams, TokenPermissions
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 
 token = raven.tokens.create(
     CreateTokenParams(

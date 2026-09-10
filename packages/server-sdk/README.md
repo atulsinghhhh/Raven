@@ -22,7 +22,10 @@ caller can claim to be anyone.
 ```ts
 import { Raven } from '@ravenkash/server';
 
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY!,
+  baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
+});
 
 const grant = await raven.tokens.create({ room: roomId, identity: 'user-42' });
 // grant = { token, endpoint, iceServers, telemetryUrl, expiresAt, ... }
@@ -46,7 +49,9 @@ on the cause rather than parse a message. Codes are listed in
 - [Server SDK security model](https://github.com/atulsinghhhh/Raven/blob/main/docs/security/server-sdk.md)
 - Runnable example: [`examples/node-server`](https://github.com/atulsinghhhh/Raven/tree/main/examples/node-server)
 
-Python backend? See [`raven-sdk`](https://pypi.org/project/raven-sdk/).
+Python backend? See [Raven's Python SDK](https://github.com/atulsinghhhh/Raven/tree/main/sdks/python). It is not on PyPI
+yet — `pip install raven-sdk` installs an unrelated third-party package of
+that name, not this one.
 
 ## License
 

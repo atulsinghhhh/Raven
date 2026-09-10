@@ -27,6 +27,7 @@ See [Rooms & Participants](/rtc/rooms-and-participants) for the SDK side.
 | GET | [`/v1/rooms/{id}`](#get-v1roomsid) | Project API key |
 | GET | [`/v1/rooms/{id}/participants`](#get-v1roomsidparticipants) | Project API key |
 | POST | [`/v1/rooms/{roomId}/rtc-tokens`](#post-v1roomsroomidrtctokens) | Project API key |
+| DELETE | [`/v1/rooms/{roomId}/rtc-tokens/{tokenId}`](#delete-v1roomsroomidrtctokenstokenid) | Project API key |
 | GET | [`/v1/rtc/servers`](#get-v1rtcservers) | Dashboard session (JWT) |
 | GET | [`/v1/rtc/servers/{name}`](#get-v1rtcserversname) | Dashboard session (JWT) |
 | POST | [`/v1/rtc/servers/{name}/drain`](#post-v1rtcserversnamedrain) | Dashboard session (JWT) |
@@ -140,6 +141,17 @@ Mint a short-lived RTC access token for a participant to join this room
 | `permissions` | body | [`RtcTokenPermissionsDto`](#rtctokenpermissionsdto) | No |  |
 | `ttlSeconds` | body | `number` | No | 30–21600 — Token lifetime in seconds. Defaults to RTC_TOKEN_DEFAULT_TTL_SECONDS. There is no way to request a non-expiring token — every RTC token is short-lived by design. |
 | `metadata` | body | `string` | No | 0–1024 chars |
+
+### DELETE `/v1/rooms/{roomId}/rtc-tokens/{tokenId}`
+
+Revoke a minted RTC token before it expires
+
+**Credential** Project API key · **Rate limit** 60 per window ([details](/production/rate-limits))
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `tokenId` | path | `string` | Yes | |
+| `roomId` | path | `string` | Yes | |
 
 ### GET `/v1/rtc/servers`
 

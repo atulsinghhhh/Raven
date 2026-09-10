@@ -3,7 +3,7 @@ title: All endpoints
 description: Every route the Raven API serves, generated from the controllers.
 ---
 
-Raven serves **113** versioned endpoints under `/v1`, plus
+Raven serves **115** versioned endpoints under `/v1`, plus
 **4** unversioned infrastructure routes. This page is generated
 from `apps/api`, so it is the whole surface — not a curated subset.
 
@@ -74,6 +74,7 @@ Interactive request/response schemas are served by the API itself at `/docs`.
 | DELETE | `/v1/projects/{id}` | Dashboard session (JWT) | [Projects, Members & Keys](/api/projects) |
 | GET | `/v1/projects/{id}` | Dashboard session (JWT) | [Projects, Members & Keys](/api/projects) |
 | PATCH | `/v1/projects/{id}` | Dashboard session (JWT) | [Projects, Members & Keys](/api/projects) |
+| PATCH | `/v1/projects/{id}/allowed-origins` | Dashboard session (JWT) | [Observability](/api/observability) |
 | GET | `/v1/projects/{projectId}/api-keys` | Dashboard session (JWT) | [Projects, Members & Keys](/api/projects) |
 | POST | `/v1/projects/{projectId}/api-keys` | Dashboard session (JWT) | [Projects, Members & Keys](/api/projects) |
 | DELETE | `/v1/projects/{projectId}/api-keys/{keyId}` | Dashboard session (JWT) | [Projects, Members & Keys](/api/projects) |
@@ -116,6 +117,7 @@ Interactive request/response schemas are served by the API itself at `/docs`.
 | GET | `/v1/rooms/{id}` | Project API key | [RTC](/api/rtc) |
 | GET | `/v1/rooms/{id}/participants` | Project API key | [RTC](/api/rtc) |
 | POST | `/v1/rooms/{roomId}/rtc-tokens` | Project API key | [RTC](/api/rtc) |
+| DELETE | `/v1/rooms/{roomId}/rtc-tokens/{tokenId}` | Project API key | [RTC](/api/rtc) |
 | GET | `/v1/rtc/servers` | Dashboard session (JWT) | [RTC](/api/rtc) |
 | GET | `/v1/rtc/servers/{name}` | Dashboard session (JWT) | [RTC](/api/rtc) |
 | POST | `/v1/rtc/servers/{name}/drain` | Dashboard session (JWT) | [RTC](/api/rtc) |

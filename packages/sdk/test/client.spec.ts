@@ -48,6 +48,80 @@ describe('RTCClient.join', () => {
     expect(capturedAdapter).toBeUndefined();
   });
 
+  it('defaults to the room named in the token when join() is called with no argument', async () => {
+    // The whole point of createRTCClient(grant) + join(): the grant already
+    // said which room, so the application should not have to repeat it.
+    const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
+    let capturedAdapter: FakeAdapter | undefined;
+
+    const client = new RTCClient(
+      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      () => {
+        capturedAdapter = new FakeAdapter();
+        return capturedAdapter;
+      },
+    );
+
+    const room = await client.join();
+
+    // The name, not the id: it is what logs and application code deal in.
+    expect(room.roomId).toBe('support-room');
+    expect(capturedAdapter?.connectCalls).toHaveLength(1);
+  });
+
+  it('falls back to the token room id when the token carries no room name', async () => {
+    const token = makeToken({ rid: 'room-1' });
+    const client = new RTCClient(
+      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      () => new FakeAdapter(),
+    );
+
+    const room = await client.join();
+
+    expect(room.roomId).toBe('room-1');
+  });
+
+  it('throws ROOM_NOT_FOUND from join() with no argument when the token names no room at all', async () => {
+    // assertTokenMatchesRoom deliberately lets a claimless token through as
+    // a courtesy check, so this case has to be caught before it, or an
+    // undefined room would reach the adapter.
+    const token = makeToken({});
+    let capturedAdapter: FakeAdapter | undefined;
+
+    const client = new RTCClient(
+      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      () => {
+        capturedAdapter = new FakeAdapter();
+        return capturedAdapter;
+      },
+    );
+
+    await expect(client.join()).rejects.toMatchObject({ code: 'ROOM_NOT_FOUND' });
+    expect(capturedAdapter).toBeUndefined();
+  });
+
+  it('accepts a whole RTC grant verbatim, extra mint-response fields and all', () => {
+    // What the control plane actually returns, forwarded untouched. If this
+    // ever stops type-checking or throwing-free, createRTCClient(grant) has
+    // regressed as a documented convenience.
+    const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
+    const grant = {
+      id: 'tok_1',
+      token,
+      endpoint: 'wss://rtc.example.com',
+      roomId: 'room-1',
+      roomName: 'support-room',
+      participantIdentity: 'alice',
+      permissions: { join: true, subscribe: true, publish: true },
+      iceServers: [{ urls: 'stun:example.com:3478' }],
+      telemetryUrl: 'https://api.example.com',
+      expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+      createdAt: new Date().toISOString(),
+    };
+
+    expect(createRTCClient(grant)).toBeInstanceOf(RTCClient);
+  });
+
   it('propagates a connection failure from the adapter as a rejected promise', async () => {
     const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
     const client = new RTCClient({ token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false }, () => {

@@ -17,6 +17,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const packagesDir = join(repoRoot, 'packages');
 
 const EXPECTED_REPO_URL = 'github.com/atulsinghhhh/Raven';
+const PREPUBLISH_GUARD = 'node ../../scripts/assert-publish-safe.mjs';
 
 /** @type {{pkg: string, problem: string}[]} */
 const problems = [];
@@ -89,15 +90,40 @@ for (const dir of dirs) {
   }
 
   // --- unpublishable dependency ranges ------------------------------------
-  // `workspace:*` is rewritten by pnpm at pack time, so it is fine. A
-  // `file:` or `link:` range is not, and would publish a package nobody can
-  // install.
-  for (const field of ['dependencies', 'peerDependencies']) {
+  // `workspace:*` is rewritten to a concrete version by pnpm at pack time —
+  // and ONLY by pnpm. This check used to wave it through on that basis,
+  // which is how @ravenkash/rtc@0.1.0 and @ravenkash/client@0.1.0 reached
+  // the registry with `"@ravenkash/effects": "workspace:*"` intact, public
+  // and completely uninstallable. A manifest range is not evidence of what
+  // ends up in the tarball, so the real assertion now lives in
+  // scripts/verify-pack-manifests.mjs, which packs and reads the result,
+  // and in each package's `prepublishOnly` gate
+  // (scripts/assert-publish-safe.mjs), which is the only one of the three
+  // that survives someone running `npm publish` by hand.
+  //
+  // `file:`, `link:` and `portal:` are rewritten by nothing, so they stay a
+  // hard failure right here.
+  for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
     for (const [dep, range] of Object.entries(pkg[field] ?? {})) {
-      if (typeof range === 'string' && (range.startsWith('file:') || range.startsWith('link:'))) {
+      if (typeof range !== 'string') continue;
+      if (range.startsWith('file:') || range.startsWith('link:') || range.startsWith('portal:')) {
         fail(`${field}["${dep}"] is "${range}" — cannot be published`);
       }
     }
+  }
+
+  // --- the gate that survives a hand-run publish --------------------------
+  const usesWorkspaceProtocol = ['dependencies', 'peerDependencies', 'optionalDependencies'].some(
+    (field) =>
+      Object.values(pkg[field] ?? {}).some(
+        (range) => typeof range === 'string' && range.startsWith('workspace:'),
+      ),
+  );
+  if (usesWorkspaceProtocol && pkg.scripts?.prepublishOnly !== PREPUBLISH_GUARD) {
+    fail(
+      `uses the workspace protocol but scripts.prepublishOnly is not "${PREPUBLISH_GUARD}" — ` +
+        'without it, `npm publish` from a laptop ships an uninstallable manifest',
+    );
   }
 }
 

@@ -1,4 +1,4 @@
-import { Body, Controller, Param, ParseUUIDPipe, Post, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Param, ParseUUIDPipe, Post, UseGuards, UseInterceptors } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiNotFoundResponse,
@@ -84,5 +84,37 @@ export class RtcTokensController {
     @Body() dto: CreateRtcTokenDto,
   ) {
     return this.rtcTokensService.create(scope, roomId, dto);
+  }
+
+  @Delete(':tokenId')
+  @UseGuards(RateLimitGuard)
+  @RateLimit(60)
+  @ApiOperation({
+    summary: 'Revoke a minted RTC token before it expires',
+    description:
+      'Refuses the token for any *new* signaling connection or telemetry call, which then fail with TOKEN_REVOKED. Does not disconnect a session already established on it — authorization is checked when a connection opens, not per-frame — so use DELETE /v1/rooms/:roomId to end a call in progress. Idempotent: revoking an already-revoked or already-expired token succeeds. Rate limited to 60 requests/window/IP.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Token revoked',
+    schema: {
+      example: {
+        id: '2b45e0e5-97f2-466d-b783-a09fed7f6505',
+        revoked: true,
+        expiresAt: '2026-08-17T15:19:49.233Z',
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description:
+      "Token doesn't exist, belongs to a different room, or belongs to a different project or environment",
+  })
+  @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
+  revoke(
+    @CurrentScope() scope: ProjectScope,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+    @Param('tokenId', ParseUUIDPipe) tokenId: string,
+  ) {
+    return this.rtcTokensService.revoke(scope, roomId, tokenId);
   }
 }

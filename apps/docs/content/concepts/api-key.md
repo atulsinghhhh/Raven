@@ -42,7 +42,10 @@ is how a production key ends up in a development process.
 ```ts
 import { Raven } from '@ravenkash/server';
 
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY!,
+  baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
+});
 ```
 
 ## Related

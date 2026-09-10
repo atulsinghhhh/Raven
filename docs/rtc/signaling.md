@@ -283,6 +283,7 @@ a diagnosis rather than a contradiction.
 | `TOKEN_EXPIRED` | With a new token | Refresh and reconnect. |
 | `UNAUTHORIZED` | No | The token does not authorize this. |
 | `PERMISSION_DENIED` | No | The grant does not include this action. |
+| `ORIGIN_NOT_ALLOWED` | No | The page's `Origin` is not on the project's allow-list. The token was valid; the page holding it was not expected. Fixed in the dashboard under Project Settings, Security, Allowed Origins — not by retrying. CORS does not apply to a WebSocket upgrade, so this gateway checks `Origin` itself. |
 | `ROOM_NOT_FOUND` | No | No such room in this project and environment. |
 | `ROOM_FULL` | No | The room hit its participant limit. |
 | `NOT_IN_ROOM` | After rejoining | An action was attempted before `room.join`, or the media session is gone. |

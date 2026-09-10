@@ -22,8 +22,11 @@ export function SDKSection() {
               Build in the <span className="kw">language</span> your team already uses
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted">
-              One wire protocol, six SDKs speaking it. Not yet published to a package registry — install from a
-              local checkout while Raven is in this phase; see{' '}
+              One wire protocol, seven SDKs speaking it. The JavaScript and TypeScript packages are on npm
+              under the <span className="font-mono text-fg">@ravenkash</span> scope — with{' '}
+              <span className="font-mono text-fg">rtc</span> and <span className="font-mono text-fg">client</span>{' '}
+              awaiting a 0.1.1 republish. The Flutter and Python SDKs are not on pub.dev or PyPI yet — install
+              those from a local checkout; see{' '}
               <a href={DOCS_ROUTES.installingFromSource} className="text-accent-text hover:underline">
                 Installing from source
               </a>

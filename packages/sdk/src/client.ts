@@ -1,4 +1,10 @@
-import { assertTokenMatchesRoom, validateConfig, type ResolvedRTCClientConfig, type RTCClientConfig } from './config';
+import {
+  assertTokenMatchesRoom,
+  decodeTokenPayload,
+  validateConfig,
+  type ResolvedRTCClientConfig,
+  type RTCClientConfig,
+} from './config';
 import { RTCError } from './errors';
 import { createLogger, type Logger } from './logger';
 import { listDevices } from './internal/devices/enumerate';
@@ -40,13 +46,22 @@ export class RTCClient {
   }
 
   /**
-   * Joins the room this client's token was minted for. `roomId` has to
-   * match that room; pass a different one and you get `ROOM_NOT_FOUND`
-   * straight away, before any connection is attempted.
+   * Joins the room this client's token was minted for.
+   *
+   * `roomId` is optional, because the token already names its room in the
+   * `rnm`/`rid` claims — so `createRTCClient(grant)` then `join()` needs
+   * nothing the mint response didn't already supply. Pass one explicitly
+   * and it still has to match: a mismatch is `ROOM_NOT_FOUND` straight
+   * away, before any connection is attempted.
+   *
+   * A token carrying neither claim (older tokens, hand-built test doubles)
+   * has nothing to default to, and says so rather than connecting to a
+   * room nobody named.
    */
-  async join(roomId: string): Promise<Room> {
-    assertTokenMatchesRoom(this.config.token, roomId);
-    this.logger.info('joining room', roomId);
+  async join(roomId?: string): Promise<Room> {
+    const target = roomId ?? roomFromToken(this.config.token);
+    assertTokenMatchesRoom(this.config.token, target);
+    this.logger.info('joining room', target);
 
     const telemetry = createTelemetryClient({
       enabled: this.config.telemetry,
@@ -58,7 +73,7 @@ export class RTCClient {
     telemetry.send('connection_started');
 
     const adapter = this.adapterFactory(this.logger, this.config.autoReconnect);
-    const room = new Room(adapter, roomId, this.logger, telemetry);
+    const room = new Room(adapter, target, this.logger, telemetry);
 
     try {
       await adapter.connect(this.config.endpoint, this.config.token, this.config.iceServers);
@@ -139,6 +154,25 @@ export class RTCClient {
     }
     return this.currentRoom.getDiagnostics();
   }
+}
+
+/**
+ * The room a token was minted for, preferring the name over the id because
+ * that is what application code and logs deal in.
+ *
+ * Only reached when `join()` is called with no argument; `join('room')`
+ * never needs it.
+ */
+function roomFromToken(token: string): string {
+  const { roomName, roomId } = decodeTokenPayload(token);
+  const room = roomName ?? roomId;
+  if (!room) {
+    throw new RTCError(
+      'ROOM_NOT_FOUND',
+      'join() with no argument needs the room from the token, but this token carries neither an "rnm" nor an "rid" claim. Pass the room explicitly: join(roomName).',
+    );
+  }
+  return room;
 }
 
 /**

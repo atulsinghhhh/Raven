@@ -20,7 +20,10 @@ yourself. Full project: <https://github.com/atulsinghhhh/Raven>
 ## Install
 
 ```bash
-pip install raven-sdk
+# Not on PyPI yet. `pip install raven-sdk` installs an UNRELATED third-party
+# package of that name ("Async Kafka and HTTP producer SDK for Raven AI
+# logs"), not this SDK — see docs/releases.md#python--raven-sdk.
+pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"
 ```
 
 ## Mint a token
@@ -32,7 +35,10 @@ caller can claim to be anyone.
 import os
 from raven import Raven, CreateTokenParams
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 
 grant = raven.tokens.create(CreateTokenParams(room="room-1", identity="user-42"))
 
@@ -53,7 +59,10 @@ Every resource has an async twin with the same shape.
 ```python
 from raven import AsyncRaven, CreateTokenParams
 
-async with AsyncRaven(api_key=os.environ["RAVEN_API_KEY"]) as raven:
+async with AsyncRaven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+) as raven:
     grant = await raven.tokens.create(CreateTokenParams(room="room-1", identity="user-42"))
 ```
 

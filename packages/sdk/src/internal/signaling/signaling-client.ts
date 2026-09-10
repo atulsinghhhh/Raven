@@ -399,10 +399,24 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
         return new RTCError('INVALID_TOKEN', message);
       case 'TOKEN_EXPIRED':
         return new RTCError('TOKEN_EXPIRED', message);
+      case 'TOKEN_REVOKED':
+        return new RTCError('TOKEN_REVOKED', message);
+      // Surfaced as its own code rather than falling through to
+      // SIGNALING_ERROR, so an application can tell "you are out of
+      // minutes" from "signaling broke" and show a billing prompt instead
+      // of a retry button.
+      case 'USAGE_LIMIT_EXCEEDED':
+        return new RTCError('USAGE_LIMIT_EXCEEDED', message);
       case 'ROOM_NOT_FOUND':
         return new RTCError('ROOM_NOT_FOUND', message);
+      // ORIGIN_NOT_ALLOWED belongs here rather than in the default: the
+      // token was valid, it was the page holding it that was not on the
+      // project's allow-list. Letting it fall through to SIGNALING_ERROR
+      // would bury the server's message naming the dashboard setting to
+      // change.
       case 'UNAUTHORIZED':
       case 'PERMISSION_DENIED':
+      case 'ORIGIN_NOT_ALLOWED':
         return new RTCError('PERMISSION_DENIED', message);
       case 'ROOM_FULL':
       case 'NO_RTC_CAPACITY':

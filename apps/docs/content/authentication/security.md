@@ -89,8 +89,11 @@ Stated rather than implied:
   additionally requires `https://`. It does **not** resolve DNS, so a
   hostname that resolves to a private address still passes, as does a
   redirect to one. Egress-filter the delivery worker at the network level.
-- **An issued RTC token cannot be revoked early.** The short lifetime is
-  the control.
+- **Revoking an RTC token does not end a session already in progress.**
+  It blocks new connections (`TOKEN_REVOKED`); authorization is checked
+  when a connection opens, not per-frame. Close the room to disconnect
+  live participants. See
+  [RTC authentication → Revocation](/rtc/authentication#revocation).
 
 More in [Known limitations](/reference/known-limitations).
 

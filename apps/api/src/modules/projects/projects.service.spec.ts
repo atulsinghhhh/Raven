@@ -27,7 +27,11 @@ describe('ProjectsService', () => {
       project: { findUnique: jest.fn(), update: jest.fn(), create: jest.fn() },
       projectMember: { findUnique: jest.fn() },
     };
-    service = new ProjectsService(prisma as unknown as PrismaService);
+    service = new ProjectsService(prisma as unknown as PrismaService, {
+      // Only updateAllowedOrigins touches this, and it is invalidation
+      // bookkeeping rather than behaviour these tests assert on.
+      invalidate: jest.fn(),
+    } as never);
   });
 
   describe('authorize', () => {

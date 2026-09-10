@@ -55,20 +55,33 @@ curl https://api.your-raven-deployment.example/v1/rooms \
   -H "Authorization: Bearer $RAVEN_API_KEY"
 ```
 
-Both server SDKs require the key passed explicitly — neither scans the
-environment for you:
+An integration needs **two** values, not one — the key, and the URL of the
+control plane it authenticates against. Both server SDKs require each to be
+passed explicitly, and neither scans the environment for you:
+
+| Variable | Value | Why it is required |
+|---|---|---|
+| `RAVEN_API_KEY` | `rvk_<publicId>.<secret>` | Authenticates your backend. Server-side only. |
+| `RAVEN_API_URL` | `https://api.ravenstack.online`, or your own deployment | `baseUrl`/`base_url` defaults to `http://localhost:4100`. Omit it against a hosted deployment and every call fails with a network error, not an auth error. |
+
 
 ```ts
 import { Raven } from '@ravenkash/server';
 
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY!,
+  baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
+});
 ```
 
 ```python
 import os
 from raven import Raven
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 ```
 
 Implicit environment-scanning is exactly the behaviour that picks up a

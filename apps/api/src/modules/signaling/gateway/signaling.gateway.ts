@@ -10,6 +10,7 @@ import { randomUUID } from 'crypto';
 import { IncomingMessage } from 'http';
 import { RawData, WebSocket } from 'ws';
 import { RtcTokenVerifierService } from '../authentication/rtc-token-verifier.service';
+import { ProjectOriginService } from '../../../shared/origins/project-origin.service';
 import { ParticipantSession } from '../interfaces/participant-session.interface';
 import { OutboundSignalingMessage } from '../interfaces/signaling-message.interface';
 import { MessageRouterService } from '../messages/message-router.service';
@@ -88,6 +89,7 @@ export class SignalingGateway
     private readonly sfuLink: SfuLinkService,
     private readonly sfuFrames: SfuFrameHandlerService,
     private readonly usageMeter: UsageMeterService,
+    private readonly origins: ProjectOriginService,
   ) {}
 
   afterInit(): void {
@@ -161,6 +163,27 @@ export class SignalingGateway
       this.sendMessage(client, signalingError.toMessage());
       client.resume();
       client.close(CLOSE_AUTH_FAILED, signalingError.code);
+      return;
+    }
+
+    // Per-project origin policy. This gateway previously did not look at
+    // Origin at all, which is easy to miss because CORS does not apply to a
+    // WebSocket upgrade — there is no preflight and no browser-side check to
+    // fall back on, so an unlisted page could open a signaling connection
+    // with any valid token. The check sits after verification because the
+    // project is a claim in the token, which also makes it genuinely
+    // per-tenant rather than one list for the whole deployment.
+    if (!(await this.origins.isAllowed(verified.projectId, request.headers.origin))) {
+      const originError = new SignalingError(
+        SignalingErrorCode.ORIGIN_NOT_ALLOWED,
+        'This origin is not allowed for this project. Add it under Project Settings, Security, Allowed Origins.',
+      );
+      this.logger.warn(
+        `connection rejected: origin ${request.headers.origin} not allowed for project ${verified.projectId}`,
+      );
+      this.sendMessage(client, originError.toMessage());
+      client.resume();
+      client.close(CLOSE_AUTH_FAILED, originError.code);
       return;
     }
 

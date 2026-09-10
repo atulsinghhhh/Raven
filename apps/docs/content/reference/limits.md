@@ -68,7 +68,7 @@ of it is affected by how many minutes you have left.
 
 ## Rate-limited endpoints
 
-**15** routes carry a per-window budget. The window itself is
+**16** routes carry a per-window budget. The window itself is
 `60` seconds.
 
 | Endpoint | Per window |
@@ -87,6 +87,7 @@ of it is affected by how many minutes you have left.
 | POST `/v1/projects/{projectId}/api-keys` | 20 |
 | POST `/v1/projects/{projectId}/rooms/{roomId}/test-token` | 30 |
 | POST `/v1/rooms/{roomId}/rtc-tokens` | 60 |
+| DELETE `/v1/rooms/{roomId}/rtc-tokens/{tokenId}` | 60 |
 | POST `/v1/telemetry/events` | 600 |
 
 {/* /generated:endpoints */}

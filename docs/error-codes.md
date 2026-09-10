@@ -223,7 +223,7 @@ full and surfaces as `INTERNAL_ERROR`.
 | `UNAUTHORIZED` | 401 | `RavenChatAuthenticationError` | No usable credential presented. |
 | `PERMISSION_DENIED` | 403 | `RavenChatPermissionError` | Authenticated, but the scope or role doesn't allow this. |
 | `NOT_A_MEMBER` | 403 | `RavenChatPermissionError` | Not a member of that conversation. |
-| `ORIGIN_NOT_ALLOWED` | 403 | `RavenChatPermissionError` | The upgrade's `Origin` isn't in `CORS_ORIGIN`. |
+| `ORIGIN_NOT_ALLOWED` | 403 | `RavenChatPermissionError` | Reserved; no longer emitted. Any origin may open a chat connection — the chat token decides what it can do (docs/control-plane.md#cors). |
 | `ROOM_NOT_FOUND` | 404 | `RavenRoomError` | No such conversation in this project. |
 | `NOT_IN_ROOM` | 400 | `RavenRoomError` | This connection isn't subscribed to that room. |
 | `TOO_MANY_SUBSCRIPTIONS` | 400 | `RavenRoomError` | Per-connection room subscription limit reached. |

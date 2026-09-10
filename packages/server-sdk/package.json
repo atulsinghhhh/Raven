@@ -34,6 +34,7 @@
     "access": "public"
   },
   "scripts": {
+    "prepublishOnly": "node ../../scripts/assert-publish-safe.mjs",
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",

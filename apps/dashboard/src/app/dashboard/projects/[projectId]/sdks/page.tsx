@@ -81,7 +81,10 @@ room.on('trackSubscribed', (track) => {
       language: 'typescript',
       code: `import { Raven } from '@ravenkash/server';
 
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY!,
+  baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
+});
 
 const room = await raven.rooms.create({ name: 'standup' });
 
@@ -104,13 +107,20 @@ const issued = await raven.tokens.create({
     headline: 'The same server API, for Python backends',
     description:
       'Raven server SDK for Python — mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Requires Python 3.10 or newer, and ships both a synchronous Raven client and an async AsyncRaven. Never for use in a browser.',
-    install: { language: 'bash', code: 'pip install raven-sdk' },
+    // Not `pip install raven-sdk` — that PyPI name is an unrelated project.
+    install: {
+      language: 'bash',
+      code: 'pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"',
+    },
     usage: {
       language: 'python',
       code: `import os
 from raven import Raven, CreateTokenParams, TokenPermissions
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 
 room = raven.rooms.create(name="standup")
 

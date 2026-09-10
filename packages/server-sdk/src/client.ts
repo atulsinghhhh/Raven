@@ -17,7 +17,10 @@ import { TokensResource } from './resources/tokens';
  *
  * ```ts
  * import { Raven } from '@ravenkash/server';
- * const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
+ * const raven = new Raven({
+ *   apiKey: process.env.RAVEN_API_KEY!,
+ *   baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
+ * });
  * const token = await raven.tokens.create({ room: roomId, identity: 'user-42' });
  * ```
  */
@@ -33,6 +36,16 @@ export class Raven {
   readonly chat: ChatResource;
   /** Raven Live Streaming (Phase 14): create streams, register hosts, mint viewer credentials. */
   readonly liveStreams: LiveStreamsResource;
+  /**
+   * `liveStreams` under the shorter name, so the three product surfaces read
+   * alike: `raven.chat`, `raven.live`, `raven.rooms`.
+   *
+   * The same object, not a wrapper — `raven.live === raven.liveStreams`, so
+   * there is no second implementation to keep in step and no behaviour that
+   * differs between the two spellings. `liveStreams` is the original public
+   * name and keeps working; nothing is deprecated.
+   */
+  readonly live: LiveStreamsResource;
 
   constructor(options: RavenClientOptions) {
     const http = new RavenHttpClient(options);
@@ -45,5 +58,6 @@ export class Raven {
     this.diagnostics = new DiagnosticsResource(http);
     this.chat = new ChatResource(http);
     this.liveStreams = new LiveStreamsResource(http);
+    this.live = this.liveStreams;
   }
 }

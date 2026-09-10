@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Project, ProjectStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
-import { ForbiddenError, NotFoundError } from '../../shared/errors/app-error';
+import { ForbiddenError, NotFoundError, ValidationFailedError } from '../../shared/errors/app-error';
+import { normalizeOriginList } from '../../shared/origins/origin-policy';
+import { ProjectOriginService } from '../../shared/origins/project-origin.service';
 import { RavenErrorCode } from '../../shared/errors/error-codes';
 import { Capability, ProjectRole, can } from './project-permissions';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { UpdateAllowedOriginsDto } from './dto/update-allowed-origins.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 
 /** A project the caller is allowed to touch, plus the role that allowed it. */
@@ -15,7 +18,10 @@ export interface AuthorizedProject {
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly origins: ProjectOriginService,
+  ) {}
 
   create(ownerId: string, dto: CreateProjectDto): Promise<Project> {
     // The creator's OWNER membership is written in the same transaction as
@@ -98,6 +104,51 @@ export class ProjectsService {
   async update(id: string, userId: string, dto: UpdateProjectDto): Promise<Project> {
     await this.authorize(id, userId, Capability.ProjectWrite);
     return this.prisma.project.update({ where: { id }, data: dto });
+  }
+
+  /**
+   * Replaces a project's browser-origin allow-list.
+   *
+   * The whole list, not a delta, so removing an origin is expressible.
+   * Entries are normalized before storage (see normalizeOriginList) which
+   * is what lets request-time matching be an exact string comparison, and
+   * anything that is not an origin is refused here — at the one boundary
+   * where a human is present to read the error — rather than stored and
+   * quietly never matched.
+   */
+  async updateAllowedOrigins(
+    id: string,
+    userId: string,
+    dto: UpdateAllowedOriginsDto,
+  ): Promise<Project> {
+    await this.authorize(id, userId, Capability.ProjectWrite);
+
+    const { origins, invalid } = normalizeOriginList(dto.allowedOrigins);
+    if (invalid.length > 0) {
+      throw new ValidationFailedError(
+        `Not valid browser origins: ${invalid.join(', ')}. An origin is a scheme, host and optional port, ` +
+          'for example https://app.example.com or http://localhost:3000. Paths and wildcards are not allowed.',
+      );
+    }
+
+    const project = await this.prisma.project.update({
+      where: { id },
+      data: {
+        allowedOrigins: origins,
+        ...(dto.allowLocalhostOrigins === undefined
+          ? {}
+          : { allowLocalhostOrigins: dto.allowLocalhostOrigins }),
+      },
+    });
+
+    // The policy is cached on the hot path, so a dashboard edit that only
+    // took effect on the next TTL expiry would read as the setting not
+    // working. Awaited so the broadcast to the other API instances is on
+    // its way before this responds: a developer who saves a change and
+    // immediately reconnects a client should not race their own edit.
+    await this.origins.invalidate(id);
+
+    return project;
   }
 
   async archive(id: string, userId: string): Promise<void> {

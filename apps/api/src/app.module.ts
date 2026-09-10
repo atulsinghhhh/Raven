@@ -4,6 +4,7 @@ import { LoggerModule, nativeLoggerOptions } from 'nestjs-pino';
 import configuration from './shared/config/configuration';
 import { validateEnv } from './shared/config/env.validation';
 import { PrismaModule } from './shared/database/prisma.module';
+import { OriginsModule } from './shared/origins/origins.module';
 import { MetricsMiddleware } from './shared/middleware/metrics.middleware';
 import { RequestLoggerMiddleware } from './shared/middleware/request-logger.middleware';
 import { RedisModule } from './shared/redis/redis.module';
@@ -56,6 +57,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
       }),
     }),
     PrismaModule,
+    OriginsModule,
     RedisModule,
     EmailModule,
     HealthModule,

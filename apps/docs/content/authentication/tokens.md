@@ -78,6 +78,16 @@ data, however it's asked. See [Environments](/production/environments).
 ## Revocation
 
 An API key can be revoked (`raven keys revoke <id>`) independently of
-any token it already minted — those expire on their own, on schedule.
-There's no way to revoke a single already-issued token early; the
-short lifetime is the control, not a revocation list.
+any token it already minted.
+
+A single RTC token can be revoked early too:
+`DELETE /v1/rooms/{roomId}/rtc-tokens/{tokenId}`, using the `id` from the
+mint response. It is scoped to the API key's own project and environment,
+and it is idempotent.
+
+Revocation refuses the token for *new* connections, which then fail with
+`TOKEN_REVOKED`. It does not disconnect a session already running on that
+token — close the room (`DELETE /v1/rooms/{roomId}`) for that. So the
+short lifetime remains the primary control and revocation is the second
+one. Details in
+[RTC authentication → Revocation](/rtc/authentication#revocation).

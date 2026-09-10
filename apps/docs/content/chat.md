@@ -47,7 +47,10 @@ Your backend  ──(project API key)──►  Raven control plane
 
 ```ts
 import { Raven } from '@ravenkash/server';
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY,
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
+});
 
 const conversation = await raven.chat.createConversation({
   name: 'support-room-42',

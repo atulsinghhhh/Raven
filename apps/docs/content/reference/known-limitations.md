@@ -20,7 +20,7 @@ and deployment notes, not from guesswork.
 | **Web-side simulcast layer selection** | The signaling protocol carries a `subscription.update` frame and `raven_rtc` exposes `RavenRoom.requestLayer(...)`, but `@ravenkash/rtc` neither sends the frame nor offers a method. Flutter only, today. |
 | **Chat token revocation endpoint** | The service can revoke a token and the gateway checks for it, but no REST route, CLI command or SDK method triggers it. `TOKEN_REVOKED` is therefore reachable in principle and unreachable in practice. |
 | **Web-side RTC token refresh** | The signaling client accepts a `refreshToken` callback and calls it before a reconnect, but `RTCClientConfig` does not expose it — so it is unreachable from `@ravenkash/rtc` and `@ravenkash/react-native`. `raven_rtc`'s `Raven` constructor **does** take it. On the web, handle a `failed` connection by minting a fresh token and rejoining. |
-| **Early RTC token revocation** | By design — the short lifetime is the control, not a revocation list. |
+| **Revocation does not end a live session** | `DELETE /v1/rooms/{roomId}/rtc-tokens/{tokenId}` revokes an RTC token, but only blocks *new* connections. Authorization is checked when a connection opens, not per-frame, so a participant already in the call stays until they leave or reconnect. Close the room to disconnect them. |
 | **Email change** | The address is the account key. |
 
 ## Built but unverified

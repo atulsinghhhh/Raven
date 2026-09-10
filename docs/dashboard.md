@@ -101,6 +101,30 @@ produce a 401/404 from the API, never someone else's data.
 the dashboard never lets a developer choose one. `GET /v1/projects` lists
 only the caller's own non-archived projects.
 
+## Allowed origins (Settings -> Security)
+
+`PATCH /v1/projects/:id/allowed-origins` replaces the project's browser
+origin allow-list. Raven is multi-tenant, so this is per project, not one
+`CORS_ORIGIN` for the deployment: project A listing `https://app-a.com`
+must not authorize it for project B.
+
+Two behaviours are worth knowing before reading the UI:
+
+- **An empty list is open.** Every project predating the feature has one,
+  and defaulting those to deny would break live applications for a setting
+  nobody could have filled in. The card says so explicitly rather than
+  looking like a configured-and-empty allow-list.
+- **Localhost is always allowed by default**, on any port, via
+  `allowLocalhostOrigins`. A developer moving from `:3000` to `:5173` never
+  registers a port, and configuring production domains never breaks local
+  work. Loopback only — `https://localhost.evil.example` is a real domain
+  someone else owns and is rejected.
+
+Entries are normalized and validated by the Control API, which names the
+offending values rather than storing something that would never match.
+Wildcards are refused on purpose. See
+[browser security & CORS](https://github.com/atulsinghhhh/Raven/blob/main/apps/docs/content/authentication/browser-security.md).
+
 ## API Keys
 
 `apps/dashboard` adds no new API-key logic — it is a thin UI over the
@@ -302,11 +326,13 @@ visually separated so a developer can't confuse where each snippet runs.
 
 ## Known limitations
 
-- No per-project CORS/allowed-origins configuration — one `CORS_ORIGIN`
-  applies to the whole Control API deployment. The Settings page states
-  this honestly rather than presenting a non-functional per-project UI.
-- No webhook infrastructure exists — the Settings page shows "Coming
-  soon," not a fake configuration form.
+- No webhook *replay or test-send* from the dashboard. Webhook endpoints
+  themselves are fully manageable — **Projects → your project → Webhooks**
+  creates, edits, disables and deletes them, and shows recent delivery
+  attempts with their status — but a failed delivery cannot be re-sent from
+  the UI, and there is no "send a test event" button. Retries are automatic
+  and exponential; once they are exhausted, that delivery is gone. See
+  [`apps/docs/content/webhooks.md`](../apps/docs/content/webhooks.md).
 - No organization/team model — project ownership is a single owner per
   project, matching the existing Phase 2 data model exactly (no new
   permission tiers were invented).

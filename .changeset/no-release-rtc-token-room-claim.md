@@ -1,4 +1,5 @@
 ---
+"@ravenkash/rtc": patch
 ---
 
 `@ravenkash/rtc`'s `assertTokenMatchesRoom()` now actually works.
@@ -10,6 +11,8 @@ the claim read back `undefined` and the check silently passed every room —
 signaling gateway. It now reads `rid`/`rnm` and accepts either, which is
 what the claim comment in the control plane always said it would.
 
-Not versioned by this changeset: the `@ravenkash/*` packages have never been
-published, so nobody has ever observed the broken behaviour, and the first
-release should still be 0.1.0 rather than 0.1.1.
+This is versioned as a patch. The note that previously stood here — that
+the `@ravenkash/*` packages had never been published, so nobody could have
+observed the broken behaviour — was wrong by the time it was written:
+`@ravenkash/rtc@0.1.0` is on npm and has been, so the broken `video.room`
+claim read did ship.
