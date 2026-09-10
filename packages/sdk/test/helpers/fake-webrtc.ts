@@ -426,7 +426,7 @@ export class FakeRTCPeerConnection {
    * The msid an m-section the *remote* side created already carries, by
    * mid.
    *
-   * Raven's SFU adds a recvonly transceiver per kind to every offer, so a
+   * Livqeno's SFU adds a recvonly transceiver per kind to every offer, so a
    * first publish costs no extra renegotiation. `addTrack` reuses those,
    * and the m-section keeps the msid it came with — a browser will not
    * rewrite an id it did not author. That is the whole mechanism behind a

@@ -100,7 +100,7 @@ async function settleNegotiation(socket: FakeWebSocket, pc: FakeRTCPeerConnectio
 }
 
 /**
- * An offer shaped like the one Raven's SFU sends at join: a recvonly
+ * An offer shaped like the one Livqeno's SFU sends at join: a recvonly
  * m-section per kind, each carrying an msid of the SFU's own.
  *
  * `Manager.AddParticipant` adds those two transceivers up front so a first
