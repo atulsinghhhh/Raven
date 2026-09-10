@@ -114,7 +114,7 @@ the SDK does that itself and resolves once your payload is on the wire.
 Anything sent while the channel is still coming up is queued and delivered
 in order, so you never have to publish media first or retry.
 
-**Receiving needs a listener, and the listener is what sets it up.** Raven
+**Receiving needs a listener, and the listener is what sets it up.** Livqeno
 fans data out over each recipient's own channel, so subscribing to
 `dataReceived` is what provisions yours — do it once after joining, before
 you expect anything to arrive. A message sent to a participant whose

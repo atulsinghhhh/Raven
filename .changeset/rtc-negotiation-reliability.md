@@ -27,7 +27,7 @@ whether a retry is warranted. A server-side `NEGOTIATION_GLARE` now waits
 for the SFU's offer as the SFU's own message instructs, instead of retrying
 straight into another refusal.
 
-One extra guard sits alongside the browser's bit: Raven's SFU identifies a
+One extra guard sits alongside the browser's bit: Livqeno's SFU identifies a
 published track by the id in the SDP `msid` and matches it to the
 `track.publish` declaration that says camera or screen share. A track can
 be sending on a transceiver whose m-section still announces an msid
