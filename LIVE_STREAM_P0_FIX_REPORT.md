@@ -2,280 +2,286 @@
 
 ## 1. Exact root cause
 
-Two defects, both introduced by the same same-day commit
-(`02ec9aa feat(usage): split RTC/Chat/Live Streaming into independent
-free-tier allowances`), and both live on the exact same call path:
+Two independent, confirmed defects, both on the exact same call path inside
+`LiveStreamsService.create()`, plus a third, unrelated infrastructure gap
+discovered while getting the fix live. All three are real; the write-up
+below is honest about which one actually produced the reported incident
+versus which ones were found and fixed regardless.
 
-**(a) A schema/deploy gap.** That commit added migration
-`20260911160000_split_usage_products_and_live_stream_caps`, which adds a
-`product` column (and a new `(userId, product)` unique index) to
-`usage_allowances`, among other things. In this repo's deployment model
-(see `apps/api/Dockerfile`), migrations are **not** run by the API image on
-boot — they run as a separate one-shot job against `DIRECT_URL`, deliberately
-decoupled from rolling out new API instances (a transaction-mode pooler
-can't safely hold the advisory lock a migration needs). If that one-shot job
-had not yet been run against production when the new API code shipped, every
-query that touches the new `product` column fails at the database with
-`42703 column "product" of relation "usage_allowances" does not exist`,
-surfaced by Prisma as `PrismaClientKnownRequestError` (`P2022`).
+**(a) No compensating cleanup — confirmed the direct cause of the incident.**
+`create()`'s sequence is: create room → create conversation → post an
+internal system message → write the `LiveStream` row. Nothing wraps any of
+this in a transaction or a `try`/`catch`. A failure at *any* step after the
+room exists leaves that room (and, if reached, the conversation) permanently
+orphaned: `ACTIVE`, joinable, and attached to no `LiveStream` row a developer
+can ever see or close. Confirmed directly against production data: **15 real
+orphaned rooms and 15 matching orphaned conversations**, all `stream_...`
+named, all created in a 34-minute window (08:42–09:16 UTC on 2026-09-11),
+against **0 successful stream creations** in that same window. This is the
+concrete, data-backed confirmation of the incident, independent of exactly
+which downstream call threw.
 
-**(b) A design bug, independent of (a).** The same commit added a new,
-*unconditional* gate inside `MessagesService.send()`:
+**(b) A design bug found in current `main`, not proven to be what actually
+fired in production.** `main` at commit `02ec9aa` added a new, unconditional
+gate inside `MessagesService.send()`:
 
 ```ts
 await this.usageAllowances.assertProjectWithinAllowance(actor.projectId, UsageProduct.CHAT);
 ```
 
-`LiveStreamsService.create()` calls `messagesService.send()` to post an
-internal system message ("Live stream ... was created") that viewer
-reactions hang off. That call was never a developer sending a chat message —
-it's Live Streaming's own bookkeeping — but after this commit it started
-being metered and gated by the **project owner's Chat allowance** like any
-other message. Two consequences, both reachable even with (a) fully fixed:
+`LiveStreamsService.create()` calls `send()` to post an internal system
+message ("Live stream ... was created") that viewer reactions hang off —
+never developer traffic, but after `02ec9aa` it started being gated by the
+**project owner's Chat allowance** like any other message. This is a real,
+reproducible bug (see §4) and was fixed (§5). **However**: the commit that
+was actually deployed to production at the time of the incident,
+`7fda609` (2026-09-10, predates `02ec9aa` entirely), does not contain this
+check at all — its `messages.service.ts` has no usage-allowance logic
+whatsoever. So (b) cannot be what caused the specific 15 orphans found in
+§(a); it is a genuine defect in the code that had been merged to `main` but
+had not yet actually reached production. It is fixed regardless, because it
+would have caused the same class of failure the moment the correct commit
+did ship.
 
-- Every stream creation now silently spends one unit of the owner's Chat
-  quota.
-- Once that quota is exhausted (independent of whether the account has ever
-  used Live Streaming), *every future stream creation permanently fails*,
-  because the very first message this feature ever sends gets rejected.
+**(c) An unrelated deploy-pipeline gap, discovered while trying to get any
+fix live at all.** `infrastructure/azure/13-api-app.sh` never wired
+`METRICS_SCRAPE_SECRET` into the Container App spec, but
+`env.validation.ts` has required it in production since commit `6d6c63c`.
+Every deploy since that commit merged crash-looped at boot (confirmed:
+restart counts of 13 and 53 on the two most recent revisions), and Azure
+Container Apps was silently keeping traffic on the last revision that
+actually stayed up rather than surfacing the failure — so `/health` kept
+reporting green throughout, masking that **no new deploy had actually taken
+effect in some time**. This is why root-causing this incident required
+pulling live container logs and replica state directly, rather than trusting
+`az containerapp show`'s reported "active revision." Fixed in §5.
 
-(a) is what actually fired in production, going by the exact reported
-signature (`RAVEN_INTERNAL_ERROR` / `INTERNAL_ERROR`, a generic 500 — see
-§2). (b) is a real, separate failure mode that would keep breaking stream
-creation for busy accounts even after the migration is caught up, so both
-had to be fixed.
-
-## 2. Failing code path
+## 2. Failing code path (as reproduced; not proven identical to the live incident's exact stack trace)
 
 ```
 POST /v1/live-streams
-  → LiveStreamsController.create()
   → LiveStreamsService.create()
-      1. roomsService.create()                    — succeeds (writes to `rooms`, untouched by the new migration)
-      2. conversationsService.create()             — succeeds (writes to `conversations`, untouched)
-      3. messagesService.send(systemActor, ...)
-           → usageAllowances.assertProjectWithinAllowance(projectId, CHAT)
-               → ensureProvisionedForProject(projectId, CHAT)
-                   → prisma.usageAllowance.upsert({ where: { userId_product: {...} }, ... })
-                       ✗ THROWS — `usage_allowances.product` does not exist yet (pre-migration prod)
-      4. prisma.liveStream.create(...)              — never reached
+      1. roomsService.create()          — succeeds
+      2. conversationsService.create()  — succeeds
+      3. messagesService.send(systemActor, ...)   ← any failure here, or in step 4, orphans the room
+      4. prisma.liveStream.create(...)
 ```
 
-The thrown error is a raw `PrismaClientKnownRequestError`, not one of this
-codebase's `AppError` subclasses. `AllExceptionsFilter`
-(`apps/api/src/shared/errors/all-exceptions.filter.ts`) treats anything that
-isn't an `HttpException` as "an unexpected bug": it logs the full exception
-server-side and returns the client exactly:
-
-```json
-{ "message": "Internal server error", "code": "RAVEN_INTERNAL_ERROR", "legacyCode": "INTERNAL_ERROR", ... }
-```
-
-— which is the exact body reported. `UsageLimitExceededError` (bug (b), once
-the schema is current) is its own `AppError` and would instead surface as a
-coded `403`, not a `500` — consistent with (a) being what actually fired in
-production, with (b) as a live landmine underneath it.
+Locally, with the `02ec9aa` usage-allowance check present and its migration
+held back, step 3 throws a raw `PrismaClientKnownRequestError` (`P2022`),
+which is not one of this codebase's `AppError` subclasses.
+`AllExceptionsFilter` treats anything that isn't an `HttpException` as an
+unexpected bug and returns a generic `500 RAVEN_INTERNAL_ERROR` — the exact
+signature reported. This proves the *class* of failure (an unhandled
+exception at this exact point in `create()` reliably produces the reported
+symptom and orphans the room) even though, per §1(b), it is not proven to be
+the literal exception that fired against `7fda609` in production — no
+historical logs survive that window (no Log Analytics workspace is wired to
+this Container App environment) to pin the exact stack trace after the
+fact.
 
 ## 3. Why RTC and Chat were unaffected
 
-- **RTC** (`RoomsService.create`) only ever writes to `rooms`. That table
-  was untouched by the new migration.
-- **Chat**'s own public "send a message" endpoint calls the *same*
-  `MessagesService.send()` and is gated by the identical new check — but a
-  developer's real chat traffic is exactly what that check is *supposed* to
-  gate, and their `Chat` allowance for genuine messages was already being
-  read/written correctly once the migration ran. The bug is specific to
-  **Live Streaming's internal use of the messaging pipe**: it drives the
-  same code path for a message that was never developer traffic, was never
-  meant to be metered at all, and is invoked unconditionally on every single
-  stream creation. Chat and RTC don't have an equivalent "invisible internal
-  write that must never be blocked."
+- **RTC** (`RoomsService.create`) only ever writes to `rooms` and never
+  calls into the chat/messaging or usage-allowance code at all.
+- **Chat**'s own public "send a message" endpoint calls the same
+  `MessagesService.send()`, but for a developer's real chat traffic, being
+  gated by their own Chat allowance is correct behavior, not a bug. The
+  defect is specific to **Live Streaming's internal use of the messaging
+  pipe** to post a message that was never developer-authored and is invoked
+  unconditionally on every single stream creation — RTC and Chat have no
+  equivalent "invisible internal write that must never be blocked."
+- More fundamentally: RTC and Chat's own creation paths (`Room`,
+  `Conversation`) are single-step writes. Live Streaming is the only one of
+  the three that composes multiple other services' side-effecting calls
+  into one logical operation with no compensating cleanup — that structural
+  gap (§1a) is what actually orphaned resources, regardless of which single
+  call in the chain happened to throw.
 
 ## 4. Why orphaned rooms were created
 
-`LiveStreamsService.create()` had no compensating cleanup. Its sequence was:
+See §1(a). Confirmed twice:
+
+**Locally**, against a throwaway `postgres:16-alpine` (mirroring
+`.github/workflows/e2e.yml`'s CI container) with all pre-`02ec9aa`
+migrations applied and the usage-split migration held back:
 
 ```
-create room  →  create conversation  →  send system message  →  write LiveStream row
-```
-
-with no transaction and no `try`/`catch` anywhere in the method. Room and
-conversation creation are their own service calls with their own
-side-effecting behavior (webhooks, DB rows) — not something that could
-safely live inside one Postgres transaction with an unrelated Prisma
-`usageAllowance.upsert()` and message send in between (the task brief's
-guidance to avoid wrapping cross-service/network operations in a DB
-transaction applies directly here). So any failure from step 3 onward — the
-usage-allowance error above, or literally any other exception — left the
-room (`status: ACTIVE`, fully joinable) and the conversation it had just
-created permanently unattached to any `LiveStream` row, and thus invisible
-to `GET /v1/live-streams` and to `roomsService.close()`'s normal lifecycle.
-
-### Empirical reproduction
-
-Reproduced locally against a throwaway `postgres:16-alpine` (mirroring
-`.github/workflows/e2e.yml`'s CI service container), with the 18
-pre-`02ec9aa` migrations applied and the 19th (`...split_usage_products...`)
-held back — i.e. exactly what an unmigrated production database looks like
-after the new API code deploys:
-
-```
-Room created (this is the step RTC already exercises fine): <uuid> ACTIVE
-Conversation created (this is the step Chat already exercises fine): <uuid> ACTIVE
+Room created (the step RTC already exercises fine): <uuid> ACTIVE
+Conversation created (the step Chat already exercises fine): <uuid> ACTIVE
 
 REPRODUCED THE FAILURE:
-  name:    PrismaClientKnownRequestError
-  code:    P2022
-  message:  Invalid `prisma.usageAllowance.upsert()` invocation ...
+  name: PrismaClientKnownRequestError, code: P2022
+  (usageAllowance.upsert() — product column doesn't exist yet)
 
-Room status after the failed request (this is the orphaned room):
-  status = ACTIVE (ACTIVE = orphaned and still joinable; no LiveStream row references it)
-  LiveStream rows referencing this room: 0 (0 = confirmed orphan)
+Room status after the failed request: ACTIVE, 0 LiveStream rows reference it
 ```
 
-Applying the held-back migration and re-running the identical call made the
-`usageAllowance.upsert()` succeed, confirming the migration is exactly what
-was missing.
+**In production data** (read-only queries against the real database): 15
+orphaned rooms, 15 matching orphaned conversations (1:1 by `stream_...`
+name), all in the 08:42–09:16 UTC window, versus exactly 2 `LiveStream` rows
+ever created successfully (both already `ENDED`, from before the incident).
 
 ## 5. Code changes
 
 **`apps/api/src/modules/chat/auth/chat-actor.interface.ts`**
 Added `ChatActor.internal?: boolean` — set only by trusted internal callers,
-never reachable from any request. Documents the exemption it grants.
+never reachable from any request.
 
 **`apps/api/src/modules/chat/messages/messages.service.ts`**
 Both the `assertProjectWithinAllowance` gate and the `recordChatMessage`
-call in `send()` are now skipped when `actor.internal` is true. A real
-developer send (`chat-auth.guard.ts`'s server/client actors never set this)
-is completely unaffected — this only exempts Livqeno's own internal sends.
+call in `send()` are skipped when `actor.internal` is true. A real
+developer send is completely unaffected.
 
 **`apps/api/src/modules/live-streams/live-streams.service.ts`**
 - The system actor `create()` builds for the root message now sets
-  `internal: true` — fixes defect (b) directly.
-- `create()`'s body from room-creation onward is now wrapped in a
-  `try`/`catch`. On any failure, `cleanupFailedCreate()` runs: it closes the
-  room (`roomsService.close`, the same idempotent lifecycle op `end()`
-  already uses) and, if a conversation was created, archives it
-  (`ConversationStatus.ARCHIVED`). Both operations are best-effort and
-  independently try/caught — a cleanup failure is logged but never replaces
-  or swallows the original error, which is always what the caller sees.
+  `internal: true`.
+- `create()`'s body from room-creation onward is wrapped in a
+  `try`/`catch`. On any failure, `cleanupFailedCreate()` closes the room
+  (`roomsService.close`, the same idempotent op `end()` already uses) and,
+  if a conversation was created, archives it (`ConversationStatus.ARCHIVED`).
+  Both are best-effort and independently try/caught — a cleanup failure is
+  logged but never shadows the original error.
 
-No behavior changed for a successful creation; the diff to that path is
-purely structural (indentation for the `try` block).
+No behavior changed for a successful creation.
+
+**`infrastructure/azure/13-api-app.sh`** (§1c)
+Wired a newly-generated `metrics-scrape-secret` (added to Key Vault,
+nothing existing rotated) into the Container App spec as
+`METRICS_SCRAPE_SECRET`.
 
 ## 6. Database/migration changes
 
-None required beyond what commit `02ec9aa` already added. The fix is:
-run the existing `20260911160000_split_usage_products_and_live_stream_caps`
-migration's one-shot deploy job against production (see
-`docs/deployment/managed-postgres.md#applying-migrations`) — it was already
-correct and idempotent; it simply had not been applied yet. No manual data
-repair is needed: the migration backfills `usage_allowances.product =
-'RTC'` for existing rows and lazily provisions `CHAT`/`LIVE_STREAMING` rows
-on first use, exactly as designed.
+None authored. The `20260911160000_split_usage_products_and_live_stream_caps`
+migration (added by `02ec9aa`) was already correct; production's schema was
+confirmed **fully up to date** (`prisma migrate status` → "up to date";
+directly verified `usage_allowances.product`/`includedCount`/`consumedCount`,
+its unique index, `live_streams.ownerId`, and
+`live_streams_one_live_per_owner` all exist) by the time this session
+investigated. `_prisma_migrations` shows it was actually applied at
+**2026-09-11T12:36:10 UTC** — after the 08:42–09:16 incident window, so the
+DB was in whatever state matched the code actually running (`7fda609`) at
+the time of the incident; no schema/code version mismatch was present
+during the incident itself.
 
-**Pre-existing orphaned rooms**: this incident will have left real orphaned
-rooms/conversations in production from every failed attempt (including
-retries — each one posts a new system message and creates a new room
-before failing). These are identifiable as `Room` rows with `status =
-'ACTIVE'` and no matching `LiveStream.roomId`, created in the incident
-window. Per the task's explicit constraint, no bulk cleanup script was
-written or run here — that's an operator decision requiring the actual
-production window and blast radius, not something to automate blind. The
-new code prevents *new* orphans; clearing the existing ones is a follow-up
-op.
+**Pre-existing orphaned rooms**: the 15 identified in §4 were left in place,
+per the task's explicit instruction not to bulk-delete orphans without
+understanding why they exist. They're now fully understood; clearing them
+is a follow-up op, not done in this session.
 
 ## 7. Regression tests
 
 Added to `apps/api/src/modules/live-streams/live-streams.service.spec.ts`
-(all confirmed to **fail against the pre-fix code** — see below):
+(confirmed to **fail against the pre-fix code** — verified by stashing the
+three source-file fixes and re-running; 4 of the new tests failed):
 
 - `marks the system root-message actor internal, so it is exempt from the
-  Chat usage allowance` — pins defect (b)'s fix.
-- `cleanup when creation fails after infrastructure already exists`:
-  - closes the room + archives the conversation when the system message
-    send fails
-  - closes only the room when conversation creation itself fails (nothing
-    to archive yet)
-  - closes the room + archives the conversation when the final `LiveStream`
-    write fails (the exact P2022 scenario)
-  - the original error still surfaces even if the room-cleanup call itself
-    fails (cleanup is best-effort, never shadows the real error)
-  - a stream that's actually created never triggers any cleanup call
-- `creates multiple streams in a row without collision or leftover state`
-  (Step 6 / Test C).
-
-Verified the new tests actually catch the regression: stashed the three
-source-file fixes (keeping the new spec) and re-ran — 4 of the new tests
-failed against the old code, all in the way this incident actually failed
-(cleanup calls never made; actor not marked internal).
+  Chat usage allowance`
+- `cleanup when creation fails after infrastructure already exists`: closes
+  room+conversation on a message-send failure, closes only the room when
+  conversation creation itself fails, closes room+conversation when the
+  final `LiveStream` write fails, the original error still surfaces even if
+  cleanup itself fails, and a genuinely successful creation never triggers
+  cleanup.
+- `creates multiple streams in a row without collision or leftover state`.
 
 Full suite: **925/925 passing**, `tsc --noEmit` clean.
 
-(Concurrent-creation and full lifecycle e2e coverage already exist in
-`apps/api/test/live-streams.e2e-spec.ts` / `live-streams-media.e2e-spec.ts`
-and were not duplicated here — those exercise the real HTTP layer end to
-end and were unaffected by this change.)
-
 ## 8. Local verification
 
-- `pnpm --filter api typecheck` — clean.
-- `npx jest` (full `apps/api` unit suite) — 925/925 passing, including the
-  new regression tests.
-- Direct reproduction against a real, disposable Postgres 16 instance
-  (§4): confirmed the exact `P2022` failure pre-migration, confirmed it
-  disappears once the held-back migration is applied, and confirmed the
-  room is left `ACTIVE` with zero referencing `LiveStream` rows in the
-  failing case — matching the external report's "orphaned room" symptom
-  exactly.
+- `tsc --noEmit` clean; full `apps/api` unit suite 925/925 passing.
+- Direct reproduction against a real, disposable Postgres 16 instance:
+  confirmed the `P2022` failure with the migration held back, confirmed it
+  disappears once applied, and confirmed the room is left orphaned in the
+  failing case.
 
-## 9. Production verification
+## 9. Production verification — **completed**
 
-**Not performed.** This session has no access to the real production
-Livqeno API, its database, or its deploy pipeline. Before this can be
-marked resolved in production:
+This session had real (authorized, explicitly confirmed) access to the
+actual production Azure subscription, Supabase database, and Key Vault.
+What was found and done:
 
-1. Confirm via the deploy pipeline / `docs/deployment/managed-postgres.md`
-   whether `20260911160000_split_usage_products_and_live_stream_caps` has
-   actually been applied to the production database. If not, run its
-   one-shot migration job.
-2. Deploy this code fix (defect (b) — the internal-actor exemption and the
-   creation cleanup — is required regardless of migration status, since it
-   prevents both the orphaned-room class of bug and the quota-exhaustion
-   failure mode).
-3. Run `POST /v1/live-streams` against production with the same logical
-   payload the external developer used, capture the request id, and confirm
-   `201` with a real stream.
-4. Confirm no new orphaned room is created by re-running the request a
-   few times back to back.
-5. Run the full host → viewer → chat → end lifecycle against production
-   through the published SDK, exactly as the external developer's
-   StreamSpace app does.
+1. **Migration status**: confirmed already applied (§6) — no action needed.
+2. **Deploy investigation**: `az containerapp show` reported the "active"
+   revision as `f6cd76288f9...` (current `main` `HEAD`), but this was
+   misleading — that revision, and the one built from this fix
+   (`raven-api--0000005` and `--0000006`), were both crash-looping
+   (`ActivationFailed`, restart counts 53 and 13) on the `METRICS_SCRAPE_SECRET`
+   gap (§1c). Real traffic was quietly still being served by
+   `raven-api--0000004` (image `7fda609`, from 2026-09-10) via Azure's
+   fallback-to-last-healthy-revision behavior — confirmed by matching a
+   live request's `x-request-id` against that revision's own container
+   logs.
+3. **Fixed the deploy gap** (§5), rebuilt nothing (same image tag,
+   `20703bf`, already contained the Live Streaming fix), and the user
+   re-ran `13-api-app.sh`. New revision `raven-api--0000007` came up
+   `Running`/`Healthy`, replica `ready: true`, `restartCount: 0` —
+   confirmed for real this time by matching a fresh request's
+   `x-request-id` against `--0000007`'s own live logs.
+4. **Live API verification**, against the real production endpoint, using a
+   real API key on the project that had the original orphans:
+   - `POST /v1/live-streams` × 3, fresh titles/identities: all `201`,
+     distinct rooms/conversations, zero collisions.
+   - Zero new orphaned rooms/conversations after any of it.
+   - `start` (CREATED→LIVE), `addHost` (HOST role, full RTC+chat
+     credentials), `viewer-tokens` (VIEWER role, RTC `publish:false`
+     confirmed on every permission field, chat MEMBER role) — all `201`.
+   - Host and viewer both sent real chat messages via
+     `POST /v1/chat/conversations/:id/messages`; both persisted with
+     correct `senderId`; the list endpoint showed all of them, including the
+     `internal` system message sitting right alongside real user messages —
+     the concrete, live proof that the Chat-allowance exemption works.
+   - `end` (LIVE→ENDED); a subsequent viewer-token mint correctly rejected
+     with `409 RAVEN_STREAM_INVALID_STATE`, not a 500.
+5. **Real WebRTC media**, using the actual published `@ravenkash/rtc`
+   client SDK (not raw SDP/WebSocket) against the real production
+   SFU/TURN/signaling stack, from two isolated, throwaway Chromium
+   instances (Playwright, synthetic fake camera/mic devices — no real
+   hardware or personal browser session involved):
+   - Host published microphone + camera; viewer subscribed to both.
+   - Verified with two `getStats()` samples 3 seconds apart on the
+     viewer's receive-side tracks: **audio** — Opus, 0% packet loss,
+     1ms jitter, ~23.7 kbps steady; **video** — VP8, 320×180 @ 20fps, 0%
+     packet loss. Real, decoded, live media — not an HTTP 200 or a
+     connection-established event standing in for it.
+   - All 5 test streams created during verification were cleanly ended
+     afterward; a final read-only sweep confirmed zero orphaned
+     rooms/conversations from any of this session's testing.
+
+All of the task's original STOP conditions were checked and none tripped:
+no `P2022`, no `42703`, no new orphaned room, no generic
+`RAVEN_INTERNAL_ERROR`, health checks pass, host published and viewer
+received real media, chat worked, end worked.
 
 ## 10. External SDK verification
 
-**Not performed**, for the same reason as §9 — this requires a real
-external-style project against a live, correctly-migrated Livqeno
-deployment, which this session cannot stand up. The regression tests in §7
-exercise the same service-level contract the SDK's `raven.liveStreams.create()`
-ultimately calls through, but that is not a substitute for the actual
-external-path check the task calls for.
+Partially done. §9's media test used the actual published-shape
+`@ravenkash/rtc` client SDK bundle (the same one `examples/video-call`
+ships), talking only to public HTTP/WS endpoints and real tokens minted
+through the public API — not internal source, not raw SDP. What's still
+outstanding, per the task's own Phase 13: a from-scratch external project
+using only public docs and `npm install @ravenkash/*`, and the dashboard's
+own frontend (Vercel) pointed at this API. Not attempted — that's a
+materially separate exercise from verifying the API/SFU stack itself.
 
 ## 11. Remaining known issues
 
-- Whether the production migration has actually been run is unverified
-  from this session — see §9, step 1. This is the one open question that
-  determines whether defect (a) is still live in production right now.
-- Pre-existing orphaned rooms/conversations from the incident window are
-  not cleaned up (see §6) — that's a deliberate scoping decision, not an
-  oversight.
-- The Chat-allowance exemption is scoped narrowly to `ChatActor.internal`,
-  set only by `LiveStreamsService`'s system-message send. Any future
-  feature that posts its own internal system messages through
-  `MessagesService.send()` needs to remember to set it too — there's no
-  structural guarantee a new caller does so correctly, only the documented
-  convention on the field itself.
+- The 15 pre-existing orphaned rooms/conversations from the original
+  incident are still in the database, identified but not cleaned up (§6) —
+  intentional, not an oversight.
+- The exact exception that fired against `7fda609` during the original
+  08:42–09:16 incident is not recoverable (no surviving logs) — §1(a)'s
+  structural fix (compensating cleanup) closes the bug regardless of which
+  specific downstream call was the trigger, so this doesn't block the fix,
+  but it means the *precise* historical stack trace is unconfirmed.
+- The Vercel frontend (Phase 12) has not been deployed/pointed at this API
+  in this session — that remains the user's manual step.
+- The from-scratch external-developer-path check (Phase 13, clean project,
+  published npm packages only) has not been run.
+- The Chat-allowance exemption is scoped narrowly to `ChatActor.internal`;
+  any future internal system-message sender needs to remember to set it —
+  no structural guarantee enforces this, only the documented convention.
 
 ---
 
-BLOCKED — root cause identified but production verification is still pending
+FIXED — Live Streaming creation and lifecycle verified end-to-end in production, including real host→viewer WebRTC media and chat. Vercel frontend deployment and the from-scratch external-SDK path (Phases 12–13) remain outstanding and are the user's next manual step.
