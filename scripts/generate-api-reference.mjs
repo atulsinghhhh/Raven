@@ -458,7 +458,7 @@ function writeEnvVars() {
     '',
     '`RTC_TOKEN_SECRET`, `CHAT_TOKEN_SECRET`, `SFU_REGISTRATION_SECRET`, and',
     '`METRICS_SCRAPE_SECRET` all fall back to `JWT_SECRET` so a fresh clone',
-    "boots. Production validation refuses that fallback at start-up: one",
+    'boots. Production validation refuses that fallback at start-up: one',
     "credential must not be able to mint (or scrape) another's. Generate",
     'each independently:',
     '',

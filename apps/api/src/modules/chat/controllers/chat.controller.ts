@@ -122,7 +122,11 @@ export class ChatController {
     description:
       'Refuses the token for any *new* gateway connection, which then fails with TOKEN_REVOKED — an already-open connection is unaffected, since authorization is checked when it opens, not per-frame. Idempotent: revoking an already-revoked, expired, or unrecognized token id succeeds either way, since chat tokens are bearer capabilities with nothing server-side to look up by id.',
   })
-  @ApiResponse({ status: 200, description: 'Token revoked', schema: { example: { tokenId: 'ctk_7Qd2nF...', revoked: true } } })
+  @ApiResponse({
+    status: 200,
+    description: 'Token revoked',
+    schema: { example: { tokenId: 'ctk_7Qd2nF...', revoked: true } },
+  })
   async revokeToken(@CurrentChatActor() actor: ChatActor, @Param('tokenId') tokenId: string) {
     // Same reasoning as minting: revoking someone else's credential is a
     // server-side act, not something a browser holding one token should

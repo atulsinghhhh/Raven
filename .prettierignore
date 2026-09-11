@@ -17,6 +17,9 @@ sdks/python/.venv/
 # Prisma's generated client: hundreds of thousands of machine-written lines.
 apps/api/src/generated/
 
+# Next.js regenerates this on every build; it carries its own "do not edit" notice.
+apps/www/next-env.d.ts
+
 # Vendored SDK builds copied from packages/*/dist so the browser e2e harness
 # can load them without a bundler. Nobody edits these by hand.
 apps/api/test/e2e-harness/vendor/
