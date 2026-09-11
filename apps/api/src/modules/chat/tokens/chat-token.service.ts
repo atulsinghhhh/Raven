@@ -158,6 +158,20 @@ export class ChatTokenService {
     await this.redisService.client.set(RedisKeys.revokedToken(tokenId), '1', 'EX', ttlSeconds);
   }
 
+  /**
+   * Revokes a token by id alone, for the DELETE endpoint: unlike RTC
+   * tokens, chat tokens are never persisted (issue() is a pure sign, no
+   * Prisma row), so there is no row to read a real `expiresAt` off of.
+   * Tombstoning for the *maximum* possible TTL is still correct — it
+   * only over-retains the tombstone by however much less than max the
+   * real token's lifetime was, and revocation state is keyed by a
+   * short, unguessable id, so that cost never accumulates unbounded.
+   */
+  async revokeByMaxTtl(tokenId: string): Promise<void> {
+    const maxTtlSeconds = this.configService.get<number>('chat.tokenMaxTtlSeconds')!;
+    await this.revoke(tokenId, new Date(Date.now() + maxTtlSeconds * 1000));
+  }
+
   private async isRevoked(tokenId: string): Promise<boolean> {
     try {
       return (await this.redisService.client.exists(RedisKeys.revokedToken(tokenId))) === 1;
