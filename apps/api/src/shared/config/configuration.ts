@@ -15,7 +15,7 @@ export default () => ({
   // Kept apart from publicUrl above because in every deployment that
   // matters those are different hosts. Vercel serves the dashboard, Azure
   // serves this API.
-  appUrl: process.env.APP_URL ?? 'http://localhost:3000',
+  appUrl: process.env.APP_URL ?? 'http://localhost:3001',
 
   database: {
     url: process.env.DATABASE_URL,
@@ -72,8 +72,8 @@ export default () => ({
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
       callbackUrl:
-        process.env.GITHUB_CALLBACK_URL ??
-        `${process.env.APP_URL ?? 'http://localhost:3000'}/api/auth/oauth/github/callback`,
+          process.env.GITHUB_CALLBACK_URL ??
+          `${process.env.APP_URL}/api/auth/oauth/github/callback`
     },
     google: {
       enabled: Boolean(process.env.GOOGLE_CLIENT_ID),
@@ -81,7 +81,7 @@ export default () => ({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackUrl:
         process.env.GOOGLE_CALLBACK_URL ??
-        `${process.env.APP_URL ?? 'http://localhost:3000'}/api/auth/oauth/google/callback`,
+        `${process.env.APP_URL ?? 'http://localhost:3001'}/api/auth/oauth/google/callback`,
     },
   },
 
