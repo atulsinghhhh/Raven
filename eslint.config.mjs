@@ -37,6 +37,11 @@ export default tseslint.config(
       // is ignored: nobody edits these, and linting a minified-ish build
       // output produces only noise.
       'apps/api/test/e2e-harness/vendor/**',
+      // Same again for the capacity rig: staged copies of the published
+      // SDK builds, plus raw measurement output and generated Y4M.
+      'scripts/capacity/harness/vendor/**',
+      'scripts/capacity/results/**',
+      'scripts/capacity/.content/**',
       'apps/dashboard/**',
       'apps/www/**',
       'apps/docs/**',
@@ -57,7 +62,7 @@ export default tseslint.config(
     // docs/repro/* are diagnostic snippets meant to be pasted into a
     // DevTools console against a live page, so they are browser code that
     // happens to live under docs/.
-    files: ['apps/api/test/e2e-harness/*.js', 'test/public/*.js', 'docs/repro/*.js'],
+    files: ['apps/api/test/e2e-harness/*.js', 'scripts/capacity/harness/*.js', 'test/public/*.js', 'docs/repro/*.js'],
     languageOptions: {
       globals: { ...globals.browser },
     },
@@ -69,7 +74,7 @@ export default tseslint.config(
     // waitForFunction are serialized and run inside the page, so `window`
     // in them is the browser's. ESLint cannot scope globals any finer than
     // a file, hence both sets here rather than a narrower glob.
-    files: ['scripts/chat-audit/harness/*.mjs'],
+    files: ['scripts/chat-audit/harness/*.mjs', 'scripts/capacity/*.mjs', 'scripts/capacity/lib/*.mjs'],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },
     },

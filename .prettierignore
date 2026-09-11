@@ -43,3 +43,10 @@ sdks/python/
 *.yaml
 
 apps/docs/groundtruth.json
+
+# Capacity-rig artefacts. The vendor bundles are staged copies of the
+# published SDK builds and the results are raw measurement output — both
+# are generated, and reformatting either would only make a diff.
+scripts/capacity/harness/vendor/
+scripts/capacity/results/
+scripts/capacity/.content/
