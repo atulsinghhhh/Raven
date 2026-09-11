@@ -133,7 +133,9 @@ properties:
       - name: sfu-registration-secret
         value: $(kv sfu-registration-secret)
       - name: turn-secret
-        value: $(kv turn-secret)${OAUTH_SECRETS_YAML}
+        value: $(kv turn-secret)
+      - name: metrics-scrape-secret
+        value: $(kv metrics-scrape-secret)${OAUTH_SECRETS_YAML}
   template:
     containers:
       - image: ${LOGIN_SERVER}/raven-api:${TAG}
@@ -148,6 +150,10 @@ properties:
             value: "${RAVEN_API_PORT:-4100}"
           - name: LOG_LEVEL
             value: info
+          # Required in production (env.validation.ts) since 6d6c63c —
+          # without it GET /metrics is public and unauthenticated.
+          - name: METRICS_SCRAPE_SECRET
+            secretRef: metrics-scrape-secret
           - name: API_PUBLIC_URL
             value: https://${FQDN}
           # Must be wss:// in production — RTC tokens travel on it.
