@@ -84,7 +84,16 @@ describe('Control plane (e2e)', () => {
         expect([401, 404]).toContain(res.status);
       });
 
-    const res = await request(app.getHttpServer()).get('/metrics').expect(200);
+    // Same fallback configuration.ts gives metrics.scrapeSecret, so this
+    // is the value MetricsAuthGuard actually expects in this environment.
+    const scrapeSecret = process.env.METRICS_SCRAPE_SECRET ?? process.env.JWT_SECRET;
+
+    await request(app.getHttpServer()).get('/metrics').expect(401);
+
+    const res = await request(app.getHttpServer())
+      .get('/metrics')
+      .set('Authorization', `Bearer ${scrapeSecret}`)
+      .expect(200);
     expect(res.headers['content-type']).toContain('text/plain');
     expect(res.text).toContain('raven_http_requests_total');
     expect(res.text).toContain('raven_chat_connections_active');

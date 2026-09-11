@@ -12,7 +12,8 @@ something you have missed — it is here so you can plan around it.
 - [ ] `RAVEN_API_KEY` in secret storage, not in the repository, not in a `.env` you commit.
 - [ ] No API key reachable from any client bundle. Grep your built output for `rvk_`.
 - [ ] Webhook signing secret stored separately from the API key.
-- [ ] If self-hosting: `JWT_SECRET`, `RTC_TOKEN_SECRET`, `CHAT_TOKEN_SECRET`, `API_KEY_HASH_SECRET`, `SFU_REGISTRATION_SECRET`, `TURN_SECRET` each generated independently. Production validation refuses the `JWT_SECRET` fallback, so a boot failure here is the check working.
+- [ ] If self-hosting: `JWT_SECRET`, `RTC_TOKEN_SECRET`, `CHAT_TOKEN_SECRET`, `API_KEY_HASH_SECRET`, `SFU_REGISTRATION_SECRET`, `METRICS_SCRAPE_SECRET`, `TURN_SECRET` each generated independently. Production validation refuses the `JWT_SECRET` fallback, so a boot failure here is the check working.
+- [ ] `METRICS_SCRAPE_SECRET` configured on your Prometheus scrape config's `authorization.credentials` — without it, `GET /metrics` rejects the scrape, and without the app-side secret set, `/metrics` would otherwise be public.
 - [ ] A key rotation runbook: create → deploy → verify → revoke.
 
 ## Tokens

@@ -179,3 +179,35 @@ Things that cost time here and will cost it again.
 5. Put `/metrics` behind auth or an IP allowlist before any public announcement.
 
 Steps 1–3 are the release gate. Steps 4–5 are pre-launch hygiene.
+
+---
+
+## 8. Update — 2026-09-11 (External Developer Preview pass)
+
+- **Step 3 confirmed, independently.** `@ravenkash/rtc` on npm is `0.4.0`
+  (not the broken `0.1.0` this audit flagged); a clean `npm install
+  @ravenkash/server @ravenkash/rtc @ravenkash/chat @ravenkash/react
+  @ravenkash/client` in a fresh directory pulls real semver dependencies
+  (no `workspace:*`, no overrides needed) and the ESM import resolves.
+  All 8 `@ravenkash/*` packages are live on the registry. What's now
+  stale in the other direction: `apps/docs/content/getting-started/
+  installing-from-source.md` and `get-started/create-a-project.md`
+  still tell developers nothing is published and the CLI must be built
+  from source — both wrong as of this pass, both fixed as part of the
+  External Developer Preview audit.
+- **Step 5 done.** `GET /metrics` now requires `Authorization: Bearer
+  $METRICS_SCRAPE_SECRET` (`MetricsAuthGuard`, fails closed if unset).
+  Verified against production (`api.ravenstack.online/metrics` returned
+  aggregate Prometheus text with no auth prior to this fix) that the
+  guard is now deployed and enforced.
+- **Chat token revocation fixed.** `DELETE /v1/chat/tokens/:tokenId`
+  (§5, non-blocking bullet 2) now exists (`ChatController.revokeToken`),
+  guarded the same as minting (server actor only). Chat tokens are
+  never persisted, so there's no row to answer `404` from or read a
+  real expiry off of — the tombstone always uses
+  `CHAT_TOKEN_MAX_TTL_SECONDS`, and the call is idempotent by
+  construction rather than by a special case. See
+  `apps/docs/content/chat/authentication.md#revocation`.
+- **`x-powered-by: Express` header removed** (`app.getHttpAdapter().
+  getInstance().disable('x-powered-by')` in `main.ts`) — a free
+  framework fingerprint for no developer-facing benefit.

@@ -43,7 +43,12 @@ spec:
         app.kubernetes.io/part-of: raven
       annotations:
         # Scraped pod-internally — see infrastructure/k8s/README.md on
-        # why /metrics never goes through the public ingress.
+        # why /metrics never goes through the public ingress. It also
+        # requires `Authorization: Bearer $METRICS_SCRAPE_SECRET`
+        # regardless of network path (MetricsAuthGuard never fails open,
+        # since Azure Container Apps has no equivalent pod-internal-only
+        # route) — a real scrape config needs a bearer_token_file or
+        # authorization block pointed at that secret.
         prometheus.io/scrape: "true"
         prometheus.io/port: "4100"
         prometheus.io/path: "/metrics"

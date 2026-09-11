@@ -51,6 +51,32 @@ is always safe.
 | `chat:moderate` | delete anyone's message |
 | `chat:manage` | reconfigure the conversation |
 
+## Revocation
+
+A token can be killed before it expires:
+
+```http
+DELETE /v1/chat/tokens/{tokenId}
+```
+
+`tokenId` is the `tokenId` field from the mint response. Requires a
+project API key — the same server-side-only rule as minting one.
+
+Unlike RTC tokens, chat tokens are never persisted server-side (minting
+one is a pure signing operation, not a database write), so there is no
+row to look up and no `404` for an id that never existed or already got
+revoked — the call always succeeds. That also means revoking is bounded
+by `CHAT_TOKEN_MAX_TTL_SECONDS` regardless of the token's actual
+`expiresIn`: the tombstone can't read a real expiry off a row that
+doesn't exist, so it uses the deployment's maximum instead, which is
+still short (6 hours by default) and never accumulates unbounded.
+
+It refuses the token for any **new** gateway connection
+(`TOKEN_REVOKED`) — a connection already open when you revoke is
+unaffected, the same boundary RTC token revocation has. See
+[RTC → Authentication](/rtc/authentication#revocation) for the fuller
+explanation of that boundary; it applies here identically.
+
 ## What the server never trusts from a browser
 
 The sender identity always comes from the signed token, never a field

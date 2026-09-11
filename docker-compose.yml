@@ -264,6 +264,8 @@ services:
       # How SFU nodes authenticate to the control plane. Server-to-server
       # only; never handed to a client.
       SFU_REGISTRATION_SECRET: ${SFU_REGISTRATION_SECRET:?SFU_REGISTRATION_SECRET is required}
+      # Bearer secret GET /metrics requires — see .env.example.
+      METRICS_SCRAPE_SECRET: ${METRICS_SCRAPE_SECRET:?METRICS_SCRAPE_SECRET is required}
       SFU_HEARTBEAT_TIMEOUT_SECONDS: ${SFU_HEARTBEAT_TIMEOUT_SECONDS:-30}
       SFU_DEFAULT_REGION: ${SFU_DEFAULT_REGION:-local}
       # Host-facing: this is handed back to clients as `endpoint`, so it

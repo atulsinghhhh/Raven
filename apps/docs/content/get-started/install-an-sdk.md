@@ -11,16 +11,6 @@ packages, and neither can do the other's job.
 > not on PyPI or pub.dev yet.** For Python and Flutter, install from a
 > checkout — see
 > [Installing from source](/getting-started/installing-from-source).
->
-> One npm caveat, until `0.1.1` ships: `@ravenkash/rtc@0.1.0` and
-> `@ravenkash/client@0.1.0` were published with an unresolvable
-> `workspace:*` dependency and fail to install. Add an `overrides` entry to
-> your `package.json` to pin the missing sibling, and drop it once `0.1.1`
-> is out:
->
-> ```json
-> { "overrides": { "@ravenkash/effects": "0.1.0" } }
-> ```
 
 ## Your backend
 

@@ -290,3 +290,24 @@ describe('revoke', () => {
     expect(client.set.mock.calls[0][3]).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe('revokeByMaxTtl', () => {
+  it('tombstones for the configured max TTL, since there is no persisted row to read a real expiry off of', async () => {
+    const { service, client } = makeService();
+
+    await service.revokeByMaxTtl('ctk_by_id_only');
+
+    expect(client.set).toHaveBeenCalledWith(expect.stringContaining('ctk_by_id_only'), '1', 'EX', expect.any(Number));
+    const ttl = client.set.mock.calls[0][3] as number;
+    // CONFIG['chat.tokenMaxTtlSeconds'] is 21600.
+    expect(ttl).toBeGreaterThan(21_590);
+    expect(ttl).toBeLessThanOrEqual(21_600);
+  });
+
+  it('makes an already-revoked or never-issued id revoke without error', async () => {
+    // No DB row means no "not found" to check against — the endpoint is
+    // idempotent by construction, not by special-casing a repeat call.
+    const { service } = makeService();
+    await expect(service.revokeByMaxTtl('ctk_does_not_exist')).resolves.toBeUndefined();
+  });
+});

@@ -1,6 +1,6 @@
 /**
- * Project-scoped navigation. Grouped by what a developer is trying to do
- *, run RTC, debug it, integrate against it, instead of mirroring the
+ * Project-scoped navigation. Grouped by what a developer is trying to do —
+ * run RTC, debug it, integrate against it — instead of mirroring the
  * API's controller layout.
  *
  * Nothing here links to a surface the Control API can't actually back;

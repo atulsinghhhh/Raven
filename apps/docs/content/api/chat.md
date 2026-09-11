@@ -42,6 +42,7 @@ See [Chat authentication](/chat/authentication) for what that means in practice.
 | POST | [`/v1/chat/messages/{messageId}/read`](#post-v1chatmessagesmessageidread) | Project API key **or** chat token |
 | GET | [`/v1/chat/messages/{messageId}/thread`](#get-v1chatmessagesmessageidthread) | Project API key **or** chat token |
 | POST | [`/v1/chat/tokens`](#post-v1chattokens) | Project API key **or** chat token |
+| DELETE | [`/v1/chat/tokens/{tokenId}`](#delete-v1chattokenstokenid) | Project API key **or** chat token |
 | GET | [`/v1/projects/{projectId}/chat/connections`](#get-v1projectsprojectidchatconnections) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/chat/conversations`](#get-v1projectsprojectidchatconversations) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/chat/conversations/{conversationId}`](#get-v1projectsprojectidchatconversationsconversationid) | Dashboard session (JWT) |
@@ -325,6 +326,16 @@ Mint a short-lived chat token for one of your users
 | `conversations` | body | `string[]` | No | array — Conversation references (conv_ id, uuid, or name) this token may touch. Omit to allow every conversation the user is a member of. |
 | `scopes` | body | `string[]` | No | array — Narrows the token below what the user's role allows. Can only ever remove permissions — listing "chat:manage" here does not grant it. |
 | `ttlSeconds` | body | `number` | No | 60–21600 — Lifetime in seconds. Defaults to CHAT_TOKEN_DEFAULT_TTL_SECONDS, capped at CHAT_TOKEN_MAX_TTL_SECONDS. There is no non-expiring chat token. |
+
+### DELETE `/v1/chat/tokens/{tokenId}`
+
+Revoke a minted chat token before it expires
+
+**Credential** Project API key **or** chat token
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `tokenId` | path | `string` | Yes | |
 
 ### GET `/v1/projects/{projectId}/chat/connections`
 

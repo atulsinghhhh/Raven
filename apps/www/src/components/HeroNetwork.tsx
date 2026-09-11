@@ -74,11 +74,9 @@ export function HeroNetwork() {
           </radialGradient>
         </defs>
 
-        {/* Column labels */}
         <ColumnLabel x={100} label="Your application" />
         <ColumnLabel x={876} label="Your users" />
 
-        {/* Wires */}
         {edges.map((edge) => (
           <path
             key={edge.id}
@@ -102,12 +100,10 @@ export function HeroNetwork() {
           )),
         )}
 
-        {/* Application sources */}
         <Chip x={40} y={74} w={120} label="Web" />
         <Chip x={40} y={199} w={120} label="Mobile" />
         <Chip x={40} y={324} w={120} label="Backend" />
 
-        {/* The Livqeno core */}
         <g>
           <circle cx={CORE.x} cy={CORE.y} r="130" fill="url(#raven-core-glow)" className="raven-net-glow" />
           <circle
@@ -147,13 +143,11 @@ export function HeroNetwork() {
           </g>
         </g>
 
-        {/* Capabilities */}
         <Chip x={610} y={44} w={100} label="Audio" tone="accent" />
         <Chip x={610} y={147} w={100} label="Video" tone="accent" />
         <Chip x={610} y={250} w={100} label="Chat" tone="accent" />
         <Chip x={610} y={353} w={100} label="Live" tone="live" />
 
-        {/* Users */}
         {USERS.map((user, i) => (
           <g key={i} transform={`translate(${user.x}, ${user.y})`}>
             <circle r="9" fill="var(--surface)" stroke="var(--line-strong)" strokeWidth="1.25" />

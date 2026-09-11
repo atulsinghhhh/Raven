@@ -390,7 +390,7 @@ function checkLinks(files) {
 }
 
 // ---------------------------------------------------------------------------
-// 8. Redirects
+// 7. Redirects
 //
 // A redirect is invisible to every other check here: it lives in
 // next.config.ts, not in Markdown, so the link checker and the nav check
@@ -446,7 +446,7 @@ function checkRedirects(files) {
 }
 
 // ---------------------------------------------------------------------------
-// 7. Nav parity
+// 8. Nav parity
 // ---------------------------------------------------------------------------
 
 function checkNav(files) {

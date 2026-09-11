@@ -11,8 +11,8 @@ import { DOCS_URL } from '@/lib/nav';
  * Every snippet on this page is checked against the real packages:
  * `createRTCClient`/`Room` from packages/sdk/src, `Raven` +
  * `tokens.create`/`rooms.create` from packages/server-sdk/src, and the
- * same two calls from sdks/python/src/raven. Nothing here is aspirational
- *: if an API isn't in those files, it isn't on this page.
+ * same two calls from sdks/python/src/raven. Nothing here is aspirational:
+ * if an API isn't in those files, it isn't on this page.
  */
 export default async function QuickstartPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;

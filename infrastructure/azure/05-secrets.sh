@@ -77,5 +77,28 @@ else
   echo "       az keyvault secret set --vault-name ${RAVEN_KV} -n database-url --value '<string>'"
 fi
 
+# OAuth sign-in credentials. Deliberately NOT read from the operator's local
+# .env: those GITHUB_CLIENT_ID/GOOGLE_CLIENT_ID values are registered
+# against a localhost callback (docs/deployment/livqeno-domain-cutover.md
+# §4) and silently reusing them here would make the API boot looking
+# configured while every real sign-in attempt fails on a callback mismatch
+# — worse than the buttons just not appearing. Production needs its own
+# provider-console registration, so these come from dedicated env vars the
+# operator exports right before running this script, once, after doing
+# that registration.
+echo "==> OAuth sign-in (from PROD_* env vars — not generated, not from local .env)"
+if [ -n "${PROD_GITHUB_CLIENT_ID:-}" ] && [ -n "${PROD_GITHUB_CLIENT_SECRET:-}" ]; then
+  set_literal github-client-id "${PROD_GITHUB_CLIENT_ID}"
+  set_literal github-client-secret "${PROD_GITHUB_CLIENT_SECRET}"
+else
+  echo "    -- GitHub OAuth skipped: PROD_GITHUB_CLIENT_ID / PROD_GITHUB_CLIENT_SECRET not set"
+fi
+if [ -n "${PROD_GOOGLE_CLIENT_ID:-}" ] && [ -n "${PROD_GOOGLE_CLIENT_SECRET:-}" ]; then
+  set_literal google-client-id "${PROD_GOOGLE_CLIENT_ID}"
+  set_literal google-client-secret "${PROD_GOOGLE_CLIENT_SECRET}"
+else
+  echo "    -- Google OAuth skipped: PROD_GOOGLE_CLIENT_ID / PROD_GOOGLE_CLIENT_SECRET not set"
+fi
+
 echo "==> Vault contents (names only)"
 az keyvault secret list --vault-name "${RAVEN_KV}" --query "sort_by([].{name:name}, &name)" -o table

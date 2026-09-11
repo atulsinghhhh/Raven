@@ -310,15 +310,6 @@ export class SignalingGateway implements OnGatewayInit, OnGatewayConnection, OnG
   }
 
   /**
-   * Delivers whatever an SFU frame implies.
-   *
-   * Session-targeted frames, meaning offers, answers, candidates and
-   * connection state, go straight to the socket. The frame arrived on a
-   * link this instance owns, so the session is ours. Room-wide frames, a
-   * track appearing or going away, go through Redis, because the room's
-   * other participants could be on any instance.
-   */
-  /**
    * Ends the sessions a node took with it when its link dropped.
    *
    * Their PeerConnections only ever existed in that node's memory, so a
@@ -362,6 +353,15 @@ export class SignalingGateway implements OnGatewayInit, OnGatewayConnection, OnG
     }
   }
 
+  /**
+   * Delivers whatever an SFU frame implies.
+   *
+   * Session-targeted frames, meaning offers, answers, candidates and
+   * connection state, go straight to the socket. The frame arrived on a
+   * link this instance owns, so the session is ours. Room-wide frames, a
+   * track appearing or going away, go through Redis, because the room's
+   * other participants could be on any instance.
+   */
   private async handleSfuFrame(frame: NodeLinkFrame): Promise<void> {
     let action;
     try {

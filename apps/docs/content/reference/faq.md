@@ -25,7 +25,10 @@ table.
 
 ### Are the packages on npm yet?
 
-No. All packages are at `0.1.0` and unpublished. Install from a checkout —
+The `@ravenkash/*` JavaScript/TypeScript packages (including the CLI) are —
+`npm install` them directly. Python (`raven-sdk`) and Flutter
+(`raven_rtc`/`raven_chat`/`raven_live`) aren't on PyPI or pub.dev yet;
+install those from a checkout —
 [Installing from source](/getting-started/installing-from-source).
 
 ## Tokens and authentication

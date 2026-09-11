@@ -92,7 +92,7 @@ describe('validateEnv — production-only checks', () => {
 
   it('reports every violated production rule at once, not just the first', () => {
     expect(() => validateEnv(baseConfig({ NODE_ENV: 'production' }))).toThrow(
-      /TURN_TLS_PORT.*CORS_ORIGIN.*TURN_HOST.*RTC_TOKEN_SECRET.*SFU_REGISTRATION_SECRET.*CHAT_TOKEN_SECRET/s,
+      /TURN_TLS_PORT.*CORS_ORIGIN.*TURN_HOST.*RTC_TOKEN_SECRET.*SFU_REGISTRATION_SECRET.*METRICS_SCRAPE_SECRET.*CHAT_TOKEN_SECRET/s,
     );
   });
 
@@ -111,6 +111,7 @@ describe('validateEnv — production-only checks', () => {
       CHAT_TOKEN_SECRET: 'a-distinct-chat-token-secret',
       RTC_TOKEN_SECRET: 'a-distinct-rtc-token-secret',
       SFU_REGISTRATION_SECRET: 'a-distinct-sfu-registration-secret',
+      METRICS_SCRAPE_SECRET: 'a-metrics-scrape-secret',
       STORAGE_ENDPOINT: 'https://storage.example.com',
       ...overrides,
     });
@@ -205,6 +206,15 @@ describe('validateEnv — production-only checks', () => {
     // credential must not be derivable from it.
     expect(() => validateEnv(productionConfig({ SFU_REGISTRATION_SECRET: 'a-distinct-rtc-token-secret' }))).toThrow(
       /SFU_REGISTRATION_SECRET must differ from RTC_TOKEN_SECRET/,
+    );
+  });
+
+  it('rejects production config without a metrics scrape secret', () => {
+    // Without it, GET /metrics is public and unauthenticated — it leaks
+    // business volume, the internal route map, and a live success/failure
+    // oracle to anyone who requests it.
+    expect(() => validateEnv(productionConfig({ METRICS_SCRAPE_SECRET: undefined }))).toThrow(
+      /METRICS_SCRAPE_SECRET is required in production/,
     );
   });
 
@@ -326,6 +336,7 @@ describe('validateEnv — email (Resend)', () => {
         CHAT_TOKEN_SECRET: 'a-distinct-chat-token-secret',
         RTC_TOKEN_SECRET: 'a-distinct-rtc-token-secret',
         SFU_REGISTRATION_SECRET: 'a-distinct-sfu-registration-secret',
+        METRICS_SCRAPE_SECRET: 'a-metrics-scrape-secret',
         EMAIL_ENABLED: 'true',
         RESEND_API_KEY: 'a-real-looking-key',
         RESEND_FROM_EMAIL: 'hello@mail.ravenstack.online',

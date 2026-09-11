@@ -3,7 +3,7 @@ title: All endpoints
 description: Every route the Livqeno API serves, generated from the controllers.
 ---
 
-Livqeno serves **115** versioned endpoints under `/v1`, plus
+Livqeno serves **116** versioned endpoints under `/v1`, plus
 **4** unversioned infrastructure routes. This page is generated
 from `apps/api`, so it is the whole surface — not a curated subset.
 
@@ -49,6 +49,7 @@ Interactive request/response schemas are served by the API itself at `/docs`.
 | POST | `/v1/chat/messages/{messageId}/read` | Project API key **or** chat token | [Chat](/api/chat) |
 | GET | `/v1/chat/messages/{messageId}/thread` | Project API key **or** chat token | [Chat](/api/chat) |
 | POST | `/v1/chat/tokens` | Project API key **or** chat token | [Chat](/api/chat) |
+| DELETE | `/v1/chat/tokens/{tokenId}` | Project API key **or** chat token | [Chat](/api/chat) |
 | GET | `/v1/connections` | Project API key | [Observability](/api/observability) |
 | GET | `/v1/connections/{connectionId}` | Project API key | [Observability](/api/observability) |
 | GET | `/v1/diagnostics` | Project API key | [Observability](/api/observability) |

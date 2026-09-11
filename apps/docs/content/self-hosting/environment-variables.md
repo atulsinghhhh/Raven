@@ -3,10 +3,10 @@ title: Environment variables
 description: Every variable any Livqeno component reads, grouped by what it configures. Generated from source.
 ---
 
-Livqeno's components read **117** environment variables between them —
-**97** by the control plane, **16** by the SFU,
+Livqeno's components read **123** environment variables between them —
+**103** by the control plane, **16** by the SFU,
 **6** by the dashboard. `.env.example` documents
-**106**, which leaves **21** read but
+**107**, which leaves **26** read but
 undocumented there; those are marked below.
 
 This page is generated from the source, so it is the complete set.
@@ -25,10 +25,11 @@ other eighty-eight:
 
 ## Secrets that must be set explicitly
 
-`RTC_TOKEN_SECRET` and `CHAT_TOKEN_SECRET` fall back to `JWT_SECRET` so a
-fresh clone boots. Production validation refuses that fallback at start-up:
-one credential must not be able to mint another's. Generate each
-independently:
+`RTC_TOKEN_SECRET`, `CHAT_TOKEN_SECRET`, `SFU_REGISTRATION_SECRET`, and
+`METRICS_SCRAPE_SECRET` all fall back to `JWT_SECRET` so a fresh clone
+boots. Production validation refuses that fallback at start-up: one
+credential must not be able to mint (or scrape) another's. Generate
+each independently:
 
 ```bash
 openssl rand -hex 32   # JWT_SECRET
@@ -36,6 +37,7 @@ openssl rand -hex 32   # RTC_TOKEN_SECRET
 openssl rand -hex 32   # CHAT_TOKEN_SECRET
 openssl rand -hex 32   # API_KEY_HASH_SECRET
 openssl rand -hex 32   # SFU_REGISTRATION_SECRET
+openssl rand -hex 32   # METRICS_SCRAPE_SECRET
 openssl rand -hex 32   # TURN_SECRET
 ```
 
@@ -228,7 +230,13 @@ openssl rand -hex 32   # TURN_SECRET
 
 | Variable | Notes |
 |---|---|
+| `API_KEY_VERIFY_CACHE_MAX_ENTRIES` | not in `.env.example` |
+| `API_KEY_VERIFY_CACHE_TTL_SECONDS` | not in `.env.example` |
+| `CAPACITY_MINT_CONCURRENCY` | not in `.env.example` |
+| `CAPACITY_MINT_QUEUE_DEPTH` | not in `.env.example` |
+| `CAPACITY_MINT_QUEUE_TIMEOUT_MS` | not in `.env.example` |
 | `HOSTNAME` | not in `.env.example` |
+| `METRICS_SCRAPE_SECRET` |   |
 | `NEXT_PUBLIC_DOCS_URL` | not in `.env.example` |
 | `NEXT_PUBLIC_GITHUB_URL` | not in `.env.example` |
 | `NEXT_PUBLIC_SUPPORT_URL` | not in `.env.example` |

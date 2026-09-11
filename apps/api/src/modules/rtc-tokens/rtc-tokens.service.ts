@@ -179,19 +179,6 @@ export class RtcTokensService {
   }
 
   /**
-   * The `endpoint` clients connect to: Livqeno's own signaling WebSocket.
-   *
-   * Derived from the API's public URL by default, so there's one address to
-   * configure, not two. `ChatTokenService.chatUrl()` takes the same
-   * approach. `RTC_SIGNALING_URL` overrides it for deployments that front
-   * signaling on a separate hostname or ingress.
-   *
-   * Worth being clear about what this *isn't*: the address of an SFU.
-   * Clients never learn which SFU serves their room. The signaling layer
-   * allocates one and negotiates on their behalf, and that's what lets the
-   * media plane be re-shaped, or replaced outright, without an SDK release.
-   */
-  /**
    * The participant row a token is issued against, created if this is the
    * identity's first token in this room.
    *
@@ -220,6 +207,19 @@ export class RtcTokensService {
     }
   }
 
+  /**
+   * The `endpoint` clients connect to: Livqeno's own signaling WebSocket.
+   *
+   * Derived from the API's public URL by default, so there's one address to
+   * configure, not two. `ChatTokenService.chatUrl()` takes the same
+   * approach. `RTC_SIGNALING_URL` overrides it for deployments that front
+   * signaling on a separate hostname or ingress.
+   *
+   * Worth being clear about what this *isn't*: the address of an SFU.
+   * Clients never learn which SFU serves their room. The signaling layer
+   * allocates one and negotiates on their behalf, and that's what lets the
+   * media plane be re-shaped, or replaced outright, without an SDK release.
+   */
   private signalingEndpoint(): string {
     const configured = this.configService.get<string>('rtc.signalingUrl');
     if (configured) {

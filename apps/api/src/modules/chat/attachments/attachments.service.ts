@@ -224,9 +224,7 @@ export class AttachmentsService {
 function sanitizeFilename(filename: string): string {
   const cleaned = filename
     .replace(/[\\/]/g, '_')
-    // Control characters, CR and LF included. A filename ends up in a
-    // Content-Disposition header, and a newline in one is header
-    // injection.
+    // CR/LF specifically: those are what turn into a header-injection payload.
     // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u001f\u007f]/g, '')
     .slice(0, 255)

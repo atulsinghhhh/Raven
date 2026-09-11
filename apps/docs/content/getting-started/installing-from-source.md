@@ -1,81 +1,23 @@
 ---
 title: Installing from source
-description: How to use Livqeno's SDKs today, before they're published to npm and PyPI.
+description: How to use Livqeno's Python and Flutter SDKs today, before they're published to PyPI and pub.dev.
 ---
 
-None of Livqeno's SDKs are published to a package registry yet. Every
-`npm install @ravenkash/...` and `pip install` command in these docs shows
-what installation *will* look like once they are. Livqeno's source isn't
-public — this page is for a checkout your Livqeno contact has already
-given you access to, not something to clone from a public URL.
+The `@ravenkash/*` JavaScript/TypeScript packages (including the CLI) are
+published to npm — see [Install an SDK](/get-started/install-an-sdk) and
+just `npm install` them. This page is only for **Python** and **Flutter**,
+which aren't on PyPI or pub.dev yet and need a checkout.
 
 > **Do not `pip install raven-sdk`.** That name already belongs to an
 > unrelated project on PyPI — the checkout's own package is named
 > `raven-sdk` too, but it will need to be renamed before it can be
 > published; don't assume the local name is what ends up on PyPI.
 
-## 1. Build the checkout
+## 1. Get a checkout
 
 ```bash
-cd <your Livqeno checkout>
-pnpm install                              # setup — this is a pnpm workspace
-npm run build --workspaces --if-present
-```
-
-The build step matters: every package's `package.json` points at
-`dist/`, so a package that hasn't been built resolves to nothing and you
-get a confusing "cannot find module" rather than a useful error.
-
-## 2. Link into your project
-
-### JavaScript / TypeScript
-
-pnpm, npm, and yarn all understand a filesystem path as a dependency
-version:
-
-```json
-{
-  "dependencies": {
-    "@ravenkash/rtc": "file:../Raven/packages/sdk",
-    "@ravenkash/chat": "file:../Raven/packages/chat-sdk",
-    "@ravenkash/client": "file:../Raven/packages/client",
-    "@ravenkash/react": "file:../Raven/packages/react-sdk",
-    "@ravenkash/react-native": "file:../Raven/packages/react-native-sdk",
-    "@ravenkash/server": "file:../Raven/packages/server-sdk"
-  }
-}
-```
-
-Adjust the relative paths to wherever you cloned Livqeno, then
-`npm install` (or `pnpm install`). Imports then work exactly as the docs
-show them:
-
-```ts
-import { createRTCClient } from '@ravenkash/rtc';
-```
-
-| Package | Path in the repo |
-|---|---|
-| `@ravenkash/rtc` | `packages/sdk` |
-| `@ravenkash/chat` | `packages/chat-sdk` |
-| `@ravenkash/client` | `packages/client` |
-| `@ravenkash/react` | `packages/react-sdk` |
-| `@ravenkash/react-native` | `packages/react-native-sdk` |
-| `@ravenkash/server` | `packages/server-sdk` |
-| `@ravenkash/cli` | `packages/cli` |
-
-### The CLI
-
-```bash
-cd Raven/packages/cli
-npm link          # puts `raven` on your PATH
-raven --version
-```
-
-Or run it without linking:
-
-```bash
-node /path/to/Raven/packages/cli/dist/index.js --version
+git clone https://github.com/atulsinghhhh/Raven.git
+cd Raven
 ```
 
 ### Python
@@ -106,7 +48,7 @@ dependencies:
 A path dependency, not a git one — Livqeno's source isn't a public
 repository to point `flutter pub get` at.
 
-## 3. Run Livqeno itself
+## 2. Run Livqeno itself
 
 The SDKs need a Livqeno control plane to talk to. To run one locally:
 
@@ -129,7 +71,7 @@ The API is then at `http://localhost:4100`, with interactive docs at
 
 ## When this page goes away
 
-Once the packages are published to a registry, every install command in
-these docs becomes literally correct and this page is deleted. Until
-then, treat any `npm install @ravenkash/...` you see as aspirational —
-this page is the one that reflects reality.
+Once Python and Flutter are published to PyPI and pub.dev, `pip install`
+and the `raven_rtc`/`raven_chat`/`raven_live` pub.dev dependencies
+elsewhere in these docs become literally correct, and this page is
+deleted.

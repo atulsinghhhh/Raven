@@ -7,8 +7,8 @@ import { ChatEventsService } from '../realtime/chat-events.service';
 import { ConversationsService } from './conversations.service';
 
 /**
- * Covers the webhook events this service is responsible for firing;
- * `room.created`, `participant.joined`, `participant.left`: the three
+ * Covers the webhook events this service fires — `room.created`,
+ * `participant.joined`, `participant.left` — the three that
  * the event catalogue (docs/reference/events.md) documents as delivered
  * but that, before this, no code path actually emitted.
  *

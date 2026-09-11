@@ -5,8 +5,8 @@
 # machine: the VMs are AMD x86_64 (Basv2). A native arm64 build pushed here
 # fails to start with "exec format error".
 #
-# apps/api is NOT built here. That image is Phase 3, and its build context is
-# the repo root (pnpm workspace) rather than a single directory.
+# apps/api is built separately, by 09-api-image.sh — its build context is
+# the repo root (pnpm workspace), not a single service directory.
 set -euo pipefail
 source "$(dirname "$0")/00-variables.sh"
 

@@ -210,8 +210,8 @@ let clockTimer: ReturnType<typeof setInterval> | undefined;
 function subscribeToClock(onChange: () => void): () => void {
   clockListeners.add(onChange);
   if (!clockTimer) {
-    // Set before the first interval fires so the very next snapshot read
-    //, which React performs right after subscribing, already has a real
+    // Set before the first interval fires so the very next snapshot read,
+    // which React performs right after subscribing, already has a real
     // time in it, rather than waiting five seconds for one.
     clockTick = Date.now();
     clockTimer = setInterval(() => {

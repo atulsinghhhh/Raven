@@ -3,8 +3,8 @@
 // same arrangement as signaling.constants.ts for the RTC plane.
 //
 // Chat does NOT reuse the RTC signaling protocol, and that's on purpose.
-// The two ride
-// different sockets, carry different payloads, and version independently.
+// The two ride different sockets, carry different payloads, and version
+// independently.
 
 /** Frames a client may send. Anything else is rejected as INVALID_MESSAGE_TYPE. */
 export enum ChatClientFrame {

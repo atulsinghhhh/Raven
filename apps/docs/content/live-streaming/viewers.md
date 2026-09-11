@@ -25,7 +25,7 @@ credential = raven.live_streams.create_viewer_token(stream_id, "carol")
 <Tab title="cURL">
 
 ```bash
-curl -X POST http://localhost:4100/v1/live-streams/$STREAM_ID/viewer-tokens \
+curl -X POST "$RAVEN_API_URL/v1/live-streams/$STREAM_ID/viewer-tokens" \
   -H "Authorization: Bearer $RAVEN_API_KEY" \
   -d '{"identity": "carol"}'
 ```
@@ -124,7 +124,7 @@ await stream.leave();
 <Tab title="cURL">
 
 ```bash
-curl -X POST http://localhost:4100/v1/live-streams/$STREAM_ID/leave \
+curl -X POST "$RAVEN_API_URL/v1/live-streams/$STREAM_ID/leave" \
   -H "Authorization: Bearer $RAVEN_API_KEY" \
   -d '{"identity": "carol"}'
 ```

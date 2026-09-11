@@ -7,7 +7,7 @@ import { ChatDemo, EffectsDemo, LiveDemo, RoomDemo, TokenDemo } from './ProductD
  * Every snippet here is the real, current API: copied from
  * docs/rtc/quickstart.md, docs/chat/quickstart.md,
  * docs/live-streaming/quickstart.md, docs/effects/quickstart.md, and
- * docs/sdk/server/python.md, not invented for effect. If one of these
+ * docs/sdk/python.md, not invented for effect. If one of these
  * stops compiling against the actual SDK, the docs it was copied from
  * are wrong too: fix both together.
  */
