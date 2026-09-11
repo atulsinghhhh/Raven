@@ -11,7 +11,14 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ErrorState } from '@/components/ui/states';
 import { Meter } from '@/components/ui/meter';
 import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
-import { AllowanceMeter, DailyUsageChart, ExhaustedNotice, UsageHistoryTable } from '@/components/usage/usage-panels';
+import {
+  AllowanceMeter,
+  ChatUsageCard,
+  DailyUsageChart,
+  ExhaustedNotice,
+  LiveStreamingUsageCard,
+  UsageHistoryTable,
+} from '@/components/usage/usage-panels';
 import { formatCount, formatDuration } from '@/lib/format';
 import { DOCS_URL } from '@/lib/nav';
 
@@ -64,7 +71,7 @@ export default async function AccountUsagePage() {
     );
   }
 
-  const { summary, history, daily, byProject } = usageResult.value;
+  const { summary, history, daily, byProject, chat, liveStreaming } = usageResult.value;
 
   return (
     <AccountShell email={email} systemStatus={systemStatus}>
@@ -83,6 +90,11 @@ export default async function AccountUsagePage() {
         <ExhaustedNotice summary={summary} />
 
         <AllowanceMeter summary={summary} />
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <ChatUsageCard chat={chat} />
+          <LiveStreamingUsageCard liveStreaming={liveStreaming} />
+        </div>
 
         <DailyUsageChart daily={daily} days={CHART_DAYS} />
 
@@ -180,18 +192,23 @@ export default async function AccountUsagePage() {
             <MeteringNote title="RTC participant-minutes" metered>
               One participant in one room for one minute. A three-way call spends three minutes a minute.
             </MeteringNote>
-            <MeteringNote title="Chat, Live Streaming, Effects">
-              Not metered. Live Streaming&apos;s hosts and viewers are RTC participants, so their <em>media</em> time is
-              counted above.
+            <MeteringNote title="Chat messages" metered>
+              One message, counted once when the server durably persists it — never once per recipient it&apos;s
+              delivered to. Its own allowance, entirely separate from RTC minutes.
+            </MeteringNote>
+            <MeteringNote title="Live Streaming host-hours" metered>
+              Host and co-host connected time only, its own allowance. A viewer never spends anything, in this or the
+              RTC allowance above — see the Live Streaming card&apos;s concurrent-stream, viewer and duration limits
+              instead.
             </MeteringNote>
             <MeteringNote title="TURN relay bandwidth">
               Not metered. Bytes relayed are not counted or attributed.
             </MeteringNote>
-            <MeteringNote title="Storage, API requests, webhooks">Not metered.</MeteringNote>
+            <MeteringNote title="Storage, API requests, webhooks, Effects">Not metered.</MeteringNote>
           </dl>
           <p className="mt-5 border-t border-line pt-4 text-xs leading-relaxed text-subtle">
-            There is no billing, no plan and no payment path behind this page — the allowance is a fixed grant that does
-            not reset. Nothing here can be adjusted from the dashboard.
+            There is no billing, no plan and no payment path behind this page — every allowance above is a fixed grant
+            that does not reset. Nothing here can be adjusted from the dashboard.
           </p>
         </Card>
       </div>

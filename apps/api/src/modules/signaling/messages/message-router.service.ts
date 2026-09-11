@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RoomStatus, RtcServer } from '../../../generated/prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { RoomStatus, RtcServer, UsageKind, UsageProduct } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import {
   NoRtcCapacityError,
@@ -71,6 +72,7 @@ export class MessageRouterService {
     private readonly sfuLink: SfuLinkService,
     private readonly usageAllowances: UsageAllowanceService,
     private readonly usageMeter: UsageMeterService,
+    private readonly configService: ConfigService,
   ) {}
 
   async route(session: ParticipantSession, message: InboundSignalingMessage): Promise<SignalingActionResult> {
@@ -121,38 +123,83 @@ export class MessageRouterService {
     // it is what the last gate in front of the media plane reads.
     const room = await this.prisma.room.findUnique({
       where: { id: session.roomId },
-      select: { status: true },
+      select: {
+        status: true,
+        // Cheap on the common case: LiveStream.roomId is unique, so a room
+        // that doesn't back a stream resolves this to `null` in the same
+        // indexed lookup — no extra round trip. Scoped to this
+        // participant's identity so we learn in one query whether they are
+        // a registered, non-removed host/co-host of the stream, which is
+        // exactly what decides which allowance (if any) their join meters
+        // against below.
+        liveStream: {
+          select: {
+            id: true,
+            hosts: { where: { identity: session.participantId, removedAt: null }, select: { role: true } },
+          },
+        },
+      },
     });
     if (room?.status === RoomStatus.CLOSED) {
       throw new SignalingError(SignalingErrorCode.ROOM_CLOSED, 'This room has been closed and can no longer be joined');
     }
 
-    // Before anything is allocated: a project whose owner has spent their
-    // included minutes gets no new sessions. Checked here rather than at
-    // token mint alone because a token issued while minutes remained is
-    // still a valid credential minutes later, and this is the last gate in
-    // front of the media plane.
+    // Which allowance (if any) this join draws against:
+    //   - an ordinary room                          -> RTC
+    //   - a live-stream room, this identity is a
+    //     registered host/co-host                    -> LIVE_STREAMING
+    //   - a live-stream room, this identity is not
+    //     a registered host (i.e. a viewer)           -> none — free
+    // Viewers are never metered and never gated: their only limits are the
+    // concurrency/viewer-count/duration caps enforced in LiveStreamsService,
+    // not a per-minute allowance. See docs/usage-metering.md.
+    const isLiveStreamRoom = room?.liveStream != null;
+    const isRegisteredHost = isLiveStreamRoom && room!.liveStream!.hosts.length > 0;
+    const meteredProduct: UsageProduct | null = !isLiveStreamRoom
+      ? UsageProduct.RTC
+      : isRegisteredHost
+        ? UsageProduct.LIVE_STREAMING
+        : null;
+
+    // Before anything is allocated: a project whose owner has spent the
+    // relevant allowance gets no new sessions of that product. Checked here
+    // rather than at token mint alone because a token minted while the
+    // allowance had room left is still a valid credential minutes later,
+    // and this is the last gate in front of the media plane.
     //
     // Sessions already in progress are never affected — see
     // UsageAllowanceService.checkProject for why a live call is not cut
     // off mid-sentence.
-    const { blocked } = await this.usageAllowances.checkProject(session.projectId);
-    if (blocked) {
-      this.logger.warn(
-        `join refused: usage allowance exhausted for project ${session.projectId} ` +
-          `(participant ${session.participantId}, room ${session.roomId})`,
-      );
-      throw new SignalingError(
-        SignalingErrorCode.USAGE_LIMIT_EXCEEDED,
-        'This account has used all of its included Livqeno minutes — no new sessions can be started',
-      );
+    if (meteredProduct) {
+      const { blocked } = await this.usageAllowances.checkProject(session.projectId, meteredProduct);
+      if (blocked) {
+        this.logger.warn(
+          `join refused: ${meteredProduct} usage allowance exhausted for project ${session.projectId} ` +
+            `(participant ${session.participantId}, room ${session.roomId})`,
+        );
+        throw new SignalingError(
+          SignalingErrorCode.USAGE_LIMIT_EXCEEDED,
+          meteredProduct === UsageProduct.LIVE_STREAMING
+            ? 'This account has used all of its included Live Streaming host-hours — no new host sessions can be started'
+            : 'This account has used all of its included Livqeno minutes — no new sessions can be started',
+        );
+      }
     }
 
     const server = await this.allocateServer(session, message.region);
     session.rtcServerId = server.id;
     session.rtcServerName = server.name;
 
-    const { existingParticipantIds, wasReconnect } = await this.roomRegistry.join(session);
+    // A live-stream room gets the higher ceiling
+    // (signaling.maxParticipantsPerLiveStreamRoom) so the free-tier
+    // 100-viewer cap plus hosts/co-hosts is actually reachable — otherwise
+    // the 51st connection hits the generic room-wide limit regardless of
+    // what the viewer-token mint-time check allowed.
+    const { existingParticipantIds, wasReconnect } = await this.roomRegistry.join(session, {
+      maxParticipants: isLiveStreamRoom
+        ? this.configService.get<number>('signaling.maxParticipantsPerLiveStreamRoom')
+        : undefined,
+    });
     session.joinedRoom = true;
     session.joinedAt = new Date();
 
@@ -198,24 +245,33 @@ export class MessageRouterService {
     // Open the meter only now: past the allocation, past the fleet
     // registration, and past the node accepting the participant. A join
     // that failed any of those never happened, and must not be billed.
+    // Skipped entirely for a live-stream viewer (`meteredProduct === null`)
+    // — nothing meters their connection at all.
     //
     // Best-effort on purpose. Metering must not be able to fail a join —
     // a database blip would otherwise take down calling itself — so the
     // failure is logged and the session runs unmetered rather than being
     // refused. Under-counting on a Livqeno fault is the right side to err on.
-    try {
-      await this.usageMeter.startSession({
-        sessionKey: session.connectionId,
-        projectId: session.projectId,
-        environment: session.environment,
-        roomId: session.roomId,
-        roomName: session.roomName,
-        participantIdentity: session.participantId,
-      });
-    } catch (err) {
-      this.logger.error(
-        `usage metering failed to start for session ${session.connectionId}: ${(err as Error).message}`,
-      );
+    if (meteredProduct) {
+      try {
+        await this.usageMeter.startSession({
+          sessionKey: session.connectionId,
+          projectId: session.projectId,
+          environment: session.environment,
+          roomId: session.roomId,
+          roomName: session.roomName,
+          participantIdentity: session.participantId,
+          product: meteredProduct,
+          kind:
+            meteredProduct === UsageProduct.LIVE_STREAMING
+              ? UsageKind.LIVE_STREAMING_HOST_MINUTES
+              : UsageKind.RTC_PARTICIPANT_MINUTES,
+        });
+      } catch (err) {
+        this.logger.error(
+          `usage metering failed to start for session ${session.connectionId}: ${(err as Error).message}`,
+        );
+      }
     }
 
     const tracksByParticipant = await this.trackRegistry.listByParticipant(session.roomId);

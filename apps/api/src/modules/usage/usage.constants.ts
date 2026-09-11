@@ -8,6 +8,9 @@
 /** Seconds in a minute, named so the conversions below read as intent. */
 export const SECONDS_PER_MINUTE = 60;
 
+/** Minutes in an hour — Live Streaming's host-hours are minutes underneath. */
+export const MINUTES_PER_HOUR = 60;
+
 /**
  * Why a metered session stopped. Written to `UsageSession.closeReason` and
  * surfaced verbatim in the dashboard's history, so a developer can tell a
@@ -48,4 +51,19 @@ export function secondsToMinutes(seconds: number): number {
 
 export function minutesToSeconds(minutes: number): number {
   return minutes * SECONDS_PER_MINUTE;
+}
+
+/**
+ * Whole host-hours from a minute count, rounding down — same "never round
+ * up what was actually used" rule as `secondsToMinutes`. Live Streaming
+ * stores host time in the same minutes/seconds fields RTC does
+ * (`UsageAllowance.includedMinutes`/`consumedSeconds`); host-hours is a
+ * display unit, not a storage one.
+ */
+export function minutesToHours(minutes: number): number {
+  return Math.floor(minutes / MINUTES_PER_HOUR);
+}
+
+export function hoursToMinutes(hours: number): number {
+  return hours * MINUTES_PER_HOUR;
 }

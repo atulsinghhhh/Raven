@@ -1,7 +1,3 @@
-// Livqeno control plane schema.
-// See docs/architecture/infrastructure-decisions.md for why Prisma/Postgres.
-// See docs/control-plane.md for the full data-model rationale.
-
 generator client {
   provider     = "prisma-client"
   output       = "../src/generated/prisma"
@@ -9,9 +5,7 @@ generator client {
   runtime      = "nodejs"
 }
 
-// Prisma 7 dropped `url` here — it lives in prisma.config.ts for the CLI now,
-// and PrismaClient gets it via the driver adapter (prisma.service.ts).
-// https://pris.ly/d/config-datasource
+
 datasource db {
   provider = "postgresql"
 }
@@ -21,22 +15,13 @@ enum ProjectStatus {
   ARCHIVED
 }
 
-/// Three fixed environments per project. Not a table: they are not
-/// user-created, there are always exactly these three, and a row per
-/// project per environment would buy nothing until there is
-/// per-environment configuration to store in it.
 enum Environment {
   DEVELOPMENT
   STAGING
   PRODUCTION
 }
 
-/// Who may do what within a project. Deliberately a small fixed set:
-/// a general permission system would be more flexible and much harder to
-/// reason about, and "who can rotate the production key" needs to be
-/// answerable at a glance. The capability each role carries lives in
-/// project-permissions.ts, not here, so the mapping can change without a
-/// migration.
+
 enum ProjectRole {
   OWNER
   ADMIN
@@ -69,8 +54,6 @@ enum ConnectionState {
   FAILED
 }
 
-/// Livqeno-facing error categories (Phase 9 spec §18) — never the raw SFU,
-/// ICE-agent, or coturn error a developer would have to reverse-engineer.
 enum ErrorCategory {
   AUTHENTICATION_ERROR
   AUTHORIZATION_ERROR
@@ -85,31 +68,21 @@ enum ErrorCategory {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  /// Null for accounts created through an OAuth provider (GitHub, Google)
-  /// that never set a password. Email/password login answers these with the
-  /// same "invalid email or password" as a wrong password would — the
-  /// response must not reveal how an account signs in.
-  passwordHash String?
-  name         String?
-  /// Null until the address is proven. Nullable rather than a boolean
-  /// because "when" answers support questions a "yes" cannot, and because
-  /// every account that predates email verification is honestly unverified
-  /// rather than being backfilled as verified.
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String?
+  name            String?
   emailVerifiedAt DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  projects    Project[]
-  memberships ProjectMember[]
-  tokens      UserToken[]
-  authAccounts AuthAccount[]
-  onboarding   UserOnboarding?
-  /// The free-minute allowance provisioned at registration. Optional
-  /// because an account can exist without one for as long as it takes the
-  /// next read to provision it — see UsageAllowanceService.
-  usageAllowance UsageAllowance?
+  projects         Project[]
+  memberships      ProjectMember[]
+  tokens           UserToken[]
+  authAccounts     AuthAccount[]
+  onboarding       UserOnboarding?
+  usageAllowances  UsageAllowance[]
+  liveStreamsOwned LiveStream[]
 
   @@map("users")
 }
@@ -119,30 +92,15 @@ enum UserTokenType {
   PASSWORD_RESET
 }
 
-/// A single-use, expiring token emailed to a user — address verification or
-/// a password reset.
-///
-/// Only the SHA-256 of the token is stored, never the token itself: the row
-/// is a *check*, not a copy, so a database leak cannot be replayed into
-/// account takeovers. SHA-256 rather than bcrypt on purpose — the token is
-/// 32 bytes of CSPRNG output, so there is no low-entropy secret for a slow
-/// KDF to protect, a plain digest can be looked up by unique index in one
-/// query, and bcrypt on this path would block the event loop the same way
-/// it already does on API-key auth (docs/production/capacity-report.md §1.3).
-///
-/// `consumedAt` is what makes a token single-use; rows are kept after use
-/// (and after expiry) until the sweep clears them, so "this link was already
-/// used" stays distinguishable from "this link never existed".
 model UserToken {
-  id        String        @id @default(uuid())
-  userId    String
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      UserTokenType
-  /// SHA-256 hex of the raw token. Unique so a lookup is one indexed read.
-  tokenHash String        @unique
-  expiresAt DateTime
+  id         String        @id @default(uuid())
+  userId     String
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       UserTokenType
+  tokenHash  String        @unique
+  expiresAt  DateTime
   consumedAt DateTime?
-  createdAt DateTime      @default(now())
+  createdAt  DateTime      @default(now())
 
   @@index([userId, type])
   @@index([expiresAt])
@@ -154,27 +112,15 @@ enum AuthProvider {
   GOOGLE
 }
 
-/// One external identity (a GitHub or Google account) linked to a Livqeno
-/// user. The unique (provider, providerAccountId) pair is what makes a
-/// returning OAuth login find the same user instead of minting a duplicate.
-///
-/// Deliberately token-free: Livqeno only needs the provider to prove who the
-/// person is at login time, so access/refresh tokens are used once during
-/// the callback exchange and discarded. A row here is a link, not a
-/// credential — a database leak yields no way into anyone's GitHub or
-/// Google account.
+
 model AuthAccount {
   id     String @id @default(uuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  provider AuthProvider
-  /// The provider's stable id for the account (GitHub numeric id, Google
-  /// `sub`) — never the email, which the person can change upstream.
+  provider          AuthProvider
   providerAccountId String
-  /// The email the provider reported when this link was made. Display and
-  /// support only; identity is providerAccountId.
-  email String?
+  email             String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -184,33 +130,17 @@ model AuthAccount {
   @@map("auth_accounts")
 }
 
-/// Where a user is in first-run onboarding, one row per user.
-///
-/// A separate table rather than columns on `users`: the hot login path
-/// reads `users` constantly and needs none of this, and the whole block
-/// becomes dead weight the moment onboarding completes. `completedAt` is a
-/// timestamp, not a boolean, for the same reason `emailVerifiedAt` is.
-///
-/// The migration backfills a completed row for every account that predates
-/// onboarding — a developer with six months of projects must never be
-/// marched through "What are you building?".
 model UserOnboarding {
   userId String @id
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  /// 1-based index of the step to resume at. Only meaningful while
-  /// `completedAt` is null.
-  step Int @default(1)
+  step        Int       @default(1)
   completedAt DateTime?
 
-  /// Self-reported answers. Free-form strings, validated at the API edge,
-  /// so adding an option is a DTO change rather than a migration.
   useCases        String[] @default([])
   experienceLevel String?
   stack           String[] @default([])
 
-  /// Stamped when the project created during onboarding lands, so a resume
-  /// can skip straight past the create-project step.
   createdFirstProject Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -229,20 +159,7 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  /// Browser origins allowed to reach this project's SDK surfaces
-  /// (telemetry, chat REST, and both WebSocket gateways). Stored already
-  /// normalized by normalizeOriginList, so matching is a plain string
-  /// comparison.
-  ///
-  /// Empty means unconfigured, and unconfigured is open — every project
-  /// predating this column has an empty list, and defaulting those to deny
-  /// would break live applications for a setting nobody could have filled
-  /// in. Enforcement begins when a project adds its first origin. See
-  /// shared/origins/origin-policy.ts.
   allowedOrigins        String[] @default([])
-  /// Whether http(s)://localhost and the other loopback hosts are allowed
-  /// on any port regardless of allowedOrigins. On by default so that
-  /// configuring production domains never breaks local development.
   allowLocalhostOrigins Boolean  @default(true)
 
   members     ProjectMember[]
@@ -256,20 +173,12 @@ model Project {
   chatConnections  ChatConnection[]
   webhookEndpoints WebhookEndpoint[]
   liveStreams      LiveStream[]
-  /// Metered RTC sessions attributed to this project. They spend the
-  /// *owner's* allowance, not each member's — see docs/usage-metering.md.
   usageSessions    UsageSession[]
 
   @@index([ownerId])
   @@map("projects")
 }
 
-/// The raw secret is never stored — only a hash of it. `publicId` is the
-/// fast, non-secret lookup key used to find the row before verifying the
-/// secret against `secretHash`. See docs/control-plane.md#api-keys.
-/// A user's membership of a project. `Project.ownerId` still records who
-/// created it, but authorization reads this table — an owner is simply a
-/// member holding the OWNER role, and every project has at least one.
 model ProjectMember {
   id          String      @id @default(uuid())
   projectId   String
@@ -277,8 +186,6 @@ model ProjectMember {
   userId      String
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   role        ProjectRole @default(DEVELOPER)
-  /// Who added them. Null for the backfilled memberships of projects that
-  /// predate this table, where there is no honest answer.
   invitedById String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -289,31 +196,18 @@ model ProjectMember {
   @@map("project_members")
 }
 
-/// An administrative action, recorded permanently.
-///
-/// Append-only by construction: nothing in the codebase updates or deletes
-/// a row here, and there is no endpoint that could. `actorEmail` is
-/// denormalised on purpose — the record has to stay readable after the
-/// account that performed the action is gone, which is exactly when an
-/// audit trail matters most.
 model AuditLog {
   id           String       @id @default(uuid())
   publicId     String       @unique
   projectId    String
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  /// Null for project-level actions that no single environment owns.
   environment  Environment?
-  /// Null when Livqeno itself acted rather than a person.
   actorId      String?
   actorEmail   String
-  /// Dotted noun.verb, e.g. `api_key.revoked`. See audit.constants.ts.
   action       String
   resourceType String
-  /// The public id of the thing acted on, where it has one.
   resourceId   String?
-  /// Extra context — never credentials, never message bodies.
   metadata     Json?
-  /// Correlates the entry with the request that caused it.
   requestId    String?
   ipAddress    String?
   userAgent    String?
@@ -329,9 +223,6 @@ model ApiKey {
   id          String       @id @default(uuid())
   projectId   String
   project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  /// Which environment this key grants access to. The single source of
-  /// truth for an API-key-authenticated request — a caller never gets to
-  /// name the environment it is operating in.
   environment Environment  @default(DEVELOPMENT)
   publicId    String       @unique
   secretHash  String
@@ -355,39 +246,20 @@ model Room {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  /// The SFU currently serving this room (spec §25). Null means the room
-  /// has no live media session — either nobody has joined yet, or everyone
-  /// left and the assignment was released. A room is assigned once, on
-  /// first join, and keeps that SFU for the session's lifetime: migrating a
-  /// live room between SFUs means renegotiating every participant, so it is
-  /// deliberately not something an ordinary join can trigger.
   rtcServerId String?
   rtcServer   RtcServer? @relation(fields: [rtcServerId], references: [id], onDelete: SetNull)
 
   participants Participant[]
   rtcTokens    RtcToken[]
-  /// The chat channel attached to this RTC room, if one was created.
-  /// Chat and RTC stay separate services — this is the only join between them.
   conversation Conversation?
-  /// The live stream this room backs, if this room was created *for* one.
-  /// A stream's host/co-hosts and viewers are ordinary RTC participants of
-  /// this room — Live Streaming adds no second media model.
   liveStream   LiveStream?
 
-  // Room names are unique within one environment of one project. Staging
-  // and production must both be able to hold a "lobby" — that is most of
-  // what environment isolation means in practice.
   @@unique([projectId, environment, name])
   @@index([projectId])
   @@index([rtcServerId])
   @@map("rooms")
 }
 
-/// A logical identity within a room's control-plane record. This is not
-/// live presence: who is actually connected right now is read from the
-/// room's SFU node (`SfuRoomStateService`), never from this table. The row
-/// exists so RTC tokens have something durable to reference and so a
-/// consistent identity is enforced per room.
 model Participant {
   id        String            @id @default(uuid())
   roomId    String
@@ -404,11 +276,6 @@ model Participant {
   @@map("participants")
 }
 
-/// A control-plane record of a granted RTC token. The actual bearer
-/// credential is a Livqeno-signed HS256 JWT returned once at creation time
-/// and never persisted — this row is the audit/metadata trail, not the
-/// secret itself. This row's `id` is the token's `jti`, which is why it is
-/// created before the token is signed. See docs/rtc/security.md.
 model RtcToken {
   id            String      @id @default(uuid())
   projectId     String
@@ -425,13 +292,6 @@ model RtcToken {
   @@map("rtc_tokens")
 }
 
-/// A real RTC connection, event-sourced from best-effort SDK telemetry
-/// (Phase 9) — distinct from `RtcToken` (a grant) and from the SFU's own
-/// per-session bookkeeping, which is in-memory and dies with the node.
-/// `publicId` (`conn_...`) is generated client-side by `@ravenkash/rtc` at
-/// `join()` time and is the ID surfaced in the dashboard, the CLI, and any
-/// error report, so a developer can correlate all three without reading an
-/// SFU or coturn log. See docs/observability.md#connection-lifecycle.
 model Connection {
   id                  String          @id @default(uuid())
   publicId            String          @unique
@@ -451,14 +311,9 @@ model Connection {
   networkType         String?
   iceConnectionState  String?
   signalingState      String?
-  /// The SFU's own connection-quality read ('excellent'|'good'|'poor'|
-  /// 'lost'|'unknown') — plain string, not a Postgres enum, since the
-  /// vocabulary belongs to whichever SFU adapter reported it, not to Livqeno.
   connectionQuality   String?
   rttMs               Int?
   jitterMs            Int?
-  /// 0-100. An approximation, not an RFC 3550 figure — see
-  /// track-stats.ts on the SDK side for how it's derived.
   packetLossPercent   Float?
   bitrateBps          Int?
   codec               String?
@@ -480,9 +335,6 @@ model Connection {
   @@map("connections")
 }
 
-/// The append-only timeline behind a Connection's detail view (Phase 9
-/// spec §17) — every lifecycle transition and metadata update, never
-/// mutated after being written.
 model ConnectionEvent {
   id           String     @id @default(uuid())
   connectionId String
@@ -496,10 +348,7 @@ model ConnectionEvent {
   @@map("connection_events")
 }
 
-/// A classified, developer-facing error (Phase 9 spec §18-20). `category`
-/// is always a Livqeno concept (never a raw SFU or coturn error code) —
-/// see `error-classifier.ts` for the mapping and docs/error-codes.md for
-/// the full reference.
+
 model ErrorEvent {
   id              String        @id @default(uuid())
   publicId        String        @unique
@@ -525,22 +374,10 @@ model ErrorEvent {
   @@map("error_events")
 }
 
-// ---------------------------------------------------------------------------
-// Chat (Phase 12)
-//
-// Postgres is the source of truth for everything durable below. Presence,
-// typing, and WebSocket connection routing are deliberately absent here —
-// they live in Redis with TTLs (see docs/chat/architecture.md#redis), because
-// writing an `online`/`offline` transition to Postgres on every tab focus is
-// exactly the kind of cost this design is trying to avoid.
-// ---------------------------------------------------------------------------
 
 enum ConversationType {
-  /// Backed by an RTC `Room` — the chat side of a video call.
   ROOM
-  /// Standalone, long-lived channel with no RTC room attached.
   CHANNEL
-  /// Two-party conversation. Same model, just a different membership shape.
   DIRECT
 }
 
@@ -549,10 +386,6 @@ enum ConversationStatus {
   ARCHIVED
 }
 
-/// Coarse roles that expand into the `chat:*` scopes in
-/// chat-permissions.ts. Deliberately not a general RBAC system (Phase 12
-/// spec §28) — but roles are stored, not scopes, so the mapping can grow
-/// without a migration.
 enum ChatMemberRole {
   MEMBER
   MODERATOR
@@ -572,7 +405,6 @@ enum MessageType {
 }
 
 enum AttachmentStatus {
-  /// Upload URL handed out, bytes not confirmed in object storage yet.
   PENDING
   UPLOADED
   EXPIRED
@@ -589,23 +421,18 @@ enum WebhookDeliveryStatus {
   FAILED
 }
 
-/// A chat channel. `publicId` (`conv_...`) is what the SDK and dashboard
-/// show; the uuid `id` never leaves the API. A conversation may be pinned
-/// to an RTC `Room` (type ROOM), which is how a video call gets a chat
-/// panel without the developer wiring two identities together.
+
 model Conversation {
   id            String             @id @default(uuid())
   publicId      String             @unique
   projectId     String
   project       Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   environment   Environment        @default(DEVELOPMENT)
-  /// Set only for type ROOM. One conversation per room, enforced below.
   roomId        String?            @unique
   room          Room?              @relation(fields: [roomId], references: [id], onDelete: Cascade)
   name          String
   type          ConversationType   @default(CHANNEL)
   status        ConversationStatus @default(ACTIVE)
-  /// Overrides the project/plan default. Null = keep messages indefinitely.
   retentionDays Int?
   metadata      Json?
   createdAt     DateTime           @default(now())
@@ -617,19 +444,14 @@ model Conversation {
   readStates  ReadState[]
   attachments Attachment[]
   connections ChatConnection[]
-  /// The live stream this conversation is the chat for, if any.
   liveStream  LiveStream?
 
-  // Names are unique per project so `chat.connect({ room: "support" })`
-  // can resolve without the developer having to carry a conv_ id around.
   @@unique([projectId, environment, name])
   @@index([projectId, createdAt])
   @@map("chat_conversations")
 }
 
-/// Membership + role for one identity in one conversation. `userId` is the
-/// developer's own user identity string (same concept as an RTC
-/// participant identity) — Livqeno never owns end-user accounts.
+
 model ChatMember {
   id             String           @id @default(uuid())
   conversationId String
@@ -647,31 +469,20 @@ model ChatMember {
   @@map("chat_members")
 }
 
-/// The durable message record. Soft-deleted only (`deletedAt`) so a
-/// `message.deleted` event can still name the row and moderation keeps an
-/// audit trail — see docs/chat/messages.md#deletion.
 model Message {
   id               String       @id @default(uuid())
   publicId         String       @unique
   projectId        String
   conversationId   String
   conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  /// Denormalized from the conversation so RTC-room-scoped queries and
-  /// webhook payloads don't need a join. Null for CHANNEL/DIRECT.
   roomId           String?
   senderId         String
   type             MessageType  @default(TEXT)
-  /// Null for messages that carry no text (a bare attachment, say).
   content          String?
-  /// Direct parent. Threads are this same table, not a second store
-  /// (spec §26) — `threadRootId` just makes "give me the thread" one
-  /// indexed range scan instead of a recursive walk.
   replyToMessageId String?
   replyToMessage   Message?     @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
   replies          Message[]    @relation("MessageReplies")
   threadRootId     String?
-  /// Caller-supplied idempotency key. A retry after a reconnect reuses it
-  /// and gets the original message back instead of a duplicate (spec §16).
   clientMessageId  String?
   metadata         Json?
   editedAt         DateTime?
@@ -684,23 +495,7 @@ model Message {
   readStates  ReadState[]
   attachments Attachment[]
 
-  // The idempotency guarantee itself. Scoped to sender as well as
-  // conversation so two clients can't collide on a generic key like "1".
   @@unique([conversationId, senderId, clientMessageId], map: "chat_messages_idempotency_key")
-  // Covers the only hot read path: newest-first history for one
-  // conversation, keyset-paginated on (createdAt, publicId).
-  //
-  // `publicId`, not `id`, because that is the column the cursor actually
-  // compares — cursors carry the public `msg_...` id so they cannot leak an
-  // internal uuid (see cursor.util.ts). With `id` here instead, the
-  // tiebreaker half of the keyset predicate fell outside the index and
-  // Postgres applied it as a filter: a 51-row page 150k rows deep read
-  // 11,084 buffers in 250ms rather than 10 buffers in 0.13ms, and got worse
-  // linearly with depth. That is precisely the OFFSET pathology keyset
-  // pagination exists to avoid, reintroduced by a column mismatch.
-  //
-  // Every other query that used the old index only ever used its
-  // `(conversationId, createdAt)` prefix, which is unchanged.
   @@index([conversationId, createdAt, publicId])
   @@index([senderId, createdAt])
   @@index([threadRootId, createdAt])
@@ -718,16 +513,11 @@ model Reaction {
   emoji          String
   createdAt      DateTime     @default(now())
 
-  // One user, one emoji, one message — a double-tap is a no-op, not a
-  // second row (spec §23).
   @@unique([messageId, userId, emoji])
   @@index([messageId])
   @@map("chat_reactions")
 }
 
-/// One row per (conversation, user) holding the *latest* read position,
-/// not one row per read event (spec §22). Marking 500 messages read
-/// updates a single row.
 model ReadState {
   id                String       @id @default(uuid())
   conversationId    String
@@ -736,8 +526,6 @@ model ReadState {
   userId            String
   lastReadMessageId String?
   lastReadMessage   Message?     @relation(fields: [lastReadMessageId], references: [id], onDelete: SetNull)
-  /// createdAt of the last-read message, copied here so "unread count"
-  /// is a single range count with no join back to messages.
   lastReadAt        DateTime
   updatedAt         DateTime     @updatedAt
 
@@ -746,9 +534,7 @@ model ReadState {
   @@map("chat_read_states")
 }
 
-/// Metadata only. The bytes live in S3-compatible object storage and are
-/// only ever reached through short-lived signed URLs (spec §30) — no blob
-/// ever passes through Postgres or the WebSocket.
+
 model Attachment {
   id             String           @id @default(uuid())
   publicId       String           @unique
@@ -772,10 +558,7 @@ model Attachment {
   @@map("chat_attachments")
 }
 
-/// One WebSocket session against the chat gateway. Deliberately not one
-/// row per presence transition — this is the session, and presence
-/// itself is Redis-only. Mirrors the RTC `Connection` model so the
-/// dashboard's connection views work the same way for both planes.
+
 model ChatConnection {
   id               String          @id @default(uuid())
   publicId         String          @unique
@@ -785,8 +568,6 @@ model ChatConnection {
   conversationId   String?
   conversation     Conversation?   @relation(fields: [conversationId], references: [id], onDelete: SetNull)
   userId           String
-  /// Which gateway instance owns the socket — the thing you need when a
-  /// single instance in a fleet starts misbehaving.
   gatewayId        String
   state            ConnectionState @default(CONNECTING)
   disconnectReason String?
@@ -804,10 +585,7 @@ model ChatConnection {
   @@map("chat_connections")
 }
 
-/// A developer-registered webhook target. Project-scoped rather than
-/// chat-scoped on purpose: RTC/recording/streaming events in later phases
-/// deliver through this same pipeline (spec §31 — no second webhook
-/// architecture).
+
 model WebhookEndpoint {
   id                  String                @id @default(uuid())
   publicId            String                @unique
@@ -816,12 +594,7 @@ model WebhookEndpoint {
   environment         Environment           @default(DEVELOPMENT)
   url                 String
   description         String?
-  /// Empty = every event type. Otherwise an allow-list of `message.created`
-  /// style names.
   enabledEvents       String[]              @default([])
-  /// HMAC-SHA256 signing key. Has to be recoverable to sign each delivery,
-  /// so unlike an API key this is stored as-is and shown once at creation;
-  /// it is never returned again. See docs/chat/webhooks.md#signatures.
   signingSecret       String
   status              WebhookEndpointStatus @default(ACTIVE)
   consecutiveFailures Int                   @default(0)
@@ -835,15 +608,10 @@ model WebhookEndpoint {
   @@map("webhook_endpoints")
 }
 
-/// The event itself, recorded once regardless of how many endpoints it
-/// fans out to. `publicId` (`evt_...`) is the idempotency key a receiver
-/// should dedupe on (spec §32).
 model WebhookEvent {
   id          String      @id @default(uuid())
   publicId    String      @unique
   projectId   String
-  /// Part of the delivered envelope, and what stops a staging event from
-  /// reaching a production endpoint.
   environment Environment @default(DEVELOPMENT)
   type        String
   payload     Json
@@ -855,9 +623,6 @@ model WebhookEvent {
   @@map("webhook_events")
 }
 
-/// One (event, endpoint) attempt chain. The worker claims rows by
-/// `status = PENDING AND nextAttemptAt <= now()`, which is what the
-/// composite index below serves.
 model WebhookDelivery {
   id             String                @id @default(uuid())
   eventId        String
@@ -868,8 +633,6 @@ model WebhookDelivery {
   attempts       Int                   @default(0)
   nextAttemptAt  DateTime              @default(now())
   responseStatus Int?
-  /// Truncated, and never the response body — a failing endpoint can
-  /// echo back anything, including things we shouldn't store.
   lastError      String?
   deliveredAt    DateTime?
   createdAt      DateTime              @default(now())
@@ -881,19 +644,6 @@ model WebhookDelivery {
   @@map("webhook_deliveries")
 }
 
-// ---------------------------------------------------------------------------
-// Live Streaming
-//
-// Deliberately not a third media/messaging model: a live stream is an RTC
-// Room (host/co-hosts/viewers are ordinary participants of it, with
-// permissions the server assigns per identity — see live-stream-tokens.ts)
-// plus a Chat Conversation (attached the same way a video call's chat panel
-// already is) plus lifecycle metadata. Viewers get no row here at all —
-// same reasoning as Presence/Typing: a row per viewer join would be an
-// expensive way to store nothing durable, and "who's live in the room right
-// now" is already answerable by asking the SFU, exactly like Room's own
-// liveParticipantCount.
-// ---------------------------------------------------------------------------
 
 enum LiveStreamStatus {
   CREATED
@@ -909,39 +659,24 @@ enum LiveStreamVisibility {
   AUTHENTICATED
 }
 
-/// HOST created the stream; CO_HOST was invited into it. Both may publish —
-/// the distinction is bookkeeping (who's the original host) plus a signal
-/// for the developer's own UI, not a difference in RTC/chat permissions.
 enum LiveStreamHostRole {
   HOST
   CO_HOST
 }
 
-/// A live stream. `roomId`/`conversationId` are this stream's *own*
-/// dedicated Room/Conversation, created alongside it — never a room or
-/// conversation the developer created for something else, so a stream's
-/// lifecycle can never accidentally end an unrelated call or archive an
-/// unrelated chat.
 model LiveStream {
   id          String      @id @default(uuid())
   publicId    String      @unique
   projectId   String
   project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   environment Environment @default(DEVELOPMENT)
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   roomId String @unique
   room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
-
-  /// Nullable only because Prisma requires it for the reverse of an
-  /// optional relation — every stream is given a conversation at creation
-  /// and this is never null in practice. `onDelete: SetNull` rather than
-  /// `Cascade` so deleting the stream's chat history (if a developer ever
-  /// does that directly) doesn't take the stream row down with it.
   conversationId    String?       @unique
   conversation      Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
-  /// Public id of the system message viewers react to (the TikTok-style
-  /// heart tap) — reactions ride on the *existing* chat reaction model
-  /// against this one message, rather than a second realtime primitive.
   chatRootMessageId String?
 
   title        String
@@ -951,14 +686,9 @@ model LiveStream {
   tags         String[]             @default([])
   language     String?
   visibility   LiveStreamVisibility @default(PUBLIC)
-  /// Developer-owned JSON, same convention as Room/Conversation.metadata.
   metadata     Json?
 
   status          LiveStreamStatus @default(CREATED)
-  /// Best-effort, updated opportunistically whenever viewer count is read
-  /// (the same "poll the SFU, persist the high-water mark" pattern used
-  /// nowhere else yet in this schema, but the only honest way to keep a
-  /// peak without a dedicated counting worker this phase doesn't have).
   peakViewerCount Int              @default(0)
 
   scheduledAt DateTime?
@@ -969,26 +699,17 @@ model LiveStream {
 
   hosts LiveStreamHost[]
 
-  // A room/conversation is created *for* exactly one stream, so this is
-  // really just documenting the 1:1 the @unique above already enforces —
-  // scoping it to project+environment too is what a cross-tenant lookup
-  // would otherwise be able to bypass.
   @@unique([projectId, environment, roomId])
   @@index([projectId, environment, status])
   @@index([projectId, environment, createdAt])
   @@map("live_streams")
 }
 
-/// One row per identity ever granted host/co-host on a stream. Soft-removed
-/// (`removedAt`) rather than deleted, so "who was live and when" survives a
-/// co-host being kicked mid-stream.
 model LiveStreamHost {
   id       String     @id @default(uuid())
   streamId String
   stream   LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
 
-  /// The developer's own end-user identity — same concept as an RTC
-  /// participant identity or a chat userId. Livqeno never owns this account.
   identity String
   role     LiveStreamHostRole @default(CO_HOST)
 
@@ -1000,68 +721,31 @@ model LiveStreamHost {
   @@map("live_stream_hosts")
 }
 
-/// Health of an RTC server as the control plane sees it. Derived from
-/// heartbeats, not self-reported: a node that thinks it is fine but has
-/// stopped heartbeating is not fine from the perspective that matters.
+
 enum RtcServerStatus {
-  /// Accepting new room allocations.
   HEALTHY
-  /// Reachable and serving its existing rooms, but taking no new ones —
-  /// either it reported itself over capacity, or an operator drained it.
   DRAINING
-  /// Missed its heartbeat window. Existing rooms are left alone (spec §26:
-  /// do not kill active rooms without recovery logic); no new allocations.
   UNHEALTHY
 }
 
-/// One Livqeno SFU process in the fleet (spec §23).
-///
-/// Rows are created by the SFU itself, registering on boot with the shared
-/// SFU_REGISTRATION_SECRET, and kept fresh by its heartbeats. The control
-/// plane never provisions these — a node's existence is a fact about the
-/// deployment, and expecting an operator to also declare it in a database
-/// is how a fleet ends up with phantom entries.
-///
-/// Load figures are a snapshot from the last heartbeat, not live truth.
-/// That is the honest shape for them: an allocator making a decision reads
-/// numbers that are at most one heartbeat interval old, and pretending
-/// otherwise would just hide the staleness the dashboard has to show.
 model RtcServer {
   id     String          @id @default(uuid())
-  /// Stable operator-facing name, unique across the fleet — the id a human
-  /// uses in `raven rtc servers get <server>` and reads in a log line
-  /// (e.g. "sfu-asia-02"). Supplied by the node itself via SFU_NODE_ID so
-  /// that a restarted process reclaims its own row rather than orphaning it
-  /// and creating a second.
   name   String          @unique
   region String
   status RtcServerStatus @default(HEALTHY)
-
-  /// Host:port ICE advertises for media, and the base URL the control
-  /// plane uses to reach this node over the node link. Two fields because
-  /// inside a container network these are not the same address: the
-  /// control plane dials a service name, while a browser needs a routable
-  /// public one.
   publicHost  String
   internalUrl String
 
-  /// Room capacity this node advertises for itself. The allocator treats it
-  /// as a ceiling, not a target.
   capacity Int @default(100)
 
   activeRooms        Int @default(0)
   activeParticipants Int @default(0)
 
-  /// Last-heartbeat resource snapshot. Percentages 0-100; network in bits
-  /// per second. Nullable because a node that has registered but not yet
-  /// heartbeated has no measurement to report, and zero would read as
-  /// "idle" rather than "unknown".
-  cpuPercent     Float?
-  memoryPercent  Float?
-  networkInBps   Float?
-  networkOutBps  Float?
+  cpuPercent    Float?
+  memoryPercent Float?
+  networkInBps  Float?
+  networkOutBps Float?
 
-  /// Build identifier, so a fleet mid-rollout is legible in the dashboard.
   version String?
 
   lastHeartbeatAt DateTime?
@@ -1074,84 +758,39 @@ model RtcServer {
   @@map("rtc_servers")
 }
 
-// ---------------------------------------------------------------------------
-// Usage metering (free tier)
-//
-// Every registered developer gets a fixed allowance of Livqeno minutes. Two
-// tables carry it, and the split is the whole design:
-//
-// - `UsageAllowance` is the *entitlement*: how many minutes this developer
-//   was granted, and how many have been consumed. One row per developer.
-// - `UsageSession` is the *meter*: one row per RTC participant-session, each
-//   one recording how much of that session has already been counted. It is
-//   also the usage history the dashboard lists.
-//
-// Nothing here is billing. There is no price, no plan, no invoice and no
-// payment state, and the allowance never resets — when it runs out, new
-// sessions are refused and `exhaustedAt` records when that happened. See
-// docs/usage-metering.md.
-//
-// Deliberately absent: any notion of an administrator. A future Admin
-// Portal manages allocations by writing `UsageAllowance.includedMinutes`
-// (and adding a new `source`), which is a data change, not a migration.
-// ---------------------------------------------------------------------------
 
-/// Where a developer's allowance came from.
-///
-/// One value today, and it is an enum rather than a boolean precisely so
-/// that adding `ADMIN_GRANT` or `PLAN` later is an additive migration on a
-/// column the reading code already switches on.
 enum UsageAllowanceSource {
-  /// The free minutes granted automatically at registration.
   FREE_TIER
 }
 
-/// What a metered session consumed. RTC participant-minutes is the only
-/// thing Livqeno meters today; chat, live streaming and TURN relay are not
-/// metered at all (docs/usage-metering.md#what-is-not-metered).
-///
-/// An enum, not a free-form string, so a future kind cannot be introduced
-/// by a typo — and so adding one is a migration that forces every
-/// aggregation in the API to be revisited.
-enum UsageKind {
-  /// One participant, connected to one room, for one wall-clock stretch.
-  /// Two people in a call for ten minutes consume twenty.
-  RTC_PARTICIPANT_MINUTES
+enum UsageProduct {
+  RTC
+  CHAT
+  LIVE_STREAMING
 }
 
-/// A developer's metered allowance, and the running total against it.
-///
-/// `includedMinutes` is a *column*, snapshotted from configuration when the
-/// row is provisioned, never re-read from a constant. That is what makes
-/// the number in the dashboard the number this account was actually
-/// granted: changing the default later does not silently re-grant every
-/// existing developer, and a future Admin Portal can raise one developer's
-/// allocation without touching anyone else's.
-///
-/// `consumedSeconds` is denormalised from `UsageSession` on purpose. It is
-/// the column enforcement reads on the join path, where a `SUM()` over a
-/// developer's whole session history is the wrong query to run; it is
-/// updated in the same transaction that advances the session that produced
-/// it, so the two cannot drift.
+enum UsageKind {
+  RTC_PARTICIPANT_MINUTES
+  LIVE_STREAMING_HOST_MINUTES
+}
+
 model UsageAllowance {
   id     String @id @default(uuid())
-  /// One allowance per developer. A future model with several concurrent
-  /// grants would add a `usage_grants` table summing into this row rather
-  /// than reinterpret it, which is why the uniqueness lives here.
-  userId String @unique
+  userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product UsageProduct @default(RTC)
 
-  source          UsageAllowanceSource @default(FREE_TIER)
-  includedMinutes Int
+  source UsageAllowanceSource @default(FREE_TIER)
 
-  /// Seconds, not minutes: a 40-second call has to count for something, and
-  /// rounding at write time would let a developer accumulate unlimited
-  /// sub-minute sessions for free. Minutes are derived at read time.
+  includedMinutes Int?
+
   consumedSeconds Int @default(0)
 
-  /// When consumption first reached `includedMinutes`. Stamped exactly
-  /// once and never cleared — an allowance that silently reset itself
-  /// would be indistinguishable from one that was never spent.
+  includedCount Int?
+
+  consumedCount Int @default(0)
+
+
   exhaustedAt DateTime?
 
   grantedAt DateTime @default(now())
@@ -1160,83 +799,47 @@ model UsageAllowance {
 
   sessions UsageSession[]
 
+  @@unique([userId, product])
   @@map("usage_allowances")
 }
 
-/// One metered RTC participant-session: a participant's stay in a room,
-/// from the moment the control plane accepted their join to the moment it
-/// saw them leave.
-///
-/// # Why this is not `Connection`
-///
-/// `Connection` is event-sourced from telemetry the client SDK POSTs, which
-/// is fire-and-forget, unordered, and — the part that matters here —
-/// entirely under the client's control. A developer could halve their own
-/// bill by dropping a `disconnected` event. This table is written only by
-/// the signaling plane, from server-side state: `sessionKey` is the
-/// connection id the gateway generated with `randomUUID()`, and `startedAt`
-/// and every settlement timestamp are the server's own clock.
-///
-/// # Why `meteredSeconds` exists
-///
-/// Consumption is a function of `startedAt` and a settlement instant, and a
-/// settlement only ever adds `elapsed - meteredSeconds` to the allowance.
-/// So settling the same session twice, or from two instances at once, adds
-/// the difference once and zero the second time. That is what makes
-/// metering idempotent without an idempotency-key table.
+
 model UsageSession {
   id String @id @default(uuid())
 
-  /// The signaling connection id: server-generated per WebSocket, never
-  /// supplied or influenced by a client. Unique, which is what makes
-  /// `start` idempotent under a retried join.
   sessionKey String @unique
 
   allowanceId String
   allowance   UsageAllowance @relation(fields: [allowanceId], references: [id], onDelete: Cascade)
 
-  /// Denormalised from the allowance so history stays queryable per
-  /// developer without a join, and stays readable if the allowance model
-  /// is ever reshaped.
   userId String
 
-  projectId String
-  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   environment Environment @default(DEVELOPMENT)
 
-  /// Nullable for the same reason `Connection.roomId` is: the room record
-  /// can be deleted while the usage it produced stays on the books.
   roomId              String?
   roomName            String
   participantIdentity String
+
+  product UsageProduct @default(RTC)
 
   kind UsageKind @default(RTC_PARTICIPANT_MINUTES)
 
   startedAt DateTime @default(now())
 
-  /// High-water mark: seconds of this session already added to the
-  /// allowance. Only ever moves forward.
   meteredSeconds Int @default(0)
-
-  /// The last instant this session was confirmed alive *and* settled. The
-  /// reaper uses it twice: to find sessions whose gateway died, and as the
-  /// instant to meter them up to — crediting an abandoned session all the
-  /// way to `now` would bill a developer for a Livqeno outage.
   lastMeteredAt DateTime @default(now())
 
-  /// Null while the session is live.
   endedAt     DateTime?
-  /// How it ended. See USAGE_CLOSE_REASON in usage.constants.ts.
   closeReason String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  /// The dashboard's history list: this developer's sessions, newest first.
+
   @@index([userId, startedAt])
-  /// Per-project attribution, for the project-scoped usage page.
   @@index([projectId, startedAt])
-  /// The reaper's query: live rows that have stopped being settled.
   @@index([endedAt, lastMeteredAt])
   @@map("usage_sessions")
 }

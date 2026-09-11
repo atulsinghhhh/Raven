@@ -3,13 +3,14 @@ import { WsAdapter } from '@nestjs/platform-ws';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { UsageProduct } from '../src/generated/prisma/client';
 import { PrismaService } from '../src/shared/database/prisma.service';
 import { Environment } from '../src/shared/environment/environment.constants';
 import { AllExceptionsFilter } from '../src/shared/errors/all-exceptions.filter';
 import { RedisService } from '../src/shared/redis/redis.service';
 import { UsageAllowanceService } from '../src/modules/usage/usage-allowance.service';
 import { UsageMeterService } from '../src/modules/usage/usage-meter.service';
-import { UsageCloseReason, minutesToSeconds } from '../src/modules/usage/usage.constants';
+import { UsageCloseReason, hoursToMinutes, minutesToSeconds } from '../src/modules/usage/usage.constants';
 
 /**
  * Free-tier metering end to end, against real Postgres and Redis.
@@ -27,7 +28,7 @@ import { UsageCloseReason, minutesToSeconds } from '../src/modules/usage/usage.c
  */
 jest.setTimeout(60_000);
 
-const FREE_TIER_MINUTES = 20_000;
+const FREE_TIER_MINUTES = 10_000;
 
 describe('Usage metering (e2e)', () => {
   let app: INestApplication;
@@ -98,11 +99,14 @@ describe('Usage metering (e2e)', () => {
     await app.close();
   });
 
-  /** Puts the allowance back to a known state between the destructive tests below. */
+  /** The RTC allowance's `(userId, product)` compound key — every test below is RTC unless stated otherwise. */
+  const rtcKey = () => ({ userId_product: { userId, product: UsageProduct.RTC } });
+
+  /** Puts the RTC allowance back to a known state between the destructive tests below. */
   async function resetAllowance(consumedSeconds = 0): Promise<void> {
-    await prisma.usageSession.deleteMany({ where: { userId } });
+    await prisma.usageSession.deleteMany({ where: { userId, product: UsageProduct.RTC } });
     await prisma.usageAllowance.update({
-      where: { userId },
+      where: rtcKey(),
       data: { consumedSeconds, exhaustedAt: null },
     });
   }
@@ -143,7 +147,7 @@ describe('Usage metering (e2e)', () => {
     });
 
     it('stores the allowance as a row, not a number the API derives on the fly', async () => {
-      const row = await prisma.usageAllowance.findUnique({ where: { userId } });
+      const row = await prisma.usageAllowance.findUnique({ where: rtcKey() });
 
       expect(row).toMatchObject({ includedMinutes: FREE_TIER_MINUTES, consumedSeconds: 0, exhaustedAt: null });
     });
@@ -155,7 +159,7 @@ describe('Usage metering (e2e)', () => {
         allowances.ensureProvisioned(userId),
       ]);
 
-      expect(await prisma.usageAllowance.count({ where: { userId } })).toBe(1);
+      expect(await prisma.usageAllowance.count({ where: { userId, product: UsageProduct.RTC } })).toBe(1);
     });
 
     it('requires a session to read usage at all', async () => {
@@ -222,7 +226,7 @@ describe('Usage metering (e2e)', () => {
 
       await Promise.all(sessions.map((session) => meter.settle(session.sessionKey, { close: UsageCloseReason.LEFT })));
 
-      const allowance = await prisma.usageAllowance.findUniqueOrThrow({ where: { userId } });
+      const allowance = await prisma.usageAllowance.findUniqueOrThrow({ where: rtcKey() });
       // 20 participants x 60 seconds. Nothing more, nothing less.
       expect(allowance.consumedSeconds).toBe(20 * 60);
     });
@@ -234,7 +238,7 @@ describe('Usage metering (e2e)', () => {
       const at = new Date(startedAt.getTime() + 120 * 1000);
       await Promise.all(Array.from({ length: 8 }, () => meter.settle(session.sessionKey, { at })));
 
-      const allowance = await prisma.usageAllowance.findUniqueOrThrow({ where: { userId } });
+      const allowance = await prisma.usageAllowance.findUniqueOrThrow({ where: rtcKey() });
       expect(allowance.consumedSeconds).toBe(120);
 
       const row = await prisma.usageSession.findUniqueOrThrow({ where: { id: session.id } });
@@ -251,9 +255,9 @@ describe('Usage metering (e2e)', () => {
         close: UsageCloseReason.LEFT,
       });
 
-      const before = await prisma.usageAllowance.findUniqueOrThrow({ where: { userId } });
+      const before = await prisma.usageAllowance.findUniqueOrThrow({ where: rtcKey() });
       expect(await meter.settle(session.sessionKey)).toBeNull();
-      const after = await prisma.usageAllowance.findUniqueOrThrow({ where: { userId } });
+      const after = await prisma.usageAllowance.findUniqueOrThrow({ where: rtcKey() });
 
       expect(after.consumedSeconds).toBe(before.consumedSeconds);
       expect(before.consumedSeconds).toBe(60);
@@ -278,8 +282,8 @@ describe('Usage metering (e2e)', () => {
       );
 
       const [allowance, aggregate] = await Promise.all([
-        prisma.usageAllowance.findUniqueOrThrow({ where: { userId } }),
-        prisma.usageSession.aggregate({ where: { userId }, _sum: { meteredSeconds: true } }),
+        prisma.usageAllowance.findUniqueOrThrow({ where: rtcKey() }),
+        prisma.usageSession.aggregate({ where: { userId, product: UsageProduct.RTC }, _sum: { meteredSeconds: true } }),
       ]);
 
       expect(allowance.consumedSeconds).toBe(aggregate._sum.meteredSeconds);
@@ -316,8 +320,14 @@ describe('Usage metering (e2e)', () => {
 
       expect(res.body).toMatchObject({
         code: 'RAVEN_USAGE_LIMIT_EXCEEDED',
+        // Legacy fields, kept for backward compatibility...
         includedMinutes: FREE_TIER_MINUTES,
         remainingMinutes: 0,
+        // ...alongside the generic shape that also covers Chat and Live Streaming.
+        product: 'RTC',
+        unit: 'participant_minutes',
+        included: FREE_TIER_MINUTES,
+        remaining: 0,
       });
     });
 
@@ -339,7 +349,7 @@ describe('Usage metering (e2e)', () => {
       const crossing = await meter.settle(session.sessionKey, { close: UsageCloseReason.LEFT });
       expect(crossing?.justExhausted).toBe(true);
 
-      const first = await prisma.usageAllowance.findUniqueOrThrow({ where: { userId } });
+      const first = await prisma.usageAllowance.findUniqueOrThrow({ where: rtcKey() });
       expect(first.exhaustedAt).not.toBeNull();
 
       // Another session, and a re-read of the summary. Neither may clear
@@ -348,7 +358,7 @@ describe('Usage metering (e2e)', () => {
       await meter.settle(another.sessionKey, { close: UsageCloseReason.LEFT });
       await request(baseUrl).get('/v1/usage').set('Authorization', `Bearer ${jwtToken}`).expect(200);
 
-      const second = await prisma.usageAllowance.findUniqueOrThrow({ where: { userId } });
+      const second = await prisma.usageAllowance.findUniqueOrThrow({ where: rtcKey() });
       expect(second.exhaustedAt).toEqual(first.exhaustedAt);
       expect(second.includedMinutes).toBe(FREE_TIER_MINUTES);
       expect(second.consumedSeconds).toBeGreaterThan(first.consumedSeconds);
@@ -397,7 +407,7 @@ describe('Usage metering (e2e)', () => {
       // credited it up to now.
       expect(row.meteredSeconds).toBe(10 * 60);
 
-      const allowance = await prisma.usageAllowance.findUniqueOrThrow({ where: { userId } });
+      const allowance = await prisma.usageAllowance.findUniqueOrThrow({ where: rtcKey() });
       expect(allowance.consumedSeconds).toBe(10 * 60);
     });
 
@@ -411,7 +421,7 @@ describe('Usage metering (e2e)', () => {
 
       await Promise.all([meter.reap(), meter.reap()]);
 
-      const allowance = await prisma.usageAllowance.findUniqueOrThrow({ where: { userId } });
+      const allowance = await prisma.usageAllowance.findUniqueOrThrow({ where: rtcKey() });
       expect(allowance.consumedSeconds).toBe(5 * 60);
     });
   });
@@ -469,6 +479,47 @@ describe('Usage metering (e2e)', () => {
         .get(`/v1/projects/${projectId}/usage`)
         .set('Authorization', `Bearer ${other.body.accessToken}`)
         .expect(404);
+    });
+  });
+
+  describe('cross-product isolation', () => {
+    it('keeps RTC, Chat and Live Streaming balances independent', async () => {
+      await resetAllowance();
+      await allowances.ensureProvisioned(userId, UsageProduct.CHAT);
+      await allowances.ensureProvisioned(userId, UsageProduct.LIVE_STREAMING);
+
+      // RTC = 9,000 of 10,000; Chat = 99,000 of 100,000; Live = 90 of 100
+      // host-hours — 1,000 / 1,000 / 10 remaining respectively.
+      await prisma.usageAllowance.update({
+        where: rtcKey(),
+        data: { consumedSeconds: minutesToSeconds(9_000), exhaustedAt: null },
+      });
+      await prisma.usageAllowance.update({
+        where: { userId_product: { userId, product: UsageProduct.CHAT } },
+        data: { consumedCount: 99_000, exhaustedAt: null },
+      });
+      await prisma.usageAllowance.update({
+        where: { userId_product: { userId, product: UsageProduct.LIVE_STREAMING } },
+        data: { consumedSeconds: minutesToSeconds(hoursToMinutes(90)), exhaustedAt: null },
+      });
+
+      const before = await request(baseUrl).get('/v1/usage').set('Authorization', `Bearer ${jwtToken}`).expect(200);
+      expect(before.body).toMatchObject({ usedMinutes: 9_000, remainingMinutes: 1_000 });
+      expect(before.body.chat).toMatchObject({ used: 99_000, limit: 100_000, unit: 'messages' });
+      expect(before.body.liveStreaming).toMatchObject({ hostHoursUsed: 90, hostHoursLimit: 100 });
+
+      // Spending one more RTC minute must not touch Chat or Live Streaming.
+      const startedAt = new Date(Date.now() - 60 * 1000);
+      const session = await openSession(`e2e-isolation-rtc-${Date.now()}`, startedAt);
+      await meter.settle(session.sessionKey, { close: UsageCloseReason.LEFT });
+
+      // ...and spending a Chat message must not touch RTC or Live Streaming.
+      await allowances.recordChatMessage(projectId);
+
+      const after = await request(baseUrl).get('/v1/usage').set('Authorization', `Bearer ${jwtToken}`).expect(200);
+      expect(after.body.usedMinutes).toBe(9_001);
+      expect(after.body.chat.used).toBe(99_001);
+      expect(after.body.liveStreaming.hostHoursUsed).toBe(90);
     });
   });
 });

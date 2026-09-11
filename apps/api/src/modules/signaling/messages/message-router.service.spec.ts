@@ -173,6 +173,7 @@ describe('MessageRouterService', () => {
       sfuLink as never,
       usageAllowances as never,
       usageMeter as never,
+      configService,
     );
   });
 
@@ -318,7 +319,39 @@ describe('MessageRouterService', () => {
         roomId: 'room-1',
         roomName: 'demo-room',
         participantIdentity: 'alice',
+        // An ordinary (non-live-stream) room metered as RTC — the room mock
+        // has no `liveStream`, so this join can't resolve to LIVE_STREAMING.
+        product: 'RTC',
+        kind: 'RTC_PARTICIPANT_MINUTES',
       });
+    });
+
+    it('meters a live-stream host against LIVE_STREAMING, not RTC', async () => {
+      prisma.room.findUnique.mockResolvedValue({
+        status: 'ACTIVE',
+        liveStream: { id: 'ls1', hosts: [{ role: 'HOST' }] },
+      });
+
+      await router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN });
+
+      expect(usageAllowances.checkProject).toHaveBeenCalledWith('project-1', 'LIVE_STREAMING');
+      expect(usageMeter.startSession).toHaveBeenCalledWith(
+        expect.objectContaining({ product: 'LIVE_STREAMING', kind: 'LIVE_STREAMING_HOST_MINUTES' }),
+      );
+    });
+
+    it('opens no meter at all for a live-stream viewer, and never checks any allowance', async () => {
+      // liveStream present, but `hosts` is empty for this identity — a
+      // registered host/co-host would have a row here; a viewer never does.
+      prisma.room.findUnique.mockResolvedValue({
+        status: 'ACTIVE',
+        liveStream: { id: 'ls1', hosts: [] },
+      });
+
+      await router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN });
+
+      expect(usageAllowances.checkProject).not.toHaveBeenCalled();
+      expect(usageMeter.startSession).not.toHaveBeenCalled();
     });
 
     it('does not open a meter for a join the node refused', async () => {

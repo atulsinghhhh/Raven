@@ -7,10 +7,16 @@ Every value below is a **default**, read out of the API's configuration. A
 self-hosted deployment can change any of them; a hosted one has whatever
 its operator set.
 
-Nothing here is a billing quota. The one quota Livqeno does enforce is the
-20,000 free RTC minutes every account is granted — see
-[Usage](/concepts/usage). Everything below is a technical ceiling, and none
-of it is affected by how many minutes you have left.
+Nothing here is a billing quota. The quotas Livqeno does enforce are the
+three independent free-tier allowances every account is granted — RTC
+minutes, Chat messages, Live Streaming host-hours — see
+[Usage](/concepts/usage). Everything below is a technical ceiling instead,
+and none of it is affected by how much of any allowance you have left —
+with one exception: Live Streaming's own concurrency/viewer/duration
+limits in the table below, which are free-tier *product* limits stated
+here because they are ceilings a request either is or is not within,
+exactly like every other row on this page — not a running balance like
+the allowances themselves.
 
 {/* generated:endpoints — do not edit by hand */}
 
@@ -21,11 +27,20 @@ of it is affected by how many minutes you have left.
 | Limit | Default | Configured by |
 |---|---|---|
 | Participants per room | `50` | `SIGNALING_MAX_PARTICIPANTS_PER_ROOM` |
+| Participants per live-stream room (raised so the viewer cap below is reachable) | `150` | `SIGNALING_MAX_PARTICIPANTS_PER_LIVE_STREAM_ROOM` |
 | Signaling frame size | `16384` | `SIGNALING_MAX_MESSAGE_BYTES` |
 | Signaling messages per connection, per window | `100` | `SIGNALING_MAX_MESSAGES_PER_WINDOW` |
 | Signaling connection attempts per IP, per window | `20` | `SIGNALING_MAX_CONNECTIONS_PER_WINDOW` |
 | RTC token lifetime (default; 30–21600 allowed) | `600` | `RTC_TOKEN_DEFAULT_TTL_SECONDS` |
 | Media-server heartbeat timeout | `30` | `SFU_HEARTBEAT_TIMEOUT_SECONDS` |
+
+### Live Streaming (free-tier product limits — see Usage)
+
+| Limit | Default | Configured by |
+|---|---|---|
+| Concurrent LIVE streams per account | `1` | `USAGE_FREE_TIER_LIVE_CONCURRENT_STREAMS` |
+| Viewers per stream | `100` | `USAGE_FREE_TIER_LIVE_MAX_VIEWERS` |
+| Maximum stream duration (minutes) | `240` | `USAGE_FREE_TIER_LIVE_MAX_STREAM_DURATION_MINUTES` |
 
 ### Chat
 

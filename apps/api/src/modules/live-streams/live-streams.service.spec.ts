@@ -35,14 +35,17 @@ describe('LiveStreamsService', () => {
     };
     room: { findUnique: jest.Mock };
     conversation: { findUnique: jest.Mock };
+    project: { findUnique: jest.Mock };
   };
   let roomsService: { create: jest.Mock; close: jest.Mock };
   let sfuRoomState: { listLiveParticipants: jest.Mock };
-  let rtcTokensService: { create: jest.Mock };
+  let rtcTokensService: { mintRawCredential: jest.Mock };
   let conversationsService: { create: jest.Mock; addMember: jest.Mock; removeMember: jest.Mock };
   let messagesService: { send: jest.Mock };
   let chatTokenService: { issue: jest.Mock };
   let webhooks: { emit: jest.Mock };
+  let usageAllowances: { assertProjectWithinAllowance: jest.Mock };
+  let configService: { get: jest.Mock };
 
   const SCOPE = { projectId: 'p1', environment: Environment.DEVELOPMENT };
   const OTHER_PROJECT_SCOPE = { projectId: 'p2', environment: Environment.DEVELOPMENT };
@@ -51,6 +54,7 @@ describe('LiveStreamsService', () => {
     id: 'stream-internal-uuid',
     publicId: 'stream_abc123',
     projectId: 'p1',
+    ownerId: 'owner-1',
     environment: Environment.DEVELOPMENT,
     roomId: 'room-uuid',
     conversationId: 'conv-uuid',
@@ -98,13 +102,14 @@ describe('LiveStreamsService', () => {
       },
       room: { findUnique: jest.fn() },
       conversation: { findUnique: jest.fn() },
+      project: { findUnique: jest.fn().mockResolvedValue({ ownerId: 'owner-1' }) },
     };
     roomsService = {
       create: jest.fn().mockResolvedValue({ id: 'room-uuid', name: 'stream_abc123' }),
       close: jest.fn().mockResolvedValue(undefined),
     };
     sfuRoomState = { listLiveParticipants: jest.fn() };
-    rtcTokensService = { create: jest.fn().mockResolvedValue({ token: 'rtc-jwt', endpoint: 'ws://x' }) };
+    rtcTokensService = { mintRawCredential: jest.fn().mockResolvedValue({ token: 'rtc-jwt', endpoint: 'ws://x' }) };
     conversationsService = {
       create: jest.fn().mockResolvedValue({ id: 'conv-uuid', publicId: 'conv_xyz789' }),
       addMember: jest.fn().mockResolvedValue({ userId: 'u1', role: ChatMemberRole.MEMBER }),
@@ -115,6 +120,14 @@ describe('LiveStreamsService', () => {
     };
     chatTokenService = { issue: jest.fn().mockReturnValue({ token: 'chat-jwt' }) };
     webhooks = { emit: jest.fn().mockResolvedValue(undefined) };
+    usageAllowances = { assertProjectWithinAllowance: jest.fn().mockResolvedValue(undefined) };
+    const configValues: Record<string, unknown> = {
+      'usage.reaperIntervalMs': 60_000,
+      'usage.live.maxConcurrentStreams': 1,
+      'usage.live.maxViewers': 100,
+      'usage.live.maxStreamDurationMinutes': 240,
+    };
+    configService = { get: jest.fn((key: string) => configValues[key]) };
 
     service = new LiveStreamsService(
       prisma as never,
@@ -125,6 +138,8 @@ describe('LiveStreamsService', () => {
       messagesService as never,
       chatTokenService as never,
       webhooks as never,
+      usageAllowances as never,
+      configService as never,
     );
   });
 
@@ -321,6 +336,75 @@ describe('LiveStreamsService', () => {
         code: RavenErrorCode.STREAM_INVALID_STATE,
       });
     });
+
+    describe('free-tier concurrency cap', () => {
+      it('translates a live_streams_one_live_per_owner unique violation into STREAM_CONCURRENCY_LIMIT_EXCEEDED', async () => {
+        prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.CREATED }));
+        prisma.liveStream.updateMany.mockRejectedValue(
+          Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
+        );
+
+        await expect(service.start(SCOPE, 'stream_abc123')).rejects.toMatchObject({
+          code: RavenErrorCode.STREAM_CONCURRENCY_LIMIT_EXCEEDED,
+        });
+      });
+
+      it('does not mistake an unrelated database error for the concurrency cap', async () => {
+        prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.CREATED }));
+        const dbError = new Error('connection reset');
+        prisma.liveStream.updateMany.mockRejectedValue(dbError);
+
+        await expect(service.start(SCOPE, 'stream_abc123')).rejects.toBe(dbError);
+      });
+    });
+  });
+
+  describe('reapOverdueStreams() — free-tier duration cap', () => {
+    it('ends every stream still LIVE past the configured max duration', async () => {
+      const rows = [
+        { id: 'overdue-1', projectId: 'p1', environment: Environment.DEVELOPMENT },
+        { id: 'overdue-2', projectId: 'p2', environment: Environment.PRODUCTION },
+      ];
+      prisma.liveStream.findMany.mockResolvedValue(rows);
+      const endSpy = jest.spyOn(service, 'end').mockResolvedValue({} as never);
+
+      const result = await service.reapOverdueStreams();
+
+      expect(prisma.liveStream.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: LiveStreamStatus.LIVE,
+            startedAt: expect.objectContaining({ lt: expect.any(Date) }),
+          }),
+        }),
+      );
+      expect(endSpy).toHaveBeenCalledTimes(2);
+      expect(endSpy).toHaveBeenNthCalledWith(
+        1,
+        { projectId: 'p1', environment: Environment.DEVELOPMENT },
+        'overdue-1',
+        { reason: 'duration_cap_reached' },
+      );
+      expect(endSpy).toHaveBeenNthCalledWith(2, { projectId: 'p2', environment: Environment.PRODUCTION }, 'overdue-2', {
+        reason: 'duration_cap_reached',
+      });
+      expect(result.ended).toBe(2);
+    });
+
+    it('continues the pass when one stream lost a race to end on its own', async () => {
+      prisma.liveStream.findMany.mockResolvedValue([
+        { id: 'overdue-1', projectId: 'p1', environment: Environment.DEVELOPMENT },
+        { id: 'overdue-2', projectId: 'p1', environment: Environment.DEVELOPMENT },
+      ]);
+      jest
+        .spyOn(service, 'end')
+        .mockRejectedValueOnce(new ConflictError('already ENDED', RavenErrorCode.STREAM_INVALID_STATE))
+        .mockResolvedValueOnce({} as never);
+
+      const result = await service.reapOverdueStreams();
+
+      expect(result.ended).toBe(1);
+    });
   });
 
   describe('addHost() — host/co-host credentials', () => {
@@ -338,7 +422,7 @@ describe('LiveStreamsService', () => {
 
       await service.addHost(SCOPE, 'stream_abc123', { identity: 'bob' });
 
-      expect(rtcTokensService.create).toHaveBeenCalledWith(
+      expect(rtcTokensService.mintRawCredential).toHaveBeenCalledWith(
         SCOPE,
         'room-uuid',
         expect.objectContaining({
@@ -412,7 +496,7 @@ describe('LiveStreamsService', () => {
       await expect(service.addHost(SCOPE, 'stream_abc123', { identity: 'bob' })).rejects.toMatchObject({
         code: RavenErrorCode.STREAM_INVALID_STATE,
       });
-      expect(rtcTokensService.create).not.toHaveBeenCalled();
+      expect(rtcTokensService.mintRawCredential).not.toHaveBeenCalled();
     });
 
     /**
@@ -526,7 +610,7 @@ describe('LiveStreamsService', () => {
       const credential = await service.addHost(SCOPE, 'stream_abc123', { identity: 'bob' });
 
       expect(credential.role).toBe(LiveStreamHostRole.CO_HOST);
-      expect(rtcTokensService.create).toHaveBeenCalled();
+      expect(rtcTokensService.mintRawCredential).toHaveBeenCalled();
     });
 
     it('rethrows a create failure that is not a lost race', async () => {
@@ -596,7 +680,7 @@ describe('LiveStreamsService', () => {
     it('always mints subscribe-only RTC permissions', async () => {
       await service.createViewerToken(SCOPE, 'stream_abc123', 'dave');
 
-      expect(rtcTokensService.create).toHaveBeenCalledWith(
+      expect(rtcTokensService.mintRawCredential).toHaveBeenCalledWith(
         SCOPE,
         'room-uuid',
         expect.objectContaining({
@@ -628,7 +712,7 @@ describe('LiveStreamsService', () => {
       // "role"/"permissions" parameter anywhere in the call for an
       // untrusted client to influence, unlike addHost's dedicated DTO.
       await service.createViewerToken(SCOPE, 'stream_abc123', 'dave');
-      const [, , tokenDto] = rtcTokensService.create.mock.calls[0];
+      const [, , tokenDto] = rtcTokensService.mintRawCredential.mock.calls[0];
       expect(tokenDto.permissions.publish).toBe(false);
     });
 
@@ -647,6 +731,43 @@ describe('LiveStreamsService', () => {
 
       await expect(service.createViewerToken(SCOPE, 'stream_abc123', 'dave')).rejects.toMatchObject({
         code: RavenErrorCode.STREAM_INVALID_STATE,
+      });
+    });
+
+    describe('free-tier viewer cap', () => {
+      beforeEach(() => {
+        prisma.liveStreamHost.findMany.mockResolvedValue([
+          { identity: 'alice', role: LiveStreamHostRole.HOST, removedAt: null },
+        ]);
+      });
+
+      it('rejects the 101st viewer once the cap is reached', async () => {
+        // 100 non-host participants already live — alice (the host) is
+        // excluded from the viewer count the same way toView() excludes her.
+        sfuRoomState.listLiveParticipants.mockResolvedValue(
+          Array.from({ length: 100 }, (_, i) => ({ identity: `viewer-${i}` })),
+        );
+
+        await expect(service.createViewerToken(SCOPE, 'stream_abc123', 'viewer-100')).rejects.toMatchObject({
+          code: RavenErrorCode.STREAM_VIEWER_LIMIT_EXCEEDED,
+        });
+        expect(rtcTokensService.mintRawCredential).not.toHaveBeenCalled();
+      });
+
+      it('admits a viewer under the cap', async () => {
+        sfuRoomState.listLiveParticipants.mockResolvedValue(
+          Array.from({ length: 99 }, (_, i) => ({ identity: `viewer-${i}` })),
+        );
+
+        await expect(service.createViewerToken(SCOPE, 'stream_abc123', 'viewer-99')).resolves.toBeDefined();
+      });
+
+      it('fails open — mints anyway — when the SFU is unreachable', async () => {
+        // listLiveParticipants() returns undefined on an SFU fault, the
+        // same signal toView() treats as "viewer count unknown," not zero.
+        sfuRoomState.listLiveParticipants.mockResolvedValue(undefined);
+
+        await expect(service.createViewerToken(SCOPE, 'stream_abc123', 'dave')).resolves.toBeDefined();
       });
     });
   });

@@ -5,7 +5,13 @@ import { Meter } from '@/components/ui/meter';
 import { EmptyState } from '@/components/ui/states';
 import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { formatCount, formatDate, formatDateTime, formatDuration } from '@/lib/format';
-import type { UsageDailyBucket, UsageHistoryEntry, UsageSummary } from '@/lib/api-client';
+import type {
+  ChatUsageBlock,
+  LiveStreamingUsageBlock,
+  UsageDailyBucket,
+  UsageHistoryEntry,
+  UsageSummary,
+} from '@/lib/api-client';
 
 /**
  * The shared usage panels, so the account page and the project page render
@@ -120,6 +126,88 @@ export function ExhaustedNotice({ summary }: { summary: UsageSummary }) {
         </li>
       </ul>
     </div>
+  );
+}
+
+/**
+ * Chat's independent allowance: messages sent, counted once per message.
+ * Never shown as consuming RTC minutes — it doesn't.
+ */
+export function ChatUsageCard({ chat }: { chat: ChatUsageBlock }) {
+  const usedPercent = chat.limit === 0 ? 100 : Math.min(100, Math.round((chat.used / chat.limit) * 1000) / 10);
+  const exhausted = chat.used >= chat.limit;
+  const remaining = Math.max(0, chat.limit - chat.used);
+
+  return (
+    <Card>
+      <CardHeader
+        eyebrow="Included messages"
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            {exhausted ? 'Chat allowance used up' : 'Chat'}
+            {exhausted && <Badge tone="danger">Exhausted</Badge>}
+            {!exhausted && usedPercent >= 80 && <Badge tone="warning">Running low</Badge>}
+          </span>
+        }
+        subtitle="Messages sent through Raven Chat, counted once per message — never once per recipient it's delivered to. Typing, presence and read receipts are never counted."
+      />
+      <Meter
+        label="Messages used"
+        valueLabel={`${formatCount(chat.used)} / ${formatCount(chat.limit)}`}
+        percent={usedPercent}
+        value={chat.used}
+        max={chat.limit}
+        hint={exhausted ? undefined : `${formatCount(remaining)} messages remaining · ${usedPercent}% used`}
+      />
+    </Card>
+  );
+}
+
+/**
+ * Live Streaming's independent allowance: host/co-host connected time
+ * only. Viewers never appear here, and this never draws down RTC minutes.
+ */
+export function LiveStreamingUsageCard({ liveStreaming }: { liveStreaming: LiveStreamingUsageBlock }) {
+  const usedPercent =
+    liveStreaming.hostHoursLimit === 0
+      ? 100
+      : Math.min(100, Math.round((liveStreaming.hostHoursUsed / liveStreaming.hostHoursLimit) * 1000) / 10);
+  const exhausted = liveStreaming.hostHoursUsed >= liveStreaming.hostHoursLimit;
+  const remaining = Math.max(0, liveStreaming.hostHoursLimit - liveStreaming.hostHoursUsed);
+  const maxDurationHours = liveStreaming.maxStreamDurationMinutes / 60;
+
+  return (
+    <Card>
+      <CardHeader
+        eyebrow="Included host-hours"
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            {exhausted ? 'Live Streaming allowance used up' : 'Live Streaming'}
+            {exhausted && <Badge tone="danger">Exhausted</Badge>}
+            {!exhausted && usedPercent >= 80 && <Badge tone="warning">Running low</Badge>}
+          </span>
+        }
+        subtitle="Host and co-host connected time only — a viewer never spends anything here, whatever their count. Metered from actual connected duration, gaps from a disconnect excluded."
+      />
+      <Meter
+        label="Host-hours used"
+        valueLabel={`${formatCount(liveStreaming.hostHoursUsed)} / ${formatCount(liveStreaming.hostHoursLimit)}`}
+        percent={usedPercent}
+        value={liveStreaming.hostHoursUsed}
+        max={liveStreaming.hostHoursLimit}
+        hint={exhausted ? undefined : `${formatCount(remaining)} host-hours remaining · ${usedPercent}% used`}
+      />
+
+      <div className="mt-5 grid grid-cols-3 gap-3 border-t border-line pt-5">
+        <StatCard
+          label="Concurrent streams"
+          value={`${liveStreaming.concurrentStreams} / ${liveStreaming.maxConcurrentStreams}`}
+          hint="Account-wide, across every project"
+        />
+        <StatCard label="Viewers" value={liveStreaming.maxViewers} hint="Per-stream maximum" />
+        <StatCard label="Stream duration" value={`${maxDurationHours}h`} hint="Maximum per stream" />
+      </div>
+    </Card>
   );
 }
 

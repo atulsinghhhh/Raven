@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { UsageKind, UsageSession } from '../../generated/prisma/client';
+import { UsageKind, UsageProduct, UsageSession } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { Environment } from '../../shared/environment/environment.constants';
 import { UsageAllowanceService } from './usage-allowance.service';
@@ -15,6 +15,15 @@ export interface StartSessionInput {
   roomId: string;
   roomName: string;
   participantIdentity: string;
+  /**
+   * Which allowance this session draws against. Defaults to RTC — the
+   * ordinary call path — so every existing caller is unaffected. Live
+   * Streaming host/co-host sessions pass `LIVE_STREAMING` explicitly; see
+   * MessageRouterService.handleJoin.
+   */
+  product?: UsageProduct;
+  /** Must agree with `product`; defaults to the matching RTC kind. */
+  kind?: UsageKind;
 }
 
 export interface SettlementResult {
@@ -104,7 +113,9 @@ export class UsageMeterService implements OnModuleInit, OnModuleDestroy {
    * the common case is one insert.
    */
   async startSession(input: StartSessionInput): Promise<UsageSession> {
-    const allowance = await this.allowances.ensureProvisionedForProject(input.projectId);
+    const product = input.product ?? UsageProduct.RTC;
+    const kind = input.kind ?? UsageKind.RTC_PARTICIPANT_MINUTES;
+    const allowance = await this.allowances.ensureProvisionedForProject(input.projectId, product);
 
     const existing = await this.prisma.usageSession.findUnique({
       where: { sessionKey: input.sessionKey },
@@ -125,7 +136,8 @@ export class UsageMeterService implements OnModuleInit, OnModuleDestroy {
           roomId: input.roomId,
           roomName: input.roomName,
           participantIdentity: input.participantIdentity,
-          kind: UsageKind.RTC_PARTICIPANT_MINUTES,
+          product,
+          kind,
           startedAt: now,
           lastMeteredAt: now,
         },
@@ -282,8 +294,13 @@ export class UsageMeterService implements OnModuleInit, OnModuleDestroy {
           data: { consumedSeconds: { increment: delta } },
         });
 
+        // `includedMinutes` is only null for CHAT allowances, and CHAT never
+        // opens a UsageSession — settleRow only ever runs against an RTC or
+        // LIVE_STREAMING allowance, both duration-based. The `?? 0` is a
+        // type-level nicety for that invariant, not an expected runtime path.
         const justExhausted =
-          allowance.exhaustedAt === null && allowance.consumedSeconds >= minutesToSeconds(allowance.includedMinutes);
+          allowance.exhaustedAt === null &&
+          allowance.consumedSeconds >= minutesToSeconds(allowance.includedMinutes ?? 0);
 
         if (justExhausted) {
           // Conditional on `exhaustedAt: null`, so the timestamp records

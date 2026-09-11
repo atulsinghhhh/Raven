@@ -3,8 +3,13 @@ import { WsAdapter } from '@nestjs/platform-ws';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { UsageKind, UsageProduct } from '../src/generated/prisma/client';
+import { PrismaService } from '../src/shared/database/prisma.service';
+import { Environment } from '../src/shared/environment/environment.constants';
 import { AllExceptionsFilter } from '../src/shared/errors/all-exceptions.filter';
 import { RedisService } from '../src/shared/redis/redis.service';
+import { UsageMeterService } from '../src/modules/usage/usage-meter.service';
+import { UsageCloseReason } from '../src/modules/usage/usage.constants';
 
 /**
  * End-to-end test of Live Streaming: the real app, real Postgres/Redis
@@ -24,6 +29,9 @@ describe('Live Streaming (e2e)', () => {
   let apiKey: string;
   let jwtToken: string;
   let projectId: string;
+  let ownerId: string;
+  let prisma: PrismaService;
+  let meter: UsageMeterService;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -43,11 +51,15 @@ describe('Live Streaming (e2e)', () => {
     const stale = await redis.client.keys('ratelimit:*');
     if (stale.length > 0) await redis.client.del(...stale);
 
+    prisma = app.get(PrismaService);
+    meter = app.get(UsageMeterService);
+
     const registered = await request(baseUrl)
       .post('/v1/auth/register')
       .send({ email: `live-streams-e2e-${suffix}@raven.local`, password: 'correct-horse-battery-staple' })
       .expect(201);
     jwtToken = registered.body.accessToken;
+    ownerId = registered.body.user.id;
 
     const project = await request(baseUrl)
       .post('/v1/projects')
@@ -289,6 +301,187 @@ describe('Live Streaming (e2e)', () => {
         .expect(201);
 
       expect(endpoint.body.enabledEvents).toEqual(expect.arrayContaining(events));
+    });
+  });
+
+  describe('free-tier concurrency (1 LIVE stream per account)', () => {
+    it('lets exactly one of two simultaneous start() calls win', async () => {
+      const streamA = await request(baseUrl)
+        .post('/v1/live-streams')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .send({ title: 'Race A', hostIdentity: 'alice' })
+        .expect(201);
+      const streamB = await request(baseUrl)
+        .post('/v1/live-streams')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .send({ title: 'Race B', hostIdentity: 'alice' })
+        .expect(201);
+
+      // The property under test: reading "am I the only LIVE stream" and
+      // then writing is a race a naive count-then-act check would lose.
+      // The partial unique index on live_streams(ownerId) WHERE status =
+      // 'LIVE' cannot lose it — Postgres itself refuses the second write.
+      const [resA, resB] = await Promise.all([
+        request(baseUrl).post(`/v1/live-streams/${streamA.body.id}/start`).set('Authorization', `Bearer ${apiKey}`),
+        request(baseUrl).post(`/v1/live-streams/${streamB.body.id}/start`).set('Authorization', `Bearer ${apiKey}`),
+      ]);
+
+      const statuses = [resA.status, resB.status].sort((a, b) => a - b);
+      expect(statuses).toEqual([201, 403]);
+
+      const winner = resA.status === 201 ? resA : resB;
+      const loser = resA.status === 201 ? resB : resA;
+      expect(winner.body.status).toBe('LIVE');
+      expect(loser.body.code).toBe('RAVEN_STREAM_CONCURRENCY_LIMIT_EXCEEDED');
+
+      // Clean up: leaves nothing LIVE for tests that run after this one.
+      await request(baseUrl)
+        .post(`/v1/live-streams/${winner.body.id}/end`)
+        .set('Authorization', `Bearer ${apiKey}`)
+        .expect(201);
+    });
+
+    it('rejects starting a second stream while the first is still LIVE, account-wide', async () => {
+      const streamA = await request(baseUrl)
+        .post('/v1/live-streams')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .send({ title: 'Sequential A', hostIdentity: 'alice' })
+        .expect(201);
+      const streamB = await request(baseUrl)
+        .post('/v1/live-streams')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .send({ title: 'Sequential B', hostIdentity: 'alice' })
+        .expect(201);
+
+      await request(baseUrl)
+        .post(`/v1/live-streams/${streamA.body.id}/start`)
+        .set('Authorization', `Bearer ${apiKey}`)
+        .expect(201);
+
+      const rejected = await request(baseUrl)
+        .post(`/v1/live-streams/${streamB.body.id}/start`)
+        .set('Authorization', `Bearer ${apiKey}`)
+        .expect(403);
+      expect(rejected.body.code).toBe('RAVEN_STREAM_CONCURRENCY_LIMIT_EXCEEDED');
+
+      await request(baseUrl)
+        .post(`/v1/live-streams/${streamA.body.id}/end`)
+        .set('Authorization', `Bearer ${apiKey}`)
+        .expect(201);
+
+      // The slot is free again — starting B now succeeds.
+      await request(baseUrl)
+        .post(`/v1/live-streams/${streamB.body.id}/start`)
+        .set('Authorization', `Bearer ${apiKey}`)
+        .expect(201);
+      await request(baseUrl)
+        .post(`/v1/live-streams/${streamB.body.id}/end`)
+        .set('Authorization', `Bearer ${apiKey}`)
+        .expect(201);
+    });
+  });
+
+  describe('host-hours accounting (free tier)', () => {
+    async function createAndGetRoomId(hostIdentity: string): Promise<{ streamId: string; roomId: string }> {
+      const stream = await request(baseUrl)
+        .post('/v1/live-streams')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .send({ title: `Host-hours ${Date.now()}`, hostIdentity })
+        .expect(201);
+      const row = await prisma.liveStream.findUniqueOrThrow({
+        where: { publicId: stream.body.id },
+        select: { roomId: true },
+      });
+      return { streamId: stream.body.id, roomId: row.roomId };
+    }
+
+    it('excludes a reconnect gap, and never draws down the RTC allowance', async () => {
+      const { roomId } = await createAndGetRoomId('alice');
+      const rtcBefore = (await request(baseUrl).get('/v1/usage').set('Authorization', `Bearer ${jwtToken}`).expect(200))
+        .body.usedMinutes;
+
+      // 10:00 -> 10:20 (20 min), gap, 10:25 -> 10:40 (15 min) = 35 min total.
+      const firstStart = new Date(Date.now() - 40 * 60 * 1000);
+      const first = await meter.startSession({
+        sessionKey: `ls-e2e-host-a-${Date.now()}`,
+        projectId,
+        environment: Environment.DEVELOPMENT,
+        roomId,
+        roomName: 'host-hours-room',
+        participantIdentity: 'alice',
+        product: UsageProduct.LIVE_STREAMING,
+        kind: UsageKind.LIVE_STREAMING_HOST_MINUTES,
+      });
+      await prisma.usageSession.update({
+        where: { id: first.id },
+        data: { startedAt: firstStart, lastMeteredAt: firstStart },
+      });
+      await meter.settle(first.sessionKey, {
+        at: new Date(firstStart.getTime() + 20 * 60 * 1000),
+        close: UsageCloseReason.LEFT,
+      });
+
+      const secondStart = new Date(firstStart.getTime() + 25 * 60 * 1000);
+      const second = await meter.startSession({
+        sessionKey: `ls-e2e-host-b-${Date.now()}`,
+        projectId,
+        environment: Environment.DEVELOPMENT,
+        roomId,
+        roomName: 'host-hours-room',
+        participantIdentity: 'alice',
+        product: UsageProduct.LIVE_STREAMING,
+        kind: UsageKind.LIVE_STREAMING_HOST_MINUTES,
+      });
+      await prisma.usageSession.update({
+        where: { id: second.id },
+        data: { startedAt: secondStart, lastMeteredAt: secondStart },
+      });
+      await meter.settle(second.sessionKey, {
+        at: new Date(secondStart.getTime() + 15 * 60 * 1000),
+        close: UsageCloseReason.LEFT,
+      });
+
+      const allowance = await prisma.usageAllowance.findUniqueOrThrow({
+        where: { userId_product: { userId: ownerId, product: UsageProduct.LIVE_STREAMING } },
+      });
+      // 35 minutes, not the 40 it would be had the 5-minute gap been billed.
+      expect(allowance.consumedSeconds).toBe(35 * 60);
+
+      const rtcAfter = (await request(baseUrl).get('/v1/usage').set('Authorization', `Bearer ${jwtToken}`).expect(200))
+        .body.usedMinutes;
+      expect(rtcAfter).toBe(rtcBefore);
+    });
+
+    it('counts each co-host independently', async () => {
+      const { roomId } = await createAndGetRoomId('carol');
+      const before = await prisma.usageAllowance.findUniqueOrThrow({
+        where: { userId_product: { userId: ownerId, product: UsageProduct.LIVE_STREAMING } },
+      });
+
+      const startedAt = new Date(Date.now() - 60 * 60 * 1000);
+      for (const identity of ['carol', 'dave']) {
+        const session = await meter.startSession({
+          sessionKey: `ls-e2e-cohost-${identity}-${Date.now()}`,
+          projectId,
+          environment: Environment.DEVELOPMENT,
+          roomId,
+          roomName: 'co-host-room',
+          participantIdentity: identity,
+          product: UsageProduct.LIVE_STREAMING,
+          kind: UsageKind.LIVE_STREAMING_HOST_MINUTES,
+        });
+        await prisma.usageSession.update({ where: { id: session.id }, data: { startedAt, lastMeteredAt: startedAt } });
+        await meter.settle(session.sessionKey, {
+          at: new Date(startedAt.getTime() + 60 * 60 * 1000),
+          close: UsageCloseReason.LEFT,
+        });
+      }
+
+      const after = await prisma.usageAllowance.findUniqueOrThrow({
+        where: { userId_product: { userId: ownerId, product: UsageProduct.LIVE_STREAMING } },
+      });
+      // Two hosts, one hour each: two hours consumed, not one.
+      expect(after.consumedSeconds - before.consumedSeconds).toBe(2 * 60 * 60);
     });
   });
 });

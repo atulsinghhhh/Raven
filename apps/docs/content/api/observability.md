@@ -188,7 +188,7 @@ Real aggregate connection/error metrics for this project
 
 ### GET `/v1/projects/{projectId}/usage`
 
-One project's contribution to the owner's allowance
+One project's contribution to its owner's RTC, Chat and Live Streaming allowances
 
 **Credential** Dashboard session (JWT)
 
@@ -213,7 +213,7 @@ Best-effort ingestion of one RTC connection/participant/error event
 
 ### GET `/v1/usage`
 
-The caller's Livqeno minute allowance and how much of it is spent
+The caller's RTC, Chat and Live Streaming allowances, and how much of each is spent
 
 **Credential** Dashboard session (JWT)
 
@@ -221,7 +221,7 @@ _No parameters._
 
 ### GET `/v1/usage/detail`
 
-The same allowance, plus session history, a daily rollup and a per-project breakdown
+The same three allowances, plus RTC session history, a daily rollup and a per-project breakdown. 
 
 **Credential** Dashboard session (JWT)
 

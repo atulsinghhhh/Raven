@@ -1,13 +1,20 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   ChatMemberRole,
   LiveStream,
   LiveStreamHost,
   LiveStreamHostRole,
   LiveStreamStatus,
+  UsageProduct,
 } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
-import { ConflictError, NotFoundError } from '../../shared/errors/app-error';
+import {
+  ConflictError,
+  LiveStreamConcurrencyLimitExceededError,
+  LiveStreamViewerLimitExceededError,
+  NotFoundError,
+} from '../../shared/errors/app-error';
 import { RavenErrorCode } from '../../shared/errors/error-codes';
 import { generateId } from '../../shared/utils/crypto.util';
 import { ProjectScope } from '../../shared/environment/environment.constants';
@@ -19,6 +26,7 @@ import { ChatTokenService, IssuedChatToken } from '../chat/tokens/chat-token.ser
 import { SfuRoomStateService } from '../rooms/sfu-room-state.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { IssuedRtcToken, RtcTokensService } from '../rtc-tokens/rtc-tokens.service';
+import { UsageAllowanceService } from '../usage/usage-allowance.service';
 import { WebhookEventsService } from '../webhooks/webhook-events.service';
 import { AddHostDto } from './dto/add-host.dto';
 import { CreateLiveStreamDto } from './dto/create-live-stream.dto';
@@ -83,8 +91,9 @@ export interface IssuedStreamCredential {
  * ChatTokenService already do correctly.
  */
 @Injectable()
-export class LiveStreamsService {
+export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(LiveStreamsService.name);
+  private durationReaperTimer?: NodeJS.Timeout;
 
   /**
    * One line per Live Streaming lifecycle event, in the repo's existing
@@ -138,7 +147,56 @@ export class LiveStreamsService {
     private readonly messagesService: MessagesService,
     private readonly chatTokenService: ChatTokenService,
     private readonly webhooks: WebhookEventsService,
+    private readonly usageAllowances: UsageAllowanceService,
+    private readonly configService: ConfigService,
   ) {}
+
+  onModuleInit(): void {
+    // Same interval and same plain-setInterval idiom as
+    // UsageMeterService's reaper — one more scheduling dependency isn't
+    // worth adding for a second sweep.
+    const intervalMs = this.configService.get<number>('usage.reaperIntervalMs')!;
+    this.durationReaperTimer = setInterval(() => void this.reapOverdueStreams(), intervalMs);
+  }
+
+  onModuleDestroy(): void {
+    if (this.durationReaperTimer) clearInterval(this.durationReaperTimer);
+  }
+
+  /**
+   * Force-ends any free-tier stream that has been LIVE past
+   * `usage.live.maxStreamDurationMinutes`. Reuses `end()`'s existing
+   * lifecycle transition rather than duplicating it — this only decides
+   * *which* streams qualify; ending one is the same code path a
+   * developer's own `POST .../end` runs.
+   */
+  async reapOverdueStreams(): Promise<{ ended: number }> {
+    const maxStreamDurationMinutes = this.configService.get<number>('usage.live.maxStreamDurationMinutes')!;
+    const cutoff = new Date(Date.now() - maxStreamDurationMinutes * 60 * 1000);
+
+    const overdue = await this.prisma.liveStream.findMany({
+      where: { status: LiveStreamStatus.LIVE, startedAt: { lt: cutoff } },
+      select: { id: true, projectId: true, environment: true },
+      take: 500,
+    });
+
+    let ended = 0;
+    for (const row of overdue) {
+      const scope: ProjectScope = { projectId: row.projectId, environment: row.environment };
+      try {
+        await this.end(scope, row.id, { reason: 'duration_cap_reached' });
+        ended += 1;
+      } catch (err) {
+        // A lost race against the developer's own concurrent end() call
+        // surfaces as ConflictError (see end()'s own status guard) — not a
+        // reaper failure, just someone else got there first.
+        if (!(err instanceof ConflictError)) {
+          this.logger.warn(`live-stream duration reaper failed for stream ${row.id}: ${(err as Error).message}`);
+        }
+      }
+    }
+    return { ended };
+  }
 
   async create(scope: ProjectScope, dto: CreateLiveStreamDto): Promise<LiveStreamView> {
     // One generated id serves as both the Room's and the Conversation's
@@ -146,6 +204,17 @@ export class LiveStreamsService {
     // generateId's alphabet is base64url, already a subset of the
     // room/conversation name pattern, so there's nothing to sanitize.
     const publicId = generateId('stream');
+
+    // Denormalised onto the stream so the free-tier "1 concurrent stream"
+    // cap (account-wide, same attribution as UsageAllowance) can be
+    // enforced by a database constraint — see the migration and start().
+    const project = await this.prisma.project.findUnique({
+      where: { id: scope.projectId },
+      select: { ownerId: true },
+    });
+    if (!project) {
+      throw new NotFoundError('Project', RavenErrorCode.PROJECT_NOT_FOUND);
+    }
 
     const room = await this.roomsService.create(scope, { name: publicId });
     const conversation = await this.conversationsService.create(scope, { name: publicId, roomId: room.id });
@@ -171,6 +240,7 @@ export class LiveStreamsService {
       data: {
         publicId,
         projectId: scope.projectId,
+        ownerId: project.ownerId,
         environment: scope.environment,
         roomId: room.id,
         conversationId: conversation.id,
@@ -273,10 +343,35 @@ export class LiveStreamsService {
     // and a startedAt belonging to whichever write landed last. Postgres
     // settles it instead: the transition is the write, so exactly one
     // caller can match CREATED and the rest match nothing.
-    const { count } = await this.prisma.liveStream.updateMany({
-      where: { id: stream.id, status: LiveStreamStatus.CREATED },
-      data: { status: LiveStreamStatus.LIVE, startedAt },
-    });
+    let updateResult: { count: number };
+    try {
+      updateResult = await this.prisma.liveStream.updateMany({
+        where: { id: stream.id, status: LiveStreamStatus.CREATED },
+        data: { status: LiveStreamStatus.LIVE, startedAt },
+      });
+    } catch (err) {
+      if (!isUniqueViolation(err)) {
+        throw err;
+      }
+      // The partial unique index `live_streams_one_live_per_owner`
+      // (WHERE status = 'LIVE') refused the write: this owner already has
+      // a *different* stream LIVE. The same "the write is the decision"
+      // reasoning above, extended across rows instead of within one — a
+      // count-then-act check here would have exactly the race the comment
+      // above describes, just one level up (two different CREATED streams
+      // for the same owner both reading "0 live" and both winning).
+      this.logger.warn(
+        this.event(scope, 'stream.concurrency_rejected', {
+          stream: stream.publicId,
+          room: stream.roomId,
+          reason: 'owner already has a different stream LIVE',
+        }),
+      );
+      throw new LiveStreamConcurrencyLimitExceededError({
+        maxConcurrentStreams: this.configService.get<number>('usage.live.maxConcurrentStreams')!,
+      });
+    }
+    const { count } = updateResult;
     if (count === 0) {
       // Re-read rather than echo the status from above: by now it is
       // whatever the winner set, and that is what the caller should be
@@ -326,8 +421,12 @@ export class LiveStreamsService {
    * There's no ENDED → LIVE transition. Restarting an ended stream would
    * need a real replay/restart model, which this phase doesn't implement.
    * Create a new stream instead.
+   *
+   * `reason` is opt-in and only ever set by `reapOverdueStreams()` today —
+   * a developer's own end() call carries none, and the webhook payload
+   * simply omits the field rather than sending it null.
    */
-  async end(scope: ProjectScope, streamId: string): Promise<LiveStreamView> {
+  async end(scope: ProjectScope, streamId: string, opts: { reason?: string } = {}): Promise<LiveStreamView> {
     const stream = await this.resolveRaw(scope, streamId);
 
     const endedAt = new Date();
@@ -366,6 +465,7 @@ export class LiveStreamsService {
         stream: updated.publicId,
         room: updated.roomId,
         durationMs,
+        reason: opts.reason,
       }),
     );
 
@@ -373,6 +473,7 @@ export class LiveStreamsService {
       streamId: updated.publicId,
       endedAt: endedAt.toISOString(),
       durationMs,
+      ...(opts.reason ? { reason: opts.reason } : {}),
     });
 
     return this.toView(updated, await this.activeHosts(updated.id), false);
@@ -395,6 +496,13 @@ export class LiveStreamsService {
   async addHost(scope: ProjectScope, streamId: string, dto: AddHostDto): Promise<IssuedStreamCredential> {
     const stream = await this.resolveRaw(scope, streamId);
     this.assertNotEnded(stream, scope, 'addHost');
+
+    // Mirrors RTC's mint-time gate (RtcTokensService.create): refuse before
+    // signing anything, so a developer whose Live Streaming host-hours are
+    // gone gets a 403 from this endpoint rather than a token that will only
+    // fail later at room join. Viewers (createViewerToken) get no such
+    // check — they never spend this allowance.
+    await this.usageAllowances.assertProjectWithinAllowance(scope.projectId, UsageProduct.LIVE_STREAMING);
 
     const host = await this.upsertHost(stream.id, dto.identity, dto.role);
 
@@ -469,6 +577,7 @@ export class LiveStreamsService {
   async createViewerToken(scope: ProjectScope, streamId: string, identity: string): Promise<IssuedStreamCredential> {
     const stream = await this.resolveRaw(scope, streamId);
     this.assertNotEnded(stream, scope, 'createViewerToken');
+    await this.assertWithinViewerCap(stream);
 
     const credential = await this.mintCredential(scope, stream, identity, {
       rtcPublish: false,
@@ -528,7 +637,11 @@ export class LiveStreamsService {
     identity: string,
     opts: { rtcPublish: boolean; chatRole: ChatMemberRole },
   ): Promise<{ rtc: IssuedRtcToken; chat?: IssuedChatToken }> {
-    const rtc = await this.rtcTokensService.create(scope, stream.roomId, {
+    // Not RtcTokensService.create(): live-stream credentials are never
+    // gated by the RTC allowance. Hosts/co-hosts are gated against the
+    // LIVE_STREAMING allowance instead (see addHost), and viewers are free
+    // — see RtcTokensService.mintRawCredential's doc comment.
+    const rtc = await this.rtcTokensService.mintRawCredential(scope, stream.roomId, {
       participantIdentity: identity,
       permissions: {
         join: true,
@@ -668,6 +781,33 @@ export class LiveStreamsService {
 
   private activeHosts(streamId: string): Promise<LiveStreamHost[]> {
     return this.prisma.liveStreamHost.findMany({ where: { streamId, removedAt: null } });
+  }
+
+  /**
+   * Free-tier viewer cap for one stream. Reuses the same live SFU-derived
+   * count `toView()` computes for `viewerCount` — no new state.
+   *
+   * Best-effort, not exact: a burst of viewer-token requests arriving
+   * concurrently can each read a count from just under the cap and all
+   * pass, briefly overshooting it. Enforcing this atomically would mean
+   * inventing synchronized per-stream viewer state this cap doesn't
+   * warrant — see docs/usage-metering.md. And it fails *open* (allows the
+   * mint) if the SFU is unreachable, the same posture `toView()` already
+   * takes for `viewerCount` itself: an infrastructure blip must not turn
+   * into false rejections for every viewer trying to join.
+   */
+  private async assertWithinViewerCap(stream: LiveStream): Promise<void> {
+    const maxViewers = this.configService.get<number>('usage.live.maxViewers')!;
+    const liveParticipants = await this.roomState.listLiveParticipants(stream.roomId);
+    if (!liveParticipants) return;
+
+    const hosts = await this.activeHosts(stream.id);
+    const hostIdentities = new Set(hosts.map((h) => h.identity));
+    const viewerCount = liveParticipants.filter((p) => !hostIdentities.has(p.identity)).length;
+
+    if (viewerCount >= maxViewers) {
+      throw new LiveStreamViewerLimitExceededError({ maxViewers });
+    }
   }
 
   /**

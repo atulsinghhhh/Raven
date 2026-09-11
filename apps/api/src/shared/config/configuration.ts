@@ -245,6 +245,16 @@ export default () => ({
 
   signaling: {
     maxParticipantsPerRoom: parseInt(process.env.SIGNALING_MAX_PARTICIPANTS_PER_ROOM ?? '50', 10),
+    // Live-stream rooms get their own, higher ceiling: the free-tier
+    // Live Streaming viewer cap (usage.live.maxViewers, 100) plus
+    // host/co-hosts would otherwise be unreachable behind the generic
+    // 50-participant room limit above. Applied only when the room backs a
+    // LiveStream (see RoomRegistryService.join) — an ordinary call room is
+    // unaffected.
+    maxParticipantsPerLiveStreamRoom: parseInt(
+      process.env.SIGNALING_MAX_PARTICIPANTS_PER_LIVE_STREAM_ROOM ?? '150',
+      10,
+    ),
     maxMessageBytes: parseInt(process.env.SIGNALING_MAX_MESSAGE_BYTES ?? '16384', 10),
     // Per-connection message rate limit, in-memory sliding window. No Redis
     // needed for this one.
@@ -415,20 +425,33 @@ export default () => ({
   },
 
   usage: {
-    // How many minutes a *newly provisioned* allowance is granted. It is
-    // snapshotted onto the UsageAllowance row, so lowering this later never
-    // takes minutes away from a developer who already has them, and raising
-    // it never retroactively grants them. See docs/usage-metering.md.
-    freeTierMinutes: parseInt(process.env.USAGE_FREE_TIER_MINUTES ?? '20000', 10),
+    // How many participant-minutes a *newly provisioned* RTC allowance is
+    // granted. It is snapshotted onto the UsageAllowance row, so lowering
+    // this later never takes minutes away from a developer who already has
+    // them, and raising it never retroactively grants them. See
+    // docs/usage-metering.md. Renamed from USAGE_FREE_TIER_MINUTES when RTC,
+    // Chat and Live Streaming became independent pools — the old name no
+    // longer said which product it granted.
+    freeTierRtcMinutes: parseInt(process.env.USAGE_FREE_TIER_RTC_MINUTES ?? '10000', 10),
 
-    // Whether an exhausted allowance actually refuses new RTC sessions. On
-    // by default: an allowance nothing enforces is a number on a page, not
-    // a limit. A self-hosted deployment running its own SFU and TURN fleet
-    // has no reason to cap itself, and turns this off.
+    // How many messages a *newly provisioned* Chat allowance is granted.
+    // Same snapshot-at-provisioning semantics as freeTierRtcMinutes.
+    freeTierChatMessages: parseInt(process.env.USAGE_FREE_TIER_CHAT_MESSAGES ?? '100000', 10),
+
+    // How many host-connected-hours a *newly provisioned* Live Streaming
+    // allowance is granted. Only host/co-host time counts — viewers are
+    // never metered. Same snapshot-at-provisioning semantics.
+    freeTierLiveHostHours: parseInt(process.env.USAGE_FREE_TIER_LIVE_HOST_HOURS ?? '100', 10),
+
+    // Whether an exhausted allowance actually refuses new usage of that
+    // product. On by default: an allowance nothing enforces is a number on
+    // a page, not a limit. A self-hosted deployment running its own SFU and
+    // TURN fleet has no reason to cap itself, and turns this off.
     enforceLimit: (process.env.USAGE_ENFORCE_LIMIT ?? 'true') !== 'false',
 
-    // How often a gateway settles the sessions it is holding. Every
-    // settlement is a fresh (now - startedAt) reading rather than an
+    // How often a gateway settles the sessions it is holding (RTC and Live
+    // Streaming host sessions alike — both go through UsageMeterService).
+    // Every settlement is a fresh (now - startedAt) reading rather than an
     // increment, so this interval is the *maximum* usage a hard crash can
     // lose, not an error that accumulates. Matched to the signaling
     // heartbeat: the same sweep is already proving those sessions alive.
@@ -443,6 +466,27 @@ export default () => ({
     // exceed meterIntervalMs, or the reaper starts closing healthy sessions
     // between their own settlements.
     abandonedAfterMs: parseInt(process.env.USAGE_ABANDONED_AFTER_MS ?? '180000', 10),
+
+    // Live Streaming free-tier product limits. Distinct from the
+    // UsageAllowance pools above: these are concurrency/capacity ceilings a
+    // stream either is or isn't within right now, not a running balance.
+    live: {
+      // Concurrent LIVE streams allowed per account (project owner),
+      // across all of that owner's projects and environments — enforced by
+      // a partial unique index on live_streams(ownerId), not an
+      // application-level check (see the migration and
+      // LiveStreamsService.start).
+      maxConcurrentStreams: parseInt(process.env.USAGE_FREE_TIER_LIVE_CONCURRENT_STREAMS ?? '1', 10),
+      // Viewers allowed in a single free-tier stream. Enforced at
+      // viewer-token mint time; approximate under a burst (best-effort SFU
+      // read, fails open), not a hard atomic cap.
+      maxViewers: parseInt(process.env.USAGE_FREE_TIER_LIVE_MAX_VIEWERS ?? '100', 10),
+      // Maximum wall-clock duration of a single free-tier stream, in
+      // minutes. Enforced by an interval-driven reaper that ends any
+      // stream still LIVE past this, mirroring UsageMeterService.reap()'s
+      // pattern.
+      maxStreamDurationMinutes: parseInt(process.env.USAGE_FREE_TIER_LIVE_MAX_STREAM_DURATION_MINUTES ?? '240', 10),
+    },
   },
 
   observability: {

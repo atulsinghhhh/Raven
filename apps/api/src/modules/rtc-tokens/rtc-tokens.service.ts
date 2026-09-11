@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { NotFoundError } from '../../shared/errors/app-error';
 import { RavenErrorCode } from '../../shared/errors/error-codes';
 import { PrismaService } from '../../shared/database/prisma.service';
+import { UsageProduct } from '../../generated/prisma/client';
 import { RoomsService } from '../rooms/rooms.service';
 import { CreateRtcTokenDto } from './dto/create-rtc-token.dto';
 import { UsageAllowanceService } from '../usage/usage-allowance.service';
@@ -58,18 +59,38 @@ export class RtcTokensService {
     private readonly revocations: RtcTokenRevocationService,
   ) {}
 
+  /**
+   * Mints an ordinary RTC token, gated on the caller's RTC allowance.
+   *
+   * This is the only RTC-gated minting path. Live Streaming credentials
+   * (host, co-host, and viewer) go through `mintRawCredential` directly —
+   * see `LiveStreamsService.mintCredential` — because their usage is
+   * accounted against the LIVE_STREAMING allowance instead (hosts, at
+   * `LiveStreamsService.addHost`) or not metered at all (viewers). Routing
+   * them through this method would double-gate a live-stream credential
+   * against RTC minutes it was never meant to spend.
+   */
   async create(scope: ProjectScope, roomId: string, dto: CreateRtcTokenDto): Promise<IssuedRtcToken> {
-    // Confirms the room exists and belongs to this project *and*
-    // environment. The same check used everywhere else in here.
-    const room = await this.roomsService.findOneForProject(roomId, scope);
-
     // Refuse before signing anything. The signaling layer checks again at
     // join (message-router.service.ts) — that is the check that actually
     // protects the media plane, since a token minted a minute ago is still
     // valid — but failing here means a developer whose minutes are gone
     // gets a 403 from the endpoint their backend already handles errors
     // from, instead of a WebSocket close their client has to interpret.
-    await this.usageAllowances.assertProjectWithinAllowance(scope.projectId);
+    await this.usageAllowances.assertProjectWithinAllowance(scope.projectId, UsageProduct.RTC);
+    return this.mintRawCredential(scope, roomId, dto);
+  }
+
+  /**
+   * Everything `create()` does except the RTC-allowance gate. Not a
+   * boolean flag on `create()` — a caller that should never be RTC-gated
+   * (Live Streaming) calls this directly, so there is no flag to forget or
+   * a future refactor of `create()` to accidentally re-apply to it.
+   */
+  async mintRawCredential(scope: ProjectScope, roomId: string, dto: CreateRtcTokenDto): Promise<IssuedRtcToken> {
+    // Confirms the room exists and belongs to this project *and*
+    // environment. The same check used everywhere else in here.
+    const room = await this.roomsService.findOneForProject(roomId, scope);
 
     const ttlSeconds = dto.ttlSeconds ?? this.configService.get<number>('rtcToken.defaultTtlSeconds')!;
 

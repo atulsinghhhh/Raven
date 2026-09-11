@@ -5,7 +5,14 @@ import { Card, CardHeader, SectionHeader, StatCard } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header';
 import { ButtonLink } from '@/components/ui/button';
 import { ErrorState, NoDataYet } from '@/components/ui/states';
-import { AllowanceMeter, DailyUsageChart, ExhaustedNotice, UsageHistoryTable } from '@/components/usage/usage-panels';
+import {
+  AllowanceMeter,
+  ChatUsageCard,
+  DailyUsageChart,
+  ExhaustedNotice,
+  LiveStreamingUsageCard,
+  UsageHistoryTable,
+} from '@/components/usage/usage-panels';
 import { formatCount, formatDuration } from '@/lib/format';
 
 /**
@@ -49,7 +56,7 @@ export default async function ProjectUsagePage({ params }: { params: Promise<{ p
     );
   }
 
-  const { summary, history, daily, ownedByCaller } = usageResult.value;
+  const { summary, history, daily, ownedByCaller, chat, liveStreaming } = usageResult.value;
   const rooms = roomsResult.status === 'fulfilled' ? roomsResult.value : undefined;
 
   // liveParticipantCount is null when the SFU could not be reached. That is
@@ -114,6 +121,17 @@ export default async function ProjectUsagePage({ params }: { params: Promise<{ p
 
       <AllowanceMeter summary={summary} />
 
+      <section>
+        <SectionHeader
+          title="Chat and Live Streaming"
+          subtitle="Account-wide allowances, same as RTC above — not filtered to this project. Neither shares a balance with RTC minutes or with each other."
+        />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <ChatUsageCard chat={chat} />
+          <LiveStreamingUsageCard liveStreaming={liveStreaming} />
+        </div>
+      </section>
+
       <DailyUsageChart daily={daily} days={CHART_DAYS} />
 
       <section>
@@ -154,9 +172,7 @@ export default async function ProjectUsagePage({ params }: { params: Promise<{ p
           <NotMetered title="TURN relay bandwidth">
             Bytes relayed are not counted or attributed to a project.
           </NotMetered>
-          <NotMetered title="Chat, webhooks, storage">
-            Messages, deliveries and attachments consume no minutes.
-          </NotMetered>
+          <NotMetered title="Webhooks, storage">Deliveries and attachments consume no allowance.</NotMetered>
           <NotMetered title="Published-track counts over time">
             Only live track state is visible, never a time series.
           </NotMetered>

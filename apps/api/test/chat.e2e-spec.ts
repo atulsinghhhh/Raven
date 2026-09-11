@@ -4,8 +4,11 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import WebSocket from 'ws';
 import { AppModule } from '../src/app.module';
+import { UsageProduct } from '../src/generated/prisma/client';
 import { AllExceptionsFilter } from '../src/shared/errors/all-exceptions.filter';
+import { PrismaService } from '../src/shared/database/prisma.service';
 import { RedisService } from '../src/shared/redis/redis.service';
+import { UsageAllowanceService } from '../src/modules/usage/usage-allowance.service';
 
 /**
  * End-to-end test of the Phase 12 chat plane: real WebSocket clients (the
@@ -30,9 +33,12 @@ describe('Chat (e2e)', () => {
   let jwtToken: string;
   let apiKey: string;
   let projectId: string;
+  let ownerId: string;
   let room: string;
   let aliceToken: string;
   let bobToken: string;
+  let prisma: PrismaService;
+  let allowances: UsageAllowanceService;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -57,11 +63,15 @@ describe('Chat (e2e)', () => {
     const stale = [...(await redis.client.keys('ratelimit:*')), ...(await redis.client.keys('raven:chat:ratelimit:*'))];
     if (stale.length > 0) await redis.client.del(...stale);
 
+    prisma = app.get(PrismaService);
+    allowances = app.get(UsageAllowanceService);
+
     const registered = await request(baseUrl)
       .post('/v1/auth/register')
       .send({ email: `chat-e2e-${suffix}@raven.local`, password: 'correct-horse-battery-staple' })
       .expect(201);
     jwtToken = registered.body.accessToken;
+    ownerId = registered.body.user.id;
 
     const project = await request(baseUrl)
       .post('/v1/projects')
@@ -608,6 +618,114 @@ describe('Chat (e2e)', () => {
         .send({ text: 'Maintenance in 5 minutes', type: 'system', senderId: 'system' })
         .expect(201);
       expect(response.body.type).toBe('system');
+    });
+  });
+
+  describe('chat message quota (free tier)', () => {
+    const chatKey = () => ({ userId_product: { userId: ownerId, product: UsageProduct.CHAT } });
+
+    async function setConsumedMessages(consumedCount: number): Promise<void> {
+      await allowances.ensureProvisioned(ownerId, UsageProduct.CHAT);
+      await prisma.usageAllowance.update({ where: chatKey(), data: { consumedCount, exhaustedAt: null } });
+    }
+
+    async function consumedMessages(): Promise<number> {
+      const row = await prisma.usageAllowance.findUniqueOrThrow({ where: chatKey() });
+      return row.consumedCount;
+    }
+
+    it('counts a normal message once, however many members the conversation has', async () => {
+      // `room` has two members (alice, bob) — a naive per-recipient count
+      // would show 2 here.
+      await setConsumedMessages(0);
+
+      await request(baseUrl)
+        .post(`/v1/chat/conversations/${room}/messages`)
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({ text: 'quota check — one message, two members' })
+        .expect(201);
+
+      expect(await consumedMessages()).toBe(1);
+    });
+
+    it('does not double-count a retried send', async () => {
+      await setConsumedMessages(0);
+      const clientMessageId = `quota-retry-${Date.now()}`;
+
+      await request(baseUrl)
+        .post(`/v1/chat/conversations/${room}/messages`)
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({ text: 'sent once, retried once', clientMessageId })
+        .expect(201);
+
+      const retried = await request(baseUrl)
+        .post(`/v1/chat/conversations/${room}/messages`)
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({ text: 'sent once, retried once', clientMessageId })
+        .expect(201);
+      expect(retried.body.deduplicated).toBe(true);
+
+      expect(await consumedMessages()).toBe(1);
+    });
+
+    it('does not count typing, presence or reactions against the message quota', async () => {
+      await setConsumedMessages(0);
+
+      const posted = await request(baseUrl)
+        .post(`/v1/chat/conversations/${room}/messages`)
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({ text: 'the only thing that should count' })
+        .expect(201);
+      expect(await consumedMessages()).toBe(1);
+
+      const alice = await connectAndJoin(aliceToken);
+      const bob = await connectAndJoin(bobToken);
+
+      alice.send({ type: 'typing.start', id: 't1', room });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      await request(baseUrl)
+        .get(`/v1/chat/conversations/${room}/presence`)
+        .set('Authorization', `Bearer ${apiKey}`)
+        .expect(200);
+
+      bob.send({ type: 'reaction.add', id: 'r1', messageId: posted.body.id, emoji: '❤️' });
+      await alice.waitFor((f) => f.type === 'reaction.added' && f.messageId === posted.body.id);
+
+      alice.close();
+      bob.close();
+
+      // Still 1: typing, a presence read, and a reaction none touch it.
+      expect(await consumedMessages()).toBe(1);
+    });
+
+    it('allows exactly 100,000 messages and refuses the 100,001st, with a code a caller can switch on', async () => {
+      await setConsumedMessages(99_999);
+
+      await request(baseUrl)
+        .post(`/v1/chat/conversations/${room}/messages`)
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({ text: 'the 100,000th message' })
+        .expect(201);
+      expect(await consumedMessages()).toBe(100_000);
+
+      const refused = await request(baseUrl)
+        .post(`/v1/chat/conversations/${room}/messages`)
+        .set('Authorization', `Bearer ${aliceToken}`)
+        .send({ text: 'the 100,001st message' })
+        .expect(403);
+      expect(refused.body).toMatchObject({
+        code: 'RAVEN_USAGE_LIMIT_EXCEEDED',
+        product: 'CHAT',
+        unit: 'messages',
+        included: 100_000,
+        remaining: 0,
+      });
+      // Refused before persisting: the quota, not the message count, is
+      // what stopped it.
+      expect(await consumedMessages()).toBe(100_000);
+
+      await setConsumedMessages(0);
     });
   });
 

@@ -47,8 +47,17 @@ export class RoomRegistryService {
     private readonly redisService: RedisService,
   ) {}
 
-  async join(session: ParticipantSession): Promise<JoinResult> {
-    const maxParticipants = this.configService.get<number>('signaling.maxParticipantsPerRoom')!;
+  /**
+   * `maxParticipants` lets a caller override the generic room ceiling —
+   * used for a live-stream room, whose free-tier viewer cap
+   * (`usage.live.maxViewers`) plus hosts/co-hosts would otherwise be
+   * unreachable behind the default. The caller (MessageRouterService)
+   * already knows whether this room backs a stream from the same query it
+   * uses to decide which usage product this join meters against, so no
+   * second lookup happens here.
+   */
+  async join(session: ParticipantSession, opts: { maxParticipants?: number } = {}): Promise<JoinResult> {
+    const maxParticipants = opts.maxParticipants ?? this.configService.get<number>('signaling.maxParticipantsPerRoom')!;
     const participantsKey = SignalingRedisKeys.roomParticipants(session.roomId);
 
     let fleetParticipantIds: string[];

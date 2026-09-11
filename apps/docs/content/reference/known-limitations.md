@@ -13,8 +13,8 @@ and deployment notes, not from guesswork.
 |---|---|
 | **Recording** | Nothing captures a room or stream to storage. No composite output, no per-track archive. |
 | **RTMP ingest / egress** | No path in or out for external broadcast tooling. |
-| **Billing, plans and paid usage** | Every account gets a fixed grant of 20,000 free RTC minutes, metered and enforced ([Usage](/concepts/usage)). Beyond that there is nothing: no plans, no payment path, no invoices, and no way to buy or be granted more minutes. The allowance does not reset. |
-| **Metering beyond RTC minutes** | Chat, Live Streaming as a product, TURN bandwidth, storage and API requests are not counted at all. The [limits](/reference/limits) below are technical ceilings, not plan limits. |
+| **Billing, plans and paid usage** | Every account gets three independent fixed grants — 10,000 RTC participant-minutes, 100,000 Chat messages, 100 Live Streaming host-hours — each metered and enforced separately ([Usage](/concepts/usage)). Beyond that there is nothing: no plans, no payment path, no invoices, and no way to buy or be granted more of any of them. None of the three allowances reset. |
+| **Metering beyond RTC, Chat and Live Streaming** | TURN bandwidth, storage and API requests are not counted at all. Live Streaming's own concurrency/viewer/duration ceilings ([Usage](/concepts/usage)) are capacity limits, not metered consumption. The [limits](/reference/limits) below are technical ceilings, not plan limits. |
 | **Admin portal** | No administrative surface exists — no admin roles, no admin auth, and no endpoint that can grant, adjust or reset a developer's allowance. |
 | **Active-speaker detection** | No event. Per-track statistics are available and can approximate it. |
 | **Web-side simulcast layer selection** | The signaling protocol carries a `subscription.update` frame and `raven_rtc` exposes `RavenRoom.requestLayer(...)`, but `@ravenkash/rtc` neither sends the frame nor offers a method. Flutter only, today. |

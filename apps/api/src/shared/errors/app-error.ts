@@ -57,8 +57,37 @@ export class ValidationFailedError extends AppError {
   }
 }
 
+/** Which free-tier pool a `UsageLimitExceededError` refers to. */
+export type UsageLimitProduct = 'RTC' | 'CHAT' | 'LIVE_STREAMING';
+
+const USAGE_LIMIT_UNIT: Record<UsageLimitProduct, string> = {
+  RTC: 'participant minutes',
+  CHAT: 'messages',
+  LIVE_STREAMING: 'host hours',
+};
+
+export interface UsageLimitExceededDetails {
+  product: UsageLimitProduct;
+  unit: 'participant_minutes' | 'messages' | 'host_hours';
+  included: number;
+  used: number;
+  remaining: number;
+  /**
+   * RTC only. Kept alongside the generic fields above for backward
+   * compatibility with SDK/dashboard code that parses these exact keys —
+   * they predate `product`/`unit`/`included`/`used`/`remaining`, which
+   * cover RTC, CHAT and LIVE_STREAMING uniformly.
+   */
+  includedMinutes?: number;
+  usedMinutes?: number;
+  remainingMinutes?: number;
+}
+
 /**
- * The caller's developer account has spent its included Livqeno minutes.
+ * The caller's developer account has spent one of its independent free-tier
+ * pools (RTC minutes, Chat messages, or Live Streaming host-hours — see
+ * `UsageProduct`). Each pool is exhausted independently: using up Chat's
+ * messages never blocks RTC, and vice versa.
  *
  * 403, not 402: `402 Payment Required` tells a client there is something to
  * pay, and there isn't — Livqeno has no billing. It is also not 429; a rate
@@ -68,12 +97,47 @@ export class ValidationFailedError extends AppError {
  * minutes remaining" straight off the error, without a second request.
  */
 export class UsageLimitExceededError extends AppError {
-  constructor(details: { includedMinutes: number; usedMinutes: number; remainingMinutes: number }) {
+  constructor(details: UsageLimitExceededDetails) {
     super(
-      `This account has used all ${details.includedMinutes} of its included Livqeno minutes. ` +
-        'New RTC sessions are refused until more minutes are allocated.',
+      `This account has used all ${details.included} of its included Livqeno ${USAGE_LIMIT_UNIT[details.product]}. ` +
+        'New usage is refused until more is allocated.',
       HttpStatus.FORBIDDEN,
       RavenErrorCode.USAGE_LIMIT_EXCEEDED,
+      details as unknown as Record<string, unknown>,
+    );
+  }
+}
+
+/**
+ * Free-tier Live Streaming already has a stream LIVE for this account —
+ * across all of its projects and environments, the same account-wide scope
+ * `UsageAllowance` already uses.
+ *
+ * Deliberately not `UsageLimitExceededError`: a concurrency cap is "you can
+ * have another, just not running at the same time as this one," not "you're
+ * out and need more allocated" — conflating the two would make a caller
+ * unable to tell "wait for the other stream to end" apart from "nothing
+ * left to give."
+ */
+export class LiveStreamConcurrencyLimitExceededError extends AppError {
+  constructor(details: { maxConcurrentStreams: number }) {
+    super(
+      `This account already has ${details.maxConcurrentStreams} live stream(s) running — the free tier allows ` +
+        'only one at a time, across every project and environment. End it before starting another.',
+      HttpStatus.FORBIDDEN,
+      RavenErrorCode.STREAM_CONCURRENCY_LIMIT_EXCEEDED,
+      details,
+    );
+  }
+}
+
+/** Free-tier Live Streaming's viewer cap for one stream is reached. */
+export class LiveStreamViewerLimitExceededError extends AppError {
+  constructor(details: { maxViewers: number }) {
+    super(
+      `This stream already has ${details.maxViewers} viewers — the free tier's per-stream limit.`,
+      HttpStatus.FORBIDDEN,
+      RavenErrorCode.STREAM_VIEWER_LIMIT_EXCEEDED,
       details,
     );
   }

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ApiKeysModule } from '../api-keys/api-keys.module';
 import { ProjectsModule } from '../projects/projects.module';
+import { UsageMeteringModule } from '../usage/usage-metering.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
 import { AttachmentsService } from './attachments/attachments.service';
 import { ChatAuthGuard } from './auth/chat-auth.guard';
@@ -29,7 +30,7 @@ import { TypingService } from './typing/typing.service';
  * either can fail without taking the other down (spec §64).
  */
 @Module({
-  imports: [ApiKeysModule, ProjectsModule, WebhooksModule],
+  imports: [ApiKeysModule, ProjectsModule, WebhooksModule, UsageMeteringModule],
   controllers: [ChatController, DashboardChatController],
   providers: [
     ChatTokenService,

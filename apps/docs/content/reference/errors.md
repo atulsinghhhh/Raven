@@ -10,7 +10,7 @@ well.
 
 | Vocabulary | Where you see it | Count |
 |---|---|---|
-| [`RAVEN_*`](#http-error-codes) | The `code` field of any HTTP error body | 29 |
+| [`RAVEN_*`](#http-error-codes) | The `code` field of any HTTP error body | 34 |
 | [`RTCErrorCode`](#rtc-sdk-errors) | `@ravenkash/rtc` throws and `error` events | 13 |
 | [`ChatErrorCode`](#chat-errors) | The chat WebSocket `error` frame and `@ravenkash/chat` | 26 |
 | [`SignalingErrorCode`](#signaling-errors) | The RTC signaling WebSocket `error` frame | 15 |
@@ -96,6 +96,19 @@ is concerned.
 `MESSAGE_TOO_LARGE` and `ATTACHMENT_TOO_LARGE` are separate because the two
 limits are configured independently — "make it smaller" is not actionable
 until you know which limit you crossed.
+
+### Usage limits
+
+| Code | HTTP | Cause | Fix |
+|---|---|---|---|
+| `RAVEN_USAGE_LIMIT_EXCEEDED` | 403 | One of the three independent free-tier allowances (RTC minutes, Chat messages, Live Streaming host-hours) is spent | Terminal — nothing frees it up over time. See [Usage](/concepts/usage) |
+| `RAVEN_STREAM_CONCURRENCY_LIMIT_EXCEEDED` | 403 | This account already has a `LIVE` stream — the free tier allows one at a time, account-wide | Not terminal — end the other stream, or wait for it to end |
+| `RAVEN_STREAM_VIEWER_LIMIT_EXCEEDED` | 403 | This stream already has the free tier's maximum viewers | Not terminal — retry once a viewer leaves |
+
+The last two are deliberately not `USAGE_LIMIT_EXCEEDED`: a concurrency or
+viewer cap means "not right now, not another one," never "you're out and
+need more allocated" — conflating them would make a caller unable to tell
+"wait" apart from "nothing left to give."
 
 ### Infrastructure
 

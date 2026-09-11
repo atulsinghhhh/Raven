@@ -13,6 +13,8 @@ import { ConversationsService } from '../conversations/conversations.service';
 import { ChatMetricsService } from '../metrics/chat-metrics.service';
 import { ChatRateLimitService } from '../rate-limit/chat-rate-limit.service';
 import { ChatEventsService } from '../realtime/chat-events.service';
+import { UsageAllowanceService } from '../../usage/usage-allowance.service';
+import { UsageProduct } from '../../../generated/prisma/client';
 import { toJsonInput } from '../json.util';
 import { ChatMessageView } from '../realtime/chat-event.interface';
 import { MessageCursor, decodeCursor, encodeCursor } from './cursor.util';
@@ -68,6 +70,7 @@ export class MessagesService {
     private readonly rateLimit: ChatRateLimitService,
     private readonly metrics: ChatMetricsService,
     private readonly webhooks: WebhookEventsService,
+    private readonly usageAllowances: UsageAllowanceService,
   ) {}
 
   private get limits(): ChatLimits {
@@ -131,6 +134,11 @@ export class MessagesService {
         }
       }
     }
+
+    // After the dedup short-circuit above, not before: a legitimate retry
+    // of a message already sent must never be blocked just because the
+    // quota has since been reached — it isn't consuming anything new.
+    await this.usageAllowances.assertProjectWithinAllowance(actor.projectId, UsageProduct.CHAT);
 
     const replyTo = dto.replyTo ? await this.loadReplyTarget(conversation.id, dto.replyTo) : null;
     const attachment = dto.attachmentId
@@ -227,6 +235,20 @@ export class MessagesService {
     );
 
     this.metrics.increment(actor.projectId, 'messages_sent');
+    // Awaited, unlike the metric line above — a caller reading /v1/usage
+    // right after a 201 must see this message already counted, the same
+    // read-your-own-write guarantee RTC's meter gives at join/leave.
+    // Best-effort in the sense that mirrors RTC's own usageMeter calls:
+    // wrapped in try/catch so a metering failure is logged and swallowed,
+    // never allowed to fail a send that has already durably persisted.
+    // Counted once per genuinely new message — this line is never reached
+    // on the deduplicated-return path above — and never per recipient,
+    // since fan-out (this.events.publish, above) is a separate step.
+    try {
+      await this.usageAllowances.recordChatMessage(actor.projectId);
+    } catch (err) {
+      this.logger.warn(`chat usage recording failed: ${(err as Error).message}`);
+    }
     this.metrics.recordLatency(actor.projectId, 'persist', persistLatencyMs);
     if (dto.clientSentAt) {
       // A wall-clock difference between two machines, so it's only ever as

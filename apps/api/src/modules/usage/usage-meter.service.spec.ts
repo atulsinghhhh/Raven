@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { UsageKind, UsageProduct } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { Environment } from '../../shared/environment/environment.constants';
 import { FakeUsageStore } from './testing/fake-usage-store';
@@ -22,7 +23,7 @@ describe('UsageMeterService', () => {
     store = new FakeUsageStore();
     store.seedAllowance();
     config = {
-      'usage.freeTierMinutes': 20_000,
+      'usage.freeTierRtcMinutes': 20_000,
       'usage.enforceLimit': true,
       'usage.meterIntervalMs': 30_000,
       'usage.reaperIntervalMs': 60_000,
@@ -381,6 +382,32 @@ describe('UsageMeterService', () => {
 
     it('exposes the sweep interval so the gateway holds no second copy of it', () => {
       expect(meter.sweepIntervalMs).toBe(30_000);
+    });
+  });
+
+  describe('product isolation', () => {
+    it('settles a LIVE_STREAMING session into the LIVE_STREAMING allowance, never the RTC one', async () => {
+      // The default seeded allowance (from beforeEach) is RTC/'ua_1'. A
+      // second, independent allowance for the same user's LIVE_STREAMING
+      // pool, and a session that draws against it specifically.
+      const liveAllowance = store.seedAllowance({
+        id: 'ua_live',
+        product: UsageProduct.LIVE_STREAMING,
+        includedMinutes: 6_000, // 100 hours, in minutes
+        consumedSeconds: 0,
+      });
+      const session = store.seedSession({
+        startedAt: START,
+        allowanceId: liveAllowance.id,
+        product: UsageProduct.LIVE_STREAMING,
+        kind: UsageKind.LIVE_STREAMING_HOST_MINUTES,
+      });
+
+      await meter.settle(session.sessionKey, { at: at(600), close: UsageCloseReason.LEFT });
+
+      expect(store.allowance('ua_live').consumedSeconds).toBe(600);
+      // The RTC allowance this user also has is untouched.
+      expect(store.allowance('ua_1').consumedSeconds).toBe(0);
     });
   });
 });

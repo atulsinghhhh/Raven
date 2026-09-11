@@ -3,10 +3,10 @@ title: Environment variables
 description: Every variable any Livqeno component reads, grouped by what it configures. Generated from source.
 ---
 
-Livqeno's components read **123** environment variables between them —
-**103** by the control plane, **16** by the SFU,
+Livqeno's components read **129** environment variables between them —
+**109** by the control plane, **16** by the SFU,
 **6** by the dashboard. `.env.example` documents
-**107**, which leaves **26** read but
+**113**, which leaves **26** read but
 undocumented there; those are marked below.
 
 This page is generated from the source, so it is the complete set.
@@ -125,6 +125,7 @@ openssl rand -hex 32   # TURN_SECRET
 | `SIGNALING_MAX_CONNECTIONS_PER_WINDOW` |   |
 | `SIGNALING_MAX_MESSAGES_PER_WINDOW` |   |
 | `SIGNALING_MAX_MESSAGE_BYTES` |   |
+| `SIGNALING_MAX_PARTICIPANTS_PER_LIVE_STREAM_ROOM` |   |
 | `SIGNALING_MAX_PARTICIPANTS_PER_ROOM` |   |
 | `SIGNALING_MESSAGE_WINDOW_SECONDS` |   |
 
@@ -244,7 +245,12 @@ openssl rand -hex 32   # TURN_SECRET
 | `RAVEN_API_URL` | not in `.env.example` |
 | `USAGE_ABANDONED_AFTER_MS` |   |
 | `USAGE_ENFORCE_LIMIT` |   |
-| `USAGE_FREE_TIER_MINUTES` |   |
+| `USAGE_FREE_TIER_CHAT_MESSAGES` |   |
+| `USAGE_FREE_TIER_LIVE_CONCURRENT_STREAMS` |   |
+| `USAGE_FREE_TIER_LIVE_HOST_HOURS` |   |
+| `USAGE_FREE_TIER_LIVE_MAX_STREAM_DURATION_MINUTES` |   |
+| `USAGE_FREE_TIER_LIVE_MAX_VIEWERS` |   |
+| `USAGE_FREE_TIER_RTC_MINUTES` |   |
 | `USAGE_METER_INTERVAL_MS` |   |
 | `USAGE_REAPER_INTERVAL_MS` |   |
 

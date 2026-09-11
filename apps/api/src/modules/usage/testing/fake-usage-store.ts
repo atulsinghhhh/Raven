@@ -35,9 +35,12 @@ export class FakeUsageStore {
     const allowance: UsageAllowance = {
       id: 'ua_1',
       userId: 'u_1',
+      product: 'RTC' as UsageAllowance['product'],
       source: 'FREE_TIER' as UsageAllowance['source'],
       includedMinutes: 20_000,
       consumedSeconds: 0,
+      includedCount: null,
+      consumedCount: 0,
       exhaustedAt: null,
       grantedAt: new Date('2026-01-01T00:00:00.000Z'),
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -61,6 +64,7 @@ export class FakeUsageStore {
       roomId: 'r_1',
       roomName: 'lobby',
       participantIdentity: 'alice',
+      product: 'RTC' as UsageSession['product'],
       kind: UsageKind.RTC_PARTICIPANT_MINUTES,
       startedAt,
       meteredSeconds: 0,
@@ -121,10 +125,24 @@ export class FakeUsageStore {
         },
       },
       usageAllowance: {
-        upsert: async ({ where, create }: { where: { userId: string }; create: Record<string, unknown> }) => {
-          const existing = [...this.allowances.values()].find((row) => row.userId === where.userId);
+        // One allowance per (userId, product) now — Prisma names the
+        // composite-unique where clause `userId_product`.
+        upsert: async ({
+          where,
+          create,
+        }: {
+          where: { userId_product: { userId: string; product: string } };
+          create: Record<string, unknown>;
+        }) => {
+          const { userId, product } = where.userId_product;
+          const existing = [...this.allowances.values()].find(
+            (row) => row.userId === userId && row.product === product,
+          );
           if (existing) return existing;
-          return this.seedAllowance({ id: `ua_${where.userId}`, ...(create as Partial<UsageAllowance>) });
+          return this.seedAllowance({
+            id: `ua_${userId}_${product}`,
+            ...(create as Partial<UsageAllowance>),
+          });
         },
         update: async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
           const row = this.allowance(where.id);

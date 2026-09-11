@@ -59,7 +59,8 @@ which is deliberately yours to point at. See
 ## What Livqeno does not do
 
 Stated up front because it changes designs: there is **no recording**, no
-RTMP ingest or egress, and no billing — every account gets a fixed grant of
-20,000 free RTC minutes ([Usage](/concepts/usage)) and there is no plan to
-upgrade to when they are gone. The full list is in
-[Known limitations](/reference/known-limitations).
+RTMP ingest or egress, and no billing — every account gets three
+independent fixed grants (10,000 RTC participant-minutes, 100,000 Chat
+messages, 100 Live Streaming host-hours — [Usage](/concepts/usage)) and
+there is no plan to upgrade to when one of them is gone. The full list is
+in [Known limitations](/reference/known-limitations).

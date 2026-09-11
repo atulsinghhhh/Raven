@@ -609,13 +609,19 @@ function extractLimits() {
   const config = read('apps/api/src/shared/config/configuration.ts');
   const pick = (key) => {
     const m = config.match(
-      new RegExp(`${key}:\\s*(?:parseInt\\()?process\\.env\\.([A-Z0-9_]+)\\s*\\?\\?\\s*(?:String\\()?'?([^',)]+)'?`),
+      // `\s*` after `parseInt\(` too: prettier wraps a call onto its own
+      // line once it crosses printWidth, and a couple of these entries are
+      // long enough (env var name plus default) that it does.
+      new RegExp(
+        `${key}:\\s*(?:parseInt\\(\\s*)?process\\.env\\.([A-Z0-9_]+)\\s*\\?\\?\\s*(?:String\\()?'?([^',)]+)'?`,
+      ),
     );
     if (!m) return undefined;
     return { env: m[1], default: m[2].trim() };
   };
   const names = [
     'maxParticipantsPerRoom',
+    'maxParticipantsPerLiveStreamRoom',
     'maxMessageBytes',
     'maxMessagesPerWindow',
     'maxConnectionsPerWindow',
@@ -640,6 +646,9 @@ function extractLimits() {
     'defaultTtlSeconds',
     'windowSeconds',
     'heartbeatTimeoutSeconds',
+    'maxConcurrentStreams',
+    'maxViewers',
+    'maxStreamDurationMinutes',
   ];
   return Object.fromEntries(names.map((n) => [n, pick(n)]).filter(([, v]) => v));
 }

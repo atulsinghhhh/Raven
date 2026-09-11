@@ -56,6 +56,32 @@ and viewers are your application's end users, authenticated however
 your backend already authenticates them, and are never granted
 dashboard access.
 
+## Free tier
+
+Live Streaming has its own free-tier allowance, entirely separate from
+[RTC minutes](/concepts/usage) and [Chat messages](/concepts/usage) — using
+one never draws down another:
+
+- **100 host-hours/account**, measured from actual host/co-host connected
+  duration (a disconnect-and-reconnect gap is excluded, not billed). Every
+  active host and co-host counts independently — two co-hosts streaming
+  for an hour each spend 2 host-hours.
+- **Viewers spend nothing.** Not host-hours, not RTC minutes — a viewer
+  never touches this allowance regardless of how long they watch or how
+  many of them there are.
+
+Three product limits apply on top of the allowance, and are enforced
+independently of it:
+
+| Limit | Default | What happens past it |
+|---|---|---|
+| Concurrent streams | 1 per account (every project, every environment) | Starting a second `LIVE` stream is refused with `403 RAVEN_STREAM_CONCURRENCY_LIMIT_EXCEEDED` until the first ends. |
+| Viewers per stream | 100 | The 101st viewer-token request is refused with `403 RAVEN_STREAM_VIEWER_LIMIT_EXCEEDED`. |
+| Stream duration | 240 minutes | A stream still `LIVE` past this is automatically ended. |
+
+See [Usage](/concepts/usage) for the full accounting model, error shapes,
+and self-hosting configuration.
+
 ## Chat and reactions
 
 Every stream gets a `Conversation` the moment it's created, plus a

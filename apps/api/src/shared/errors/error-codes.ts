@@ -75,6 +75,15 @@ export const RavenErrorCode = {
    *  UsageLimitExceededError) rather than 402 — 402 would promise a
    *  payment path that does not exist. */
   USAGE_LIMIT_EXCEEDED: 'RAVEN_USAGE_LIMIT_EXCEEDED',
+  /** Free-tier Live Streaming already has a stream LIVE (account-wide, not
+   *  per-project). Distinct from USAGE_LIMIT_EXCEEDED: this isn't "you're
+   *  out and need more allocated", it's "you can have another, just not a
+   *  second one running at once". */
+  STREAM_CONCURRENCY_LIMIT_EXCEEDED: 'RAVEN_STREAM_CONCURRENCY_LIMIT_EXCEEDED',
+  /** Free-tier Live Streaming's viewer cap for one stream is reached. Same
+   *  "not out, just capped right now" distinction as
+   *  STREAM_CONCURRENCY_LIMIT_EXCEEDED. */
+  STREAM_VIEWER_LIMIT_EXCEEDED: 'RAVEN_STREAM_VIEWER_LIMIT_EXCEEDED',
 
   // --- Infrastructure -----------------------------------------------------
   CONNECTION_FAILED: 'RAVEN_CONNECTION_FAILED',
@@ -155,6 +164,9 @@ export const LEGACY_ERROR_CODE: Record<RavenErrorCode, string> = {
   [RavenErrorCode.ATTACHMENT_TOO_LARGE]: 'ATTACHMENT_TOO_LARGE',
   [RavenErrorCode.INVALID_CURSOR]: 'INVALID_CURSOR',
   [RavenErrorCode.USAGE_LIMIT_EXCEEDED]: 'FORBIDDEN',
+  // Both are new in this release; see the CAPACITY_EXCEEDED/RTC_SERVER_UNAVAILABLE comment below.
+  [RavenErrorCode.STREAM_CONCURRENCY_LIMIT_EXCEEDED]: 'FORBIDDEN',
+  [RavenErrorCode.STREAM_VIEWER_LIMIT_EXCEEDED]: 'FORBIDDEN',
   [RavenErrorCode.CONNECTION_FAILED]: 'CONNECTION_FAILED',
   [RavenErrorCode.NO_RTC_CAPACITY]: 'CONNECTION_FAILED',
   [RavenErrorCode.WEBHOOK_FAILED]: 'WEBHOOK_FAILED',

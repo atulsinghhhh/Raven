@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { UsageAllowance, UsageAllowanceSource } from '../../generated/prisma/client';
+import { UsageAllowance, UsageAllowanceSource, UsageProduct } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { NotFoundError, UsageLimitExceededError } from '../../shared/errors/app-error';
 import { UsageAllowanceService } from './usage-allowance.service';
@@ -11,9 +11,12 @@ function makeAllowance(overrides: Partial<UsageAllowance> = {}): UsageAllowance 
   return {
     id: 'ua_1',
     userId: 'u_1',
+    product: UsageProduct.RTC,
     source: UsageAllowanceSource.FREE_TIER,
     includedMinutes: FREE_TIER_MINUTES,
     consumedSeconds: 0,
+    includedCount: null,
+    consumedCount: 0,
     exhaustedAt: null,
     grantedAt: new Date('2026-01-01T00:00:00.000Z'),
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -33,7 +36,7 @@ describe('UsageAllowanceService', () => {
 
   beforeEach(() => {
     config = {
-      'usage.freeTierMinutes': FREE_TIER_MINUTES,
+      'usage.freeTierRtcMinutes': FREE_TIER_MINUTES,
       'usage.enforceLimit': true,
     };
     prisma = {
@@ -57,8 +60,14 @@ describe('UsageAllowanceService', () => {
       await service.ensureProvisioned('u_1');
 
       expect(prisma.usageAllowance.upsert).toHaveBeenCalledWith({
-        where: { userId: 'u_1' },
-        create: { userId: 'u_1', includedMinutes: FREE_TIER_MINUTES, source: UsageAllowanceSource.FREE_TIER },
+        where: { userId_product: { userId: 'u_1', product: UsageProduct.RTC } },
+        create: {
+          userId: 'u_1',
+          product: UsageProduct.RTC,
+          source: UsageAllowanceSource.FREE_TIER,
+          includedMinutes: FREE_TIER_MINUTES,
+          includedCount: null,
+        },
         update: {},
       });
     });
@@ -69,7 +78,7 @@ describe('UsageAllowanceService', () => {
       const summary = await service.getSummary('u_1');
       expect(summary.includedMinutes).toBe(FREE_TIER_MINUTES);
 
-      config['usage.freeTierMinutes'] = 500;
+      config['usage.freeTierRtcMinutes'] = 500;
       prisma.usageAllowance.upsert.mockResolvedValue(makeAllowance({ includedMinutes: FREE_TIER_MINUTES }));
 
       expect((await service.getSummary('u_1')).includedMinutes).toBe(FREE_TIER_MINUTES);
@@ -90,7 +99,7 @@ describe('UsageAllowanceService', () => {
       await service.ensureProvisionedForProject('p_1');
 
       expect(prisma.usageAllowance.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { userId: 'owner_9' } }),
+        expect.objectContaining({ where: { userId_product: { userId: 'owner_9', product: UsageProduct.RTC } } }),
       );
     });
 
@@ -250,7 +259,10 @@ describe('UsageAllowanceService', () => {
       await service.listHistory('u_1', { projectId: 'p_9', limit: 10 });
 
       expect(prisma.usageSession.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { userId: 'u_1', projectId: 'p_9' }, take: 10 }),
+        expect.objectContaining({
+          where: { userId: 'u_1', product: UsageProduct.RTC, projectId: 'p_9' },
+          take: 10,
+        }),
       );
     });
   });

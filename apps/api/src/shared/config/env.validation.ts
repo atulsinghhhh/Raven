@@ -139,6 +139,14 @@ class EnvironmentVariables {
   @Min(1)
   SIGNALING_MAX_PARTICIPANTS_PER_ROOM!: number;
 
+  // The higher ceiling live-stream rooms get, so the free-tier 100-viewer
+  // cap (USAGE_FREE_TIER_LIVE_MAX_VIEWERS) is reachable at the WebSocket
+  // join layer. Optional: configuration.ts defaults it.
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  SIGNALING_MAX_PARTICIPANTS_PER_LIVE_STREAM_ROOM?: number;
+
   @IsInt()
   @Min(1024)
   SIGNALING_MAX_MESSAGE_BYTES!: number;
@@ -156,11 +164,38 @@ class EnvironmentVariables {
   SIGNALING_MAX_CONNECTIONS_PER_WINDOW!: number;
 
   // Usage metering. All optional: configuration.ts carries the defaults, so
-  // an existing .env keeps booting after a `git pull`.
+  // an existing .env keeps booting after a `git pull`. Three independent
+  // free-tier pools — renamed from the single USAGE_FREE_TIER_MINUTES once
+  // RTC, Chat and Live Streaming stopped sharing one allowance.
   @IsOptional()
   @IsInt()
   @Min(0)
-  USAGE_FREE_TIER_MINUTES?: number;
+  USAGE_FREE_TIER_RTC_MINUTES?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  USAGE_FREE_TIER_CHAT_MESSAGES?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  USAGE_FREE_TIER_LIVE_HOST_HOURS?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  USAGE_FREE_TIER_LIVE_CONCURRENT_STREAMS?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  USAGE_FREE_TIER_LIVE_MAX_VIEWERS?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  USAGE_FREE_TIER_LIVE_MAX_STREAM_DURATION_MINUTES?: number;
 
   @IsOptional()
   @IsIn(['true', 'false'])

@@ -590,6 +590,43 @@ export interface UsageSummary {
   liveSessions: number;
 }
 
+/**
+ * Chat's independent free-tier pool: messages sent, counted once per
+ * message — never once per recipient. Neither this nor `liveStreaming`
+ * below shares any balance with RTC's `UsageSummary` above; using one
+ * product never draws down another's.
+ */
+export interface ChatUsageBlock {
+  used: number;
+  limit: number;
+  unit: 'messages';
+}
+
+/**
+ * Live Streaming's independent free-tier pool: host/co-host connected
+ * time only — viewers are never metered. `concurrentStreams` is a live
+ * count against `maxConcurrentStreams`; the other `max*` fields are
+ * product limits (concurrency/viewers/duration), not consumption.
+ */
+export interface LiveStreamingUsageBlock {
+  hostHoursUsed: number;
+  hostHoursLimit: number;
+  concurrentStreams: number;
+  maxConcurrentStreams: number;
+  maxViewers: number;
+  maxStreamDurationMinutes: number;
+}
+
+/**
+ * The flat `GET /v1/usage` response: RTC's `UsageSummary` fields at the
+ * top level, unchanged (still exactly what pre-existing code destructures
+ * off this response), plus `chat`/`liveStreaming` as new sibling keys.
+ */
+export interface AccountUsageSummary extends UsageSummary {
+  chat: ChatUsageBlock;
+  liveStreaming: LiveStreamingUsageBlock;
+}
+
 export interface UsageHistoryEntry {
   id: string;
   projectId: string;
@@ -628,6 +665,12 @@ export interface UsageDetail {
   history: UsageHistoryEntry[];
   daily: UsageDailyBucket[];
   byProject: UsageByProject[];
+  /**
+   * Chat and Live Streaming get summary figures only in this phase — no
+   * history/daily breakdown yet, unlike RTC above.
+   */
+  chat: ChatUsageBlock;
+  liveStreaming: LiveStreamingUsageBlock;
 }
 
 export interface ProjectUsage {
@@ -636,6 +679,13 @@ export interface ProjectUsage {
   summary: UsageSummary;
   history: UsageHistoryEntry[];
   daily: UsageDailyBucket[];
+  /**
+   * The owner's whole-account Chat/Live Streaming figures — both are
+   * account-wide pools (same attribution as RTC's `summary` above), not
+   * filtered to this one project.
+   */
+  chat: ChatUsageBlock;
+  liveStreaming: LiveStreamingUsageBlock;
 }
 
 interface RequestOptions {
@@ -830,7 +880,7 @@ export const ravenApi = {
   getHealth: () => apiFetch<HealthResponse>('/health'),
 
   /** The caller's own minute allowance. Account-scoped: no projectId. */
-  getUsage: (token: string) => apiFetch<UsageSummary>('/v1/usage', { token }),
+  getUsage: (token: string) => apiFetch<AccountUsageSummary>('/v1/usage', { token }),
 
   getUsageDetail: (token: string, opts: { limit?: number; days?: number } = {}) => {
     const params = new URLSearchParams();

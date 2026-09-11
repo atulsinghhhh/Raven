@@ -4,6 +4,7 @@ import { ChatModule } from '../chat/chat.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { RoomsModule } from '../rooms/rooms.module';
 import { RtcTokensModule } from '../rtc-tokens/rtc-tokens.module';
+import { UsageMeteringModule } from '../usage/usage-metering.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
 import { DashboardLiveStreamsController } from './dashboard-live-streams.controller';
 import { LiveStreamsController } from './live-streams.controller';
@@ -18,7 +19,15 @@ import { LiveStreamsService } from './live-streams.service';
  * third real-time system alongside RTC and Chat.
  */
 @Module({
-  imports: [ApiKeysModule, ProjectsModule, RoomsModule, RtcTokensModule, ChatModule, WebhooksModule],
+  imports: [
+    ApiKeysModule,
+    ProjectsModule,
+    RoomsModule,
+    RtcTokensModule,
+    ChatModule,
+    WebhooksModule,
+    UsageMeteringModule,
+  ],
   controllers: [LiveStreamsController, DashboardLiveStreamsController],
   providers: [LiveStreamsService],
   exports: [LiveStreamsService],

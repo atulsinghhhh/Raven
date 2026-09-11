@@ -82,6 +82,17 @@ The guarantee is a unique constraint on `(conversationId, senderId,
 clientMessageId)` in Postgres, not a cache — a retry an hour later, or
 on a different gateway, still deduplicates.
 
+## Free tier
+
+Every account gets **100,000 free messages**, its own allowance separate
+from [RTC minutes and Live Streaming host-hours](/concepts/usage). A
+message is counted once, at the point above where the server durably
+persists it — never once per recipient it's delivered to, and a
+deduplicated retry (see Idempotency above) consumes nothing new. Typing,
+presence, read receipts and reactions never count. See
+[Usage](/concepts/usage) for the full accounting model and what happens
+when the allowance runs out.
+
 ## Receiving
 
 <Tabs>
