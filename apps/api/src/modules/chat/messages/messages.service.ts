@@ -138,7 +138,16 @@ export class MessagesService {
     // After the dedup short-circuit above, not before: a legitimate retry
     // of a message already sent must never be blocked just because the
     // quota has since been reached — it isn't consuming anything new.
-    await this.usageAllowances.assertProjectWithinAllowance(actor.projectId, UsageProduct.CHAT);
+    //
+    // Skipped for an internal actor (see ChatActor.internal): a message
+    // Livqeno posts as a side effect of another feature — Live Streaming's
+    // "stream created" root message is the only one today — is not the
+    // developer's own chat traffic, and gating it here silently broke
+    // stream creation for any project whose *unrelated* CHAT allowance was
+    // already spent.
+    if (!actor.internal) {
+      await this.usageAllowances.assertProjectWithinAllowance(actor.projectId, UsageProduct.CHAT);
+    }
 
     const replyTo = dto.replyTo ? await this.loadReplyTarget(conversation.id, dto.replyTo) : null;
     const attachment = dto.attachmentId
@@ -244,10 +253,16 @@ export class MessagesService {
     // Counted once per genuinely new message — this line is never reached
     // on the deduplicated-return path above — and never per recipient,
     // since fan-out (this.events.publish, above) is a separate step.
-    try {
-      await this.usageAllowances.recordChatMessage(actor.projectId);
-    } catch (err) {
-      this.logger.warn(`chat usage recording failed: ${(err as Error).message}`);
+    //
+    // Same internal-actor exemption as the allowance check above: an
+    // internal send never spent any of the developer's quota, so it must
+    // not record consumption of it either.
+    if (!actor.internal) {
+      try {
+        await this.usageAllowances.recordChatMessage(actor.projectId);
+      } catch (err) {
+        this.logger.warn(`chat usage recording failed: ${(err as Error).message}`);
+      }
     }
     this.metrics.recordLatency(actor.projectId, 'persist', persistLatencyMs);
     if (dto.clientSentAt) {

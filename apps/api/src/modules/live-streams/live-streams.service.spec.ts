@@ -1,5 +1,6 @@
 import {
   ChatMemberRole,
+  ConversationStatus,
   LiveStreamHostRole,
   LiveStreamStatus,
   LiveStreamVisibility,
@@ -34,7 +35,7 @@ describe('LiveStreamsService', () => {
       findMany: jest.Mock;
     };
     room: { findUnique: jest.Mock };
-    conversation: { findUnique: jest.Mock };
+    conversation: { findUnique: jest.Mock; update: jest.Mock };
     project: { findUnique: jest.Mock };
   };
   let roomsService: { create: jest.Mock; close: jest.Mock };
@@ -101,7 +102,7 @@ describe('LiveStreamsService', () => {
         findMany: jest.fn(),
       },
       room: { findUnique: jest.fn() },
-      conversation: { findUnique: jest.fn() },
+      conversation: { findUnique: jest.fn(), update: jest.fn().mockResolvedValue({}) },
       project: { findUnique: jest.fn().mockResolvedValue({ ownerId: 'owner-1' }) },
     };
     roomsService = {
@@ -208,6 +209,115 @@ describe('LiveStreamsService', () => {
         'live_stream.created',
         expect.objectContaining({ hostIdentity: 'alice', title: 'My Stream' }),
       );
+    });
+
+    /**
+     * P0 regression: the system root message create() posts is Livqeno's
+     * own bookkeeping, not developer-authored chat traffic. A prior change
+     * gated every message send behind the project owner's Chat allowance,
+     * which meant a project with its (entirely unrelated) Chat quota spent
+     * could never create a live stream again — the system message send
+     * would reject, after the room and conversation already existed. The
+     * actor create() builds for that send must always be marked internal
+     * so MessagesService.send() exempts it from that check.
+     */
+    it('marks the system root-message actor internal, so it is exempt from the Chat usage allowance', async () => {
+      prisma.liveStream.create.mockResolvedValue(baseStream({ hosts: [] }));
+      prisma.conversation.findUnique.mockResolvedValue({ publicId: 'conv_xyz789' });
+
+      await service.create(SCOPE, { title: 'My Stream', hostIdentity: 'alice' });
+
+      const [actor] = messagesService.send.mock.calls[0];
+      expect(actor).toMatchObject({ kind: 'server', internal: true });
+    });
+
+    /**
+     * P0 regression: create() calls roomsService.create(), then
+     * conversationsService.create(), then messagesService.send(), then
+     * finally writes the LiveStream row. Nothing wrapped those in a
+     * transaction or any cleanup, so a failure at any step after the room
+     * existed left it — and any conversation already attached to it —
+     * permanently orphaned: never closed, never archived, invisible to
+     * every stream a developer could see.
+     */
+    describe('cleanup when creation fails after infrastructure already exists', () => {
+      it('closes the room and archives the conversation when the system message send fails', async () => {
+        prisma.conversation.findUnique.mockResolvedValue({ publicId: 'conv_xyz789' });
+        const failure = new Error('boom');
+        messagesService.send.mockRejectedValue(failure);
+
+        await expect(service.create(SCOPE, { title: 'My Stream', hostIdentity: 'alice' })).rejects.toBe(failure);
+
+        expect(roomsService.close).toHaveBeenCalledWith('room-uuid', SCOPE);
+        expect(prisma.conversation.update).toHaveBeenCalledWith({
+          where: { id: 'conv-uuid' },
+          data: { status: ConversationStatus.ARCHIVED },
+        });
+        expect(prisma.liveStream.create).not.toHaveBeenCalled();
+      });
+
+      it('closes only the room when conversation creation itself fails', async () => {
+        const failure = new Error('conversation name already taken');
+        conversationsService.create.mockRejectedValue(failure);
+
+        await expect(service.create(SCOPE, { title: 'My Stream', hostIdentity: 'alice' })).rejects.toBe(failure);
+
+        expect(roomsService.close).toHaveBeenCalledWith('room-uuid', SCOPE);
+        expect(prisma.conversation.update).not.toHaveBeenCalled();
+      });
+
+      it('closes the room and archives the conversation when the final LiveStream write fails', async () => {
+        prisma.conversation.findUnique.mockResolvedValue({ publicId: 'conv_xyz789' });
+        const failure = Object.assign(new Error('column "ownerId" does not exist'), { code: '42703' });
+        prisma.liveStream.create.mockRejectedValue(failure);
+
+        await expect(service.create(SCOPE, { title: 'My Stream', hostIdentity: 'alice' })).rejects.toBe(failure);
+
+        expect(roomsService.close).toHaveBeenCalledWith('room-uuid', SCOPE);
+        expect(prisma.conversation.update).toHaveBeenCalledWith({
+          where: { id: 'conv-uuid' },
+          data: { status: ConversationStatus.ARCHIVED },
+        });
+      });
+
+      it('still surfaces the original error even when the room cleanup itself fails', async () => {
+        prisma.conversation.findUnique.mockResolvedValue({ publicId: 'conv_xyz789' });
+        const failure = new Error('boom');
+        messagesService.send.mockRejectedValue(failure);
+        roomsService.close.mockRejectedValue(new Error('SFU unreachable'));
+
+        await expect(service.create(SCOPE, { title: 'My Stream', hostIdentity: 'alice' })).rejects.toBe(failure);
+      });
+
+      it('never leaves cleanup running for a stream that was actually created', async () => {
+        prisma.liveStream.create.mockResolvedValue(baseStream({ hosts: [] }));
+        prisma.conversation.findUnique.mockResolvedValue({ publicId: 'conv_xyz789' });
+
+        await service.create(SCOPE, { title: 'My Stream', hostIdentity: 'alice' });
+
+        expect(roomsService.close).not.toHaveBeenCalled();
+        expect(prisma.conversation.update).not.toHaveBeenCalled();
+      });
+    });
+
+    /** Step 6, Test C: sequential creations must not collide or leak state between calls. */
+    it('creates multiple streams in a row without collision or leftover state', async () => {
+      prisma.conversation.findUnique.mockResolvedValue({ publicId: 'conv_xyz789' });
+      roomsService.create
+        .mockResolvedValueOnce({ id: 'room-1', name: 'stream_1' })
+        .mockResolvedValueOnce({ id: 'room-2', name: 'stream_2' })
+        .mockResolvedValueOnce({ id: 'room-3', name: 'stream_3' });
+      prisma.liveStream.create
+        .mockResolvedValueOnce(baseStream({ id: 's1', publicId: 'stream_1', roomId: 'room-1', hosts: [] }))
+        .mockResolvedValueOnce(baseStream({ id: 's2', publicId: 'stream_2', roomId: 'room-2', hosts: [] }))
+        .mockResolvedValueOnce(baseStream({ id: 's3', publicId: 'stream_3', roomId: 'room-3', hosts: [] }));
+
+      const results = await Promise.all(
+        [1, 2, 3].map(() => service.create(SCOPE, { title: 'My Stream', hostIdentity: 'alice' })),
+      );
+
+      expect(results.map((r) => r.id)).toEqual(['stream_1', 'stream_2', 'stream_3']);
+      expect(roomsService.close).not.toHaveBeenCalled();
     });
   });
 

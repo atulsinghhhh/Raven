@@ -31,6 +31,19 @@ export interface ChatActor {
   tokenId?: string;
   /** Conversations a client token is pinned to. Empty = project-wide (server actors). */
   conversationScope?: string[];
+  /**
+   * True only for messages Livqeno itself generates as a side effect of
+   * another feature — e.g. Live Streaming's "stream created" root message,
+   * posted purely so viewer reactions have somewhere to attach.
+   *
+   * Never set by anything reachable from a request: there is no DTO field
+   * or header that turns a developer's own send into an internal one. Its
+   * only effect is exempting the send from the developer-facing Chat
+   * allowance (see MessagesService.send) — an implementation detail must
+   * never consume, or be blocked by, a quota that exists to measure the
+   * developer's own chat traffic.
+   */
+  internal?: boolean;
 }
 
 /** True when this actor is allowed to name a different user as the sender. */

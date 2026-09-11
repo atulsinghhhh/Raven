@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import {
   ChatMemberRole,
+  ConversationStatus,
   LiveStream,
   LiveStreamHost,
   LiveStreamHostRole,
@@ -217,66 +218,140 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
     }
 
     const room = await this.roomsService.create(scope, { name: publicId });
-    const conversation = await this.conversationsService.create(scope, { name: publicId, roomId: room.id });
 
-    // A system message for every viewer reaction to hang off (see the
-    // toJsonInput note in the class doc). Reuses the existing Reaction model
-    // rather than inventing a second realtime primitive purely for
-    // "somebody tapped ❤️".
-    const systemActor: ChatActor = {
-      kind: 'server',
-      projectId: scope.projectId,
-      environment: scope.environment,
-      userId: null,
-      scopes: [...CHAT_SCOPES],
-    };
-    const { message: rootMessage } = await this.messagesService.send(systemActor, conversation.publicId, {
-      type: 'system',
-      text: `Live stream "${dto.title}" was created`,
-      senderId: 'system',
-    });
+    // Everything from here on is downstream of the room — a conversation
+    // attached to it, a system message inside that conversation, and
+    // finally the LiveStream row that ties them together. None of it can
+    // live inside one Postgres transaction: room and conversation creation
+    // (and the message send in between) are their own service calls with
+    // their own webhook/event side effects, not raw writes this method
+    // controls. So a failure at any of those steps is caught here and
+    // compensated for explicitly instead — see cleanupFailedCreate below.
+    // Before this existed, a failure after `room` (e.g. a message send
+    // rejected by a usage check, or a database error on the LiveStream
+    // insert) left the room — and any conversation already created —
+    // permanently orphaned: ACTIVE, joinable, and never attached to any
+    // stream a developer could see or close.
+    let conversation: { id: string; publicId: string } | undefined;
+    try {
+      conversation = await this.conversationsService.create(scope, { name: publicId, roomId: room.id });
 
-    const stream = await this.prisma.liveStream.create({
-      data: {
-        publicId,
+      // A system message for every viewer reaction to hang off (see the
+      // toJsonInput note in the class doc). Reuses the existing Reaction
+      // model rather than inventing a second realtime primitive purely for
+      // "somebody tapped ❤️". `internal: true` exempts it from the
+      // developer's own Chat allowance — it's Livqeno's bookkeeping, not
+      // the developer's traffic, and must never fail stream creation just
+      // because that unrelated quota happens to be spent.
+      const systemActor: ChatActor = {
+        kind: 'server',
         projectId: scope.projectId,
-        ownerId: project.ownerId,
         environment: scope.environment,
-        roomId: room.id,
-        conversationId: conversation.id,
-        chatRootMessageId: rootMessage.id,
-        title: dto.title,
-        description: dto.description,
-        thumbnailUrl: dto.thumbnailUrl,
-        category: dto.category,
-        tags: dto.tags ?? [],
-        language: dto.language,
-        visibility: dto.visibility,
-        metadata: toJsonInput(dto.metadata),
-        scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : undefined,
-        hosts: { create: { identity: dto.hostIdentity, role: LiveStreamHostRole.HOST } },
-      },
-      include: { hosts: true },
-    });
+        userId: null,
+        scopes: [...CHAT_SCOPES],
+        internal: true,
+      };
+      const { message: rootMessage } = await this.messagesService.send(systemActor, conversation.publicId, {
+        type: 'system',
+        text: `Live stream "${dto.title}" was created`,
+        senderId: 'system',
+      });
 
-    this.logger.log(
-      this.event(scope, 'stream.created', {
-        stream: stream.publicId,
-        room: room.id,
-        host: dto.hostIdentity,
+      const stream = await this.prisma.liveStream.create({
+        data: {
+          publicId,
+          projectId: scope.projectId,
+          ownerId: project.ownerId,
+          environment: scope.environment,
+          roomId: room.id,
+          conversationId: conversation.id,
+          chatRootMessageId: rootMessage.id,
+          title: dto.title,
+          description: dto.description,
+          thumbnailUrl: dto.thumbnailUrl,
+          category: dto.category,
+          tags: dto.tags ?? [],
+          language: dto.language,
+          visibility: dto.visibility,
+          metadata: toJsonInput(dto.metadata),
+          scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : undefined,
+          hosts: { create: { identity: dto.hostIdentity, role: LiveStreamHostRole.HOST } },
+        },
+        include: { hosts: true },
+      });
+
+      this.logger.log(
+        this.event(scope, 'stream.created', {
+          stream: stream.publicId,
+          room: room.id,
+          host: dto.hostIdentity,
+          visibility: stream.visibility,
+        }),
+      );
+
+      void this.webhooks.emit(scope, 'live_stream.created', {
+        streamId: stream.publicId,
+        title: stream.title,
         visibility: stream.visibility,
+        hostIdentity: dto.hostIdentity,
+        createdAt: stream.createdAt.toISOString(),
+      });
+
+      return this.toView(stream, stream.hosts, false);
+    } catch (err) {
+      await this.cleanupFailedCreate(scope, room.id, conversation?.id, err);
+      throw err;
+    }
+  }
+
+  /**
+   * Compensating cleanup for a `create()` that failed after the room (and
+   * maybe the conversation) already exist. Not a Postgres transaction
+   * rollback — the room and conversation are created through their own
+   * services, with their own non-database side effects (webhooks,
+   * realtime events), so there is nothing a database transaction here
+   * could actually undo.
+   *
+   * Both steps are idempotent (`close()` on an already-closed room, an
+   * `ARCHIVED` update on an already-archived conversation, are both
+   * no-ops) and both are best-effort: a cleanup failure is logged, never
+   * thrown, so it can't shadow the real error this method is cleaning up
+   * after. That real error is always what the caller sees.
+   */
+  private async cleanupFailedCreate(
+    scope: ProjectScope,
+    roomId: string,
+    conversationId: string | undefined,
+    cause: unknown,
+  ): Promise<void> {
+    this.logger.error(
+      this.event(scope, 'stream.create_failed', {
+        room: roomId,
+        conversation: conversationId,
+        reason: cause instanceof Error ? cause.message : String(cause),
       }),
     );
 
-    void this.webhooks.emit(scope, 'live_stream.created', {
-      streamId: stream.publicId,
-      title: stream.title,
-      visibility: stream.visibility,
-      hostIdentity: dto.hostIdentity,
-      createdAt: stream.createdAt.toISOString(),
-    });
+    try {
+      await this.roomsService.close(roomId, scope);
+    } catch (cleanupErr) {
+      this.logger.error(
+        `failed to clean up orphaned room ${roomId} after a failed stream creation: ${(cleanupErr as Error).message}`,
+      );
+    }
 
-    return this.toView(stream, stream.hosts, false);
+    if (conversationId) {
+      try {
+        await this.prisma.conversation.update({
+          where: { id: conversationId },
+          data: { status: ConversationStatus.ARCHIVED },
+        });
+      } catch (cleanupErr) {
+        this.logger.error(
+          `failed to clean up orphaned conversation ${conversationId} after a failed stream creation: ${(cleanupErr as Error).message}`,
+        );
+      }
+    }
   }
 
   async get(scope: ProjectScope, streamId: string): Promise<LiveStreamView> {
