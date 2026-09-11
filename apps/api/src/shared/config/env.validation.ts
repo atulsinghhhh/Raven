@@ -114,6 +114,14 @@ class EnvironmentVariables {
   @IsString()
   SFU_REGISTRATION_SECRET?: string;
 
+  // Guards GET /metrics — a Prometheus scrape target that must never sit on
+  // the open internet unauthenticated (docs/RELEASE_READINESS_AUDIT.md):
+  // it leaks business volume, the internal route map, and a live
+  // success/failure oracle to anyone who requests it.
+  @IsOptional()
+  @IsString()
+  METRICS_SCRAPE_SECRET?: string;
+
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -561,6 +569,11 @@ function validateProductionConfig(config: EnvironmentVariables): void {
   } else if (config.SFU_REGISTRATION_SECRET === config.RTC_TOKEN_SECRET) {
     problems.push(
       'SFU_REGISTRATION_SECRET must differ from RTC_TOKEN_SECRET — a leaked client token key must not let an attacker join the SFU fleet',
+    );
+  }
+  if (!config.METRICS_SCRAPE_SECRET) {
+    problems.push(
+      'METRICS_SCRAPE_SECRET is required in production — otherwise GET /metrics is public and unauthenticated (see docs/RELEASE_READINESS_AUDIT.md)',
     );
   }
   if (config.RTC_SIGNALING_URL?.startsWith('ws://')) {

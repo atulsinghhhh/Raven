@@ -125,6 +125,13 @@ export default () => ({
     defaultRegion: process.env.SFU_DEFAULT_REGION ?? 'local',
   },
 
+  metrics: {
+    // Shared secret GET /metrics requires via `Authorization: Bearer`.
+    // Falls back to JWT_SECRET so local dev still boots after a `git
+    // pull`; production validation requires it set explicitly.
+    scrapeSecret: process.env.METRICS_SCRAPE_SECRET ?? process.env.JWT_SECRET,
+  },
+
   turn: {
     // Host-facing. This is what a real client gets back, not the internal
     // container address.
