@@ -26,6 +26,58 @@ TURN_PRIVATE_IP="$(az vm show -g "${RAVEN_RG}" -n "${RAVEN_TURN_VM}" -d --query 
 TURN_FQDN="$(az network public-ip show -g "${RAVEN_RG}" -n "${RAVEN_TURN_IP_NAME}" --query dnsSettings.fqdn -o tsv)"
 
 kv() { az keyvault secret show --vault-name "${RAVEN_KV}" -n "$1" --query value -o tsv; }
+kv_exists() { az keyvault secret show --vault-name "${RAVEN_KV}" -n "$1" --output none 2>/dev/null; }
+
+# OAuth sign-in. Optional and independent per provider, same shape as
+# STORAGE_* below: absent means the feature stays off (the dashboard's
+# GitHub/Google buttons don't render — apps/dashboard/src/components/
+# auth/oauth-buttons.tsx), not a boot failure. Populate via
+# 05-secrets.sh's PROD_GITHUB_CLIENT_ID / PROD_GOOGLE_CLIENT_ID vars
+# first; see docs/deployment/livqeno-domain-cutover.md §4 for why the
+# operator's local-dev OAuth credentials cannot simply be reused here
+# (they're registered against a localhost callback).
+OAUTH_SECRETS_YAML=""
+OAUTH_ENV_YAML=""
+if kv_exists github-client-id; then
+  OAUTH_SECRETS_YAML="${OAUTH_SECRETS_YAML}
+      - name: github-client-id
+        value: $(kv github-client-id)
+      - name: github-client-secret
+        value: $(kv github-client-secret)"
+  OAUTH_ENV_YAML="${OAUTH_ENV_YAML}
+          - name: GITHUB_CLIENT_ID
+            secretRef: github-client-id
+          - name: GITHUB_CLIENT_SECRET
+            secretRef: github-client-secret"
+fi
+if kv_exists google-client-id; then
+  OAUTH_SECRETS_YAML="${OAUTH_SECRETS_YAML}
+      - name: google-client-id
+        value: $(kv google-client-id)
+      - name: google-client-secret
+        value: $(kv google-client-secret)"
+  OAUTH_ENV_YAML="${OAUTH_ENV_YAML}
+          - name: GOOGLE_CLIENT_ID
+            secretRef: google-client-id
+          - name: GOOGLE_CLIENT_SECRET
+            secretRef: google-client-secret"
+fi
+
+# The dashboard's own public URL, not this API's — GITHUB_CALLBACK_URL /
+# GOOGLE_CALLBACK_URL derive from it (configuration.ts) unless overridden.
+# No fallback invented: an unset APP_URL with OAuth configured would send
+# providers back to http://localhost:3000, which is silently wrong rather
+# than loudly broken, so this is set only when the operator supplies it.
+if [ -n "${RAVEN_APP_URL:-}" ]; then
+  APP_URL_ENV_YAML="
+          - name: APP_URL
+            value: ${RAVEN_APP_URL}"
+elif [ -n "${OAUTH_ENV_YAML}" ]; then
+  echo "!! OAuth secrets are in Key Vault but RAVEN_APP_URL is unset — callback URLs will fall back to http://localhost:3000. Set RAVEN_APP_URL and re-run." >&2
+  APP_URL_ENV_YAML=""
+else
+  APP_URL_ENV_YAML=""
+fi
 
 # Origins allowed to call the API cross-origin. CORS_ORIGIN must not be "*"
 # in production — the API refuses to boot (env.validation.ts).
@@ -81,7 +133,7 @@ properties:
       - name: sfu-registration-secret
         value: $(kv sfu-registration-secret)
       - name: turn-secret
-        value: $(kv turn-secret)
+        value: $(kv turn-secret)${OAUTH_SECRETS_YAML}
   template:
     containers:
       - image: ${LOGIN_SERVER}/raven-api:${TAG}
@@ -102,7 +154,7 @@ properties:
           - name: RTC_SIGNALING_URL
             value: wss://${FQDN}/v1/rtc
           - name: CORS_ORIGIN
-            value: ${CORS_ORIGINS}
+            value: ${CORS_ORIGINS}${APP_URL_ENV_YAML}${OAUTH_ENV_YAML}
 
           # --- Supabase. DIRECT_URL is deliberately absent: the running app
           # never reads it, and only the migration job should hold a
