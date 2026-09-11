@@ -1,4 +1,4 @@
-# Raven Chat — Messages
+# Livqeno Chat — Messages
 
 ## Sending
 
@@ -44,7 +44,7 @@ Networks retry. Reconnects replay. Users double-click. Any of those can turn
 one intended message into two, and "sorry, it sent twice" is a bad
 experience.
 
-Pass a `clientMessageId` and Raven guarantees the send happens once:
+Pass a `clientMessageId` and Livqeno guarantees the send happens once:
 
 ```js
 await chat.sendMessage({ text: 'Hello', clientMessageId: 'client_123' });
@@ -120,11 +120,12 @@ optimistic copy that has to be reconciled when the real one arrives.
 
 Events: `message`, `messageUpdated`, `messageDeleted`, `reactionAdded`,
 `reactionRemoved`, `typing`, `presence`, `read`, `connectionStateChanged`,
-`connected`, `disconnected`, `reconnecting`, `reconnected`, `error`.
+`connected`, `disconnected`, `reconnecting`, `reconnected`, `recovered`,
+`error`.
 
 ## Delivery semantics
 
-Raven distinguishes three things, and only promises the first:
+Livqeno distinguishes three things, and only promises the first:
 
 | State | What it means | Where it comes from |
 | --- | --- | --- |
@@ -136,6 +137,88 @@ Raven distinguishes three things, and only promises the first:
 isn't evidence a person saw them — a backgrounded tab receives everything. A
 per-recipient delivered flag would look like a strong guarantee while meaning
 very little. See [read-receipts.md](read-receipts.md).
+
+## Missed messages after a reconnect
+
+Nothing to do. `@ravenkash/chat` catches up on its own: after it reconnects
+and re-joins your rooms, it fetches whatever arrived while the socket was
+down and emits it through the same `message` event as live traffic, oldest
+first.
+
+```js
+chat.on('message', (m) => render(m));   // live and recovered, same handler
+```
+
+You do not need to call `messages.list({ after })` yourself, and you should
+not: doing it in parallel with the SDK's own catch-up is how you get the same
+message twice in your UI.
+
+### How it decides where to resume
+
+Every message carries an opaque `cursor` — the `(createdAt, publicId)` pair
+history already paginates on. The SDK remembers the newest one it delivered
+**per room** and resumes from exactly there.
+
+`createdAt` alone would not do: two messages can land in the same
+millisecond, and a timestamp-only resume point either skips one or repeats it
+forever. The cursor is also a *value*, not a reference to a row, so it keeps
+working after the message it names is deleted or aged out by retention —
+which is what makes it safe to hold across a long absence.
+
+The resume point is client state only. The server stores no per-client
+position and behaves identically whether or not anyone ever reconnects.
+Postgres remains the only record of what was said.
+
+### What you can rely on
+
+- **Nothing is lost.** Catch-up pages forward until the server says there is
+  no more, so an outage bigger than one page is not truncated.
+- **Nothing arrives twice.** Recovered messages are de-duplicated by id
+  against what was already delivered, including the message that arrived live
+  moments before the socket dropped.
+- **Order holds.** Recovered messages are delivered oldest-first, and live
+  messages arriving mid-catch-up are held back so they cannot overtake older
+  ones. This is the same per-sender ordering guarantee as normal operation —
+  and, as always, no total order is claimed *across* senders.
+- **Authorization is unchanged.** Catch-up is the ordinary authorized history
+  call. A user removed from a conversation while they were away recovers
+  nothing from it.
+- **Rooms are independent.** Each has its own resume point, and one room
+  failing to catch up does not block the others.
+
+### Knowing when it finished
+
+```js
+chat.on('recovered', ({ recovered, gap, errors }) => {
+  if (gap) reloadTheWholeConversation();       // see below
+  if (errors.length) showReconnectingBanner(); // retried on the next reconnect
+});
+```
+
+`recovered` fires after every reconnect, even when there was nothing to
+recover, so it is safe to use as "the client is fully caught up now".
+
+### When recovery cannot be complete
+
+If the resume point is rejected as unusable, the SDK does **not** silently
+claim success. It reports `gap: true` and stops, leaving your application to
+decide — normally by reloading the conversation from the top. Replaying from
+the beginning of history instead could be an unbounded read on a busy room,
+which is a worse failure than an honest gap.
+
+If a catch-up request keeps failing, the SDK retries with backoff and then
+reports that room in `errors`, keeping its resume point so the **next**
+reconnect tries again from the same place. It never advances past messages it
+did not deliver.
+
+### What is not replayed
+
+Typing and presence are ephemeral and are never replayed — a typing
+indicator from four minutes ago is noise, not information. Read receipts are
+not replayed either; read state is durable, so read `chat.getReadState()` or
+`chat.getReadReceipts()` instead. Reactions come back on the recovered
+message itself, so they reflect what is true now rather than a replay of
+individual reaction events.
 
 ## Editing
 

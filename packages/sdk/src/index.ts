@@ -7,12 +7,14 @@ export type { ConnectionDiagnostics, ConnectionStats, ConnectionState, RoomEvent
 export { Participant, LocalParticipant, RemoteParticipant } from './participant';
 
 export { Track, LocalTrack, RemoteTrack } from './track';
+export { createCustomTrack } from './internal/media/capture';
+export type { CustomTrackOptions, CustomTrackSource } from './internal/media/capture';
 export type { TrackKind, TrackStats } from './track';
 /**
  * The structural interfaces a `Track` wraps.
  *
  * Exported so a platform SDK, or an application with an unusual media
- * source, can build a Raven track over something the browser never handed
+ * source, can build a Livqeno track over something the browser never handed
  * it. `@ravenkash/react-native` needs these to bridge its Effects
  * integration. They used to be internal, which left guessing at the shape
  * as the only way to satisfy them.

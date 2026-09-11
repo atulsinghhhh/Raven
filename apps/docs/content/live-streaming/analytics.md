@@ -61,7 +61,7 @@ fabricates a number the API didn't return.
 No historical/time-series viewer graph, no watch-time, no
 geography/device breakdown, no per-viewer session log. If you need any
 of this today, you'd need to poll `GET /v1/live-streams/:id` yourself
-and store the samples — Raven isn't doing that recording for you yet.
+and store the samples — Livqeno isn't doing that recording for you yet.
 
 ## Structured logging, not analytics
 

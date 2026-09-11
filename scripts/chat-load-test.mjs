@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-// Raven Chat load test (Phase 12 spec §55).
+// Livqeno Chat load test (Phase 12 spec §55).
 //
-// Opens N real WebSocket connections against a running Raven API, has a
+// Opens N real WebSocket connections against a running Livqeno API, has a
 // share of them send messages at a fixed rate, and measures what actually
 // happened. Nothing here is simulated or extrapolated: every number
 // printed comes from a real socket carrying a real message through
 // Postgres and Redis.
 //
 // The numbers this produces describe *the machine it ran on*. A laptop
-// running Postgres, Redis, the Raven SFU, coturn, MinIO and the API in Docker
+// running Postgres, Redis, the Livqeno SFU, coturn, MinIO and the API in Docker
 // alongside the load generator is not a capacity model for production;
 // see docs/chat/architecture.md#measured-limits for what was measured and
 // what it does and does not tell you.
@@ -45,7 +45,7 @@ const metrics = {
   messagesFailed: 0,
   messagesReceived: 0,
   rateLimited: 0,
-  /** Send → ack. This is "how long until Raven promised it was stored". */
+  /** Send → ack. This is "how long until Livqeno promised it was stored". */
   ackLatencies: [],
   /** Sender's clock → recipient's clock. Spans two clocks, so indicative only. */
   deliveryLatencies: [],
@@ -67,7 +67,7 @@ async function api(path, { method = 'GET', body, token = API_KEY } = {}) {
 
 async function main() {
   const suffix = Date.now().toString(36);
-  console.log(`Raven Chat load test`);
+  console.log(`Livqeno Chat load test`);
   console.log(`  api            ${API}`);
   console.log(`  connections    ${CONNECTIONS} across ${ROOMS} room(s)`);
   console.log(`  senders        ${SENDERS} at ${RATE} msg/s each (${(SENDERS * RATE).toFixed(1)} msg/s offered)`);
@@ -124,7 +124,9 @@ async function main() {
   }
 
   const connectMs = Date.now() - connectStarted;
-  console.log(`\n  ${metrics.connectionsOpened} connected in ${(connectMs / 1000).toFixed(1)}s (${metrics.connectionsFailed} failed)\n`);
+  console.log(
+    `\n  ${metrics.connectionsOpened} connected in ${(connectMs / 1000).toFixed(1)}s (${metrics.connectionsFailed} failed)\n`,
+  );
 
   if (clients.length === 0) {
     console.error('no connections opened — aborting');

@@ -6,7 +6,7 @@ import { DOCS_ROUTES } from '../lib/links';
  * claims specifically, now that ProductOverview/RTCSection/ChatSection/
  * LiveStreamingSection/SDKSection carry the product-feature copy this
  * used to hold. Every claim here links to the doc that backs it; no
- * uptime/scale numbers Raven hasn't measured: see the "no fake
+ * uptime/scale numbers Livqeno hasn't measured: see the "no fake
  * enterprise claims" note this page was built against.
  */
 const RELIABILITY = [
@@ -53,7 +53,7 @@ export function Reliability() {
               Guarantees, not <span className="kw">status dots</span>
             </h2>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">
-              Not a wrapper around someone else&apos;s API. Raven owns the control plane — projects, tokens,
+              Not a wrapper around someone else&apos;s API. Livqeno owns the control plane — projects, tokens,
               permissions, and events — end to end.
             </p>
           </div>

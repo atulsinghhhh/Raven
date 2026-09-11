@@ -22,7 +22,8 @@ export class OAuthController {
   @Get('providers')
   @ApiOperation({
     summary: 'Which OAuth providers this deployment has configured',
-    description: 'Exactly the set of sign-in buttons the dashboard should render. Public: it reveals configuration presence, never credentials.',
+    description:
+      'Exactly the set of sign-in buttons the dashboard should render. Public: it reveals configuration presence, never credentials.',
   })
   @ApiResponse({ status: 200, schema: { example: { github: true, google: false } } })
   providers() {
@@ -38,7 +39,10 @@ export class OAuthController {
     description:
       'Mints a single-use state (10-minute TTL) and returns the provider authorization URL to redirect the browser to. The caller (the dashboard) must also pin the state to the browser in an httpOnly cookie and compare it on callback.',
   })
-  @ApiResponse({ status: 200, schema: { example: { authorizeUrl: 'https://github.com/login/oauth/authorize?...', state: 'nq1…' } } })
+  @ApiResponse({
+    status: 200,
+    schema: { example: { authorizeUrl: 'https://github.com/login/oauth/authorize?...', state: 'nq1…' } },
+  })
   @ApiResponse({ status: 501, description: 'Provider not configured on this deployment' })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
   start(@Param('provider') provider: string) {
@@ -52,7 +56,7 @@ export class OAuthController {
   @ApiOperation({
     summary: 'Complete an OAuth sign-in',
     description:
-      'Burns the state, exchanges the authorization code with the provider server-to-server, finds or creates the Raven user (a returning provider account never creates a duplicate), and returns the same session shape as /login. Provider tokens are used once and discarded, never stored, never logged.',
+      'Burns the state, exchanges the authorization code with the provider server-to-server, finds or creates the Livqeno user (a returning provider account never creates a duplicate), and returns the same session shape as /login. Provider tokens are used once and discarded, never stored, never logged.',
   })
   @ApiResponse({ status: 200, description: 'Authenticated' })
   @ApiResponse({ status: 400, description: 'Provider shared no usable email' })

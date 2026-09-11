@@ -30,7 +30,7 @@ const ENVIRONMENT_LABEL: Record<Environment, string> = {
 };
 
 /**
- * Raven only ever stores a bcrypt hash of a key's secret half
+ * Livqeno only ever stores a bcrypt hash of a key's secret half
  * (docs/control-plane.md, "API keys: the show-once secret"), so the
  * secret exists in the UI for exactly one render, right after creation.
  * Everything else in here shows the `publicId` and an explicit mask, so
@@ -211,9 +211,9 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
             </Button>
           </div>
           <p className="text-xs leading-relaxed text-subtle">
-            The name is only a dashboard label — it has no effect on what the key can do. The environment decides
-            where the key may act: set it correctly so a development credential can never be mistaken for one that
-            reaches production.
+            The name is only a dashboard label — it has no effect on what the key can do. The environment decides where
+            the key may act: set it correctly so a development credential can never be mistaken for one that reaches
+            production.
           </p>
         </form>
         {error && (
@@ -224,9 +224,7 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
       </Card>
 
       {/* One-time reveal. aria-live so it is announced, not just seen. */}
-      <div aria-live="polite">
-        {justCreated && <SecretReveal created={justCreated} />}
-      </div>
+      <div aria-live="polite">{justCreated && <SecretReveal created={justCreated} />}</div>
 
       <Card padded={false}>
         <div className="px-5 pt-5">
@@ -266,14 +264,14 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
 
       <Card>
         <CardHeader
-          title="How Raven stores your keys"
+          title="How Livqeno stores your keys"
           subtitle="Why a lost secret can't be recovered, and what to do instead."
         />
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div>
             <h3 className="text-xs font-semibold text-fg">Only a hash is stored</h3>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">
-              A full key is <span className="font-mono text-xs text-fg">publicId.secret</span>. Raven persists the{' '}
+              A full key is <span className="font-mono text-xs text-fg">publicId.secret</span>. Livqeno persists the{' '}
               <span className="font-mono text-xs text-fg">publicId</span> in the clear so it can find the right row, and
               stores the secret only as a peppered bcrypt hash. Nothing in the database — or in this dashboard — can
               turn that hash back into the secret. If you lose it, create a new key and revoke the old one.
@@ -293,9 +291,9 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
           </div>
         </div>
         <p className="mt-5 border-t border-line pt-4 text-xs leading-relaxed text-subtle">
-          Keys belong on a server you control. Never ship one to a browser, a mobile app, or a public repository — a
-          key can mint tokens for any room in this project. Browsers should only ever receive a short-lived RTC token
-          minted by your backend.
+          Keys belong on a server you control. Never ship one to a browser, a mobile app, or a public repository — a key
+          can mint tokens for any room in this project. Browsers should only ever receive a short-lived RTC token minted
+          by your backend.
         </p>
       </Card>
     </div>
@@ -410,9 +408,7 @@ function KeyRow({
           </div>
           <div className="flex items-baseline gap-1.5">
             <dt>Last used</dt>
-            <dd className="tabular text-fg">
-              {apiKey.lastUsedAt ? formatRelative(apiKey.lastUsedAt) : 'Never used'}
-            </dd>
+            <dd className="tabular text-fg">{apiKey.lastUsedAt ? formatRelative(apiKey.lastUsedAt) : 'Never used'}</dd>
           </div>
           {apiKey.revokedAt && (
             <div className="flex items-baseline gap-1.5">
@@ -447,7 +443,13 @@ function KeyRow({
                     setConfirming(null);
                   }}
                 >
-                  {confirming === 'revoke' ? (revoking ? 'Revoking…' : 'Confirm revoke') : rotating ? 'Rotating…' : 'Confirm rotate'}
+                  {confirming === 'revoke'
+                    ? revoking
+                      ? 'Revoking…'
+                      : 'Confirm revoke'
+                    : rotating
+                      ? 'Rotating…'
+                      : 'Confirm rotate'}
                 </Button>
               </div>
             </div>
@@ -456,7 +458,13 @@ function KeyRow({
               <Button variant="secondary" size="sm" onClick={() => setConfirming('rotate')} disabled={busy}>
                 Rotate
               </Button>
-              <Button variant="danger" size="sm" aria-describedby={nameId} onClick={() => setConfirming('revoke')} disabled={busy}>
+              <Button
+                variant="danger"
+                size="sm"
+                aria-describedby={nameId}
+                onClick={() => setConfirming('revoke')}
+                disabled={busy}
+              >
                 Revoke
               </Button>
             </div>

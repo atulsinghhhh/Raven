@@ -19,7 +19,7 @@ export interface AttachmentUploadTicket {
  * `chat.attachments.*`.
  *
  * Bytes go straight from the browser to object storage over a short-lived
- * signed URL. They never pass through Raven's API and never touch the
+ * signed URL. They never pass through Livqeno's API and never touch the
  * WebSocket (spec §30). Storage credentials stay server-side, and the
  * browser only ever holds a URL that expires and addresses exactly one
  * object.
@@ -43,25 +43,25 @@ export class AttachmentsApi {
     metadata?: Record<string, unknown>;
   }): Promise<AttachmentUploadTicket> {
     const room = input.room ?? this.defaultRoom();
-    return this.rest.request<AttachmentUploadTicket>(
-      `/v1/chat/conversations/${encodeURIComponent(room)}/attachments`,
-      {
-        method: 'POST',
-        body: {
-          filename: input.filename,
-          mimeType: input.mimeType,
-          size: input.size,
-          metadata: input.metadata,
-        },
+    return this.rest.request<AttachmentUploadTicket>(`/v1/chat/conversations/${encodeURIComponent(room)}/attachments`, {
+      method: 'POST',
+      body: {
+        filename: input.filename,
+        mimeType: input.mimeType,
+        size: input.size,
+        metadata: input.metadata,
       },
-    );
+    });
   }
 
   /**
    * Uploads a file and returns the attachment id to pass as
    * `sendMessage({ attachmentId })`.
    */
-  async upload(file: File | Blob, options: { filename?: string; room?: string; metadata?: Record<string, unknown> } = {}): Promise<AttachmentUploadTicket> {
+  async upload(
+    file: File | Blob,
+    options: { filename?: string; room?: string; metadata?: Record<string, unknown> } = {},
+  ): Promise<AttachmentUploadTicket> {
     const filename = options.filename ?? (file instanceof File ? file.name : 'upload');
     const ticket = await this.createUploadTicket({
       filename,

@@ -20,18 +20,27 @@ full `.d.ts` types.
 ```ts
 import { Raven } from '@ravenkash/server';
 
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY!,
+  baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
+});
 ```
 
-`apiKey` is the only required field. The SDK **never reads
-`process.env.RAVEN_API_KEY` (or any other environment variable) on its
-own** — you always pass it explicitly. This is deliberate: automatic env
-scanning is an easy way to accidentally pick up the wrong credential.
+`apiKey` is the only field the SDK *validates*, but on its own it is not
+enough: `baseUrl` defaults to `http://localhost:4100`, so a client
+constructed with just a key talks to a local dev stack and fails against
+any real deployment with `RAVEN_NETWORK_ERROR`. Pass both unless you are
+genuinely running Livqeno on localhost.
+
+The SDK **never reads `process.env.RAVEN_API_KEY`, `RAVEN_API_URL`, or any
+other environment variable on its own** — you always pass them explicitly.
+This is deliberate: automatic env scanning is an easy way to accidentally
+pick up the wrong credential, or the wrong control plane.
 
 ```ts
 new Raven({
   apiKey: process.env.RAVEN_API_KEY!,
-  baseUrl: 'https://your-raven-deployment.example',  // defaults to http://localhost:4100
+  baseUrl: 'https://api.ravenstack.online',  // or your own deployment; defaults to http://localhost:4100
   timeout: 10_000,    // ms, defaults to 10000 — a request never hangs indefinitely
   maxRetries: 2,      // defaults to 2
 });
@@ -114,6 +123,77 @@ await raven.metrics.get('1h'); // '15m' | '1h' | '24h' | '7d' — real aggregate
 await raven.diagnostics.get(); // signaling/SFU/TURN health + this project's real active-connection count
 ```
 
+### `raven.chat`
+
+Mints browser chat credentials and manages conversations server-side.
+
+```ts
+const grant = await raven.chat.createToken({ userId: 'user-42', conversations: [conversationId] });
+// { token, chatUrl, apiUrl, scopes, conversations, expiresAt, ... }
+```
+
+Forward that response to your frontend and hand it to `createChatClient()`
+from `@ravenkash/chat`. `chatUrl` and `apiUrl` are in it precisely so the
+browser never configures a WebSocket address; a chat token carries no
+address of its own to derive one from.
+
+Conversations and membership:
+
+```ts
+const conversation = await raven.chat.createConversation({ type: 'GROUP', name: 'launch-team' });
+await raven.chat.addMember(conversation.room, { userId: 'user-42', role: 'MODERATOR' });
+await raven.chat.listMembers(conversation.room);
+await raven.chat.removeMember(conversation.room, 'user-42');
+```
+
+Messages, including posting as your own backend rather than as a user —
+useful for system notices and bots:
+
+```ts
+await raven.chat.sendMessage(room, { text: 'Deploy finished', type: 'SYSTEM' });
+const page = await raven.chat.listMessages(room, { limit: 50 });
+await raven.chat.deleteMessage(messageId);
+```
+
+### `raven.live` (also `raven.liveStreams`)
+
+Livqeno Live Streaming: one host, optional co-hosts, many viewers. Both names
+are the same object, so pick whichever reads better.
+
+```ts
+const stream = await raven.live.create({ title: 'Launch day', hostIdentity: 'user-42' });
+await raven.live.start(stream.id);
+// ... later
+await raven.live.end(stream.id);   // terminal; create a new stream to go again
+```
+
+**Host and viewer credentials come from different methods, and that is the
+security boundary.** The role is decided by which method you call, never by
+a field in a request body, so a viewer cannot ask to publish:
+
+```ts
+// Publish access. Call it only after your own authorization check.
+const host = await raven.live.addHost(stream.id, { identity: 'user-42', role: 'CO_HOST' });
+
+// Always subscribe-only on RTC, always MEMBER on chat. No way to widen it.
+const viewer = await raven.live.createViewerToken(stream.id, 'user-99');
+```
+
+Both return the same shape — `{ identity, role, rtc, chat? }` — where `rtc`
+is an ordinary RTC grant for `createRTCClient()` and `chat` an ordinary chat
+grant for `createChatClient()`. A stream is an RTC room and a chat
+conversation composed together, not a third realtime system: `stream.conversationId`
+is the conversation, so stream chat is Livqeno Chat with no extra API to learn.
+
+```ts
+const stream = await raven.live.get(streamId);
+stream.viewerCount;      // live count, or null when the SFU was unreachable
+stream.conversationId;   // the stream's chat conversation
+```
+
+`viewerCount` is `null`, never `0`, when the SFU could not be reached. The
+two are different facts and Livqeno does not collapse them.
+
 ## Error model
 
 ```ts
@@ -178,8 +258,13 @@ assumptions. See `examples/node-server` (Express).
 
 ## Known limitations
 
-- No webhook support — the Control API has no webhook infrastructure yet
-  (see `docs/security/server-sdk.md` and the Phase 10 report).
+- No webhook *methods on this SDK*. The Control API does have webhooks —
+  CRUD, HMAC-SHA256 signatures and automatic retries, see
+  [`apps/docs/content/webhooks.md`](../../../apps/docs/content/webhooks.md) — but they are managed through JWT-guarded
+  (dashboard-session) endpoints, and this SDK authenticates with a project
+  API key. So there is nothing for it to call, rather than nothing to
+  build against. Manage endpoints from the dashboard, and verify incoming
+  deliveries with the signature scheme documented there.
 - No participant "remove/kick" — no such capability exists in the
   Control API yet.
 - No idempotency keys, no cursor pagination (see above — not invented).

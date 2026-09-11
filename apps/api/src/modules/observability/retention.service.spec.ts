@@ -25,10 +25,7 @@ describe('RetentionService', () => {
         return values[key];
       }),
     };
-    service = new RetentionService(
-      prisma as unknown as PrismaService,
-      configService as unknown as ConfigService,
-    );
+    service = new RetentionService(prisma as unknown as PrismaService, configService as unknown as ConfigService);
   });
 
   it('deletes connections and errors older than their configured retention window', async () => {

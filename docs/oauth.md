@@ -1,6 +1,6 @@
 # OAuth sign-in (GitHub & Google)
 
-Raven supports "Continue with GitHub" and "Continue with Google" alongside
+Livqeno supports "Continue with GitHub" and "Continue with Google" alongside
 email/password. Both are optional per deployment: a provider is enabled by
 setting its client credentials, and the dashboard only renders buttons for
 providers the Control API reports as configured (`GET
@@ -56,7 +56,7 @@ Key properties:
   provider's stable account id and a display email.
 - **No duplicate accounts.** A returning provider account resolves through
   the unique `(provider, providerAccountId)` link. A first-time provider
-  login whose (provider-verified) email matches an existing Raven account
+  login whose (provider-verified) email matches an existing Livqeno account
   links to it; an unverified provider email is refused
   (`RAVEN_OAUTH_EMAIL_UNVERIFIED`) so it can't take over the account.
 - **Same session either way.** OAuth logins go through the same

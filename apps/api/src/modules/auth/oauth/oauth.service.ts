@@ -72,12 +72,7 @@ export class OAuthService {
 
     const state = randomBytes(32).toString('base64url');
     const ttlSeconds = this.configService.get<number>('oauth.stateTtlSeconds')!;
-    await this.redisService.client.set(
-      `${STATE_KEY_PREFIX}${state}`,
-      providerSlug(provider),
-      'EX',
-      ttlSeconds,
-    );
+    await this.redisService.client.set(`${STATE_KEY_PREFIX}${state}`, providerSlug(provider), 'EX', ttlSeconds);
 
     return { authorizeUrl: this.buildAuthorizeUrl(provider, config, state), state };
   }
@@ -85,7 +80,7 @@ export class OAuthService {
   /**
    * Completes the dance: burns the state, exchanges the code with the
    * provider (the only moment the client secret is used), resolves the
-   * profile to a Raven user, and issues the same session JWT a password
+   * profile to a Livqeno user, and issues the same session JWT a password
    * login would — indistinguishable downstream, same logout, same
    * revocation.
    */
@@ -139,11 +134,7 @@ export class OAuthService {
     return url.toString();
   }
 
-  private async fetchProfile(
-    provider: AuthProvider,
-    config: OAuthProviderConfig,
-    code: string,
-  ): Promise<OAuthProfile> {
+  private async fetchProfile(provider: AuthProvider, config: OAuthProviderConfig, code: string): Promise<OAuthProfile> {
     try {
       return provider === AuthProvider.GITHUB
         ? await this.fetchGitHubProfile(config, code)
@@ -278,11 +269,11 @@ export class OAuthService {
   // -----------------------------------------------------------------------
 
   /**
-   * Resolves a provider profile to exactly one Raven user:
+   * Resolves a provider profile to exactly one Livqeno user:
    *
    * 1. A link already exists → that user. Returning logins can never mint
    *    a duplicate, whatever their email now says.
-   * 2. No link, but a Raven account owns the profile's email → link them,
+   * 2. No link, but a Livqeno account owns the profile's email → link them,
    *    but only when the provider verified the address (see OAuthProfile).
    * 3. Nobody → a fresh account with no password, plus an onboarding row,
    *    same as register() creates.
@@ -316,7 +307,7 @@ export class OAuthService {
     if (existingUser) {
       if (!profile.emailVerified) {
         throw new AppError(
-          `A Raven account already exists for ${profile.email}, but ${providerLabel(provider)} has not verified that address. Verify it with ${providerLabel(provider)} first, or sign in with your password.`,
+          `A Livqeno account already exists for ${profile.email}, but ${providerLabel(provider)} has not verified that address. Verify it with ${providerLabel(provider)} first, or sign in with your password.`,
           HttpStatus.FORBIDDEN,
           RavenErrorCode.OAUTH_EMAIL_UNVERIFIED,
         );
@@ -324,7 +315,12 @@ export class OAuthService {
 
       await this.prisma.$transaction(async (tx) => {
         await tx.authAccount.create({
-          data: { userId: existingUser.id, provider, providerAccountId: profile.providerAccountId, email: profile.email },
+          data: {
+            userId: existingUser.id,
+            provider,
+            providerAccountId: profile.providerAccountId,
+            email: profile.email,
+          },
         });
         // The provider just proved this address; an account that was
         // waiting on a verification email no longer needs to be.
@@ -358,7 +354,7 @@ export class OAuthService {
         return created;
       });
 
-      // The free Raven minutes, same as the password-registration path.
+      // The free Livqeno minutes, same as the password-registration path.
       // Outside the transaction because it is idempotent and its own
       // service's concern: an account that exists without an allowance row
       // gets one on the next read anyway, so failing here must not undo a
@@ -398,10 +394,7 @@ export class OAuthService {
 
   private isUniqueViolation(error: unknown): boolean {
     return (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      (error as { code?: string }).code === 'P2002'
+      typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'P2002'
     );
   }
 

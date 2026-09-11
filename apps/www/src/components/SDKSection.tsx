@@ -2,9 +2,17 @@ import { Reveal } from './Reveal';
 import { DOCS_ROUTES } from '../lib/links';
 
 const SDKS = [
-  { name: 'Web', packages: ['@ravenkash/rtc', '@ravenkash/chat', '@ravenkash/client', '@ravenkash/effects'], href: DOCS_ROUTES.sdkWeb },
+  {
+    name: 'Web',
+    packages: ['@ravenkash/rtc', '@ravenkash/chat', '@ravenkash/client', '@ravenkash/effects'],
+    href: DOCS_ROUTES.sdkWeb,
+  },
   { name: 'React', packages: ['@ravenkash/react', '@ravenkash/effects'], href: DOCS_ROUTES.sdkReact },
-  { name: 'React Native', packages: ['@ravenkash/react-native', '@ravenkash/effects'], href: DOCS_ROUTES.sdkReactNative },
+  {
+    name: 'React Native',
+    packages: ['@ravenkash/react-native', '@ravenkash/effects'],
+    href: DOCS_ROUTES.sdkReactNative,
+  },
   { name: 'Flutter', packages: ['raven_rtc', 'raven_chat', 'raven_live'], href: DOCS_ROUTES.sdkFlutter },
   { name: 'Node.js', packages: ['@ravenkash/server'], href: DOCS_ROUTES.sdkNode },
   { name: 'Python', packages: ['raven-sdk'], href: DOCS_ROUTES.sdkPython },
@@ -22,8 +30,11 @@ export function SDKSection() {
               Build in the <span className="kw">language</span> your team already uses
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted">
-              One wire protocol, six SDKs speaking it. Not yet published to a package registry — install from a
-              local checkout while Raven is in this phase; see{' '}
+              One wire protocol, seven SDKs speaking it. The JavaScript and TypeScript packages are on npm under the{' '}
+              <span className="font-mono text-fg">@ravenkash</span> scope — with{' '}
+              <span className="font-mono text-fg">rtc</span> and <span className="font-mono text-fg">client</span>{' '}
+              awaiting a 0.1.1 republish. The Flutter and Python SDKs are not on pub.dev or PyPI yet — install those
+              from a local checkout; see{' '}
               <a href={DOCS_ROUTES.installingFromSource} className="text-accent-text hover:underline">
                 Installing from source
               </a>

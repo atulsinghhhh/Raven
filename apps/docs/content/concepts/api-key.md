@@ -3,7 +3,7 @@ title: API key
 description: Your backend's permanent credential. The only thing that can mint tokens.
 ---
 
-An API key identifies your backend to Raven. Treat it like a database
+An API key identifies your backend to Livqeno. Treat it like a database
 password.
 
 ```
@@ -42,7 +42,10 @@ is how a production key ends up in a development process.
 ```ts
 import { Raven } from '@ravenkash/server';
 
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY!,
+  baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
+});
 ```
 
 ## Related

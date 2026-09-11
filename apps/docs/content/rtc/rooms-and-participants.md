@@ -71,7 +71,7 @@ room.participantChanges.listen((participants) {
 </Tabs>
 
 `metadata` is whatever your backend attached when it minted the token —
-Raven never inspects or interprets it.
+Livqeno never inspects or interprets it.
 
 ## Device selection
 
@@ -107,6 +107,20 @@ room.on('dataReceived', (payload, participant) => {
   console.log(new TextDecoder().decode(payload), participant?.identity);
 });
 ```
+
+Works in an empty room with no camera or microphone published. The first
+`sendData()` has to negotiate a data channel, which takes one round trip;
+the SDK does that itself and resolves once your payload is on the wire.
+Anything sent while the channel is still coming up is queued and delivered
+in order, so you never have to publish media first or retry.
+
+**Receiving needs a listener, and the listener is what sets it up.** Livqeno
+fans data out over each recipient's own channel, so subscribing to
+`dataReceived` is what provisions yours — do it once after joining, before
+you expect anything to arrive. A message sent to a participant whose
+channel is still coming up is not delivered to them: `sendData()` reaches
+whoever is connected at the moment it goes out, and is not a queue that
+waits for stragglers.
 
 </Tab>
 <Tab title="React Native">

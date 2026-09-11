@@ -22,7 +22,12 @@ export const beautySmoothDefinition: EffectDefinition = {
   type: 'beautySmooth',
   category: 'spatial',
   params: {
-    amount: { min: 0, max: 1, default: 0.4, description: 'Whole-frame smoothing strength, 0 (none) to 1 (heavy). Basic blur-based, not face-aware.' },
+    amount: {
+      min: 0,
+      max: 1,
+      default: 0.4,
+      description: 'Whole-frame smoothing strength, 0 (none) to 1 (heavy). Basic blur-based, not face-aware.',
+    },
   },
   op: {
     kind: 'spatial',
@@ -52,7 +57,9 @@ export function smooth(params: Partial<ColorOpParams> = {}): BeautySmoothConfig 
   try {
     validateParams(merged, beautySmoothDefinition.params);
   } catch (error) {
-    throw error instanceof EffectsError ? error : new EffectsError('RAVEN_EFFECT_INVALID_CONFIG', 'Invalid beauty.smooth() config.', error);
+    throw error instanceof EffectsError
+      ? error
+      : new EffectsError('RAVEN_EFFECT_INVALID_CONFIG', 'Invalid beauty.smooth() config.', error);
   }
   return { type: 'beautySmooth', name: 'beautySmooth', params: merged };
 }

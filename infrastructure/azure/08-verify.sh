@@ -95,7 +95,7 @@ console.log(c.username + "\t" + c.credential);')"
 # implementation and is almost always config drift. 07-deploy-coturn.sh bakes
 # the secret into /opt/raven/turnserver.conf at DEPLOY time; the line above
 # reads Key Vault LIVE. Rotate the secret and every reader moves except
-# coturn, so Raven-minted credentials start getting 401 while the forged
+# coturn, so Livqeno-minted credentials start getting 401 while the forged
 # control below still passes — auth is working, the two sides just disagree
 # about the key. Naming that costs three commands; guessing at it costs an
 # afternoon in turn-credential.util.ts, which is not where the bug is.
@@ -154,9 +154,9 @@ turn_diagnostics() {
 
 if python3 "${HERE}/tests/turn_allocate.py" "${TURN_IP}" "${RAVEN_TURN_PORT}" \
      "$(echo "${CREDS}" | cut -f1)" "$(echo "${CREDS}" | cut -f2)" | grep -q "^PASS"; then
-  ok "Allocate with a credential from Raven's generateTurnCredential() -> relay on the public IP"
+  ok "Allocate with a credential from Livqeno's generateTurnCredential() -> relay on the public IP"
 else
-  bad "TURN allocate with a Raven-minted credential"
+  bad "TURN allocate with a Livqeno-minted credential"
   turn_diagnostics
 fi
 

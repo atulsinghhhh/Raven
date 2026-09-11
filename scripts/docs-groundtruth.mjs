@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Extracts Raven's public surface from source into one JSON artifact.
+// Extracts Livqeno's public surface from source into one JSON artifact.
 //
 // Two things consume it:
 //
@@ -517,7 +517,7 @@ function extractCli() {
 }
 
 /**
- * Every environment variable any Raven component reads.
+ * Every environment variable any Livqeno component reads.
  *
  * Three sources, because a variable read by the SFU is no less real than one
  * read by the API — and the docs' env reference used to list only the API's,

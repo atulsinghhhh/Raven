@@ -62,7 +62,7 @@ A mobile browser has no `getDisplayMedia`, and a button that always throws
 is worse than no button:
 
 ```ts
-// Raven's own check covers the three APIs a call needs at all:
+// Livqeno's own check covers the three APIs a call needs at all:
 import { getBrowserSupportDetails } from '@ravenkash/rtc';
 
 const { supported, missing } = getBrowserSupportDetails();
@@ -114,13 +114,13 @@ function Stage() {
 
 This is the step people miss. The browser puts its own "Stop sharing" UI on
 screen, and when the user clicks it your application is not told through
-Raven — the underlying media track simply ends:
+Livqeno — the underlying media track simply ends:
 
 ```ts
 const share = await room.enableScreenShare();
 
 share?.mediaStreamTrack.addEventListener('ended', () => {
-  void room.disableScreenShare();   // keep Raven's state in step with the browser's
+  void room.disableScreenShare();   // keep Livqeno's state in step with the browser's
   setSharing(false);                // and your UI in step with both
 });
 ```
@@ -133,7 +133,7 @@ thirty seconds ago.
 **A screen share is a normal published track with a declared source.**
 WebRTC has no notion of what a stream is *of*, and a page cannot choose the
 ids that land in the SDP — so a camera and a screen share are
-indistinguishable on the wire. Raven declares the source explicitly in a
+indistinguishable on the wire. Livqeno declares the source explicitly in a
 `track.publish` frame, which is what lets every other client put the share
 in the big tile.
 
@@ -152,7 +152,7 @@ the existing peer connection; nobody else's call is interrupted.
   be the first thing to suffer on a poor connection.
 - **Only one share per participant.** Calling `enableScreenShare()` twice
   returns `undefined` the second time rather than publishing two.
-- **React Native has no path to this.** Not a gap in Raven's API — the
+- **React Native has no path to this.** Not a gap in Livqeno's API — the
   platform module does not capture the screen. Do not ship a button that
   cannot work.
 - **Audio capture is not included.** `enableScreenShare()` publishes video.

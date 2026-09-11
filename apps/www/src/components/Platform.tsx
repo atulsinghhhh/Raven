@@ -120,15 +120,21 @@ function ArchitectureDiagram() {
         { path: 'M 240 292 L 240 324', delay: '1.1s' },
         { path: 'M 385 292 C 385 308, 240 308, 240 324', delay: '1.1s' },
       ].map((p, i) => (
-        <circle key={i} r="4" fill="var(--accent)" className="arch-pulse" style={{ offsetPath: `path('${p.path}')`, animationDelay: p.delay }} />
+        <circle
+          key={i}
+          r="4"
+          fill="var(--accent)"
+          className="arch-pulse"
+          style={{ offsetPath: `path('${p.path}')`, animationDelay: p.delay }}
+        />
       ))}
 
       <ArchNode x={170} y={20} label="Your Application" tone="fg" />
-      <ArchNode x={170} y={96} label="Raven SDK" tone="fg" />
+      <ArchNode x={170} y={96} label="Livqeno SDK" tone="fg" />
       <g transform="translate(170, 172)">
         <circle cx="70" cy="22" r="60" fill="url(#arch-glow)" />
       </g>
-      <ArchNode x={170} y={172} label="Raven API" tone="accent" />
+      <ArchNode x={170} y={172} label="Livqeno API" tone="accent" />
       <ArchNode x={40} y={248} w={110} label="RTC" tone="accent" />
       <ArchNode x={185} y={248} w={110} label="Chat" tone="accent" />
       <ArchNode x={330} y={248} w={110} label="Live" tone="accent" />
@@ -150,7 +156,19 @@ function ArchitectureDiagram() {
   );
 }
 
-function ArchNode({ x, y, w = 140, label, tone }: { x: number; y: number; w?: number; label: string; tone: 'fg' | 'accent' }) {
+function ArchNode({
+  x,
+  y,
+  w = 140,
+  label,
+  tone,
+}: {
+  x: number;
+  y: number;
+  w?: number;
+  label: string;
+  tone: 'fg' | 'accent';
+}) {
   const isAccent = tone === 'accent';
   return (
     <g transform={`translate(${x}, ${y})`}>

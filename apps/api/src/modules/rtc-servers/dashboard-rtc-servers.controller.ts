@@ -24,7 +24,7 @@ export class DashboardRtcServersController {
   @ApiOperation({
     summary: 'List the RTC server fleet',
     description:
-      'Load figures are a snapshot from each node\'s last heartbeat, not live truth — read them alongside lastHeartbeatAt.',
+      "Load figures are a snapshot from each node's last heartbeat, not live truth — read them alongside lastHeartbeatAt.",
   })
   @ApiQuery({ name: 'region', required: false, description: 'Filter to one region' })
   @ApiResponse({ status: 200, description: 'Fleet inventory with per-node health and load' })

@@ -1,4 +1,4 @@
-# Raven Chat — Threads and replies
+# Livqeno Chat — Threads and replies
 
 ```js
 await chat.sendMessage({ text: 'This is a reply', replyTo: 'msg_3xR…' });

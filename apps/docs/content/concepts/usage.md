@@ -1,9 +1,9 @@
 ---
 title: Usage
-description: The Raven minutes included with every developer account — how they are counted, where to read them, and what happens when they run out.
+description: The Livqeno minutes included with every developer account — how they are counted, where to read them, and what happens when they run out.
 ---
 
-Every Raven developer account is granted **20,000 free RTC minutes**. Usage
+Every Livqeno developer account is granted **20,000 free RTC minutes**. Usage
 is metered by the control plane as calls run, and the total is visible in
 the dashboard under [Usage](https://app.ravenstack.online/dashboard/usage).
 
@@ -43,7 +43,7 @@ The signaling layer, from its own clock. Specifically:
 - If the API instance holding a session dies, the session is closed by a
   sweep and credited only up to the last moment it was **confirmed
   alive** — never to the moment the sweep noticed. You are not charged for
-  a Raven outage.
+  a Livqeno outage.
 
 Two consequences worth knowing:
 
@@ -115,7 +115,7 @@ At 20,000 minutes:
   observability, the dashboard.
 
 The allowance **does not reset** — not monthly, not annually, not on
-sign-in. There is no paid plan to upgrade to and no payment path: Raven has
+sign-in. There is no paid plan to upgrade to and no payment path: Livqeno has
 no billing.
 
 Handle it as a terminal error rather than something to retry:

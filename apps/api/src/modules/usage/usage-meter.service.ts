@@ -149,7 +149,7 @@ export class UsageMeterService implements OnModuleInit, OnModuleDestroy {
    * mean different instants. A clean leave settles up to now. The reaper
    * settles up to `lastMeteredAt` — the last moment the session was
    * observed alive — because crediting a session abandoned by a dead
-   * gateway all the way to now would charge a developer for Raven's
+   * gateway all the way to now would charge a developer for Livqeno's
    * outage.
    */
   async settle(

@@ -1,10 +1,10 @@
-# Raven RTC — The SFU
+# Livqeno RTC — The SFU
 
 The media plane. One Go binary that receives media from publishers and
 forwards it to subscribers over standards-compliant WebRTC.
 
 Source: `services/sfu`. Built on [Pion](https://github.com/pion/webrtc)
-for ICE, DTLS, SRTP, RTP/RTCP and SCTP — Raven implements no media
+for ICE, DTLS, SRTP, RTP/RTCP and SCTP — Livqeno implements no media
 protocol of its own.
 
 ---
@@ -30,7 +30,7 @@ migration and restarted without a backup.
 
 ```text
                         ┌──────────────────┐
-   Raven API  ═════════►│    node link     │   control only, no media
+   Livqeno API  ═════════►│    node link     │   control only, no media
                         │  (WebSocket)     │
                         └────────┬─────────┘
                                  │
@@ -60,7 +60,7 @@ Participant ...   Participant        one PeerConnection each
 
 Some SFUs give each client two — one for publishing, one for subscribing
 — to keep subscriber renegotiation from disturbing the publisher side.
-Raven uses one, because a single connection means one ICE negotiation, one
+Livqeno uses one, because a single connection means one ICE negotiation, one
 DTLS handshake, one set of candidates to get through a firewall, and one
 thing to reconnect.
 
@@ -124,8 +124,8 @@ Standards, registered rather than reimplemented.
 | Mechanism | Who provides it | What it does |
 |---|---|---|
 | **NACK** | Pion interceptor | Retransmits a lost packet from the send buffer. |
-| **PLI** | Raven | A subscriber's decoder asks for a keyframe; the SFU relays that to the publisher. |
-| **FIR** | Raven | Treated like PLI. |
+| **PLI** | Livqeno | A subscriber's decoder asks for a keyframe; the SFU relays that to the publisher. |
+| **FIR** | Livqeno | Treated like PLI. |
 | **Periodic PLI** | Pion interceptor | Belt and braces: a subscriber whose own PLI was lost would otherwise wait for the encoder's next scheduled keyframe. |
 | **Receiver/sender reports** | Pion interceptor | Carries loss, jitter and RTT. |
 | **TWCC** | Pion interceptor | Transport-wide congestion feedback. **Collected but not yet consumed** — see [gaps](#known-gaps). |

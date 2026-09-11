@@ -14,13 +14,7 @@ export const ExitCode = {
 
 export type ExitCodeValue = (typeof ExitCode)[keyof typeof ExitCode];
 
-export type CliErrorKind =
-  | 'usage'
-  | 'auth'
-  | 'authz'
-  | 'not_found'
-  | 'network'
-  | 'general';
+export type CliErrorKind = 'usage' | 'auth' | 'authz' | 'not_found' | 'network' | 'general';
 
 const EXIT_CODE_BY_KIND: Record<CliErrorKind, ExitCodeValue> = {
   usage: ExitCode.InvalidUsage,
@@ -63,7 +57,7 @@ export function notLoggedInError(): CliError {
 }
 
 export function noProjectSelectedError(): CliError {
-  return new CliError('usage', 'No Raven project selected.', {
+  return new CliError('usage', 'No Livqeno project selected.', {
     suggestion: 'Run `raven init` in this directory, or `raven projects use <project>`',
   });
 }

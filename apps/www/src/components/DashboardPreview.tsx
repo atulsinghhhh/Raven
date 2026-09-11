@@ -33,8 +33,8 @@ export function DashboardPreview() {
               See what your rooms are <span className="kw">actually doing</span>
             </h2>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">
-              Connection state, reconnects, and dependency health — the same telemetry the diagnostics section
-              collects, surfaced per project.
+              Connection state, reconnects, and dependency health — the same telemetry the diagnostics section collects,
+              surfaced per project.
             </p>
           </div>
         </Reveal>

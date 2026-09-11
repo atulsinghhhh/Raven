@@ -5,7 +5,7 @@ import { generateId } from '../../shared/utils/crypto.util';
 import { ProjectScope } from '../../shared/environment/environment.constants';
 
 /**
- * Event names Raven emits. Chat owns all of these today; the pipeline is
+ * Event names Livqeno emits. Chat owns all of these today; the pipeline is
  * project-scoped so later phases (recording, streaming) publish through
  * the same machinery instead of inventing a second one (spec §31).
  */
@@ -45,11 +45,7 @@ export class WebhookEventsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async emit(
-    scope: ProjectScope,
-    type: WebhookEventType,
-    payload: Record<string, unknown>,
-  ): Promise<void> {
+  async emit(scope: ProjectScope, type: WebhookEventType, payload: Record<string, unknown>): Promise<void> {
     const { projectId, environment } = scope;
     try {
       // Endpoints are environment-scoped, so a production endpoint never

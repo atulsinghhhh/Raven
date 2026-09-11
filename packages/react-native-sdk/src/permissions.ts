@@ -11,10 +11,11 @@ export interface PermissionResult {
   microphone: RavenPermissionStatus;
 }
 
-const ANDROID_PERMISSION: Record<RavenPermissionKind, 'android.permission.CAMERA' | 'android.permission.RECORD_AUDIO'> = {
-  camera: 'android.permission.CAMERA',
-  microphone: 'android.permission.RECORD_AUDIO',
-};
+const ANDROID_PERMISSION: Record<RavenPermissionKind, 'android.permission.CAMERA' | 'android.permission.RECORD_AUDIO'> =
+  {
+    camera: 'android.permission.CAMERA',
+    microphone: 'android.permission.RECORD_AUDIO',
+  };
 
 /**
  * Camera and microphone permissions, normalised across iOS and Android.
@@ -72,9 +73,7 @@ export const permissions = {
    *
    * Call it as often as you like. Both platforms no-op once granted.
    */
-  async request(
-    kinds: RavenPermissionKind[] = ['camera', 'microphone'],
-  ): Promise<PermissionResult> {
+  async request(kinds: RavenPermissionKind[] = ['camera', 'microphone']): Promise<PermissionResult> {
     const result: PermissionResult = { camera: 'unavailable', microphone: 'unavailable' };
 
     if (Platform.OS === 'android') {
@@ -142,9 +141,7 @@ async function probeIosPermission(kind: RavenPermissionKind): Promise<RavenPermi
 
   let stream: MediaStream | undefined;
   try {
-    stream = await mediaDevices.getUserMedia(
-      kind === 'camera' ? { video: true } : { audio: true },
-    );
+    stream = await mediaDevices.getUserMedia(kind === 'camera' ? { video: true } : { audio: true });
     return 'granted';
   } catch (error) {
     // iOS never re-prompts after a refusal, so any denial is effectively

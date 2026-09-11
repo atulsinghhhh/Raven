@@ -1,6 +1,6 @@
 name: raven_rtc
 description: >-
-  Raven SDK for Flutter — join a room, publish camera and microphone, render
+  Livqeno SDK for Flutter — join a room, publish camera and microphone, render
   participants. Hides WebRTC, SDP, ICE, STUN, TURN and the media server behind
   a small typed API.
 version: 0.1.0
@@ -39,5 +39,5 @@ dev_dependencies:
 #
 # What this package *does* own, and previously did not, is the signaling
 # protocol and the peer-connection lifecycle — see lib/src/internal. Those
-# used to come from livekit_client; they are Raven's own now, which is what
-# lets Raven's SFU change without an SDK release.
+# used to come from livekit_client; they are Livqeno's own now, which is what
+# lets Livqeno's SFU change without an SDK release.

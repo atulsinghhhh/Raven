@@ -7,7 +7,7 @@ import type { FaceDetector } from './face-detector';
  * Face masks, stickers and overlays all depend on FaceDetector, which is
  * itself planned (see face-detector.ts). So all this module does today is
  * define the Effect → Tracking → Anchor → Transform → Render extension
- * point (§18). When it does land, Raven ships its own placeholder example
+ * point (§18). When it does land, Livqeno ships its own placeholder example
  * assets. Never third-party proprietary art.
  */
 
@@ -26,7 +26,7 @@ export interface ARAnchor {
 
 export interface ARAsset {
   id: string;
-  /** Raven-owned placeholder art only. security.ts has the size, type and dimension limits every asset must clear. */
+  /** Livqeno-owned placeholder art only. security.ts has the size, type and dimension limits every asset must clear. */
   image: ImageBitmap | HTMLImageElement;
 }
 
@@ -46,7 +46,7 @@ class UnsupportedAROverlay implements AROverlay {
   attach(): ARAnchor {
     throw new EffectsError(
       'RAVEN_EFFECT_UNSUPPORTED',
-      'AR overlays are planned but not implemented in this Raven Effects release; they require face tracking, which this release does not ship.',
+      'AR overlays are planned but not implemented in this Livqeno Effects release; they require face tracking, which this release does not ship.',
     );
   }
 

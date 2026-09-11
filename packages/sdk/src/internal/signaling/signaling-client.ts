@@ -156,12 +156,7 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
         // by design: saying why a connection failed would be a cross-origin
         // information leak. So this message lists what to check instead of
         // pretending to know.
-        reject(
-          new RTCError(
-            'NETWORK_ERROR',
-            `Could not reach the signaling endpoint at ${this.options.endpoint}`,
-          ),
-        );
+        reject(new RTCError('NETWORK_ERROR', `Could not reach the signaling endpoint at ${this.options.endpoint}`));
       };
     });
   }
@@ -198,11 +193,7 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
             };
             this.joined = true;
             this.reconnectAttempts = 0;
-            this.logger.info(
-              'joined room',
-              message.roomId,
-              message.rtcServer ? `via ${message.rtcServer}` : '',
-            );
+            this.logger.info('joined room', message.roomId, message.rtcServer ? `via ${message.rtcServer}` : '');
             settle(() => resolve(payload));
             this.emit('joined', payload);
             return;
@@ -268,10 +259,7 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
       return;
     }
     if (!this.options.autoReconnect) {
-      this.emit(
-        'failed',
-        new RTCError('NETWORK_ERROR', `The signaling connection closed (code ${event.code})`),
-      );
+      this.emit('failed', new RTCError('NETWORK_ERROR', `The signaling connection closed (code ${event.code})`));
       return;
     }
 
@@ -286,10 +274,7 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
     if (this.reconnectAttempts >= RECONNECT_MAX_ATTEMPTS) {
       this.emit(
         'failed',
-        new RTCError(
-          'CONNECTION_FAILED',
-          `Could not re-establish signaling after ${RECONNECT_MAX_ATTEMPTS} attempts`,
-        ),
+        new RTCError('CONNECTION_FAILED', `Could not re-establish signaling after ${RECONNECT_MAX_ATTEMPTS} attempts`),
       );
       return;
     }
@@ -310,9 +295,7 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
     // fleet that all dropped together doesn't all come back together.
     const delay = Math.random() * backoff;
 
-    this.logger.info(
-      `signaling reconnect attempt ${this.reconnectAttempts} in ${Math.round(delay)}ms`,
-    );
+    this.logger.info(`signaling reconnect attempt ${this.reconnectAttempts} in ${Math.round(delay)}ms`);
 
     this.reconnectTimer = setTimeout(() => {
       void this.openAndJoin().catch((error) => {
@@ -379,7 +362,7 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
 
   private parse(data: unknown): ServerMessage | undefined {
     if (typeof data !== 'string') {
-      // Raven's signaling is text-only. A binary frame means something
+      // Livqeno's signaling is text-only. A binary frame means something
       // else has got onto this socket, and guessing at it beats ignoring it
       // exactly never.
       this.logger.warn('ignoring non-text signaling frame');
@@ -399,10 +382,24 @@ export class SignalingClient extends TypedEventEmitter<SignalingClientEvents> {
         return new RTCError('INVALID_TOKEN', message);
       case 'TOKEN_EXPIRED':
         return new RTCError('TOKEN_EXPIRED', message);
+      case 'TOKEN_REVOKED':
+        return new RTCError('TOKEN_REVOKED', message);
+      // Surfaced as its own code rather than falling through to
+      // SIGNALING_ERROR, so an application can tell "you are out of
+      // minutes" from "signaling broke" and show a billing prompt instead
+      // of a retry button.
+      case 'USAGE_LIMIT_EXCEEDED':
+        return new RTCError('USAGE_LIMIT_EXCEEDED', message);
       case 'ROOM_NOT_FOUND':
         return new RTCError('ROOM_NOT_FOUND', message);
+      // ORIGIN_NOT_ALLOWED belongs here rather than in the default: the
+      // token was valid, it was the page holding it that was not on the
+      // project's allow-list. Letting it fall through to SIGNALING_ERROR
+      // would bury the server's message naming the dashboard setting to
+      // change.
       case 'UNAUTHORIZED':
       case 'PERMISSION_DENIED':
+      case 'ORIGIN_NOT_ALLOWED':
         return new RTCError('PERMISSION_DENIED', message);
       case 'ROOM_FULL':
       case 'NO_RTC_CAPACITY':

@@ -22,7 +22,7 @@ rvk_prod_8Kd2nQxwYtLm.aG9wZXlvdWFyZWhhdmluZ2Fsb3ZlbHlkYXk
 The two halves do different jobs. The public id is the lookup key. The
 secret is verified against a hash and never stored in readable form.
 
-The `prod` segment is a label for you, not a claim Raven checks. The
+The `prod` segment is a label for you, not a claim Livqeno checks. The
 environment that actually governs the key is stored on its record, so
 editing the prefix changes nothing and a key minted without a segment is
 still valid.

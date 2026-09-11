@@ -55,7 +55,7 @@ Every code is listed in [Errors](/reference/errors).
 Every response carries `x-request-id`, and error bodies repeat it as
 `requestId`. Quote it in a bug report.
 
-Send your own to trace one call across your logs and Raven's:
+Send your own to trace one call across your logs and Livqeno's:
 
 ```
 x-request-id: 7c1f9e2a-your-own-correlation-id

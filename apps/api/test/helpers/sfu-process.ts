@@ -7,7 +7,7 @@ import { promisify } from 'util';
 const execFileAsync = promisify(execFile);
 
 /**
- * Builds and runs a real Raven SFU as a child process, for e2e tests that
+ * Builds and runs a real Livqeno SFU as a child process, for e2e tests that
  * need the media plane to actually exist.
  *
  * # Why a real node instead of a fake one
@@ -139,9 +139,7 @@ export class SfuProcess {
 
   /** The node's own logs, so a failure message says what actually happened. */
   logs(): string {
-    return this.logLines.length
-      ? `--- sfu output ---\n${this.logLines.join('\n')}`
-      : '(no sfu output)';
+    return this.logLines.length ? `--- sfu output ---\n${this.logLines.join('\n')}` : '(no sfu output)';
   }
 
   async stop(): Promise<void> {

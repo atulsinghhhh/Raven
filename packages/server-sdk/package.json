@@ -1,7 +1,7 @@
 {
   "name": "@ravenkash/server",
   "version": "0.1.0",
-  "description": "Raven server SDK \u2014 mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Never for use in a browser.",
+  "description": "Livqeno server SDK \u2014 mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Never for use in a browser.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -34,6 +34,7 @@
     "access": "public"
   },
   "scripts": {
+    "prepublishOnly": "node ../../scripts/assert-publish-safe.mjs",
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",

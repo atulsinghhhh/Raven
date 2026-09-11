@@ -1,6 +1,6 @@
 ---
 title: Flutter SDK
-description: raven_rtc and raven_chat — idiomatic Dart, identical concepts to Raven Web.
+description: raven_rtc and raven_chat — idiomatic Dart, identical concepts to Livqeno Web.
 ---
 
 Two packages, deliberately separate: a video app never pulls in a
@@ -14,12 +14,12 @@ await room.enableCamera();
 await room.enableMicrophone();
 ```
 
-Same concepts as Raven Web and React Native. Only the syntax follows
+Same concepts as Livqeno Web and React Native. Only the syntax follows
 Dart.
 
 ## Install
 
-Not on pub.dev yet, and Raven's source isn't a public repository —
+Not on pub.dev yet, and Livqeno's source isn't a public repository —
 point a path dependency at your local checkout instead:
 
 ```yaml
@@ -122,7 +122,7 @@ genuinely prompts (asking for the device is what raises the OS dialog),
 but a pure "what's the status right now" check isn't possible without a
 native module. If you need pre-flight status, or the
 denied-vs-permanently-denied distinction, add `permission_handler`
-alongside Raven:
+alongside Livqeno:
 
 ```dart
 final status = await Permission.camera.status;
@@ -143,7 +143,7 @@ chat.messages.listen((message) => print('${message.senderId}: ${message.text}'))
 await chat.send('Hello everyone!');
 ```
 
-The same service, protocol, and guarantees as every other Raven Chat
+The same service, protocol, and guarantees as every other Livqeno Chat
 client:
 
 ```dart
@@ -215,8 +215,7 @@ separate, privileged, server-side call.
 
 - **Screen share on iOS** needs a Broadcast Upload Extension target in
   Xcode — a platform requirement, not something a package can add for
-  you. A written walkthrough isn't published yet; ask on
-  [Discord](https://discord.com/invite/HSWd9qMC7) if you get stuck
-  wiring it up.
+  you. A written walkthrough isn't published yet; open an issue on
+  [GitHub](https://github.com/atulsinghhhh/Raven/issues) if you get stuck wiring it up.
 - **`minSdkVersion 23`** and **iOS 13+** are hard floors, not
   suggestions — WebRTC won't build below them.

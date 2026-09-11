@@ -1,7 +1,10 @@
-"""Raven's async server SDK client — same surface as ``Raven``, awaited.
+"""Livqeno's async server SDK client — same surface as ``Raven``, awaited.
 
 from raven import AsyncRaven
-raven = AsyncRaven(api_key=os.environ["RAVEN_API_KEY"])
+raven = AsyncRaven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 token = await raven.tokens.create(CreateTokenParams(room=room_id, identity="user-42"))
 """
 

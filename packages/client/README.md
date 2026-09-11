@@ -1,8 +1,8 @@
 # @ravenkash/client
 
-Raven for the browser, with RTC and chat behind one object.
+Livqeno for the browser, with RTC and chat behind one object.
 
-Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
+Part of [Livqeno](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
 
 This is a **facade, not a third implementation**: `raven.rtc` is a real
 `RTCClient` from [`@ravenkash/rtc`](https://www.npmjs.com/package/@ravenkash/rtc)

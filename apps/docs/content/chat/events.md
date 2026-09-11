@@ -97,7 +97,7 @@ across a server upgrade.
 Each event is the decoded, typed form of a server frame. `message` is the
 `message` frame, `typing` is `typing.started`/`typing.stopped` collapsed
 into one event with a boolean. If you need the frame level — for a client
-in a language Raven does not ship — see
+in a language Livqeno does not ship — see
 [WebSocket protocol](/chat/websocket).
 
 ## Other platforms

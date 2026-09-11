@@ -8,3 +8,20 @@
 **/*.tsbuildinfo
 .docs
 docs
+
+# Framework build output. apps/docs/.next and apps/dashboard/.next are ~570MB
+# between them and no image copies either — but `az acr build` uploads the
+# whole context to the registry before the first COPY runs, so anything left
+# here is paid for on every build.
+**/.next
+**/.turbo
+.vercel
+
+# Non-JS SDKs (~230MB). Not in pnpm-workspace.yaml, never copied by any
+# Dockerfile, and irrelevant to the control plane image.
+sdks
+
+# Python/venv leftovers that would otherwise ride along from a local checkout.
+**/.venv
+**/__pycache__
+**/*.pyc

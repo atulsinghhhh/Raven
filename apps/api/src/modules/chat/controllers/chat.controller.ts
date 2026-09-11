@@ -1,15 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  Param,
-  Patch,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiNotFoundResponse,
@@ -23,11 +12,13 @@ import { AttachmentsService } from '../attachments/attachments.service';
 import { CreateAttachmentDto } from '../attachments/dto/create-attachment.dto';
 import { ChatActor } from '../auth/chat-actor.interface';
 import { ChatAuthGuard } from '../auth/chat-auth.guard';
+import { ProjectOriginGuard } from '../../../shared/origins/project-origin.guard';
 import { CurrentChatActor } from '../auth/decorators/current-chat-actor.decorator';
 import { AddMemberDto } from '../conversations/dto/add-member.dto';
 import { CreateConversationDto } from '../conversations/dto/create-conversation.dto';
 import { UpdateConversationDto } from '../conversations/dto/update-conversation.dto';
 import { ConversationsService } from '../conversations/conversations.service';
+import { toConversationView, toMemberView } from '../conversations/conversation.serializer';
 import { ListMessagesDto } from '../messages/dto/list-messages.dto';
 import { SendMessageDto } from '../messages/dto/send-message.dto';
 import { UpdateMessageDto } from '../messages/dto/update-message.dto';
@@ -56,7 +47,9 @@ import { ChatErrorCode } from '../chat.constants';
 @ApiBearerAuth('apiKey')
 @ApiBearerAuth('chatToken')
 @Controller('v1/chat')
-@UseGuards(ChatAuthGuard)
+// ProjectOriginGuard second, always: it reads the project off the
+// credential ChatAuthGuard just verified.
+@UseGuards(ChatAuthGuard, ProjectOriginGuard)
 export class ChatController {
   constructor(
     private readonly conversations: ConversationsService,
@@ -130,17 +123,15 @@ export class ChatController {
   @ApiOperation({ summary: 'Create a conversation, optionally attached to an RTC room' })
   async createConversation(@CurrentChatActor() actor: ChatActor, @Body() dto: CreateConversationDto) {
     assertServerActor(actor, 'Creating a conversation');
-    return this.conversations.create(actor, dto);
+    return toConversationView(await this.conversations.create(actor, dto));
   }
 
   @Get('conversations')
   @ApiOperation({ summary: "List the project's conversations" })
-  async listConversations(
-    @CurrentChatActor() actor: ChatActor,
-    @Query('includeArchived') includeArchived?: string,
-  ) {
+  async listConversations(@CurrentChatActor() actor: ChatActor, @Query('includeArchived') includeArchived?: string) {
     assertServerActor(actor, 'Listing every conversation in a project');
-    return this.conversations.listForProject(actor, includeArchived === 'true');
+    const conversations = await this.conversations.listForProject(actor, includeArchived === 'true');
+    return conversations.map((conversation) => toConversationView(conversation));
   }
 
   @Get('conversations/:room')
@@ -148,7 +139,7 @@ export class ChatController {
   @ApiNotFoundResponse({ description: 'Conversation not found in this project' })
   async getConversation(@CurrentChatActor() actor: ChatActor, @Param('room') room: string) {
     const { conversation } = await this.conversations.authorize(actor, room);
-    return conversation;
+    return toConversationView(conversation);
   }
 
   @Patch('conversations/:room')
@@ -159,25 +150,23 @@ export class ChatController {
     @Body() dto: UpdateConversationDto,
   ) {
     assertServerActor(actor, 'Updating a conversation');
-    return this.conversations.update(actor, room, dto);
+    return toConversationView(await this.conversations.update(actor, room, dto));
   }
 
   @Post('conversations/:room/members')
   @ApiOperation({ summary: 'Add or re-activate a member' })
-  async addMember(
-    @CurrentChatActor() actor: ChatActor,
-    @Param('room') room: string,
-    @Body() dto: AddMemberDto,
-  ) {
+  async addMember(@CurrentChatActor() actor: ChatActor, @Param('room') room: string, @Body() dto: AddMemberDto) {
     assertServerActor(actor, 'Adding a member');
-    return this.conversations.addMember(actor, room, dto);
+    const { conversation } = await this.conversations.authorize(actor, room);
+    return toMemberView(await this.conversations.addMember(actor, room, dto), conversation.publicId);
   }
 
   @Get('conversations/:room/members')
   @ApiOperation({ summary: 'List active members' })
   async listMembers(@CurrentChatActor() actor: ChatActor, @Param('room') room: string) {
     const { conversation } = await this.conversations.authorize(actor, room);
-    return this.conversations.listMembers(conversation.id);
+    const members = await this.conversations.listMembers(conversation.id);
+    return members.map((member) => toMemberView(member, conversation.publicId));
   }
 
   @Delete('conversations/:room/members/:userId')
@@ -221,11 +210,7 @@ export class ChatController {
       'Returns only after the message is durably stored — the id and createdAt in the response are canonical. Pass clientMessageId to make retries idempotent.',
   })
   @ApiTooManyRequestsResponse({ description: 'Per-user send rate limit exceeded' })
-  async sendMessage(
-    @CurrentChatActor() actor: ChatActor,
-    @Param('room') room: string,
-    @Body() dto: SendMessageDto,
-  ) {
+  async sendMessage(@CurrentChatActor() actor: ChatActor, @Param('room') room: string, @Body() dto: SendMessageDto) {
     const result = await this.messages.send(actor, room, dto);
     return { ...result.message, deduplicated: result.deduplicated };
   }
@@ -237,7 +222,7 @@ export class ChatController {
   }
 
   @Get('messages/:messageId/thread')
-  @ApiOperation({ summary: 'Every message in this message\'s thread, oldest first' })
+  @ApiOperation({ summary: "Every message in this message's thread, oldest first" })
   listThread(@CurrentChatActor() actor: ChatActor, @Param('messageId') messageId: string) {
     return this.messages.listThread(actor, messageId);
   }
@@ -295,7 +280,7 @@ export class ChatController {
   }
 
   @Get('conversations/:room/read-receipts')
-  @ApiOperation({ summary: "Every member's read position — what a \"seen by\" row is built from" })
+  @ApiOperation({ summary: 'Every member\'s read position — what a "seen by" row is built from' })
   listReadReceipts(@CurrentChatActor() actor: ChatActor, @Param('room') room: string) {
     return this.readState.listForConversation(actor, room);
   }
@@ -326,7 +311,7 @@ export class ChatController {
   @ApiOperation({
     summary: 'Get a signed upload URL',
     description:
-      'Upload the bytes straight to object storage with the returned URL, call /complete, then send a message referencing the attachment id. Files never pass through Raven or the WebSocket.',
+      'Upload the bytes straight to object storage with the returned URL, call /complete, then send a message referencing the attachment id. Files never pass through Livqeno or the WebSocket.',
   })
   createAttachment(
     @CurrentChatActor() actor: ChatActor,

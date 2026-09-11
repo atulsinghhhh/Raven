@@ -1,10 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsOptional } from 'class-validator';
 
-// Raven's own permission vocabulary. It is signed straight into the RTC
+// Livqeno's own permission vocabulary. It is signed straight into the RTC
 // token as `perms` and enforced by the signaling gateway: no translation
 // into a third party's grant shape. Keeping the public names independent
-// of whatever the media plane wants internally is what let Raven replace
+// of whatever the media plane wants internally is what let Livqeno replace
 // its SFU without breaking this contract, and it is why the SFU's own
 // `room.Permissions` is a separate type, not this one reused.
 export class RtcTokenPermissionsDto {
@@ -13,7 +13,7 @@ export class RtcTokenPermissionsDto {
   @IsBoolean()
   join?: boolean = true;
 
-  @ApiPropertyOptional({ default: true, description: 'Allowed to subscribe to other participants\' tracks' })
+  @ApiPropertyOptional({ default: true, description: "Allowed to subscribe to other participants' tracks" })
   @IsOptional()
   @IsBoolean()
   subscribe?: boolean = true;
@@ -23,12 +23,18 @@ export class RtcTokenPermissionsDto {
   @IsBoolean()
   publish?: boolean = false;
 
-  @ApiPropertyOptional({ default: false, description: 'Restricts publish to audio (microphone) — only meaningful when publish=true' })
+  @ApiPropertyOptional({
+    default: false,
+    description: 'Restricts publish to audio (microphone) — only meaningful when publish=true',
+  })
   @IsOptional()
   @IsBoolean()
   publishAudio?: boolean = false;
 
-  @ApiPropertyOptional({ default: false, description: 'Restricts publish to video (camera) — only meaningful when publish=true' })
+  @ApiPropertyOptional({
+    default: false,
+    description: 'Restricts publish to video (camera) — only meaningful when publish=true',
+  })
   @IsOptional()
   @IsBoolean()
   publishVideo?: boolean = false;

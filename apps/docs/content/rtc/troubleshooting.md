@@ -84,6 +84,6 @@ Missing `NSCameraUsageDescription`/`NSMicrophoneUsageDescription` in
 - Data messages have no reliability options or per-participant
   targeting. Use [Chat](/chat) if you need either.
 
-If you hit something not covered here, the
-[Discord](https://discord.com/invite/HSWd9qMC7) is the fastest way to
-ask about anything that looks like a bug.
+If you hit something not covered here, open an issue on
+[GitHub](https://github.com/atulsinghhhh/Raven/issues) — include the SDK version, the browser, and anything
+`room.on('error')` reported.

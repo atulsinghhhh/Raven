@@ -1,4 +1,4 @@
-# Raven Production Readiness Audit
+# Livqeno Production Readiness Audit
 
 Step 1 of the production programme: a survey of everything built through
 Phase 13, measured against the production platform requirements. No code
@@ -7,7 +7,7 @@ was changed to produce this report.
 Audit date: 2026-08-18. Commit: `1ea19d0`.
 
 > **Historical.** A point-in-time survey, kept as one. It predates the
-> migration to Raven's own SFU, so anything it says about the media plane
+> migration to Livqeno's own SFU, so anything it says about the media plane
 > describes LiveKit. Current state:
 > [`docs/rtc/`](../rtc/README.md) and
 > [`docs/rtc/test-matrix.md`](../rtc/test-matrix.md).
@@ -16,7 +16,7 @@ Audit date: 2026-08-18. Commit: `1ea19d0`.
 
 ## Summary
 
-Raven has more working functionality than its CI or lint configuration
+Livqeno has more working functionality than its CI or lint configuration
 would suggest. **748 tests pass locally across eight test suites**, the
 API builds, the dashboard typechecks, and RTC and Chat both work end to
 end against live infrastructure.
@@ -200,7 +200,7 @@ upper bound on decompressed size, entry count, or compression ratio, so
 a small crafted gzip bomb can exhaust disk and CPU.
 
 The vulnerable copy was **npm's own bundled `node-tar`** inside
-`node:22-alpine` — not a Raven dependency, and not fixable from the
+`node:22-alpine` — not a Livqeno dependency, and not fixable from the
 lockfile.
 
 **Fixed** by removing npm in the layer that uses it. It exists in the
@@ -559,21 +559,63 @@ Dart toolchain is available; it is independent of the above.
 
 ## Open decisions for the repository owner
 
-Two items in Step 0 were handled in the only way available without an
-account change. Both are reversible and both are your call:
+**Decided: the repository is going public.** The three items below were
+each handled in the only way available on a private repository without
+GitHub Advanced Security, and all three resolve on that one flip. None of
+them needs code changes when it happens — the workarounds were written to
+lift themselves.
+
+Status at the time of writing: **still private.** An anonymous
+`GET https://github.com/atulsinghhhh/Raven` returns 404, which is how
+GitHub hides a private repository rather than admitting it exists. Until
+the flip lands, every repo link in the product 404s for visitors — the
+landing page nav, the docs nav, the footer's Community entry, and the
+GitHub issue links in `rtc/troubleshooting.md` and `sdk/flutter.md`.
 
 1. **CodeQL is skipped, not fixed.** It cannot run on a private
    repository without GitHub Advanced Security — the failure was at
-   checkout, not analysis. The job now skips instead of failing
-   permanently, and resumes by itself if the repository becomes public
-   or Advanced Security is enabled. If you want static analysis before
-   then, a third-party scanner that does not depend on code scanning
-   would be the alternative.
+   checkout, not analysis. `codeql.yml` carries
+   `if: github.event.repository.visibility == 'public'`, so it starts
+   running by itself the moment the repository goes public. Nothing to
+   change.
 
 2. **Trivy results go to a build artifact, not code scanning.** Same
    root cause. The security-meaningful part is unaffected: the build
    still fails on a CRITICAL, fixable vulnerability. Only the reporting
-   destination changed.
+   destination changed, and it can move back to code scanning once
+   Advanced Security features are available.
+
+3. **`Dependency review` fails on every pull request.** Not previously
+   recorded here, and the same root cause. The job errors with
+   *"Dependency review is not supported on this repository. Please
+   ensure that Dependency graph is enabled along with GitHub Advanced
+   Security"* — it is red on every PR regardless of what the PR
+   contains, which trains reviewers to ignore a red check. Dependency
+   graph and dependency review are free on public repositories, so this
+   also self-heals; if the repository were to stay private, the job
+   should be removed rather than left permanently failing.
+
+### Before the flip: what was checked
+
+Publishing a repository cannot be walked back once anything clones,
+forks or indexes it, so the history was scanned first rather than after:
+
+| check | result |
+|---|---|
+| gitleaks 8.24.3 over full history, repo's own `.gitleaks.toml` | 225 commits, 20.4 MB, **no leaks** |
+| credential files ever added (`.env`, `.pem`, `.key`, `id_rsa`) | none — only `.env.example` is tracked |
+| `npm_` / `ghp_` / `sk_live_` / JWT patterns | none |
+| every `rvk_` literal in tracked files | all placeholders (`rvk_abc.secret`, `rvk_alice`, `…EXAMPLEONLY…`) |
+| `AKIA…` match | `AKIAIOSFODNN7EXAMPLE` — AWS's own documentation example, in an S3 signing spec |
+| Postgres URLs carrying a password | all placeholders: `<project-ref>`, `placeholder:placeholder`, or localhost |
+
+**Not a secret, but it does become public:** `infrastructure/azure/`
+documents the deployment topology — the SFU's static public IP, the
+subnet layout, every open port and its justification, the NSG's
+single-address SSH allowlist, the admin username, and the ACR and Key
+Vault names. No credential is exposed and SSH stays restricted, but it is
+a map of the production estate, and publishing it is a choice rather than
+an accident.
 
 
 ---

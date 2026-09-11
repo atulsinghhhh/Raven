@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RtcServer } from '../../../generated/prisma/client';
-import { NoRtcCapacityError, RtcServerAllocatorService } from '../../rtc-servers/rtc-server-allocator.service';
+import { RoomStatus, RtcServer } from '../../../generated/prisma/client';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import {
+  NoRtcCapacityError,
+  RtcServerAllocatorService,
+  RtcServerUnavailableError,
+} from '../../rtc-servers/rtc-server-allocator.service';
 import { ParticipantSession } from '../interfaces/participant-session.interface';
 import {
   IceCandidateMessage,
@@ -59,6 +64,7 @@ export class MessageRouterService {
   private readonly logger = new Logger(MessageRouterService.name);
 
   constructor(
+    private readonly prisma: PrismaService,
     private readonly roomRegistry: RoomRegistryService,
     private readonly trackRegistry: RoomTrackRegistryService,
     private readonly allocator: RtcServerAllocatorService,
@@ -67,10 +73,7 @@ export class MessageRouterService {
     private readonly usageMeter: UsageMeterService,
   ) {}
 
-  async route(
-    session: ParticipantSession,
-    message: InboundSignalingMessage,
-  ): Promise<SignalingActionResult> {
+  async route(session: ParticipantSession, message: InboundSignalingMessage): Promise<SignalingActionResult> {
     switch (message.type) {
       case ClientMessageType.ROOM_JOIN:
         return this.handleJoin(session, message);
@@ -93,10 +96,7 @@ export class MessageRouterService {
     }
   }
 
-  private async handleJoin(
-    session: ParticipantSession,
-    message: RoomJoinMessage,
-  ): Promise<SignalingActionResult> {
+  private async handleJoin(session: ParticipantSession, message: RoomJoinMessage): Promise<SignalingActionResult> {
     if (!session.permissions.join) {
       throw new SignalingError(SignalingErrorCode.PERMISSION_DENIED, 'join permission required');
     }
@@ -108,6 +108,23 @@ export class MessageRouterService {
         SignalingErrorCode.UNAUTHORIZED,
         'roomId does not match the room authorized by this RTC token',
       );
+    }
+
+    // A closed room takes nobody new, however good the credential.
+    //
+    // Closing is what ends a live stream and what an operator's
+    // `DELETE /v1/rooms/:id` does, and both evict everyone already in the
+    // session. Without this check they came straight back: the SDK sees a
+    // dropped socket, reconnects, and its token — minted before the close
+    // and still perfectly valid — walks it back into a room that is
+    // supposed to be over. The room's status is the durable decision, so
+    // it is what the last gate in front of the media plane reads.
+    const room = await this.prisma.room.findUnique({
+      where: { id: session.roomId },
+      select: { status: true },
+    });
+    if (room?.status === RoomStatus.CLOSED) {
+      throw new SignalingError(SignalingErrorCode.ROOM_CLOSED, 'This room has been closed and can no longer be joined');
     }
 
     // Before anything is allocated: a project whose owner has spent their
@@ -127,7 +144,7 @@ export class MessageRouterService {
       );
       throw new SignalingError(
         SignalingErrorCode.USAGE_LIMIT_EXCEEDED,
-        'This account has used all of its included Raven minutes — no new sessions can be started',
+        'This account has used all of its included Livqeno minutes — no new sessions can be started',
       );
     }
 
@@ -185,7 +202,7 @@ export class MessageRouterService {
     // Best-effort on purpose. Metering must not be able to fail a join —
     // a database blip would otherwise take down calling itself — so the
     // failure is logged and the session runs unmetered rather than being
-    // refused. Under-counting on a Raven fault is the right side to err on.
+    // refused. Under-counting on a Livqeno fault is the right side to err on.
     try {
       await this.usageMeter.startSession({
         sessionKey: session.connectionId,
@@ -248,8 +265,33 @@ export class MessageRouterService {
 
   private async allocateServer(session: ParticipantSession, requestedRegion?: string): Promise<RtcServer> {
     try {
-      return await this.allocator.allocate(session.roomId, requestedRegion);
+      return await this.allocator.allocate(session.roomId, {
+        requestedRegion,
+        // Only consulted when the room's pinned node has gone unhealthy, and
+        // it is what decides between preserving the room and reallocating
+        // it. Fleet-wide, not this instance's view: the participants keeping
+        // a room alive are very often on other instances, and `countFleetWide`
+        // already answers "assume occupied" if Redis is unreachable, which is
+        // the same safe direction the allocator defaults to.
+        isRoomOccupied: async () => (await this.roomRegistry.countFleetWide(session.roomId)) > 0,
+      });
     } catch (err) {
+      if (err instanceof RtcServerUnavailableError) {
+        this.logger.error(
+          `room ${session.roomId} is pinned to an unhealthy rtc server and still occupied — ` +
+            `refusing participant ${session.participantId} rather than migrating live media`,
+        );
+        // Reported as RTC_SERVER_UNREACHABLE on the wire, not as a new code.
+        // It means the same thing to a client — the node serving this room
+        // cannot take you, retry — and every SDK already handles it as
+        // retryable. The finer-grained RAVEN_RTC_SERVER_UNAVAILABLE is kept
+        // for REST callers and for the log line above, where an operator is
+        // the audience and the distinction is worth having.
+        throw new SignalingError(
+          SignalingErrorCode.RTC_SERVER_UNREACHABLE,
+          'The RTC server for this room is not currently healthy — please retry',
+        );
+      }
       if (err instanceof NoRtcCapacityError) {
         this.logger.error(
           `no rtc capacity for room ${session.roomId} (requested region ${requestedRegion ?? 'default'})`,
@@ -292,9 +334,7 @@ export class MessageRouterService {
     try {
       await this.usageMeter.settle(session.connectionId, { close: UsageCloseReason.LEFT });
     } catch (err) {
-      this.logger.warn(
-        `usage metering failed to settle session ${session.connectionId}: ${(err as Error).message}`,
-      );
+      this.logger.warn(`usage metering failed to settle session ${session.connectionId}: ${(err as Error).message}`);
     }
 
     // Release the room's node assignment once the last participant leaves,
@@ -345,10 +385,7 @@ export class MessageRouterService {
     return {};
   }
 
-  private async handleSdpOffer(
-    session: ParticipantSession,
-    message: SdpOfferMessage,
-  ): Promise<SignalingActionResult> {
+  private async handleSdpOffer(session: ParticipantSession, message: SdpOfferMessage): Promise<SignalingActionResult> {
     if (!session.permissions.publish) {
       // A client only ever offers in order to publish. Refusing here means
       // an unauthorized publish never reaches the media plane at all,
@@ -395,12 +432,7 @@ export class MessageRouterService {
       });
     }
 
-    await this.trackRegistry.setMuted(
-      session.roomId,
-      session.participantId,
-      message.trackId,
-      message.muted,
-    );
+    await this.trackRegistry.setMuted(session.roomId, session.participantId, message.trackId, message.muted);
 
     // Told to the room directly rather than waiting on the node to report
     // it. A mute has no effect on the wire beyond packets stopping, so
@@ -437,10 +469,7 @@ export class MessageRouterService {
     this.requireInRoom(session);
 
     if (!session.permissions.publish) {
-      throw new SignalingError(
-        SignalingErrorCode.PERMISSION_DENIED,
-        'publish permission required to publish a track',
-      );
+      throw new SignalingError(SignalingErrorCode.PERMISSION_DENIED, 'publish permission required to publish a track');
     }
 
     const server = await this.serverFor(session);
@@ -502,11 +531,7 @@ export class MessageRouterService {
    * a candidate and the connection stalls in silence, so the client needs to
    * hear about it and retry or reconnect.
    */
-  private async relayToNode(
-    session: ParticipantSession,
-    type: NodeLinkMessageType,
-    payload: unknown,
-  ): Promise<void> {
+  private async relayToNode(session: ParticipantSession, type: NodeLinkMessageType, payload: unknown): Promise<void> {
     this.requireInRoom(session);
 
     const server = await this.serverFor(session);

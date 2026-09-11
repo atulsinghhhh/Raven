@@ -6,7 +6,7 @@ import { withErrorHandling } from '../../lib/run.js';
 export function registerProjectsInspectCommand(projects: Command): void {
   projects
     .command('inspect <project>')
-    .description('Show details for a Raven project')
+    .description('Show details for a Livqeno project')
     .option('--json', 'output as JSON')
     .action(
       withErrorHandling(async (projectId: string, opts: { json?: boolean }) => {

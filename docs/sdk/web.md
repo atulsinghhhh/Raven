@@ -1,6 +1,6 @@
 # @ravenkash/rtc — Web SDK (Phase 11 notes)
 
-`@ravenkash/rtc` is Raven's browser SDK — it already existed before Phase 11
+`@ravenkash/rtc` is Livqeno's browser SDK — it already existed before Phase 11
 (built in Phase 6, extended in Phases 8–10 with telemetry/diagnostics).
 **This document does not replace `docs/sdk.md`**, which remains the full
 API reference (installation, `createRTCClient`, joining, camera/

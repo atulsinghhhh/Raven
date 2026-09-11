@@ -9,18 +9,7 @@ import { IconErrors } from '@/components/ui/icons';
 import { MonoId } from '@/components/ui/mono';
 import { PageHeader } from '@/components/ui/page-header';
 import { Dash, EmptyState, ErrorState, NoDataYet } from '@/components/ui/states';
-import {
-  MobileField,
-  MobileList,
-  MobileRow,
-  Table,
-  TableWrap,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from '@/components/ui/table';
+import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import {
   formatCount,
   formatDateTime,
@@ -108,12 +97,8 @@ export default async function ErrorsPage({
 
   // Unrecognised values fall back to "no filter" rather than producing an
   // empty table the developer can't explain.
-  const category = ERROR_CATEGORIES.includes(sp.category as ErrorCategory)
-    ? (sp.category as ErrorCategory)
-    : undefined;
-  const windowKey: WindowKey = (RANGES as readonly string[]).includes(sp.window ?? '')
-    ? (sp.window as Range)
-    : 'all';
+  const category = ERROR_CATEGORIES.includes(sp.category as ErrorCategory) ? (sp.category as ErrorCategory) : undefined;
+  const windowKey: WindowKey = (RANGES as readonly string[]).includes(sp.window ?? '') ? (sp.window as Range) : 'all';
 
   const token = await getSessionToken();
   if (!token) redirect('/login');
@@ -186,7 +171,7 @@ export default async function ErrorsPage({
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Errors"
-        description={`Every error your clients reported through the SDK, newest first. Raven keeps the ${formatCount(FETCH_LIMIT)} most recent records available here.`}
+        description={`Every error your clients reported through the SDK, newest first. Livqeno keeps the ${formatCount(FETCH_LIMIT)} most recent records available here.`}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">

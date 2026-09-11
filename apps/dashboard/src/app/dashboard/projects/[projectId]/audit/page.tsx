@@ -7,18 +7,7 @@ import { Card, SectionHeader, StatCard } from '@/components/ui/card';
 import { IconSettings } from '@/components/ui/icons';
 import { PageHeader } from '@/components/ui/page-header';
 import { Dash, EmptyState, ErrorState, NoDataYet } from '@/components/ui/states';
-import {
-  MobileField,
-  MobileList,
-  MobileRow,
-  Table,
-  TableWrap,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from '@/components/ui/table';
+import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { formatCount, formatDateTime, formatRelative } from '@/lib/format';
 
 /**
@@ -98,9 +87,7 @@ export default async function AuditPage({
 
   // An unrecognised action falls back to "no filter" rather than asking
   // the API for something it will reject.
-  const action = (ACTIONS as readonly string[]).includes(sp.action ?? '')
-    ? (sp.action as Action)
-    : undefined;
+  const action = (ACTIONS as readonly string[]).includes(sp.action ?? '') ? (sp.action as Action) : undefined;
 
   const token = await getSessionToken();
   if (!token) redirect('/login');
@@ -179,7 +166,7 @@ export default async function AuditPage({
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Audit log"
-        description={`Who changed what, and when. Read-only — entries cannot be edited or deleted by anyone, including you. Raven keeps the ${formatCount(FETCH_LIMIT)} most recent records available here.`}
+        description={`Who changed what, and when. Read-only — entries cannot be edited or deleted by anyone, including you. Livqeno keeps the ${formatCount(FETCH_LIMIT)} most recent records available here.`}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">

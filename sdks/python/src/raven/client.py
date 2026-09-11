@@ -1,10 +1,13 @@
-"""Raven's synchronous server SDK client — for your backend only, never a browser bundle.
+"""Livqeno's synchronous server SDK client — for your backend only, never a browser bundle.
 
 Authenticates with a permanent project API key; never expose that key, or an
 instance of this class, to a browser (Phase 10 spec Section 2).
 
     from raven import Raven
-    raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+    raven = Raven(
+        api_key=os.environ["RAVEN_API_KEY"],
+        base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+    )
     token = raven.tokens.create(CreateTokenParams(room=room_id, identity="user-42"))
 """
 
@@ -47,7 +50,7 @@ class Raven:
     def close(self) -> None:
         self._http.close()
 
-    def __enter__(self) -> Raven:
+    def __enter__(self) -> Livqeno:
         return self
 
     def __exit__(self, *exc_info: object) -> None:

@@ -88,7 +88,7 @@ app.post('/api/session', async (req, res) => {
     });
   } catch (error) {
     if (error instanceof RavenError) {
-      console.error(`Raven session failed [${error.code}] (request ${error.requestId ?? 'n/a'})`);
+      console.error(`Livqeno session failed [${error.code}] (request ${error.requestId ?? 'n/a'})`);
       res.status(error.statusCode ?? 502).json({ error: error.message, code: error.code });
       return;
     }
@@ -98,5 +98,5 @@ app.post('/api/session', async (req, res) => {
 
 const port = process.env.PORT ?? 8789;
 app.listen(port, () => {
-  console.log(`Raven rtc-chat example backend listening on http://localhost:${port}`);
+  console.log(`Livqeno rtc-chat example backend listening on http://localhost:${port}`);
 });

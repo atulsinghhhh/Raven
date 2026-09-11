@@ -1,0 +1,42 @@
+-- Per-project browser origin allow-lists.
+--
+-- Raven is multi-tenant, so "which origins may talk to us" is a property of
+-- a project, not of the deployment. A global CORS_ORIGIN list cannot express
+-- it and cannot isolate one tenant from another: it either names Raven's own
+-- first-party origins (and then no customer's app works) or it names
+-- everybody's (and then project A's origin is as good as project B's).
+--
+-- Two columns, both with defaults, so this is additive and safe to apply to
+-- a live database with no backfill and no downtime:
+--
+--   allowedOrigins           Empty = unconfigured = open. Every project that
+--                            predates this migration gets an empty array,
+--                            and defaulting those to deny would break live
+--                            applications on their real domains for a
+--                            setting nobody had the chance to fill in.
+--                            Enforcement switches on per project the moment
+--                            it adds its first origin.
+--
+--   allowLocalhostOrigins    Loopback hosts on any port, regardless of the
+--                            list. On by default so a developer moving from
+--                            localhost:3000 to localhost:5173 never has to
+--                            register a port, and so configuring production
+--                            domains does not break local development. A
+--                            project can turn it off once it ships.
+--
+-- Values in allowedOrigins are stored already normalized (scheme, host and
+-- non-default port only, lower-cased) by normalizeOriginList in
+-- shared/origins/origin-policy.ts, so request-time matching is an exact
+-- string comparison with nothing left to interpret. Wildcards are rejected
+-- at the write boundary rather than stored and interpreted here.
+--
+-- No RLS change is needed: row-level security is enforced per table and
+-- "projects" is already covered by 20260909130000_portable_data_api_lockdown.
+-- Adding columns does not alter a table's policies.
+
+-- Column names are camelCase because this schema declares no column-level
+-- @map: Prisma uses the field name verbatim, as "ownerId"/"createdAt" on
+-- this same table already show.
+ALTER TABLE "projects"
+  ADD COLUMN "allowedOrigins" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "allowLocalhostOrigins" BOOLEAN NOT NULL DEFAULT true;

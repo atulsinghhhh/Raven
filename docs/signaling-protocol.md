@@ -2,7 +2,7 @@
 
 This was the wire reference for the **full-mesh** protocol: every SDP and
 ICE message carried a `targetParticipantId`, and the server forwarded it
-from one browser to another. Raven is an SFU now. A client has exactly one
+from one browser to another. Livqeno is an SFU now. A client has exactly one
 peer, so a negotiation message needs no target, and several message names
 survived the change while their meanings did not.
 

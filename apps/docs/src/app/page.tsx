@@ -5,7 +5,7 @@ import { NAV, PRODUCTS, type NavSection } from '../lib/nav';
 
 /**
  * The home page reads top to bottom as a decision, not as an index: what
- * Raven is, the shortest thing you can run, then the five paths a reader
+ * Livqeno is, the shortest thing you can run, then the five paths a reader
  * actually arrives wanting. The full tree stays in the sidebar on every page,
  * this one included, so nothing here is the only route to anything.
  *
@@ -25,7 +25,7 @@ function section(title: string): NavSection {
   return found;
 }
 
-/** What Raven actually runs. Ordered by how often a reader wants each one. */
+/** What Livqeno actually runs. Ordered by how often a reader wants each one. */
 const CAPABILITIES = [
   { name: 'Audio & video', detail: 'Rooms, participants, tracks, devices' },
   { name: 'RTC', detail: 'Own SFU, signaling, TURN, reconnection' },
@@ -92,9 +92,9 @@ export default function DocsHome() {
             <span className="mono-label text-[11px] text-muted">Documentation</span>
             <h1 className="display mt-4 text-4xl text-fg">Infrastructure for real-time applications</h1>
             <p className="mt-5 text-base leading-relaxed text-muted">
-              Raven runs the audio, video, chat, and live streaming layer of your product, so you do not operate WebRTC
-              signaling, a media server, TURN, or a message store yourself. You keep the interface; Raven keeps the
-              pipes.
+              Livqeno runs the audio, video, chat, and live streaming layer of your product, so you do not operate
+              WebRTC signaling, a media server, TURN, or a message store yourself. You keep the interface; Livqeno keeps
+              the pipes.
             </p>
             <div className="mt-7 flex flex-wrap gap-2.5">
               <Link
@@ -131,7 +131,10 @@ export default function DocsHome() {
               <pre className="overflow-x-auto px-4 py-3.5 text-[12.5px] leading-relaxed">
                 <code>{`import { Raven } from '@ravenkash/server';
 
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY!,
+  baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
+});
 const room = await raven.rooms.create({ name: 'demo' });
 
 const credentials = await raven.tokens.create({
@@ -145,6 +148,9 @@ const credentials = await raven.tokens.create({
               </div>
               <pre className="overflow-x-auto px-4 py-3.5 text-[12.5px] leading-relaxed">
                 <code>{`import { createRTCClient } from '@ravenkash/rtc';
+
+// Fetched from your own route, which returned what it minted above.
+const credentials = await fetch('/api/raven/grant').then((r) => r.json());
 
 const client = createRTCClient(credentials);
 const room = await client.join(credentials.roomId);

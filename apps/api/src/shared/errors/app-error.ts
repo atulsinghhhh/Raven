@@ -13,12 +13,7 @@ export class AppError extends HttpException {
    * `retryAfterSeconds`. Only put things here that are safe to hand a
    * client; the global filter forwards this verbatim.
    */
-  constructor(
-    message: string,
-    status: HttpStatus,
-    code: RavenErrorCode,
-    details?: Record<string, unknown>,
-  ) {
+  constructor(message: string, status: HttpStatus, code: RavenErrorCode, details?: Record<string, unknown>) {
     // `legacyCode` is what this error was called before the RAVEN_ prefix
     // existed. It ships for one deprecation window so callers switching on
     // the old value keep working; docs/error-codes.md tracks its removal.
@@ -63,10 +58,10 @@ export class ValidationFailedError extends AppError {
 }
 
 /**
- * The caller's developer account has spent its included Raven minutes.
+ * The caller's developer account has spent its included Livqeno minutes.
  *
  * 403, not 402: `402 Payment Required` tells a client there is something to
- * pay, and there isn't — Raven has no billing. It is also not 429; a rate
+ * pay, and there isn't — Livqeno has no billing. It is also not 429; a rate
  * limit clears by waiting, and this does not clear at all.
  *
  * `details` carries the allowance figures so an SDK can render "0 of 20,000
@@ -75,7 +70,7 @@ export class ValidationFailedError extends AppError {
 export class UsageLimitExceededError extends AppError {
   constructor(details: { includedMinutes: number; usedMinutes: number; remainingMinutes: number }) {
     super(
-      `This account has used all ${details.includedMinutes} of its included Raven minutes. ` +
+      `This account has used all ${details.includedMinutes} of its included Livqeno minutes. ` +
         'New RTC sessions are refused until more minutes are allocated.',
       HttpStatus.FORBIDDEN,
       RavenErrorCode.USAGE_LIMIT_EXCEEDED,
@@ -87,5 +82,40 @@ export class UsageLimitExceededError extends AppError {
 export class TooManyRequestsError extends AppError {
   constructor(message = 'Too many requests — please try again later', details?: Record<string, unknown>) {
     super(message, HttpStatus.TOO_MANY_REQUESTS, RavenErrorCode.RATE_LIMITED, details);
+  }
+}
+
+/**
+ * The deployment is at its configured concurrency ceiling for this
+ * operation.
+ *
+ * ## Why this exists at all
+ *
+ * Before it did, a burst of roughly a hundred simultaneous credential
+ * mints exhausted the `pg` pool: every connection was busy, the surplus
+ * queued inside the pool, and after
+ * `DATABASE_POOL_CONNECTION_TIMEOUT_MS` the acquisition gave up. Prisma
+ * surfaced that as an error nothing recognised, so it left the API as
+ * `500 RAVEN_INTERNAL_ERROR` — a response that tells a developer their
+ * integration is broken when in fact the service was simply full, and one
+ * that no sane client retries. Worse, the whole process stayed wedged
+ * afterwards, because the backlog outlived the requests that created it.
+ *
+ * So overload gets a name. 503 rather than 429 because the limit is ours
+ * rather than the caller's, and `retryAfterSeconds` because unlike a rate
+ * limit this genuinely does clear in about as long as one request takes.
+ *
+ * See docs/production/capacity.md for the configured limits and the
+ * measured numbers behind them.
+ */
+export class CapacityExceededError extends AppError {
+  constructor(operation: string, details?: { retryAfterSeconds?: number; limit?: number }) {
+    super(
+      `${operation} is at capacity right now — retry shortly. ` +
+        'This is a server-side concurrency limit, not a per-key rate limit.',
+      HttpStatus.SERVICE_UNAVAILABLE,
+      RavenErrorCode.CAPACITY_EXCEEDED,
+      details,
+    );
   }
 }

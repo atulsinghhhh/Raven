@@ -94,8 +94,7 @@ export class ApiKeysController {
 
     return {
       ...created,
-      warning:
-        'This is the only time the full key is shown. Store it securely — it cannot be retrieved again.',
+      warning: 'This is the only time the full key is shown. Store it securely — it cannot be retrieved again.',
     };
   }
 
@@ -106,10 +105,7 @@ export class ApiKeysController {
   })
   @ApiResponse({ status: 200, description: 'Keys for this project (secrets never included)' })
   @ApiNotFoundResponse({ description: 'Project not found, or not owned by the caller' })
-  async findAll(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('projectId', ParseUUIDPipe) projectId: string,
-  ) {
+  async findAll(@CurrentUser() user: AuthenticatedUser, @Param('projectId', ParseUUIDPipe) projectId: string) {
     await this.projectsService.authorize(projectId, user.id, Capability.KeysRead);
     return this.apiKeysService.findAllForProject(projectId);
   }

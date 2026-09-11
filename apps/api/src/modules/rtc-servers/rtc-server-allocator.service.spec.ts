@@ -2,7 +2,11 @@ import { ConfigService } from '@nestjs/config';
 import { RtcServerStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { RedisService } from '../../shared/redis/redis.service';
-import { NoRtcCapacityError, RtcServerAllocatorService } from './rtc-server-allocator.service';
+import {
+  NoRtcCapacityError,
+  RtcServerAllocatorService,
+  RtcServerUnavailableError,
+} from './rtc-server-allocator.service';
 
 const DEFAULT_REGION = 'local';
 
@@ -57,7 +61,7 @@ describe('RtcServerAllocatorService', () => {
     );
   });
 
-  it('reuses the room\'s existing assignment without consulting the fleet', async () => {
+  it("reuses the room's existing assignment without consulting the fleet", async () => {
     // Every participant in a room must land on the same SFU: that is what
     // makes it an SFU, not a mesh.
     const assigned = server({ name: 'sfu-already' });
@@ -150,9 +154,7 @@ describe('RtcServerAllocatorService', () => {
 
     it('re-checks after acquiring the lock, so the loser does no work', async () => {
       const winner = server({ id: 'srv-winner' });
-      prisma.room.findUnique
-        .mockResolvedValueOnce({ rtcServer: null })
-        .mockResolvedValueOnce({ rtcServer: winner });
+      prisma.room.findUnique.mockResolvedValueOnce({ rtcServer: null }).mockResolvedValueOnce({ rtcServer: winner });
 
       await expect(service.allocate('room-1')).resolves.toBe(winner);
       expect(prisma.rtcServer.findMany).not.toHaveBeenCalled();
@@ -173,6 +175,109 @@ describe('RtcServerAllocatorService', () => {
 
       await expect(service.allocate('room-1')).rejects.toBeInstanceOf(NoRtcCapacityError);
       expect(redis.client.del).toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * A room is pinned to one SFU for its whole life, and that pin used to be
+   * trusted unconditionally. These cover what happens once the node behind
+   * it stops answering — the case where returning the pin is the worst
+   * available answer rather than the cheapest.
+   */
+  describe('an unhealthy pinned server', () => {
+    const dead = server({ status: RtcServerStatus.UNHEALTHY, name: 'sfu-dead-01' });
+
+    it('refuses the join rather than migrating a room that still has participants', async () => {
+      prisma.room.findUnique.mockResolvedValue({ rtcServer: dead });
+
+      // The room is live. Moving it would mean renegotiating every
+      // PeerConnection against a node holding none of their media state,
+      // so the joiner is failed and the call is preserved.
+      await expect(service.allocate('room-1', { isRoomOccupied: async () => true })).rejects.toBeInstanceOf(
+        RtcServerUnavailableError,
+      );
+
+      expect(prisma.room.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('names the node but never its address', async () => {
+      prisma.room.findUnique.mockResolvedValue({ rtcServer: dead });
+
+      let err!: RtcServerUnavailableError;
+      try {
+        await service.allocate('room-1', { isRoomOccupied: async () => true });
+      } catch (caught) {
+        err = caught as RtcServerUnavailableError;
+      }
+
+      // Same rule as `room.joined`: a caller that learned an SFU's address
+      // could route around the control plane for good.
+      // getResponse() is exactly what the filter forwards to the client, so
+      // this asserts on the wire body rather than on an internal field.
+      const body = JSON.stringify(err.getResponse());
+      expect(err.getResponse()).toMatchObject({
+        code: 'RAVEN_RTC_SERVER_UNAVAILABLE',
+        roomId: 'room-1',
+        rtcServer: 'sfu-dead-01',
+      });
+      expect(body).not.toContain(dead.internalUrl);
+      expect(body).not.toContain(dead.publicHost);
+    });
+
+    it('releases the pin and reallocates when the room is empty', async () => {
+      // This is the path that used to strand a room forever: the node was
+      // excluded from new allocations, so it could never be chosen again,
+      // and the pin was never cleared, so nothing else could be either.
+      const healthy = server({ id: 'srv-2', name: 'sfu-live-02' });
+      prisma.room.findUnique.mockResolvedValueOnce({ rtcServer: dead }).mockResolvedValue({ rtcServer: null });
+      prisma.rtcServer.findMany.mockResolvedValue([healthy]);
+
+      await expect(service.allocate('room-1', { isRoomOccupied: async () => false })).resolves.toEqual(healthy);
+
+      // Cleared conditionally on the id it still held, so a concurrent
+      // allocation that already re-pinned the room is not undone.
+      expect(prisma.room.updateMany).toHaveBeenCalledWith({
+        where: { id: 'room-1', rtcServerId: dead.id },
+        data: { rtcServerId: null },
+      });
+    });
+
+    it('yields to a concurrent allocation that cleared the pin first', async () => {
+      const winner = server({ id: 'srv-3', name: 'sfu-winner-03' });
+      prisma.room.findUnique.mockResolvedValueOnce({ rtcServer: dead }).mockResolvedValue({ rtcServer: winner });
+      prisma.room.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.allocate('room-1', { isRoomOccupied: async () => false })).resolves.toEqual(winner);
+      // It took the winner's choice instead of allocating a second server.
+      expect(prisma.rtcServer.findMany).not.toHaveBeenCalled();
+    });
+
+    it('assumes the room is occupied when no probe is given', async () => {
+      prisma.room.findUnique.mockResolvedValue({ rtcServer: dead });
+
+      // The safe direction. A wrong "unavailable" costs a retry; a wrong
+      // release splits a live room across two SFUs.
+      await expect(service.allocate('room-1')).rejects.toBeInstanceOf(RtcServerUnavailableError);
+    });
+
+    it('still serves a room pinned to a DRAINING node', async () => {
+      // Draining means "take no new rooms", not "drop the ones you have".
+      // Refusing joiners here would turn a graceful upgrade into an outage.
+      const draining = server({ status: RtcServerStatus.DRAINING });
+      prisma.room.findUnique.mockResolvedValue({ rtcServer: draining });
+
+      await expect(service.allocate('room-1', { isRoomOccupied: async () => true })).resolves.toEqual(draining);
+    });
+
+    it('accepts a bare region string as the second argument, as it always did', async () => {
+      // A published module boundary; the two shapes are unambiguous.
+      const healthy = server();
+      prisma.rtcServer.findMany.mockResolvedValue([healthy]);
+
+      await expect(service.allocate('room-1', 'local')).resolves.toEqual(healthy);
+      expect(prisma.rtcServer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { status: RtcServerStatus.HEALTHY, region: 'local' } }),
+      );
     });
   });
 

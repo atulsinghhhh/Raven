@@ -13,7 +13,7 @@ import { registerLocalSfu } from './helpers/register-local-sfu';
 import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics';
 
 /**
- * Real-browser end-to-end test of Phase 16 (Raven Effects) on RTC: a real
+ * Real-browser end-to-end test of Phase 16 (Livqeno Effects) on RTC: a real
  * Chromium instance, a real SFU connection (`docker compose up -d`,
  * same as every other suite in this file's family), and the actual
  * `@ravenkash/rtc`/`@ravenkash/effects` browser builds. Chrome's fake camera
@@ -43,7 +43,12 @@ import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics'
 jest.setTimeout(120_000);
 
 const HARNESS_DIR = join(__dirname, 'e2e-harness');
-const MIME: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.map': 'application/json' };
+const MIME: Record<string, string> = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.mjs': 'text/javascript',
+  '.map': 'application/json',
+};
 
 function startHarnessServer(): Promise<{ server: Server; url: string }> {
   const server = createServer((req, res) => {
@@ -81,7 +86,7 @@ interface RtcCredentials {
  * join a room that only exists in this suite's database and be told
  * `NO_RTC_CAPACITY`, because the room row the allocator needs is not
  * there. Under LiveKit this never came up: every suite shared one
- * database, so "some Raven API" was good enough. It is not good enough
+ * database, so "some Livqeno API" was good enough. It is not good enough
  * now that the e2e suite runs against a scratch database of its own.
  */
 function localSignalingEndpoint(app: INestApplication): string {
@@ -108,7 +113,7 @@ function harnessUrl(
   return `${baseUrl}/rtc-effects.html?${params.toString()}`;
 }
 
-describe('Raven Effects — RTC (real browser e2e)', () => {
+describe('Livqeno Effects — RTC (real browser e2e)', () => {
   let app: INestApplication;
   let harnessServer: Server;
   let harnessUrlBase: string;
@@ -208,7 +213,15 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
       const publisherPage = await publisherCtx.newPage();
       const publisherLog = collectPageDiagnostics(publisherPage, 'publisher');
 
-      await publisherPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, roomId: roomName, role: 'publisher', creds: publisherCreds, preset: 'cinematic' }));
+      await publisherPage.goto(
+        harnessUrl(harnessUrlBase, {
+          endpoint: signalingEndpoint,
+          roomId: roomName,
+          role: 'publisher',
+          creds: publisherCreds,
+          preset: 'cinematic',
+        }),
+      );
       await waitForPage(
         publisherPage,
         () => (window as unknown as { __ready?: boolean }).__ready === true,
@@ -216,7 +229,8 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
         'the publisher harness to become ready',
       );
 
-      const state = () => publisherPage.evaluate(() => (window as unknown as { __state: Record<string, unknown> }).__state);
+      const state = () =>
+        publisherPage.evaluate(() => (window as unknown as { __state: Record<string, unknown> }).__state);
 
       const initial = await state();
       expect(initial.connectionState).toBe('connected');
@@ -226,7 +240,9 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
 
       // Disable the effect mid-call. RTC must keep running.
       await publisherPage.evaluate(() => (window as unknown as { __disableEffects: () => void }).__disableEffects());
-      await publisherPage.waitForFunction(() => (window as unknown as { __pipeline: { isEnabled: boolean } }).__pipeline.isEnabled === false);
+      await publisherPage.waitForFunction(
+        () => (window as unknown as { __pipeline: { isEnabled: boolean } }).__pipeline.isEnabled === false,
+      );
       expect((await state()).connectionState).toBe('connected');
 
       // Re-enable, then remove the effect entirely.
@@ -239,7 +255,9 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
       expect((await state()).connectionState).toBe('connected');
 
       // Detach entirely: reverts to the unmodified camera track, room stays up.
-      await publisherPage.evaluate(() => (window as unknown as { __detachEffects: () => Promise<void> }).__detachEffects());
+      await publisherPage.evaluate(() =>
+        (window as unknown as { __detachEffects: () => Promise<void> }).__detachEffects(),
+      );
       await new Promise((r) => setTimeout(r, 500));
       expect((await state()).connectionState).toBe('connected');
     } finally {
@@ -247,7 +265,7 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
     }
   });
 
-  // Real browser-to-browser media through Raven's SFU: two Chromium
+  // Real browser-to-browser media through Livqeno's SFU: two Chromium
   // contexts, a real camera-like track, a real GPU pipeline on the
   // publisher, and the subscriber must actually decode frames: not
   // merely receive a track object. See the module doc for why this was
@@ -266,7 +284,15 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
       const publisherLog = collectPageDiagnostics(publisherPage, 'publisher');
       const subscriberLog = collectPageDiagnostics(subscriberPage, 'subscriber');
 
-      await publisherPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, roomId: roomName, role: 'publisher', creds: publisherCreds, preset: 'cinematic' }));
+      await publisherPage.goto(
+        harnessUrl(harnessUrlBase, {
+          endpoint: signalingEndpoint,
+          roomId: roomName,
+          role: 'publisher',
+          creds: publisherCreds,
+          preset: 'cinematic',
+        }),
+      );
       await waitForPage(
         publisherPage,
         () => (window as unknown as { __ready?: boolean }).__ready === true,
@@ -274,10 +300,19 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
         'the publisher harness to become ready',
       );
 
-      await subscriberPage.goto(harnessUrl(harnessUrlBase, { endpoint: signalingEndpoint, roomId: roomName, role: 'subscriber', creds: subscriberCreds }));
+      await subscriberPage.goto(
+        harnessUrl(harnessUrlBase, {
+          endpoint: signalingEndpoint,
+          roomId: roomName,
+          role: 'subscriber',
+          creds: subscriberCreds,
+        }),
+      );
       await waitForPage(
         subscriberPage,
-        () => (window as unknown as { __state: { remoteTrackSubscribed?: boolean } }).__state.remoteTrackSubscribed === true,
+        () =>
+          (window as unknown as { __state: { remoteTrackSubscribed?: boolean } }).__state.remoteTrackSubscribed ===
+          true,
         () => `${subscriberLog()}\n\n${publisherLog()}`,
         "the subscriber to receive the publisher's track",
       );
@@ -288,14 +323,20 @@ describe('Raven Effects — RTC (real browser e2e)', () => {
       });
 
       await publisherPage.evaluate(() => (window as unknown as { __disableEffects: () => void }).__disableEffects());
-      expect(await subscriberPage.evaluate(() => (window as unknown as { __state: { connectionState: string } }).__state.connectionState)).toBe(
-        'connected',
-      );
+      expect(
+        await subscriberPage.evaluate(
+          () => (window as unknown as { __state: { connectionState: string } }).__state.connectionState,
+        ),
+      ).toBe('connected');
 
       await publisherPage.evaluate(() => (window as unknown as { __clearEffects: () => void }).__clearEffects());
-      await publisherPage.evaluate(() => (window as unknown as { __detachEffects: () => Promise<void> }).__detachEffects());
+      await publisherPage.evaluate(() =>
+        (window as unknown as { __detachEffects: () => Promise<void> }).__detachEffects(),
+      );
       expect(
-        await subscriberPage.evaluate(() => (window as unknown as { __state: { remoteTrackSubscribed: boolean } }).__state.remoteTrackSubscribed),
+        await subscriberPage.evaluate(
+          () => (window as unknown as { __state: { remoteTrackSubscribed: boolean } }).__state.remoteTrackSubscribed,
+        ),
       ).toBe(true);
     } finally {
       await publisherCtx?.close();

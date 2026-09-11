@@ -3,7 +3,7 @@ title: Moderation
 description: Deleting someone else's message is the same call as deleting your own — the server decides whether your role allows it.
 ---
 
-Raven Chat doesn't have a separate moderation API. A moderator deletes a
+Livqeno Chat doesn't have a separate moderation API. A moderator deletes a
 message the same way anyone deletes their own — the difference is
 entirely in what the server allows, not in which endpoint gets called.
 The same call, on every SDK:

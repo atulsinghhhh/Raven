@@ -57,9 +57,7 @@ export class ChatMetricsService {
    * MetricsService follows.
    */
   async readCounter(projectId: string, metric: string, minutes: number): Promise<number> {
-    const keys = this.recentBuckets(minutes).map((bucket) =>
-      RedisKeys.metricCounter(projectId, metric, bucket),
-    );
+    const keys = this.recentBuckets(minutes).map((bucket) => RedisKeys.metricCounter(projectId, metric, bucket));
     if (keys.length === 0) return 0;
 
     try {
@@ -72,11 +70,7 @@ export class ChatMetricsService {
   }
 
   /** Null when nothing was measured in the window: never a made-up average. */
-  async readAverageLatency(
-    projectId: string,
-    stage: ChatLatencyStage,
-    minutes: number,
-  ): Promise<number | null> {
+  async readAverageLatency(projectId: string, stage: ChatLatencyStage, minutes: number): Promise<number | null> {
     const [sum, count] = await Promise.all([
       this.readCounter(projectId, `latency_${stage}_sum`, minutes),
       this.readCounter(projectId, `latency_${stage}_count`, minutes),

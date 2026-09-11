@@ -25,6 +25,13 @@ export class MessagesApi {
     private readonly rest: RestClient,
     private readonly defaultRoom: () => string,
     private readonly sendMessage: (options: SendMessageOptions) => Promise<SendMessageResult>,
+    /**
+     * Lets the client note where history reached, so a room a developer
+     * paged through has a resume point even if no live message has arrived
+     * in it yet. Without this, a quiet room that drops its socket right
+     * after a page load has nothing to recover from.
+     */
+    private readonly onPage?: (page: MessagePage) => void,
   ) {}
 
   /**
@@ -40,7 +47,24 @@ export class MessagesApi {
    * const older = await chat.messages.list({ before: page.nextCursor! });
    * ```
    */
-  list(options: ListMessagesOptions = {}): Promise<MessagePage> {
+  async list(options: ListMessagesOptions = {}): Promise<MessagePage> {
+    const page = await this.listRaw(options);
+    this.onPage?.(page);
+    return page;
+  }
+
+  /**
+   * `list()` without the bookkeeping, for the SDK's own catch-up.
+   *
+   * Same endpoint, same credential, same authorization — the only
+   * difference is that it does not advance the resume point. Recovery has
+   * to advance that itself, one message at a time as each is actually
+   * delivered, so a socket dropping mid-catch-up cannot leave the cursor
+   * ahead of what the application has seen.
+   *
+   * @internal
+   */
+  listRaw(options: ListMessagesOptions = {}): Promise<MessagePage> {
     const room = options.room ?? this.defaultRoom();
     return this.rest.request<MessagePage>(`/v1/chat/conversations/${encodeURIComponent(room)}/messages`, {
       query: {
@@ -74,7 +98,7 @@ export class MessagesApi {
 
   /**
    * Edits a message. What comes back carries `edited: true` and an
-   * `editedAt`. Raven never quietly rewrites history (spec §24).
+   * `editedAt`. Livqeno never quietly rewrites history (spec §24).
    */
   update(messageId: string, changes: { text?: string; metadata?: Record<string, unknown> }): Promise<ChatMessage> {
     return this.rest.request<ChatMessage>(`/v1/chat/messages/${encodeURIComponent(messageId)}`, {

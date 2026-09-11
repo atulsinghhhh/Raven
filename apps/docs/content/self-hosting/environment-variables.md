@@ -1,12 +1,12 @@
 ---
 title: Environment variables
-description: Every variable any Raven component reads, grouped by what it configures. Generated from source.
+description: Every variable any Livqeno component reads, grouped by what it configures. Generated from source.
 ---
 
-Raven's components read **117** environment variables between them —
+Livqeno's components read **117** environment variables between them —
 **97** by the control plane, **16** by the SFU,
 **6** by the dashboard. `.env.example` documents
-**105**, which leaves **22** read but
+**106**, which leaves **21** read but
 undocumented there; those are marked below.
 
 This page is generated from the source, so it is the complete set.
@@ -51,7 +51,7 @@ openssl rand -hex 32   # TURN_SECRET
 | `API_PUBLIC_URL` | **not in `.env.example`** |
 | `APP_URL` |   |
 | `CORS_ORIGIN` |   |
-| `DOCS_URL` | **not in `.env.example`** |
+| `DOCS_URL` |   |
 | `LOG_LEVEL` |   |
 | `NODE_ENV` | **not in `.env.example`** |
 
@@ -70,8 +70,8 @@ openssl rand -hex 32   # TURN_SECRET
 | Variable | Notes |
 |---|---|
 | `REDIS_COMMAND_TIMEOUT_MS` |   |
-| `REDIS_PASSWORD` | in `.env.example`, but no Raven component reads it |
-| `REDIS_PORT` | in `.env.example`, but no Raven component reads it |
+| `REDIS_PASSWORD` | in `.env.example`, but no Livqeno component reads it |
+| `REDIS_PORT` | in `.env.example`, but no Livqeno component reads it |
 | `REDIS_URL` |   |
 
 ### Secrets & tokens
@@ -108,7 +108,7 @@ openssl rand -hex 32   # TURN_SECRET
 | `SFU_HEARTBEAT_INTERVAL_SECONDS` | read by the SFU; **not in `.env.example`** |
 | `SFU_HEARTBEAT_TIMEOUT_SECONDS` |   |
 | `SFU_HTTP_ADDR` | read by the SFU; **not in `.env.example`** |
-| `SFU_HTTP_PORT` | in `.env.example`, but no Raven component reads it |
+| `SFU_HTTP_PORT` | in `.env.example`, but no Livqeno component reads it |
 | `SFU_INTERNAL_URL` | read by the SFU; **not in `.env.example`** |
 | `SFU_LOG_LEVEL` | read by the SFU |
 | `SFU_NODE_ID` | read by the SFU |
@@ -132,16 +132,16 @@ openssl rand -hex 32   # TURN_SECRET
 |---|---|
 | `TURN_HOST` |   |
 | `TURN_INTERNAL_HOST` |   |
-| `TURN_MAX_BPS` | in `.env.example`, but no Raven component reads it |
-| `TURN_MAX_PORT` | in `.env.example`, but no Raven component reads it |
-| `TURN_MIN_PORT` | in `.env.example`, but no Raven component reads it |
+| `TURN_MAX_BPS` | in `.env.example`, but no Livqeno component reads it |
+| `TURN_MAX_PORT` | in `.env.example`, but no Livqeno component reads it |
+| `TURN_MIN_PORT` | in `.env.example`, but no Livqeno component reads it |
 | `TURN_PORT` |   |
-| `TURN_PROMETHEUS_PORT` | in `.env.example`, but no Raven component reads it |
-| `TURN_REALM` | in `.env.example`, but no Raven component reads it |
+| `TURN_PROMETHEUS_PORT` | in `.env.example`, but no Livqeno component reads it |
+| `TURN_REALM` | in `.env.example`, but no Livqeno component reads it |
 | `TURN_SECRET` |   |
 | `TURN_TLS_PORT` |   |
-| `TURN_TOTAL_QUOTA` | in `.env.example`, but no Raven component reads it |
-| `TURN_USER_QUOTA` | in `.env.example`, but no Raven component reads it |
+| `TURN_TOTAL_QUOTA` | in `.env.example`, but no Livqeno component reads it |
+| `TURN_USER_QUOTA` | in `.env.example`, but no Livqeno component reads it |
 
 ### Chat
 

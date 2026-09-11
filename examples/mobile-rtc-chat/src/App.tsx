@@ -24,10 +24,10 @@ import {
 import type { ChatMessage } from '@ravenkash/chat';
 
 /**
- * A Raven video call with a chat panel, on a phone.
+ * A Livqeno video call with a chat panel, on a phone.
  *
- * Everything here is real: real WebRTC media through Raven's SFU, real
- * messages through Raven Chat into Postgres. There are no mock arrays and
+ * Everything here is real: real WebRTC media through Livqeno's SFU, real
+ * messages through Livqeno Chat into Postgres. There are no mock arrays and
  * no fake participants anywhere in this file (spec §11).
  *
  * Note what the app never does: construct a WebSocket, register WebRTC
@@ -67,7 +67,7 @@ function JoinScreen({ onJoined }: { onJoined: (session: Session) => void }) {
     setBusy(true);
     setError(null);
     try {
-      // The app authenticates against its OWN backend. A Raven API key
+      // The app authenticates against its OWN backend. A Livqeno API key
       // never exists on the device (spec §15).
       const response = await fetch(`${BACKEND_URL}/api/session`, {
         method: 'POST',
@@ -86,10 +86,16 @@ function JoinScreen({ onJoined }: { onJoined: (session: Session) => void }) {
 
   return (
     <View style={styles.centered}>
-      <Text style={styles.title}>Raven</Text>
+      <Text style={styles.title}>Livqeno</Text>
       <Text style={styles.subtitle}>Video and chat, on the same screen.</Text>
 
-      <TextInput style={styles.input} value={identity} onChangeText={setIdentity} placeholder="Your identity" autoCapitalize="none" />
+      <TextInput
+        style={styles.input}
+        value={identity}
+        onChangeText={setIdentity}
+        placeholder="Your identity"
+        autoCapitalize="none"
+      />
       <TextInput style={styles.input} value={room} onChangeText={setRoom} placeholder="Room" autoCapitalize="none" />
 
       <Pressable style={[styles.button, busy && styles.buttonDisabled]} onPress={join} disabled={busy}>
@@ -108,7 +114,7 @@ function CallScreen({ session, onLeave }: { session: Session; onLeave: () => voi
   const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
-    // One Raven instance for the life of this screen. Constructing it
+    // One Livqeno instance for the life of this screen. Constructing it
     // registers the WebRTC globals; nothing else has to.
     const instance = new Raven({
       token: session.rtc.token,
@@ -192,12 +198,7 @@ function CallScreen({ session, onLeave }: { session: Session; onLeave: () => voi
 
         {/* The local preview floats above the remote video — zOrder 1 is
             what puts it there on Android. */}
-        <RavenVideoView
-          participant={room.localParticipant}
-          room={room}
-          style={styles.pip}
-          zOrder={1}
-        />
+        <RavenVideoView participant={room.localParticipant} room={room} style={styles.pip} zOrder={1} />
 
         <View style={styles.statusBar}>
           <Text style={styles.statusText}>
@@ -274,16 +275,13 @@ function ChatPanel({ chat, identity }: { chat?: RavenChatHandle; identity: strin
     if (!text || !chat) return;
     setDraft('');
     await chat.stopTyping().catch(() => undefined);
-    // Resolves once Raven has durably stored it. The message itself
+    // Resolves once Livqeno has durably stored it. The message itself
     // arrives through the normal event stream.
     await chat.send(text).catch(() => undefined);
   }, [draft, chat]);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.chatPanel}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.chatPanel} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <FlatList
         ref={listRef}
         data={messages}
@@ -304,9 +302,7 @@ function ChatPanel({ chat, identity }: { chat?: RavenChatHandle; identity: strin
         )}
       />
 
-      <Text style={styles.typing}>
-        {typingUsers.length > 0 ? `${typingUsers.join(', ')} typing…` : ' '}
-      </Text>
+      <Text style={styles.typing}>{typingUsers.length > 0 ? `${typingUsers.join(', ')} typing…` : ' '}</Text>
 
       <View style={styles.composer}>
         <TextInput
@@ -371,7 +367,15 @@ const styles = StyleSheet.create({
 
   stage: { flex: 1 },
   pip: { position: 'absolute', right: 16, top: 16, width: 96, height: 140, borderRadius: 10 },
-  statusBar: { position: 'absolute', left: 16, top: 16, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+  statusBar: {
+    position: 'absolute',
+    left: 16,
+    top: 16,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
   statusText: { color: '#fff', fontSize: 12 },
 
   controls: { flexDirection: 'row', justifyContent: 'space-around', padding: 12, gap: 8 },

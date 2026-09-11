@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiNotFoundResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -81,7 +93,7 @@ export class WebhooksController {
   }
 
   @Patch(':webhookId')
-  @ApiOperation({ summary: 'Update an endpoint, or re-enable one Raven auto-disabled' })
+  @ApiOperation({ summary: 'Update an endpoint, or re-enable one Livqeno auto-disabled' })
   @ApiNotFoundResponse({ description: 'Project or endpoint not found' })
   async update(
     @CurrentUser() user: AuthenticatedUser,

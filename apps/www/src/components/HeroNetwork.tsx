@@ -1,7 +1,7 @@
 /**
- * The hero's brand animation: Raven as the infrastructure layer between
+ * The hero's brand animation: Livqeno as the infrastructure layer between
  * an application and its users. Web, mobile, and backend clients feed a
- * glowing central Raven core; the core fans out to the four realtime
+ * glowing central Livqeno core; the core fans out to the four realtime
  * capabilities (audio, video, chat, live); each capability reaches the
  * user cluster on the far side. Packets travel every edge continuously.
  *
@@ -15,14 +15,14 @@
 
 const CORE = { x: 480, y: 217 };
 
-/** Application → Raven core. */
+/** Application → Livqeno core. */
 const IN_EDGES = [
   { id: 'web-core', d: 'M 160 92 C 300 92 340 217 412 217', delay: 0 },
   { id: 'mobile-core', d: 'M 160 217 L 412 217', delay: 0.5 },
   { id: 'backend-core', d: 'M 160 342 C 300 342 340 217 412 217', delay: 1.0 },
 ];
 
-/** Raven core → capability. LIVE runs hot. */
+/** Livqeno core → capability. LIVE runs hot. */
 const OUT_EDGES = [
   { id: 'core-audio', d: 'M 548 217 C 585 217 572 62 610 62', delay: 0.35, live: false },
   { id: 'core-video', d: 'M 548 217 C 585 217 578 165 610 165', delay: 0.85, live: false },
@@ -64,7 +64,7 @@ export function HeroNetwork() {
         viewBox="0 0 960 440"
         className="relative mx-auto w-full max-w-4xl"
         role="img"
-        aria-label="Web, mobile, and backend applications connect through the Raven core to audio, video, chat, and live streaming, which reach your users"
+        aria-label="Web, mobile, and backend applications connect through the Livqeno core to audio, video, chat, and live streaming, which reach your users"
       >
         <defs>
           <radialGradient id="raven-core-glow" cx="50%" cy="50%" r="50%">
@@ -107,7 +107,7 @@ export function HeroNetwork() {
         <Chip x={40} y={199} w={120} label="Mobile" />
         <Chip x={40} y={324} w={120} label="Backend" />
 
-        {/* The Raven core */}
+        {/* The Livqeno core */}
         <g>
           <circle cx={CORE.x} cy={CORE.y} r="130" fill="url(#raven-core-glow)" className="raven-net-glow" />
           <circle
@@ -121,7 +121,14 @@ export function HeroNetwork() {
           />
           <g transform={`translate(${CORE.x}, ${CORE.y})`}>
             {/* Dashed orbit — spinning the dash pattern reads as slow rotation */}
-            <circle r="58" fill="none" stroke="var(--accent-line)" strokeWidth="1" strokeDasharray="2 7" className="raven-net-orbit" />
+            <circle
+              r="58"
+              fill="none"
+              stroke="var(--accent-line)"
+              strokeWidth="1"
+              strokeDasharray="2 7"
+              className="raven-net-orbit"
+            />
             <g className="raven-net-orbit-dot">
               <circle cx="58" cy="0" r="2.5" fill="var(--accent)" />
             </g>
@@ -135,7 +142,7 @@ export function HeroNetwork() {
               fontFamily="var(--font-mono)"
               letterSpacing="0.1em"
             >
-              RAVEN
+              Livqeno
             </text>
           </g>
         </g>

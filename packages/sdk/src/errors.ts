@@ -2,6 +2,23 @@
 export type RTCErrorCode =
   | 'INVALID_TOKEN'
   | 'TOKEN_EXPIRED'
+  /**
+   * The token was revoked before it expired. Distinct from `TOKEN_EXPIRED`
+   * because the cause is deliberate rather than the clock, and a UI may
+   * well want to say something different: "this session was ended" rather
+   * than "your session timed out".
+   */
+  | 'TOKEN_REVOKED'
+  /**
+   * The account behind this project has spent its included Livqeno minutes.
+   *
+   * Its own code rather than `SIGNALING_ERROR` because it is the one join
+   * failure whose remedy is commercial, not technical: no retry, no fresh
+   * token and no code change fixes it, so an application wants to show a
+   * billing prompt instead of a "try again" button. Sessions already in
+   * progress are never cut off by it.
+   */
+  | 'USAGE_LIMIT_EXCEEDED'
   | 'ROOM_NOT_FOUND'
   | 'CONNECTION_FAILED'
   | 'PERMISSION_DENIED'

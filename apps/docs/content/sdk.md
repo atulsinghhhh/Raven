@@ -3,7 +3,7 @@ title: SDKs
 description: Eight packages across six languages. Which one you need, and what each supports.
 ---
 
-Raven splits along one line: your **backend** holds the API key and mints
+Livqeno splits along one line: your **backend** holds the API key and mints
 [tokens](/concepts/token); your **client** holds a token and connects.
 Those are different packages and neither can do the other's job.
 
@@ -15,7 +15,7 @@ Those are different packages and neither can do the other's job.
 | `raven-sdk` | Your Python backend | API key | [Python](/sdk/python) |
 | `@ravenkash/rtc` | Browser | RTC token | [Web](/sdk/web) |
 | `@ravenkash/chat` | Browser | Chat token | [Web](/sdk/web) |
-| `@ravenkash/client` | Browser | Both, behind one object | [Raven Client](/sdk/client) |
+| `@ravenkash/client` | Browser | Both, behind one object | [Livqeno Client](/sdk/client) |
 | `@ravenkash/react` | Browser | Hooks over the above | [React](/sdk/react) |
 | `@ravenkash/react-native` | iOS, Android | RTC + chat | [React Native](/sdk/react-native) |
 | `raven_rtc`, `raven_chat`, `raven_live` | iOS, Android | RTC / chat / streaming | [Flutter](/sdk/flutter) |
@@ -54,7 +54,7 @@ something merely planned.
 | Rooms / streams management | — | — | — | — | ✓ | ✓ | ✓ |
 | Observability | — | — | — | — | ✓ | ✓ | ✓ |
 
-¹ The platform cannot capture the screen. Not a Raven gap.
+¹ The platform cannot capture the screen. Not a Livqeno gap.
 ² `switchCamera()` — front/rear, which has no web equivalent.
 ³ `RavenRoom` exposes no stats method yet.
 ⁴ Flutter only; the frame exists in the protocol. [Details](/reference/known-limitations).

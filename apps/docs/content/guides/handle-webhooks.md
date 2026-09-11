@@ -5,8 +5,8 @@ description: A receiver that verifies the signature, acknowledges fast, and cann
 
 ## What we're building
 
-An HTTP endpoint that accepts Raven's webhook deliveries, proves each one
-came from Raven, and processes it exactly once even though delivery is
+An HTTP endpoint that accepts Livqeno's webhook deliveries, proves each one
+came from Livqeno, and processes it exactly once even though delivery is
 at-least-once.
 
 ## Prerequisites
@@ -41,7 +41,7 @@ nothing.
 ### 2. Capture the raw body
 
 This is the step that breaks most receivers. You must sign the **exact
-bytes** Raven sent — `JSON.parse` then `JSON.stringify` can reorder keys and
+bytes** Livqeno sent — `JSON.parse` then `JSON.stringify` can reorder keys and
 change whitespace, and the signature will not match:
 
 ```ts
@@ -132,7 +132,7 @@ index on it is the whole deduplication strategy.
 
 ### 6. Local development
 
-Raven refuses obvious internal targets, and in production requires
+Livqeno refuses obvious internal targets, and in production requires
 `https://`. Loopback URLs *are* accepted outside production, so a tunnel is
 the straightforward route:
 
@@ -165,7 +165,7 @@ that assumes sequence.
 
 ## Production considerations
 
-- **Egress-filter the delivery worker.** Raven's SSRF check is
+- **Egress-filter the delivery worker.** Livqeno's SSRF check is
   hostname-level: it refuses loopback and private-range *literals* but does
   not resolve DNS, so a hostname pointing at a private address still passes.
   This is a stated limitation, not an oversight.

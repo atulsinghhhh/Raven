@@ -87,10 +87,7 @@ export class RavenApiClient {
     return this.request<ApiKeySummary[]>(`/v1/projects/${projectId}/api-keys`);
   }
 
-  async createApiKey(
-    projectId: string,
-    input: { name?: string; environment?: Environment },
-  ): Promise<CreatedApiKey> {
+  async createApiKey(projectId: string, input: { name?: string; environment?: Environment }): Promise<CreatedApiKey> {
     return this.request<CreatedApiKey>(`/v1/projects/${projectId}/api-keys`, { method: 'POST', body: input });
   }
 
@@ -211,9 +208,7 @@ export class RavenApiClient {
   }
 
   async getChatPresence(projectId: string, conversationId: string): Promise<ChatPresenceEntry[]> {
-    return this.request<ChatPresenceEntry[]>(
-      `/v1/projects/${projectId}/chat/conversations/${conversationId}/presence`,
-    );
+    return this.request<ChatPresenceEntry[]>(`/v1/projects/${projectId}/chat/conversations/${conversationId}/presence`);
   }
 
   async listStreams(projectId: string, status?: LiveStreamStatus): Promise<LiveStreamSummary[]> {
@@ -302,7 +297,7 @@ export class RavenApiClient {
           attempt++;
           continue;
         }
-        throw new CliError('network', `Could not reach the Raven API at ${this.apiUrl}.`, {
+        throw new CliError('network', `Could not reach the Livqeno API at ${this.apiUrl}.`, {
           suggestion: 'Check your network connection and `raven config get apiUrl`',
           cause: error,
         });

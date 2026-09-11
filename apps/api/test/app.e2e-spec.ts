@@ -27,9 +27,7 @@ describe('Control plane (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.useWebSocketAdapter(new WsAdapter(app));
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
-    );
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     app.useGlobalFilters(new AllExceptionsFilter());
     await app.init();
 
@@ -80,9 +78,11 @@ describe('Control plane (e2e)', () => {
   it('GET /metrics exposes Prometheus text with route-templated labels, not raw request paths', async () => {
     // Hit a parameterized route first so its /metrics label is proven to
     // be the route pattern, not this specific 404 id.
-    await request(app.getHttpServer()).get('/v1/rooms/route-label-check').expect((res) => {
-      expect([401, 404]).toContain(res.status);
-    });
+    await request(app.getHttpServer())
+      .get('/v1/rooms/route-label-check')
+      .expect((res) => {
+        expect([401, 404]).toContain(res.status);
+      });
 
     const res = await request(app.getHttpServer()).get('/metrics').expect(200);
     expect(res.headers['content-type']).toContain('text/plain');
@@ -102,36 +102,24 @@ describe('Control plane (e2e)', () => {
     let roomId: string;
 
     it('registers a new developer', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/v1/auth/register')
-        .send({ email, password })
-        .expect(201);
+      const res = await request(app.getHttpServer()).post('/v1/auth/register').send({ email, password }).expect(201);
 
       expect(res.body.accessToken).toBeDefined();
       accessToken = res.body.accessToken;
     });
 
     it('rejects a duplicate registration', async () => {
-      await request(app.getHttpServer())
-        .post('/v1/auth/register')
-        .send({ email, password })
-        .expect(409);
+      await request(app.getHttpServer()).post('/v1/auth/register').send({ email, password }).expect(409);
     });
 
     it('logs in with the same credentials', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/v1/auth/login')
-        .send({ email, password })
-        .expect(200);
+      const res = await request(app.getHttpServer()).post('/v1/auth/login').send({ email, password }).expect(200);
 
       expect(res.body.accessToken).toBeDefined();
     });
 
     it('rejects a wrong password', async () => {
-      await request(app.getHttpServer())
-        .post('/v1/auth/login')
-        .send({ email, password: 'wrong' })
-        .expect(401);
+      await request(app.getHttpServer()).post('/v1/auth/login').send({ email, password: 'wrong' }).expect(401);
     });
 
     it('creates a project for the authenticated developer', async () => {
@@ -279,7 +267,7 @@ describe('Control plane (e2e)', () => {
 
       // The claims actually inside the signed JWT must match, too: not
       // just the control-plane's own bookkeeping of what it asked for.
-      // `iat`/`exp`, not `nbf`: Raven's token format is its own, and the
+      // `iat`/`exp`, not `nbf`: Livqeno's token format is its own, and the
       // signer never issues a not-before.
       const [, payloadB64] = res.body.token.split('.');
       const claims = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
@@ -391,9 +379,7 @@ describe('Control plane (e2e)', () => {
             data: {
               connectionState: 'connected',
               connectionQuality: 'good',
-              local: [
-                { kind: 'microphone', direction: 'send', roundTripTimeMs: 84, jitterMs: 5, bitrateBps: 32_000 },
-              ],
+              local: [{ kind: 'microphone', direction: 'send', roundTripTimeMs: 84, jitterMs: 5, bitrateBps: 32_000 }],
               remote: [
                 {
                   kind: 'camera',
@@ -423,7 +409,7 @@ describe('Control plane (e2e)', () => {
         });
       });
 
-      it('classifies an ingested error into a Raven-facing category — never the raw SDK code as-is', async () => {
+      it('classifies an ingested error into a Livqeno-facing category — never the raw SDK code as-is', async () => {
         await request(app.getHttpServer())
           .post('/v1/telemetry/events')
           .set('Authorization', `Bearer ${rtcToken}`)
@@ -478,7 +464,7 @@ describe('Control plane (e2e)', () => {
     });
 
     describe('server SDK API-key-guarded endpoints (Phase 10)', () => {
-      it('GET /v1/project returns the API key\'s own project, with no project ID needed', async () => {
+      it("GET /v1/project returns the API key's own project, with no project ID needed", async () => {
         const res = await request(app.getHttpServer())
           .get('/v1/project')
           .set('Authorization', `Bearer ${apiKey}`)
@@ -528,8 +514,14 @@ describe('Control plane (e2e)', () => {
 
       it('rejects every server-SDK endpoint with a developer JWT instead of an API key', async () => {
         await request(app.getHttpServer()).get('/v1/project').set('Authorization', `Bearer ${accessToken}`).expect(401);
-        await request(app.getHttpServer()).get('/v1/connections').set('Authorization', `Bearer ${accessToken}`).expect(401);
-        await request(app.getHttpServer()).get('/v1/diagnostics').set('Authorization', `Bearer ${accessToken}`).expect(401);
+        await request(app.getHttpServer())
+          .get('/v1/connections')
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(401);
+        await request(app.getHttpServer())
+          .get('/v1/diagnostics')
+          .set('Authorization', `Bearer ${accessToken}`)
+          .expect(401);
       });
     });
 
@@ -547,7 +539,7 @@ describe('Control plane (e2e)', () => {
       expect(list.body.find((r: { id: string }) => r.id === roomId)).toBeUndefined();
     });
 
-    it('deletes (archives) the developer\'s own project', async () => {
+    it("deletes (archives) the developer's own project", async () => {
       await request(app.getHttpServer())
         .delete(`/v1/projects/${projectId}`)
         .set('Authorization', `Bearer ${accessToken}`)
@@ -566,10 +558,7 @@ describe('Control plane (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(204);
 
-      await request(app.getHttpServer())
-        .get('/v1/projects')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(401);
+      await request(app.getHttpServer()).get('/v1/projects').set('Authorization', `Bearer ${accessToken}`).expect(401);
     });
   });
 
@@ -624,14 +613,14 @@ describe('Control plane (e2e)', () => {
       ownerRoomId = room.body.id;
     });
 
-    it('an intruder cannot read the owner\'s project', async () => {
+    it("an intruder cannot read the owner's project", async () => {
       await request(app.getHttpServer())
         .get(`/v1/projects/${ownerProjectId}`)
         .set('Authorization', `Bearer ${intruderToken}`)
         .expect(404);
     });
 
-    it('an intruder cannot modify the owner\'s project', async () => {
+    it("an intruder cannot modify the owner's project", async () => {
       await request(app.getHttpServer())
         .patch(`/v1/projects/${ownerProjectId}`)
         .set('Authorization', `Bearer ${intruderToken}`)
@@ -639,14 +628,14 @@ describe('Control plane (e2e)', () => {
         .expect(404);
     });
 
-    it('an intruder cannot delete the owner\'s project', async () => {
+    it("an intruder cannot delete the owner's project", async () => {
       await request(app.getHttpServer())
         .delete(`/v1/projects/${ownerProjectId}`)
         .set('Authorization', `Bearer ${intruderToken}`)
         .expect(404);
     });
 
-    it('an intruder cannot list or create API keys under the owner\'s project', async () => {
+    it("an intruder cannot list or create API keys under the owner's project", async () => {
       await request(app.getHttpServer())
         .get(`/v1/projects/${ownerProjectId}/api-keys`)
         .set('Authorization', `Bearer ${intruderToken}`)
@@ -659,7 +648,7 @@ describe('Control plane (e2e)', () => {
         .expect(404);
     });
 
-    it('an intruder cannot revoke the owner\'s API key', async () => {
+    it("an intruder cannot revoke the owner's API key", async () => {
       await request(app.getHttpServer())
         .delete(`/v1/projects/${ownerProjectId}/api-keys/${ownerKeyId}`)
         .set('Authorization', `Bearer ${intruderToken}`)
@@ -674,7 +663,7 @@ describe('Control plane (e2e)', () => {
         .expect(201);
     });
 
-    it('an intruder\'s own API key cannot read or manage the owner\'s rooms', async () => {
+    it("an intruder's own API key cannot read or manage the owner's rooms", async () => {
       const intruderProject = await request(app.getHttpServer())
         .post('/v1/projects')
         .set('Authorization', `Bearer ${intruderToken}`)
@@ -704,7 +693,7 @@ describe('Control plane (e2e)', () => {
         .expect(404);
     });
 
-    it('an intruder cannot list, view, or mint a test token for the owner\'s rooms via the dashboard endpoints', async () => {
+    it("an intruder cannot list, view, or mint a test token for the owner's rooms via the dashboard endpoints", async () => {
       await request(app.getHttpServer())
         .get(`/v1/projects/${ownerProjectId}/rooms`)
         .set('Authorization', `Bearer ${intruderToken}`)
@@ -763,7 +752,7 @@ describe('Control plane (e2e)', () => {
       expect(list.body).toEqual(expect.arrayContaining([expect.objectContaining({ id: created.body.id })]));
     });
 
-    it('an intruder cannot create a room in the owner\'s project via the JWT-guarded endpoint', async () => {
+    it("an intruder cannot create a room in the owner's project via the JWT-guarded endpoint", async () => {
       await request(app.getHttpServer())
         .post(`/v1/projects/${ownerProjectId}/rooms`)
         .set('Authorization', `Bearer ${intruderToken}`)
@@ -771,7 +760,7 @@ describe('Control plane (e2e)', () => {
         .expect(404);
     });
 
-    it('an intruder cannot read the owner\'s connections, errors, metrics, or diagnostics', async () => {
+    it("an intruder cannot read the owner's connections, errors, metrics, or diagnostics", async () => {
       await request(app.getHttpServer())
         .get(`/v1/projects/${ownerProjectId}/connections`)
         .set('Authorization', `Bearer ${intruderToken}`)
@@ -1107,10 +1096,7 @@ describe('Control plane (e2e)', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(res.body.map((e: { action: string }) => e.action)).toEqual([
-        'api_key.created',
-        'project.created',
-      ]);
+      expect(res.body.map((e: { action: string }) => e.action)).toEqual(['api_key.created', 'project.created']);
     });
 
     it('names the actor, the resource, and the request that caused it', async () => {
@@ -1159,10 +1145,7 @@ describe('Control plane (e2e)', () => {
         .expect(200);
 
       // Both halves of the key's life, queryable by the id a developer has.
-      expect(res.body.map((e: { action: string }) => e.action)).toEqual([
-        'api_key.revoked',
-        'api_key.created',
-      ]);
+      expect(res.body.map((e: { action: string }) => e.action)).toEqual(['api_key.revoked', 'api_key.created']);
     });
 
     it('offers no way to change or delete an entry', async () => {

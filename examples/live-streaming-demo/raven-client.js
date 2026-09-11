@@ -15,7 +15,7 @@ var LiveStream = class _LiveStream {
   }
   /** True for HOST and CO_HOST, the only roles the server grants publish permissions to. A VIEWER's `room` is always subscribe-only, and the server enforces that; this check doesn't. */
   get isHost() {
-    return this.role === "HOST" || this.role === "CO_HOST";
+    return this.role === 'HOST' || this.role === 'CO_HOST';
   }
   /**
    * Joins a live stream. One entry point for hosts and viewers alike.
@@ -27,7 +27,7 @@ var LiveStream = class _LiveStream {
       token: credentials.rtc.token,
       endpoint: credentials.rtc.endpoint,
       iceServers: credentials.rtc.iceServers,
-      telemetryUrl: credentials.rtc.telemetryUrl
+      telemetryUrl: credentials.rtc.telemetryUrl,
     });
     const room = await rtc.join(credentials.streamId);
     let chat;
@@ -35,7 +35,7 @@ var LiveStream = class _LiveStream {
       chat = createChatClient({
         token: credentials.chat.token,
         apiUrl: credentials.chat.apiUrl,
-        chatUrl: credentials.chat.chatUrl
+        chatUrl: credentials.chat.chatUrl,
       });
       await chat.connect({ room: credentials.chat.conversations[0] });
     }
@@ -52,11 +52,11 @@ var LiveStream = class _LiveStream {
   async react(emoji) {
     if (!this.chat) {
       throw new Error(
-        "This LiveStream has no chat credentials; react() needs the `chat` field on the credentials passed to join()."
+        'This LiveStream has no chat credentials; react() needs the `chat` field on the credentials passed to join().',
       );
     }
     if (!this.chatRootMessageId) {
-      throw new Error("This stream has no chatRootMessageId to react to.");
+      throw new Error('This stream has no chatRootMessageId to react to.');
     }
     await this.chat.messages.addReaction(this.chatRootMessageId, emoji);
   }
@@ -74,17 +74,17 @@ var LiveStream = class _LiveStream {
 function joinLiveStream(credentials) {
   return LiveStream.join(credentials);
 }
-var Raven = class {
+var Livqeno = class {
   constructor(config) {
     this.live = { join: (credentials) => LiveStream.join(credentials) };
     if (Boolean(config.token) !== Boolean(config.endpoint)) {
       throw new Error(
-        "Raven needs both `token` and `endpoint` for RTC, or neither for a messaging-only app. Both come from the same token-mint response."
+        'Livqeno needs both `token` and `endpoint` for RTC, or neither for a messaging-only app. Both come from the same token-mint response.',
       );
     }
     if (!config.token && !config.chatToken) {
       throw new Error(
-        "Raven needs at least one credential: `token` + `endpoint` for calls, `chatToken` for messaging, or both."
+        'Livqeno needs at least one credential: `token` + `endpoint` for calls, `chatToken` for messaging, or both.',
       );
     }
     if (config.token && config.endpoint) {
@@ -95,7 +95,7 @@ var Raven = class {
         telemetry: config.telemetry,
         telemetryUrl: config.telemetryUrl,
         autoReconnect: config.autoReconnect,
-        logLevel: config.logLevel
+        logLevel: config.logLevel,
       });
     }
     if (config.chatToken) {
@@ -104,7 +104,7 @@ var Raven = class {
         apiUrl: config.chatApiUrl ?? config.telemetryUrl,
         chatUrl: config.chatUrl,
         logLevel: config.logLevel,
-        onTokenExpiring: config.onChatTokenExpiring
+        onTokenExpiring: config.onChatTokenExpiring,
       });
     }
   }
@@ -128,7 +128,7 @@ var Raven = class {
   async join(roomId) {
     if (!this.rtc) {
       throw new Error(
-        "This Raven instance has no RTC credentials, so it cannot join a room. Pass `token` and `endpoint` to enable calls, or use `raven.chat` for messaging."
+        'This Livqeno instance has no RTC credentials, so it cannot join a room. Pass `token` and `endpoint` to enable calls, or use `raven.chat` for messaging.',
       );
     }
     this.currentRoom = await this.rtc.join(roomId);

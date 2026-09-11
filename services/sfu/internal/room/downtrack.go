@@ -10,7 +10,7 @@ import (
 
 // LayerID names a simulcast spatial layer.
 //
-// Raven's own vocabulary, not whatever RIDs a browser feels like sending.
+// Livqeno's own vocabulary, not whatever RIDs a browser feels like sending.
 // Chrome says "f"/"h"/"q", other stacks say "high"/"low", and the SDK's
 // public API shouldn't change shape because a browser did. layerFromRID
 // handles the translation.
@@ -30,7 +30,7 @@ const (
 	LayerNone LayerID = ""
 )
 
-// layerFromRID maps a publisher's RID onto Raven's layer names.
+// layerFromRID maps a publisher's RID onto Livqeno's layer names.
 //
 // An empty RID means no simulcast at all. That's the common case for audio,
 // and for video from a client that turned it off.
@@ -92,6 +92,12 @@ type DownTrack struct {
 	// local is what the subscriber's PeerConnection is actually sending.
 	local  *webrtc.TrackLocalStaticRTP
 	sender *webrtc.RTPSender
+	// source is the publisher's track this is a copy of. Held so a
+	// subscription can be torn down from the subscriber's side alone: the
+	// publisher's subscriber list has to lose this DownTrack too, or its
+	// forwarding loop keeps copying a dead entry into its target slice for
+	// every packet it reads.
+	source *PublishedTrack
 
 	mimeType string
 	kind     webrtc.RTPCodecType
@@ -131,9 +137,10 @@ type DownTrack struct {
 	closed atomic.Bool
 }
 
-func newDownTrack(subscriberID string, local *webrtc.TrackLocalStaticRTP, sender *webrtc.RTPSender, mimeType string, kind webrtc.RTPCodecType, initialLayer LayerID) *DownTrack {
+func newDownTrack(subscriberID string, source *PublishedTrack, local *webrtc.TrackLocalStaticRTP, sender *webrtc.RTPSender, mimeType string, kind webrtc.RTPCodecType, initialLayer LayerID) *DownTrack {
 	return &DownTrack{
 		SubscriberID:   subscriberID,
+		source:         source,
 		local:          local,
 		sender:         sender,
 		mimeType:       mimeType,

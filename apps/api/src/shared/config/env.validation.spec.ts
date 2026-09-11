@@ -37,9 +37,7 @@ describe('validateEnv — always-required fields', () => {
   });
 
   it('rejects an out-of-range port', () => {
-    expect(() => validateEnv(baseConfig({ API_PORT: 99999 }))).toThrow(
-      /Invalid environment configuration/,
-    );
+    expect(() => validateEnv(baseConfig({ API_PORT: 99999 }))).toThrow(/Invalid environment configuration/);
   });
 });
 
@@ -91,7 +89,6 @@ describe('validateEnv — production-only checks', () => {
       ),
     ).toThrow(/TURN_HOST must be a real public hostname/);
   });
-
 
   it('reports every violated production rule at once, not just the first', () => {
     expect(() => validateEnv(baseConfig({ NODE_ENV: 'production' }))).toThrow(
@@ -182,48 +179,40 @@ describe('validateEnv — production-only checks', () => {
   });
 
   it('rejects an RTC-token secret that is just the JWT secret again', () => {
-    expect(() =>
-      validateEnv(
-        productionConfig({ RTC_TOKEN_SECRET: 'a-jwt-secret-at-least-this-long' }),
-      ),
-    ).toThrow(/RTC_TOKEN_SECRET must differ from JWT_SECRET/);
+    expect(() => validateEnv(productionConfig({ RTC_TOKEN_SECRET: 'a-jwt-secret-at-least-this-long' }))).toThrow(
+      /RTC_TOKEN_SECRET must differ from JWT_SECRET/,
+    );
   });
 
   it('rejects an RTC-token secret shared with chat', () => {
     // Media and messaging are separate capabilities; one leaked key must
     // not grant both.
-    expect(() =>
-      validateEnv(
-        productionConfig({ RTC_TOKEN_SECRET: 'a-distinct-chat-token-secret' }),
-      ),
-    ).toThrow(/RTC_TOKEN_SECRET must differ from CHAT_TOKEN_SECRET/);
+    expect(() => validateEnv(productionConfig({ RTC_TOKEN_SECRET: 'a-distinct-chat-token-secret' }))).toThrow(
+      /RTC_TOKEN_SECRET must differ from CHAT_TOKEN_SECRET/,
+    );
   });
 
   it('rejects production config without an SFU registration secret', () => {
     // Without it, any host that can reach the API can join the RTC fleet
     // and be handed rooms to serve (spec §23, §38).
-    expect(() =>
-      validateEnv(
-        productionConfig({ SFU_REGISTRATION_SECRET: undefined }),
-      ),
-    ).toThrow(/SFU_REGISTRATION_SECRET is required in production/);
+    expect(() => validateEnv(productionConfig({ SFU_REGISTRATION_SECRET: undefined }))).toThrow(
+      /SFU_REGISTRATION_SECRET is required in production/,
+    );
   });
 
   it('rejects an SFU registration secret shared with the client token secret', () => {
     // A client token secret is held by whatever mints tokens; the fleet
     // credential must not be derivable from it.
-    expect(() =>
-      validateEnv(
-        productionConfig({ SFU_REGISTRATION_SECRET: 'a-distinct-rtc-token-secret' }),
-      ),
-    ).toThrow(/SFU_REGISTRATION_SECRET must differ from RTC_TOKEN_SECRET/);
+    expect(() => validateEnv(productionConfig({ SFU_REGISTRATION_SECRET: 'a-distinct-rtc-token-secret' }))).toThrow(
+      /SFU_REGISTRATION_SECRET must differ from RTC_TOKEN_SECRET/,
+    );
   });
 
   it('rejects an unencrypted signaling URL in production', () => {
     // RTC tokens travel on this connection as a query parameter.
-    expect(() =>
-      validateEnv(productionConfig({ RTC_SIGNALING_URL: 'ws://rtc.example.com/v1/rtc' })),
-    ).toThrow(/RTC_SIGNALING_URL must use wss/);
+    expect(() => validateEnv(productionConfig({ RTC_SIGNALING_URL: 'ws://rtc.example.com/v1/rtc' }))).toThrow(
+      /RTC_SIGNALING_URL must use wss/,
+    );
   });
 
   it('accepts a fully-correct production configuration', () => {
@@ -265,9 +254,7 @@ describe('validateEnv — email (Resend)', () => {
     // The failure mode this prevents: the app boots, accepts signups, and
     // silently cannot send the verification address they depend on.
     expect(() =>
-      validateEnv(
-        emailConfig({ EMAIL_ENABLED: 'true', RESEND_FROM_EMAIL: 'hello@mail.ravenstack.online' }),
-      ),
+      validateEnv(emailConfig({ EMAIL_ENABLED: 'true', RESEND_FROM_EMAIL: 'hello@mail.ravenstack.online' })),
     ).toThrow(/RESEND_API_KEY is required when EMAIL_ENABLED=true/);
   });
 
@@ -302,7 +289,7 @@ describe('validateEnv — email (Resend)', () => {
           EMAIL_ENABLED: 'true',
           RESEND_API_KEY: 'a-real-looking-key',
           RESEND_FROM_EMAIL: 'hello@mail.ravenstack.online',
-          RESEND_FROM_NAME: 'Raven',
+          RESEND_FROM_NAME: 'Livqeno',
           APP_URL: 'http://localhost:3000',
         }),
       ),

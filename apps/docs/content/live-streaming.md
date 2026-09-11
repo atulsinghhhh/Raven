@@ -1,9 +1,9 @@
 ---
 title: Live Streaming Overview
-description: One host, any number of viewers, and a real chat conversation attached automatically — built entirely on Raven RTC and Raven Chat.
+description: One host, any number of viewers, and a real chat conversation attached automatically — built entirely on Livqeno RTC and Livqeno Chat.
 ---
 
-Raven Live Streaming is not a third real-time system bolted onto RTC and
+Livqeno Live Streaming is not a third real-time system bolted onto RTC and
 Chat — it's the two of them, composed. A live stream is one RTC `Room`
 (the host and any co-hosts are just participants with publish
 permission) plus one Chat `Conversation` (created and attached
@@ -15,7 +15,7 @@ the two together yourself.
 
 A typical live-streaming build asks you to run an SFU, a chat service,
 and a bridge between the two — three systems, three sets of
-credentials, three failure modes. On Raven, `POST /v1/live-streams`
+credentials, three failure modes. On Livqeno, `POST /v1/live-streams`
 gives you both a room and a conversation in one call, and a viewer's
 chat message rides the same infrastructure `@ravenkash/chat` already
 documents.
@@ -50,8 +50,8 @@ Every other transition is rejected with `RAVEN_STREAM_INVALID_STATE`.
   has `publish: false` baked in server-side, and the viewer-token
   request has no role field to override it. Chats with `MEMBER` scope.
 
-Raven's own `ProjectMember`/RBAC model is unrelated to any of this — it
-controls who on *your team* can manage the Raven project itself. Hosts
+Livqeno's own `ProjectMember`/RBAC model is unrelated to any of this — it
+controls who on *your team* can manage the Livqeno project itself. Hosts
 and viewers are your application's end users, authenticated however
 your backend already authenticates them, and are never granted
 dashboard access.
@@ -69,7 +69,7 @@ aggregation `Reactions` already provides for ordinary messages.
 
 `live_stream.created`, `.started`, `.ended`, `.host_joined`,
 `.host_left`, `.viewer_joined`, `.viewer_left` — signed and delivered
-exactly like every other Raven webhook. See [Webhooks](/webhooks).
+exactly like every other Livqeno webhook. See [Webhooks](/webhooks).
 
 ## Known limitations (this phase)
 
@@ -96,6 +96,6 @@ exactly like every other Raven webhook. See [Webhooks](/webhooks).
 - [Live Chat](/live-streaming/live-chat) and [Reactions](/live-streaming/reactions)
 - [SDK Support Matrix](/live-streaming/sdk-support) — what every SDK implements, and what's deliberately absent
 
-Interactive hosts and co-hosts run on [Raven RTC](/rtc); comments and
-reactions run on [Raven Chat](/chat) — Live Streaming is what connects
+Interactive hosts and co-hosts run on [Livqeno RTC](/rtc); comments and
+reactions run on [Livqeno Chat](/chat) — Live Streaming is what connects
 the two into one product surface, not a replacement for either.

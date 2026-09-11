@@ -60,9 +60,7 @@ describe('android', () => {
 
     await permissions.request(['microphone']);
 
-    expect(PermissionsAndroid.requestMultiple).toHaveBeenCalledWith([
-      'android.permission.RECORD_AUDIO',
-    ]);
+    expect(PermissionsAndroid.requestMultiple).toHaveBeenCalledWith(['android.permission.RECORD_AUDIO']);
   });
 
   it('require() throws a permission error carrying the settings hint', async () => {
@@ -113,9 +111,7 @@ describe('ios', () => {
   it('grants when the probe succeeds, and releases the probe stream', async () => {
     const stopped = stubGetUserMedia(async () => undefined);
 
-    await expect(permissions.request(['camera'])).resolves.toEqual(
-      expect.objectContaining({ camera: 'granted' }),
-    );
+    await expect(permissions.request(['camera'])).resolves.toEqual(expect.objectContaining({ camera: 'granted' }));
     // Leave the probe stream open and the camera light stays on.
     expect(stopped).toEqual(['stopped']);
   });
@@ -138,9 +134,7 @@ describe('ios', () => {
     // Misreport this as a permission problem and the developer goes
     // hunting through Info.plist for what's really a missing bootstrap
     // call.
-    await expect(permissions.request(['camera'])).resolves.toEqual(
-      expect.objectContaining({ camera: 'unavailable' }),
-    );
+    await expect(permissions.request(['camera'])).resolves.toEqual(expect.objectContaining({ camera: 'unavailable' }));
   });
 
   it('require() ignores unavailable rather than throwing', async () => {

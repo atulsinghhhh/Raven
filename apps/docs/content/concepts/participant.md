@@ -14,7 +14,7 @@ renderable next to a name.
 ## Identity comes from you
 
 The `identity` string is whatever your backend put in the token —
-`user-42`, a UUID, an email. Raven does not know or care what it means, only
+`user-42`, a UUID, an email. Livqeno does not know or care what it means, only
 that it is unique within the room. Letters, numbers, `-`, `_` and `.`, up
 to 128 characters.
 

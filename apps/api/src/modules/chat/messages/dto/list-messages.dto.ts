@@ -13,7 +13,7 @@ export class ListMessagesDto {
 
   @ApiPropertyOptional({
     description:
-      'Opaque cursor from a previous page\'s nextCursor — walks backwards into history. Cursor-based, not offset-based, so pages stay stable while new messages arrive.',
+      "Opaque cursor from a previous page's nextCursor — walks backwards into history. Cursor-based, not offset-based, so pages stay stable while new messages arrive.",
   })
   @IsOptional()
   @IsString()
@@ -29,7 +29,7 @@ export class ListMessagesDto {
   @MaxLength(256)
   after?: string;
 
-  @ApiPropertyOptional({ description: 'Restrict to one thread, by the root message\'s public id.' })
+  @ApiPropertyOptional({ description: "Restrict to one thread, by the root message's public id." })
   @IsOptional()
   @IsString()
   @MaxLength(64)

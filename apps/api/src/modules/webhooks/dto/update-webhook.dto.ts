@@ -25,7 +25,7 @@ export class UpdateWebhookDto {
 
   @ApiPropertyOptional({
     enum: Object.values(WebhookEndpointStatus),
-    description: 'Set back to ACTIVE to re-enable an endpoint Raven auto-disabled after repeated failures.',
+    description: 'Set back to ACTIVE to re-enable an endpoint Livqeno auto-disabled after repeated failures.',
   })
   @IsOptional()
   @IsIn(Object.values(WebhookEndpointStatus))

@@ -64,7 +64,10 @@ project API key instead of a chat token:
 
 ```ts
 import { Raven } from '@ravenkash/server';
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY,
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
+});
 
 const page = await raven.chat.listMessages('support-room-42', { limit: 50 });
 ```

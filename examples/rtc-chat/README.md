@@ -1,10 +1,10 @@
-# Raven — video call with a chat panel
+# Livqeno — video call with a chat panel
 
 `@ravenkash/rtc` and `@ravenkash/chat` on the same screen, doing different jobs.
 
 ```
 ┌─────────────────────────────────────────┐
-│                Raven Room               │
+│                Livqeno Room               │
 ├──────────────────────┬──────────────────┤
 │                      │      Chat        │
 │       Video          │                  │
@@ -23,18 +23,18 @@ clients behind hostile NATs. Messages need durability, ordering, and history —
 things WebRTC data channels are actively bad at, because a data channel is
 peer-to-peer and evaporates when the peer leaves.
 
-So Raven keeps them separate:
+So Livqeno keeps them separate:
 
 | | Video | Chat |
 | --- | --- | --- |
 | SDK | `@ravenkash/rtc` | `@ravenkash/chat` |
-| Transport | WebRTC via Raven's SFU | WebSocket |
+| Transport | WebRTC via Livqeno's SFU | WebSocket |
 | Token | RTC token (`aud: raven-rtc`) | Chat token (`aud: raven-chat`) |
 | Durability | none — media is live or gone | Postgres |
 | Provider | `<RavenRoom>` | `<RavenChat>` |
 
 The practical payoff: **either half can fail without the other noticing.** Kill
-the SFU container and the chat panel keeps working. Restart the Raven API
+the SFU container and the chat panel keeps working. Restart the Livqeno API
 and the video call carries on while chat reconnects. Neither token is accepted
 by the other plane — try it and you'll get a `401`.
 
@@ -44,7 +44,7 @@ can be handed the same identifier.
 
 ## Running it
 
-Needs the Raven stack (`pnpm infra:up` from the repo root) and a project API key.
+Needs the Livqeno stack (`pnpm infra:up` from the repo root) and a project API key.
 
 ```bash
 cd examples/rtc-chat
@@ -63,7 +63,7 @@ identities, and allow camera/microphone access.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `RAVEN_API_KEY` | *(required)* | Project API key. Backend only. |
-| `RAVEN_API_URL` | `http://localhost:4100` | Raven Control API base URL. |
+| `RAVEN_API_URL` | `http://localhost:4100` | Livqeno Control API base URL. |
 | `PORT` | `8789` | Port for this example's backend. |
 
 ## Things worth trying

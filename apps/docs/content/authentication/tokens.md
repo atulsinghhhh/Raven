@@ -23,7 +23,7 @@ const token = await raven.tokens.create({
 // { token, endpoint, iceServers, expiresAt, ... }
 ```
 
-Raven's own permission vocabulary — `join`, `subscribe`, `publish`,
+Livqeno's own permission vocabulary — `join`, `subscribe`, `publish`,
 `publishAudio`, `publishVideo`, `publishData` — is what gets signed into
 the token and what the signaling gateway enforces. There is no translation
 into a third party's grant shape anywhere in the path: the public API, the
@@ -31,7 +31,7 @@ signed claim, the authorization checks and the media server all speak these
 same six names.
 
 Keeping the public names independent of whatever the media plane wants
-internally is exactly what let Raven replace its own SFU without breaking
+internally is exactly what let Livqeno replace its own SFU without breaking
 this contract.
 
 Every flag is **denied unless granted** — see
@@ -78,6 +78,16 @@ data, however it's asked. See [Environments](/production/environments).
 ## Revocation
 
 An API key can be revoked (`raven keys revoke <id>`) independently of
-any token it already minted — those expire on their own, on schedule.
-There's no way to revoke a single already-issued token early; the
-short lifetime is the control, not a revocation list.
+any token it already minted.
+
+A single RTC token can be revoked early too:
+`DELETE /v1/rooms/{roomId}/rtc-tokens/{tokenId}`, using the `id` from the
+mint response. It is scoped to the API key's own project and environment,
+and it is idempotent.
+
+Revocation refuses the token for *new* connections, which then fail with
+`TOKEN_REVOKED`. It does not disconnect a session already running on that
+token — close the room (`DELETE /v1/rooms/{roomId}`) for that. So the
+short lifetime remains the primary control and revocation is the second
+one. Details in
+[RTC authentication → Revocation](/rtc/authentication#revocation).

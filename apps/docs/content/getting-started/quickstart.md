@@ -9,21 +9,36 @@ a client.
 
 ## Before you start
 
-Raven is software that runs somewhere, so you need one of two things:
+Livqeno is software that runs somewhere, so you need one of two things:
 
-- **A Raven deployment you can reach** — your team's, or a hosted one. Its
+- **A Livqeno deployment you can reach** — your team's, or a hosted one. Its
   dashboard is linked in the top bar of this site.
 - **A local one.** `docker compose up` brings up everything except
   Postgres. See [Docker Compose](/self-hosting/docker-compose).
 
-You also need the CLI or the dashboard to create your first API key. **The
-Raven packages are not published to a registry yet**, so the CLI is
-installed from a checkout — see
-[Installing from source](/getting-started/installing-from-source).
+You also need the dashboard or the CLI to create your first API key.
+
+Every Livqeno SDK is published on npm under the `@ravenkash` scope, so
+nothing here needs a checkout. The two you want for a first integration are
+the backend one and the browser one:
+
+```bash
+npm install @ravenkash/server   # your backend — holds the API key
+npm install @ravenkash/rtc      # your browser app — holds only a grant
+```
+
+Add `@ravenkash/chat` for messaging, `@ravenkash/react` for hooks, or
+`@ravenkash/cli` (`npm install -g @ravenkash/cli`) for the `raven` command
+used below. The full list is on
+[Install an SDK](/get-started/install-an-sdk).
+
+Python is the one exception: Livqeno's Python SDK is **not** on PyPI, and the
+name `raven-sdk` there belongs to an unrelated project — see
+[Python SDK](/sdk/python) before installing anything.
 
 ## 1. Create a project and a key
 
-### If you are running Raven locally
+### If you are running Livqeno locally
 
 The seed script is the fastest route to a working credential. It creates a
 demo developer, project and room, and **prints an API key**:
@@ -63,56 +78,120 @@ rvk_dev_8Kd2nQxwYtLm.aG9wZXlvdWFyZWhhdmluZ2Fsb3ZlbHlkYXk
 Store it as `RAVEN_API_KEY` on your backend. It never goes anywhere
 else — not a mobile app, not a browser bundle, not a committed file.
 
-## 2. Mint a token on your backend
+## 2. Allow the origin your frontend runs on
+
+Livqeno checks the browser's `Origin` on every SDK connection, so the page
+you are about to build has to be on the project's list before it can
+connect. Dashboard → your project → **Settings → Security → Allowed
+Origins**.
+
+Two things worth knowing before you go looking for a problem you do not
+have:
+
+- **Localhost is allowed by default**, on any port. `http://localhost:3000`
+  and `http://localhost:5173` both work with nothing configured, so you can
+  skip this step entirely until you deploy.
+- **An empty list means "no restriction yet."** Enforcement switches on for
+  a project the moment it has its first entry, which is also the moment you
+  should add every origin you serve from — one line per scheme+host+port,
+  no wildcards.
+
+A connection from an origin that is not on a non-empty list is refused with
+`ORIGIN_NOT_ALLOWED` rather than a silent browser CORS failure, so the
+cause is visible in your console. The reasoning, and the full model, is in
+[Browser security & CORS](/authentication/browser-security).
+
+## 3. Mint a grant on your backend
 
 Your backend decides who a user is from its own session — never from a
-value the client sends. It asks Raven for a token scoped to exactly what
+value the client sends. It asks Livqeno for a token scoped to exactly what
 that user should be able to do.
 
 ```ts
 // your backend
 import { Raven } from '@ravenkash/server';
 
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY,
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
+});
 
 app.post('/join-room', async (req, res) => {
   const room = await raven.rooms.create({ name: 'demo-room' });
-  const token = await raven.tokens.create({
+  const grant = await raven.tokens.create({
     room: room.id,
     identity: req.user.id,
     permissions: { join: true, publish: true, subscribe: true },
   });
-  res.json(token); // { token, endpoint, iceServers, ... }
+  // Everything the browser needs, and nothing it shouldn't have.
+  res.json(grant); // { token, endpoint, iceServers, telemetryUrl, roomName, ... }
 });
 ```
 
-## 3. Connect from the client
+## 4. Return the grant to the browser and connect
 
-Hand your backend's response straight to the SDK — never hand-construct
-any of these fields yourself.
+Hand your backend's response to the SDK whole. Every field in it —
+`endpoint`, `iceServers`, `telemetryUrl` — is an address Livqeno chose for
+this session, and picking them apart is how people end up hard-coding
+infrastructure that is meant to move without an SDK release.
 
 ```ts
 import { createRTCClient } from '@ravenkash/rtc';
 
-const resp = await fetch('/join-room', { method: 'POST' }).then((r) => r.json());
+const grant = await fetch('/join-room', { method: 'POST' }).then((r) => r.json());
 
-const client = createRTCClient({
-  token: resp.token,
-  endpoint: resp.endpoint,
-  iceServers: resp.iceServers,
-});
+const room = await createRTCClient(grant).join(grant.roomName);
 
-const room = await client.join('demo-room');
 await room.enableCamera();
 await room.enableMicrophone();
 ```
 
-That's a working call. For chat, the same shape applies with a chat
-token instead — see [Chat → Overview](/chat).
+That's a working call. Nothing above configures an SFU, a TURN server, ICE
+credentials or a WebSocket address, and nothing needs to: the grant carries
+them, and your two environment variables stay `RAVEN_API_KEY` and
+`RAVEN_API_URL`.
+
+## 5. Add chat to the same app
+
+Chat is a second grant of the same shape, minted by the same backend from
+the same API key, and it is entirely independent of RTC — you can use
+either without the other.
+
+```ts
+// your backend
+const chat = await raven.chat.createToken({
+  userId: req.user.id,
+  conversations: ['demo-room'],
+});
+res.json(chat); // { token, chatUrl, apiUrl, scopes, ... }
+```
+
+```ts
+// your browser app
+import { createChatClient } from '@ravenkash/chat';
+
+const grant = await fetch('/chat-token', { method: 'POST' }).then((r) => r.json());
+
+const client = createChatClient(grant);
+
+// Join as you connect. A connected client that has not joined a
+// conversation is subscribed to nothing: sends succeed, and no message
+// ever arrives — including your own echo. `connect({ rooms: [...] })`
+// takes several; `joinRoom()` adds one later.
+await client.connect({ room: 'demo-room' });
+
+client.on('message', (message) => console.log(message.text));
+await client.sendMessage({ room: 'demo-room', text: 'hello from the quickstart' });
+```
+
+The conversation has to exist first — `raven.chat.createConversation({ name:
+'demo-room' })` — and the grant is scoped to exactly the conversations you
+name, so a browser holding it cannot read a room you did not list. See
+[Chat → Overview](/chat) for the rest.
 
 ## Local development
 
-Running Raven's own control plane locally, rather than against a hosted
+Running Livqeno's own control plane locally, rather than against a hosted
 instance:
 
 ```bash
@@ -124,7 +203,7 @@ pnpm db:seed        # optional: a demo developer + project + key + room
 ```
 
 `.env` needs a `DATABASE_URL` and `DIRECT_URL` before any of this works —
-Postgres is not part of the compose stack. Any Postgres will do; Raven's
+Postgres is not part of the compose stack. Any Postgres will do; Livqeno's
 own deployment uses managed Postgres on Supabase, whose free tier gives you
 both connection strings in a couple of minutes.
 

@@ -23,9 +23,9 @@ export interface ReadStateView {
  * marking 500 messages read is a single UPDATE, and an unread count is one
  * indexed COUNT, not a set difference over a receipts table.
  *
- * Raven's delivery vocabulary, stated plainly:
+ * Livqeno's delivery vocabulary, stated plainly:
  *   - **accepted**: the send ack, returned only once the row is durably in
- *     Postgres. This is the one Raven actually guarantees.
+ *     Postgres. This is the one Livqeno actually guarantees.
  *   - **delivered**: a recipient's live socket received the fan-out.
  *     Reported per broadcast as a count and never stored, because a socket
  *     receiving bytes is no proof a person saw them.
@@ -59,13 +59,7 @@ export class ReadStateService {
     // bottom and one at the top, mustn't un-read what the user has already
     // seen.
     if (existing && existing.lastReadAt >= message.createdAt) {
-      return this.view(
-        conversation.publicId,
-        userId,
-        existing.lastReadMessageId,
-        existing.lastReadAt,
-        conversation.id,
-      );
+      return this.view(conversation.publicId, userId, existing.lastReadMessageId, existing.lastReadAt, conversation.id);
     }
 
     const updated = await this.prisma.readState.upsert({
@@ -89,13 +83,7 @@ export class ReadStateService {
       at: new Date().toISOString(),
     });
 
-    return this.view(
-      conversation.publicId,
-      userId,
-      updated.lastReadMessageId,
-      updated.lastReadAt,
-      conversation.id,
-    );
+    return this.view(conversation.publicId, userId, updated.lastReadMessageId, updated.lastReadAt, conversation.id);
   }
 
   /** This user's own read position and unread count for one conversation. */

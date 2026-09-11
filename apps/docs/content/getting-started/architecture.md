@@ -3,11 +3,11 @@ title: Architecture
 description: The control plane, the RTC plane, and how tokens connect them.
 ---
 
-Raven is two planes that share one control plane, and neither depends on
+Livqeno is two planes that share one control plane, and neither depends on
 the other at runtime.
 
 ```
-                 Raven Control Plane
+                 Livqeno Control Plane
         (projects, environments, tokens, roles)
                        │
         ┌──────────────┴──────────────┐
@@ -25,9 +25,9 @@ piece — the RTC plane, the chat plane, every SDK — is a client of this
 one control plane, not a second source of truth.
 
 **The RTC plane** runs on a managed SFU for media routing and a TURN
-relay for NAT traversal. Raven doesn't reimplement WebRTC media
+relay for NAT traversal. Livqeno doesn't reimplement WebRTC media
 routing — that's a solved, hard problem, and duplicating it would only
-make Raven worse at the part it doesn't need to own. What Raven owns
+make Livqeno worse at the part it doesn't need to own. What Livqeno owns
 here is the token that authorizes a client to join, and everything
 upstream of the SFU (project scoping, room identity, environment
 isolation) — and that boundary is what lets the media layer underneath
@@ -49,7 +49,7 @@ Your backend (holds the API key)
         │
         │ POST /v1/rooms/{id}/rtc-tokens   or   POST /v1/chat/tokens
         ▼
-Raven control plane
+Livqeno control plane
         │
         │ a token scoped to one room/conversation,
         │ one identity, and an explicit set of permissions

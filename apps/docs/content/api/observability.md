@@ -4,7 +4,7 @@ description: Connection history, classified errors, usage metrics, dependency he
 ---
 
 Everything here is read-only and reports what actually happened.
-Nothing is fabricated: a value Raven does not know comes back `null` or
+Nothing is fabricated: a value Livqeno does not know comes back `null` or
 absent rather than as a plausible-looking guess.
 
 Most of these exist twice — once under `/v1/...` for a project API key (what
@@ -26,6 +26,7 @@ dashboard session. Same data, different credential.
 | GET | [`/v1/errors/{errorId}`](#get-v1errorserrorid) | Project API key |
 | GET | [`/v1/metrics`](#get-v1metrics) | Project API key |
 | GET | [`/v1/project`](#get-v1project) | Project API key |
+| PATCH | [`/v1/projects/{id}/allowed-origins`](#patch-v1projectsidallowedorigins) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/connections`](#get-v1projectsprojectidconnections) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/connections/{connectionId}`](#get-v1projectsprojectidconnectionsconnectionid) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/diagnostics`](#get-v1projectsprojectiddiagnostics) | Dashboard session (JWT) |
@@ -104,6 +105,18 @@ Get the API key's own project
 **Credential** Project API key
 
 _No parameters._
+
+### PATCH `/v1/projects/{id}/allowed-origins`
+
+Replace a project's allowed browser origins
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `id` | path | `string` | Yes | |
+| `allowedOrigins` | body | `string[]` | Yes | array — Complete list of allowed browser origins. Empty means unconfigured, which allows any origin. |
+| `allowLocalhostOrigins` | body | `boolean` | No | Allow http(s)://localhost, 127.0.0.1 and [::1] on any port regardless of the list above. On by default so configuring production origins never breaks local development. |
 
 ### GET `/v1/projects/{projectId}/connections`
 
@@ -200,7 +213,7 @@ Best-effort ingestion of one RTC connection/participant/error event
 
 ### GET `/v1/usage`
 
-The caller's Raven minute allowance and how much of it is spent
+The caller's Livqeno minute allowance and how much of it is spent
 
 **Credential** Dashboard session (JWT)
 

@@ -5,7 +5,7 @@ import { getSessionToken } from '@/lib/session';
 import { OnboardingFlow } from './onboarding-flow';
 
 export const metadata: Metadata = {
-  title: 'Welcome — Raven',
+  title: 'Welcome — Livqeno',
 };
 
 /**

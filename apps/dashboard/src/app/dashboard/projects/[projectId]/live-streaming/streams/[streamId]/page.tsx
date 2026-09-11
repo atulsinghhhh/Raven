@@ -111,7 +111,10 @@ export default async function LiveStreamDetailPage({
       <section>
         <SectionHeader title="Host" subtitle={`${formatCount(stream.hosts.length)} registered.`} />
         {stream.hosts.length === 0 ? (
-          <EmptyState title="No hosts registered" description="A stream always has at least a HOST once created — this one may not have finished setup." />
+          <EmptyState
+            title="No hosts registered"
+            description="A stream always has at least a HOST once created — this one may not have finished setup."
+          />
         ) : (
           <>
             <div className="hidden sm:block">
@@ -129,7 +132,9 @@ export default async function LiveStreamDetailPage({
                           <span className="font-mono text-sm text-fg">{host.identity}</span>
                         </TD>
                         <TD>
-                          <Badge tone={host.role === 'HOST' ? 'accent' : 'info'}>{host.role.replace('_', '-').toLowerCase()}</Badge>
+                          <Badge tone={host.role === 'HOST' ? 'accent' : 'info'}>
+                            {host.role.replace('_', '-').toLowerCase()}
+                          </Badge>
                         </TD>
                         <TD>
                           <span className="tabular text-xs text-muted">{formatDateTime(host.invitedAt)}</span>
@@ -146,7 +151,9 @@ export default async function LiveStreamDetailPage({
                   <MobileRow key={host.identity}>
                     <div className="mb-2 flex items-start justify-between gap-3">
                       <span className="min-w-0 truncate font-mono text-xs text-fg">{host.identity}</span>
-                      <Badge tone={host.role === 'HOST' ? 'accent' : 'info'}>{host.role.replace('_', '-').toLowerCase()}</Badge>
+                      <Badge tone={host.role === 'HOST' ? 'accent' : 'info'}>
+                        {host.role.replace('_', '-').toLowerCase()}
+                      </Badge>
                     </div>
                     <MobileField label="Invited">{formatDateTime(host.invitedAt)}</MobileField>
                   </MobileRow>
@@ -158,7 +165,10 @@ export default async function LiveStreamDetailPage({
       </section>
 
       <section>
-        <SectionHeader title="Viewers" subtitle="Current is read from the SFU each time this page loads; peak is a stored high-water mark." />
+        <SectionHeader
+          title="Viewers"
+          subtitle="Current is read from the SFU each time this page loads; peak is a stored high-water mark."
+        />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="rounded-lg border border-line bg-surface p-4">
             <div className="text-xs font-medium text-muted">Current</div>
@@ -199,7 +209,10 @@ export default async function LiveStreamDetailPage({
           subtitle="Every viewer reaction attaches to one chat message — the count on it is the stream's total."
         />
         {!stream.conversationId ? (
-          <EmptyState title="No chat attached" description="This stream has no chat conversation, so reactions are unavailable." />
+          <EmptyState
+            title="No chat attached"
+            description="This stream has no chat conversation, so reactions are unavailable."
+          />
         ) : !messages ? (
           <Card>
             <NoDataYet label="Message records are unavailable right now" />
@@ -251,7 +264,12 @@ function ChatActivity({
     );
   }
   if (messages.length === 0) {
-    return <EmptyState title="No chat activity yet" description="Messages sent with @ravenkash/chat appear here as soon as they are stored." />;
+    return (
+      <EmptyState
+        title="No chat activity yet"
+        description="Messages sent with @ravenkash/chat appear here as soon as they are stored."
+      />
+    );
   }
 
   return (
@@ -304,7 +322,9 @@ function ChatActivity({
         </MobileList>
       </div>
       {messages.length > 20 && (
-        <p className="mt-2 text-xs text-subtle">Showing the 20 most recent of {formatCount(messages.length)} scanned.</p>
+        <p className="mt-2 text-xs text-subtle">
+          Showing the 20 most recent of {formatCount(messages.length)} scanned.
+        </p>
       )}
     </>
   );

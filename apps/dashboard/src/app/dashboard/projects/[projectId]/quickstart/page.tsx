@@ -45,7 +45,13 @@ export default async function QuickstartPage({ params }: { params: Promise<{ pro
             samples={[
               { label: 'Browser', language: 'bash', code: 'npm install @ravenkash/rtc' },
               { label: 'Node.js backend', language: 'bash', code: 'npm install @ravenkash/server' },
-              { label: 'Python backend', language: 'bash', code: 'pip install raven-sdk' },
+              // Deliberately not `pip install raven-sdk`: that name on PyPI is an
+              // unrelated third-party package. See docs/releases.md#python--raven-sdk.
+              {
+                label: 'Python backend',
+                language: 'bash',
+                code: 'pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"',
+              },
             ]}
           />
         </Step>
@@ -65,7 +71,9 @@ export default async function QuickstartPage({ params }: { params: Promise<{ pro
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-medium text-fg">Open API Keys</span>
-                <span className="block text-xs text-muted">Create a key, then copy it straight into your secret store.</span>
+                <span className="block text-xs text-muted">
+                  Create a key, then copy it straight into your secret store.
+                </span>
               </span>
               <IconChevronRight className="size-4 shrink-0 text-subtle transition-transform group-hover:translate-x-0.5" />
             </a>
@@ -92,8 +100,7 @@ export RAVEN_API_URL="http://localhost:4100"   # your Raven Control API deployme
           />
           <p className="mt-3 text-xs leading-relaxed text-muted">
             The mint response carries <code className="font-mono text-fg">token</code>,{' '}
-            <code className="font-mono text-fg">endpoint</code>,{' '}
-            <code className="font-mono text-fg">iceServers</code>,{' '}
+            <code className="font-mono text-fg">endpoint</code>, <code className="font-mono text-fg">iceServers</code>,{' '}
             <code className="font-mono text-fg">telemetryUrl</code> and{' '}
             <code className="font-mono text-fg">roomId</code>. Forward those to your frontend as-is — don&apos;t
             hand-build STUN/TURN configuration yourself.
@@ -134,7 +141,10 @@ export RAVEN_API_URL="http://localhost:4100"   # your Raven Control API deployme
       </ol>
 
       <Card>
-        <CardHeader title="Where to go next" subtitle="Everything below reflects code that exists in this repository." />
+        <CardHeader
+          title="Where to go next"
+          subtitle="Everything below reflects code that exists in this repository."
+        />
         <ul className="flex flex-col gap-2.5 text-sm">
           <NextLink href={`${base}/sdks`}>
             SDK reference — <span className="font-mono text-xs">@ravenkash/rtc</span>,{' '}
@@ -142,12 +152,16 @@ export RAVEN_API_URL="http://localhost:4100"   # your Raven Control API deployme
             <span className="font-mono text-xs">raven-sdk</span> and{' '}
             <span className="font-mono text-xs">@ravenkash/react</span>
           </NextLink>
-          <NextLink href={`${base}/rooms`}>Rooms — inspect live participants and mint a test token from the dashboard</NextLink>
+          <NextLink href={`${base}/rooms`}>
+            Rooms — inspect live participants and mint a test token from the dashboard
+          </NextLink>
           <NextLink href={`${base}/connections`}>
             Connections — every join shows up here, keyed by the <span className="font-mono text-xs">connectionId</span>{' '}
             above
           </NextLink>
-          <NextLink href={`${base}/errors`}>Errors — categorised failures with likely cause and suggested action</NextLink>
+          <NextLink href={`${base}/errors`}>
+            Errors — categorised failures with likely cause and suggested action
+          </NextLink>
           <NextLink href={`${DOCS_URL}/sdk.md`}>Full browser SDK reference (docs/sdk.md)</NextLink>
         </ul>
       </Card>
@@ -228,7 +242,7 @@ const raven = new Raven({
 // Rooms are control-plane records. Create one, or reuse an ID from raven.rooms.list().
 const room = await raven.rooms.create({ name: 'standup' });
 
-// Your own auth decides who "alice" is. Raven only mints for who you say.
+// Your own auth decides who "alice" is. Livqeno only mints for who you say.
 const issued = await raven.tokens.create({
   room: room.id,
   identity: 'alice',

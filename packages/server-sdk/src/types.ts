@@ -43,7 +43,7 @@ export interface IceServer {
   credential?: string;
 }
 
-/** Raven's own permission vocabulary. See docs/control-plane.md#rtc-tokens. */
+/** Livqeno's own permission vocabulary. See docs/control-plane.md#rtc-tokens. */
 export interface TokenPermissions {
   join?: boolean;
   subscribe?: boolean;
@@ -352,14 +352,14 @@ export interface CreateLiveStreamParams {
   /** Registered as this stream's HOST, the only identity a stream is created with. */
   hostIdentity: string;
   description?: string;
-  /** A URL you host. Raven neither accepts nor stores thumbnail uploads. */
+  /** A URL you host. Livqeno neither accepts nor stores thumbnail uploads. */
   thumbnailUrl?: string;
   category?: string;
   tags?: string[];
   language?: string;
   visibility?: LiveStreamVisibility;
   metadata?: Record<string, unknown>;
-  /** ISO 8601. Raven won't auto-transition status at this time; call `start()` yourself. */
+  /** ISO 8601. Livqeno won't auto-transition status at this time; call `start()` yourself. */
   scheduledAt?: string;
 }
 

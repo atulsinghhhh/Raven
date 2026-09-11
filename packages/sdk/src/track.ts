@@ -1,5 +1,10 @@
 import type { EffectsPipeline } from '@ravenkash/effects';
-import { normalizeTrackStats, pickBestLayer, type RawTrackStats, type TrackStats } from './internal/telemetry/track-stats';
+import {
+  normalizeTrackStats,
+  pickBestLayer,
+  type RawTrackStats,
+  type TrackStats,
+} from './internal/telemetry/track-stats';
 import { RTCError } from './errors';
 
 export type { TrackStats } from './internal/telemetry/track-stats';
@@ -73,7 +78,7 @@ export interface LocalTrackDelegate extends TrackDelegate {
    * Swaps the underlying MediaStreamTrack on an already-published sender.
    * `RTCRtpSender.replaceTrack()` manages this without renegotiating, so
    * nobody else in the room sees a thing. Optional for the same reason as
-   * getSenderStats: a delegate predating Raven Effects still satisfies
+   * getSenderStats: a delegate predating Livqeno Effects still satisfies
    * this interface, and LocalTrack.attachEffects() checks for it rather
    * than assuming every delegate has it.
    */
@@ -111,9 +116,9 @@ export class LocalTrack extends Track {
   }
 
   /**
-   * Where Raven Effects (`@ravenkash/effects`) plugs in. The chain is
-   * Camera → Raven Video Track → Effects Pipeline → Processed Video Track →
-   * Raven RTC.
+   * Where Livqeno Effects (`@ravenkash/effects`) plugs in. The chain is
+   * Camera → Livqeno Video Track → Effects Pipeline → Processed Video Track →
+   * Livqeno RTC.
    *
    * Runs `pipeline` against this track's live camera feed and, if the track
    * is already published, swaps the sender's `MediaStreamTrack` in place
@@ -130,7 +135,10 @@ export class LocalTrack extends Track {
       throw new RTCError('MEDIA_ERROR', `attachEffects() is only supported on camera tracks, not "${this.kind}".`);
     }
     if (!this.localDelegate.replaceTrack) {
-      throw new RTCError('MEDIA_ERROR', 'This track cannot be swapped in place; the current adapter does not support replaceTrack().');
+      throw new RTCError(
+        'MEDIA_ERROR',
+        'This track cannot be swapped in place; the current adapter does not support replaceTrack().',
+      );
     }
     if (this.attachedEffectsPipeline) {
       await this.detachEffects();

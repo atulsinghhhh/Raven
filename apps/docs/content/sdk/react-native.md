@@ -1,6 +1,6 @@
 ---
 title: React Native SDK
-description: The same API as Raven Web — the Room class is the same class.
+description: The same API as Livqeno Web — the Room class is the same class.
 ---
 
 ```tsx
@@ -20,10 +20,6 @@ tracks, and events on web is true here, and a fix to that logic lands on
 both platforms at once.
 
 ## Install
-
-> **Not published to npm yet.** The commands below are what installation
-> will look like once these packages are released. Until then, install
-> from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
 ```bash
 npm install @ravenkash/react-native @ravenkash/rtc @ravenkash/effects @ravenkash/chat \
@@ -150,7 +146,7 @@ new Raven({
 `RavenLiveStream` is a thin wrapper around `Raven` — not a parallel
 implementation. A stream's host and viewers are ordinary participants of
 one room, and its chat is ordinary `@ravenkash/chat`, so every mobile
-concern `Raven.join()` already handles (permissions, audio session, app
+concern `Livqeno.join()` already handles (permissions, audio session, app
 lifecycle, network recovery) applies unchanged:
 
 ```ts

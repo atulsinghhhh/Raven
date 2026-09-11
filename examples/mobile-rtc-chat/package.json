@@ -2,7 +2,7 @@
   "name": "raven-example-mobile-rtc-chat",
   "private": true,
   "version": "0.1.0",
-  "description": "React Native: a Raven video call with a chat panel. Real RTC, real messaging, no mocks.",
+  "description": "React Native: a Livqeno video call with a chat panel. Real RTC, real messaging, no mocks.",
   "scripts": {
     "server": "node server.mjs",
     "typecheck": "tsc --noEmit",

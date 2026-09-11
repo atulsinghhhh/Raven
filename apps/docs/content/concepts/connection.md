@@ -1,6 +1,6 @@
 ---
 title: Connection
-description: The record of one client's session. What Raven knows about a call after it happened.
+description: The record of one client's session. What Livqeno knows about a call after it happened.
 ---
 
 A connection is the stored record of one client joining one room: when it

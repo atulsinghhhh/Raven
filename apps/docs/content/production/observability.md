@@ -3,7 +3,7 @@ title: Observability
 description: Real connection history, real diagnostics — never fabricated, never infrastructure internals.
 ---
 
-Every error and connection Raven shows you is a **Raven concept** — never
+Every error and connection Livqeno shows you is a **Livqeno concept** — never
 a raw SFU, TURN, or database error surfaced directly. That
 translation happens in one place server-side (see
 [Error Codes](/reference/errors)), so a developer never has to learn a
@@ -15,7 +15,7 @@ dependency's error vocabulary to understand their own application.
   state, region, SDK version, platform, reconnect count, and — once a
   client reports them — real media-quality stats (RTT, jitter, packet
   loss, bitrate, codec). See [Diagnostics](/rtc/diagnostics).
-- **Errors** — classified into a Raven-facing category
+- **Errors** — classified into a Livqeno-facing category
   (`TOKEN_ERROR`, `ICE_ERROR`, `TURN_ERROR`, ...) with a plain-language
   likely cause and suggested action, always hedged rather than stated as
   certain.
@@ -60,7 +60,7 @@ explicitly in its own output rather than silently omitting the field.
 
 ## What's not built yet
 
-There's no alerting layer — Raven records the data; wiring it to PagerDuty
+There's no alerting layer — Livqeno records the data; wiring it to PagerDuty
 or Slack is presently on you, via the REST API or webhooks. Stated
 plainly rather than implied, per this project's own standard for
 documenting what exists.

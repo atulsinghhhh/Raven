@@ -30,7 +30,9 @@ export default async function EventsPage({
   const product = (['rtc', 'chat', 'webhook', 'audit'] as const).includes(rawProduct as LogProduct)
     ? (rawProduct as LogProduct)
     : undefined;
-  const status = (['success', 'failed'] as const).includes(rawStatus as LogStatus) ? (rawStatus as LogStatus) : undefined;
+  const status = (['success', 'failed'] as const).includes(rawStatus as LogStatus)
+    ? (rawStatus as LogStatus)
+    : undefined;
 
   const token = await getSessionToken();
   if (!token) redirect('/login');
@@ -63,7 +65,10 @@ export default async function EventsPage({
 
       {filtered.length === 0 ? (
         sources.anySourceFailed ? (
-          <ErrorState title="Some event sources are unreachable" description="Try again in a moment — this doesn't affect stored data." />
+          <ErrorState
+            title="Some event sources are unreachable"
+            description="Try again in a moment — this doesn't affect stored data."
+          />
         ) : (
           <EmptyState
             icon={<IconEvents className="size-7" />}

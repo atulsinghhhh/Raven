@@ -295,7 +295,69 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
     await this.adapter.enableScreenShare(false);
   }
 
-  /** Publishes a track you made with `client.createCameraTrack()` and friends. */
+  /**
+   * Two events get special treatment here.
+   *
+   * **`dataReceived`** is what provisions this participant's data channel.
+   * The SFU fans data out over each recipient's own channel, and a channel
+   * is only created on demand — most calls never send a byte, and an SCTP
+   * association for every participant regardless is a cost with nothing
+   * behind it. So a page that never called `sendData()` could not
+   * *receive* either, which made data one-way in exactly the setup people
+   * try first. Subscribing to the event is the signal that one is wanted.
+   *
+   * **`trackSubscribed`** is replayed for tracks that were already
+   * subscribed when the handler was added.
+   *
+   * Without that, joining a room where somebody is *already* publishing
+   * never tells you about them. `client.join()` subscribes to the existing
+   * publishers and emits during `connect()`, which is before the promise
+   * resolves — so by the time a caller has a `Room` to call `.on()` on,
+   * the events are gone. Media arrives and decodes; the application simply
+   * never hears about it and renders nothing. That is the normal case for
+   * a live stream, where every viewer joins a broadcast already in
+   * progress, and the shape the documented example uses:
+   *
+   * ```ts
+   * const room = await client.join(name);           // subscribes here
+   * room.on('trackSubscribed', (t) => …);           // …handler added here
+   * ```
+   *
+   * Only tracks a handler demonstrably missed are replayed — the ones
+   * subscribed before it was added — so a handler registered up front
+   * still sees each track exactly once, and adding a second handler later
+   * cannot double-deliver to the first. Delivery is deferred to a
+   * microtask so `.on()` stays a plain registration call and never
+   * re-enters the caller before it has returned. `Promise.resolve()`
+   * rather than `queueMicrotask`, so this holds on every engine the SDK
+   * ships to, React Native's included.
+   */
+  on<E extends keyof RoomEventMap>(event: E, handler: RoomEventMap[E]): this {
+    if (event === 'dataReceived') {
+      this.adapter.ensureDataChannel?.();
+    }
+
+    if (event === 'trackSubscribed') {
+      const missed = this.remoteParticipants.flatMap((participant) =>
+        participant.tracks.map((track) => ({ track, participant })),
+      );
+      if (missed.length > 0) {
+        const subscribed = handler as RoomEventMap['trackSubscribed'];
+        void Promise.resolve().then(() => {
+          for (const { track, participant } of missed) {
+            subscribed(track, participant);
+          }
+        });
+      }
+    }
+
+    return super.on(event, handler);
+  }
+
+  /**
+   * Publishes a track you made with `client.createCameraTrack()` and
+   * friends, or one you wrapped with `client.createCustomTrack()`.
+   */
   async publish(track: LocalTrack): Promise<void> {
     await this.adapter.publish(track);
   }
@@ -324,7 +386,10 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
     if (typeof document !== 'undefined') {
       const probe = document.createElement('audio') as HTMLAudioElement & { setSinkId?: unknown };
       if (typeof probe.setSinkId !== 'function') {
-        throw new RTCError('DEVICE_NOT_FOUND', "This browser doesn't support selecting an audio output device (no setSinkId)");
+        throw new RTCError(
+          'DEVICE_NOT_FOUND',
+          "This browser doesn't support selecting an audio output device (no setSinkId)",
+        );
       }
     }
     await this.adapter.setDevice('audiooutput', deviceId);
@@ -334,6 +399,12 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
    * Sends a small payload to everyone, or to specific people if the
    * underlying SFU adapter supports targeting. Requires the token's
    * `publishData` grant; throws PERMISSION_DENIED without it.
+   *
+   * Works in an empty room with nothing published. The first call has to
+   * negotiate a data channel — one round trip — which this awaits on your
+   * behalf; payloads sent while the channel is still opening are queued
+   * and go out in order. Rejects with CONNECTION_FAILED if the connection
+   * dies before the channel can open, rather than hanging.
    */
   async sendData(payload: string | Uint8Array): Promise<void> {
     // Rewrap as a plain ArrayBuffer-backed Uint8Array, so callers never

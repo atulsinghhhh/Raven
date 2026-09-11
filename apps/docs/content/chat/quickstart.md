@@ -6,15 +6,11 @@ description: Install, authenticate, connect, and send your first message — on 
 What you'll build: a conversation two users can send messages into, with
 one seeing the other's messages arrive live.
 
-**Prerequisites:** a Raven project and a project API key (see
+**Prerequisites:** a Livqeno project and a project API key (see
 [API Keys](/authentication)) — conversations are created and chat tokens
 are minted with it, server-side, and never in a browser or app.
 
 ## 1. Install
-
-> **Not published to npm yet.** The commands below are what installation
-> will look like once these packages are released. Until then, install
-> from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
 <Tabs>
 <Tab title="Web">
@@ -63,7 +59,10 @@ WebRTC stack.
 
 ```ts
 import { Raven } from '@ravenkash/server';
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY,
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
+});
 
 const conversation = await raven.chat.createConversation({
   name: 'support-room-42',
@@ -77,7 +76,10 @@ const conversation = await raven.chat.createConversation({
 ```python
 from raven import Raven, CreateConversationParams
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 conversation = raven.chat.create_conversation(CreateConversationParams(name="support-room-42"))
 ```
 
@@ -109,6 +111,30 @@ token = raven.chat.create_token(
 
 </Tab>
 </Tabs>
+
+The mint response is a **grant**: it carries `token`, `chatUrl` and
+`apiUrl` together. Return it to the browser as-is from your own endpoint:
+
+```ts
+// app/api/chat/token/route.ts — your backend, holding RAVEN_API_KEY
+export async function POST() {
+  const grant = await raven.chat.createToken({ userId: session.userId });
+  return Response.json(grant);          // token + chatUrl + apiUrl
+}
+```
+
+Then the browser needs no Livqeno configuration of its own — no
+`RAVEN_API_KEY`, no gateway hostname, no API base URL:
+
+```ts
+const grant = await fetch('/api/chat/token', { method: 'POST' }).then((r) => r.json());
+const chat = createChatClient(grant);   // forwarded whole, unmodified
+await chat.connect();
+```
+
+That is the whole reason the addresses ride inside the grant: the same
+frontend code works against your laptop, hosted Livqeno, or your own
+cluster, and nothing in it knows which.
 
 ## 4. Connect from the client
 
@@ -298,9 +324,9 @@ chat.dispose();
 </Tab>
 </Tabs>
 
-## What Raven handles vs. what you handle
+## What Livqeno handles vs. what you handle
 
-**Raven handles:** the WebSocket connection, reconnection with backoff
+**Livqeno handles:** the WebSocket connection, reconnection with backoff
 and catch-up, message ordering and durability, and idempotent retries.
 
 **You handle:** minting tokens from your own authenticated backend
@@ -313,6 +339,8 @@ session, and the UI around messages/typing/presence.
 | `chat:send` scope missing | Token was minted without it, or the role doesn't grant it. | Check the member's role — see [Members](/chat/members). |
 | Message never arrives for other users | Rejected server-side; a rejection never round-trips as a `message` event. | Listen for `error` too, not just `message` — see [Troubleshooting](/chat/troubleshooting). |
 | `senderId` in the request is ignored | A browser chat token can't set it. | Expected — see [Messages](/chat/messages#the-sender-is-never-yours-to-choose). |
+| `ORIGIN_NOT_ALLOWED`, socket closed with code `4403` | The page's origin is not on this project's allow-list. The token was fine; the page holding it was not expected. | Add the origin under **Project Settings → Security → Allowed Origins**. Retrying will not help. Loopback origins are allowed by default. See [Browser security](/authentication/browser-security). |
+| `403` on a Chat REST call, code `RAVEN_PERMISSION_DENIED` | Same cause, on the REST surface rather than the socket. | Same fix. Note this is a real `403` you can read, not an opaque browser CORS failure — that is deliberate. |
 
 ## Production notes
 

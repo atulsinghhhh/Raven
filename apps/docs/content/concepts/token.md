@@ -3,7 +3,7 @@ title: Token
 description: A client's credential. Short-lived, scoped to one room or conversation, minted server-side.
 ---
 
-A token is the only Raven credential that ever reaches a client. It is a
+A token is the only Livqeno credential that ever reaches a client. It is a
 signed JWT your backend mints and forwards.
 
 ## Why it exists
@@ -42,12 +42,19 @@ them is secret. What matters is that they cannot be *changed*.
 
 ## Expiry is the control
 
-There is no revocation list for an issued RTC token. The short lifetime is
-the security control, which is why there is no way to request a
-non-expiring one. Mint on demand, one per participant per join.
+The short lifetime is the primary security control, which is why there is
+no way to request a non-expiring token. Mint on demand, one per
+participant per join.
 
-Chat tokens do carry a revocation check at connect time, but no public
-endpoint currently triggers a revocation — see
+An RTC token can also be revoked before it expires, via
+`DELETE /v1/rooms/{roomId}/rtc-tokens/{tokenId}`. That stops the token
+opening anything new; it does not disconnect a session already
+established on it, so it complements a short lifetime rather than
+replacing it. See
+[RTC authentication → Revocation](/rtc/authentication#revocation).
+
+Chat tokens carry the same revocation check at connect time, but no
+public endpoint triggers a chat revocation yet — see
 [Known limitations](/reference/known-limitations).
 
 ## Minimal example

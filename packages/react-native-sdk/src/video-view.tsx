@@ -143,7 +143,7 @@ function findVideoTrack(
 }
 
 /**
- * Bridges a Raven track to the native renderer.
+ * Bridges a Livqeno track to the native renderer.
  *
  * `track.mediaStream` is public API on `@ravenkash/rtc`, and under React
  * Native it holds a `react-native-webrtc` `MediaStream`, which carries the

@@ -47,9 +47,7 @@ describe('ChatError', () => {
       // ROOM_NOT_FOUND is the chat plane's name for it; over HTTP the
       // resource really is a conversation, and RAVEN_ROOM_NOT_FOUND means
       // an RTC room.
-      expect(bodyOf(new ChatError(ChatErrorCode.ROOM_NOT_FOUND, 'x')).code).toBe(
-        RavenErrorCode.CONVERSATION_NOT_FOUND,
-      );
+      expect(bodyOf(new ChatError(ChatErrorCode.ROOM_NOT_FOUND, 'x')).code).toBe(RavenErrorCode.CONVERSATION_NOT_FOUND);
     });
 
     it.each([
@@ -95,9 +93,7 @@ describe('ChatError', () => {
     it('reports the pre-prefix chat code as legacyCode, not a generic one', () => {
       // A client mid-migration was reading INVALID_CURSOR. Handing it
       // VALIDATION_FAILED would break the very callers the field protects.
-      expect(bodyOf(new ChatError(ChatErrorCode.INVALID_CURSOR, 'x')).legacyCode).toBe(
-        'INVALID_CURSOR',
-      );
+      expect(bodyOf(new ChatError(ChatErrorCode.INVALID_CURSOR, 'x')).legacyCode).toBe('INVALID_CURSOR');
     });
 
     it('reports retryAfterSeconds on both surfaces when rate limited', () => {

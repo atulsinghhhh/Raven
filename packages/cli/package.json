@@ -1,7 +1,7 @@
 {
   "name": "@ravenkash/cli",
   "version": "0.1.0",
-  "description": "Raven CLI \u2014 manage projects, API keys, and rooms from the terminal; wire up a local app for RTC development.",
+  "description": "Livqeno CLI \u2014 manage projects, API keys, and rooms from the terminal; wire up a local app for RTC development.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -23,6 +23,7 @@
     "access": "public"
   },
   "scripts": {
+    "prepublishOnly": "node ../../scripts/assert-publish-safe.mjs",
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",

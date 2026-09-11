@@ -3,17 +3,13 @@ title: TypeScript / Web SDK
 description: Installing @ravenkash/rtc, @ravenkash/chat, and @ravenkash/client; browser support; and using them from Next.js.
 ---
 
-Raven ships three browser packages: `@ravenkash/rtc` for calls,
+Livqeno ships three browser packages: `@ravenkash/rtc` for calls,
 `@ravenkash/chat` for messaging, and `@ravenkash/client` for both behind one
 object. This page covers which to install, browser support, and
 framework-specific usage — the full APIs live in
 [RTC → Overview](/rtc) and [Chat → Overview](/chat).
 
 ## Install
-
-> **Not published to npm yet.** The commands below are what installation
-> will look like once these packages are released. Until then, install
-> from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
 Pick the package that matches what you're building:
 

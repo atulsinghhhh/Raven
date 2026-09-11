@@ -34,7 +34,7 @@ enum RavenChatErrorCode {
 /// The one error type this package throws.
 ///
 /// Never a raw `WebSocketException`, a `SocketException`, or an HTTP
-/// status: those are infrastructure Raven is meant to be hiding.
+/// status: those are infrastructure Livqeno is meant to be hiding.
 class RavenChatException implements Exception {
   const RavenChatException(
     this.code,

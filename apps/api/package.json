@@ -2,7 +2,7 @@
   "name": "@raven/api",
   "version": "0.0.0",
   "private": true,
-  "description": "Raven control plane API — auth, projects, api-keys, rooms, rtc-tokens.",
+  "description": "Livqeno control plane API — auth, projects, api-keys, rooms, rtc-tokens.",
   "scripts": {
     "build": "nest build",
     "start": "nest start",
@@ -48,7 +48,7 @@
     "reflect-metadata": "^0.2.2",
     "resend": "^6.26.0",
     "rxjs": "^7.8.1",
-    "ws": "^8.18.0"
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.9",

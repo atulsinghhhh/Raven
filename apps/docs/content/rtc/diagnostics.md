@@ -3,7 +3,7 @@ title: Diagnostics
 description: Real WebRTC stats — RTT, jitter, packet loss, bitrate, and codec — not a status dot.
 ---
 
-Raven exposes two levels of diagnostic information, deliberately kept
+Livqeno exposes two levels of diagnostic information, deliberately kept
 separate because they cost different amounts to collect. Both are
 `Room` methods, so they work identically on **Web and React Native** —
 the same class, not a per-platform reimplementation. **Not currently
@@ -27,7 +27,7 @@ may go in here, not a coincidence.
 
 | Field | What it tells you |
 |---|---|
-| `connectionState` | Raven's own state machine — the one to drive UI from |
+| `connectionState` | Livqeno's own state machine — the one to drive UI from |
 | `reconnectCount` | How many automatic reconnects this room has been through |
 | `iceConnectionState` | The browser's ICE state, as the local peer connection sees it |
 | `signalingState` | The browser's signaling state |
@@ -98,7 +98,7 @@ const stats = await room.getConnectionStats();
 ## Server-side visibility
 
 If your SDK version reports stats via telemetry, the same numbers land
-in Raven's `Connection` records automatically — visible via
+in Livqeno's `Connection` records automatically — visible via
 `raven connections inspect <id>` or the dashboard, with no extra code on
 your end. Multiple tracks collapse into one connection-level figure per
 field: RTT from a send-direction track, the worst jitter and packet loss

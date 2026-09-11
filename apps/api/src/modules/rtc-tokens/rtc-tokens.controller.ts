@@ -1,12 +1,16 @@
-import { Body, Controller, Param, ParseUUIDPipe, Post, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Param, ParseUUIDPipe, Post, UseGuards, UseInterceptors } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiNotFoundResponse,
   ApiOperation,
   ApiResponse,
+  ApiServiceUnavailableResponse,
   ApiTags,
   ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
+import { ADMISSION_LANE } from '../../shared/capacity/admission-control.service';
+import { Admission } from '../../shared/capacity/admission.decorator';
+import { AdmissionInterceptor } from '../../shared/capacity/admission.interceptor';
 import { RateLimit } from '../../shared/rate-limit/rate-limit.decorator';
 import { RateLimitGuard } from '../../shared/rate-limit/rate-limit.guard';
 import { CurrentScope } from '../api-keys/decorators/current-scope.decorator';
@@ -28,7 +32,7 @@ const RTC_TOKEN_IDEMPOTENCY_TTL_SECONDS = 5 * 60;
 
 // Issues short-lived RTC access tokens for a room. Doesn't establish a
 // WebRTC session itself: the token comes back and the client SDK
-// presents it to Raven's own signaling endpoint (`/v1/rtc`) later.
+// presents it to Livqeno's own signaling endpoint (`/v1/rtc`) later.
 @ApiTags('RTC Tokens')
 @ApiBearerAuth('apiKey')
 @Controller('v1/rooms/:roomId/rtc-tokens')
@@ -39,7 +43,12 @@ export class RtcTokensController {
   @Post()
   @UseGuards(RateLimitGuard)
   @RateLimit(60)
-  @UseInterceptors(IdempotencyInterceptor)
+  // Admission before idempotency: a replay is cheap and should not have to
+  // queue, but it still has to read the cached response out of Redis, and
+  // ordering it the other way would let an unbounded number of mints past
+  // the ceiling on a cache miss.
+  @UseInterceptors(AdmissionInterceptor, IdempotencyInterceptor)
+  @Admission(ADMISSION_LANE.CREDENTIAL_MINT)
   @Idempotent(RTC_TOKEN_IDEMPOTENCY_TTL_SECONDS)
   @ApiOperation({
     summary: 'Mint a short-lived RTC access token for a participant to join this room',
@@ -78,11 +87,46 @@ export class RtcTokensController {
   })
   @ApiNotFoundResponse({ description: "Room doesn't exist, or belongs to a different project" })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
+  @ApiServiceUnavailableResponse({
+    description:
+      'RAVEN_CAPACITY_EXCEEDED — this instance is at its configured concurrency ceiling for credential minting. Retryable; see retryAfterSeconds and docs/production/capacity.md.',
+  })
   create(
     @CurrentScope() scope: ProjectScope,
     @Param('roomId', ParseUUIDPipe) roomId: string,
     @Body() dto: CreateRtcTokenDto,
   ) {
     return this.rtcTokensService.create(scope, roomId, dto);
+  }
+
+  @Delete(':tokenId')
+  @UseGuards(RateLimitGuard)
+  @RateLimit(60)
+  @ApiOperation({
+    summary: 'Revoke a minted RTC token before it expires',
+    description:
+      'Refuses the token for any *new* signaling connection or telemetry call, which then fail with TOKEN_REVOKED. Does not disconnect a session already established on it — authorization is checked when a connection opens, not per-frame — so use DELETE /v1/rooms/:roomId to end a call in progress. Idempotent: revoking an already-revoked or already-expired token succeeds. Rate limited to 60 requests/window/IP.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Token revoked',
+    schema: {
+      example: {
+        id: '2b45e0e5-97f2-466d-b783-a09fed7f6505',
+        revoked: true,
+        expiresAt: '2026-08-17T15:19:49.233Z',
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: "Token doesn't exist, belongs to a different room, or belongs to a different project or environment",
+  })
+  @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
+  revoke(
+    @CurrentScope() scope: ProjectScope,
+    @Param('roomId', ParseUUIDPipe) roomId: string,
+    @Param('tokenId', ParseUUIDPipe) tokenId: string,
+  ) {
+    return this.rtcTokensService.revoke(scope, roomId, tokenId);
   }
 }

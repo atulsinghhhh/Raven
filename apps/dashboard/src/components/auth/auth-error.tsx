@@ -52,8 +52,8 @@ export function AuthApiUnreachable() {
   return (
     <div className="mb-5">
       <ErrorState
-        title="Can't reach the Raven API"
-        description="Sign-in options could not be loaded, so some may be missing from this page — and signing in will not work until the API is back. If you are running Raven locally, check that the control plane is up on its configured port."
+        title="Can't reach the Livqeno API"
+        description="Sign-in options could not be loaded, so some may be missing from this page — and signing in will not work until the API is back. If you are running Livqeno locally, check that the control plane is up on its configured port."
       />
     </div>
   );

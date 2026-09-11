@@ -25,7 +25,7 @@ export class CreateLiveStreamDto {
   @ApiProperty({
     example: 'user-123',
     description:
-      'The developer\'s own identity for whoever is starting this stream. Registered as its HOST — the only identity a stream is created with, and the only one whose role is ever HOST rather than CO_HOST.',
+      "The developer's own identity for whoever is starting this stream. Registered as its HOST — the only identity a stream is created with, and the only one whose role is ever HOST rather than CO_HOST.",
   })
   @IsString()
   @MinLength(1)
@@ -39,7 +39,7 @@ export class CreateLiveStreamDto {
   @MaxLength(2000)
   description?: string;
 
-  @ApiPropertyOptional({ description: 'A URL you host — Raven does not accept or store thumbnail uploads.' })
+  @ApiPropertyOptional({ description: 'A URL you host — Livqeno does not accept or store thumbnail uploads.' })
   @IsOptional()
   @IsString()
   @MaxLength(2048)
@@ -69,14 +69,16 @@ export class CreateLiveStreamDto {
   @IsIn(VISIBILITY_VALUES)
   visibility?: LiveStreamVisibility;
 
-  @ApiPropertyOptional({ description: 'Your own JSON, capped at 4 KB — same convention as Room/Conversation metadata.' })
+  @ApiPropertyOptional({
+    description: 'Your own JSON, capped at 4 KB — same convention as Room/Conversation metadata.',
+  })
   @IsOptional()
   @IsObject()
   metadata?: Record<string, unknown>;
 
   @ApiPropertyOptional({
     description:
-      'When set, the stream is created for a future start — see docs/live-streaming/overview.md#scheduled-streams. Raven does not automatically transition status at this time; your backend still calls start().',
+      'When set, the stream is created for a future start — see docs/live-streaming/overview.md#scheduled-streams. Livqeno does not automatically transition status at this time; your backend still calls start().',
   })
   @IsOptional()
   @IsDateString()

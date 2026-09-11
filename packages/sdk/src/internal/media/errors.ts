@@ -6,7 +6,7 @@ import type { TrackKind } from '../../track';
  * error codes.
  *
  * The whole classification is a short read of the `DOMException` names the
- * Media Capture spec defines, so Raven owns it instead of pulling in a
+ * Media Capture spec defines, so Livqeno owns it instead of pulling in a
  * library.
  *
  * Those names come from the spec's own error list (getUserMedia §9.2), not
@@ -23,11 +23,7 @@ export function toMediaError(error: unknown, kind: TrackKind): RTCError {
       // SecurityError is what a browser raises when the page isn't a
       // secure context. From the developer's side that's a permission
       // problem, and the message spells out which kind.
-      return new RTCError(
-        permissionDeniedCode(kind),
-        `Permission to use the ${label(kind)} was denied`,
-        error,
-      );
+      return new RTCError(permissionDeniedCode(kind), `Permission to use the ${label(kind)} was denied`, error);
 
     case 'NotFoundError':
     case 'OverconstrainedError':
@@ -37,11 +33,7 @@ export function toMediaError(error: unknown, kind: TrackKind): RTCError {
       return new RTCError('DEVICE_NOT_FOUND', `No ${label(kind)} device matched`, error);
 
     case 'NotReadableError':
-      return new RTCError(
-        'MEDIA_ERROR',
-        `The ${label(kind)} is already in use by another application`,
-        error,
-      );
+      return new RTCError('MEDIA_ERROR', `The ${label(kind)} is already in use by another application`, error);
 
     case 'AbortError':
       return new RTCError('MEDIA_ERROR', `Capturing the ${label(kind)} was aborted`, error);

@@ -3,7 +3,7 @@ title: Chat Overview
 description: Durable messages, presence, and receipts — a managed service, not a WebSocket you have to operate.
 ---
 
-Raven Chat gives you durable messages, presence, typing indicators, read
+Livqeno Chat gives you durable messages, presence, typing indicators, read
 receipts, reactions, and threads through one SDK — you never run a
 WebSocket server, a Redis cluster, or a fan-out layer yourself.
 
@@ -34,20 +34,23 @@ service failing takes the other down. The only link is
 ## The shape of an integration
 
 ```
-Your backend  ──(project API key)──►  Raven control plane
+Your backend  ──(project API key)──►  Livqeno control plane
                                               │  short-lived chat token
                                               ▼
                                        Your frontend
                                               │  wss://
                                               ▼
-                                   Raven Chat gateway
+                                   Livqeno Chat gateway
 ```
 
 **1. Create a conversation** (once, from your backend):
 
 ```ts
 import { Raven } from '@ravenkash/server';
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY,
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
+});
 
 const conversation = await raven.chat.createConversation({
   name: 'support-room-42',
@@ -111,7 +114,7 @@ Anywhere that takes a `room`, you can pass any of:
 - the conversation name — `support-room-42`
 - the id of an attached RTC room
 
-So `chat.connect({ room })` works whether you track Raven's id or your
+So `chat.connect({ room })` works whether you track Livqeno's id or your
 own name for the thing.
 
 ## Next
@@ -124,7 +127,7 @@ own name for the thing.
 - [Typing Indicators](/chat/typing)
 - [WebSocket Protocol](/chat/websocket) — for a from-scratch client.
 
-Need audio/video alongside the conversation? See [Raven RTC](/rtc).
+Need audio/video alongside the conversation? See [Livqeno RTC](/rtc).
 Building a live community rather than a support thread? See
-[Raven Live Streaming](/live-streaming) — every stream gets a Raven
+[Livqeno Live Streaming](/live-streaming) — every stream gets a Livqeno
 Chat conversation attached automatically.

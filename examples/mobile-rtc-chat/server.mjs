@@ -92,7 +92,7 @@ app.post('/api/session', async (req, res) => {
     });
   } catch (error) {
     if (error instanceof RavenError) {
-      console.error(`Raven session failed [${error.code}] (request ${error.requestId ?? 'n/a'})`);
+      console.error(`Livqeno session failed [${error.code}] (request ${error.requestId ?? 'n/a'})`);
       res.status(error.statusCode ?? 502).json({ error: error.message, code: error.code });
       return;
     }
@@ -102,6 +102,6 @@ app.post('/api/session', async (req, res) => {
 
 const port = process.env.PORT ?? 8790;
 app.listen(port, () => {
-  console.log(`Raven mobile example backend listening on http://localhost:${port}`);
-  console.log('Devices on the same Wi-Fi should point BACKEND_URL at this machine\'s LAN IP, not localhost.');
+  console.log(`Livqeno mobile example backend listening on http://localhost:${port}`);
+  console.log("Devices on the same Wi-Fi should point BACKEND_URL at this machine's LAN IP, not localhost.");
 });

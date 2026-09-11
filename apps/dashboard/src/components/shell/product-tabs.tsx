@@ -26,9 +26,7 @@ export function ProductTabs({ tabs, active }: { tabs: ProductTab[]; active: stri
             href={tab.href}
             aria-current={isActive ? 'page' : undefined}
             className={`-mb-px border-b-2 px-3 py-2 text-sm transition-colors ${
-              isActive
-                ? 'border-accent font-medium text-fg'
-                : 'border-transparent text-muted hover:text-fg'
+              isActive ? 'border-accent font-medium text-fg' : 'border-transparent text-muted hover:text-fg'
             }`}
           >
             {tab.label}

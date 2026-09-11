@@ -1,5 +1,5 @@
 ---
-title: Raven Client
+title: Livqeno Client
 description: '@ravenkash/client — RTC and chat behind one object, plus the LiveStream facade.'
 ---
 

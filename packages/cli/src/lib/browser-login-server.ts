@@ -74,9 +74,9 @@ export function startBrowserLoginServer(): {
           try {
             const parsed = JSON.parse(body) as { state?: string; token?: string; email?: string };
             if (parsed.state !== state || !parsed.token || !parsed.email) {
-              res.writeHead(400, { 'Content-Type': 'application/json' }).end(
-                JSON.stringify({ message: 'Invalid callback payload' }),
-              );
+              res
+                .writeHead(400, { 'Content-Type': 'application/json' })
+                .end(JSON.stringify({ message: 'Invalid callback payload' }));
               return;
             }
 
@@ -85,9 +85,9 @@ export function startBrowserLoginServer(): {
             server.close();
             resolveResult({ token: parsed.token, email: parsed.email });
           } catch {
-            res.writeHead(400, { 'Content-Type': 'application/json' }).end(
-              JSON.stringify({ message: 'Malformed request body' }),
-            );
+            res
+              .writeHead(400, { 'Content-Type': 'application/json' })
+              .end(JSON.stringify({ message: 'Malformed request body' }));
           }
         });
       });

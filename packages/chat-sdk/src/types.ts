@@ -1,4 +1,4 @@
-/** Message kinds Raven understands today. New ones widen this; they don't break it. */
+/** Message kinds Livqeno understands today. New ones widen this; they don't break it. */
 export type ChatMessageType = 'text' | 'system' | 'event' | 'attachment';
 
 export interface ChatAttachment {
@@ -24,8 +24,20 @@ export interface ChatReaction {
  * a room.
  */
 export interface ChatMessage {
-  /** Raven's canonical `msg_...` id. */
+  /** Livqeno's canonical `msg_...` id. */
   id: string;
+  /**
+   * Opaque resume point. Pass it as `after` to `messages.list()` to fetch
+   * everything that came after this message.
+   *
+   * You rarely need it: the SDK recovers missed messages by itself on
+   * reconnect and this is what it uses. It is here for apps that persist
+   * their own read position across page loads and want to resume from it.
+   *
+   * Treat it as opaque — it is a value pair, not an id, and the encoding is
+   * ours to change.
+   */
+  cursor: string;
   /** The conversation's public id, the same value you passed to `connect({ room })`. */
   roomId: string;
   conversationId: string;
@@ -96,13 +108,7 @@ export interface MessageDeletedEvent {
  * is one retrying can't fix, like a revoked token. `disconnected` means the
  * connection ended and nothing is being retried.
  */
-export type ChatConnectionState =
-  | 'idle'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'disconnected'
-  | 'failed';
+export type ChatConnectionState = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'failed';
 
 export interface ReadState {
   roomId: string;

@@ -149,7 +149,8 @@ export class ConnectionsService {
     const existing = await this.prisma.connection.findUnique({ where: { publicId } });
 
     const patch: ConnectionPatch = {};
-    const str = (key: string): string | undefined => (typeof data[key] === 'string' ? (data[key] as string) : undefined);
+    const str = (key: string): string | undefined =>
+      typeof data[key] === 'string' ? (data[key] as string) : undefined;
 
     patch.sdkVersion = str('sdkVersion');
     patch.platform = str('platform');
@@ -233,7 +234,8 @@ export class ConnectionsService {
     connectionRowId: string,
     data: Record<string, unknown>,
   ): Promise<void> {
-    const str = (key: string): string | undefined => (typeof data[key] === 'string' ? (data[key] as string) : undefined);
+    const str = (key: string): string | undefined =>
+      typeof data[key] === 'string' ? (data[key] as string) : undefined;
     const classification = classifyError({
       code: str('code'),
       message: str('message'),

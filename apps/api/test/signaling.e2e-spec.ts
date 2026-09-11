@@ -12,13 +12,7 @@ import { Environment } from '../src/shared/environment/environment.constants';
 import { AllExceptionsFilter } from '../src/shared/errors/all-exceptions.filter';
 import { PrismaService } from '../src/shared/database/prisma.service';
 import { RedisService } from '../src/shared/redis/redis.service';
-import {
-  buildSfuBinary,
-  E2E_SFU_HTTP_PORT,
-  E2E_SFU_UDP_MAX,
-  E2E_SFU_UDP_MIN,
-  SfuProcess,
-} from './helpers/sfu-process';
+import { buildSfuBinary, E2E_SFU_HTTP_PORT, E2E_SFU_UDP_MAX, E2E_SFU_UDP_MIN, SfuProcess } from './helpers/sfu-process';
 
 /**
  * End-to-end test of the signaling layer against a real media plane.
@@ -26,7 +20,7 @@ import {
  * Real WebSocket clients (the `ws` package: indistinguishable from a
  * browser's native WebSocket at the protocol level) talk to the real
  * running app, backed by the real Postgres and Redis (`docker compose up
- * -d postgres redis`), which in turn talks to a **real Raven SFU** built
+ * -d postgres redis`), which in turn talks to a **real Livqeno SFU** built
  * from `services/sfu` and spawned as a child process. Nothing between the
  * client and Pion is faked.
  *
@@ -101,9 +95,7 @@ describe('Signaling (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     app.useWebSocketAdapter(new WsAdapter(app));
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
-    );
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     app.useGlobalFilters(new AllExceptionsFilter());
     await app.init();
     await app.listen(0);
@@ -166,15 +158,10 @@ describe('Signaling (e2e)', () => {
     });
 
     await sfu.start(async () => {
-      const res = await request(baseUrl)
-        .get('/v1/rtc/servers')
-        .set('Authorization', `Bearer ${jwtToken}`);
+      const res = await request(baseUrl).get('/v1/rtc/servers').set('Authorization', `Bearer ${jwtToken}`);
       return (
         res.status === 200 &&
-        res.body.some(
-          (node: { name: string; status: string }) =>
-            node.name === sfuNodeId && node.status === 'HEALTHY',
-        )
+        res.body.some((node: { name: string; status: string }) => node.name === sfuNodeId && node.status === 'HEALTHY')
       );
     });
   });
@@ -323,8 +310,7 @@ describe('Signaling (e2e)', () => {
           () =>
             reject(
               new Error(
-                `timed out waiting for a message matching predicate; received: ` +
-                  JSON.stringify(this.received),
+                `timed out waiting for a message matching predicate; received: ` + JSON.stringify(this.received),
               ),
             ),
           timeoutMs,
@@ -363,10 +349,7 @@ describe('Signaling (e2e)', () => {
     it('has a registered, healthy SFU node the control plane can see', async () => {
       requireSfu();
 
-      const res = await request(baseUrl)
-        .get('/v1/rtc/servers')
-        .set('Authorization', `Bearer ${jwtToken}`)
-        .expect(200);
+      const res = await request(baseUrl).get('/v1/rtc/servers').set('Authorization', `Bearer ${jwtToken}`).expect(200);
 
       const node = res.body.find((n: { name: string }) => n.name === sfuNodeId);
       expect(node).toBeDefined();
@@ -384,9 +367,7 @@ describe('Signaling (e2e)', () => {
         .get('/v1/rtc/servers')
         .set('Authorization', `Bearer ${jwtToken}`)
         .expect(200);
-      const before = new Date(
-        first.body.find((n: { name: string }) => n.name === sfuNodeId).lastHeartbeatAt,
-      ).getTime();
+      const before = new Date(first.body.find((n: { name: string }) => n.name === sfuNodeId).lastHeartbeatAt).getTime();
 
       // The node's interval is 2s in this harness.
       await new Promise((r) => setTimeout(r, 3_000));
@@ -395,9 +376,7 @@ describe('Signaling (e2e)', () => {
         .get('/v1/rtc/servers')
         .set('Authorization', `Bearer ${jwtToken}`)
         .expect(200);
-      const after = new Date(
-        second.body.find((n: { name: string }) => n.name === sfuNodeId).lastHeartbeatAt,
-      ).getTime();
+      const after = new Date(second.body.find((n: { name: string }) => n.name === sfuNodeId).lastHeartbeatAt).getTime();
 
       expect(after).toBeGreaterThan(before);
     });
@@ -451,9 +430,7 @@ describe('Signaling (e2e)', () => {
           roomId,
           roomName: 'expiry-room',
           participantIdentity: 'zack',
-          permissions: resolvePermissions(
-            Object.assign(new RtcTokenPermissionsDto(), { join: true, subscribe: true }),
-          ),
+          permissions: resolvePermissions(Object.assign(new RtcTokenPermissionsDto(), { join: true, subscribe: true })),
           ttlSeconds: 60,
         }).token;
       } finally {
@@ -869,9 +846,7 @@ describe('Signaling (e2e)', () => {
       // Read from the node, not from the participants table: the two can
       // legitimately disagree, and only one of them knows who is on the
       // call right now.
-      expect(res.body.liveParticipants).toEqual([
-        expect.objectContaining({ identity: 'present-person' }),
-      ]);
+      expect(res.body.liveParticipants).toEqual([expect.objectContaining({ identity: 'present-person' })]);
       expect(res.body.liveParticipantCount).toBe(1);
 
       client.close();

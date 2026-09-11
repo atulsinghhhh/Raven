@@ -18,7 +18,7 @@ export interface ErrorClassification {
 
 /**
  * Maps an `@ravenkash/rtc` `RTCError` (plus a little connection context) onto
- * a Raven-facing error category and a plain-language explanation: never
+ * a Livqeno-facing error category and a plain-language explanation: never
  * a raw SFU or coturn error code. This is the one place that mapping
  * lives; both the ingest pipeline and any future re-classification pass
  * should go through it. See docs/error-codes.md.
@@ -81,7 +81,7 @@ export function classifyError(input: ErrorClassificationInput): ErrorClassificat
     default:
       return {
         category: ErrorCategory.UNKNOWN_ERROR,
-        likelyCause: "Cause unclear from the information reported.",
+        likelyCause: 'Cause unclear from the information reported.',
         suggestedAction: 'Check the connection timeline and reproduce with SDK debug logging enabled.',
       };
   }
@@ -98,8 +98,10 @@ function classifyConnectionFailure(input: ErrorClassificationInput): ErrorClassi
   if (input.iceConnectionState === 'failed' || input.iceConnectionState === 'disconnected') {
     return {
       category: ErrorCategory.ICE_ERROR,
-      likelyCause: 'ICE connectivity checks failed between the client and the media server — likely a firewall/NAT restriction.',
-      suggestedAction: 'Ensure TURN is reachable from this network; corporate proxies/firewalls are the most common cause.',
+      likelyCause:
+        'ICE connectivity checks failed between the client and the media server — likely a firewall/NAT restriction.',
+      suggestedAction:
+        'Ensure TURN is reachable from this network; corporate proxies/firewalls are the most common cause.',
     };
   }
   if (input.signalingState && input.signalingState !== 'stable' && input.signalingState !== 'connected') {

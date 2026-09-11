@@ -184,3 +184,95 @@ describe('reconnection', () => {
     }
   });
 });
+
+/**
+ * The *explicit* API, as opposed to the transport's own retry loop above.
+ * It had no coverage at all, which is how it shipped bricking the client:
+ * it tore the transport down but left `state` on `'connected'`, so the
+ * `connect()` that followed took its already-up early return and never
+ * built a socket. Nothing threw, the state read `'connected'`, and no
+ * message ever arrived again.
+ */
+describe('reconnect() — the explicit call', () => {
+  async function forceReconnect(client: ChatClient, room = 'room_123'): Promise<FakeSocket> {
+    const before = FakeSocket.instances.length;
+    const promise = client.reconnect();
+    const deadline = Date.now() + 2_000;
+    while (FakeSocket.instances.length === before) {
+      if (Date.now() > deadline) throw new Error('reconnect() never opened a replacement socket');
+      await new Promise((resolve) => setTimeout(resolve, 2));
+    }
+    const next = FakeSocket.instances[before];
+    next.open();
+    next.hello({ connectionId: 'ccn_test_2' });
+    await Promise.resolve();
+    next.ackLast({ room });
+    await promise;
+    return next;
+  }
+
+  it('opens a replacement socket instead of quietly doing nothing', async () => {
+    const client = makeClient();
+    await connected(client);
+
+    const next = await forceReconnect(client);
+
+    expect(FakeSocket.instances.length).toBe(2);
+    expect(next).not.toBe(FakeSocket.instances[0]);
+  });
+
+  it('leaves the client able to receive again', async () => {
+    const client = makeClient();
+    await connected(client);
+    const seen: string[] = [];
+    client.on('message', (m) => seen.push(m.text ?? ''));
+
+    const next = await forceReconnect(client);
+    next.emit({
+      type: 'message',
+      message: {
+        id: 'msg_1',
+        room: 'room_123',
+        senderId: 'bob',
+        text: 'after reconnect',
+        createdAt: new Date().toISOString(),
+      },
+    });
+    await Promise.resolve();
+
+    expect(seen).toEqual(['after reconnect']);
+  });
+
+  it('re-joins the rooms it was in', async () => {
+    const client = makeClient();
+    await connected(client, 'support');
+
+    const next = await forceReconnect(client, 'support');
+
+    expect(next.lastFrameOfType('room.join')).toMatchObject({ room: 'support' });
+  });
+
+  it('closes the old socket rather than leaving it open', async () => {
+    const client = makeClient();
+    const first = await connected(client);
+
+    await forceReconnect(client);
+
+    expect(first.closedWith).toBeDefined();
+  });
+
+  it('rejects an in-flight request instead of hanging it on a socket that is gone', async () => {
+    const client = makeClient();
+    await connected(client);
+
+    const pending = client.sendMessage({ room: 'room_123', text: 'in flight' });
+    const settled = pending.then(
+      () => 'resolved',
+      (err: { code?: string }) => `rejected:${err.code ?? 'unknown'}`,
+    );
+
+    await forceReconnect(client);
+
+    await expect(settled).resolves.toBe('rejected:CONNECTION_CLOSED');
+  });
+});

@@ -2,7 +2,7 @@ import { RTCError } from './errors';
 import type { LogLevel } from './logger';
 
 export interface RTCClientConfig {
-  /** The RTC token your backend minted through Raven's Control API. Never mint one in the browser. */
+  /** The RTC token your backend minted through Livqeno's Control API. Never mint one in the browser. */
   token: string;
   /**
    * RTC infrastructure URL to connect to. It's the `endpoint` field out of
@@ -53,9 +53,9 @@ interface DecodedTokenPayload {
 /**
  * Decodes the JWT payload. Doesn't verify it; the server is the source of truth.
  *
- * Reads Raven's own claim names (`rid`/`rnm`/`sub`/`exp`, see
+ * Reads Livqeno's own claim names (`rid`/`rnm`/`sub`/`exp`, see
  * `RtcTokenClaims` in the control plane). It used to read `video.room`,
- * which was LiveKit's claim shape and stopped existing when Raven's own
+ * which was LiveKit's claim shape and stopped existing when Livqeno's own
  * token signer replaced it — so every field here came back `undefined` and
  * `assertTokenMatchesRoom` below silently passed everything.
  */

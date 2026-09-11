@@ -3,12 +3,7 @@ import { PrismaService } from '../../shared/database/prisma.service';
 import { EmailType } from '../email/email.constants';
 import { EmailService } from '../email/email.service';
 import { renderProjectMemberAddedEmail } from '../email/templates';
-import {
-  ConflictError,
-  ForbiddenError,
-  NotFoundError,
-  ValidationFailedError,
-} from '../../shared/errors/app-error';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationFailedError } from '../../shared/errors/app-error';
 import { Capability, ProjectRole, canAssignRole, capabilitiesFor } from './project-permissions';
 import { ProjectsService } from './projects.service';
 
@@ -59,11 +54,7 @@ export class ProjectMembersService {
     actorId: string,
     input: { email: string; role: ProjectRole },
   ): Promise<ProjectMemberView> {
-    const { role: actorRole } = await this.projects.authorize(
-      projectId,
-      actorId,
-      Capability.MembersManage,
-    );
+    const { role: actorRole } = await this.projects.authorize(projectId, actorId, Capability.MembersManage);
 
     if (!canAssignRole(actorRole, input.role)) {
       throw new ForbiddenError('Only an owner can grant the owner role');
@@ -78,7 +69,7 @@ export class ProjectMembersService {
     // Saying so plainly beats a silent no-op or a pending row that never
     // resolves into anything.
     if (!user) {
-      throw new NotFoundError(`No Raven account for ${input.email}`);
+      throw new NotFoundError(`No Livqeno account for ${input.email}`);
     }
 
     const existing = await this.prisma.projectMember.findUnique({
@@ -115,11 +106,7 @@ export class ProjectMembersService {
     targetUserId: string,
     role: ProjectRole,
   ): Promise<ProjectMemberView> {
-    const { role: actorRole } = await this.projects.authorize(
-      projectId,
-      actorId,
-      Capability.MembersManage,
-    );
+    const { role: actorRole } = await this.projects.authorize(projectId, actorId, Capability.MembersManage);
 
     const target = await this.requireMember(projectId, targetUserId);
 
@@ -150,11 +137,7 @@ export class ProjectMembersService {
   }
 
   async remove(projectId: string, actorId: string, targetUserId: string): Promise<void> {
-    const { role: actorRole } = await this.projects.authorize(
-      projectId,
-      actorId,
-      Capability.MembersManage,
-    );
+    const { role: actorRole } = await this.projects.authorize(projectId, actorId, Capability.MembersManage);
 
     const target = await this.requireMember(projectId, targetUserId);
 
@@ -212,9 +195,7 @@ export class ProjectMembersService {
       });
 
       if (result.status !== 'sent') {
-        this.logger.warn(
-          `member-added email not sent status=${result.status} projectId=${projectId}`,
-        );
+        this.logger.warn(`member-added email not sent status=${result.status} projectId=${projectId}`);
       }
     } catch (err) {
       this.logger.warn(`member-added email failed: ${(err as Error).message}`);
@@ -243,9 +224,7 @@ export class ProjectMembersService {
     });
 
     if (otherOwners === 0) {
-      throw new ValidationFailedError(
-        'This is the project’s only owner. Promote someone else to owner first.',
-      );
+      throw new ValidationFailedError('This is the project’s only owner. Promote someone else to owner first.');
     }
   }
 }

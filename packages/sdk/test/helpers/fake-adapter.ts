@@ -100,6 +100,12 @@ export class FakeAdapter extends TypedEventEmitter<SFUAdapterEventMap> implement
     this.sendDataCalls.push(payload);
   }
 
+  ensureDataChannelCalls = 0;
+
+  ensureDataChannel(): void {
+    this.ensureDataChannelCalls++;
+  }
+
   async getDevices(_kind?: DeviceKind): Promise<DeviceInfo[]> {
     return [];
   }

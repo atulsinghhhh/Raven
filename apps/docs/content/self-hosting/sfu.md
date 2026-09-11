@@ -34,8 +34,8 @@ That fallback is worth knowing about, because it has a sharp edge on a
 shared database — see [Known limitations](/reference/known-limitations).
 
 Clients never learn which node they got. They connect to the signaling
-endpoint and Raven negotiates on their behalf. That indirection is what
-allowed Raven's media plane to be replaced wholesale without an SDK
+endpoint and Livqeno negotiates on their behalf. That indirection is what
+allowed Livqeno's media plane to be replaced wholesale without an SDK
 release.
 
 ## Configuration

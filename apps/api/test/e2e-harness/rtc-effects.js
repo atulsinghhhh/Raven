@@ -1,6 +1,6 @@
-// Real-browser E2E harness for Phase 16 (Raven Effects), driven by
+// Real-browser E2E harness for Phase 16 (Livqeno Effects), driven by
 // apps/api/test/effects-rtc.e2e-spec.ts via Playwright. Publishes/subscribes
-// through the actual @ravenkash/rtc build against a real Raven SFU;
+// through the actual @ravenkash/rtc build against a real Livqeno SFU;
 // nothing here is mocked. State is exposed on `window.__state` so the test
 // can poll it, and a couple of actions are exposed for the test to trigger
 // mid-call (disable/remove an effect) without needing DOM controls.
@@ -53,7 +53,9 @@ room.on('connectionStateChanged', (state) => {
 });
 room.on('participantJoined', (p) => console.log(`[harness:${role}] participantJoined ${p.identity}`));
 // `trackPublished` carries the track *kind*, not a publication object.
-room.on('trackPublished', (kind, p) => console.log(`[harness:${role}] trackPublished kind=${kind} from=${p?.identity}`));
+room.on('trackPublished', (kind, p) =>
+  console.log(`[harness:${role}] trackPublished kind=${kind} from=${p?.identity}`),
+);
 room.on('localTrackPublished', (t) => console.log(`[harness:${role}] localTrackPublished kind=${t?.kind}`));
 
 room.on('trackSubscribed', (track, participant) => {

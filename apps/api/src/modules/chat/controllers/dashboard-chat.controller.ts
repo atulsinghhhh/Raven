@@ -28,7 +28,7 @@ const RANGE_MINUTES: Record<string, number> = {
  *
  * Message *contents* are on purpose absent from this surface. The
  * dashboard shows metadata: counts, connections, rooms, error rates.
- * Reading a customer's messages is not a thing a Raven operator or a
+ * Reading a customer's messages is not a thing a Livqeno operator or a
  * project owner should be able to do casually from a metrics page
  * (spec §50).
  */

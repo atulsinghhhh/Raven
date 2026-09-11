@@ -9,7 +9,12 @@ export const temperatureDefinition: EffectDefinition = {
   type: 'temperature',
   category: 'color',
   params: {
-    value: { min: -1, max: 1, default: 0, description: 'White-balance shift, -1 (cooler) to 1 (warmer). 0 = no change.' },
+    value: {
+      min: -1,
+      max: 1,
+      default: 0,
+      description: 'White-balance shift, -1 (cooler) to 1 (warmer). 0 = no change.',
+    },
   },
   op: {
     kind: 'color',

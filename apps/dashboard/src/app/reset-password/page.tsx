@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ResetPasswordForm } from './reset-password-form';
 
 export const metadata: Metadata = {
-  title: 'Choose a new password — Raven',
+  title: 'Choose a new password — Livqeno',
   // The URL carries a live credential. Nothing should index it, and
   // nothing should send it onward as a referrer.
   robots: { index: false, follow: false },

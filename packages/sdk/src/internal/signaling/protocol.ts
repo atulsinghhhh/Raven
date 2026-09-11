@@ -1,5 +1,5 @@
 /**
- * Raven's signaling wire protocol, as the client sees it.
+ * Livqeno's signaling wire protocol, as the client sees it.
  *
  * Mirrors `apps/api/src/modules/signaling/signaling.constants.ts` and
  * `interfaces/signaling-message.interface.ts`. Written out by hand rather
@@ -53,6 +53,7 @@ export const ServerMessageType = {
 export type SignalingErrorCode =
   | 'INVALID_TOKEN'
   | 'TOKEN_EXPIRED'
+  | 'TOKEN_REVOKED'
   | 'UNAUTHORIZED'
   | 'ROOM_NOT_FOUND'
   | 'ROOM_FULL'
@@ -61,7 +62,9 @@ export type SignalingErrorCode =
   | 'PARTICIPANT_NOT_FOUND'
   | 'NOT_IN_ROOM'
   | 'PERMISSION_DENIED'
+  | 'ORIGIN_NOT_ALLOWED'
   | 'RATE_LIMITED'
+  | 'USAGE_LIMIT_EXCEEDED'
   | 'NO_RTC_CAPACITY'
   | 'RTC_SERVER_UNREACHABLE'
   | 'NEGOTIATION_FAILED'
@@ -82,7 +85,13 @@ export interface ServerParticipant {
 }
 
 export type ServerMessage =
-  | { type: typeof ServerMessageType.ROOM_JOINED; roomId: string; participants: ServerParticipant[]; rtcServer?: string; region?: string }
+  | {
+      type: typeof ServerMessageType.ROOM_JOINED;
+      roomId: string;
+      participants: ServerParticipant[];
+      rtcServer?: string;
+      region?: string;
+    }
   | { type: typeof ServerMessageType.ROOM_LEFT; roomId: string }
   | { type: typeof ServerMessageType.PARTICIPANT_JOINED; participant: ServerParticipant }
   | { type: typeof ServerMessageType.PARTICIPANT_LEFT; participant: ServerParticipant }
@@ -92,7 +101,13 @@ export type ServerMessage =
   | { type: typeof ServerMessageType.TRACK_UNMUTED; participantId: string; trackId: string }
   | { type: typeof ServerMessageType.SDP_OFFER; sdp: string }
   | { type: typeof ServerMessageType.SDP_ANSWER; sdp: string }
-  | { type: typeof ServerMessageType.ICE_CANDIDATE; candidate: string; sdpMid?: string; sdpMLineIndex?: number; usernameFragment?: string }
+  | {
+      type: typeof ServerMessageType.ICE_CANDIDATE;
+      candidate: string;
+      sdpMid?: string;
+      sdpMLineIndex?: number;
+      usernameFragment?: string;
+    }
   | { type: typeof ServerMessageType.CONNECTION_STATE; iceState: string; peerState: string }
   | { type: typeof ServerMessageType.ERROR; code: SignalingErrorCode; message: string }
   | { type: typeof ServerMessageType.PONG };
@@ -102,10 +117,21 @@ export type ClientMessage =
   | { type: typeof ClientMessageType.ROOM_LEAVE }
   | { type: typeof ClientMessageType.SDP_ANSWER; sdp: string }
   | { type: typeof ClientMessageType.SDP_OFFER; sdp: string }
-  | { type: typeof ClientMessageType.ICE_CANDIDATE; candidate: string; sdpMid?: string; sdpMLineIndex?: number; usernameFragment?: string }
+  | {
+      type: typeof ClientMessageType.ICE_CANDIDATE;
+      candidate: string;
+      sdpMid?: string;
+      sdpMLineIndex?: number;
+      usernameFragment?: string;
+    }
   | { type: typeof ClientMessageType.TRACK_MUTE; trackId: string; muted: boolean }
   | { type: typeof ClientMessageType.TRACK_PUBLISH; trackId: string; source: 'camera' | 'microphone' | 'screenShare' }
-  | { type: typeof ClientMessageType.SUBSCRIPTION_UPDATE; publisherId: string; trackId: string; layer: 'low' | 'medium' | 'high' | 'auto' }
+  | {
+      type: typeof ClientMessageType.SUBSCRIPTION_UPDATE;
+      publisherId: string;
+      trackId: string;
+      layer: 'low' | 'medium' | 'high' | 'auto';
+    }
   | { type: typeof ClientMessageType.PING };
 
 /**
@@ -119,7 +145,20 @@ export type ClientMessage =
 export const FATAL_ERROR_CODES: ReadonlySet<SignalingErrorCode> = new Set([
   'INVALID_TOKEN',
   'TOKEN_EXPIRED',
+  // Someone killed this credential on purpose. Retrying re-presents the
+  // same dead token; the application's backend has to mint a new one.
+  'TOKEN_REVOKED',
   'UNAUTHORIZED',
   'ROOM_NOT_FOUND',
   'PERMISSION_DENIED',
+  // Reconnecting cannot help: the page's origin is not on the project's
+  // allow-list, and that is changed in the dashboard, not by retrying.
+  'ORIGIN_NOT_ALLOWED',
+  // Not a credential problem, but just as terminal, and it belongs here
+  // for the reconnect behaviour rather than the reason. The account is out
+  // of included minutes: unlike RATE_LIMITED there is no window to wait
+  // out, so backing off and retrying would spin against a wall until the
+  // attempt budget ran out. A fresh token would not help either — the
+  // limit is on the account, not the token.
+  'USAGE_LIMIT_EXCEEDED',
 ]);

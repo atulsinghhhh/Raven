@@ -7,7 +7,7 @@ Every value below is a **default**, read out of the API's configuration. A
 self-hosted deployment can change any of them; a hosted one has whatever
 its operator set.
 
-Nothing here is a billing quota. The one quota Raven does enforce is the
+Nothing here is a billing quota. The one quota Livqeno does enforce is the
 20,000 free RTC minutes every account is granted — see
 [Usage](/concepts/usage). Everything below is a technical ceiling, and none
 of it is affected by how many minutes you have left.
@@ -68,7 +68,7 @@ of it is affected by how many minutes you have left.
 
 ## Rate-limited endpoints
 
-**15** routes carry a per-window budget. The window itself is
+**16** routes carry a per-window budget. The window itself is
 `60` seconds.
 
 | Endpoint | Per window |
@@ -87,6 +87,7 @@ of it is affected by how many minutes you have left.
 | POST `/v1/projects/{projectId}/api-keys` | 20 |
 | POST `/v1/projects/{projectId}/rooms/{roomId}/test-token` | 30 |
 | POST `/v1/rooms/{roomId}/rtc-tokens` | 60 |
+| DELETE `/v1/rooms/{roomId}/rtc-tokens/{tokenId}` | 60 |
 | POST `/v1/telemetry/events` | 600 |
 
 {/* /generated:endpoints */}

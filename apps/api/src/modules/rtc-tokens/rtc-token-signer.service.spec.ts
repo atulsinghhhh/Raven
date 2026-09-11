@@ -74,25 +74,19 @@ describe('resolvePermissions', () => {
   it('widens publish with no sub-flags to both audio and video', () => {
     // Preserved from the LiveKit grant mapper: "publish, I don't care what"
     // is the common case, and the sub-flags exist only to narrow it.
-    const resolved = resolvePermissions(
-      permissions({ publish: true, publishAudio: false, publishVideo: false }),
-    );
+    const resolved = resolvePermissions(permissions({ publish: true, publishAudio: false, publishVideo: false }));
     expect(resolved.publishAudio).toBe(true);
     expect(resolved.publishVideo).toBe(true);
   });
 
   it('narrows to audio only when publish+publishAudio', () => {
-    const resolved = resolvePermissions(
-      permissions({ publish: true, publishAudio: true, publishVideo: false }),
-    );
+    const resolved = resolvePermissions(permissions({ publish: true, publishAudio: true, publishVideo: false }));
     expect(resolved.publishAudio).toBe(true);
     expect(resolved.publishVideo).toBe(false);
   });
 
   it('narrows to video only when publish+publishVideo', () => {
-    const resolved = resolvePermissions(
-      permissions({ publish: true, publishAudio: false, publishVideo: true }),
-    );
+    const resolved = resolvePermissions(permissions({ publish: true, publishAudio: false, publishVideo: true }));
     expect(resolved.publishAudio).toBe(false);
     expect(resolved.publishVideo).toBe(true);
   });
@@ -100,9 +94,7 @@ describe('resolvePermissions', () => {
   it('grants no publishing at all when sub-flags are set without publish', () => {
     // A sub-flag was never independently sufficient: matching the old
     // mapper, which left canPublishSources unset when publish was false.
-    const resolved = resolvePermissions(
-      permissions({ publish: false, publishAudio: true, publishVideo: true }),
-    );
+    const resolved = resolvePermissions(permissions({ publish: false, publishAudio: true, publishVideo: true }));
     expect(resolved.publish).toBe(false);
     expect(resolved.publishAudio).toBe(false);
     expect(resolved.publishVideo).toBe(false);
@@ -111,9 +103,7 @@ describe('resolvePermissions', () => {
 
 describe('toPermissionsDto', () => {
   it('round-trips resolved permissions', () => {
-    const resolved = resolvePermissions(
-      permissions({ join: true, subscribe: true, publish: true, publishData: true }),
-    );
+    const resolved = resolvePermissions(permissions({ join: true, subscribe: true, publish: true, publishData: true }));
     expect(toPermissionsDto(resolved)).toEqual(resolved);
   });
 
@@ -174,9 +164,7 @@ describe('RtcTokenSignerService', () => {
       ['a two-part token', 'aaa.bbb'],
       ['a four-part token', 'aaa.bbb.ccc.ddd'],
     ])('rejects %s as INVALID_TOKEN', (_label, raw) => {
-      expect(() => signerWith().verify(raw)).toThrow(
-        expect.objectContaining({ code: 'INVALID_TOKEN' }),
-      );
+      expect(() => signerWith().verify(raw)).toThrow(expect.objectContaining({ code: 'INVALID_TOKEN' }));
     });
 
     it('rejects a token signed with a different secret', () => {
@@ -198,9 +186,7 @@ describe('RtcTokenSignerService', () => {
         Date.now = realNow;
       }
 
-      expect(() => signerWith().verify(expiredToken)).toThrow(
-        expect.objectContaining({ code: 'TOKEN_EXPIRED' }),
-      );
+      expect(() => signerWith().verify(expiredToken)).toThrow(expect.objectContaining({ code: 'TOKEN_EXPIRED' }));
     });
 
     it('rejects a tampered payload even though only the claims changed', () => {
@@ -212,9 +198,7 @@ describe('RtcTokenSignerService', () => {
         (claims.perms as Record<string, unknown>).publish = true;
       });
 
-      expect(() => signer.verify(forged)).toThrow(
-        expect.objectContaining({ code: 'INVALID_TOKEN' }),
-      );
+      expect(() => signer.verify(forged)).toThrow(expect.objectContaining({ code: 'INVALID_TOKEN' }));
     });
 
     it('rejects a token whose project id was swapped', () => {

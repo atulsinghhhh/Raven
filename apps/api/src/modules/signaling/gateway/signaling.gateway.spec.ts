@@ -12,7 +12,11 @@ import { SignalingGateway } from './signaling.gateway';
  * covered separately in test/signaling.e2e-spec.ts against real sockets.
  */
 describe('SignalingGateway heartbeat', () => {
-  function makeGateway(): { gateway: SignalingGateway; sessions: Map<unknown, ParticipantSession> } {
+  function makeGateway(): {
+    gateway: SignalingGateway;
+    sessions: Map<unknown, ParticipantSession>;
+    byConnectionId: Map<string, ParticipantSession>;
+  } {
     const configService = { get: jest.fn(() => 100) } as unknown as ConfigService;
     const gateway = new SignalingGateway(
       {} as never, // tokenVerifier
@@ -25,10 +29,16 @@ describe('SignalingGateway heartbeat', () => {
       {} as never, // sfuLink
       {} as never, // sfuFrames
       { sweepIntervalMs: 30_000, sweep: jest.fn(), settle: jest.fn() } as never, // usageMeter
+      // Origin policy. These tests drive the heartbeat sweep directly and
+      // never reach the connection handler, so an allow-all stub keeps
+      // them about what they are about.
+      { isAllowed: jest.fn().mockResolvedValue(true) } as never, // origins
     );
     // Reach into the private sessions map: see the comment above.
     const sessions = (gateway as unknown as { sessions: Map<unknown, ParticipantSession> }).sessions;
-    return { gateway, sessions };
+    const byConnectionId = (gateway as unknown as { sessionsByConnectionId: Map<string, ParticipantSession> })
+      .sessionsByConnectionId;
+    return { gateway, sessions, byConnectionId };
   }
 
   function makeSocket() {
@@ -73,5 +83,65 @@ describe('SignalingGateway heartbeat', () => {
     expect(staleSocket.terminate).toHaveBeenCalledTimes(1);
     expect(liveSocket.ping).toHaveBeenCalledTimes(1);
     expect(liveSocket.terminate).not.toHaveBeenCalled();
+  });
+
+  /**
+   * A node's PeerConnections exist only in its memory. When its link
+   * drops, a client left holding one sits in `failed` forever while its
+   * signaling socket stays healthy, so nothing renegotiates and the media
+   * never returns. Ending the socket is what makes the SDK rebuild.
+   */
+  describe('sessions stranded by a node link dropping', () => {
+    function openSocket() {
+      return { ping: jest.fn(), terminate: jest.fn(), close: jest.fn(), send: jest.fn(), readyState: 1 };
+    }
+
+    function strand(gateway: SignalingGateway, serverName: string, ids: string[]): void {
+      (
+        gateway as unknown as {
+          endSessionsStrandedOn(serverName: string, sessionIds: string[]): void;
+        }
+      ).endSessionsStrandedOn(serverName, ids);
+    }
+
+    it('closes the signaling socket of every stranded session', () => {
+      const { gateway, sessions, byConnectionId } = makeGateway();
+      const socket = openSocket();
+      const session = makeSession({ connectionId: 'conn-a', socket: socket as never });
+      sessions.set(socket, session);
+      byConnectionId.set('conn-a', session);
+
+      strand(gateway, 'sfu-1', ['conn-a']);
+
+      expect(socket.close).toHaveBeenCalledTimes(1);
+      // The reason goes out first, so a client that has stopped
+      // reconnecting still has something to show.
+      expect(socket.send).toHaveBeenCalledTimes(1);
+      expect(String(socket.send.mock.calls[0][0])).toContain('RTC_SERVER_UNREACHABLE');
+    });
+
+    it('leaves sessions on other nodes untouched', () => {
+      const { gateway, sessions, byConnectionId } = makeGateway();
+      const doomed = openSocket();
+      const healthy = openSocket();
+      const doomedSession = makeSession({ connectionId: 'conn-a', socket: doomed as never });
+      const healthySession = makeSession({ connectionId: 'conn-b', socket: healthy as never, participantId: 'bob' });
+      sessions.set(doomed, doomedSession);
+      sessions.set(healthy, healthySession);
+      byConnectionId.set('conn-a', doomedSession);
+      byConnectionId.set('conn-b', healthySession);
+
+      strand(gateway, 'sfu-1', ['conn-a']);
+
+      expect(doomed.close).toHaveBeenCalledTimes(1);
+      expect(healthy.close).not.toHaveBeenCalled();
+      expect(healthy.send).not.toHaveBeenCalled();
+    });
+
+    it('ignores session ids this instance is not holding', () => {
+      const { gateway } = makeGateway();
+
+      expect(() => strand(gateway, 'sfu-1', ['conn-gone'])).not.toThrow();
+    });
   });
 });

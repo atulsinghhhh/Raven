@@ -1,4 +1,4 @@
-# Raven Chat example
+# Livqeno Chat example
 
 A working chat client built on `@ravenkash/chat` and `@ravenkash/react`. Every message you
 see came out of Postgres and arrived over a real WebSocket — there is no mock
@@ -20,7 +20,7 @@ It demonstrates:
 ## Architecture
 
 ```
-Browser (@ravenkash/chat)          Your backend (@ravenkash/server)         Raven
+Browser (@ravenkash/chat)          Your backend (@ravenkash/server)         Livqeno
         │                              │                              │
         │  POST /api/chat/token        │                              │
         ├─────────────────────────────►│  raven.chat.createToken()    │
@@ -37,7 +37,7 @@ that expires, is scoped to one user, and can be revoked.
 
 ## Running it
 
-You need the Raven stack up (`pnpm infra:up` from the repo root) and a project
+You need the Livqeno stack up (`pnpm infra:up` from the repo root) and a project
 API key. Create one in the dashboard, or:
 
 ```bash
@@ -67,13 +67,13 @@ other.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `RAVEN_API_KEY` | *(required)* | Project API key. Backend only. |
-| `RAVEN_API_URL` | `http://localhost:4100` | Raven Control API base URL. |
+| `RAVEN_API_URL` | `http://localhost:4100` | Livqeno Control API base URL. |
 | `RAVEN_CHAT_ROOM` | `example-chat` | Conversation name. Created on first run. |
 | `PORT` | `8788` | Port for this example's backend. |
 
 ## Things worth trying
 
-**Reconnection.** With both tabs open, restart the Raven API
+**Reconnection.** With both tabs open, restart the Livqeno API
 (`docker compose restart api`). Watch the connection badge go
 `reconnecting` → `connected`, and note that no messages are lost — the SDK
 refetches what it missed from history, because the WebSocket is never the
@@ -99,6 +99,6 @@ curl -X POST http://localhost:8788/api/chat/announce \
 It has no real authentication — `userId` comes straight from the request body so
 the example runs without an auth system. In a real app that identity must come
 from your own session (`req.user.id`), because whoever controls it controls who
-Raven attributes messages to. Same caveat as `examples/node-server`.
+Livqeno attributes messages to. Same caveat as `examples/node-server`.
 
 See [docs/chat/overview.md](../../docs/chat/overview.md) for the full API.

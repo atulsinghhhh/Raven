@@ -87,7 +87,7 @@ export default () => ({
 
   rtcToken: {
     defaultTtlSeconds: parseInt(process.env.RTC_TOKEN_DEFAULT_TTL_SECONDS ?? '600', 10),
-    // Signing key for Raven's own RTC tokens (rtc-token-signer.service.ts).
+    // Signing key for Livqeno's own RTC tokens (rtc-token-signer.service.ts).
     // Separate from JWT_SECRET (dashboard sessions) and CHAT_TOKEN_SECRET
     // (chat), so no one credential can mint another's. Same reasoning as
     // chat.tokenSecret below.
@@ -98,7 +98,7 @@ export default () => ({
   },
 
   rtc: {
-    // Where the client SDK connects to run a call: Raven's own signaling
+    // Where the client SDK connects to run a call: Livqeno's own signaling
     // WebSocket, handed to clients as `endpoint` in the token-mint
     // response. This is the *control* path's address. Media gets negotiated
     // over it and never flows through it (spec §6).
@@ -155,6 +155,85 @@ export default () => ({
 
   rateLimit: {
     windowSeconds: parseInt(process.env.RATE_LIMIT_WINDOW_SECONDS ?? '60', 10),
+  },
+
+  /**
+   * Admission control: how much concurrent database-heavy work one API
+   * process will do before it starts shedding load
+   * (shared/capacity/admission-control.service.ts).
+   *
+   * ## Why the default concurrency is the pool size
+   *
+   * A credential mint is a handful of sequential queries, so each in-flight
+   * request holds at most one pool connection at a time. Admit more
+   * requests than the pool has connections and the surplus does not fail at
+   * the mint — it queues *inside* `pg`, where the only bound is
+   * `DATABASE_POOL_CONNECTION_TIMEOUT_MS`, and an acquisition that gives up
+   * surfaces as an unrecognised error, i.e. a 500. That is exactly what a
+   * 100-viewer burst used to produce: 95 of 100 mints came back
+   * `500 RAVEN_INTERNAL_ERROR`.
+   *
+   * So the ceiling is derived from the pool rather than picked: never admit
+   * more concurrent database-heavy requests than there are connections to
+   * serve them. Raising `DATABASE_POOL_MAX` raises this with it, which is
+   * the relationship an operator would otherwise have to remember.
+   *
+   * The queue is what keeps a burst *inside* that ceiling from being shed:
+   * with the default depth, a hundred simultaneous mints are served ten at
+   * a time and all hundred succeed. What gets refused is only the traffic
+   * past the queue as well — and it is refused immediately, with
+   * `503 RAVEN_CAPACITY_EXCEEDED`, rather than after a timeout.
+   *
+   * Measured behaviour and the validated numbers:
+   * docs/production/capacity.md.
+   */
+  capacity: {
+    concurrency: parseInt(process.env.CAPACITY_MINT_CONCURRENCY ?? process.env.DATABASE_POOL_MAX ?? '10', 10),
+    // Deep enough that an ordinary burst queues rather than fails —
+    // twenty times the concurrency, so 200 waiters at the default — and
+    // still bounded, because an unbounded queue is just the pg pool's
+    // failure mode one layer up.
+    queueDepth: parseInt(process.env.CAPACITY_MINT_QUEUE_DEPTH ?? '200', 10),
+    // How long a queued request will wait before being refused. Has to
+    // exceed the time it takes to drain a full queue at the configured
+    // concurrency, or a legitimate burst starts timing out at the tail;
+    // and has to stay under whatever the caller's own HTTP timeout is, or
+    // the refusal never reaches anybody.
+    queueTimeoutMs: parseInt(process.env.CAPACITY_MINT_QUEUE_TIMEOUT_MS ?? '20000', 10),
+    /**
+     * Per-lane overrides, for a deployment that needs one operation held to
+     * different limits from the rest. Absent by default: one shared ceiling
+     * is the honest model, because every lane contends for the same pool.
+     */
+    lanes: {},
+  },
+
+  /**
+   * Verified-API-key caching (modules/api-keys/api-keys.service.ts).
+   *
+   * Caches the *bcrypt comparison result only*, never the authorization
+   * decision: the key's row is still read from the database on every single
+   * request, so a revoked key stops working immediately whether or not its
+   * secret was recently verified.
+   *
+   * It exists because `bcryptjs` is a pure-JavaScript implementation whose
+   * "async" API wraps a synchronous computation — it blocks Node's one
+   * thread for the whole comparison, about 75ms at cost factor 10. That is
+   * a hard ~13 requests/second per process for *every* API-key-authenticated
+   * request, measured and root-caused in docs/production/capacity-report.md
+   * §1.3 and never actually fixed. A burst of viewer mints hit it before it
+   * hit anything else.
+   *
+   * The TTL is short on purpose. It is the window in which a *rotated* key's
+   * old secret could still be accepted if the row itself were left ACTIVE,
+   * and a minute is short enough to be unremarkable next to the token TTLs
+   * this same API hands out.
+   */
+  apiKeyCache: {
+    ttlSeconds: parseInt(process.env.API_KEY_VERIFY_CACHE_TTL_SECONDS ?? '60', 10),
+    // Bounded, so a deployment sprayed with distinct keys cannot grow this
+    // without limit. Well past any real project's key count.
+    maxEntries: parseInt(process.env.API_KEY_VERIFY_CACHE_MAX_ENTRIES ?? '5000', 10),
   },
 
   signaling: {
@@ -263,12 +342,19 @@ export default () => ({
     // Resend (mail.ravenstack.online), not the apex the website uses. See
     // docs/email.md#domains.
     //
+    // Still on the ravenstack.online sending domain after the Livqeno
+    // rebrand, deliberately: the brand in the message body is Livqeno
+    // (see RESEND_FROM_NAME and the templates), but the envelope domain
+    // can only move once mail.livqeno.com is verified in Resend, which
+    // needs DNS. Until then this is the only domain that can actually
+    // deliver. See docs/deployment/livqeno-domain-cutover.md.
+    //
     // The default only ever applies while email is off: once
     // EMAIL_ENABLED=true, env.validation.ts requires this to be set
     // explicitly, because which mailbox a deployment sends as is a
     // decision, not something to inherit from a repository default.
     fromEmail: process.env.RESEND_FROM_EMAIL ?? 'hello@mail.ravenstack.online',
-    fromName: process.env.RESEND_FROM_NAME ?? 'Raven',
+    fromName: process.env.RESEND_FROM_NAME ?? 'Livqeno',
     // Where a human reply lands. Leave it unset and replies go to
     // fromEmail, which is fine only if somebody actually reads that
     // mailbox.
@@ -276,7 +362,9 @@ export default () => ({
     // Printed in email footers so a stuck user has somewhere to go.
     supportEmail: process.env.EMAIL_SUPPORT_EMAIL ?? 'support@mail.ravenstack.online',
     // Linked from the welcome email. A public documentation URL, not an
-    // app route, so it does not follow appUrl.
+    // app route, so it does not follow appUrl. Moves to docs.livqeno.com
+    // via DOCS_URL once that hostname resolves — the default stays on the
+    // live docs host so the welcome email never links into the void.
     docsUrl: process.env.DOCS_URL ?? 'https://docs.ravenstack.online',
 
     // Token lifetimes. Verification gets a generous day, because people

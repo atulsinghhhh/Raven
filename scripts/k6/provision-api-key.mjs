@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Provisions one developer account, project, and API key against a
-// running Raven API and prints the key to stdout: the same golden path
+// running Livqeno API and prints the key to stdout: the same golden path
 // apps/api/test/app.e2e-spec.ts exercises, factored out here so both
 // chat-scaled-load-test.sh and a human running scripts/chat-load-test.mjs
 // by hand can get a real key without registering through the dashboard.

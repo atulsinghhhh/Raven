@@ -79,22 +79,17 @@ export function isRavenPermissionError(value: unknown): value is RavenPermission
  * DOMException name is how we get that back into something a developer can
  * branch on.
  */
-export function toPermissionError(
-  permission: RavenPermissionKind,
-  error: unknown,
-): RavenPermissionError | undefined {
+export function toPermissionError(permission: RavenPermissionKind, error: unknown): RavenPermissionError | undefined {
   const name = (error as { name?: string } | undefined)?.name;
   const message = String((error as { message?: string } | undefined)?.message ?? '');
 
   const denied =
-    name === 'NotAllowedError' ||
-    name === 'SecurityError' ||
-    /permission|denied|not allowed/i.test(message);
+    name === 'NotAllowedError' || name === 'SecurityError' || /permission|denied|not allowed/i.test(message);
 
   return denied ? new RavenPermissionError(permission, 'denied', error) : undefined;
 }
 
-// Re-exported so a mobile app can catch everything Raven throws without
+// Re-exported so a mobile app can catch everything Livqeno throws without
 // having to import @ravenkash/rtc as well.
 export { RTCError, isRTCError } from '@ravenkash/rtc';
 export type { RTCErrorCode };

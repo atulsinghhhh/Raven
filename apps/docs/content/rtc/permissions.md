@@ -1,10 +1,10 @@
 ---
 title: Permissions
-description: Camera and microphone access — how each platform asks, and how Raven normalizes the answer.
+description: Camera and microphone access — how each platform asks, and how Livqeno normalizes the answer.
 ---
 
 Camera/microphone permission is the one place Web, React Native, and
-Flutter genuinely differ — the OS, not Raven, owns the prompt. This page
+Flutter genuinely differ — the OS, not Livqeno, owns the prompt. This page
 covers what each SDK does about it.
 
 ## Web
@@ -25,7 +25,7 @@ try {
 
 A denial doesn't distinguish "just denied" from "permanently blocked" —
 that distinction lives in the browser's own site-settings UI, which
-Raven has no API into. Direct the user there generically ("check your
+Livqeno has no API into. Direct the user there generically ("check your
 browser's camera permission for this site") rather than guessing.
 
 ## React Native
@@ -86,7 +86,7 @@ package doesn't require `permission_handler` just for this —
 OS dialog), but a pure "what's the status right now" check isn't
 possible without a native module. If you need pre-flight status, or the
 denied-vs-permanently-denied distinction React Native gets natively, add
-`permission_handler` alongside Raven:
+`permission_handler` alongside Livqeno:
 
 ```dart
 final status = await Permission.camera.status;
@@ -100,7 +100,7 @@ if (status.isPermanentlyDenied) {
 ## Platform manifest/plist setup
 
 None of the above works without also declaring the permission in your
-app's own configuration — Raven can prompt, but can't add the
+app's own configuration — Livqeno can prompt, but can't add the
 declaration for you.
 
 **React Native and Flutter, `ios/*/Info.plist`:**
@@ -128,7 +128,7 @@ declaration for you.
 | Missing an iOS usage string doesn't error — **the app crashes** | React Native, Flutter | iOS terminates the process the instant it asks for a permission with no matching `Info.plist` string. | Add both `NSCameraUsageDescription` and `NSMicrophoneUsageDescription` even if you only use one. |
 | `CAMERA_PERMISSION_DENIED`/`MICROPHONE_PERMISSION_DENIED` | Web | User declined the browser prompt. | Show your own explanation; the browser owns re-prompting. |
 | `RavenPermissionError` with `requiresSettings: true` | React Native | Permanently denied — Android "don't ask again," or a repeat iOS denial. | Send the user to system Settings; re-prompting shows nothing. |
-| `RavenPermissionException` (`permanentlyDenied: false`) | Flutter | The platform doesn't tell Raven whether a denial was permanent. | Add `permission_handler` if you need that distinction — see above. |
+| `RavenPermissionException` (`permanentlyDenied: false`) | Flutter | The platform doesn't tell Livqeno whether a denial was permanent. | Add `permission_handler` if you need that distinction — see above. |
 
 ## Production notes
 

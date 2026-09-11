@@ -7,7 +7,7 @@ import 'errors.dart';
 ///
 /// Flutter has no permissions API in the framework itself, and the usual
 /// answer, `permission_handler`, is one more plugin for every app to
-/// add and configure. Raven doesn't require it: on both iOS and Android,
+/// add and configure. Livqeno doesn't require it: on both iOS and Android,
 /// asking for the device is what raises the OS prompt, so this asks for
 /// the device and reads the outcome.
 ///

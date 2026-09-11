@@ -31,11 +31,7 @@ export async function confirm(message: string, opts: { assumeYes?: boolean }): P
 }
 
 /** Minimal numbered-list picker. No extra dependency; it prints to scrollback, not redrawing like a real TUI. */
-export async function selectFromList<T>(
-  message: string,
-  items: T[],
-  label: (item: T) => string,
-): Promise<T> {
+export async function selectFromList<T>(message: string, items: T[], label: (item: T) => string): Promise<T> {
   if (isNonInteractive()) {
     throw new CliError('usage', message, {
       suggestion: 'Not running in an interactive terminal; pass the target explicitly instead',

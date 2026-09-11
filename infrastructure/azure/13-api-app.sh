@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy / update the Raven API Container App.
+# Deploy / update the Livqeno API Container App.
 #
 # Renders a full app spec from Key Vault into a temp file (mode 600, deleted
 # on exit), then applies it. YAML rather than flags because `az containerapp`
@@ -14,7 +14,8 @@ source "$(dirname "$0")/00-variables.sh"
 
 export RAVEN_CAE="${RAVEN_CAE:-raven-env}"
 APP="${RAVEN_API_APP:-raven-api}"
-TAG="${RAVEN_IMAGE_TAG:-latest}"
+# Same tag source as 09-api-image.sh; see 00-variables.sh.
+TAG="${RAVEN_IMAGE_TAG}"
 
 ENVID="$(az containerapp env show -n "${RAVEN_CAE}" -g "${RAVEN_RG}" --query id -o tsv)"
 DOMAIN="$(az containerapp env show -n "${RAVEN_CAE}" -g "${RAVEN_RG}" --query properties.defaultDomain -o tsv)"

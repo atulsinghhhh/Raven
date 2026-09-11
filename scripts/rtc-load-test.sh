@@ -9,7 +9,7 @@ set -euo pipefail
 # below the room API.
 #
 # This replaced a wrapper around `lk load-test` (LiveKit's CLI), which
-# stopped being applicable when Raven's own SFU replaced LiveKit. The
+# stopped being applicable when Livqeno's own SFU replaced LiveKit. The
 # capability that wrapper had and this does not is documented under
 # "What this does not measure" below — stated rather than quietly lost.
 #
@@ -86,7 +86,7 @@ What this does NOT measure — and must not be quoted as capacity
     · NAT traversal across the real matrix, including TURN relay
     · Wi-Fi <-> cellular handover mid-call
 
-  Raven does not claim a supported participant count. See
+  Livqeno does not claim a supported participant count. See
   docs/rtc/scaling.md for what would have to be measured to change that.
 ────────────────────────────────────────────────────────────────────────
 NOTE

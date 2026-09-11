@@ -1,6 +1,6 @@
 ---
 title: Effects in React
-description: useCameraEffects() — Raven Effects for @ravenkash/react, built on the same store/hook pattern as every other hook in the package.
+description: useCameraEffects() — Livqeno Effects for @ravenkash/react, built on the same store/hook pattern as every other hook in the package.
 ---
 
 `@ravenkash/react` doesn't implement a separate effects engine — it

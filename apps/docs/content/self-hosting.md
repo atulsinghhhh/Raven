@@ -1,9 +1,9 @@
 ---
 title: Self-hosting
-description: Raven is open source. What you run, what it needs, and what is not solved for you yet.
+description: Livqeno is open source. What you run, what it needs, and what is not solved for you yet.
 ---
 
-Raven runs on your own infrastructure. This section covers the stack, its
+Livqeno runs on your own infrastructure. This section covers the stack, its
 configuration, and the parts that are genuinely operational work.
 
 ## What you run
@@ -49,7 +49,7 @@ it stays that way.
 
 ## Be aware before you commit
 
-Self-hosting Raven means owning a media path, and that is real work:
+Self-hosting Livqeno means owning a media path, and that is real work:
 
 - **Postgres is yours to run.** The Compose stack deliberately does not
   include it. Any Postgres works.

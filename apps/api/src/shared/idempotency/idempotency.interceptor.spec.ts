@@ -97,9 +97,9 @@ describe('IdempotencyInterceptor', () => {
     await interceptor.intercept(contextWith(first), handlerReturning({ id: 'room_1' }));
 
     const second = { headers: { 'idempotency-key': 'abc' }, body: { name: 'different' } };
-    await expect(
-      interceptor.intercept(contextWith(second), handlerReturning({ id: 'room_2' })),
-    ).rejects.toBeInstanceOf(ConflictError);
+    await expect(interceptor.intercept(contextWith(second), handlerReturning({ id: 'room_2' }))).rejects.toBeInstanceOf(
+      ConflictError,
+    );
   });
 
   it('scopes the cache per caller, so two actors reusing the same key do not collide', async () => {
@@ -166,7 +166,11 @@ describe('IdempotencyInterceptor', () => {
   });
 
   it('never caches a response when the handler throws', async () => {
-    const handler = { handle: jest.fn(() => { throw new Error('boom'); }) } as unknown as CallHandler;
+    const handler = {
+      handle: jest.fn(() => {
+        throw new Error('boom');
+      }),
+    } as unknown as CallHandler;
 
     await expect(
       interceptor.intercept(contextWith({ headers: { 'idempotency-key': 'abc' }, body: {} }), handler),

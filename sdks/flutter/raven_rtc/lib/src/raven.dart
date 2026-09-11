@@ -5,9 +5,9 @@ import 'internal/signaling_client.dart';
 import 'internal/web_socket.dart';
 import 'room.dart';
 
-/// Raven on Flutter.
+/// Livqeno on Flutter.
 ///
-/// The mental model is identical to Raven Web and Raven React Native, and
+/// The mental model is identical to Livqeno Web and Livqeno React Native, and
 /// only the syntax follows the language:
 ///
 /// ```dart
@@ -19,13 +19,13 @@ import 'room.dart';
 /// ```
 ///
 /// Everything a developer needs comes from their own backend's
-/// token-mint response. Nothing here is hand-constructed, and no Raven
+/// token-mint response. Nothing here is hand-constructed, and no Livqeno
 /// API key ever reaches the device.
 ///
 /// # What changed underneath
 ///
-/// This package used to wrap `livekit_client`. It now speaks Raven's own
-/// signaling protocol to Raven's own SFU, over `flutter_webrtc`. The
+/// This package used to wrap `livekit_client`. It now speaks Livqeno's own
+/// signaling protocol to Livqeno's own SFU, over `flutter_webrtc`. The
 /// public API above is unchanged; see docs/migration/from-livekit.md for
 /// the two options whose meaning shifted ([adaptiveStream] and
 /// [dynacast]).
@@ -46,7 +46,7 @@ class Raven {
 
   /// The `endpoint` field from the same mint response.
   ///
-  /// This is Raven's signaling address, not a media server's. Clients
+  /// This is Livqeno's signaling address, not a media server's. Clients
   /// never learn which SFU serves their room: that is what allows the
   /// media plane to change without an SDK release.
   final String endpoint;
@@ -68,7 +68,7 @@ class Raven {
   /// [RavenVideoView] reports its size; the web SDK leaves it off because
   /// a browser tab has neither the battery constraint nor the metering.
   ///
-  /// Implemented against Raven's own SFU by requesting a simulcast layer
+  /// Implemented against Livqeno's own SFU by requesting a simulcast layer
   /// per view (`subscription.update`), rather than by a client library's
   /// built-in mechanism.
   final bool adaptiveStream;
@@ -76,7 +76,7 @@ class Raven {
   /// Retained for API compatibility, and currently a no-op.
   ///
   /// Dynacast means the *server* stops relaying simulcast layers nobody is
-  /// subscribed to. Raven's SFU does not implement that yet, so setting
+  /// subscribed to. Livqeno's SFU does not implement that yet, so setting
   /// this changes nothing today rather than silently claiming a saving
   /// that is not happening. It is kept in the constructor so existing code
   /// compiles unchanged, and it will start having an effect once the SFU

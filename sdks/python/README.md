@@ -1,26 +1,29 @@
 # raven-sdk
 
-Raven's official **Python server SDK** — mint short-lived RTC and chat
+Livqeno's official **Python server SDK** — mint short-lived RTC and chat
 tokens, manage rooms and live streams, and read connection/error
 diagnostics from your own backend.
 
-Raven is open-source real-time communication infrastructure: video, voice,
+Livqeno is open-source real-time communication infrastructure: video, voice,
 chat and data for your app, without running WebRTC or WebSocket servers
 yourself. Full project: <https://github.com/atulsinghhhh/Raven>
 
 > **Backend only.** This package holds a permanent project API key. It must
 > never be imported into browser, mobile or any other client-side code. The
-> browser talks to Raven with a short-lived token that *this* SDK mints.
+> browser talks to Livqeno with a short-lived token that *this* SDK mints.
 
 ## Requirements
 
 - Python **3.10+**
-- A Raven project API key
+- A Livqeno project API key
 
 ## Install
 
 ```bash
-pip install raven-sdk
+# Not on PyPI yet. `pip install raven-sdk` installs an UNRELATED third-party
+# package of that name ("Async Kafka and HTTP producer SDK for Livqeno AI
+# logs"), not this SDK — see docs/releases.md#python--raven-sdk.
+pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"
 ```
 
 ## Mint a token
@@ -32,13 +35,16 @@ caller can claim to be anyone.
 import os
 from raven import Raven, CreateTokenParams
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 
 grant = raven.tokens.create(CreateTokenParams(room="room-1", identity="user-42"))
 
 # grant is a TypedDict, keyed exactly as the API returns it:
 #   grant["token"]        short-lived, safe to hand to a browser
-#   grant["endpoint"]     Raven's signaling WebSocket
+#   grant["endpoint"]     Livqeno's signaling WebSocket
 #   grant["iceServers"]   never hand-build STUN/TURN config
 #   grant["expiresAt"]
 ```
@@ -53,7 +59,10 @@ Every resource has an async twin with the same shape.
 ```python
 from raven import AsyncRaven, CreateTokenParams
 
-async with AsyncRaven(api_key=os.environ["RAVEN_API_KEY"]) as raven:
+async with AsyncRaven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+) as raven:
     grant = await raven.tokens.create(CreateTokenParams(room="room-1", identity="user-42"))
 ```
 

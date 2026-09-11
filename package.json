@@ -2,7 +2,7 @@
   "name": "raven",
   "version": "0.0.0",
   "private": true,
-  "description": "Raven — open-source, developer-first real-time communication infrastructure (control plane + RTC plane).",
+  "description": "Livqeno — open-source, developer-first real-time communication infrastructure (control plane + RTC plane).",
   "packageManager": "pnpm@11.22.0",
   "engines": {
     "node": ">=20"
@@ -41,6 +41,6 @@
     "globals": "^15.15.0",
     "prettier": "^3.6.2",
     "typescript-eslint": "^8.69.0",
-    "ws": "^8.18.0"
+    "ws": "^8.21.3"
   }
 }

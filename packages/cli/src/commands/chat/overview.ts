@@ -55,9 +55,7 @@ export function registerChatOverviewCommand(chat: Command): void {
         // The overview reflects whichever gateway served this request. In a
         // fleet that's one instance out of several, and saying so stops
         // anyone reading it as a cluster-wide total.
-        process.stdout.write(
-          '\nGateway figures are for the instance that served this request, not the whole fleet.\n',
-        );
+        process.stdout.write('\nGateway figures are for the instance that served this request, not the whole fleet.\n');
       }),
     );
 }

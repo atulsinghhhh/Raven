@@ -10,14 +10,17 @@ import { RoomsResource } from './resources/rooms';
 import { TokensResource } from './resources/tokens';
 
 /**
- * Raven's server SDK. For your backend only; never a browser bundle.
+ * Livqeno's server SDK. For your backend only; never a browser bundle.
  *
  * Authenticates with a permanent project API key. Never expose that key,
  * or an instance of this class, to a browser (Phase 10 spec §2).
  *
  * ```ts
  * import { Raven } from '@ravenkash/server';
- * const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
+ * const raven = new Raven({
+ *   apiKey: process.env.RAVEN_API_KEY!,
+ *   baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
+ * });
  * const token = await raven.tokens.create({ room: roomId, identity: 'user-42' });
  * ```
  */
@@ -29,10 +32,20 @@ export class Raven {
   readonly errors: ErrorsResource;
   readonly metrics: MetricsResource;
   readonly diagnostics: DiagnosticsResource;
-  /** Raven Chat (Phase 12): mint browser tokens, manage conversations, post server-side messages. */
+  /** Livqeno Chat (Phase 12): mint browser tokens, manage conversations, post server-side messages. */
   readonly chat: ChatResource;
-  /** Raven Live Streaming (Phase 14): create streams, register hosts, mint viewer credentials. */
+  /** Livqeno Live Streaming (Phase 14): create streams, register hosts, mint viewer credentials. */
   readonly liveStreams: LiveStreamsResource;
+  /**
+   * `liveStreams` under the shorter name, so the three product surfaces read
+   * alike: `raven.chat`, `raven.live`, `raven.rooms`.
+   *
+   * The same object, not a wrapper — `raven.live === raven.liveStreams`, so
+   * there is no second implementation to keep in step and no behaviour that
+   * differs between the two spellings. `liveStreams` is the original public
+   * name and keeps working; nothing is deprecated.
+   */
+  readonly live: LiveStreamsResource;
 
   constructor(options: RavenClientOptions) {
     const http = new RavenHttpClient(options);
@@ -45,5 +58,6 @@ export class Raven {
     this.diagnostics = new DiagnosticsResource(http);
     this.chat = new ChatResource(http);
     this.liveStreams = new LiveStreamsResource(http);
+    this.live = this.liveStreams;
   }
 }

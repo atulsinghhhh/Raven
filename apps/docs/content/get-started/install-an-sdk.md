@@ -3,14 +3,24 @@ title: Install an SDK
 description: One package for your backend, one for your client. Pick by platform.
 ---
 
-Raven splits along one line: your **backend** holds the API key and mints
+Livqeno splits along one line: your **backend** holds the API key and mints
 tokens; your **client** holds a token and joins. Those are different
 packages, and neither can do the other's job.
 
-> **Not published to a registry yet.** The commands below are what
-> installation will look like once these packages are released. Until then,
-> install from a local checkout — see
+> **The `@ravenkash/*` packages are on npm; the Python and Flutter SDKs are
+> not on PyPI or pub.dev yet.** For Python and Flutter, install from a
+> checkout — see
 > [Installing from source](/getting-started/installing-from-source).
+>
+> One npm caveat, until `0.1.1` ships: `@ravenkash/rtc@0.1.0` and
+> `@ravenkash/client@0.1.0` were published with an unresolvable
+> `workspace:*` dependency and fail to install. Add an `overrides` entry to
+> your `package.json` to pin the missing sibling, and drop it once `0.1.1`
+> is out:
+>
+> ```json
+> { "overrides": { "@ravenkash/effects": "0.1.0" } }
+> ```
 
 ## Your backend
 
@@ -24,8 +34,12 @@ npm install @ravenkash/server
 </Tab>
 <Tab title="Python">
 
+> **Not on PyPI — and do not `pip install raven-sdk`.** That name belongs
+> to an unrelated third-party package, so it installs someone else's code.
+> See [the Python SDK page](/sdk/python).
+
 ```bash
-pip install raven-sdk
+pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"
 ```
 
 </Tab>
@@ -50,7 +64,7 @@ npm install @ravenkash/rtc @ravenkash/react
 ```
 
 Add `@ravenkash/chat` for a chat panel, `@ravenkash/effects` for camera
-filters. `@ravenkash/react` takes its Raven siblings as peer dependencies, so
+filters. `@ravenkash/react` takes its Livqeno siblings as peer dependencies, so
 your application chooses the versions and there is exactly one copy of each
 in the tree.
 

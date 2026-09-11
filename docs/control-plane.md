@@ -3,7 +3,7 @@
 This document covers the backend built in Phase 2 of `INFRASTRUCTURE_PHASES.md`:
 a TypeScript/NestJS modular monolith (`apps/api`) that manages developers,
 projects, API keys, rooms, and RTC tokens. **It never carries video/audio
-media** — that is the RTC plane's job (Raven's own SFU + coturn, see
+media** — that is the RTC plane's job (Livqeno's own SFU + coturn, see
 `docs/rtc/`), and stays that way permanently. See `docs/architecture/infrastructure-decisions.md`.
 
 ## Why NestJS + Prisma
@@ -94,16 +94,16 @@ also need the pepper. HMAC (not string concatenation) is used specifically
 to produce a fixed 32-byte output regardless of pepper length, avoiding
 bcrypt's 72-byte input truncation footgun.
 
-## RTC tokens: Raven's permissions
+## RTC tokens: Livqeno's permissions
 
-`POST /v1/rooms/:roomId/rtc-tokens` accepts Raven's own permission
+`POST /v1/rooms/:roomId/rtc-tokens` accepts Livqeno's own permission
 vocabulary (`join`, `subscribe`, `publish`, `publishAudio`, `publishVideo`,
 `publishData` — see `INFRASTRUCTURE_PHASES.md` Phase 2 spec). There is no
 translation step: those flags are signed straight into the token as
 `perms` and re-checked by the signaling gateway on every action.
 
 That used to be a mapping onto a third party's grant shape, and keeping
-Raven's names independent of it is what let the media plane be replaced
+Livqeno's names independent of it is what let the media plane be replaced
 without touching this contract. The indirection paid for itself, so it is
 kept: the SFU has its own `room.Permissions` type rather than reusing this
 DTO, and a change to either can happen without the other.
@@ -122,7 +122,7 @@ Each call also creates a `Participant` row (upserted by `roomId` +
 `identity`) and an `RtcToken` row — these are the control-plane's audit
 trail, not the credential itself. The `RtcToken` row is created **first**,
 because its `id` is the token's `jti`; a token cannot claim an audit-trail
-id that does not exist yet. The bearer credential (a Raven-signed HS256
+id that does not exist yet. The bearer credential (a Livqeno-signed HS256
 JWT with `aud: "raven-rtc"`) is generated fresh every call and never
 persisted; recovering a lost one isn't possible or necessary, since tokens
 are short-lived (`RTC_TOKEN_DEFAULT_TTL_SECONDS`, default 600s) and just
@@ -234,14 +234,40 @@ above:
 
 ## CORS
 
-Configured via `CORS_ORIGIN` (`main.ts`): a comma-separated allow-list of
-browser origins, or `*` for local development. `*` is the `.env.example`
-default *for local dev only* — every deployed environment must set an
-explicit origin list. Since Raven's auth model uses bearer tokens in an
-`Authorization` header (never cookies), an open CORS policy doesn't carry
-the CSRF risk it would for a cookie-authenticated API, but it still allows
-any website to read response bodies via `fetch`, which is reason enough to
-lock it down outside local dev.
+CORS is decided **per route**, because two kinds of browser caller reach
+this API and they need opposite answers. The policy lives in
+`shared/config/cors-policy.ts`; `main.ts` applies it.
+
+**SDK surfaces — `/v1/telemetry/*` and `/v1/chat/*` — reflect the caller's
+origin.** These are the endpoints a Livqeno SDK calls from the page:
+`@ravenkash/rtc` posting connection telemetry, `@ravenkash/chat` reading
+history and uploading attachments. They run on origins Livqeno cannot
+enumerate — a different localhost port for every developer, a different
+domain for every customer — so a fixed allow-list is wrong for them by
+construction. `CORS_ORIGIN` does **not** govern these.
+
+**Everything else uses `CORS_ORIGIN`**: a comma-separated allow-list, or
+`*` for local development. `*` is the `.env.example` default *for local dev
+only* — every deployed environment must set an explicit list. This covers
+the dashboard and developer-session routes (`JwtAuthGuard`), where origin
+restriction genuinely earns its keep, and the backend-to-backend routes
+(`ApiKeyAuthGuard`), which have no browser in the picture.
+
+Reflecting any origin on the SDK surfaces is safe because those routes
+carry no ambient authority. `credentials` is off, so a browser never
+attaches cookies cross-origin, and the only credential is a short-lived
+token the developer's own backend minted. A hostile page has to already
+hold a valid token, and anything holding one can use it from `curl` with no
+browser at all — so the token is the control, not the origin. The reason to
+keep the allow-list on session routes is the mirror image: those *are*
+reachable with a developer's own session, and an open policy would let any
+site read their response bodies.
+
+The eventual answer for SDK surfaces is per-project origins a developer
+declares in the dashboard. That is not implemented: an HTTP preflight is
+unauthenticated by design — `OPTIONS` carries no `Authorization` header —
+so there is no project to look up at the point the decision must be made.
+Doing it properly means identifying the project from the request path.
 
 ## API documentation
 

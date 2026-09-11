@@ -1,4 +1,4 @@
-import { DASHBOARD_URL, DISCORD_URL, DOCS_ROUTES } from '../lib/links';
+import { DASHBOARD_URL, DOCS_ROUTES, GITHUB_REPO_URL } from '../lib/links';
 
 /**
  * Left-aligned closing beat, matching the reference's last block: the
@@ -12,7 +12,7 @@ export function FinalCTA() {
         <h2 className="display text-4xl text-fg md:text-6xl">
           Your application.
           <br />
-          <span className="kw">Raven&apos;s</span> infrastructure.
+          <span className="kw">Livqeno&apos;s</span> infrastructure.
         </h2>
         <p className="mt-6 max-w-lg text-base leading-relaxed text-muted">
           Create a project, mint your first token, and join a room — RTC, messaging, live streaming, and effects through
@@ -33,12 +33,12 @@ export function FinalCTA() {
             Read the quickstart
           </a>
           <a
-            href={DISCORD_URL}
+            href={GITHUB_REPO_URL}
             target="_blank"
             rel="noreferrer noopener"
             className="rounded-(--radius-panel) border border-accent-line px-4 py-2.5 text-[13px] font-medium text-fg transition-colors hover:border-accent-text hover:bg-canvas"
           >
-            Ask in Discord
+            Read the source
           </a>
         </div>
       </div>

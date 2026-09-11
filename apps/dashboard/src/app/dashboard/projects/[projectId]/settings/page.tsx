@@ -7,15 +7,16 @@ import { PageHeader } from '@/components/ui/page-header';
 import { MonoId } from '@/components/ui/mono';
 import { ErrorState } from '@/components/ui/states';
 import { formatDateTime } from '@/lib/format';
+import { AllowedOriginsForm } from './allowed-origins-form';
 import { ProjectSettingsForm } from './project-settings-form';
 import { DangerZone } from './danger-zone';
 
 /**
- * Only two things here actually write: PATCH /api/projects/:id (name and
- * description) and DELETE /api/projects/:id (archive). CORS is an honest
- * note about a capability that doesn't exist per-project yet. Webhooks
- * have their own dedicated CRUD page (see nav.ts): this page just
- * points there instead of duplicating it.
+ * Three things here write: PATCH /api/projects/:id (name and description),
+ * PATCH /api/projects/:id/allowed-origins (the per-project browser origin
+ * allow-list), and DELETE /api/projects/:id (archive). Webhooks have their
+ * own dedicated CRUD page (see nav.ts): this page just points there instead
+ * of duplicating it.
  */
 export default async function SettingsPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -47,7 +48,10 @@ export default async function SettingsPage({ params }: { params: Promise<{ proje
       />
 
       <Card>
-        <CardHeader title="Project details" subtitle="Read-only. The project ID is what every SDK and API call is scoped to." />
+        <CardHeader
+          title="Project details"
+          subtitle="Read-only. The project ID is what every SDK and API call is scoped to."
+        />
         <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
           <MetaRow label="Project ID">
             <MonoId value={project.id} copy />
@@ -64,24 +68,19 @@ export default async function SettingsPage({ params }: { params: Promise<{ proje
         </dl>
       </Card>
 
-      <Card>
-        <CardHeader
-          title="Allowed origins (CORS)"
-          subtitle="Controls which browser origins may call the Control API — configured at the infrastructure level, not per project yet."
-        />
-        <p className="text-sm leading-relaxed text-muted">
-          Raven currently applies one <code className="font-mono text-xs text-fg">CORS_ORIGIN</code> setting across the
-          whole API deployment, rather than per project. Per-project origin allowlists are planned but not implemented
-          — see <code className="font-mono text-xs text-fg">docs/dashboard.md#cors</code>. Changing the allowlist means
-          changing that deployment&apos;s configuration; there is nothing to set here.
-        </p>
-      </Card>
+      <AllowedOriginsForm
+        projectId={projectId}
+        initialOrigins={project.allowedOrigins ?? []}
+        initialAllowLocalhost={project.allowLocalhostOrigins ?? true}
+      />
 
       <Card>
-        <CardHeader title="Webhooks" subtitle="Register an endpoint to receive chat and live-stream lifecycle events." />
+        <CardHeader
+          title="Webhooks"
+          subtitle="Register an endpoint to receive chat and live-stream lifecycle events."
+        />
         <p className="text-sm leading-relaxed text-muted">
-          Managed on its own page — create an endpoint, choose which events it receives, and inspect delivery
-          attempts.
+          Managed on its own page — create an endpoint, choose which events it receives, and inspect delivery attempts.
         </p>
         <a
           href={`/dashboard/projects/${projectId}/webhooks`}

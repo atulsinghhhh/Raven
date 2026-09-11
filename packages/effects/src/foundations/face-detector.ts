@@ -13,14 +13,7 @@ import { EffectsError } from '../errors';
  */
 
 export type FaceLandmarkName =
-  | 'leftEye'
-  | 'rightEye'
-  | 'noseTip'
-  | 'mouthLeft'
-  | 'mouthRight'
-  | 'leftEyebrow'
-  | 'rightEyebrow'
-  | 'jawline';
+  'leftEye' | 'rightEye' | 'noseTip' | 'mouthLeft' | 'mouthRight' | 'leftEyebrow' | 'rightEyebrow' | 'jawline';
 
 export interface FaceLandmark {
   name: FaceLandmarkName;
@@ -52,7 +45,7 @@ class UnsupportedFaceDetector implements FaceDetector {
   async detect(): Promise<FaceRegion[]> {
     throw new EffectsError(
       'RAVEN_EFFECT_UNSUPPORTED',
-      'Face detection is planned but not implemented in this Raven Effects release. isSupported() reports this; check it before calling detect().',
+      'Face detection is planned but not implemented in this Livqeno Effects release. isSupported() reports this; check it before calling detect().',
     );
   }
 

@@ -7,7 +7,9 @@ import { withErrorHandling } from '../../lib/run.js';
 export function registerProjectsUseCommand(projects: Command): void {
   projects
     .command('use <project>')
-    .description('Set the current project for subsequent commands (global fallback; see `raven init` for a per-directory link)')
+    .description(
+      'Set the current project for subsequent commands (global fallback; see `raven init` for a per-directory link)',
+    )
     .action(
       withErrorHandling(async (projectId: string) => {
         const { client } = await getAuthenticatedApiClient();

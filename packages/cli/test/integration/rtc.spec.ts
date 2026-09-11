@@ -231,7 +231,7 @@ describe('raven rtc (integration)', () => {
       expect(result.stdout).toMatch(/idle\s+ACTIVE\s+0/);
     });
 
-    it('shows a room\'s live participants and their tracks', async () => {
+    it("shows a room's live participants and their tracks", async () => {
       mockApi({
         'GET /v1/projects/proj-1/rooms/room-1': async () => ({
           status: 200,

@@ -1,14 +1,14 @@
 # @ravenkash/rtc — Browser SDK
 
-`@ravenkash/rtc` is Raven's browser SDK: join a room, publish camera/microphone,
+`@ravenkash/rtc` is Livqeno's browser SDK: join a room, publish camera/microphone,
 subscribe to remote participants' media — without ever touching SDP, ICE
 candidates, `RTCPeerConnection`, STUN, or TURN directly. Internally it
-speaks Raven's own signaling protocol over a native `RTCPeerConnection`,
+speaks Livqeno's own signaling protocol over a native `RTCPeerConnection`,
 behind a small, stable `SFUAdapter` boundary (`internal/sfu/` — see
 [WebRTC abstraction](#webrtc-abstraction) below).
 
-That boundary has already earned its keep: Raven's media plane was
-replaced wholesale — a third-party SFU for Raven's own, on Pion — and
+That boundary has already earned its keep: Livqeno's media plane was
+replaced wholesale — a third-party SFU for Livqeno's own, on Pion — and
 because `Room` and `RTCClient` only ever talked to `SFUAdapter`, the
 public API below did not change. See
 [the migration guide](migration/from-livekit.md) if you are upgrading.
@@ -29,24 +29,24 @@ scope for this package — see [Browser compatibility](#browser-compatibility).
 The correct architecture:
 
 ```
-Developer Backend  --(API key)-->  Raven Control API
+Developer Backend  --(API key)-->  Livqeno Control API
                                           |
                                           | RTC token + endpoint + iceServers
                                           v
                                   Developer Frontend
                                           |
                                           v
-                                  Raven RTC infrastructure
+                                  Livqeno RTC infrastructure
 ```
 
-Your backend calls `POST /v1/rooms/:roomId/rtc-tokens` (Raven's Control API,
+Your backend calls `POST /v1/rooms/:roomId/rtc-tokens` (Livqeno's Control API,
 authenticated with your project's API key) and forwards the response's
 `token`, `endpoint`, and `iceServers` fields to the browser. The SDK never
 calls the Control API itself — it only ever receives an already-minted
 token.
 
-`endpoint` is Raven's own signaling WebSocket (`wss://your-api/v1/rtc`).
-It is deliberately a Raven-owned address rather than a media server's: a
+`endpoint` is Livqeno's own signaling WebSocket (`wss://your-api/v1/rtc`).
+It is deliberately a Livqeno-owned address rather than a media server's: a
 client that learned an SFU's address could connect to it directly, and
 then the media plane could not change without breaking that client.
 
@@ -54,12 +54,20 @@ then the media plane could not change without breaking that client.
 // on your frontend, having fetched `resp` from your own backend:
 import { createRTCClient } from '@ravenkash/rtc';
 
+// The mint response is already the config: forward it whole.
+const client = createRTCClient(resp);
+
+// Or field by field, which is the same call:
 const client = createRTCClient({
   token: resp.token,
   endpoint: resp.endpoint,
   iceServers: resp.iceServers, // never hand-construct STUN/TURN config yourself
 });
 ```
+
+Passing the response verbatim works because `RTCClientConfig` is a subset
+of it — the extra fields (`roomId`, `permissions`, `expiresAt`, …) are
+ignored. There is deliberately no separate `fromGrant()` helper to learn.
 
 `iceServers` is optional only so tests/advanced setups can omit it — in
 normal use, always forward it from the token response. See
@@ -68,13 +76,23 @@ normal use, always forward it from the token response. See
 ## Joining a room
 
 ```js
-const room = await client.join('room-123');
+const room = await client.join();          // the room the token names
+const room = await client.join('room-123'); // or say it explicitly
 ```
 
-`roomId` must match the room your token was minted for — the SDK decodes
-(never verifies; the server is the source of truth) the token client-side
-and throws `ROOM_NOT_FOUND` immediately if it doesn't match, rather than
-letting you hit a confusing connection failure later.
+The argument is optional. A token carries its room in the `rnm`/`rid`
+claims, so a client built from a grant already knows where it is going and
+`join()` needs nothing further. Livqeno told you the room; you should not
+have to tell Livqeno.
+
+Pass one explicitly and it still has to match the room the token was minted
+for — the SDK decodes (never verifies; the server is the source of truth)
+the token client-side and throws `ROOM_NOT_FOUND` immediately if it
+doesn't, rather than letting you hit a confusing connection failure later.
+
+A token carrying neither claim has nothing to default to, so `join()` with
+no argument throws `ROOM_NOT_FOUND` naming the fix. Only hand-built tokens
+and pre-`rnm` ones are in that position.
 
 Handling participants already in the room when you join:
 
@@ -372,7 +390,7 @@ Measured from a real build (`pnpm --filter @ravenkash/rtc build`):
 alongside it: WebRTC comes from the browser. The SDK grew from ~6 KB to
 ~21 KB gzipped when it took over signaling, negotiation and track
 attribution from a third-party client — which is a ~15 KB increase in
-Raven's own code in exchange for dropping a ~274 KB gzipped dependency.
+Livqeno's own code in exchange for dropping a ~274 KB gzipped dependency.
 
 Re-measure rather than trusting this table:
 `pnpm --filter @ravenkash/rtc build && node packages/sdk/scripts/print-bundle-size.mjs`.

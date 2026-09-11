@@ -1,10 +1,10 @@
 // Package signal defines and serves the node link, the WebSocket sitting
-// between Raven's control plane and this SFU node.
+// between Livqeno's control plane and this SFU node.
 //
 // # Why a node link at all
 //
 // Clients never talk to the SFU's signaling directly. They hold one
-// WebSocket to the Raven API, and the API relays negotiation on to
+// WebSocket to the Livqeno API, and the API relays negotiation on to
 // whichever SFU got allocated for their room. That indirection is the
 // whole point. No client ever learns an SFU's address or its protocol, so
 // the media plane can be re-shaped, re-deployed or replaced outright
@@ -217,7 +217,7 @@ type TrackUnpublishedPayload struct {
 
 type ConnectionStatePayload struct {
 	// ICEState and PeerState are Pion's own state strings, passed straight
-	// through. We don't collapse them into some Raven vocabulary. This is a
+	// through. We don't collapse them into some Livqeno vocabulary. This is a
 	// diagnostic channel; the honest thing to report is whatever the stack
 	// actually said.
 	ICEState  string `json:"iceState"`

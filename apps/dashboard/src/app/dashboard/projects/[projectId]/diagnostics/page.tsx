@@ -9,17 +9,7 @@ import { KeyValue, KeyValueGrid } from '@/components/ui/mono';
 import { PageHeader } from '@/components/ui/page-header';
 import { ProductTabs, rtcTabs } from '@/components/shell/product-tabs';
 import { ErrorState, NoDataYet } from '@/components/ui/states';
-import {
-  MobileList,
-  MobileRow,
-  Table,
-  TableWrap,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from '@/components/ui/table';
+import { MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { formatCount } from '@/lib/format';
 
 /**
@@ -118,7 +108,8 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ pr
       scope: 'This project',
       status: diagnostics?.dependencies.turn ?? health?.dependencies.turn ?? 'unknown',
       role: 'Relays media when a direct path is blocked by NAT or a restrictive firewall.',
-      ifDown: 'Connections still succeed on permissive networks and fail on corporate or mobile ones — often reported as "works for me".',
+      ifDown:
+        'Connections still succeed on permissive networks and fail on corporate or mobile ones — often reported as "works for me".',
     },
     {
       key: 'database',
@@ -134,7 +125,8 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ pr
       scope: 'Platform',
       status: health?.dependencies.redis ?? 'unknown',
       role: 'Shares signaling state across API instances so any node can answer for any room.',
-      ifDown: 'Participants handled by different nodes can lose sight of each other, and reconnects behave inconsistently.',
+      ifDown:
+        'Participants handled by different nodes can lose sight of each other, and reconnects behave inconsistently.',
     },
   ];
 
@@ -163,9 +155,9 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ pr
           <div className="min-w-0">
             <h2 className="text-sm font-semibold text-fg">
               {systemStatus === 'operational'
-                ? 'Everything Raven can check is responding'
+                ? 'Everything Livqeno can check is responding'
                 : systemStatus === 'unknown'
-                  ? 'Raven could not determine system status'
+                  ? 'Livqeno could not determine system status'
                   : `${formatCount(downCount)} of ${formatCount(checks.length)} checks are failing`}
             </h2>
             <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">
@@ -189,7 +181,7 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ pr
           description={
             diagnosticsResult.reason instanceof ApiError && diagnosticsResult.reason.status === 404
               ? 'This project was not found by the diagnostics endpoint. Platform health below is still accurate; project-specific signaling, SFU and TURN checks are not.'
-              : 'Raven could not run the checks scoped to this project. Anything below marked "Platform" still comes from the live health endpoint — the project-scoped rows are unverified.'
+              : 'Livqeno could not run the checks scoped to this project. Anything below marked "Platform" still comes from the live health endpoint — the project-scoped rows are unverified.'
           }
           retryHref={`${base}/diagnostics`}
         />
@@ -304,15 +296,7 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ pr
             </KeyValue>
             <KeyValue label="Project name">{diagnostics?.project.name ?? <NoDataYet label="Unverified" />}</KeyValue>
             <KeyValue label="Platform health">
-              {health ? (
-                health.status === 'ok' ? (
-                  'ok'
-                ) : (
-                  'degraded'
-                )
-              ) : (
-                <NoDataYet label="Unverified" />
-              )}
+              {health ? health.status === 'ok' ? 'ok' : 'degraded' : <NoDataYet label="Unverified" />}
             </KeyValue>
             <KeyValue label="Checks failing">
               <span className="tabular">

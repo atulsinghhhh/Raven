@@ -29,9 +29,7 @@ export class ApiKeyAuthGuard implements CanActivate {
       throw new UnauthorizedError('Missing API key');
     }
 
-    const { project, environment, publicId } = await this.apiKeysService.verify(
-      header.slice('Bearer '.length),
-    );
+    const { project, environment, publicId } = await this.apiKeysService.verify(header.slice('Bearer '.length));
     request.apiProjectId = project.id;
     request.apiEnvironment = environment;
     request.apiKeyPublicId = publicId;

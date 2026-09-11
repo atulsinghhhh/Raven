@@ -12,7 +12,7 @@ export type SdkConnectionState = 'disconnected' | 'connecting' | 'connected' | '
  *
  * `'unknown'` covers both "not connected yet" and "the SFU has nothing to
  * say", which is the honest answer either way. It's also the usual answer
- * right now, since Raven's SFU doesn't compute a quality verdict yet. See
+ * right now, since Livqeno's SFU doesn't compute a quality verdict yet. See
  * `RavenAdapter.getConnectionQuality`.
  */
 export type ConnectionQuality = 'excellent' | 'good' | 'poor' | 'lost' | 'unknown';
@@ -46,7 +46,7 @@ export interface SFUAdapterEventMap {
  * The boundary between the public Room API and whatever actually
  * implements the connection.
  *
- * This interface is the reason swapping LiveKit out for Raven's own SFU
+ * This interface is the reason swapping LiveKit out for Livqeno's own SFU
  * didn't touch the public API. `Room` and `RTCClient` are written against
  * it, never against a particular implementation, so trading
  * `internal/sfu/livekit-adapter.ts` for `internal/sfu/raven-adapter.ts`
@@ -92,6 +92,19 @@ export interface SFUAdapter {
   unpublish(track: LocalTrack): Promise<void>;
 
   sendData(payload: Uint8Array<ArrayBuffer>): Promise<void>;
+  /**
+   * Makes sure a data channel exists, for a participant that wants to
+   * *receive* data.
+   *
+   * The SFU fans data out over each recipient's own channel, so a
+   * participant with no channel cannot receive — and one is only created
+   * on demand, because most calls never send a byte. Listening for
+   * `dataReceived` is that demand.
+   *
+   * Optional so an adapter with no channel concept (or a test double)
+   * satisfies this interface untouched.
+   */
+  ensureDataChannel?(): void;
 
   getDevices(kind?: DeviceKind): Promise<DeviceInfo[]>;
   /**

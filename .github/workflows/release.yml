@@ -33,6 +33,17 @@ permissions:
 
 env:
   NODE_VERSION: "22"
+  # `prisma generate` loads apps/api/prisma.config.ts, which resolves this
+  # eagerly and aborts with PrismaConfigEnvError when it is unset — even
+  # though generating a client never opens a connection. That is what broke
+  # every release run before this line existed: the workflow died at
+  # "Generate Prisma client" and nothing was ever published.
+  #
+  # Deliberately unreachable rather than a real database. If a step ever
+  # does try to connect with it, we want a loud connection error against
+  # port 1 rather than a silent write to something real. ci.yml carries the
+  # identical value for the identical reason — keep the two in step.
+  DATABASE_URL: "postgresql://ci:ci@127.0.0.1:1/raven_generate_only"
 
 jobs:
   release:
@@ -45,8 +56,9 @@ jobs:
       contents: write
       # Open and update the "Version Packages" PR.
       pull-requests: write
-      # npm trusted publishing (OIDC). Harmless when NPM_TOKEN is used
-      # instead; see the note on authentication below.
+      # Load-bearing for publishing. pnpm mints the npm credential from this
+      # job's OIDC identity — without it there is no credential at all, and
+      # the publish step cannot authenticate. See the note below.
       id-token: write
 
     steps:
@@ -62,11 +74,33 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-          # Points npm at the public registry and wires up OIDC/token auth
-          # for the publish step.
+          # Pins the registry that pnpm resolves the publish target against.
+          # It no longer supplies credentials: the `.npmrc` this writes has an
+          # empty `_authToken` now that NODE_AUTH_TOKEN is gone, and pnpm
+          # overwrites that with the OIDC-minted token anyway.
           registry-url: "https://registry.npmjs.org"
 
       - run: pnpm install --frozen-lockfile
+
+      # Publishing is the last step of a four-minute job, so a credential
+      # that cannot be minted is discovered four minutes late. This costs no
+      # network at all and moves that discovery to the front.
+      #
+      # There is no token to validate any more. The only local precondition
+      # for trusted publishing is that `id-token: write` actually took
+      # effect — GitHub injects these two variables only when it did. If a
+      # future edit drops the permission, or an org policy strips it, this
+      # fails here with a readable message instead of surfacing four minutes
+      # later as an opaque "Skipped OIDC" warning followed by a 404.
+      - name: Preflight — can this job mint an npm credential?
+        run: |
+          set -euo pipefail
+
+          if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] || [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+            echo "::error::No OIDC token available to this job. Publishing needs 'id-token: write' in the job's permissions block; see docs/releases.md."
+            exit 1
+          fi
+          echo "OIDC token endpoint present — pnpm can request an id-token."
 
       # Publishing a broken tarball cannot be undone — npm unpublish is
       # heavily restricted. So the same gates that guard main run again
@@ -89,21 +123,16 @@ jobs:
         run: node scripts/verify-package-metadata.mjs
 
       # Every publishable package is packed with the real packer and the
-      # contents inspected, without contacting the registry.
-      - name: npm pack dry-run
-        run: |
-          set -euo pipefail
-          for dir in packages/*/; do
-            name="$(node -p "require('./${dir}package.json').name")"
-            private="$(node -p "require('./${dir}package.json').private === true")"
-            if [ "$private" = "true" ]; then
-              echo "skip (private): $name"
-              continue
-            fi
-            echo "::group::pack $name"
-            ( cd "$dir" && npm publish --dry-run )
-            echo "::endgroup::"
-          done
+      # manifest inside the tarball inspected, without contacting the
+      # registry.
+      #
+      # This step used to run `npm publish --dry-run`, which lists the files
+      # in the tarball but never validates dependency ranges — so it passed
+      # happily on @ravenkash/rtc@0.1.0, whose published manifest still read
+      # `"@ravenkash/effects": "workspace:*"` and failed for every installer
+      # on earth with EUNSUPPORTEDPROTOCOL.
+      - name: Verify packed manifests are installable
+        run: node scripts/verify-pack-manifests.mjs
 
       - name: Changesets — version PR or publish
         id: changesets
@@ -123,22 +152,62 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # ---------------------------------------------------------------
-          # Authentication.
+          # Authentication — npm trusted publishing (OIDC). No token.
           #
-          # Preferred: npm **trusted publishing** — configure each package on
-          # npmjs.com to trust this repository and workflow, and the OIDC
-          # token from `id-token: write` above is exchanged for a short-lived
-          # credential. Nothing long-lived is stored in GitHub.
+          # pnpm requests an OIDC id-token from GitHub for the audience
+          # `npm:registry.npmjs.org`, POSTs it to
+          # `/-/npm/v1/oidc/token/exchange/package/<name>`, and publishes
+          # with the short-lived credential npm returns. This is per package
+          # and requires each package on npmjs.com to name this repository
+          # and this workflow file as its trusted publisher.
           #
-          # NPM_TOKEN below is the fallback for packages not yet migrated to
-          # trusted publishing. It is read from repository secrets and never
-          # echoed; if it is unset the publish step fails loudly rather than
-          # publishing anonymously.
+          # There is deliberately no NPM_TOKEN here. It is not a fallback
+          # that was left out — a token present in the environment is worse
+          # than none: pnpm would still prefer the OIDC credential
+          # (`publishOptions.token` is overwritten when the exchange
+          # succeeds), so the token would sit unused until the day OIDC
+          # silently failed, at which point it would quietly take over and
+          # hide the breakage.
           #
-          # See docs/releases.md for the one-time setup.
+          # This also replaces the old NPM_TOKEN setup, which could not
+          # work: npm now issues only granular tokens, the packages require
+          # "a granular access token with bypass 2fa enabled", and the token
+          # in use had no 2FA bypass — so every publish was challenged for
+          # an OTP and died as ERR_PNPM_OTP_NON_INTERACTIVE.
+          #
+          # Provenance comes along for free: pnpm attaches an attestation
+          # when it publishes through OIDC, so released tarballs are
+          # verifiably built by this workflow.
+          #
+          # Requires `id-token: write` above. See docs/releases.md.
           # ---------------------------------------------------------------
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # pnpm reports a failed OIDC exchange as a `Skipped OIDC:` warning and
+      # then falls through to a credential-less publish, and it echoes the
+      # prepublishOnly script line next to the error — which reads as though
+      # the guard rejected the publish. It did not.
+      - name: Explain a failed publish
+        if: failure() && steps.changesets.outcome == 'failure'
+        run: |
+          {
+            echo "### Publish failed"
+            echo
+            echo "Look for \`Skipped OIDC:\` in the log above."
+            echo
+            echo "- **Present** — the trusted-publisher exchange was refused. The package"
+            echo "  is most likely missing its trusted publisher on npmjs.com, or has one"
+            echo "  whose workflow filename is not \`release.yml\`. Configure it at"
+            echo "  npmjs.com -> the package -> Settings -> Trusted Publisher:"
+            echo "  \`${{ github.repository_owner }}\` / \`${{ github.event.repository.name }}\` / \`release.yml\`, no environment."
+            echo "- **Absent, with \`ERR_PNPM_OTP_NON_INTERACTIVE\`** — something reintroduced"
+            echo "  a token into the publish step's env and the registry challenged the"
+            echo "  write with 2FA. Remove it; this pipeline publishes via OIDC only."
+            echo
+            echo "The \`assert-publish-safe.mjs\` line printed beside the error is the"
+            echo "prepublishOnly script being echoed. It is not the cause."
+            echo
+            echo "Nothing was published — see docs/releases.md."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Summary
         run: |

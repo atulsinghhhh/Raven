@@ -21,13 +21,7 @@ const OVERRIDE = 'ALLOW_E2E_AGAINST_REMOTE_DB';
 
 // host.docker.internal counts as local: it is how a container reaches a
 // Postgres on the developer's own machine.
-const LOCAL_HOSTS = new Set([
-  'localhost',
-  '127.0.0.1',
-  '::1',
-  '0.0.0.0',
-  'host.docker.internal',
-]);
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0', 'host.docker.internal']);
 
 export default function guardDatabaseTarget(): void {
   // Same lookup order as app.module.ts and prisma.config.ts, so the guard
@@ -38,9 +32,7 @@ export default function guardDatabaseTarget(): void {
 
   const url = process.env.DATABASE_URL;
   if (!url) {
-    throw new Error(
-      'DATABASE_URL is not set — the e2e suite needs a database. See .env.example.',
-    );
+    throw new Error('DATABASE_URL is not set — the e2e suite needs a database. See .env.example.');
   }
 
   let host: string;

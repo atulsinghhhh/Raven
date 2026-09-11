@@ -1,4 +1,4 @@
-# Raven capacity report
+# Livqeno capacity report
 
 Every number in this report traces to a script under `scripts/` and a raw
 output artifact under `scripts/results/` (filenames cited per section) —
@@ -7,11 +7,11 @@ documented in `scripts/k6/README.md`; read that first if a number here
 looks surprising, since it explains what a single local machine can and
 cannot prove.
 
-> **Historical.** These numbers were measured while Raven ran on LiveKit.
+> **Historical.** These numbers were measured while Livqeno ran on LiveKit.
 > The control-plane figures (token minting, REST, chat) are unaffected by
 > the media-plane change and still stand. The **RTC media numbers do
 > not** — they measured a different SFU. What has been measured against
-> Raven's own SFU is in
+> Livqeno's own SFU is in
 > [`docs/rtc/test-matrix.md`](../rtc/test-matrix.md#2-participant-scale-spec-39),
 > and it is explicitly not a capacity figure. Kept because the methodology
 > and the honesty discipline in it are worth reusing.
@@ -27,7 +27,7 @@ figure as a lower bound on what a dedicated machine would show, and
 focus on the *ratios* (scaling efficiency, relative degradation) and
 the *bottleneck diagnoses*, which are environment-independent findings.
 
-**Do not read this report as "Raven supports 10,000 concurrent users."
+**Do not read this report as "Livqeno supports 10,000 concurrent users."
 It does not claim that.** What it does contain: real measured
 per-instance ceilings for two surfaces, one real measured horizontal-
 scaling efficiency, and three concrete, root-caused bottlenecks — one
@@ -58,7 +58,7 @@ clear fix path.
 (`scripts/results/api-1x-20260819T154325.json`) and again at **7-9
 VUs** for a rooms-only variant
 (`scripts/results/api-1x-rooms-only-20260819T155154.json`). Reporting
-"Raven's REST ceiling is 6 concurrent users" would be true of this
+"Livqeno's REST ceiling is 6 concurrent users" would be true of this
 specific run and false as a statement about the system — so the rest
 of this section is the actual diagnosis, run with `--no-thresholds` to
 see the real shape of the degradation instead of stopping at the first
@@ -113,7 +113,7 @@ bottleneck, today, with zero code changes.
 ### 1.4 What this means for capacity planning
 
 **Do not use "13 req/s × N instances" as a production capacity plan.**
-That number describes an unfixed, easily-fixed bug, not Raven's
+That number describes an unfixed, easily-fixed bug, not Livqeno's
 architecture. The actual recommendation:
 
 - **Fix**: switch to the native `bcrypt` package (thread-pool-based,
@@ -207,7 +207,7 @@ confirms that design holds up under load).
 produce a meaningful second data point (multiple thousands of
 connections across 2-3 replicas) on this same contended machine, in the
 time available this pass, would mean reading a number dominated by
-this machine's contention rather than Raven's actual multi-instance
+this machine's contention rather than Livqeno's actual multi-instance
 behavior — exactly the failure mode §0's environment note warns about.
 The **architectural** case for scaling is already established (Redis
 pub/sub fan-out + connection registry, verified to work correctly
@@ -268,7 +268,7 @@ behind it, not a confirmed root cause the way §1.3's is.
 ### 3.3 What this means for capacity planning
 
 This measured ceiling is a **local single-machine dev-config artifact,
-not a LiveKit or Raven capacity signal**, and should not be
+not a LiveKit or Livqeno capacity signal**, and should not be
 extrapolated at all. A real RTC capacity measurement needs either a
 widened local UDP range (a one-line `.env` change, cheap to try as a
 next step) or, better, a real multi-node LiveKit deployment — the thing

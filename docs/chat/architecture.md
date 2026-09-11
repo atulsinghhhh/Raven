@@ -1,9 +1,9 @@
-# Raven Chat — Architecture
+# Livqeno Chat — Architecture
 
 ## The shape of it
 
 ```
-                              RAVEN
+                             Livqeno
                                 │
               ┌─────────────────┼─────────────────┐
               │                 │                 │
@@ -39,7 +39,7 @@ Three stores, three jobs, and the split is the whole design:
 ## Why not put messages in Redis
 
 Redis is where the real-time state lives, and it's tempting to keep messages
-there too — it's faster, and the fan-out is already going through it. Raven
+there too — it's faster, and the fan-out is already going through it. Livqeno
 doesn't, for one reason: a message has to survive a Redis restart, and
 presence doesn't. Conflating those puts the durability of someone's
 conversation at the mercy of a cache eviction policy.
@@ -209,7 +209,7 @@ means fan-out is essentially free relative to the database write.
 
 **What this does not tell you:** anything about production capacity. The load
 generator and the server contend for the same cores, so these latencies are a
-ceiling rather than a projection. Raven has not been tested at thousands of
+ceiling rather than a projection. Livqeno has not been tested at thousands of
 connections, across regions, or under sustained load for hours. Those numbers
 don't exist yet, so they aren't claimed.
 

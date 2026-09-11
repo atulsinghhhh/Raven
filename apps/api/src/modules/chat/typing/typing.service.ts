@@ -43,23 +43,37 @@ export class TypingService {
   ): Promise<void> {
     const key = RedisKeys.typing(projectId, conversationId, userId);
     const indexKey = RedisKeys.typingIndex(projectId, conversationId);
+    const connectionsKey = RedisKeys.typingConnections(projectId, conversationId, userId);
 
     let wasAlreadyTyping = false;
     try {
       wasAlreadyTyping = (await this.redisService.client.exists(key)) === 1;
-      await this.redisService.client
+      const multi = this.redisService.client
         .multi()
         .set(key, '1', 'EX', this.ttlSeconds)
         .zadd(indexKey, Date.now() + this.ttlSeconds * 1000, userId)
-        .expire(indexKey, this.ttlSeconds * 4)
-        .exec();
+        .expire(indexKey, this.ttlSeconds * 4);
+      if (originConnectionId) {
+        // Reference-counted for the same reason presence is: one person can
+        // have several connections, and a second window closing must not
+        // cancel the indicator the first one is still driving.
+        multi.sadd(connectionsKey, originConnectionId).expire(connectionsKey, this.ttlSeconds);
+      }
+      await multi.exec();
     } catch (err) {
       this.logger.warn(`typing write failed: ${(err as Error).message}`);
       return;
     }
 
     if (!wasAlreadyTyping) {
-      await this.publish(ChatServerFrame.TYPING_STARTED, projectId, conversationId, conversationPublicId, userId, originConnectionId);
+      await this.publish(
+        ChatServerFrame.TYPING_STARTED,
+        projectId,
+        conversationId,
+        conversationPublicId,
+        userId,
+        originConnectionId,
+      );
     }
   }
 
@@ -70,11 +84,24 @@ export class TypingService {
     userId: string,
     originConnectionId?: string,
   ): Promise<void> {
+    const connectionsKey = RedisKeys.typingConnections(projectId, conversationId, userId);
     let wasTyping = false;
     try {
+      if (originConnectionId) {
+        await this.redisService.client.srem(connectionsKey, originConnectionId);
+        if ((await this.redisService.client.scard(connectionsKey)) > 0) {
+          // Another connection of this same user is still typing. Leave the
+          // indicator up rather than cancelling their sibling window.
+          return;
+        }
+      }
       const removed = await this.redisService.client.del(RedisKeys.typing(projectId, conversationId, userId));
       wasTyping = removed === 1;
-      await this.redisService.client.zrem(RedisKeys.typingIndex(projectId, conversationId), userId);
+      await this.redisService.client
+        .multi()
+        .del(connectionsKey)
+        .zrem(RedisKeys.typingIndex(projectId, conversationId), userId)
+        .exec();
     } catch (err) {
       this.logger.warn(`typing clear failed: ${(err as Error).message}`);
       return;
@@ -83,7 +110,14 @@ export class TypingService {
     // Only announce a stop if there was a start to stop: otherwise a
     // client that fires stop on every blur floods the conversation.
     if (wasTyping) {
-      await this.publish(ChatServerFrame.TYPING_STOPPED, projectId, conversationId, conversationPublicId, userId, originConnectionId);
+      await this.publish(
+        ChatServerFrame.TYPING_STOPPED,
+        projectId,
+        conversationId,
+        conversationPublicId,
+        userId,
+        originConnectionId,
+      );
     }
   }
 

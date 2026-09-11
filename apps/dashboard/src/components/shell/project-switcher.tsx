@@ -20,13 +20,7 @@ function targetPath(pathname: string, currentId: string, nextId: string): string
   return `/dashboard/projects/${nextId}/${section}`;
 }
 
-export function ProjectSwitcher({
-  projects,
-  current,
-}: {
-  projects: Project[];
-  current: Project;
-}) {
+export function ProjectSwitcher({ projects, current }: { projects: Project[]; current: Project }) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -45,7 +39,9 @@ export function ProjectSwitcher({
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-medium text-fg">{current.name}</span>
           </span>
-          <IconChevronDown className={`size-3.5 shrink-0 text-subtle transition-transform ${open ? 'rotate-180' : ''}`} />
+          <IconChevronDown
+            className={`size-3.5 shrink-0 text-subtle transition-transform ${open ? 'rotate-180' : ''}`}
+          />
         </span>
       )}
     >
@@ -61,10 +57,7 @@ export function ProjectSwitcher({
       <MenuItem href="/dashboard/projects?new=1" icon={<IconPlus className="size-3.5" />}>
         New project
       </MenuItem>
-      <MenuItem
-        href={`/dashboard/projects/${current.id}/settings`}
-        icon={<IconSettings className="size-3.5" />}
-      >
+      <MenuItem href={`/dashboard/projects/${current.id}/settings`} icon={<IconSettings className="size-3.5" />}>
         Project settings
       </MenuItem>
     </Menu>

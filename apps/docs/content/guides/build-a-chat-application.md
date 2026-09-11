@@ -23,7 +23,10 @@ does both:
 ```ts
 import { Raven } from '@ravenkash/server';
 
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY!,
+  baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
+});
 
 const conversation = await raven.chat.createConversation({
   name: 'support-room-42',
@@ -195,4 +198,4 @@ honest about a browser that crashed.
 ## Next steps
 
 - [Chat overview](/chat) · [Messages](/chat/messages) · [Chat events](/chat/events)
-- [WebSocket protocol](/chat/websocket) — if you need a client Raven does not ship.
+- [WebSocket protocol](/chat/websocket) — if you need a client Livqeno does not ship.

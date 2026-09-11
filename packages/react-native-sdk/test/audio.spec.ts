@@ -67,18 +67,13 @@ describe('audio', () => {
       expect(__calls.chosenRoutes).toEqual(['BLUETOOTH']);
     });
 
-    it('maps every Raven output onto an Android route', async () => {
+    it('maps every Livqeno output onto an Android route', async () => {
       await audio.setOutput('speaker');
       await audio.setOutput('earpiece');
       await audio.setOutput('headset');
       await audio.setOutput('bluetooth');
 
-      expect(__calls.chosenRoutes).toEqual([
-        'SPEAKER_PHONE',
-        'EARPIECE',
-        'WIRED_HEADSET',
-        'BLUETOOTH',
-      ]);
+      expect(__calls.chosenRoutes).toEqual(['SPEAKER_PHONE', 'EARPIECE', 'WIRED_HEADSET', 'BLUETOOTH']);
     });
 
     it('falls back to the speaker toggle where route selection is unavailable', async () => {
@@ -153,13 +148,7 @@ describe('audio', () => {
       await expect(audio.getOutputs()).resolves.toEqual(['speaker', 'bluetooth']);
       await audio.stop();
 
-      expect(calls).toEqual([
-        'start',
-        'speaker:true',
-        'output:bluetooth',
-        'picker',
-        'stop',
-      ]);
+      expect(calls).toEqual(['start', 'speaker:true', 'output:bluetooth', 'picker', 'stop']);
       // The default adapter was never consulted.
       expect(__calls.start).toBe(0);
     });

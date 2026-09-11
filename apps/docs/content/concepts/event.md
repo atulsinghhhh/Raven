@@ -3,7 +3,7 @@ title: Event
 description: Something that happened. Delivered to a connected client as a callback, or to your backend as a webhook.
 ---
 
-Raven has two event surfaces, and they do not overlap.
+Livqeno has two event surfaces, and they do not overlap.
 
 ## Client events
 

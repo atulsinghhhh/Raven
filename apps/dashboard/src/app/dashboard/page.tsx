@@ -137,7 +137,7 @@ export default async function DashboardHomePage({ searchParams }: { searchParams
           {greeting()}
           {firstName ? `, ${firstName}` : ''}
         </h1>
-        <p className="mt-1.5 text-sm text-muted">Here’s what’s happening across your Raven projects.</p>
+        <p className="mt-1.5 text-sm text-muted">Here’s what’s happening across your Livqeno projects.</p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <ButtonLink href={DOCS_URL} variant="ghost">
@@ -242,7 +242,7 @@ export default async function DashboardHomePage({ searchParams }: { searchParams
         <section>
           <SectionHeader
             title="Usage"
-            subtitle="Derived from each project's own telemetry — Raven has no separate billing meter."
+            subtitle="Derived from each project's own telemetry — Livqeno has no separate billing meter."
             action={<RangeSelector basePath="/dashboard" current={range} ranges={OVERVIEW_RANGES} />}
           />
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -401,7 +401,7 @@ function ProductStat({
 }
 
 /**
- * The zero-project state is a pitch, not an apology: what Raven does and
+ * The zero-project state is a pitch, not an apology: what Livqeno does and
  * the one action that starts everything.
  */
 function ZeroProjects() {
@@ -409,7 +409,7 @@ function ZeroProjects() {
     <section className="flex flex-col items-center rounded border border-line bg-surface px-6 py-16 text-center">
       <h2 className="display text-2xl text-fg sm:text-3xl">Build your first realtime application</h2>
       <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">
-        Create a Raven project and connect your application using our SDKs.
+        Create a Livqeno project and connect your application using our SDKs.
       </p>
       <div className="mt-8 flex flex-col items-center gap-2 sm:flex-row">
         <ButtonLink href="/dashboard/projects?new=1" variant="primary">

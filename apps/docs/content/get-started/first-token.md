@@ -3,7 +3,7 @@ title: Generate a token
 description: Your backend decides who a user is and what they may do, then mints a short-lived token.
 ---
 
-A client never asks Raven for its own token. Your backend does, from its own
+A client never asks Livqeno for its own token. Your backend does, from its own
 authenticated session, and hands the result to the client.
 
 That ordering is the whole security model: a client that could name its own
@@ -17,7 +17,10 @@ identity could impersonate any other user.
 ```ts
 import { Raven } from '@ravenkash/server';
 
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY! });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY!,
+  baseUrl: process.env.RAVEN_API_URL!, // https://api.ravenstack.online
+});
 
 app.post('/join-room', async (req, res) => {
   const room = await raven.rooms.create({ name: 'demo-room' });
@@ -40,7 +43,10 @@ app.post('/join-room', async (req, res) => {
 import os
 from raven import Raven, CreateTokenParams, TokenPermissions
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 
 @app.post("/join-room")
 def join_room(request):
@@ -124,8 +130,12 @@ widens what was signed.
 `expiresIn` (`ttlSeconds` over HTTP) is 30–21600 seconds. There is no way to
 request a non-expiring token.
 
-Short is the point. There is no revocation list for an issued RTC token; the
-lifetime *is* the control. Mint on demand, one per participant per join.
+Short is the point. A token can be revoked early
+(`DELETE /v1/rooms/{roomId}/rtc-tokens/{tokenId}`), but that only blocks
+new connections and cannot end a call already running — so the lifetime is
+what actually bounds a leaked token. Mint on demand, one per participant
+per join. See
+[RTC authentication → Revocation](/rtc/authentication#revocation).
 
 ## Chat tokens are separate
 

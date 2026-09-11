@@ -13,7 +13,12 @@ describe('raven projects (integration)', () => {
     dir = await mkdtemp(join(tmpdir(), 'raven-cli-int-'));
     process.env.RAVEN_CONFIG_DIR = dir;
     await writeCliConfig({ apiUrl: 'http://api.test' });
-    await writeCredentials({ token: 'jwt-token', email: 'dev@example.com', apiUrl: 'http://api.test', createdAt: '2026-01-01T00:00:00.000Z' });
+    await writeCredentials({
+      token: 'jwt-token',
+      email: 'dev@example.com',
+      apiUrl: 'http://api.test',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
   });
 
   afterEach(async () => {
@@ -26,7 +31,15 @@ describe('raven projects (integration)', () => {
     mockApi({
       'POST /v1/projects': async () => ({
         status: 201,
-        body: { id: 'proj-1', name: 'my-video-app', description: null, status: 'ACTIVE', ownerId: 'u1', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+        body: {
+          id: 'proj-1',
+          name: 'my-video-app',
+          description: null,
+          status: 'ACTIVE',
+          ownerId: 'u1',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
       }),
     });
 
@@ -42,7 +55,15 @@ describe('raven projects (integration)', () => {
     mockApi({
       'POST /v1/projects': async () => ({
         status: 201,
-        body: { id: 'proj-1', name: 'my-video-app', description: null, status: 'ACTIVE', ownerId: 'u1', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+        body: {
+          id: 'proj-1',
+          name: 'my-video-app',
+          description: null,
+          status: 'ACTIVE',
+          ownerId: 'u1',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
       }),
     });
 
@@ -57,8 +78,24 @@ describe('raven projects (integration)', () => {
       'GET /v1/projects': async () => ({
         status: 200,
         body: [
-          { id: 'proj-1', name: 'my-video-app', description: null, status: 'ACTIVE', ownerId: 'u1', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
-          { id: 'proj-2', name: 'chat-app', description: null, status: 'ACTIVE', ownerId: 'u1', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+          {
+            id: 'proj-1',
+            name: 'my-video-app',
+            description: null,
+            status: 'ACTIVE',
+            ownerId: 'u1',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+          {
+            id: 'proj-2',
+            name: 'chat-app',
+            description: null,
+            status: 'ACTIVE',
+            ownerId: 'u1',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
         ],
       }),
     });
@@ -85,7 +122,15 @@ describe('raven projects (integration)', () => {
     mockApi({
       'GET /v1/projects/proj-1': async () => ({
         status: 200,
-        body: { id: 'proj-1', name: 'my-video-app', description: null, status: 'ACTIVE', ownerId: 'u1', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+        body: {
+          id: 'proj-1',
+          name: 'my-video-app',
+          description: null,
+          status: 'ACTIVE',
+          ownerId: 'u1',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
       }),
       'DELETE /v1/projects/proj-1': deleteHandler,
     });
@@ -100,7 +145,15 @@ describe('raven projects (integration)', () => {
     mockApi({
       'GET /v1/projects/proj-1': async () => ({
         status: 200,
-        body: { id: 'proj-1', name: 'my-video-app', description: null, status: 'ACTIVE', ownerId: 'u1', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+        body: {
+          id: 'proj-1',
+          name: 'my-video-app',
+          description: null,
+          status: 'ACTIVE',
+          ownerId: 'u1',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
       }),
       'DELETE /v1/projects/proj-1': async () => ({ status: 204 }),
     });

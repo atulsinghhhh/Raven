@@ -1,7 +1,7 @@
-# Raven Chat — Webhooks
+# Livqeno Chat — Webhooks
 
 Webhooks let your backend react to chat events without polling. Register a URL
-in the dashboard (**Webhooks**) or via the API, and Raven POSTs each event to
+in the dashboard (**Webhooks**) or via the API, and Livqeno POSTs each event to
 it.
 
 Webhooks are **project-scoped, not chat-scoped**. Chat is the only producer
@@ -135,10 +135,10 @@ recorded as a failure and retried, so slow processing turns into duplicates.
 ## Security
 
 **Signing secrets are shown once**, at creation, and never returned again. Like
-an API key secret — but unlike one, Raven does store it, because signing each
+an API key secret — but unlike one, Livqeno does store it, because signing each
 delivery requires it. Rotation is delete-and-recreate.
 
-**SSRF is partially mitigated.** Raven refuses obvious internal targets:
+**SSRF is partially mitigated.** Livqeno refuses obvious internal targets:
 non-HTTP schemes, loopback, and RFC 1918 / link-local addresses (outside local
 development). Production additionally requires `https://`.
 

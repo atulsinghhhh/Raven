@@ -82,7 +82,7 @@ jobs:
         with:
           fail-on-severity: high
           # MIT project: flag copyleft arriving in the dependency tree, where
-          # it would change the terms Raven itself can be distributed under.
+          # it would change the terms Livqeno itself can be distributed under.
           deny-licenses: AGPL-3.0, GPL-2.0, GPL-3.0
 
   # ---------------------------------------------------------------------------

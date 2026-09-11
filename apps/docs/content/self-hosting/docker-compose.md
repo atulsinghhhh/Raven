@@ -33,7 +33,7 @@ pnpm infra:reset       # stop, wipe volumes, start again
 
 ## Postgres is not included
 
-Deliberately. Raven's own deployment uses managed Postgres, and a database
+Deliberately. Livqeno's own deployment uses managed Postgres, and a database
 in a throwaway Compose volume is the wrong default for something holding
 every message you have.
 

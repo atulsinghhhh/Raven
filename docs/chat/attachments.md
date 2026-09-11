@@ -1,10 +1,10 @@
-# Raven Chat — Attachments
+# Livqeno Chat — Attachments
 
-Files never pass through Raven's API and never through the WebSocket. The
+Files never pass through Livqeno's API and never through the WebSocket. The
 browser uploads directly to object storage using a short-lived signed URL.
 
 ```
-Client                    Raven                Object storage
+Client                    Livqeno                Object storage
   │                         │                        │
   │  POST …/attachments     │                        │
   ├────────────────────────►│                        │
@@ -28,7 +28,7 @@ every message behind it — one person sharing a screenshot stalls the
 conversation for everyone on that connection. Base64-encoding it (the usual
 workaround) also inflates it by a third.
 
-Direct-to-storage uploads mean a large file costs Raven no bandwidth, no
+Direct-to-storage uploads mean a large file costs Livqeno no bandwidth, no
 memory, and no head-of-line blocking, and it can be resumed or retried without
 involving the messaging path at all.
 
@@ -73,7 +73,7 @@ Mint one when the user actually clicks. **Don't cache these** — they expire,
 and that expiry is what stops a link shared in a screenshot from becoming
 permanent access to a private file.
 
-Access is checked on Raven's side (project, conversation membership,
+Access is checked on Livqeno's side (project, conversation membership,
 `chat:read`) before a URL is issued. The object itself stays private in the
 bucket, so a leaked URL grants one file for a few minutes rather than the
 bucket forever.
@@ -127,10 +127,10 @@ anyone on the path.
 
 ## Implementation note
 
-Raven signs URLs with a hand-written SigV4 implementation
+Livqeno signs URLs with a hand-written SigV4 implementation
 (`s3-presign.util.ts`) rather than depending on `@aws-sdk/client-s3` and
 `@aws-sdk/s3-request-presigner`. Those add several megabytes and a large
-transitive tree to the API image, and Raven needs exactly two operations —
+transitive tree to the API image, and Livqeno needs exactly two operations —
 presigned `GET` and `PUT`. No multipart, no bucket management, no streaming.
 
 It's verified in tests against an independently-derived signature, not against

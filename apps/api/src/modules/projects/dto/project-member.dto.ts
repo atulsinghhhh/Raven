@@ -5,7 +5,7 @@ import { ProjectRole } from '../project-permissions';
 export class AddProjectMemberDto {
   @ApiProperty({
     example: 'teammate@example.com',
-    description: 'They must already have a Raven account — there is no invitation flow yet.',
+    description: 'They must already have a Livqeno account — there is no invitation flow yet.',
   })
   @IsEmail()
   email!: string;

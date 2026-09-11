@@ -82,6 +82,18 @@ export interface Project {
   ownerId: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Browser origins allowed to reach this project's SDK surfaces. Empty
+   * means unconfigured, which allows any origin — see
+   * /authentication/browser-security.
+   */
+  allowedOrigins?: string[];
+  allowLocalhostOrigins?: boolean;
+}
+
+export interface AllowedOrigins {
+  allowedOrigins: string[];
+  allowLocalhostOrigins: boolean;
 }
 
 export type Environment = 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION';
@@ -555,7 +567,7 @@ export interface WebhookDeliveryRecord {
 }
 
 /**
- * A developer's Raven-minute allowance.
+ * A developer's Livqeno-minute allowance.
  *
  * Every number here comes from the API, `includedMinutes` included. The
  * dashboard deliberately holds no copy of the free-tier figure: an account
@@ -728,6 +740,17 @@ export const ravenApi = {
 
   updateProject: (token: string, projectId: string, input: { name?: string; description?: string }) =>
     apiFetch<Project>(`/v1/projects/${projectId}`, { method: 'PATCH', token, body: input }),
+
+  updateAllowedOrigins: (
+    token: string,
+    projectId: string,
+    input: { allowedOrigins: string[]; allowLocalhostOrigins?: boolean },
+  ) =>
+    apiFetch<AllowedOrigins>(`/v1/projects/${projectId}/allowed-origins`, {
+      method: 'PATCH',
+      token,
+      body: input,
+    }),
 
   archiveProject: (token: string, projectId: string) =>
     apiFetch<void>(`/v1/projects/${projectId}`, { method: 'DELETE', token }),

@@ -30,7 +30,7 @@ const EVENT_TYPES = [
  * server-side (signing each delivery needs it), which is why the copy
  * panel says so plainly, not implying it's unrecoverable.
  *
- * Raven auto-disables an endpoint after enough consecutive failures, so
+ * Livqeno auto-disables an endpoint after enough consecutive failures, so
  * this component also has to explain that state and offer a way back.
  */
 export function WebhooksManager({
@@ -114,7 +114,7 @@ export function WebhooksManager({
       <Card>
         <CardHeader
           title="Add an endpoint"
-          subtitle="Raven POSTs each event as JSON, signed with HMAC-SHA256. Delivery is asynchronous and retried with exponential backoff — a slow endpoint never delays a message."
+          subtitle="Livqeno POSTs each event as JSON, signed with HMAC-SHA256. Delivery is asynchronous and retried with exponential backoff — a slow endpoint never delays a message."
         />
         <form onSubmit={handleCreate} className="flex flex-col gap-4">
           <Field
@@ -139,7 +139,9 @@ export function WebhooksManager({
                   <label
                     key={eventType}
                     className={`cursor-pointer rounded-md border px-2.5 py-1 font-mono text-xs transition-colors ${
-                      checked ? 'border-accent bg-accent-subtle text-accent-text' : 'border-line text-muted hover:text-fg'
+                      checked
+                        ? 'border-accent bg-accent-subtle text-accent-text'
+                        : 'border-line text-muted hover:text-fg'
                     }`}
                   >
                     <input
@@ -182,8 +184,9 @@ export function WebhooksManager({
             <CopyButton value={justCreated.signingSecret} label="Copy signing secret" />
           </div>
           <p className="mt-3 text-xs text-muted">
-            Raven signs each delivery as <code className="font-mono">Raven-Signature: t=&lt;unix&gt;,v1=&lt;hmac&gt;</code>{' '}
-            over <code className="font-mono">&quot;&lt;t&gt;.&lt;raw body&gt;&quot;</code>. Reject any delivery whose
+            Livqeno signs each delivery as{' '}
+            <code className="font-mono">Raven-Signature: t=&lt;unix&gt;,v1=&lt;hmac&gt;</code> over{' '}
+            <code className="font-mono">&quot;&lt;t&gt;.&lt;raw body&gt;&quot;</code>. Reject any delivery whose
             timestamp is more than five minutes old — that&apos;s what stops a captured request being replayed. See{' '}
             <span className="font-mono">docs/chat/webhooks.md</span>.
           </p>
@@ -200,7 +203,10 @@ export function WebhooksManager({
         <Card padded={false}>
           <ul className="divide-y divide-line">
             {endpoints.map((endpoint) => (
-              <li key={endpoint.publicId} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+              <li
+                key={endpoint.publicId}
+                className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between"
+              >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="truncate font-mono text-sm text-fg">{endpoint.url}</span>
@@ -209,9 +215,7 @@ export function WebhooksManager({
                     </Badge>
                   </div>
                   <p className="mt-1 text-xs text-subtle">
-                    {endpoint.enabledEvents.length === 0
-                      ? 'All events'
-                      : endpoint.enabledEvents.join(', ')}
+                    {endpoint.enabledEvents.length === 0 ? 'All events' : endpoint.enabledEvents.join(', ')}
                   </p>
                   <p className="mt-1 text-xs text-subtle">
                     {endpoint.lastDeliveryAt
@@ -227,7 +231,7 @@ export function WebhooksManager({
                   </p>
                   {endpoint.status === 'DISABLED' && (
                     <p className="mt-1 text-xs text-danger-text">
-                      Raven disabled this endpoint after repeated failures. Fix it, then re-enable — re-enabling also
+                      Livqeno disabled this endpoint after repeated failures. Fix it, then re-enable — re-enabling also
                       clears the failure count.
                     </p>
                   )}

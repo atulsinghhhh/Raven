@@ -3,7 +3,7 @@ title: Python SDK
 description: Server-side RTC and chat — sync and async, built on httpx.
 ---
 
-`raven-sdk` is Raven's server-side Python SDK. It runs on your backend,
+`raven-sdk` is Livqeno's server-side Python SDK. It runs on your backend,
 holds your API key, and mints the tokens your frontend actually uses —
 see [Authentication](/authentication).
 
@@ -11,7 +11,7 @@ see [Authentication](/authentication).
 
 > **Not published to PyPI yet — and do not `pip install raven-sdk`.**
 > That name is already taken on PyPI by an unrelated project ("Async
-> Kafka and HTTP producer SDK for Raven AI logs"), so installing it
+> Kafka and HTTP producer SDK for Livqeno AI logs"), so installing it
 > gets you someone else's package, not this one. Install from a local
 > checkout instead — see
 > [Installing from source](/getting-started/installing-from-source).
@@ -22,7 +22,10 @@ see [Authentication](/authentication).
 ```python
 from raven import Raven
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 ```
 
 The API key is required explicitly — the SDK never scans the environment
@@ -30,7 +33,10 @@ for it. Use it as a context manager to close the underlying connection
 pool:
 
 ```python
-with Raven(api_key=os.environ["RAVEN_API_KEY"]) as raven:
+with Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+) as raven:
     ...
 ```
 
@@ -40,7 +46,10 @@ with Raven(api_key=os.environ["RAVEN_API_KEY"]) as raven:
 from raven import AsyncRaven, CreateTokenParams
 
 async def main():
-    async with AsyncRaven(api_key=os.environ["RAVEN_API_KEY"]) as raven:
+    async with AsyncRaven(
+        api_key=os.environ["RAVEN_API_KEY"],
+        base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+    ) as raven:
         token = await raven.tokens.create(CreateTokenParams(room=room_id, identity="user-42"))
 ```
 
@@ -67,7 +76,7 @@ token = raven.tokens.create(
 
 The important method is `create_token()` — the whole security model
 rests on it. Your backend authenticates the user its own way, then asks
-Raven for a token scoped to that one user. Only that token reaches the
+Livqeno for a token scoped to that one user. Only that token reaches the
 browser.
 
 ```python

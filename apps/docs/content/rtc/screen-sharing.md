@@ -44,6 +44,28 @@ mobile screen capture needs its own native integration per platform
 Calling `enableScreenShare()` there is not documented and should not be
 relied on.
 
+## A known rough edge: source labelling
+
+A subscriber normally learns that a track is a screen share from the
+`source` Livqeno announces, which the publisher declares alongside the track.
+That declaration is matched to the track by the id in the SDP `msid`.
+
+When a screen share is published onto a transceiver the SFU had already
+created for it, the browser can leave the SFU's own `msid` in the
+m-section — Chrome will not rewrite an id it inherited from the remote
+offer. The SDK offers once more to get its ids onto the wire, and warns if
+that does not take. When it does not, the SFU falls back to inferring the
+source from the codec kind, which reads a screen share as a camera: the
+media arrives and plays, but a layout keyed on `track.kind` may put the
+shared window in the face tile.
+
+Publishing the screen share on its own transceiver would settle it, and is
+not shipped because this SFU does not answer a client offer that adds
+m-sections — the publish would never complete. It needs an SFU-side change.
+Until then, a layout that must be certain should carry its own hint (a data
+message, or your own participant metadata) rather than relying on `source`
+for a screen share.
+
 ## What's not included (Web and Flutter)
 
 Screen sharing currently surfaces **video only**. If the browser or OS

@@ -1,10 +1,10 @@
-# Raven RTC — Signaling protocol
+# Livqeno RTC — Signaling protocol
 
-The wire contract between a Raven client and the Raven API. One WebSocket
+The wire contract between a Livqeno client and the Livqeno API. One WebSocket
 per client, JSON text frames, at `/v1/rtc`.
 
-You do not need this to use Raven — the SDKs implement it. It is here for
-anyone writing a client for a platform Raven does not ship, debugging a
+You do not need this to use Livqeno — the SDKs implement it. It is here for
+anyone writing a client for a platform Livqeno does not ship, debugging a
 connection, or reading the server.
 
 > **This protocol is SFU-oriented, not peer-to-peer.** It replaced a
@@ -201,7 +201,22 @@ changes. **Answer it** with `sdp.answer`.
 
 ### `sdp.answer`
 
-The SFU's answer to a client-initiated offer.
+The SFU's answer to a client-initiated offer. Always carries
+`a=setup:passive`.
+
+That is a guarantee, not an accident. Because negotiation runs in both
+directions on one peer connection, the DTLS role has to be identical
+whichever side offered — it belongs to the transport and cannot change once
+the handshake has run. **The client is always the DTLS client and the SFU is
+always the DTLS server.** So the SFU offers `a=setup:actpass` (answer it
+`active`) and answers `a=setup:passive`, and a client never has to reason
+about the role at all.
+
+Getting this wrong is not a subtle degradation. A client that answers the
+SFU's join offer `active` and is then answered `active` when it publishes is
+being asked to swap roles mid-session; Chrome rejects the SDP outright with
+"Failed to set SSL role for the transport", and the publish never
+negotiates.
 
 ### `ice.candidate`
 
@@ -268,6 +283,7 @@ a diagnosis rather than a contradiction.
 | `TOKEN_EXPIRED` | With a new token | Refresh and reconnect. |
 | `UNAUTHORIZED` | No | The token does not authorize this. |
 | `PERMISSION_DENIED` | No | The grant does not include this action. |
+| `ORIGIN_NOT_ALLOWED` | No | The page's `Origin` is not on the project's allow-list. The token was valid; the page holding it was not expected. Fixed in the dashboard under Project Settings, Security, Allowed Origins — not by retrying. CORS does not apply to a WebSocket upgrade, so this gateway checks `Origin` itself. |
 | `ROOM_NOT_FOUND` | No | No such room in this project and environment. |
 | `ROOM_FULL` | No | The room hit its participant limit. |
 | `NOT_IN_ROOM` | After rejoining | An action was attempted before `room.join`, or the media session is gone. |
@@ -313,7 +329,7 @@ codes ships under `/v2/rtc` rather than silently changing this contract.
 Additive changes — a new message type, a new field, a new error code — are
 not breaking and will appear in v1. A client must therefore **ignore
 message types and fields it does not recognise** rather than treat them as
-errors; all three of Raven's own clients do.
+errors; all three of Livqeno's own clients do.
 
 Message *names* surviving a change of meaning is exactly what the mesh-to-
 SFU migration did, and it is why that is called out at the top of this

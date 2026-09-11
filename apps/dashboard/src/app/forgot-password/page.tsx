@@ -3,7 +3,7 @@ import { AuthShell } from '@/components/auth/auth-shell';
 import { ForgotPasswordForm } from './forgot-password-form';
 
 export const metadata: Metadata = {
-  title: 'Reset your password — Raven',
+  title: 'Reset your password — Livqeno',
 };
 
 export default function ForgotPasswordPage() {

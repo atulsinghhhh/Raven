@@ -38,7 +38,7 @@ they are the part that transfers to your own app.
 
 | Guide | You end with |
 |---|---|
-| [Migrate from LiveKit](/guides/migrate-from-livekit) | A mapping from LiveKit's concepts to Raven's |
+| [Migrate from LiveKit](/guides/migrate-from-livekit) | A mapping from LiveKit's concepts to Livqeno's |
 
 ## Before you start any of them
 

@@ -7,9 +7,9 @@ Applies to both `@ravenkash/server` (TypeScript) and `raven-sdk` (Python).
 ```
 Your application's authentication   (your users log into your app)
         ≠
-Raven API authentication            (your backend ↔ Raven, via a permanent API key)
+Livqeno API authentication            (your backend ↔ Livqeno, via a permanent API key)
         ≠
-RTC participant authentication      (a browser ↔ Raven RTC, via a short-lived token)
+RTC participant authentication      (a browser ↔ Livqeno RTC, via a short-lived token)
 ```
 
 ```
@@ -19,16 +19,16 @@ User logged into your app
 Your backend checks your own app's permission for this user
     │
     ▼
-Your backend calls raven.tokens.create({ room, identity })  (Raven API key — server-only)
+Your backend calls raven.tokens.create({ room, identity })  (Livqeno API key — server-only)
     │
     ▼
-Raven mints a short-lived RTC token
+Livqeno mints a short-lived RTC token
     │
     ▼
-Browser uses that RTC token with @ravenkash/rtc — never a Raven API key
+Browser uses that RTC token with @ravenkash/rtc — never a Livqeno API key
 ```
 
-**The browser must never be able to request an arbitrary Raven token.**
+**The browser must never be able to request an arbitrary Livqeno token.**
 Your backend decides `identity` (and permissions) from its own
 authenticated session — never from an unchecked value the client sent.
 See the `identity` comment in `examples/node-server/server.js` and
@@ -36,7 +36,7 @@ See the `identity` comment in `examples/node-server/server.js` and
 
 ## API key storage
 
-- A Raven API key (`rvk_xxxx.yyyy`) is a permanent, project-scoped
+- A Livqeno API key (`rvk_xxxx.yyyy`) is a permanent, project-scoped
   credential — treat it like a database password.
 - Store it in your backend's own secret management (environment
   variable, secrets manager) — **never** in source control, never in a
@@ -80,9 +80,9 @@ a real (mocked) 400 response.
 - Never log a minted token. Never store one longer than it takes to
   forward it to the browser that will use it.
 
-## Backend authorization — your responsibility, not Raven's
+## Backend authorization — your responsibility, not Livqeno's
 
-Raven's API key proves your *backend* is allowed to talk to Raven. It
+Livqeno's API key proves your *backend* is allowed to talk to Livqeno. It
 says nothing about which of *your* users should be allowed to join
 which room as which identity — that's your application's own
 authorization logic, applied before calling `raven.tokens.create(...)`.
@@ -98,7 +98,7 @@ body of `tokens.create()` the same way you would for any other secret —
 the SDKs cannot prevent your own logging code from choosing to log a
 value it explicitly holds.
 
-## What Raven itself never logs
+## What Livqeno itself never logs
 
 Carried over from Phases 8/9's own audits, still true here: the Control
 API's request logging middleware never logs headers or bodies (only
@@ -110,7 +110,7 @@ never logs response bodies either. See `docs/cli.md#security` and
 
 | Secret | Where it lives | Lifetime |
 |---|---|---|
-| Raven API key | Your backend's env/secrets manager only | Permanent (until revoked via `raven keys revoke`) |
+| Livqeno API key | Your backend's env/secrets manager only | Permanent (until revoked via `raven keys revoke`) |
 | RTC token | Backend → browser, in-memory only | Minutes to hours (`expiresIn`) |
 | TURN credentials | Embedded in the RTC token's `iceServers`, browser-only | Same lifetime as the RTC token |
 

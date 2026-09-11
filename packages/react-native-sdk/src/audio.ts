@@ -20,7 +20,7 @@ export type RavenAudioOutput = 'speaker' | 'earpiece' | 'headset' | 'bluetooth';
  *
  * # What's actually behind this
  *
- * Raven doesn't bundle an audio-session implementation any more. The
+ * Livqeno doesn't bundle an audio-session implementation any more. The
  * default adapter goes through `react-native-incall-manager`, an optional
  * peer dependency, and `setAdapter()` swaps it out. Two methods,
  * `getOutputs()` and `showRoutePicker()`, have no upstream implementation

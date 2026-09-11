@@ -1,6 +1,6 @@
 # Usage Metering (free tier)
 
-Every registered developer is granted a fixed allowance of Raven minutes —
+Every registered developer is granted a fixed allowance of Livqeno minutes —
 20,000 by default — and every RTC participant-session spends against it.
 This document is the design: what is stored, who writes it, why it cannot
 be double-counted, and what is deliberately not here.
@@ -159,7 +159,7 @@ which is exactly the usage the reaper exists to bound honestly.
 
 **The reaper credits to `lastMeteredAt`, not to now.** The participant
 stopped when the gateway died. Crediting an abandoned session all the way
-to the moment the reaper noticed would charge a developer for a Raven
+to the moment the reaper noticed would charge a developer for a Livqeno
 outage. The dashboard shows those sessions as `Abandoned` rather than
 folding them into "ended".
 
@@ -171,7 +171,7 @@ timers.
 
 `startSession` and the leave-time `settle` are both best-effort at the call
 site: the failure is logged and the join or leave proceeds. A database blip
-must not take down calling itself, and under-counting on a Raven fault is
+must not take down calling itself, and under-counting on a Livqeno fault is
 the right side to err on. A failed `settle` leaves a live row the reaper
 closes; a failed `startSession` means one session runs unmetered.
 

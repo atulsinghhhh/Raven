@@ -12,10 +12,6 @@ credential is deliberately absent. See [Security](#security).
 
 ## Install
 
-> **Not published to npm yet.** The commands below are what installation
-> will look like once these packages are released. Until then, install
-> from a local checkout — see [Installing from source](/getting-started/installing-from-source).
-
 ```bash
 npm install -g @ravenkash/cli
 ```
@@ -62,7 +58,7 @@ exiting with code `3` needs a fresh one.
 A complete GitHub Actions step:
 
 ```yaml
-- name: List Raven projects
+- name: List Livqeno projects
   env:
     RAVEN_TOKEN: ${{ secrets.RAVEN_TOKEN }}
   run: npx @ravenkash/cli projects list --json
@@ -180,8 +176,8 @@ control-plane records, the second reads live media-server state. See
 
 ```bash
 raven init                # link this directory to a project
-raven dev                 # check this directory is ready for Raven development
-raven sdk install         # add and configure a Raven SDK in this project
+raven dev                 # check this directory is ready for Livqeno development
+raven sdk install         # add and configure a Livqeno SDK in this project
 raven logs                # stream developer-facing logs for the current project
 raven version             # the CLI's own version
 raven logout              # discard the stored session

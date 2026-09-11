@@ -1,13 +1,13 @@
 # SFU — moved
 
-This document described the LiveKit-era media plane: how Raven integrated
+This document described the LiveKit-era media plane: how Livqeno integrated
 a third-party SFU, configured it, and authenticated to it. **None of that
-is how Raven works now**, and none of it was worth keeping behind a
+is how Livqeno works now**, and none of it was worth keeping behind a
 warning banner — a reader who arrives here from an old link or a search
 result should not have to judge which paragraphs still apply.
 
 **Read [`docs/rtc/sfu.md`](./rtc/sfu.md) instead.** It covers the media
-plane as it actually is: Raven's own SFU, in Go on Pion.
+plane as it actually is: Livqeno's own SFU, in Go on Pion.
 
 | What you came here for | Where it is now |
 |---|---|

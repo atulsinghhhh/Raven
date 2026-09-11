@@ -55,9 +55,7 @@ describe('request id', () => {
     });
 
     it('rejects a non-string, such as a parsed JSON object', () => {
-      expect(resolveRequestId({ toString: () => 'req_sneaky' }).startsWith(REQUEST_ID_PREFIX)).toBe(
-        true,
-      );
+      expect(resolveRequestId({ toString: () => 'req_sneaky' }).startsWith(REQUEST_ID_PREFIX)).toBe(true);
     });
   });
 });

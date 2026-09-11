@@ -22,7 +22,8 @@ textarea {
   padding: 8px;
 }
 
-button, select {
+button,
+select {
   background: #1e1e26;
   color: #e5e5e5;
   border: 1px solid #33333d;
@@ -32,7 +33,8 @@ button, select {
   cursor: pointer;
 }
 
-button:hover, select:hover {
+button:hover,
+select:hover {
   background: #2a2a33;
 }
 

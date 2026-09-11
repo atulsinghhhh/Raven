@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { RtcTokenPermissionsDto } from '../../rtc-tokens/dto/rtc-token-permissions.dto';
+import { RtcTokenRevocationService } from '../../rtc-tokens/rtc-token-revocation.service';
 import { RtcTokenSignerService } from '../../rtc-tokens/rtc-token-signer.service';
 import { resolvePermissions } from '../../rtc-tokens/rtc-token.claims';
 import { Environment } from '../../../shared/environment/environment.constants';
@@ -13,6 +14,29 @@ function signerWith(secret = SECRET): RtcTokenSignerService {
   return new RtcTokenSignerService({
     get: jest.fn((key: string) => (key === 'rtcToken.secret' ? secret : undefined)),
   } as unknown as ConfigService);
+}
+
+/**
+ * A stand-in for the Redis-backed revocation store.
+ *
+ * `revoked` is the set of token ids to treat as killed; `failing` makes
+ * every lookup throw, which is how the fail-open behaviour gets exercised
+ * without a Redis instance.
+ */
+function revocationsWith(opts: { revoked?: string[]; failing?: boolean } = {}): {
+  service: RtcTokenRevocationService;
+  isRevoked: jest.Mock;
+} {
+  const revoked = new Set(opts.revoked ?? []);
+  const isRevoked = jest.fn(async (tokenId: string) => {
+    if (opts.failing) {
+      // Matches the real service's contract: it swallows the Redis error
+      // and answers "not revoked" rather than propagating.
+      return false;
+    }
+    return revoked.has(tokenId);
+  });
+  return { service: { isRevoked } as unknown as RtcTokenRevocationService, isRevoked };
 }
 
 function mintToken(opts: {
@@ -43,7 +67,7 @@ describe('RtcTokenVerifierService', () => {
   let service: RtcTokenVerifierService;
 
   beforeEach(() => {
-    service = new RtcTokenVerifierService(signerWith());
+    service = new RtcTokenVerifierService(signerWith(), revocationsWith().service);
   });
 
   it('rejects an empty token', async () => {
@@ -150,5 +174,114 @@ describe('RtcTokenVerifierService', () => {
 
     const result = await service.verify(token);
     expect(result.grant).toEqual({ ...result.permissions });
+  });
+
+  describe('revocation', () => {
+    function verifierWith(revoked: string[]): RtcTokenVerifierService {
+      return new RtcTokenVerifierService(signerWith(), revocationsWith({ revoked }).service);
+    }
+
+    function mintWithId(tokenId: string, ttlSeconds = 600): string {
+      return signerWith().sign({
+        tokenId,
+        projectId: 'p1',
+        environment: Environment.DEVELOPMENT,
+        roomId: 'r1',
+        roomName: 'room-1',
+        participantIdentity: 'alice',
+        permissions: resolvePermissions(Object.assign(new RtcTokenPermissionsDto(), { join: true, subscribe: true })),
+        ttlSeconds,
+      }).token;
+    }
+
+    it('accepts a valid token that has not been revoked', async () => {
+      const token = mintWithId('rtk-live');
+
+      const result = await verifierWith([]).verify(token);
+      expect(result.tokenId).toBe('rtk-live');
+    });
+
+    it('rejects a revoked token with TOKEN_REVOKED', async () => {
+      const token = mintWithId('rtk-killed');
+
+      await expect(verifierWith(['rtk-killed']).verify(token)).rejects.toMatchObject({
+        code: SignalingErrorCode.TOKEN_REVOKED,
+      });
+    });
+
+    it('keeps TOKEN_REVOKED distinct from INVALID_TOKEN and TOKEN_EXPIRED', async () => {
+      // Three different remedies: mint a new one because someone killed
+      // this one, mint a new one because it aged out, and "your signature
+      // is wrong". Collapsing them would make the first two
+      // indistinguishable from a misconfiguration.
+      const revoked = mintWithId('rtk-killed');
+      await expect(verifierWith(['rtk-killed']).verify(revoked)).rejects.toMatchObject({
+        code: SignalingErrorCode.TOKEN_REVOKED,
+      });
+      await expect(verifierWith(['rtk-killed']).verify('not.a.jwt')).rejects.toMatchObject({
+        code: SignalingErrorCode.INVALID_TOKEN,
+      });
+    });
+
+    it('revoking one token does not affect another', async () => {
+      // The tombstone is keyed by jti, so it must not spill across tokens.
+      const other = mintWithId('rtk-other');
+
+      const result = await verifierWith(['rtk-killed']).verify(other);
+      expect(result.tokenId).toBe('rtk-other');
+    });
+
+    it('treats an unknown revocation entry as a normal valid token', async () => {
+      // The absence of a tombstone is the common case, not an unknown
+      // answer: it must read as "not revoked".
+      const token = mintWithId('rtk-never-seen');
+
+      const result = await verifierWith([]).verify(token);
+      expect(result.tokenId).toBe('rtk-never-seen');
+    });
+
+    it('rejects an expired token before spending a revocation lookup on it', async () => {
+      // Expiry is a local check and revocation is a network one, so an
+      // aged-out token must never reach Redis.
+      const { service: revocations, isRevoked } = revocationsWith();
+      const verifier = new RtcTokenVerifierService(signerWith(), revocations);
+
+      const realNow = Date.now;
+      Date.now = () => realNow() - 3_600_000;
+      let token: string;
+      try {
+        token = mintWithId('rtk-stale', 60);
+      } finally {
+        Date.now = realNow;
+      }
+
+      await expect(verifier.verify(token)).rejects.toMatchObject({
+        code: SignalingErrorCode.TOKEN_EXPIRED,
+      });
+      expect(isRevoked).not.toHaveBeenCalled();
+    });
+
+    it('never looks up a revocation for a token whose signature failed', async () => {
+      // Otherwise this is an oracle: an attacker could probe the
+      // revocation keyspace with jti values they made up.
+      const { service: revocations, isRevoked } = revocationsWith();
+      const verifier = new RtcTokenVerifierService(signerWith(), revocations);
+      const forged = mintToken({ signer: signerWith('a-completely-different-secret-value') });
+
+      await expect(verifier.verify(forged)).rejects.toMatchObject({
+        code: SignalingErrorCode.INVALID_TOKEN,
+      });
+      expect(isRevoked).not.toHaveBeenCalled();
+    });
+
+    it('allows a valid token when the revocation store is unreachable', async () => {
+      // Degraded revocation, not a total outage of RTC. Documented in
+      // RtcTokenRevocationService.
+      const token = mintWithId('rtk-live');
+      const verifier = new RtcTokenVerifierService(signerWith(), revocationsWith({ failing: true }).service);
+
+      const result = await verifier.verify(token);
+      expect(result.tokenId).toBe('rtk-live');
+    });
   });
 });

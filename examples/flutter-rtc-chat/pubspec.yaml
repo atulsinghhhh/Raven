@@ -1,5 +1,5 @@
 name: raven_example_rtc_chat
-description: "Flutter: a Raven video call with a chat panel. Real RTC, real messaging, no mocks."
+description: "Flutter: a Livqeno video call with a chat panel. Real RTC, real messaging, no mocks."
 publish_to: 'none'
 version: 0.1.0
 

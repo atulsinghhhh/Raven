@@ -3,7 +3,7 @@ title: Reconnection & Network Quality
 description: What happens when the network drops, and how much control you have over it — on every SDK.
 ---
 
-The SDK surfaces Raven's own reconnect policy — exponential backoff
+The SDK surfaces Livqeno's own reconnect policy — exponential backoff
 with a capped retry delay, then a clean `failed` state — rather than
 reimplementing reconnect logic on top of it. The policy is identical
 across platforms because it's the same underlying client.
@@ -99,6 +99,19 @@ need to re-attach media elements. A `disconnected` → `failed` transition
 is the signal that the room needs to be rejoined from scratch, not
 merely reconnected.
 
+Your own published tracks come back too. A reconnect gets a fresh SFU
+session, and with it a fresh `RTCPeerConnection`, so the SDK re-publishes
+whatever was live before the outage — microphone, camera, screen share —
+and re-declares each source to the new session. You do not call
+`enableCamera()` again, and nothing is published twice.
+
+One exception, and it is deliberate: a **screen share whose capture ended
+while you were disconnected is not restored**. Stopping a share is the
+user's own doing, through browser UI the SDK never sees, and the track is
+dead for good — re-publishing it would negotiate a stream that never
+carries a frame. You get `localTrackUnpublished` for it instead, exactly
+as if they had stopped sharing while connected.
+
 ## App lifecycle (React Native)
 
 The SDK watches `AppState` and reports transitions, but deliberately
@@ -134,7 +147,7 @@ setInterval(async () => {
 This works identically on Web and React Native (same `Room` class).
 
 If you're on the dashboard side rather than in the client, the same
-numbers are already flowing into Raven's own telemetry — see
+numbers are already flowing into Livqeno's own telemetry — see
 [Event Catalogue](/reference/events) and `raven connections inspect`.
 
 ## Common errors

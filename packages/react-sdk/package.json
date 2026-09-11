@@ -1,7 +1,7 @@
 {
   "name": "@ravenkash/react",
   "version": "0.1.0",
-  "description": "React hooks and optional UI primitives for @ravenkash/rtc \u2014 headless by default, no UI lock-in.",
+  "description": "React hooks and optional UI primitives for @ravenkash/rtc — headless by default, no UI lock-in.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -36,6 +36,7 @@
     "access": "public"
   },
   "scripts": {
+    "prepublishOnly": "node ../../scripts/assert-publish-safe.mjs",
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",

@@ -1,7 +1,7 @@
 {
   "name": "@ravenkash/react-native",
   "version": "0.1.0",
-  "description": "Raven SDK for React Native \u2014 real-time video, voice, and messaging on iOS and Android with the same API as Raven Web.",
+  "description": "Livqeno SDK for React Native — real-time video, voice, and messaging on iOS and Android with the same API as Livqeno Web.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -43,6 +43,7 @@
     "access": "public"
   },
   "scripts": {
+    "prepublishOnly": "node ../../scripts/assert-publish-safe.mjs",
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",

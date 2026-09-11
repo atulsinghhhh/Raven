@@ -117,7 +117,7 @@ describe('ExhaustedNotice', () => {
     render(<ExhaustedNotice summary={summary({ usedMinutes: 20_000, remainingMinutes: 0, exhausted: true })} />);
 
     const alert = screen.getByRole('alert');
-    expect(alert).toHaveTextContent('used all 20,000 of its included Raven minutes');
+    expect(alert).toHaveTextContent('used all 20,000 of its included Livqeno minutes');
     expect(alert).toHaveTextContent('RAVEN_USAGE_LIMIT_EXCEEDED');
     expect(alert).toHaveTextContent('already running were not cut off');
   });
@@ -165,7 +165,7 @@ describe('UsageHistoryTable', () => {
   });
 
   it('surfaces an abandoned session instead of smoothing it into "ended"', () => {
-    // It means Raven lost the gateway and credited only up to the last
+    // It means Livqeno lost the gateway and credited only up to the last
     // confirmed-alive instant — a developer reconciling minutes needs it.
     render(<UsageHistoryTable history={[entry({ closeReason: 'abandoned' })]} />);
 

@@ -26,7 +26,7 @@ export function generateTurnCredential(
 /**
  * Builds the ICE server list a WebRTC client needs: our own coturn
  * deployment, for both STUN and TURN, over whatever transports coturn's
- * configured for. Raven's SFU embeds no TURN of its own, by design: an
+ * configured for. Livqeno's SFU embeds no TURN of its own, by design: an
  * SFU that also relays is two capacity problems sharing one process, and
  * coturn scales and fails independently of the media plane.
  *
@@ -43,11 +43,7 @@ export function buildIceServers(opts: {
   participantIdentity: string;
   ttlSeconds: number;
 }): IceServer[] {
-  const { username, credential } = generateTurnCredential(
-    opts.turnSecret,
-    opts.ttlSeconds,
-    opts.participantIdentity,
-  );
+  const { username, credential } = generateTurnCredential(opts.turnSecret, opts.ttlSeconds, opts.participantIdentity);
   const hostPort = `${opts.turnHost}:${opts.turnPort}`;
 
   const servers: IceServer[] = [

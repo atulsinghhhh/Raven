@@ -49,13 +49,29 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
 
   {
-    // The browser e2e harness: plain ES modules loaded by a real page, so
+    // Browser-side harnesses: plain ES modules loaded by a real page, so
     // `window`/`document`/`location` are exactly what they look like.
     // Declared separately because the default for a bare `.js` file in
-    // this repo is a Node script.
-    files: ['apps/api/test/e2e-harness/*.js'],
+    // this repo is a Node script — which `test/server.mjs`, sitting one
+    // directory up from `test/public`, genuinely is.
+    // docs/repro/* are diagnostic snippets meant to be pasted into a
+    // DevTools console against a live page, so they are browser code that
+    // happens to live under docs/.
+    files: ['apps/api/test/e2e-harness/*.js', 'test/public/*.js', 'docs/repro/*.js'],
     languageOptions: {
       globals: { ...globals.browser },
+    },
+  },
+
+  {
+    // The chat-audit harness drives real Chrome through Playwright. These
+    // are Node scripts, but the callbacks handed to page.evaluate and
+    // waitForFunction are serialized and run inside the page, so `window`
+    // in them is the browser's. ESLint cannot scope globals any finer than
+    // a file, hence both sets here rather than a narrower glob.
+    files: ['scripts/chat-audit/harness/*.mjs'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
     },
   },
 
@@ -96,12 +112,7 @@ export default tseslint.config(
   {
     // Tests reach for globals and loose typing that production code should
     // not. Jest's globals are injected, not imported.
-    files: [
-      '**/*.spec.{ts,tsx}',
-      '**/*.test.{ts,tsx}',
-      '**/*.e2e-spec.ts',
-      '**/test/**/*.{ts,tsx}',
-    ],
+    files: ['**/*.spec.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.e2e-spec.ts', '**/test/**/*.{ts,tsx}'],
     languageOptions: {
       globals: { ...globals.jest, ...globals.node },
     },
@@ -129,12 +140,7 @@ export default tseslint.config(
     // `require()` inside a test is how jest module mocking works, and how a
     // test reaches for a module it has just re-registered. Production code
     // has no such excuse and is still held to imports.
-    files: [
-      '**/*.spec.{ts,tsx}',
-      '**/*.test.{ts,tsx}',
-      '**/*.e2e-spec.ts',
-      '**/test/**/*.{ts,tsx}',
-    ],
+    files: ['**/*.spec.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.e2e-spec.ts', '**/test/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
     },

@@ -1,6 +1,6 @@
 # Project roles and permissions
 
-A Raven project has members, and each member holds exactly one role.
+A Livqeno project has members, and each member holds exactly one role.
 
 ```
 OWNER      everything, including deleting the project
@@ -100,7 +100,7 @@ That is there so a dashboard can hide actions it would only be refused
 for, without keeping its own copy of the table above — two copies would
 drift, and the front-end copy is the one that would be wrong.
 
-There is no invitation flow yet: the person must already have a Raven
+There is no invitation flow yet: the person must already have a Livqeno
 account, and adding an unknown address returns a 404 that says so rather
 than creating a pending row that never becomes anything.
 
@@ -142,5 +142,5 @@ that key type allows. See [environments.md](environments.md).
 
 Chat has its own separate member roles *within a conversation*
 (`MEMBER`, `MODERATOR`, `ADMIN`) which are unrelated to these — those are
-about your application's end users, not about who administers your Raven
+about your application's end users, not about who administers your Livqeno
 project. See [chat/overview.md](chat/overview.md).

@@ -13,7 +13,7 @@ import { IconChevronRight, IconCli, IconExternal, IconGitHub, IconKeys, IconWebh
 import { DOCS_URL, GITHUB_URL } from '@/lib/nav';
 
 export const metadata: Metadata = {
-  title: 'Developers — Raven',
+  title: 'Developers — Livqeno',
 };
 
 /**
@@ -23,10 +23,26 @@ export const metadata: Metadata = {
  */
 
 const SDKS = [
-  { name: '@ravenkash/rtc', description: 'Browser RTC client — rooms, tracks, telemetry.', install: 'npm install @ravenkash/rtc' },
-  { name: '@ravenkash/react', description: 'React hooks and components over the RTC client.', install: 'npm install @ravenkash/react' },
-  { name: '@ravenkash/chat', description: 'Realtime chat client — conversations, presence, typing.', install: 'npm install @ravenkash/chat' },
-  { name: '@ravenkash/server', description: 'Node.js server SDK — mint tokens, manage rooms and streams.', install: 'npm install @ravenkash/server' },
+  {
+    name: '@ravenkash/rtc',
+    description: 'Browser RTC client — rooms, tracks, telemetry.',
+    install: 'npm install @ravenkash/rtc',
+  },
+  {
+    name: '@ravenkash/react',
+    description: 'React hooks and components over the RTC client.',
+    install: 'npm install @ravenkash/react',
+  },
+  {
+    name: '@ravenkash/chat',
+    description: 'Realtime chat client — conversations, presence, typing.',
+    install: 'npm install @ravenkash/chat',
+  },
+  {
+    name: '@ravenkash/server',
+    description: 'Node.js server SDK — mint tokens, manage rooms and streams.',
+    install: 'npm install @ravenkash/server',
+  },
 ];
 
 export default async function DevelopersPage() {
@@ -37,7 +53,8 @@ export default async function DevelopersPage() {
   const [projectsResult, healthResult] = await Promise.allSettled([ravenApi.listProjects(token), ravenApi.getHealth()]);
   const systemStatus =
     healthResult.status === 'fulfilled' ? deriveSystemStatus(healthResult.value.dependencies) : 'unknown';
-  const projects = projectsResult.status === 'fulfilled' ? projectsResult.value.filter((p) => p.status === 'ACTIVE') : [];
+  const projects =
+    projectsResult.status === 'fulfilled' ? projectsResult.value.filter((p) => p.status === 'ACTIVE') : [];
 
   return (
     <AccountShell email={email} systemStatus={systemStatus}>
@@ -91,7 +108,7 @@ export default async function DevelopersPage() {
             <Card className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <IconCli className="size-4 text-subtle" />
-                <p className="text-sm font-medium text-fg">Raven CLI</p>
+                <p className="text-sm font-medium text-fg">Livqeno CLI</p>
               </div>
               <p className="text-sm text-muted">Manage projects, keys, and rooms from your terminal.</p>
               <CodeBlock code="npm install -g @ravenkash/cli" language="bash" />

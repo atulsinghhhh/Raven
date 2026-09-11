@@ -1,11 +1,11 @@
 ---
 title: Changelog
-description: How Raven versions its packages, and where release notes come from.
+description: How Livqeno versions its packages, and where release notes come from.
 ---
 
 ## Nothing is published yet
 
-Every Raven package sits at **`0.1.0`** and none has been published to a
+Every Livqeno package sits at **`0.1.0`** and none has been published to a
 registry:
 
 | Package | Version | Registry |

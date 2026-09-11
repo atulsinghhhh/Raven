@@ -9,10 +9,6 @@ idiomatic to the runtime.
 
 ## Install
 
-> **Not published to npm yet.** The commands below are what installation
-> will look like once these packages are released. Until then, install
-> from a local checkout — see [Installing from source](/getting-started/installing-from-source).
-
 ```bash
 npm install @ravenkash/server
 ```
@@ -22,7 +18,10 @@ npm install @ravenkash/server
 ```ts
 import { Raven } from '@ravenkash/server';
 
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY,
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
+});
 ```
 
 Passed explicitly — the SDK never reads `process.env` implicitly.

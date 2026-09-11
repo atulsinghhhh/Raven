@@ -1,9 +1,9 @@
 # @ravenkash/react-native
 
-Raven for React Native — real-time video, voice and messaging on iOS and
-Android, with the same API as Raven Web.
+Livqeno for React Native — real-time video, voice and messaging on iOS and
+Android, with the same API as Livqeno Web.
 
-Part of [Raven](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
+Part of [Livqeno](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
 
 Reuses [`@ravenkash/rtc`](https://www.npmjs.com/package/@ravenkash/rtc)
 unmodified: the protocol, reconnection and track handling are the same

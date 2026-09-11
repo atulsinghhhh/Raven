@@ -9,6 +9,7 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './shared/errors/all-exceptions.filter';
 import { SIGNALING_PATH } from './modules/signaling/signaling.constants';
 import { CHAT_PATH } from './modules/chat/chat.constants';
+import { corsOriginFor, parseCorsAllowlist } from './shared/config/cors-policy';
 
 async function bootstrap(): Promise<void> {
   // bufferLogs holds any log calls made before app.useLogger() runs below
@@ -32,7 +33,6 @@ async function bootstrap(): Promise<void> {
   // before this actually runs.
   app.enableShutdownHooks();
 
-
   // Signaling shares this same HTTP server/port as a raw WebSocket gateway.
   // Not using the platform-socket.io adapter here on purpose: it wraps
   // its own framing protocol, so clients would need a socket.io client
@@ -49,21 +49,25 @@ async function bootstrap(): Promise<void> {
   );
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  const corsOrigin = configService.get<string>('cors.origin')!;
-  app.enableCors({
-    origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o) => o.trim()),
+  // Per-route CORS. SDK browser surfaces reflect the caller's origin
+  // because Livqeno cannot enumerate developers' origins; everything else
+  // keeps the deployment's allowlist. The reasoning, and why this is safe,
+  // is in shared/config/cors-policy.ts.
+  const allowlist = parseCorsAllowlist(configService.get<string>('cors.origin')!);
+  app.enableCors((request: { url?: string }, callback) => {
+    callback(null, { origin: corsOriginFor(request.url, allowlist) });
   });
 
   const swaggerDocument = SwaggerModule.createDocument(
     app,
     new DocumentBuilder()
-      .setTitle('Raven Control Plane API')
+      .setTitle('Livqeno Control Plane API')
       .setDescription(
         'Manages developers, projects, API keys, rooms, and RTC tokens. ' +
           'Never carries video/audio media — see docs/control-plane.md. ' +
           'Two separate auth schemes: "jwt" for dashboard-style developer ' +
           'session endpoints (Auth, Projects, API Keys), "apiKey" for the ' +
-          'endpoints a developer\'s own backend calls at runtime (Rooms, RTC Tokens).',
+          "endpoints a developer's own backend calls at runtime (Rooms, RTC Tokens).",
       )
       .setVersion('1.0')
       .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'jwt')
@@ -89,7 +93,7 @@ async function bootstrap(): Promise<void> {
           type: 'http',
           scheme: 'bearer',
           description:
-            'A short-lived Raven Chat token minted by your backend via POST /v1/chat/tokens. Safe to hand to a browser; scoped to one user and expiring. Never a project API key.',
+            'A short-lived Livqeno Chat token minted by your backend via POST /v1/chat/tokens. Safe to hand to a browser; scoped to one user and expiring. Never a project API key.',
         },
         'chatToken',
       )
@@ -99,7 +103,7 @@ async function bootstrap(): Promise<void> {
 
   const port = configService.get<number>('port')!;
   await app.listen(port);
-  Logger.log(`Raven control plane listening on port ${port}`, 'Bootstrap');
+  Logger.log(`Livqeno control plane listening on port ${port}`, 'Bootstrap');
   Logger.log(`API documentation available at /docs`, 'Bootstrap');
   Logger.log(`Signaling WebSocket available at ${SIGNALING_PATH}`, 'Bootstrap');
   Logger.log(`Chat WebSocket available at ${CHAT_PATH}`, 'Bootstrap');

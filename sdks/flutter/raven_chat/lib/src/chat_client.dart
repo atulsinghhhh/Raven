@@ -10,7 +10,7 @@ import 'errors.dart';
 import 'models.dart';
 import 'rest_client.dart';
 
-/// Raven Chat for Flutter.
+/// Livqeno Chat for Flutter.
 ///
 /// ```dart
 /// final chat = RavenChat(token: token, apiUrl: apiUrl);
@@ -20,7 +20,7 @@ import 'rest_client.dart';
 /// await chat.send('Hello everyone!');
 /// ```
 ///
-/// The same guarantees as every other Raven Chat client, because it talks
+/// The same guarantees as every other Livqeno Chat client, because it talks
 /// to the same service over the same protocol (spec §9, no
 /// mobile-specific chat backend):
 ///
@@ -210,7 +210,7 @@ class RavenChat extends ChangeNotifier {
 
   /// Sends a message and completes with the stored message.
   ///
-  /// Completes only after Raven has durably stored it, so a completed
+  /// Completes only after Livqeno has durably stored it, so a completed
   /// future really does mean "saved". The returned message carries the
   /// server's canonical id and timestamp.
   ///
@@ -293,7 +293,7 @@ class RavenChat extends ChangeNotifier {
   }
 
   /// Edits a message. The result carries `edited: true` and an
-  /// `editedAt`. Raven never quietly rewrites history.
+  /// `editedAt`. Livqeno never quietly rewrites history.
   Future<RavenMessage> edit(String messageId, String text) async {
     final response = await _rest.patch(
       '/v1/chat/messages/${Uri.encodeComponent(messageId)}',

@@ -127,7 +127,7 @@ Audio has no equivalent problem — it is cheap, and you want all of it.
 
 ### 4. Watch bandwidth, not "who is speaking"
 
-Raven does not emit an active-speaker event. What it does give you is real
+Livqeno does not emit an active-speaker event. What it does give you is real
 per-track statistics, which is enough to drive a bandwidth warning:
 
 ```ts
@@ -149,7 +149,7 @@ all: a full mesh at fifteen people would need each browser to maintain
 fourteen peer connections and encode fourteen times.
 
 **The room's track set changes, and the server re-offers.** When someone
-publishes, Raven sends a new offer to everyone subscribed. Your code sees
+publishes, Livqeno sends a new offer to everyone subscribed. Your code sees
 `trackPublished`, then `trackSubscribed` when the media actually arrives.
 Those are two different moments, and rendering on the first one gives you an
 empty tile.
@@ -160,7 +160,7 @@ empty tile.
 
 ## Production considerations
 
-- **Measure before you trust a number.** Raven's own scale tests reach 100
+- **Measure before you trust a number.** Livqeno's own scale tests reach 100
   participants on loopback with synthetic media. That is not a capacity
   figure for real networks and real cameras, and it is not quoted as one.
 - **How many tiles you render is the lever that matters.** Every

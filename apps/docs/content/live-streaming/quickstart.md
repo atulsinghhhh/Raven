@@ -6,7 +6,7 @@ description: Create a stream, mint host and viewer credentials, and join as host
 This walks through the shortest real path: create a stream from your
 backend, join as host, join as viewer, chat, and end the stream.
 
-**Prerequisites:** a Raven project and a project API key (see
+**Prerequisites:** a Livqeno project and a project API key (see
 [API Keys](/authentication)) — streams are created and host/viewer
 credentials are minted with it, server-side, and never in a browser or app.
 
@@ -21,7 +21,10 @@ chat conversation and the host's row in one call:
 
 ```ts
 import { Raven } from '@ravenkash/server';
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY,
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
+});
 
 const stream = await raven.liveStreams.create({ title: 'Launch Day', hostIdentity: 'alice' });
 // { id: 'stream_jRoD1T3EXh0PMJRGG4zYzQ', status: 'CREATED',
@@ -36,7 +39,10 @@ const stream = await raven.liveStreams.create({ title: 'Launch Day', hostIdentit
 ```python
 from raven import Raven, CreateLiveStreamParams
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 stream = raven.live_streams.create(CreateLiveStreamParams(title="Launch Day", host_identity="alice"))
 ```
 
@@ -332,9 +338,9 @@ participants) and fires `live_stream.ended`. Calling `start` or `end`
 again on the same stream is rejected — the lifecycle only moves
 forward.
 
-## What Raven handles vs. what you handle
+## What Livqeno handles vs. what you handle
 
-**Raven handles:** the RTC room, the attached chat conversation, and
+**Livqeno handles:** the RTC room, the attached chat conversation, and
 enforcing that a viewer's credential can never publish — regardless of
 which SDK or endpoint mints it.
 
@@ -368,6 +374,6 @@ authorization), and the UI around joining/leaving/reacting.
 
 ## Full working example
 
-`examples/live-streaming-demo` in the Raven repo is a complete two-tab
+`examples/live-streaming-demo` in the Livqeno repo is a complete two-tab
 host/viewer demo — a FastAPI backend minting credentials and a plain
 HTML/JS frontend using exactly the calls above, with no bundler.

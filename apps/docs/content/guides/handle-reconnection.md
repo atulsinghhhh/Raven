@@ -1,6 +1,6 @@
 ---
 title: Handle reconnection
-description: What Raven does automatically when a network drops, what it cannot do, and the UI you still have to build.
+description: What Livqeno does automatically when a network drops, what it cannot do, and the UI you still have to build.
 ---
 
 ## What we're building
@@ -66,7 +66,7 @@ room.connectionStateChanges.listen((state) {
 ### 2. Keep the grid mounted
 
 The mistake worth avoiding: clearing the participant list on
-`reconnecting`. Raven does not drop participants during a reconnect, and a
+`reconnecting`. Livqeno does not drop participants during a reconnect, and a
 grid that empties and refills makes a two-second blip look like everyone
 left and rejoined.
 

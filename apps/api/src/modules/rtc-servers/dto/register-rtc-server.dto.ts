@@ -1,14 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsInt,
-  IsOptional,
-  IsString,
-  Matches,
-  Max,
-  MaxLength,
-  Min,
-  MinLength,
-} from 'class-validator';
+import { IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
 
 // Same character class as participant identities: these end up in log
 // lines, metric labels, and CLI arguments, so anything needing quoting or
@@ -28,7 +19,10 @@ export class RegisterRtcServerDto {
   })
   name!: string;
 
-  @ApiProperty({ example: 'asia-south', description: 'Region this node serves. Free-form; the allocator treats it as a preference.' })
+  @ApiProperty({
+    example: 'asia-south',
+    description: 'Region this node serves. Free-form; the allocator treats it as a preference.',
+  })
   @IsString()
   @MinLength(1)
   @MaxLength(64)
@@ -45,7 +39,7 @@ export class RegisterRtcServerDto {
 
   @ApiProperty({
     example: 'http://sfu-1:7000',
-    description: "Base URL the control plane uses for server-to-server calls to this node.",
+    description: 'Base URL the control plane uses for server-to-server calls to this node.',
   })
   @IsString()
   @MinLength(1)
@@ -55,8 +49,7 @@ export class RegisterRtcServerDto {
   @ApiPropertyOptional({
     example: 100,
     default: 100,
-    description:
-      'Rooms this node advertises it can hold. A ceiling the allocator respects, not a target it aims for.',
+    description: 'Rooms this node advertises it can hold. A ceiling the allocator respects, not a target it aims for.',
   })
   @IsOptional()
   @IsInt()

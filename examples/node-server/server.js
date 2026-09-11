@@ -1,5 +1,5 @@
-// Minimal backend for a frontend that joins Raven RTC rooms: the canonical
-// Phase 10 flow: Browser -> your backend -> @ravenkash/server -> Raven -> a
+// Minimal backend for a frontend that joins Livqeno RTC rooms: the canonical
+// Phase 10 flow: Browser -> your backend -> @ravenkash/server -> Livqeno -> a
 // short-lived RTC token -> back to the browser -> @ravenkash/rtc.
 //
 // RAVEN_API_KEY never leaves this process. Never send it to the browser.
@@ -24,7 +24,7 @@ app.post('/api/rtc/token', async (req, res) => {
   // In a real app, `identity` should come from your own authenticated
   // session (req.user.id), never trusted verbatim from the request body;
   // see docs/security/server-sdk.md#authorization-model. Kept simple here
-  // to focus the example on the Raven SDK call itself.
+  // to focus the example on the Livqeno SDK call itself.
   try {
     const token = await raven.tokens.create({
       room,
@@ -35,7 +35,7 @@ app.post('/api/rtc/token', async (req, res) => {
     res.json(token);
   } catch (error) {
     if (error instanceof RavenError) {
-      console.error(`Raven token creation failed [${error.code}] (request ${error.requestId ?? 'n/a'})`);
+      console.error(`Livqeno token creation failed [${error.code}] (request ${error.requestId ?? 'n/a'})`);
       res.status(error.statusCode ?? 502).json({ error: error.message, code: error.code });
       return;
     }
@@ -45,5 +45,5 @@ app.post('/api/rtc/token', async (req, res) => {
 
 const port = process.env.PORT ?? 8787;
 app.listen(port, () => {
-  console.log(`Raven node-server example listening on http://localhost:${port}`);
+  console.log(`Livqeno node-server example listening on http://localhost:${port}`);
 });

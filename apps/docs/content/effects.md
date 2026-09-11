@@ -1,22 +1,22 @@
 ---
 title: Effects Overview
-description: A reusable real-time video effects pipeline shared by Raven RTC and Raven Live Streaming — filters, presets, and the shape of a custom effect.
+description: A reusable real-time video effects pipeline shared by Livqeno RTC and Livqeno Live Streaming — filters, presets, and the shape of a custom effect.
 ---
 
-Raven Effects processes a publisher's camera before it's sent anywhere.
-You think about **Raven Effects** — never about WebGL, RTP, or which
+Livqeno Effects processes a publisher's camera before it's sent anywhere.
+You think about **Livqeno Effects** — never about WebGL, RTP, or which
 transport carries the video underneath.
 
 ```
 Camera
   ↓
-Raven Video Track
+Livqeno Video Track
   ↓
-Raven Effects Pipeline
+Livqeno Effects Pipeline
   ↓
 Processed Video Track
   ↓
-Raven RTC / Live Streaming
+Livqeno RTC / Live Streaming
   ↓
 Remote Participants / Viewers
 ```
@@ -36,7 +36,7 @@ EffectsPipeline        an ordered, mutable list of effects
   └── beauty.smooth()      basic whole-frame smoothing (production)
 ```
 
-One pipeline attaches to one camera track, on Raven RTC or Raven Live
+One pipeline attaches to one camera track, on Livqeno RTC or Livqeno Live
 Streaming — the same class either way, since a live stream's camera is
 an ordinary RTC track underneath.
 

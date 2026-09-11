@@ -1,6 +1,6 @@
 name: raven_chat
 description: >-
-  Raven Chat for Flutter — real-time messaging with durable history, presence,
+  Livqeno Chat for Flutter — real-time messaging with durable history, presence,
   typing indicators, reactions, read receipts and threads. Connect, send, and
   listen without writing WebSocket code.
 version: 0.1.0

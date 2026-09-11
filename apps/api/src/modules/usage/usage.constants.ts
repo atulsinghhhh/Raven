@@ -11,7 +11,7 @@ export const SECONDS_PER_MINUTE = 60;
 /**
  * Why a metered session stopped. Written to `UsageSession.closeReason` and
  * surfaced verbatim in the dashboard's history, so a developer can tell a
- * clean hang-up from a session Raven had to reap.
+ * clean hang-up from a session Livqeno had to reap.
  */
 export const UsageCloseReason = {
   /** The participant left, or their socket closed and the gateway cleaned up. */

@@ -1,6 +1,6 @@
 ## 0.1.0
 
-Initial release (Raven Phase 13).
+Initial release (Livqeno Phase 13).
 
 * `Raven` / `RavenRoom` — join, leave, camera, microphone, screen share,
   front/rear camera switch.

@@ -50,7 +50,7 @@ export type { RavenConnectionState, RavenSnapshot } from './store';
 // doesn't need a direct @ravenkash/rtc import just to name a common type.
 //
 // No media-plane type is ever re-exported (Phase 11 spec §27). Everything
-// here is Raven's own vocabulary, which is exactly what let the SFU
+// here is Livqeno's own vocabulary, which is exactly what let the SFU
 // underneath get replaced without touching this file.
 export type {
   ConnectionState,
@@ -131,7 +131,13 @@ export { isRavenChatError, RavenChatError } from '@ravenkash/chat';
 export { RavenLiveStream } from './live/raven-live-stream';
 export type { RavenLiveStreamProps } from './live/raven-live-stream';
 
-export { useLiveStream, useLiveStreamClient, useLiveStreamHost, useLiveStreamRole, useLiveStreamViewer } from './live/live-hooks';
+export {
+  useLiveStream,
+  useLiveStreamClient,
+  useLiveStreamHost,
+  useLiveStreamRole,
+  useLiveStreamViewer,
+} from './live/live-hooks';
 export type { UseLiveStreamHostResult, UseLiveStreamResult } from './live/live-hooks';
 
 export type { RavenLiveStreamContextValue, RavenLiveStreamStatus } from './live/live-context';

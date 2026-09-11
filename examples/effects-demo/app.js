@@ -1,4 +1,4 @@
-// Raven Effects demo: built entirely on @ravenkash/effects. No
+// Livqeno Effects demo: built entirely on @ravenkash/effects. No
 // @ravenkash/rtc/signaling involved: this demonstrates the pipeline itself
 // against a real getUserMedia() track, which is exactly what
 // LocalTrack.attachEffects() does internally once it's wired to a room.
@@ -24,7 +24,9 @@ const FILTERS = {
 
 async function main() {
   const caps = effects.detectCapabilities();
-  log(`Capabilities: webgl2=${caps.webgl2} captureStream=${caps.captureStream} recommendedEngine=${caps.recommendedEngine}`);
+  log(
+    `Capabilities: webgl2=${caps.webgl2} captureStream=${caps.captureStream} recommendedEngine=${caps.recommendedEngine}`,
+  );
 
   let cameraTrack;
   try {

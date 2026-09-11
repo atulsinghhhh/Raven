@@ -112,9 +112,9 @@ describe('DashboardChatController — conversation detail', () => {
     it('404s for a conversation outside this project before querying members', async () => {
       prisma.conversation.findUnique.mockResolvedValue({ id: 'internal-uuid', projectId: 'someone-elses-project' });
 
-      await expect(
-        controller.listConversationMembers(USER as never, PROJECT_ID, 'conv_abc'),
-      ).rejects.toBeInstanceOf(NotFoundError);
+      await expect(controller.listConversationMembers(USER as never, PROJECT_ID, 'conv_abc')).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
       expect(prisma.chatMember.findMany).not.toHaveBeenCalled();
     });
 
@@ -183,9 +183,42 @@ describe('DashboardChatController — conversation detail', () => {
 
     it('derives status from editedAt/deletedAt rather than a stored field', async () => {
       prisma.message.findMany.mockResolvedValue([
-        { publicId: 'msg_sent', senderId: 'u1', type: MessageType.TEXT, createdAt: new Date(), editedAt: null, deletedAt: null, replyToMessageId: null, threadRootId: null, deletedBy: null, _count: { reactions: 0, attachments: 0 } },
-        { publicId: 'msg_edited', senderId: 'u1', type: MessageType.TEXT, createdAt: new Date(), editedAt: new Date(), deletedAt: null, replyToMessageId: null, threadRootId: null, deletedBy: null, _count: { reactions: 0, attachments: 0 } },
-        { publicId: 'msg_deleted', senderId: 'u1', type: MessageType.TEXT, createdAt: new Date(), editedAt: null, deletedAt: new Date(), replyToMessageId: null, threadRootId: null, deletedBy: 'u1', _count: { reactions: 0, attachments: 0 } },
+        {
+          publicId: 'msg_sent',
+          senderId: 'u1',
+          type: MessageType.TEXT,
+          createdAt: new Date(),
+          editedAt: null,
+          deletedAt: null,
+          replyToMessageId: null,
+          threadRootId: null,
+          deletedBy: null,
+          _count: { reactions: 0, attachments: 0 },
+        },
+        {
+          publicId: 'msg_edited',
+          senderId: 'u1',
+          type: MessageType.TEXT,
+          createdAt: new Date(),
+          editedAt: new Date(),
+          deletedAt: null,
+          replyToMessageId: null,
+          threadRootId: null,
+          deletedBy: null,
+          _count: { reactions: 0, attachments: 0 },
+        },
+        {
+          publicId: 'msg_deleted',
+          senderId: 'u1',
+          type: MessageType.TEXT,
+          createdAt: new Date(),
+          editedAt: null,
+          deletedAt: new Date(),
+          replyToMessageId: null,
+          threadRootId: null,
+          deletedBy: 'u1',
+          _count: { reactions: 0, attachments: 0 },
+        },
       ]);
 
       const result = await controller.listConversationMessages(USER as never, PROJECT_ID, 'conv_abc');

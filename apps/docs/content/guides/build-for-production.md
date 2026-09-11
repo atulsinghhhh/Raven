@@ -7,7 +7,7 @@ description: The work between a demo that runs and a deployment that survives us
 
 Not a feature — the gap between the two. Secrets handled properly, tokens
 minted with the right lifetime, TURN reachable, webhooks verified,
-monitoring in place, and honesty about what Raven has not proven yet.
+monitoring in place, and honesty about what Livqeno has not proven yet.
 
 ## Prerequisites
 
@@ -38,7 +38,7 @@ Five secrets matter, and none belongs in source control:
 |---|---|
 | `RAVEN_API_KEY` | Your backend only |
 | `RAVEN_WEBHOOK_SECRET` | Your webhook receiver only |
-| `JWT_SECRET`, `RTC_TOKEN_SECRET`, `CHAT_TOKEN_SECRET` | Your Raven deployment, if self-hosting |
+| `JWT_SECRET`, `RTC_TOKEN_SECRET`, `CHAT_TOKEN_SECRET` | Your Livqeno deployment, if self-hosting |
 
 If you self-host, generate each independently:
 
@@ -62,9 +62,13 @@ const credentials = await raven.tokens.create({
 });
 ```
 
-An RTC token cannot be revoked once issued — the lifetime *is* the control.
-Ten minutes is plenty; the SDK holds the connection open past expiry, and a
-reconnect mints a fresh one from your endpoint.
+Keep the lifetime short. A token *can* be revoked before it expires
+(`DELETE /v1/rooms/{roomId}/rtc-tokens/{tokenId}`), but revocation only
+blocks new connections — it does not hang up a call already in progress —
+so the lifetime is still the control that bounds a leak. Ten minutes is
+plenty; the SDK holds the connection open past expiry, and a reconnect
+mints a fresh one from your endpoint. See
+[RTC authentication](/rtc/authentication#revocation).
 
 For chat, wire the refresh callback. This is the most common production
 chat bug:
@@ -178,4 +182,4 @@ to a launch date.
 
 - [Production checklist](/production/checklist) — the same content as a list you can tick off.
 - [Security](/authentication/security) · [Limits & quotas](/reference/limits)
-- [Self-hosting](/self-hosting) — if you run Raven yourself.
+- [Self-hosting](/self-hosting) — if you run Livqeno yourself.

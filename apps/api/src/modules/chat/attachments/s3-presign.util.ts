@@ -26,7 +26,7 @@ export interface PresignInput extends S3PresignConfig {
  * Hand-rolled instead of pulling in @aws-sdk/client-s3 +
  * @aws-sdk/s3-request-presigner: those add several megabytes and a large
  * transitive tree to the API image for what is, here, one signing
- * algorithm. Raven only ever needs presigned GET and PUT: no multipart,
+ * algorithm. Livqeno only ever needs presigned GET and PUT: no multipart,
  * no bucket management, no streaming, and this keeps the deployment to
  * Postgres + Redis + object storage with nothing else bolted on (spec §60).
  *
@@ -76,12 +76,7 @@ export function presignS3Url(input: PresignInput): string {
     'UNSIGNED-PAYLOAD',
   ].join('\n');
 
-  const stringToSign = [
-    'AWS4-HMAC-SHA256',
-    amzDate,
-    credentialScope,
-    sha256Hex(canonicalRequest),
-  ].join('\n');
+  const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, sha256Hex(canonicalRequest)].join('\n');
 
   const signature = hmac(signingKey(input.secretAccessKey, dateStamp, input.region), stringToSign).toString('hex');
 
@@ -109,10 +104,7 @@ function encodeS3Key(key: string): string {
 }
 
 function encodeRfc3986(value: string): string {
-  return encodeURIComponent(value).replace(
-    /[!'()*]/g,
-    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
-  );
+  return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 }
 
 function signingKey(secretAccessKey: string, dateStamp: string, region: string): Buffer {

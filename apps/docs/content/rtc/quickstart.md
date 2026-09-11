@@ -7,15 +7,11 @@ What you'll build: two participants in a room, each publishing camera
 and microphone and seeing/hearing the other. Every step below is the
 real API — copy it, swap in your own token endpoint, and it runs.
 
-**Prerequisites:** a Raven project and a project API key (see
+**Prerequisites:** a Livqeno project and a project API key (see
 [API Keys](/authentication)) — RTC tokens are minted with it, server-side,
 and never in a browser or app.
 
 ## 1. Install
-
-> **Not published to npm yet.** The commands below are what installation
-> will look like once these packages are released. Until then, install
-> from a local checkout — see [Installing from source](/getting-started/installing-from-source).
 
 <Tabs>
 <Tab title="Web">
@@ -71,7 +67,10 @@ Mint a token on your backend — never construct one client-side:
 
 ```ts
 import { Raven } from '@ravenkash/server';
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY,
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
+});
 
 app.post('/join-room', async (req, res) => {
   const room = await raven.rooms.create({ name: 'demo-room' });
@@ -90,7 +89,10 @@ app.post('/join-room', async (req, res) => {
 ```python
 from raven import Raven, CreateTokenParams, TokenPermissions
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 
 @app.post("/join-room")
 def join_room(request):
@@ -343,9 +345,9 @@ await raven.leave();
 </Tab>
 </Tabs>
 
-## What Raven handles vs. what you handle
+## What Livqeno handles vs. what you handle
 
-**Raven handles:** signaling, media routing through the SFU, ICE/TURN
+**Livqeno handles:** signaling, media routing through the SFU, ICE/TURN
 negotiation, reconnection with backoff, and firing participant/track
 events as the room's state actually changes.
 

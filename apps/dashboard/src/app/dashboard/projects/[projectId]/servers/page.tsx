@@ -152,18 +152,19 @@ export default async function ServersPage({ params }: { params: Promise<{ projec
             <div className="rounded-lg border border-line bg-surface p-4 text-sm leading-relaxed text-muted">
               <p>
                 <strong className="text-fg">Status is the only live column.</strong> Rooms, participants, CPU and memory
-                are whatever the node last reported, which is why the heartbeat age sits beside them — <code className="font-mono text-xs">0 rooms</code>{' '}
-                from a node that last spoke four minutes ago means something different from the same figure reported two
-                seconds ago. A blank figure means the node did not report it, never that it is zero.
+                are whatever the node last reported, which is why the heartbeat age sits beside them —{' '}
+                <code className="font-mono text-xs">0 rooms</code> from a node that last spoke four minutes ago means
+                something different from the same figure reported two seconds ago. A blank figure means the node did not
+                report it, never that it is zero.
               </p>
               <p className="mt-3">
                 <strong className="text-fg">Clients are never told a node&rsquo;s address.</strong> A join learns the
                 node&rsquo;s <em>name</em>, for support and for this page. That is what lets the media plane be
-                re-shaped, re-scaled or replaced without an SDK release, and it is why <code className="font-mono text-xs">internalUrl</code>{' '}
-                is not shown here.
+                re-shaped, re-scaled or replaced without an SDK release, and it is why{' '}
+                <code className="font-mono text-xs">internalUrl</code> is not shown here.
               </p>
               <p className="mt-3">
-                Capacity is a ceiling each node advertises for itself, not a measured limit. Raven does not publish a
+                Capacity is a ceiling each node advertises for itself, not a measured limit. Livqeno does not publish a
                 supported participant count for this release — see the RTC scaling docs for what was actually measured.
               </p>
             </div>

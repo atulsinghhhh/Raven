@@ -129,6 +129,7 @@ describe('MessageRouterService', () => {
   let sfuLink: { send: jest.Mock; trySend: jest.Mock; releaseSession: jest.Mock };
   let usageAllowances: { checkProject: jest.Mock };
   let usageMeter: { startSession: jest.Mock; settle: jest.Mock };
+  let prisma: { room: { findUnique: jest.Mock } };
   let server: RtcServer;
 
   beforeEach(() => {
@@ -161,7 +162,11 @@ describe('MessageRouterService', () => {
       settle: jest.fn().mockResolvedValue(null),
     };
 
+    // A room that is open. The closed case gets its own test below.
+    prisma = { room: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) } };
+
     router = new MessageRouterService(
+      prisma as never,
       registry,
       trackRegistry,
       allocator as never,
@@ -192,12 +197,34 @@ describe('MessageRouterService', () => {
       expect(allocator.allocate).not.toHaveBeenCalled();
     });
 
+    /**
+     * Closing a room evicts everyone, which the SDK reads as a dropped
+     * socket and answers by reconnecting. Its token was minted before the
+     * close and is still perfectly valid, so without this the eviction
+     * lasted about a second and the room carried on.
+     */
+    it('refuses to let anyone into a CLOSED room, however valid their token', async () => {
+      prisma.room.findUnique.mockResolvedValue({ status: 'CLOSED' });
+
+      await expect(router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN })).rejects.toMatchObject({
+        code: SignalingErrorCode.ROOM_CLOSED,
+      });
+      expect(allocator.allocate).not.toHaveBeenCalled();
+      expect(sfuLink.send).not.toHaveBeenCalled();
+    });
+
     it('allocates a server, registers the participant, and asks the node for a PeerConnection', async () => {
       const session = makeSession();
 
       const result = await router.route(session, { type: ClientMessageType.ROOM_JOIN });
 
-      expect(allocator.allocate).toHaveBeenCalledWith('room-1', undefined);
+      expect(allocator.allocate).toHaveBeenCalledWith('room-1', {
+        requestedRegion: undefined,
+        // The probe is what lets the allocator tell "this room is live on a
+        // dead node, preserve it" apart from "this room is empty on a dead
+        // node, reallocate it".
+        isRoomOccupied: expect.any(Function),
+      });
       expect(session.joinedRoom).toBe(true);
       expect(session.rtcServerName).toBe('sfu-local-01');
 
@@ -224,7 +251,10 @@ describe('MessageRouterService', () => {
 
     it('passes a requested region through to the allocator', async () => {
       await router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN, region: 'asia-south' });
-      expect(allocator.allocate).toHaveBeenCalledWith('room-1', 'asia-south');
+      expect(allocator.allocate).toHaveBeenCalledWith(
+        'room-1',
+        expect.objectContaining({ requestedRegion: 'asia-south' }),
+      );
     });
 
     it('never tells the client the server address, only its name', async () => {
@@ -302,7 +332,7 @@ describe('MessageRouterService', () => {
 
     it('lets the join succeed when metering itself fails', async () => {
       // A database blip must not take down calling. Under-counting on a
-      // Raven fault is the right side to err on.
+      // Livqeno fault is the right side to err on.
       usageMeter.startSession.mockRejectedValue(new Error('database down'));
 
       await expect(router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN })).resolves.toMatchObject({
@@ -313,9 +343,9 @@ describe('MessageRouterService', () => {
     it('reports no capacity as a distinct, actionable error', async () => {
       allocator.allocate.mockRejectedValue(new NoRtcCapacityError('asia-south'));
 
-      await expect(
-        router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN }),
-      ).rejects.toMatchObject({ code: SignalingErrorCode.NO_RTC_CAPACITY });
+      await expect(router.route(makeSession(), { type: ClientMessageType.ROOM_JOIN })).rejects.toMatchObject({
+        code: SignalingErrorCode.NO_RTC_CAPACITY,
+      });
     });
 
     it('rolls the registration back when the node is unreachable', async () => {
@@ -325,9 +355,9 @@ describe('MessageRouterService', () => {
       sfuLink.send.mockRejectedValue(new Error('connect ECONNREFUSED'));
       const session = makeSession();
 
-      await expect(
-        router.route(session, { type: ClientMessageType.ROOM_JOIN }),
-      ).rejects.toMatchObject({ code: SignalingErrorCode.RTC_SERVER_UNREACHABLE });
+      await expect(router.route(session, { type: ClientMessageType.ROOM_JOIN })).rejects.toMatchObject({
+        code: SignalingErrorCode.RTC_SERVER_UNREACHABLE,
+      });
 
       expect(session.joinedRoom).toBe(false);
       expect(session.rtcServerId).toBeUndefined();
@@ -340,8 +370,7 @@ describe('MessageRouterService', () => {
       const bob = makeSession({ connectionId: 'conn-bob', participantId: 'bob' });
       await router.route(bob, { type: ClientMessageType.ROOM_JOIN });
 
-      const trackRegistry = (router as unknown as { trackRegistry: RoomTrackRegistryService })
-        .trackRegistry;
+      const trackRegistry = (router as unknown as { trackRegistry: RoomTrackRegistryService }).trackRegistry;
       await trackRegistry.publish('room-1', 'bob', {
         trackId: 'bob-cam',
         kind: 'video',
@@ -460,9 +489,9 @@ describe('MessageRouterService', () => {
       await router.route(session, { type: ClientMessageType.ROOM_JOIN });
       sfuLink.send.mockRejectedValue(new Error('socket closed'));
 
-      await expect(
-        router.route(session, { type: ClientMessageType.SDP_ANSWER, sdp: 'v=0' }),
-      ).rejects.toMatchObject({ code: SignalingErrorCode.RTC_SERVER_UNREACHABLE });
+      await expect(router.route(session, { type: ClientMessageType.SDP_ANSWER, sdp: 'v=0' })).rejects.toMatchObject({
+        code: SignalingErrorCode.RTC_SERVER_UNREACHABLE,
+      });
     });
 
     it('fails a relay when the room has no assigned server', async () => {
@@ -471,9 +500,9 @@ describe('MessageRouterService', () => {
       allocator.serverById.mockResolvedValue(null);
       allocator.assignedServerFor.mockResolvedValue(null);
 
-      await expect(
-        router.route(session, { type: ClientMessageType.SDP_ANSWER, sdp: 'v=0' }),
-      ).rejects.toMatchObject({ code: SignalingErrorCode.RTC_SERVER_UNREACHABLE });
+      await expect(router.route(session, { type: ClientMessageType.SDP_ANSWER, sdp: 'v=0' })).rejects.toMatchObject({
+        code: SignalingErrorCode.RTC_SERVER_UNREACHABLE,
+      });
     });
   });
 
@@ -591,7 +620,7 @@ describe('MessageRouterService', () => {
       expect(session.joinedRoom).toBe(false);
     });
 
-    it('releases the room\'s server assignment once the last participant leaves', async () => {
+    it("releases the room's server assignment once the last participant leaves", async () => {
       // Keeping a stale assignment would pin an empty room to a node that
       // may since have been drained or replaced.
       const session = makeSession();
@@ -613,9 +642,9 @@ describe('MessageRouterService', () => {
     });
 
     it('rejects leaving before joining', async () => {
-      await expect(
-        router.route(makeSession(), { type: ClientMessageType.ROOM_LEAVE }),
-      ).rejects.toBeInstanceOf(SignalingError);
+      await expect(router.route(makeSession(), { type: ClientMessageType.ROOM_LEAVE })).rejects.toBeInstanceOf(
+        SignalingError,
+      );
     });
   });
 

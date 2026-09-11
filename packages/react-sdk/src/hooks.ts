@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { LocalParticipant, LocalTrack, RemoteParticipant, RTCError, Room, RTCClient } from '@ravenkash/rtc';
 import { createEffectsPipeline } from '@ravenkash/effects';
-import type { EffectsError, EffectsPipeline, FilterConfig, Preset, ColorOpParams, EffectInstance } from '@ravenkash/effects';
+import type {
+  EffectsError,
+  EffectsPipeline,
+  FilterConfig,
+  Preset,
+  ColorOpParams,
+  EffectInstance,
+} from '@ravenkash/effects';
 import { useRavenStore } from './context';
 import type { RavenConnectionState, RavenSnapshot } from './store';
 
@@ -115,7 +122,7 @@ export function useMicrophone(): LocalMediaControl {
 }
 
 export interface UseCameraEffectsResult {
-  /** The underlying Raven Effects pipeline. Pass it to `raven.effects.presets.*` or `filters.*` for anything advanced. */
+  /** The underlying Livqeno Effects pipeline. Pass it to `raven.effects.presets.*` or `filters.*` for anything advanced. */
   pipeline: EffectsPipeline;
   effects: readonly EffectInstance[];
   isEnabled: boolean;
@@ -133,7 +140,7 @@ export interface UseCameraEffectsResult {
 }
 
 /**
- * Raven Effects for `@ravenkash/react`.
+ * Livqeno Effects for `@ravenkash/react`.
  *
  * Consumes the same `EffectsPipeline` and `LocalTrack.attachEffects()` from
  * `@ravenkash/effects` and `@ravenkash/rtc`, rather than a separate

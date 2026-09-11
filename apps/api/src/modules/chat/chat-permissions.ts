@@ -39,9 +39,6 @@ export function narrowScopes(roleScopes: ChatScope[], requested?: ChatScope[]): 
 
 export function assertScope(scopes: readonly string[], required: ChatScope, action: string): void {
   if (!scopes.includes(required)) {
-    throw new ChatError(
-      ChatErrorCode.PERMISSION_DENIED,
-      `${action} requires the "${required}" permission`,
-    );
+    throw new ChatError(ChatErrorCode.PERMISSION_DENIED, `${action} requires the "${required}" permission`);
   }
 }

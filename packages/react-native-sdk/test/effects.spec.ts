@@ -10,7 +10,7 @@ import type { LocalTrackDelegate } from '@ravenkash/rtc';
  * attachEffects() has to degrade to the original track, not throw a raw
  * ReferenceError and not quietly pretend to process frames.
  */
-describe('Raven Effects on React Native (Phase 16 architecture)', () => {
+describe('Livqeno Effects on React Native (Phase 16 architecture)', () => {
   it('reports the native engine as planned, not production', () => {
     expect(EFFECTS_NATIVE_ENGINE_STATUS).toBe('planned');
   });

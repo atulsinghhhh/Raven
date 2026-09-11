@@ -12,13 +12,11 @@ import { registerRtcDiagnosticsCommand } from './diagnostics.js';
  * the media plane right now: which rooms are live, who's connected, which
  * servers are serving them.
  *
- * Everything goes through the Raven API. The CLI never talks to an RTC
+ * Everything goes through the Livqeno API. The CLI never talks to an RTC
  * server directly; by design it has no address for one.
  */
 export function registerRtcCommand(program: Command): void {
-  const rtc = program
-    .command('rtc')
-    .description('Inspect the RTC media plane; live rooms, participants, and servers');
+  const rtc = program.command('rtc').description('Inspect the RTC media plane; live rooms, participants, and servers');
 
   registerRtcRoomsCommand(rtc);
   registerRtcParticipantsCommand(rtc);

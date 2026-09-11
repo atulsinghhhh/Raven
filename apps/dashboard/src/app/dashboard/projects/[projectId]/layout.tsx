@@ -44,7 +44,11 @@ export default async function ProjectLayout({
           <EmptyState
             title="Project not found"
             description="It may have been archived, or it belongs to a different account."
-            action={<ButtonLink href="/dashboard/projects" variant="primary">Back to projects</ButtonLink>}
+            action={
+              <ButtonLink href="/dashboard/projects" variant="primary">
+                Back to projects
+              </ButtonLink>
+            }
           />
         ) : (
           <ErrorState

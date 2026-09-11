@@ -33,6 +33,31 @@ await room.unpublish(track);
 track.stop();               // release the camera light
 ```
 
+### A source Livqeno does not capture
+
+For anything the SDK has no capture path for — a `canvas.captureStream()`
+frame source, a Web Audio graph, a decoded file, a virtual camera — wrap
+the `MediaStreamTrack` you already have:
+
+```ts
+const canvasTrack = canvas.captureStream(30).getVideoTracks()[0];
+const track = client.createCustomTrack(canvasTrack, { source: 'camera' });
+await room.publish(track);
+```
+
+`source` is what the SFU announces to everyone else, so it decides which
+tile a subscriber puts the track in; it defaults to `camera` for video and
+`microphone` for audio. Everything downstream — muting, stats, effects,
+subscriber events — behaves exactly as it does for a captured track.
+
+Livqeno never captured this track, so stopping the canvas, the oscillator or
+the file stays yours to do. `room.unpublish(track)` stops the track itself,
+as it does for every other kind.
+
+Building a `LocalTrack` by hand does not work, and the refusal is
+deliberate: publishing needs a delegate the SDK can hand an `RTCRtpSender`
+to. `createCustomTrack()` is that delegate.
+
 `unpublish()` stops sending. `stop()` releases the hardware. Do both when
 you are finished with a track you created yourself.
 
@@ -89,7 +114,7 @@ type TrackKind = 'camera' | 'microphone' | 'screenShare' | 'unknown';
 ```
 
 `unknown` is honest rather than a fallback guess. WebRTC carries no notion
-of what a stream is *of*, so Raven declares the source explicitly when
+of what a stream is *of*, so Livqeno declares the source explicitly when
 publishing; a track that arrives without one is reported as unknown rather
 than assumed to be a camera.
 

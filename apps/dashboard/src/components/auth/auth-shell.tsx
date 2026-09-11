@@ -8,7 +8,7 @@ import { DOCS_URL } from '@/lib/nav';
  * password, verify email — so they read as a single product instead of
  * five ad-hoc pages.
  *
- * Two-column on desktop: a brand panel that shows what Raven is (a code
+ * Two-column on desktop: a brand panel that shows what Livqeno is (a code
  * card and the three products), and the form. The panel is presentation
  * only (aria-hidden) — everything a screen reader needs lives in the form
  * column, and on mobile the panel simply isn't rendered.
@@ -34,7 +34,7 @@ export function AuthShell({
 
         <Link href="/" className="relative z-10 flex w-fit items-center gap-2.5">
           <RavenMark className="size-7" />
-          <span className="text-base font-semibold tracking-tight text-fg">Raven</span>
+          <span className="text-base font-semibold tracking-tight text-fg">Livqeno</span>
         </Link>
 
         <div className="relative z-10">
@@ -81,7 +81,7 @@ export function AuthShell({
           <header className="flex flex-col items-start">
             <Link href="/" className="flex items-center gap-2 lg:hidden">
               <RavenMark className="size-7" />
-              <span className="text-base font-semibold tracking-tight text-fg">Raven</span>
+              <span className="text-base font-semibold tracking-tight text-fg">Livqeno</span>
             </Link>
             <h1 className="mt-8 text-2xl font-semibold tracking-tight text-fg lg:mt-0">{title}</h1>
             {subtitle && <p className="mt-2 text-sm leading-relaxed text-muted">{subtitle}</p>}
@@ -126,19 +126,20 @@ function QuickstartCard() {
       <pre className="overflow-x-auto px-4 py-3.5 font-mono text-xs leading-6 text-muted">
         <code>
           <span className="text-accent-text">import</span>
-          {' { RavenClient } '}
+          {' { createRTCClient } '}
           <span className="text-accent-text">from</span> <span className="text-success-text">{"'@ravenkash/rtc'"}</span>
           {';\n\n'}
+          <span className="text-subtle">{'// grant minted by your backend — never an API key\n'}</span>
           <span className="text-accent-text">const</span>
-          {' client = '}
-          <span className="text-accent-text">new</span>
-          {' RavenClient({ token });\n'}
-          <span className="text-accent-text">await</span>
-          {' client.'}
+          {' room = '}
+          <span className="text-accent-text">await</span> <span className="text-info-text">createRTCClient</span>
+          {'(grant).'}
           <span className="text-info-text">join</span>
-          {'({ room: '}
-          <span className="text-success-text">{"'launch-day'"}</span>
-          {' });\n'}
+          {'(grant.roomName);\n'}
+          <span className="text-accent-text">await</span>
+          {' room.'}
+          <span className="text-info-text">enableCamera</span>
+          {'();\n'}
           <span className="text-subtle">{'// video, chat & presence — live.'}</span>
         </code>
       </pre>

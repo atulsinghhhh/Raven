@@ -1,11 +1,11 @@
-# Raven's database: managed Postgres on Supabase
+# Livqeno's database: managed Postgres on Supabase
 
-Raven has no Postgres container. There is **one** database — managed
+Livqeno has no Postgres container. There is **one** database — managed
 Postgres on Supabase — and every environment talks to it, including your
 laptop. `docker-compose.yml` provides Redis, the SFU, coturn and MinIO;
 Postgres is deliberately absent from it.
 
-Supabase supplies managed Postgres and nothing else. Raven does not use the
+Supabase supplies managed Postgres and nothing else. Livqeno does not use the
 Supabase JS SDK, Supabase Auth, Supabase Storage or the Supabase REST API,
 and adding any of them would be a change in architecture rather than in
 hosting. The application still reaches Postgres through Prisma 7 and the
@@ -214,7 +214,7 @@ numbers behind the default.
 container**, not Supabase. The e2e suite applies migrations and writes
 freely, and two concurrent CI runs would corrupt each other's fixtures —
 neither is acceptable against a database every environment shares. That
-container is a test fixture, not Raven's database.
+container is a test fixture, not Livqeno's database.
 
 `.github/workflows/ci.yml` needs no database at all: its `DATABASE_URL` is a
 deliberately unreachable placeholder, present only because
@@ -258,7 +258,7 @@ delete from rtc_servers where name like 'sfu-e2e%';
 ## Resetting
 
 There is no `docker compose down -v` that empties the database any more.
-Resetting Raven's data means doing it deliberately, against a database
+Resetting Livqeno's data means doing it deliberately, against a database
 every environment shares — so it is now a decision rather than a side
 effect of cleaning up containers. `prisma migrate reset` (drops everything
 and replays every migration) is the blunt instrument, and it goes over

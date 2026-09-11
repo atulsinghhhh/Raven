@@ -1,6 +1,6 @@
 ---
 title: Live Chat
-description: Every stream gets a real Raven Chat conversation, attached automatically — not a second messaging system.
+description: Every stream gets a real Livqeno Chat conversation, attached automatically — not a second messaging system.
 ---
 
 Creating a stream creates and attaches a Chat

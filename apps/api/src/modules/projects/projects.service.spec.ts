@@ -27,7 +27,14 @@ describe('ProjectsService', () => {
       project: { findUnique: jest.fn(), update: jest.fn(), create: jest.fn() },
       projectMember: { findUnique: jest.fn() },
     };
-    service = new ProjectsService(prisma as unknown as PrismaService);
+    service = new ProjectsService(
+      prisma as unknown as PrismaService,
+      {
+        // Only updateAllowedOrigins touches this, and it is invalidation
+        // bookkeeping rather than behaviour these tests assert on.
+        invalidate: jest.fn(),
+      } as never,
+    );
   });
 
   describe('authorize', () => {
@@ -46,9 +53,7 @@ describe('ProjectsService', () => {
       // enumerating ids is trying to find out.
       prisma.projectMember.findUnique.mockResolvedValue(null);
 
-      await expect(service.authorize('p1', 'stranger', Capability.ProjectRead)).rejects.toBeInstanceOf(
-        NotFoundError,
-      );
+      await expect(service.authorize('p1', 'stranger', Capability.ProjectRead)).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it('reports a member lacking the capability with 403, not 404', async () => {
@@ -56,17 +61,13 @@ describe('ProjectsService', () => {
       // and sends them hunting for a bug instead of asking for access.
       prisma.projectMember.findUnique.mockResolvedValue(membership(ProjectRole.VIEWER));
 
-      await expect(service.authorize('p1', 'u1', Capability.KeysManage)).rejects.toBeInstanceOf(
-        ForbiddenError,
-      );
+      await expect(service.authorize('p1', 'u1', Capability.KeysManage)).rejects.toBeInstanceOf(ForbiddenError);
     });
 
     it('names the role and the missing capability, so the fix is obvious', async () => {
       prisma.projectMember.findUnique.mockResolvedValue(membership(ProjectRole.VIEWER));
 
-      await expect(service.authorize('p1', 'u1', Capability.KeysManage)).rejects.toThrow(
-        /viewer.*keys:manage/,
-      );
+      await expect(service.authorize('p1', 'u1', Capability.KeysManage)).rejects.toThrow(/viewer.*keys:manage/);
     });
 
     it('treats an archived project as gone even for its owner', async () => {
@@ -74,9 +75,7 @@ describe('ProjectsService', () => {
         membership(ProjectRole.OWNER, { ...activeProject, status: ProjectStatus.ARCHIVED }),
       );
 
-      await expect(service.authorize('p1', 'u1', Capability.ProjectRead)).rejects.toBeInstanceOf(
-        NotFoundError,
-      );
+      await expect(service.authorize('p1', 'u1', Capability.ProjectRead)).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it('looks the membership up by the composite key, never by project alone', async () => {

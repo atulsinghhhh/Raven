@@ -59,7 +59,12 @@ describe('LiveStream.join()', () => {
     const credentials: LiveStreamCredentials = {
       streamId: 'stream_abc',
       role: 'HOST',
-      rtc: { token: 'rtc-jwt', endpoint: 'ws://sfu.example', iceServers: [{ urls: 'stun:x' }], telemetryUrl: 'https://x' },
+      rtc: {
+        token: 'rtc-jwt',
+        endpoint: 'ws://sfu.example',
+        iceServers: [{ urls: 'stun:x' }],
+        telemetryUrl: 'https://x',
+      },
     };
 
     await LiveStream.join(credentials);
@@ -127,7 +132,7 @@ describe('LiveStream.join()', () => {
   });
 
   describe('react()', () => {
-    it('adds a reaction to the stream\'s chatRootMessageId', async () => {
+    it("adds a reaction to the stream's chatRootMessageId", async () => {
       mockCreateRTCClient.mockReturnValue(fakeRtcClient(fakeRoom()));
       const chat = fakeChatClient();
       mockCreateChatClient.mockReturnValue(chat);

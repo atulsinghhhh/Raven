@@ -1,6 +1,6 @@
 ---
 title: Effects on React Native
-description: Filter/preset configuration is real and shared with every other Raven SDK. Native frame processing is planned, not shipped, in this release.
+description: Filter/preset configuration is real and shared with every other Livqeno SDK. Native frame processing is planned, not shipped, in this release.
 ---
 
 **Maturity: configuration is production; native processing is planned.**
@@ -56,13 +56,13 @@ actually in the tree.
 ```
 React Native
     ↓
-Raven Effects API
+Livqeno Effects API
     ↓
 Native Effects Engine
     ↓
 GPU
     ↓
-Raven RTC
+Livqeno RTC
 ```
 
 Per-frame processing will happen entirely in native code (a Metal/Core

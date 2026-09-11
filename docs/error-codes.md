@@ -1,6 +1,6 @@
 # Error codes and classification
 
-Raven has three error vocabularies, and they are separate on purpose:
+Livqeno has three error vocabularies, and they are separate on purpose:
 
 | Vocabulary | Where you see it | Why it is its own thing |
 |---|---|---|
@@ -38,12 +38,29 @@ Every error the REST API returns has the same shape:
 Some errors add fields — a 429 carries `retryAfterSeconds`, for example.
 Unknown fields should be ignored rather than treated as an error.
 
+### 429 and 503 are not the same thing
+
+Both are retryable and both carry `retryAfterSeconds`, so it is tempting to
+handle them together. Don't:
+
+- **429 `RAVEN_RATE_LIMITED`** — your key has spent its budget for this
+  window. Waiting is the only thing that helps, and the wait is a whole
+  window.
+- **503 `RAVEN_CAPACITY_EXCEEDED`** — the service is momentarily full. This
+  typically clears in milliseconds, and a retry very likely succeeds.
+
+A client that backs off a full window for a 503 turns a blip into an
+outage. And a developer shown a 429 goes looking at their own call rate for
+something that was never about them. See
+[production/capacity.md](production/capacity.md) for the measured
+behaviour and the configured ceilings.
+
 ## Request IDs
 
 Every response carries `x-request-id`. Error bodies repeat it as `requestId`
 so a developer copying a JSON blob into an issue does not lose it.
 
-**Send your own** and Raven will adopt it, letting one call be traced across
+**Send your own** and Livqeno will adopt it, letting one call be traced across
 your logs and ours:
 
 ```
@@ -80,7 +97,10 @@ new one. Generated IDs look like `req_` followed by 24 hex characters.
 | `RAVEN_PAYLOAD_TOO_LARGE` | 413 | Generic size limit. |
 | `RAVEN_MESSAGE_TOO_LARGE` | 413 | The message body limit specifically. |
 | `RAVEN_ATTACHMENT_TOO_LARGE` | 413 | The attachment limit, configured separately from the above. |
-| `RAVEN_RATE_LIMITED` | 429 | Carries `retryAfterSeconds`. |
+| `RAVEN_RATE_LIMITED` | 429 | *You* asked too often. Carries `retryAfterSeconds`; the budget refills on a known schedule. |
+| `RAVEN_CAPACITY_EXCEEDED` | 503 | *We* are momentarily full — a server-side concurrency ceiling, not your call rate. Carries `retryAfterSeconds` and `limit`, and usually clears in about one request's time. Retry it. |
+| `RAVEN_NO_RTC_CAPACITY` | 503 | No healthy RTC server had room for a **new** room. An operator problem; retry, or try another region. |
+| `RAVEN_RTC_SERVER_UNAVAILABLE` | 503 | The RTC server hosting **this existing room** is unhealthy, and the room cannot be moved while it still holds participants. Retry — do not rejoin a different room. |
 | `RAVEN_CONNECTION_FAILED` | — | A realtime connection could not be established. |
 | `RAVEN_WEBHOOK_FAILED` | — | A webhook delivery failed. |
 | `RAVEN_NOT_CONFIGURED` | 501 | The deployment has not enabled this feature. An operator fix, not a caller one. |
@@ -134,7 +154,7 @@ codes carry information the old ones did not.
 ## RTC errors
 
 Every RTC error a developer sees — in the dashboard, in `raven errors`,
-or in an `@ravenkash/rtc` `error` event — is a **Raven concept**, never a raw
+or in an `@ravenkash/rtc` `error` event — is a **Livqeno concept**, never a raw
 SFU or coturn error code. `apps/api/src/modules/observability/error-classifier.ts`
 is the one place that mapping lives.
 
@@ -177,7 +197,7 @@ is the one place that mapping lives.
 
 Every classified error carries a `likelyCause` and `suggestedAction` —
 deliberately hedged language ("likely a firewall/NAT restriction"), never
-a claim of certainty a Raven server can't actually back up. Examples:
+a claim of certainty a Livqeno server can't actually back up. Examples:
 
 - **`TOKEN_ERROR`**: *"The RTC token had already expired before (or
   during) the connection attempt."* → *"Mint a fresh RTC token — tokens
@@ -222,9 +242,9 @@ full and surfaces as `INTERNAL_ERROR`.
 | `TOKEN_REVOKED` | 401 | `RavenChatAuthenticationError` | Revoked before its natural expiry. |
 | `UNAUTHORIZED` | 401 | `RavenChatAuthenticationError` | No usable credential presented. |
 | `PERMISSION_DENIED` | 403 | `RavenChatPermissionError` | Authenticated, but the scope or role doesn't allow this. |
-| `NOT_A_MEMBER` | 403 | `RavenChatPermissionError` | Not a member of that conversation. |
-| `ORIGIN_NOT_ALLOWED` | 403 | `RavenChatPermissionError` | The upgrade's `Origin` isn't in `CORS_ORIGIN`. |
-| `ROOM_NOT_FOUND` | 404 | `RavenRoomError` | No such conversation in this project. |
+| `NOT_A_MEMBER` | 403 | `RavenChatPermissionError` | Not a member of that conversation. Reported to a **project API key** — a backend already trusted with the whole project. A chat token that is not a member gets `ROOM_NOT_FOUND` instead, so an end user cannot use the difference to discover which conversations exist. |
+| `ORIGIN_NOT_ALLOWED` | 403 | `RavenChatPermissionError` | Reserved; no longer emitted. Any origin may open a chat connection — the chat token decides what it can do (docs/control-plane.md#cors). |
+| `ROOM_NOT_FOUND` | 404 | `RavenRoomError` | No such conversation in this project — **or** one the caller's chat token is not a member of. The two are deliberately indistinguishable to a chat token; see `NOT_A_MEMBER`. |
 | `NOT_IN_ROOM` | 400 | `RavenRoomError` | This connection isn't subscribed to that room. |
 | `TOO_MANY_SUBSCRIPTIONS` | 400 | `RavenRoomError` | Per-connection room subscription limit reached. |
 | `CONVERSATION_ARCHIVED` | 409 | `RavenRoomError` | Writes are closed; reads still work. |
@@ -240,9 +260,9 @@ full and surfaces as `INTERNAL_ERROR`.
 | `ATTACHMENT_TOO_LARGE` | 413 | `RavenAttachmentError` | Over `STORAGE_MAX_ATTACHMENT_BYTES`. |
 | `CONNECTION_FAILED` | — | `RavenChatConnectionError` | Could not connect, or reconnects were exhausted. |
 | `CONNECTION_CLOSED` | — | `RavenChatConnectionError` | The socket closed before the server replied. |
-| `NETWORK_ERROR` | — | `RavenChatConnectionError` | The request never reached Raven. |
+| `NETWORK_ERROR` | — | `RavenChatConnectionError` | The request never reached Livqeno. |
 | `TIMEOUT` | — | `RavenChatConnectionError` | No server response within `requestTimeoutMs`. |
-| `INTERNAL_ERROR` | 500 | `RavenChatError` | Something failed on Raven's side; logged server-side. |
+| `INTERNAL_ERROR` | 500 | `RavenChatError` | Something failed on Livqeno's side; logged server-side. |
 
 An unrecognised code (from a newer server) becomes a base `RavenChatError`
 with that code preserved, rather than an exception — an older client keeps

@@ -1,9 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RtcServerAllocatorService } from '../rtc-servers/rtc-server-allocator.service';
-import {
-  NodeLinkMessageType,
-  RoomStateResultPayload,
-} from '../signaling/sfu/node-link.interface';
+import { NodeLinkMessageType, RoomStateResultPayload } from '../signaling/sfu/node-link.interface';
 import { SfuLinkService } from '../signaling/sfu/sfu-link.service';
 
 export interface LiveTrackInfo {
@@ -32,7 +29,7 @@ export interface LiveParticipantInfo {
  * # Why it's keyed by room id, not room name
  *
  * The old service took room *names*, because that's what LiveKit's API
- * indexed on. Raven's own media plane is addressed by room id throughout,
+ * indexed on. Livqeno's own media plane is addressed by room id throughout,
  * in allocation, signaling and the node link alike, so this takes the id.
  * Callers already hold the room row, so they've got it to hand.
  *
@@ -47,6 +44,16 @@ export interface LiveParticipantInfo {
  * this interface exists to prevent. A dashboard showing zero when it doesn't
  * know is lying, and an operator debugging a partition needs to tell the two
  * apart.
+ *
+ * # Why closing a session lives here too
+ *
+ * `closeLiveSession` is the one thing here that changes a room instead of
+ * reading it, which sits a little oddly under a name ending in "State".
+ * It stays because it needs exactly the same two collaborators — find the
+ * node serving this room, send it a frame — and a second service holding
+ * the identical pair, purely so one method could live under a different
+ * noun, would be ceremony rather than clarity. LiveKit's
+ * `RoomServiceClient` covered both for the same reason.
  */
 @Injectable()
 export class SfuRoomStateService {
@@ -56,6 +63,42 @@ export class SfuRoomStateService {
     private readonly allocator: RtcServerAllocatorService,
     private readonly sfuLink: SfuLinkService,
   ) {}
+
+  /**
+   * Evicts everyone from a room's live media session.
+   *
+   * This is the half of "closing a room" that Postgres cannot do. Setting
+   * `rooms.status = CLOSED` records a decision; it does not reach the node
+   * holding the PeerConnections, so before this existed a closed room —
+   * and an ended live stream — went on forwarding media indefinitely, with
+   * the host still publishing and viewers still decoding. The frame this
+   * sends has been implemented on the node the whole time
+   * (`signal/server.go`'s `TypeRoomClose`); nothing ever sent it.
+   *
+   * Best-effort by design, and never throws. A node that cannot be reached
+   * must not fail the close: the control-plane record is the durable
+   * decision, and re-admission is already refused by the room's status.
+   * Returns whether the node was actually told, so a caller that wants to
+   * log or retry can tell the difference.
+   */
+  async closeLiveSession(roomId: string): Promise<boolean> {
+    const server = await this.allocator.assignedServerFor(roomId);
+    if (!server) {
+      // No node holds this room, so there is no media session to end.
+      return true;
+    }
+
+    try {
+      await this.sfuLink.send(server, { type: NodeLinkMessageType.ROOM_CLOSE, roomId });
+      return true;
+    } catch (err) {
+      this.logger.warn(
+        `could not tell ${server.name} to close room ${roomId}, ` +
+          `so its media session may outlive the close: ${(err as Error).message}`,
+      );
+      return false;
+    }
+  }
 
   /**
    * Live participants for one room.

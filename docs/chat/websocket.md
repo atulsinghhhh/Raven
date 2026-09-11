@@ -1,8 +1,8 @@
-# Raven Chat — WebSocket protocol
+# Livqeno Chat — WebSocket protocol
 
-You do not need this document to use Raven Chat. `@ravenkash/chat` speaks this
+You do not need this document to use Livqeno Chat. `@ravenkash/chat` speaks this
 protocol so you don't have to, and the SDK is the supported interface. This is
-here for people writing a client in a language Raven doesn't ship an SDK for,
+here for people writing a client in a language Livqeno doesn't ship an SDK for,
 and for debugging what's actually on the wire.
 
 ## Endpoint
@@ -57,7 +57,7 @@ an RTC token being replayed here even in the impossible case of a shared key.
 ### Origin
 
 Browsers always send `Origin` on an upgrade, and page JavaScript cannot forge
-it. Raven checks it against `CORS_ORIGIN` and rejects a mismatch with close
+it. Livqeno checks it against `CORS_ORIGIN` and rejects a mismatch with close
 code `4403`.
 
 A *missing* `Origin` is allowed — non-browser clients (a server-side bot, a
@@ -66,7 +66,7 @@ legitimate use without stopping the attack the check exists for.
 
 ## Close codes
 
-Application close codes live in 4000–4999 (RFC 6455 §7.4.2). Raven Chat's are
+Application close codes live in 4000–4999 (RFC 6455 §7.4.2). Livqeno Chat's are
 distinct from the RTC signaling plane's, so a close code in devtools tells you
 which plane produced it.
 

@@ -80,7 +80,7 @@ describe('actor identity', () => {
     scopes: ['chat:read', 'chat:send', 'chat:moderate', 'chat:manage'],
   };
 
-  it('ignores a client actor\'s requested sender entirely', () => {
+  it("ignores a client actor's requested sender entirely", () => {
     // This single function is what makes "never trust client-provided
     // sender_id" structural rather than a rule everyone has to remember.
     expect(resolveSubjectId(client, 'bob')).toBe('alice');

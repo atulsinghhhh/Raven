@@ -1,12 +1,12 @@
-# Raven React Native example — video call with chat
+# Livqeno React Native example — video call with chat
 
-A real Raven call on a phone: WebRTC media through Raven's SFU, messages
-through Raven Chat into Postgres. No mock participants, no fake message
+A real Livqeno call on a phone: WebRTC media through Livqeno's SFU, messages
+through Livqeno Chat into Postgres. No mock participants, no fake message
 array.
 
 ## Running it
 
-Needs the Raven stack up (`pnpm infra:up` from the repo root) and a
+Needs the Livqeno stack up (`pnpm infra:up` from the repo root) and a
 project API key.
 
 ```bash

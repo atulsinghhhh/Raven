@@ -88,7 +88,7 @@ export default async function ParticipantsPage({
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Participants"
-        description={`Derived from the ${CONNECTION_SCAN_LIMIT} most recent connection records in this project, grouped by participant identity. Raven does not store participants as a separate resource, so this is a recent-activity view rather than a complete historical roster.`}
+        description={`Derived from the ${CONNECTION_SCAN_LIMIT} most recent connection records in this project, grouped by participant identity. Livqeno does not store participants as a separate resource, so this is a recent-activity view rather than a complete historical roster.`}
       />
       <ProductTabs tabs={rtcTabs(base)} active="Participants" />
 
@@ -99,8 +99,8 @@ export default async function ParticipantsPage({
           description={
             <>
               A participant appears here as soon as a client joins a room with{' '}
-              <code className="font-mono text-xs text-fg">@ravenkash/rtc</code> using a token minted by your backend. Until
-              then there are no connection records to derive one from.
+              <code className="font-mono text-xs text-fg">@ravenkash/rtc</code> using a token minted by your backend.
+              Until then there are no connection records to derive one from.
             </>
           }
           action={
@@ -215,7 +215,9 @@ export default async function ParticipantsPage({
                               {participant.totalDurationMs === null ? (
                                 <Dash />
                               ) : (
-                                <span className="tabular text-muted">{formatDuration(participant.totalDurationMs)}</span>
+                                <span className="tabular text-muted">
+                                  {formatDuration(participant.totalDurationMs)}
+                                </span>
                               )}
                             </TD>
                             <TD>
@@ -324,7 +326,10 @@ function ParticipantConnections({ base, participant }: { base: string; participa
                   </TD>
                   <TD>
                     {connection.roomId ? (
-                      <a href={`${base}/rooms/${connection.roomId}`} className="text-fg hover:text-accent-text hover:underline">
+                      <a
+                        href={`${base}/rooms/${connection.roomId}`}
+                        className="text-fg hover:text-accent-text hover:underline"
+                      >
                         {connection.roomName}
                       </a>
                     ) : (
@@ -401,8 +406,7 @@ function deriveParticipants(connections: ConnectionSummary[]): DerivedParticipan
       rooms: [...new Set(ordered.map((c) => c.roomName).filter(Boolean))],
       latest: ordered[0],
       connections: ordered,
-      totalDurationMs:
-        withDuration.length > 0 ? withDuration.reduce((sum, c) => sum + (c.durationMs ?? 0), 0) : null,
+      totalDurationMs: withDuration.length > 0 ? withDuration.reduce((sum, c) => sum + (c.durationMs ?? 0), 0) : null,
     });
   }
 

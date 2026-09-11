@@ -3,11 +3,7 @@ import { clamp01 } from './util';
 
 /** The classic sepia colour matrix, same coefficients browsers use for CSS `filter: sepia()`. */
 function sepiaMatrix(r: number, g: number, b: number): [number, number, number] {
-  return [
-    r * 0.393 + g * 0.769 + b * 0.189,
-    r * 0.349 + g * 0.686 + b * 0.168,
-    r * 0.272 + g * 0.534 + b * 0.131,
-  ];
+  return [r * 0.393 + g * 0.769 + b * 0.189, r * 0.349 + g * 0.686 + b * 0.168, r * 0.272 + g * 0.534 + b * 0.131];
 }
 
 /**

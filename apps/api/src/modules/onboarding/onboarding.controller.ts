@@ -26,7 +26,8 @@ export class OnboardingController {
   @Get()
   @ApiOperation({
     summary: "The signed-in user's onboarding state",
-    description: 'What the dashboard reads to resume the flow at the right step, or to skip it entirely once completed.',
+    description:
+      'What the dashboard reads to resume the flow at the right step, or to skip it entirely once completed.',
   })
   @ApiResponse({ status: 200, schema: { example: STATE_EXAMPLE } })
   getState(@CurrentUser() user: AuthenticatedUser) {
@@ -36,7 +37,8 @@ export class OnboardingController {
   @Patch()
   @ApiOperation({
     summary: 'Save onboarding progress',
-    description: 'Every field optional, so each step persists just its own answer. `step` is what makes a closed tab resumable.',
+    description:
+      'Every field optional, so each step persists just its own answer. `step` is what makes a closed tab resumable.',
   })
   @ApiResponse({ status: 200, schema: { example: STATE_EXAMPLE } })
   update(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateOnboardingDto) {
@@ -47,9 +49,13 @@ export class OnboardingController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Mark onboarding finished',
-    description: 'Idempotent — completing twice keeps the original timestamp. After this the dashboard stops routing the user to /onboarding.',
+    description:
+      'Idempotent — completing twice keeps the original timestamp. After this the dashboard stops routing the user to /onboarding.',
   })
-  @ApiResponse({ status: 200, schema: { example: { ...STATE_EXAMPLE, step: 7, completed: true, completedAt: '2026-09-08T12:00:00.000Z' } } })
+  @ApiResponse({
+    status: 200,
+    schema: { example: { ...STATE_EXAMPLE, step: 7, completed: true, completedAt: '2026-09-08T12:00:00.000Z' } },
+  })
   complete(@CurrentUser() user: AuthenticatedUser) {
     return this.onboardingService.complete(user.id);
   }

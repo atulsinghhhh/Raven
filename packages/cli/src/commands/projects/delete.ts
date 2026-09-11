@@ -7,7 +7,7 @@ import { withErrorHandling } from '../../lib/run.js';
 export function registerProjectsDeleteCommand(projects: Command): void {
   projects
     .command('delete <project>')
-    .description('Archive a Raven project (soft delete; history is retained)')
+    .description('Archive a Livqeno project (soft delete; history is retained)')
     .option('-y, --yes', 'skip the confirmation prompt')
     .option('--json', 'output as JSON')
     .action(

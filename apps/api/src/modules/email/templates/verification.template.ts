@@ -21,17 +21,17 @@ export function renderVerificationEmail(input: VerificationEmailInput): Rendered
 
   const { html, text } = renderLayout({
     heading: 'Confirm your email address',
-    preheader: `Confirm your email to finish setting up Raven — the link is valid for ${expiry}.`,
+    preheader: `Confirm your email to finish setting up Livqeno — the link is valid for ${expiry}.`,
     paragraphs: [
       greeting,
-      'Confirm this address to finish setting up your Raven account. Until you do, you can sign in, but some features stay locked.',
+      'Confirm this address to finish setting up your Livqeno account. Until you do, you can sign in, but some features stay locked.',
     ],
     cta: { label: 'Confirm email address', url: input.verifyUrl },
     ctaFootnote: `This link expires in ${expiry} and can be used once.`,
     closing:
-      'If you did not create a Raven account, ignore this email — nothing was activated, and the link expires on its own.',
+      'If you did not create a Livqeno account, ignore this email — nothing was activated, and the link expires on its own.',
     brand: input.brand,
   });
 
-  return { subject: 'Confirm your Raven email address', html, text };
+  return { subject: 'Confirm your Livqeno email address', html, text };
 }

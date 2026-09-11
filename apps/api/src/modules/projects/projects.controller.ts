@@ -16,6 +16,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthenticatedUser } from '../auth/jwt-payload.interface';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { UpdateAllowedOriginsDto } from './dto/update-allowed-origins.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsService } from './projects.service';
 import { AuditRequestContext, type AuditContext } from '../audit/audit-context.decorator';
@@ -103,11 +104,54 @@ export class ProjectsController {
     return project;
   }
 
+  @Patch(':id/allowed-origins')
+  @ApiOperation({
+    summary: "Replace a project's allowed browser origins",
+    description:
+      "Controls which browser applications may reach this project's SDK surfaces — RTC telemetry, chat REST, " +
+      'and both WebSocket gateways. Send the complete list; it replaces the stored one. ' +
+      'An empty list means unconfigured, which allows any origin. ' +
+      'Your Livqeno API key is unaffected and stays server-side either way.',
+  })
+  @ApiResponse({ status: 200, description: 'Origins replaced' })
+  @ApiNotFoundResponse({ description: 'Not found, or not owned by the caller' })
+  async updateAllowedOrigins(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateAllowedOriginsDto,
+    @AuditRequestContext() context: AuditContext,
+  ) {
+    const project = await this.projectsService.updateAllowedOrigins(id, user.id, dto);
+
+    await this.audit.record({
+      projectId: id,
+      actor: { id: user.id, email: user.email },
+      action: AuditAction.ProjectUpdated,
+      resourceType: AuditResource.Project,
+      resourceId: id,
+      // The origins themselves, unlike a project description, are exactly
+      // what an auditor of a security setting needs to see: they are not
+      // secret and "who opened us up to what, when" is the question.
+      metadata: {
+        changed: ['allowedOrigins'],
+        allowedOrigins: project.allowedOrigins,
+        allowLocalhostOrigins: project.allowLocalhostOrigins,
+      },
+      context,
+    });
+
+    return {
+      allowedOrigins: project.allowedOrigins,
+      allowLocalhostOrigins: project.allowLocalhostOrigins,
+    };
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Archive a project',
-    description: 'Soft delete — sets status to ARCHIVED. The project and its history are retained, but it stops appearing in the list.',
+    description:
+      'Soft delete — sets status to ARCHIVED. The project and its history are retained, but it stops appearing in the list.',
   })
   @ApiResponse({ status: 204, description: 'Project archived' })
   @ApiNotFoundResponse({ description: 'Not found, or not owned by the caller' })

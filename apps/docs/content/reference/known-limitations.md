@@ -3,7 +3,7 @@ title: Known limitations
 description: What is not built, what is built but unverified, and what that means for you. Stated rather than left to be discovered.
 ---
 
-Raven's documentation is only useful if it is honest about the edges. This
+Livqeno's documentation is only useful if it is honest about the edges. This
 page is the list. Everything here comes from the repository's own testing
 and deployment notes, not from guesswork.
 
@@ -20,7 +20,7 @@ and deployment notes, not from guesswork.
 | **Web-side simulcast layer selection** | The signaling protocol carries a `subscription.update` frame and `raven_rtc` exposes `RavenRoom.requestLayer(...)`, but `@ravenkash/rtc` neither sends the frame nor offers a method. Flutter only, today. |
 | **Chat token revocation endpoint** | The service can revoke a token and the gateway checks for it, but no REST route, CLI command or SDK method triggers it. `TOKEN_REVOKED` is therefore reachable in principle and unreachable in practice. |
 | **Web-side RTC token refresh** | The signaling client accepts a `refreshToken` callback and calls it before a reconnect, but `RTCClientConfig` does not expose it — so it is unreachable from `@ravenkash/rtc` and `@ravenkash/react-native`. `raven_rtc`'s `Raven` constructor **does** take it. On the web, handle a `failed` connection by minting a fresh token and rejoining. |
-| **Early RTC token revocation** | By design — the short lifetime is the control, not a revocation list. |
+| **Revocation does not end a live session** | `DELETE /v1/rooms/{roomId}/rtc-tokens/{tokenId}` revokes an RTC token, but only blocks *new* connections. Authorization is checked when a connection opens, not per-frame, so a participant already in the call stays until they leave or reconnect. Close the room to disconnect them. |
 | **Email change** | The address is the account key. |
 
 ## Built but unverified
@@ -77,7 +77,7 @@ a feature your deployment may not have. Check before promising it.
 
 ### Webhook SSRF protection is hostname-level only
 
-Raven refuses non-HTTP schemes, loopback and private-range **literals**,
+Livqeno refuses non-HTTP schemes, loopback and private-range **literals**,
 and production additionally requires `https://`. It does **not** resolve
 DNS, so a hostname resolving to a private address passes, as does a
 redirect to one.
@@ -99,7 +99,7 @@ dashboard-session routes, not token minting or the media path.
 ## How to read this page
 
 Nothing here is a promise about when it changes. It is a description of
-what is true now, so you can decide whether Raven fits what you are
+what is true now, so you can decide whether Livqeno fits what you are
 building — and so that if you hit one of these, you recognise it instead of
 debugging your own code for a day.
 

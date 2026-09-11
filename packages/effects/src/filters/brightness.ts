@@ -9,7 +9,12 @@ export const brightnessDefinition: EffectDefinition = {
   type: 'brightness',
   category: 'color',
   params: {
-    value: { min: -1, max: 1, default: 0, description: 'Additive brightness shift, -1 (darker) to 1 (brighter). 0 = no change.' },
+    value: {
+      min: -1,
+      max: 1,
+      default: 0,
+      description: 'Additive brightness shift, -1 (darker) to 1 (brighter). 0 = no change.',
+    },
   },
   op: {
     kind: 'color',

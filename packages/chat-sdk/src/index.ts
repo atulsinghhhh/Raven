@@ -1,5 +1,5 @@
 export { ChatClient, createChatClient } from './client';
-export type { ChatEventMap, ConnectOptions } from './client';
+export type { ChatEventMap, ConnectOptions, RecoverySummary } from './client';
 
 export { MessagesApi } from './messages-api';
 export { AttachmentsApi } from './attachments-api';
@@ -39,6 +39,7 @@ export {
 } from './errors';
 export type { ChatErrorCode } from './errors';
 
+export type { RoomRecoveryResult } from './internal/recovery';
 export type { Unsubscribe } from './events';
 export type { LogLevel } from './logger';
 export { CHAT_SDK_VERSION } from './version';

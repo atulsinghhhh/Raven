@@ -1,7 +1,10 @@
-"""raven-sdk — Raven's official Python server SDK.
+"""raven-sdk — Livqeno's official Python server SDK.
 
     from raven import Raven, CreateTokenParams
-    raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+    raven = Raven(
+        api_key=os.environ["RAVEN_API_KEY"],
+        base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+    )
     token = raven.tokens.create(CreateTokenParams(room=room_id, identity="user-42"))
 
 Never import this package into browser/frontend code — it holds a permanent

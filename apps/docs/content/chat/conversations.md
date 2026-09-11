@@ -15,7 +15,10 @@ for why that split exists.
 
 ```ts
 import { Raven } from '@ravenkash/server';
-const raven = new Raven({ apiKey: process.env.RAVEN_API_KEY });
+const raven = new Raven({
+  apiKey: process.env.RAVEN_API_KEY,
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
+});
 
 const conversation = await raven.chat.createConversation({
   name: 'support-room-42',
@@ -27,7 +30,10 @@ const conversation = await raven.chat.createConversation({
 ```python
 from raven import Raven, CreateConversationParams
 
-raven = Raven(api_key=os.environ["RAVEN_API_KEY"])
+raven = Raven(
+    api_key=os.environ["RAVEN_API_KEY"],
+    base_url=os.environ["RAVEN_API_URL"],  # https://api.ravenstack.online
+)
 conversation = raven.chat.create_conversation(CreateConversationParams(name="support-room-42"))
 ```
 

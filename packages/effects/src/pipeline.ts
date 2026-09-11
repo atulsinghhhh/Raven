@@ -32,8 +32,8 @@ let pipelineCounter = 0;
 let effectCounter = 0;
 
 /**
- * Raven Effects' pipeline: a reusable, ordered list of video effects you can
- * attach to any Raven camera track. RTC or Live Streaming, doesn't matter;
+ * Livqeno Effects' pipeline: a reusable, ordered list of video effects you can
+ * attach to any Livqeno camera track. RTC or Live Streaming, doesn't matter;
  * they're the same `LocalTrack`.
  *
  * The pipeline owns *what* to render. An `EffectsEngine` owns *how*, and
@@ -87,7 +87,7 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
   /**
    * Registers a trusted, in-process custom effect (Phase 16 §19).
    *
-   * Raven Effects never loads an effect from a URL and never executes
+   * Livqeno Effects never loads an effect from a URL and never executes
    * untrusted code. `effect` has to already be a real object in the host
    * application's own bundle. See security.ts.
    */
@@ -214,7 +214,10 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
    */
   async attachToTrack(sourceTrack: MediaStreamTrack, engineOverride?: EffectsEngine): Promise<MediaStreamTrack> {
     if (this.engine) {
-      throw new EffectsError('RAVEN_EFFECT_INVALID_CONFIG', 'This pipeline is already attached to a track. Detach it first.');
+      throw new EffectsError(
+        'RAVEN_EFFECT_INVALID_CONFIG',
+        'This pipeline is already attached to a track. Detach it first.',
+      );
     }
     if (!hasDocument()) {
       // No DOM whatsoever: React Native's JS runtime, a Node worker, that
@@ -224,7 +227,10 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
       // on (docs/effects/react-native).
       this.emit(
         'error',
-        new EffectsError('RAVEN_EFFECT_UNSUPPORTED', 'Raven Effects has no DOM to render into in this environment; the camera track is unmodified.'),
+        new EffectsError(
+          'RAVEN_EFFECT_UNSUPPORTED',
+          'Livqeno Effects has no DOM to render into in this environment; the camera track is unmodified.',
+        ),
       );
       return sourceTrack;
     }
@@ -258,7 +264,13 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
       video.remove();
       this.emit(
         'error',
-        error instanceof EffectsError ? error : new EffectsError('RAVEN_EFFECT_UNSUPPORTED', 'Could not attach the source track to a video element.', error),
+        error instanceof EffectsError
+          ? error
+          : new EffectsError(
+              'RAVEN_EFFECT_UNSUPPORTED',
+              'Could not attach the source track to a video element.',
+              error,
+            ),
       );
       return sourceTrack;
     }
@@ -274,7 +286,9 @@ export class EffectsPipeline extends TypedEventEmitter<EffectsPipelineEventMap> 
       video.remove();
       this.videoEl = undefined;
       const effectsError =
-        error instanceof EffectsError ? error : new EffectsError('RAVEN_EFFECT_PROCESSING_FAILED', 'Failed to start effects engine.', error);
+        error instanceof EffectsError
+          ? error
+          : new EffectsError('RAVEN_EFFECT_PROCESSING_FAILED', 'Failed to start effects engine.', error);
       this.emit('error', effectsError);
       // Graceful degradation (§9/§31). The call carries on with the
       // original track.

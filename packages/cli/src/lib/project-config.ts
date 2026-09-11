@@ -7,7 +7,7 @@ export interface ProjectConfig {
 }
 
 /**
- * raven.json links this directory to a Raven project ID. Nothing but the ID
+ * raven.json links this directory to a Livqeno project ID. Nothing but the ID
  * lives in it. No secrets, safe to commit.
  */
 export async function readProjectConfig(cwd: string = process.cwd()): Promise<ProjectConfig | undefined> {
