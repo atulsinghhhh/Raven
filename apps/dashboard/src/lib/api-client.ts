@@ -623,8 +623,9 @@ export interface LiveStreamingUsageBlock {
  * off this response), plus `chat`/`liveStreaming` as new sibling keys.
  */
 export interface AccountUsageSummary extends UsageSummary {
-  chat: ChatUsageBlock;
-  liveStreaming: LiveStreamingUsageBlock;
+  /** Absent when the API predates these two products — an older backend serving a newer dashboard build. */
+  chat?: ChatUsageBlock;
+  liveStreaming?: LiveStreamingUsageBlock;
 }
 
 export interface UsageHistoryEntry {
@@ -667,10 +668,12 @@ export interface UsageDetail {
   byProject: UsageByProject[];
   /**
    * Chat and Live Streaming get summary figures only in this phase — no
-   * history/daily breakdown yet, unlike RTC above.
+   * history/daily breakdown yet, unlike RTC above. Absent when the API
+   * predates these two products — an older backend serving a newer
+   * dashboard build.
    */
-  chat: ChatUsageBlock;
-  liveStreaming: LiveStreamingUsageBlock;
+  chat?: ChatUsageBlock;
+  liveStreaming?: LiveStreamingUsageBlock;
 }
 
 export interface ProjectUsage {
@@ -682,10 +685,11 @@ export interface ProjectUsage {
   /**
    * The owner's whole-account Chat/Live Streaming figures — both are
    * account-wide pools (same attribution as RTC's `summary` above), not
-   * filtered to this one project.
+   * filtered to this one project. Absent when the API predates these two
+   * products — an older backend serving a newer dashboard build.
    */
-  chat: ChatUsageBlock;
-  liveStreaming: LiveStreamingUsageBlock;
+  chat?: ChatUsageBlock;
+  liveStreaming?: LiveStreamingUsageBlock;
 }
 
 interface RequestOptions {

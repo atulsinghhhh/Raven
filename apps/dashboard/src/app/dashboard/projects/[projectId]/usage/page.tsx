@@ -121,16 +121,20 @@ export default async function ProjectUsagePage({ params }: { params: Promise<{ p
 
       <AllowanceMeter summary={summary} />
 
-      <section>
-        <SectionHeader
-          title="Chat and Live Streaming"
-          subtitle="Account-wide allowances, same as RTC above — not filtered to this project. Neither shares a balance with RTC minutes or with each other."
-        />
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <ChatUsageCard chat={chat} />
-          <LiveStreamingUsageCard liveStreaming={liveStreaming} />
-        </div>
-      </section>
+      {(chat || liveStreaming) && (
+        <section>
+          <SectionHeader
+            title="Chat and Live Streaming"
+            subtitle="Account-wide allowances, same as RTC above — not filtered to this project. Neither shares a balance with RTC minutes or with each other."
+          />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Absent when the API hasn't been redeployed with these fields yet — an
+                older backend serving a newer dashboard build must not crash the page. */}
+            {chat && <ChatUsageCard chat={chat} />}
+            {liveStreaming && <LiveStreamingUsageCard liveStreaming={liveStreaming} />}
+          </div>
+        </section>
+      )}
 
       <DailyUsageChart daily={daily} days={CHART_DAYS} />
 

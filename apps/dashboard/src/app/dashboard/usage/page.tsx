@@ -91,10 +91,14 @@ export default async function AccountUsagePage() {
 
         <AllowanceMeter summary={summary} />
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <ChatUsageCard chat={chat} />
-          <LiveStreamingUsageCard liveStreaming={liveStreaming} />
-        </div>
+        {(chat || liveStreaming) && (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Absent when the API hasn't been redeployed with these fields yet — an
+                older backend serving a newer dashboard build must not crash the page. */}
+            {chat && <ChatUsageCard chat={chat} />}
+            {liveStreaming && <LiveStreamingUsageCard liveStreaming={liveStreaming} />}
+          </div>
+        )}
 
         <DailyUsageChart daily={daily} days={CHART_DAYS} />
 
