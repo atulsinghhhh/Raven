@@ -3,30 +3,31 @@ title: Changelog
 description: How Livqeno versions its packages, and where release notes come from.
 ---
 
-## Nothing is published yet
+## Current versions
 
-Every Livqeno package sits at **`0.1.0`** and none has been published to a
-registry:
+The `@ravenkash/*` JavaScript/TypeScript packages are published to npm and
+version independently — see "How versioning will work" below for why the
+numbers don't match across packages:
 
-| Package | Version | Registry |
-|---|---|---|
-| `@ravenkash/rtc` | 0.1.0 | Unpublished |
-| `@ravenkash/chat` | 0.1.0 | Unpublished |
-| `@ravenkash/client` | 0.1.0 | Unpublished |
-| `@ravenkash/effects` | 0.1.0 | Unpublished |
-| `@ravenkash/react` | 0.1.0 | Unpublished |
-| `@ravenkash/react-native` | 0.1.0 | Unpublished |
-| `@ravenkash/server` | 0.1.0 | Unpublished |
-| `@ravenkash/cli` | 0.1.0 | Unpublished |
-| `raven_rtc`, `raven_chat`, `raven_live` | 0.1.0 | Unpublished (pub.dev) |
-| `raven-sdk` | 0.1.0 | Unpublished (PyPI) |
+| Package | Registry |
+|---|---|
+| `@ravenkash/rtc` | [npm](https://www.npmjs.com/package/@ravenkash/rtc) |
+| `@ravenkash/chat` | [npm](https://www.npmjs.com/package/@ravenkash/chat) |
+| `@ravenkash/client` | [npm](https://www.npmjs.com/package/@ravenkash/client) |
+| `@ravenkash/effects` | [npm](https://www.npmjs.com/package/@ravenkash/effects) |
+| `@ravenkash/react` | [npm](https://www.npmjs.com/package/@ravenkash/react) |
+| `@ravenkash/react-native` | [npm](https://www.npmjs.com/package/@ravenkash/react-native) |
+| `@ravenkash/server` | [npm](https://www.npmjs.com/package/@ravenkash/server) |
+| `@ravenkash/cli` | [npm](https://www.npmjs.com/package/@ravenkash/cli) |
+| `raven_rtc`, `raven_chat`, `raven_live` | Unpublished (pub.dev) |
+| `raven-sdk` | Unpublished (PyPI) |
 
-Until the first release, install from a checkout —
+For Python and Flutter, install from a checkout —
 [Installing from source](/getting-started/installing-from-source).
 
-This page will carry release notes once there are releases to note. Saying
-so is more useful than an empty table implying a history that does not
-exist.
+This page doesn't pin exact version numbers — check the npm link for each
+package's current `latest` tag. It will carry real per-version release
+notes once changesets accumulate enough of them to be worth reading.
 
 ## How versioning will work
 

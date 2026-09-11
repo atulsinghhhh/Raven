@@ -35,12 +35,10 @@ not create them and you cannot add a fourth.
 ## From the CLI
 
 ```bash
+npm install -g @ravenkash/cli
 raven login
 raven projects create my-video-app
 ```
-
-The CLI is not published to a registry yet, so install it from a checkout
-first — [Installing from source](/getting-started/installing-from-source).
 
 `raven login` opens a browser and reuses the dashboard session you already
 have. On a machine with no browser, set `RAVEN_TOKEN` instead — see

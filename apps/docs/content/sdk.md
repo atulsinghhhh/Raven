@@ -24,14 +24,15 @@ Those are different packages and neither can do the other's job.
 
 ## Stability
 
-**Every package is at `0.1.0` and none is published to a registry.**
+**The `@ravenkash/*` JavaScript/TypeScript packages (including the CLI) are
+published to npm.** `raven-sdk` (Python) and `raven_rtc`/`raven_chat`/
+`raven_live` (Flutter) are not yet on PyPI or pub.dev — install those from a
+checkout: [Installing from source](/getting-started/installing-from-source).
 
-Treat every SDK signature as pre-1.0 and subject to change. The two wire
-protocols and the REST API are more settled than the SDKs that wrap them —
-see [Changelog](/reference/changelog) for what each surface promises.
-
-Install from a checkout until the first release:
-[Installing from source](/getting-started/installing-from-source).
+Treat every SDK signature as pre-1.0 and subject to change regardless of
+registry status. The two wire protocols and the REST API are more settled
+than the SDKs that wrap them — see [Changelog](/reference/changelog) for
+what each surface promises.
 
 ## Feature support
 
