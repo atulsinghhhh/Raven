@@ -1,5 +1,5 @@
-import { DASHBOARD_URL, DOCS_ROUTES, DOCS_URL, GITHUB_REPO_URL, WHATSAPP_URL } from '../lib/links';
-import { GitHubIcon, RavenMark, WhatsAppIcon } from './icons';
+import { DOCS_ROUTES, DOCS_URL } from '../lib/links';
+import { RavenMark } from './icons';
 
 const COLUMNS = [
   {
@@ -19,14 +19,6 @@ const COLUMNS = [
       { label: 'API Reference', href: DOCS_ROUTES.apiReference },
       { label: 'CLI', href: DOCS_ROUTES.cli },
       { label: 'Examples', href: DOCS_ROUTES.examples },
-    ],
-  },
-  {
-    title: 'Community',
-    links: [
-      { label: 'GitHub', href: GITHUB_REPO_URL },
-      { label: 'WhatsApp', href: WHATSAPP_URL },
-      { label: 'Dashboard', href: DASHBOARD_URL },
     ],
   },
 ];
@@ -54,14 +46,10 @@ export function Footer() {
                   <li key={link.label}>
                     <a
                       href={link.href}
-                      target={link.href.startsWith('http') && link.href !== DASHBOARD_URL ? '_blank' : undefined}
-                      rel={
-                        link.href.startsWith('http') && link.href !== DASHBOARD_URL ? 'noreferrer noopener' : undefined
-                      }
+                      target={link.href.startsWith('http') ? '_blank' : undefined}
+                      rel={link.href.startsWith('http') ? 'noreferrer noopener' : undefined}
                       className="flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-fg"
                     >
-                      {link.label === 'GitHub' && <GitHubIcon className="h-4 w-4" />}
-                      {link.label === 'WhatsApp' && <WhatsAppIcon className="h-4 w-4" />}
                       {link.label}
                     </a>
                   </li>
