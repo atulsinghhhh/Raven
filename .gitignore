@@ -81,4 +81,7 @@ scripts/capacity/harness/vendor/
 scripts/capacity/results/
 scripts/capacity/.content/
 
+docs/architecture/HLD.md
+docs/production/architecture-5k.md
+
 /test
