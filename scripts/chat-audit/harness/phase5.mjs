@@ -126,7 +126,7 @@ await test('MULTI-SESSION typing: second session must not be cleared by the firs
   await sleep(200);
   a2.send({ type: 'typing.start', room });
   await sleep(400);
-  a1.close(); // a different session closes
+  a1.close();
   await sleep(600);
   const t = must(await http(`/v1/chat/conversations/${room}/typing`, { token: apiKey }), 200, 't');
   note(`typing after unrelated session closed: ${JSON.stringify(t.userIds)}`);

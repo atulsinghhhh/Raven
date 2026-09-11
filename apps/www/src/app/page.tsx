@@ -31,7 +31,6 @@ export default function LandingPage() {
         <DashboardPreview />
         <UseCases />
         <FinalCTA />
-        <BuiltBy />
       </main>
       <Footer />
     </>

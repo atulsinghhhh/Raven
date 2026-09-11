@@ -459,13 +459,12 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
         // reaches here is retryable, glare most of all, which the publish
         // path deals with.
         if (message.code === 'NEGOTIATION_GLARE') {
-          // The SFU was mid-round and refused our offer. Ask again: the
-          // request survives, which it did not before — the old code
-          // logged this and dropped the publish, leaving a sender with no
-          // m-section to send on.
-          // "answer it, then retry", says the SFU. There is nothing to do
-          // here: its offer is on the way, applying it rolls ours back,
-          // and the browser then tells us whether a retry is warranted.
+          // The SFU was mid-round and refused our offer. Nothing to do here:
+          // its own offer is already on the way, applying it rolls ours
+          // back, and the browser re-raises negotiationneeded if anything is
+          // still unresolved once that lands. The old code logged this and
+          // dropped the publish instead, leaving a sender with no m-section
+          // to send on.
           this.logger.debug('sfu refused our offer as glare; waiting for its offer');
           return;
         }
@@ -580,16 +579,6 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     return run;
   }
 
-  /**
-   * Records that something local needs an offer, and makes sure exactly
-   * one offer task is queued to carry it.
-   *
-   * Synchronous and non-throwing on purpose: publishing a track should not
-   * fail because the connection happens to be mid-round. The request is
-   * durable — it outlives an in-flight round, a glare rejection and a
-   * reconnect — and is cleared only once an offer for it is actually on
-   * the wire.
-   */
   /**
    * Nudges the chain to look for work.
    *

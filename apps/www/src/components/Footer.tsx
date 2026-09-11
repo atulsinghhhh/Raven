@@ -29,14 +29,14 @@ const COLUMNS = [
       { label: 'Examples', href: DOCS_ROUTES.examples },
     ],
   },
-  {
-    title: 'Community',
-    links: [
-      { label: 'Discord', href: DISCORD_URL },
-      { label: 'WhatsApp', href: WHATSAPP_URL },
-      { label: 'Dashboard', href: DASHBOARD_URL },
-    ],
-  },
+  // {
+  //   title: 'Community',
+  //   links: [
+  //     { label: 'Discord', href: DISCORD_URL },
+  //     { label: 'WhatsApp', href: WHATSAPP_URL },
+  //     { label: 'Dashboard', href: DASHBOARD_URL },
+  //   ],
+  // },
 ];
 
 export function Footer() {

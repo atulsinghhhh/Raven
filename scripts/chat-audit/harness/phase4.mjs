@@ -85,7 +85,7 @@ await test('MULTI-SESSION: Alice in 2 browsers, close browser 1 → Alice must s
   eq((await presence()).find((p) => p.userId === 'alice')?.status, 'online', 'alice online with 2 sessions');
 
   bobC.clear();
-  a1.close(); // close browser 1
+  a1.close();
   await sleep(800); // well before any heartbeat re-set (25s)
 
   const p = await presence();

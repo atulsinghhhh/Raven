@@ -30,7 +30,7 @@ export const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL ?? 'http://localhost:32
 
 /**
  * Doc routes referenced from more than one section. Every slug here has
- * a real page in apps/docs/content (see docs/src/lib/nav.ts): no
+ * a real page in apps/docs/content (see apps/docs/src/lib/nav.ts): no
  * placeholders for pages that don't exist yet.
  */
 export const DOCS_ROUTES = {

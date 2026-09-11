@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # Deploy coturn onto raven-coturn-01.
 #
-# TLS IS NOT CONFIGURED. TURNS/DTLS on 5349 needs a valid certificate for a
-# real hostname; the repo's infrastructure/docker/coturn/certs/ holds a
-# self-signed dev pair, and no production hostname has been chosen. STUN and
-# TURN over UDP/TCP 3478 are fully functional without it. See the
-# "PENDING" block at the end of this file for exactly what is needed.
+# TLS is not set up by this script — it brings up plain STUN/TURN on 3478
+# only, which clients can use immediately. Run 11-turn-tls.sh afterward to
+# add TURNS/DTLS on 5349 with a real certificate (see the block at the end
+# of this file for what that does).
 set -euo pipefail
 source "$(dirname "$0")/00-variables.sh"
 
@@ -138,18 +137,11 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# PENDING — required before NODE_ENV=production will boot the API at all
+# TLS — handled by 11-turn-tls.sh, not a manual step
 # ---------------------------------------------------------------------------
-#  1. A hostname (e.g. turn.example.com) with an A record -> ${TURN_PUBLIC_IP}
-#  2. A certificate for it. Let's Encrypt, on the VM:
-#       sudo certbot certonly --standalone -d turn.<domain>
-#     then mount /etc/letsencrypt/live/turn.<domain>/{fullchain,privkey}.pem
-#  3. Replace no-tls/no-dtls above with:
-#       tls-listening-port=${RAVEN_TURN_TLS_PORT}
-#       cert=/etc/coturn/certs/fullchain.pem
-#       pkey=/etc/coturn/certs/privkey.pem
-#  4. Set realm to the hostname, not the IP.
-#  5. Add the NSG rule for ${RAVEN_TURN_TLS_PORT}/tcp (see 02-network.sh).
-#  6. Set TURN_HOST=<hostname> and TURN_TLS_PORT=${RAVEN_TURN_TLS_PORT} on the API.
-#     env.validation.ts requires both in production, and TURN_HOST must not
-#     be "localhost".
+# It gets a certificate (Azure's own DNS label on this VM's static IP, so no
+# custom hostname is needed), rewrites this conf with tls-listening-port /
+# cert / pkey, opens the NSG rule for TURN_TLS_PORT, and points the realm at
+# the hostname. 13-api-app.sh then sets TURN_HOST and TURN_TLS_PORT on the
+# API — both required in production (env.validation.ts), and TURN_HOST must
+# not be "localhost".

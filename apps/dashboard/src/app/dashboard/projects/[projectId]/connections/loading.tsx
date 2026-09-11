@@ -1,7 +1,6 @@
 import { Skeleton, StatGridSkeleton, TableSkeleton } from '@/components/ui/skeleton';
 
-/** Header + range selector, the connection metric row, then the
- *  connections table. */
+/** Header, the connection metric row, then the connections table. */
 export default function ConnectionsLoading() {
   return (
     <div className="flex flex-col gap-8" aria-busy="true">

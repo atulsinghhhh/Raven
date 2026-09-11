@@ -16,8 +16,9 @@ export const CurrentScope = createParamDecorator((_data: unknown, ctx: Execution
   const request = ctx.switchToHttp().getRequest<Request>();
   return {
     projectId: request.apiProjectId!,
-    // Keys predating environments have no column value of their own in
-    // memory only if the guard did not run; the DB default covers the rest.
+    // Every key row carries its own environment (DB default DEVELOPMENT),
+    // so ApiKeyAuthGuard always sets this. The fallback only covers a
+    // decorator used somewhere that guard didn't actually run.
     environment: request.apiEnvironment ?? DEFAULT_ENVIRONMENT,
   };
 });

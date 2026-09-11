@@ -11,7 +11,7 @@ type RvfcVideo = HTMLVideoElement & {
  * ever fires. Some embedded and automated browser contexts expose the API
  * and never present a frame through it. (Found this the hard way, testing
  * this pipeline against a canvas-`captureStream()` source in an automated
- * Chrome instance.) So, not trust feature detection on its own,
+ * Chrome instance.) So rather than trust feature detection alone,
  * this scheduler arms a short watchdog on the very first callback and
  * switches permanently to `requestAnimationFrame` if nothing fires. That's
  * what stops the pipeline quietly rendering zero frames in an environment

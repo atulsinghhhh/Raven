@@ -61,8 +61,8 @@ export class ConversationsService {
       // Same cross-project check as everywhere else: holding a room id
       // from another project must not be enough to attach chat to it.
       const room = await this.prisma.room.findUnique({ where: { id: dto.roomId } });
-      // Environment matters as much as project here: attaching a chat
-      // channel to a room from another environment would join the two.
+      // Environment matters as much as project here: attaching a
+      // conversation to a room from another environment would join the two.
       if (!room || room.projectId !== projectId || room.environment !== environment) {
         throw new ChatError(ChatErrorCode.ROOM_NOT_FOUND, 'RTC room not found in this project');
       }

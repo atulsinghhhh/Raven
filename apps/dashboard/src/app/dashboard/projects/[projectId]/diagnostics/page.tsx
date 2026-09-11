@@ -66,9 +66,9 @@ export default async function DiagnosticsPage({ params }: { params: Promise<{ pr
   const diagnostics = diagnosticsResult.status === 'fulfilled' ? diagnosticsResult.value : undefined;
   const health = healthResult.status === 'fulfilled' ? healthResult.value : undefined;
 
-  // Control API and authentication are only provably up when the
-  // authenticated project check answered. /health alone proves reachability
-  // but says nothing about the session.
+  // /health alone is enough to call the Control API up — it's the API that
+  // serves that endpoint. Authentication can't take that shortcut: only the
+  // authenticated project check proves the session itself is valid.
   const checks: Check[] = [
     {
       key: 'api',

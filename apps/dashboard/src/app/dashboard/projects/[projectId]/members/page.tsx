@@ -52,8 +52,8 @@ export default async function MembersPage({ params }: { params: Promise<{ projec
   }
 
   // Whether to render the management controls at all. The server enforces
-  // this regardless; asking the API what this user can do: instead of
-  // guessing from their role: is what keeps the two in agreement.
+  // this regardless — asking the API what this user can do, instead of
+  // guessing from their role, keeps the two in agreement.
   const viewer = members.find((m) => m.email === email);
   const canManage = viewer?.capabilities.includes('members:manage') ?? false;
 

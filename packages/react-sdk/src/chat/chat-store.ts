@@ -341,10 +341,3 @@ export class RavenChatStore {
     }
   }
 }
-
-/**
- * Rebuilds the opaque cursor for a message we already hold. The format
- * matches the server's, base64 of `createdAt|id`, and this is the one
- * place in the package that knows that. Saves a catch-up an extra round
- * trip just to find out where it is.
- */

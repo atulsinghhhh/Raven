@@ -138,7 +138,7 @@ export interface SendMessageOptions {
    * sends yourself; the SDK sets one automatically for its own retries.
    */
   clientMessageId?: string;
-  /** `att_...` id from `chat.attachments.create()`, already uploaded. */
+  /** `att_...` id from `chat.attachments.upload()`, already uploaded. */
   attachmentId?: string;
   metadata?: Record<string, unknown>;
   /** Which room to send to. Defaults to the room passed to `connect()`. */
