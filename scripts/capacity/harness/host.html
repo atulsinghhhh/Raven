@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Livqeno capacity harness — host</title>
+    <script src="./pc-tap.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "@ravenkash/rtc": "./vendor/raven-rtc.js",
+          "@ravenkash/chat": "./vendor/raven-chat.js",
+          "@ravenkash/client": "./vendor/raven-client.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <video id="localVideo" autoplay playsinline muted style="width: 160px"></video>
+    <pre id="log"></pre>
+    <script type="module" src="./host.js"></script>
+  </body>
+</html>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Livqeno capacity harness — viewer shard</title>
+    <style>
+      /* Kept on-screen and tiny. An off-screen or display:none <video>
+         is free to stop pulling frames, which would make framesDecoded
+         stop advancing and the liveness check report a degradation that
+         only the harness caused. 2px costs compositing and nothing else:
+         the decoder still runs at the stream's own resolution. */
+      body {
+        margin: 0;
+        font: 10px monospace;
+      }
+      video {
+        width: 2px;
+        height: 2px;
+      }
+      #grid {
+        line-height: 0;
+      }
+    </style>
+    <script src="./pc-tap.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "@ravenkash/rtc": "./vendor/raven-rtc.js",
+          "@ravenkash/chat": "./vendor/raven-chat.js",
+          "@ravenkash/client": "./vendor/raven-client.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="grid"></div>
+    <pre id="log"></pre>
+    <script type="module" src="./viewer.js"></script>
+  </body>
+</html>

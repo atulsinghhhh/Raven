@@ -3,6 +3,12 @@ packages:
   - "packages/*"
   - "services/*"
   - "test"
+  # The Live Streaming media-capacity rig. A workspace package for the same
+  # reason `test` is one: it needs real dependencies (Playwright, pg,
+  # ioredis) declared where a reader can see them, rather than reaching
+  # sideways into apps/api's node_modules and only working by accident of
+  # hoisting. Nothing publishes from here.
+  - "scripts/capacity"
 # Every entry fixes a HIGH advisory in a package Livqeno does not depend on
 # directly. Each is pinned by a parent we do not control — NestJS 10 and
 # Prisma 7 both pin exact versions — so bumping the parent cannot reach them
