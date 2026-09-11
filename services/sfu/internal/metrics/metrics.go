@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/atulsinghhhh/Raven/services/sfu/internal/room"
@@ -143,6 +144,26 @@ func New(manager *room.Manager, linkConnected func() bool) *Metrics {
 	// tracks, and mirroring them into Prometheus counters would mean a
 	// metric write per packet. Not in the hot path, thanks.
 	registry.MustRegister(newTrafficCollector(manager))
+
+	// Go runtime and process collectors, which a bare prometheus.Registry
+	// does not include (only the default registry does).
+	//
+	// These are what make a leak visible. Forwarding runs a goroutine per
+	// downtrack, so a subscriber that leaves without its downtrack being
+	// torn down shows up as go_goroutines climbing while
+	// raven_sfu_active_participants does not — a distinction no
+	// application-level counter here can draw on its own. Likewise
+	// go_memstats_heap_alloc_bytes and process_resident_memory_bytes are
+	// how a soak test tells "steady state" from "growing", and
+	// process_cpu_seconds_total is CPU measured from inside the process
+	// rather than sampled off ps.
+	//
+	// Cost is a scrape-time read of runtime.MemStats and /proc (or the
+	// Darwin equivalent). Nothing on the forwarding path.
+	registry.MustRegister(
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+	)
 
 	return m
 }

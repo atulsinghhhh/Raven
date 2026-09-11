@@ -1,0 +1,25 @@
+{
+  "name": "@raven/capacity",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Live Streaming media-capacity rig — real browsers, real PeerConnections, a real SFU, and measured throughput.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "sdk": "node build-harness-sdk.mjs",
+    "tiers": "node run.mjs tiers",
+    "sustained": "node run.mjs sustained",
+    "churn": "node run.mjs churn",
+    "restart-api": "node run.mjs restart-api",
+    "restart-sfu": "node run.mjs restart-sfu",
+    "network": "node run.mjs network",
+    "soak": "node run.mjs soak"
+  },
+  "dependencies": {
+    "ioredis": "^5.4.1",
+    "pg": "^8.23.0",
+    "playwright": "^1.63.0"
+  }
+}
