@@ -50,6 +50,7 @@ function fakeStream(overrides: { isHost?: boolean; room?: FakeRoom; chat?: FakeC
 const joinLiveStream = jest.fn();
 jest.mock('@ravenkash/client', () => ({ joinLiveStream: (...args: unknown[]) => joinLiveStream(...args) }));
 
+import { StrictMode } from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { RavenLiveStream } from '../src/live/raven-live-stream';
 import { useLiveStream, useLiveStreamHost, useLiveStreamViewer } from '../src/live/live-hooks';
@@ -195,7 +196,78 @@ describe('<RavenLiveStream>', () => {
 
     unmount();
 
-    expect(stream.leave).toHaveBeenCalledTimes(1);
+    // Chained onto the settle-serialization promise now (see the
+    // Strict-Mode-safety test below for why), so it resolves a tick or two
+    // after unmount() returns rather than synchronously within it.
+    await waitFor(() => expect(stream.leave).toHaveBeenCalledTimes(1));
+  });
+
+  it('under Strict Mode double-invoke, calls joinLiveStream() at most once and still reaches ready cleanly', async () => {
+    // <StrictMode> makes React mount this effect, run its cleanup, then
+    // mount it again — synchronously, inside render(), all before any
+    // microtask (including the settle-chain's own `.then()`s) gets a
+    // chance to run. That means the *first* invocation's `cancelled` flag
+    // is already `true` by the time its chained call would fire, so it
+    // never calls joinLiveStream() at all — only the surviving second
+    // invocation's join actually reaches the network. Without the
+    // settle-chain serialization, both invocations called joinLiveStream()
+    // unconditionally and synchronously, so this is 2 calls on the old
+    // code and 1 on the fixed code — the same asymmetry that let the
+    // server see two live sessions for one identity in the real bug.
+    const stream = fakeStream();
+    joinLiveStream.mockResolvedValue(stream);
+
+    render(
+      <StrictMode>
+        <RavenLiveStream credentials={CREDENTIALS}>
+          <div>Live!</div>
+        </RavenLiveStream>
+      </StrictMode>,
+    );
+
+    await waitFor(() => expect(screen.queryByText('Live!')).not.toBeNull());
+    expect(joinLiveStream).toHaveBeenCalledTimes(1);
+    // The surviving session was never mistaken for an abandoned one.
+    expect(stream.leave).not.toHaveBeenCalled();
+  });
+
+  it('serializes overlapping joins when cancellation happens while the first join is still genuinely in flight', async () => {
+    // Covers the case Strict Mode's synchronous timing doesn't: a real
+    // remount (switching streams) while the first join hasn't resolved
+    // yet. Here `cancelled` only becomes true *after* joinLiveStream() was
+    // already called and is awaiting its result, so the abandoned stream
+    // does need an explicit leave() once it arrives — and the next join
+    // must wait for that leave() before it starts.
+    let resolveJoin1!: (stream: unknown) => void;
+    const join1 = new Promise((resolve) => (resolveJoin1 = resolve));
+    joinLiveStream.mockReturnValueOnce(join1);
+
+    const { rerender } = render(
+      <RavenLiveStream credentials={CREDENTIALS}>
+        <div>Live!</div>
+      </RavenLiveStream>,
+    );
+    await waitFor(() => expect(joinLiveStream).toHaveBeenCalledTimes(1));
+
+    // A genuine remount: different streamId, same component position, so
+    // React tears down the old effect instance and runs a new one — the
+    // first join is still pending.
+    rerender(
+      <RavenLiveStream credentials={{ ...CREDENTIALS, streamId: 'stream_2' }}>
+        <div>Live!</div>
+      </RavenLiveStream>,
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    // The second join must not have started yet — it's waiting on the
+    // first's teardown, which can't happen until join1 resolves.
+    expect(joinLiveStream).toHaveBeenCalledTimes(1);
+
+    const stream1 = fakeStream();
+    act(() => resolveJoin1(stream1));
+    await waitFor(() => expect(stream1.leave).toHaveBeenCalledTimes(1));
+
+    await waitFor(() => expect(joinLiveStream).toHaveBeenCalledTimes(2));
   });
 
   it('useLiveStreamHost() throws for a VIEWER-role stream', async () => {
