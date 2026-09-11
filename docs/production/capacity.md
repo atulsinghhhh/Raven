@@ -17,9 +17,13 @@ fixed.
 
 ## The headline
 
-> **100 viewers is a configured ceiling, not a validated production
-> capacity.** 100 concurrent *credential mints* are measured and pass. 100
-> viewers holding sustained media on one SFU has not been tested.
+> **The recommended public limit is 50 viewers per stream, 10 publishers
+> per stream.** 100 concurrent *credential mints* are measured and pass —
+> a control-plane operation that finishes in milliseconds. Holding
+> sustained *media* is a different, longer-lived commitment, and it has
+> now been measured too: see
+> [`live-streaming-media-capacity.md`](./live-streaming-media-capacity.md)
+> for the real-browser, real-SFU results this recommendation is built on.
 
 Those are different claims and the difference matters. Minting a token is a
 control-plane operation that finishes in milliseconds; carrying a viewer's
@@ -168,7 +172,7 @@ for something that clears in milliseconds. They are kept apart on purpose.
 ## Current validated capacity
 
 ```text
-Per-room (configured, NOT media-validated):
+Per-room (configured):
 - 50 participants   (SIGNALING_MAX_PARTICIPANTS_PER_ROOM)
 - 100 rooms per SFU (SFU_ROOM_CAPACITY)
 
@@ -181,17 +185,25 @@ API (measured):
 - ~318 mints/sec sustained through one process during the 100-burst
   (100 mints / 305ms wall)
 - ~13 req/sec was the pre-fix ceiling, bcrypt-bound
+- Multi-instance (1/2/3 processes): measured, zero errors at any count,
+  connections stay within both the per-instance pool and Postgres's real
+  max_connections — see live-streaming-media-capacity.md §7
 
-SFU:
-- Not measured this pass. No participant count and no Mbps figure.
+SFU media (measured — real browsers, real PeerConnections, real RTP):
+- 50 viewers: 30 minutes sustained, 0.00% loss, zero degradation
+- 100 viewers: 20 minutes sustained (lower-bitrate profile), 0.00% loss
+- 86.2 Mbps outbound at 50 viewers (real camera-quality bitrate), 20.4% CPU
+- Full detail, methodology and the two profiles' distinction:
+  live-streaming-media-capacity.md
 
 Recommended initial public limit:
 - 50 viewers per stream, 10 publishers per stream
+  (unchanged from before — now backed by measured sustained media
+  rather than being the smallest configured ceiling by default)
 
 Unvalidated:
-- 100 viewers with sustained media
-- Any measured SFU throughput in Mbps
-- Multi-instance API throughput
+- 100 viewers with sustained media *at real camera-quality bitrate*
+  (validated at a lower bitrate profile; see the media-capacity doc)
 - One room across more than one SFU (not implemented — see below)
 ```
 
@@ -207,13 +219,19 @@ smallest configured ceiling — not one derived from a media test nobody ran.
 
 ## Not measured, stated rather than implied
 
-- **Sustained media at any scale.** No test carries real RTP for real
-  viewers. Every number above is control plane.
-- **SFU throughput in Mbps.** No figure exists. Do not quote one.
-- **Multi-instance API.** One process was measured. The per-process ceiling
-  is known; how N of them behave against one Postgres is not.
-- **Sustained load over time.** These are bursts of seconds. No soak test.
-- **Real network conditions.** Client and server shared a machine.
+Superseded by [`live-streaming-media-capacity.md`](./live-streaming-media-capacity.md),
+which measured sustained media, SFU throughput, multi-instance API,
+soak/churn resilience, and emulated network conditions. What remains
+genuinely unmeasured:
+
+- **100 viewers at real camera-quality bitrate, sustained.** Validated at
+  a lower bitrate profile and as a brief snapshot at full bitrate; not
+  both together, for long enough to call it sustained. Blocked by the
+  load-generating laptop's own capacity, not the SFU's.
+- **Real geographic network conditions.** The network-conditions testing
+  that was done is emulated (`tc netem` on a containerised node's own
+  interface), not multi-region. See the media-capacity doc's §8 for the
+  distinction.
 
 ## Known architectural limits (by design, not defects)
 
