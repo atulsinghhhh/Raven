@@ -49,6 +49,10 @@ async function bootstrap(): Promise<void> {
   );
   app.useGlobalFilters(new AllExceptionsFilter());
 
+  // Express's default header names the framework to anyone probing the
+  // API — a free hint for an attacker and nothing a developer needs.
+  app.getHttpAdapter().getInstance().disable('x-powered-by');
+
   // Per-route CORS. SDK browser surfaces reflect the caller's origin
   // because Livqeno cannot enumerate developers' origins; everything else
   // keeps the deployment's allowlist. The reasoning, and why this is safe,
