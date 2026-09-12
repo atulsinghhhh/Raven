@@ -120,6 +120,7 @@ function makeServer(overrides: Partial<RtcServer> = {}): RtcServer {
 describe('MessageRouterService', () => {
   let router: MessageRouterService;
   let registry: RoomRegistryService;
+  let trackRegistry: RoomTrackRegistryService;
   let allocator: {
     allocate: jest.Mock;
     assignedServerFor: jest.Mock;
@@ -136,7 +137,7 @@ describe('MessageRouterService', () => {
     const configService = { get: jest.fn(() => 50) } as unknown as ConfigService;
     const redisService = { client: new FakeRedisClient() } as never;
     registry = new RoomRegistryService(configService, redisService);
-    const trackRegistry = new RoomTrackRegistryService(redisService);
+    trackRegistry = new RoomTrackRegistryService(redisService);
 
     server = makeServer();
     allocator = {
@@ -685,6 +686,34 @@ describe('MessageRouterService', () => {
     it('pongs without needing a room', async () => {
       const result = await router.route(makeSession(), { type: ClientMessageType.PING });
       expect(result).toEqual({ toSender: { type: ServerMessageType.PONG } });
+    });
+
+    it('refreshes the room participant and track TTLs for a session that has joined a room', async () => {
+      const session = makeSession({ roomId: 'room-1', participantId: 'alice', joinedRoom: true });
+      // A real join first, so refresh()'s own local-session guard finds
+      // this participant — a bare joinedRoom:true with nothing actually
+      // registered wouldn't exercise the real path.
+      await registry.join(session);
+      const refreshSpy = jest.spyOn(registry, 'refresh');
+      const refreshTtlSpy = jest.spyOn(trackRegistry, 'refreshTtl');
+
+      const result = await router.route(session, { type: ClientMessageType.PING });
+
+      expect(result).toEqual({ toSender: { type: ServerMessageType.PONG } });
+      expect(refreshSpy).toHaveBeenCalledWith('room-1', 'alice');
+      expect(refreshTtlSpy).toHaveBeenCalledWith('room-1');
+    });
+
+    it('does not touch the room/track registries for a session that has not joined a room', async () => {
+      const session = makeSession({ joinedRoom: false });
+      const refreshSpy = jest.spyOn(registry, 'refresh');
+      const refreshTtlSpy = jest.spyOn(trackRegistry, 'refreshTtl');
+
+      const result = await router.route(session, { type: ClientMessageType.PING });
+
+      expect(result).toEqual({ toSender: { type: ServerMessageType.PONG } });
+      expect(refreshSpy).not.toHaveBeenCalled();
+      expect(refreshTtlSpy).not.toHaveBeenCalled();
     });
   });
 });

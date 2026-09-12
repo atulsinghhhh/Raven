@@ -28,10 +28,12 @@ export interface JoinResult {
  * (`SignalingRedisKeys.roomParticipants`/`participant`) makes participants
  * reachable whichever instance they connected to.
  *
- * Every fleet key carries a TTL, refreshed on join, so a gateway that dies
- * without cleaning up doesn't leave phantom participants lying about. Same
- * reasoning as chat's connection registry, and equivalent to chat's spec
- * §35.
+ * Every fleet key carries a TTL, set on join and re-armed on every
+ * heartbeat tick via `refresh()`, so a gateway that dies without cleaning
+ * up doesn't leave phantom participants lying about — but a participant who
+ * simply stays connected past the TTL doesn't silently fall out of the
+ * fleet view either. Same reasoning as chat's connection registry, and
+ * equivalent to chat's spec §35.
  *
  * See docs/rtc/scaling.md#a-room-split-across-api-instances.
  */
@@ -148,6 +150,42 @@ export class RoomRegistryService {
   /** Local-only lookup: a target this instance can deliver to directly, no Redis round trip. */
   get(roomId: string, participantId: string): ParticipantSession | undefined {
     return this.rooms.get(roomId)?.get(participantId);
+  }
+
+  /**
+   * Heartbeat refresh: re-arms the fleet-wide TTL for a participant already
+   * known to be in the room. Call this on every heartbeat tick a session
+   * answers, the same way chat's `ConnectionRegistryService.touch()` rides
+   * its own gateway's heartbeat sweep.
+   *
+   * Deliberately `EXPIRE`-only, never `SADD`/`SET`: those would resurrect a
+   * membership that already lapsed, which is exactly the phantom entry a
+   * heartbeat must not create. If the fleet view already forgot this
+   * participant, only a fresh `join()` should bring them back — a stray or
+   * late heartbeat doing it instead would hide the same staleness this fix
+   * exists to catch. `EXPIRE` on a key that's gone is a documented no-op
+   * (returns 0), so this degrades safely on its own without an existence
+   * check first.
+   */
+  async refresh(roomId: string, participantId: string): Promise<void> {
+    // No local session for this participant in this room: nothing to keep
+    // alive. Guards a heartbeat tick that lands after disconnect, and a
+    // session that hasn't joined a room yet.
+    if (!this.get(roomId, participantId)) {
+      return;
+    }
+
+    try {
+      await this.redisService.client
+        .multi()
+        .expire(SignalingRedisKeys.roomParticipants(roomId), SIGNALING_PARTICIPANT_TTL_SECONDS)
+        .expire(SignalingRedisKeys.participant(roomId, participantId), SIGNALING_PARTICIPANT_TTL_SECONDS)
+        .exec();
+    } catch (err) {
+      this.logger.warn(
+        `fleet TTL refresh failed for participant ${participantId} in room ${roomId}: ${(err as Error).message}`,
+      );
+    }
   }
 
   /** Local-only listing. Used for local delivery, and as the Redis-unavailable fallback above. */

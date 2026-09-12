@@ -21,6 +21,7 @@ describe('SignalingGateway heartbeat', () => {
     const gateway = new SignalingGateway(
       {} as never, // tokenVerifier
       {} as never, // roomRegistry
+      {} as never, // trackRegistry
       {} as never, // roomEvents
       {} as never, // messageValidator
       {} as never, // messageRouter
@@ -45,44 +46,108 @@ describe('SignalingGateway heartbeat', () => {
     return { ping: jest.fn(), terminate: jest.fn() };
   }
 
-  it('pings a live connection and marks it not-yet-confirmed', () => {
+  it('pings a live connection and marks it not-yet-confirmed', async () => {
     const { gateway, sessions } = makeGateway();
     const socket = makeSocket();
     const session = makeSession({ isAlive: true, socket: socket as never });
     sessions.set(socket, session);
 
-    (gateway as unknown as { runHeartbeat(): void }).runHeartbeat();
+    await (gateway as unknown as { runHeartbeat(): Promise<void> }).runHeartbeat();
 
     expect(socket.ping).toHaveBeenCalledTimes(1);
     expect(socket.terminate).not.toHaveBeenCalled();
     expect(session.isAlive).toBe(false);
   });
 
-  it('terminates a connection that never answered the previous ping', () => {
+  it('terminates a connection that never answered the previous ping', async () => {
     const { gateway, sessions } = makeGateway();
     const socket = makeSocket();
     const session = makeSession({ isAlive: false, socket: socket as never }); // missed the last pong
 
     sessions.set(socket, session);
 
-    (gateway as unknown as { runHeartbeat(): void }).runHeartbeat();
+    await (gateway as unknown as { runHeartbeat(): Promise<void> }).runHeartbeat();
 
     expect(socket.terminate).toHaveBeenCalledTimes(1);
     expect(socket.ping).not.toHaveBeenCalled();
   });
 
-  it('does not affect other live connections when terminating a stale one', () => {
+  it('does not affect other live connections when terminating a stale one', async () => {
     const { gateway, sessions } = makeGateway();
     const staleSocket = makeSocket();
     const liveSocket = makeSocket();
     sessions.set(staleSocket, makeSession({ isAlive: false, socket: staleSocket as never, participantId: 'stale' }));
     sessions.set(liveSocket, makeSession({ isAlive: true, socket: liveSocket as never, participantId: 'live' }));
 
-    (gateway as unknown as { runHeartbeat(): void }).runHeartbeat();
+    await (gateway as unknown as { runHeartbeat(): Promise<void> }).runHeartbeat();
 
     expect(staleSocket.terminate).toHaveBeenCalledTimes(1);
     expect(liveSocket.ping).toHaveBeenCalledTimes(1);
     expect(liveSocket.terminate).not.toHaveBeenCalled();
+  });
+
+  it('refreshes the fleet-wide room and track TTLs for a live, joined session', async () => {
+    const refresh = jest.fn().mockResolvedValue(undefined);
+    const refreshTtl = jest.fn().mockResolvedValue(undefined);
+    const configService = { get: jest.fn(() => 100) } as unknown as ConfigService;
+    const gateway = new SignalingGateway(
+      {} as never, // tokenVerifier
+      { refresh } as never, // roomRegistry
+      { refreshTtl } as never, // trackRegistry
+      {} as never, // roomEvents
+      {} as never, // messageValidator
+      {} as never, // messageRouter
+      {} as never, // connectionRateLimit
+      configService,
+      {} as never, // sfuLink
+      {} as never, // sfuFrames
+      { sweepIntervalMs: 30_000, sweep: jest.fn(), settle: jest.fn() } as never, // usageMeter
+      { isAllowed: jest.fn().mockResolvedValue(true) } as never, // origins
+    );
+    const sessions = (gateway as unknown as { sessions: Map<unknown, ParticipantSession> }).sessions;
+    const socket = makeSocket();
+    const session = makeSession({
+      isAlive: true,
+      socket: socket as never,
+      joinedRoom: true,
+      roomId: 'room-1',
+      participantId: 'alice',
+    });
+    sessions.set(socket, session);
+
+    await (gateway as unknown as { runHeartbeat(): Promise<void> }).runHeartbeat();
+
+    expect(refresh).toHaveBeenCalledWith('room-1', 'alice');
+    expect(refreshTtl).toHaveBeenCalledWith('room-1');
+  });
+
+  it('does not refresh room/track TTLs for a session that has not joined a room', async () => {
+    const refresh = jest.fn().mockResolvedValue(undefined);
+    const refreshTtl = jest.fn().mockResolvedValue(undefined);
+    const configService = { get: jest.fn(() => 100) } as unknown as ConfigService;
+    const gateway = new SignalingGateway(
+      {} as never, // tokenVerifier
+      { refresh } as never, // roomRegistry
+      { refreshTtl } as never, // trackRegistry
+      {} as never, // roomEvents
+      {} as never, // messageValidator
+      {} as never, // messageRouter
+      {} as never, // connectionRateLimit
+      configService,
+      {} as never, // sfuLink
+      {} as never, // sfuFrames
+      { sweepIntervalMs: 30_000, sweep: jest.fn(), settle: jest.fn() } as never, // usageMeter
+      { isAllowed: jest.fn().mockResolvedValue(true) } as never, // origins
+    );
+    const sessions = (gateway as unknown as { sessions: Map<unknown, ParticipantSession> }).sessions;
+    const socket = makeSocket();
+    const session = makeSession({ isAlive: true, socket: socket as never, joinedRoom: false });
+    sessions.set(socket, session);
+
+    await (gateway as unknown as { runHeartbeat(): Promise<void> }).runHeartbeat();
+
+    expect(refresh).not.toHaveBeenCalled();
+    expect(refreshTtl).not.toHaveBeenCalled();
   });
 
   /**

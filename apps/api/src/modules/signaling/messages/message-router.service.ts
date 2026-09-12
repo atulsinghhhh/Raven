@@ -94,8 +94,25 @@ export class MessageRouterService {
       case ClientMessageType.SUBSCRIPTION_UPDATE:
         return this.handleSubscriptionUpdate(session, message);
       case ClientMessageType.PING:
-        return { toSender: { type: ServerMessageType.PONG } };
+        return this.handlePing(session);
     }
+  }
+
+  /**
+   * A client-initiated keepalive, distinct from the gateway's own
+   * transport-level ping/pong (`SignalingGateway.runHeartbeat`) that drives
+   * `isAlive`. Not every client sends this, but any that do get the same
+   * fleet-view refresh the transport heartbeat already provides — one
+   * heartbeat signal shouldn't leave the fleet view fresher than another.
+   */
+  private async handlePing(session: ParticipantSession): Promise<SignalingActionResult> {
+    if (session.joinedRoom) {
+      await Promise.all([
+        this.roomRegistry.refresh(session.roomId, session.participantId),
+        this.trackRegistry.refreshTtl(session.roomId),
+      ]);
+    }
+    return { toSender: { type: ServerMessageType.PONG } };
   }
 
   private async handleJoin(session: ParticipantSession, message: RoomJoinMessage): Promise<SignalingActionResult> {

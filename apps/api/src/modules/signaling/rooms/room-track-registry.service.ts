@@ -133,6 +133,24 @@ export class RoomTrackRegistryService {
     return byParticipant;
   }
 
+  /**
+   * Heartbeat refresh: re-arms this room's track-list TTL. Called once per
+   * heartbeat tick per live participant (see `SignalingGateway.runHeartbeat`),
+   * so as long as anyone is still in the room, its track cache doesn't
+   * expire out from under a mid-call participant the way a TTL set only at
+   * `publish()` time otherwise would.
+   *
+   * `EXPIRE` on a room with no published tracks yet is a no-op — it never
+   * creates the hash, only re-arms a TTL on one that already exists.
+   */
+  async refreshTtl(roomId: string): Promise<void> {
+    try {
+      await this.redisService.client.expire(trackKey(roomId), SIGNALING_PARTICIPANT_TTL_SECONDS);
+    } catch (err) {
+      this.logger.warn(`could not refresh track ttl for room ${roomId}: ${(err as Error).message}`);
+    }
+  }
+
   /** Drops the whole room's track list: used when a room is closed. */
   async clearRoom(roomId: string): Promise<void> {
     try {

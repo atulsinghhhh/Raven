@@ -15,6 +15,7 @@ import { ConnectionRateLimitService } from '../rate-limit/connection-rate-limit.
 import { checkMessageRate } from '../rate-limit/message-rate-limiter.util';
 import { RoomEventsService } from '../rooms/room-events.service';
 import { RoomRegistryService } from '../rooms/room-registry.service';
+import { RoomTrackRegistryService } from '../rooms/room-track-registry.service';
 import { UsageMeterService } from '../../usage/usage-meter.service';
 import { UsageCloseReason } from '../../usage/usage.constants';
 import { SfuFrameHandlerService } from '../sfu/sfu-frame-handler.service';
@@ -76,6 +77,7 @@ export class SignalingGateway implements OnGatewayInit, OnGatewayConnection, OnG
   constructor(
     private readonly tokenVerifier: RtcTokenVerifierService,
     private readonly roomRegistry: RoomRegistryService,
+    private readonly trackRegistry: RoomTrackRegistryService,
     private readonly roomEvents: RoomEventsService,
     private readonly messageValidator: MessageValidatorService,
     private readonly messageRouter: MessageRouterService,
@@ -97,7 +99,7 @@ export class SignalingGateway implements OnGatewayInit, OnGatewayConnection, OnG
     // the latency-sensitive negotiation path.
     this.sfuLink.onFrame((frame) => void this.handleSfuFrame(frame));
     this.sfuLink.onSessionsLost((serverName, sessionIds) => this.endSessionsStrandedOn(serverName, sessionIds));
-    this.heartbeatTimer = setInterval(() => this.runHeartbeat(), HEARTBEAT_INTERVAL_MS);
+    this.heartbeatTimer = setInterval(() => void this.runHeartbeat(), HEARTBEAT_INTERVAL_MS);
     this.usageSweepTimer = setInterval(() => void this.runUsageSweep(), this.usageMeter.sweepIntervalMs);
     this.logger.log(`Signaling gateway listening on ${SIGNALING_PATH}`);
   }
@@ -495,7 +497,18 @@ export class SignalingGateway implements OnGatewayInit, OnGatewayConnection, OnG
     return keys;
   }
 
-  private runHeartbeat(): void {
+  /**
+   * Refreshing the fleet-view TTLs on the same tick as the liveness check
+   * is deliberate, same reasoning as chat's `ChatGateway.runHeartbeat`: a
+   * connection that's still alive here is exactly the one whose room
+   * membership should stay alive fleet-wide too. Without this, a
+   * participant who never sends anything but SDP/ICE (the real
+   * `@ravenkash/rtc` client never sends the client-initiated `ping`
+   * message `MessageRouterService.handlePing` also refreshes on) would
+   * silently fall out of `RoomRegistryService`'s Redis view after
+   * `SIGNALING_PARTICIPANT_TTL_SECONDS`, even while still connected.
+   */
+  private async runHeartbeat(): Promise<void> {
     for (const [client, session] of this.sessions) {
       if (!session.isAlive) {
         this.logger.warn(`terminating stale connection: participant=${session.participantId}`);
@@ -504,6 +517,13 @@ export class SignalingGateway implements OnGatewayInit, OnGatewayConnection, OnG
       }
       session.isAlive = false;
       client.ping();
+
+      if (session.joinedRoom) {
+        await Promise.all([
+          this.roomRegistry.refresh(session.roomId, session.participantId),
+          this.trackRegistry.refreshTtl(session.roomId),
+        ]);
+      }
     }
   }
 
