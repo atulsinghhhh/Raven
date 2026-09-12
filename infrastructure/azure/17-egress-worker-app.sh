@@ -104,12 +104,35 @@ if az containerapp show -n "${APP}" -g "${RAVEN_RG}" --output none 2>/dev/null; 
   echo "==> Updating ${APP} (new revision, previous kept)"
   az containerapp update -n "${APP}" -g "${RAVEN_RG}" --yaml "${SPEC}" --output none
 else
-  echo "==> Creating ${APP}"
-  az containerapp create -n "${APP}" -g "${RAVEN_RG}" --yaml "${SPEC}" --output none
+  # `az containerapp create --yaml` is broken on this CLI/extension version
+  # (az 2.90.0) — it 400s with "The JSON value could not be converted to
+  # System.Boolean" on ANY --yaml spec here, including a minimal one with
+  # no custom fields at all; confirmed directly, not a guess, by isolating
+  # it against a bare-flags create (works) and an --yaml update on that
+  # same app (also works — only `create --yaml` is affected). So a new
+  # app is bootstrapped with plain flags first (gets it to exist, with no
+  # managed identity yet), given a system-assigned identity as its own
+  # step, then brought to the real desired spec via `update --yaml`, which
+  # is unaffected by this bug.
+  # Bootstrapped with a public placeholder image, not the real (private,
+  # ACR-hosted) one — at this point there is no managed identity yet to
+  # pull a private image with, and assigning one is the very next step.
+  echo "==> Creating ${APP} (bootstrap via flags — see comment on the --yaml create bug)"
+  az containerapp create -n "${APP}" -g "${RAVEN_RG}" --environment "${RAVEN_CAE}" \
+    --image "mcr.microsoft.com/k8se/quickstart:latest" \
+    --ingress internal --target-port "${RAVEN_EGRESS_WORKER_PORT}" \
+    --output none
+  echo "==> Assigning a system identity"
+  az containerapp identity assign --system-assigned -n "${APP}" -g "${RAVEN_RG}" --output none
   PRINCIPAL="$(az containerapp show -n "${APP}" -g "${RAVEN_RG}" --query identity.principalId -o tsv)"
   ACR_ID="$(az acr show -n "${RAVEN_ACR}" -g "${RAVEN_RG}" --query id -o tsv)"
+  echo "==> Granting AcrPull before the real image is referenced"
   az role assignment create --assignee-object-id "${PRINCIPAL}" \
     --assignee-principal-type ServicePrincipal --role AcrPull --scope "${ACR_ID}" --output none || true
+  echo "    waiting for role assignment propagation"
+  sleep 20
+  echo "==> Applying the full spec (real image + config)"
+  az containerapp update -n "${APP}" -g "${RAVEN_RG}" --yaml "${SPEC}" --output none
 fi
 
 echo "==> Waiting for the latest revision"
