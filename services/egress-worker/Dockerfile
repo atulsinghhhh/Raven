@@ -18,6 +18,11 @@ COPY services/egress-worker/package.json services/egress-worker/package.json
 COPY packages/sdk/package.json packages/sdk/package.json
 COPY packages/chat-sdk/package.json packages/chat-sdk/package.json
 COPY packages/client/package.json packages/client/package.json
+# packages/sdk's src/track.ts imports @ravenkash/effects as a type-only
+# dependency — not one of the three SDK builds this image ships, but its
+# package.json still needs to be resolvable for tsup's dts build to type-
+# check, or @ravenkash/rtc's own build fails before ever reaching client.
+COPY packages/effects/package.json packages/effects/package.json
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
@@ -25,7 +30,13 @@ COPY services/egress-worker services/egress-worker
 COPY packages/sdk packages/sdk
 COPY packages/chat-sdk packages/chat-sdk
 COPY packages/client packages/client
-RUN pnpm --filter @ravenkash/rtc run build \
+COPY packages/effects packages/effects
+# effects builds first: its own dist (real type declarations, not just a
+# package.json) is what @ravenkash/rtc's tsup dts build actually needs to
+# resolve the `@ravenkash/effects` import in src/track.ts — a bare
+# package.json satisfies pnpm's install/symlink step but not TypeScript.
+RUN pnpm --filter @ravenkash/effects run build \
+  && pnpm --filter @ravenkash/rtc run build \
   && pnpm --filter @ravenkash/chat run build \
   && pnpm --filter @ravenkash/client run build \
   && pnpm --filter @raven/egress-worker run stage-sdk --no-build \
