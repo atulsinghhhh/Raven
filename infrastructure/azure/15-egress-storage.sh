@@ -21,6 +21,9 @@
 set -euo pipefail
 source "$(dirname "$0")/00-variables.sh"
 
+WORK="$(mktemp -d)"
+trap 'rm -rf "${WORK}"' EXIT
+
 echo "==> Storage account ${RAVEN_EGRESS_STORAGE_ACCOUNT}"
 if az storage account show -n "${RAVEN_EGRESS_STORAGE_ACCOUNT}" -g "${RAVEN_RG}" --output none 2>/dev/null; then
   echo "    already exists"
@@ -54,79 +57,103 @@ az keyvault secret set --vault-name "${RAVEN_KV}" -n egress-storage-connection-s
 echo "    + egress-storage-connection-string"
 
 # --- Azure Front Door (Standard), storage account as origin ---------------
+#
+# Best-effort, not required: Azure Front Door is categorically unavailable
+# on "Free Trial and Student" subscriptions ("BadRequest: Free Trial and
+# Student account is forbidden for Azure Frontdoor resources" — confirmed
+# directly, not a guess), and both alternatives (classic Microsoft/Akamai
+# CDN) no longer accept new profile creation at all, on any subscription
+# tier. If Front Door genuinely can't be created here, this script falls
+# back to the storage account's own public blob endpoint as the playback
+# base URL — real, correct HTTPS, just without an edge cache in front of
+# it — rather than failing the whole provisioning run over a CDN layer
+# that may simply not be purchasable yet. Re-run this script after
+# upgrading the subscription (or adding a different CDN, e.g. Cloudflare
+# in front of this same storage account) to pick up Front Door instead.
 BLOB_HOST="$(az storage account show -n "${RAVEN_EGRESS_STORAGE_ACCOUNT}" -g "${RAVEN_RG}" \
   --query "primaryEndpoints.blob" -o tsv | sed -E 's#https://##; s#/$##')"
+FRONTDOOR_AVAILABLE=true
 
 echo "==> Front Door profile ${RAVEN_EGRESS_FRONTDOOR_PROFILE}"
 if az afd profile show -n "${RAVEN_EGRESS_FRONTDOOR_PROFILE}" -g "${RAVEN_RG}" --output none 2>/dev/null; then
   echo "    already exists"
-else
-  az afd profile create \
+elif ! az afd profile create \
     --profile-name "${RAVEN_EGRESS_FRONTDOOR_PROFILE}" \
     --resource-group "${RAVEN_RG}" \
     --sku Standard_AzureFrontDoor \
-    --output none
+    --output none 2>"${WORK}/afd-error.log"; then
+  echo "    !! Front Door unavailable on this subscription — falling back to the direct blob endpoint:"
+  sed 's/^/       /' "${WORK}/afd-error.log"
+  FRONTDOOR_AVAILABLE=false
+else
   echo "    created"
 fi
 
-echo "==> Endpoint ${RAVEN_EGRESS_FRONTDOOR_ENDPOINT}"
-az afd endpoint create \
-  --resource-group "${RAVEN_RG}" \
-  --profile-name "${RAVEN_EGRESS_FRONTDOOR_PROFILE}" \
-  --endpoint-name "${RAVEN_EGRESS_FRONTDOOR_ENDPOINT}" \
-  --enabled-state Enabled \
-  --output none 2>/dev/null || echo "    already exists"
+if [ "${FRONTDOOR_AVAILABLE}" = true ]; then
+  echo "==> Endpoint ${RAVEN_EGRESS_FRONTDOOR_ENDPOINT}"
+  az afd endpoint create \
+    --resource-group "${RAVEN_RG}" \
+    --profile-name "${RAVEN_EGRESS_FRONTDOOR_PROFILE}" \
+    --endpoint-name "${RAVEN_EGRESS_FRONTDOOR_ENDPOINT}" \
+    --enabled-state Enabled \
+    --output none 2>/dev/null || echo "    already exists"
 
-echo "==> Origin group ${RAVEN_EGRESS_FRONTDOOR_ORIGIN_GROUP}"
-az afd origin-group create \
-  --resource-group "${RAVEN_RG}" \
-  --profile-name "${RAVEN_EGRESS_FRONTDOOR_PROFILE}" \
-  --origin-group-name "${RAVEN_EGRESS_FRONTDOOR_ORIGIN_GROUP}" \
-  --probe-request-type GET \
-  --probe-protocol Https \
-  --probe-interval-in-seconds 60 \
-  --probe-path "/${RAVEN_EGRESS_CONTAINER}/" \
-  --sample-size 4 \
-  --successful-samples-required 3 \
-  --additional-latency-in-milliseconds 50 \
-  --output none 2>/dev/null || echo "    already exists"
+  echo "==> Origin group ${RAVEN_EGRESS_FRONTDOOR_ORIGIN_GROUP}"
+  az afd origin-group create \
+    --resource-group "${RAVEN_RG}" \
+    --profile-name "${RAVEN_EGRESS_FRONTDOOR_PROFILE}" \
+    --origin-group-name "${RAVEN_EGRESS_FRONTDOOR_ORIGIN_GROUP}" \
+    --probe-request-type GET \
+    --probe-protocol Https \
+    --probe-interval-in-seconds 60 \
+    --probe-path "/${RAVEN_EGRESS_CONTAINER}/" \
+    --sample-size 4 \
+    --successful-samples-required 3 \
+    --additional-latency-in-milliseconds 50 \
+    --output none 2>/dev/null || echo "    already exists"
 
-echo "==> Origin (storage account blob endpoint)"
-az afd origin create \
-  --resource-group "${RAVEN_RG}" \
-  --profile-name "${RAVEN_EGRESS_FRONTDOOR_PROFILE}" \
-  --origin-group-name "${RAVEN_EGRESS_FRONTDOOR_ORIGIN_GROUP}" \
-  --origin-name "${RAVEN_EGRESS_STORAGE_ACCOUNT}" \
-  --host-name "${BLOB_HOST}" \
-  --origin-host-header "${BLOB_HOST}" \
-  --http-port 80 \
-  --https-port 443 \
-  --priority 1 \
-  --weight 1000 \
-  --enabled-state Enabled \
-  --output none 2>/dev/null || echo "    already exists"
+  echo "==> Origin (storage account blob endpoint)"
+  az afd origin create \
+    --resource-group "${RAVEN_RG}" \
+    --profile-name "${RAVEN_EGRESS_FRONTDOOR_PROFILE}" \
+    --origin-group-name "${RAVEN_EGRESS_FRONTDOOR_ORIGIN_GROUP}" \
+    --origin-name "${RAVEN_EGRESS_STORAGE_ACCOUNT}" \
+    --host-name "${BLOB_HOST}" \
+    --origin-host-header "${BLOB_HOST}" \
+    --http-port 80 \
+    --https-port 443 \
+    --priority 1 \
+    --weight 1000 \
+    --enabled-state Enabled \
+    --output none 2>/dev/null || echo "    already exists"
 
-echo "==> Route (/${RAVEN_EGRESS_CONTAINER}/* -> origin group, HTTPS only, cache on)"
-az afd route create \
-  --resource-group "${RAVEN_RG}" \
-  --profile-name "${RAVEN_EGRESS_FRONTDOOR_PROFILE}" \
-  --endpoint-name "${RAVEN_EGRESS_FRONTDOOR_ENDPOINT}" \
-  --route-name "live-hls-route" \
-  --origin-group "${RAVEN_EGRESS_FRONTDOOR_ORIGIN_GROUP}" \
-  --supported-protocols Https \
-  --patterns-to-match "/${RAVEN_EGRESS_CONTAINER}/*" \
-  --forwarding-protocol HttpsOnly \
-  --link-to-default-domain Enabled \
-  --https-redirect Enabled \
-  --output none 2>/dev/null || echo "    already exists"
+  echo "==> Route (/${RAVEN_EGRESS_CONTAINER}/* -> origin group, HTTPS only, cache on)"
+  az afd route create \
+    --resource-group "${RAVEN_RG}" \
+    --profile-name "${RAVEN_EGRESS_FRONTDOOR_PROFILE}" \
+    --endpoint-name "${RAVEN_EGRESS_FRONTDOOR_ENDPOINT}" \
+    --route-name "live-hls-route" \
+    --origin-group "${RAVEN_EGRESS_FRONTDOOR_ORIGIN_GROUP}" \
+    --supported-protocols Https \
+    --patterns-to-match "/${RAVEN_EGRESS_CONTAINER}/*" \
+    --forwarding-protocol HttpsOnly \
+    --link-to-default-domain Enabled \
+    --https-redirect Enabled \
+    --output none 2>/dev/null || echo "    already exists"
 
-FD_HOSTNAME="$(az afd endpoint show \
-  --resource-group "${RAVEN_RG}" \
-  --profile-name "${RAVEN_EGRESS_FRONTDOOR_PROFILE}" \
-  --endpoint-name "${RAVEN_EGRESS_FRONTDOOR_ENDPOINT}" \
-  --query hostName -o tsv)"
+  FD_HOSTNAME="$(az afd endpoint show \
+    --resource-group "${RAVEN_RG}" \
+    --profile-name "${RAVEN_EGRESS_FRONTDOOR_PROFILE}" \
+    --endpoint-name "${RAVEN_EGRESS_FRONTDOOR_ENDPOINT}" \
+    --query hostName -o tsv)"
 
-CDN_BASE_URL="https://${FD_HOSTNAME}/${RAVEN_EGRESS_CONTAINER}"
+  CDN_BASE_URL="https://${FD_HOSTNAME}/${RAVEN_EGRESS_CONTAINER}"
+else
+  # No CDN available on this subscription — the storage account's own
+  # public blob endpoint is a real, correct, HTTPS URL and works today;
+  # it just has no edge cache in front of it. See the comment above.
+  CDN_BASE_URL="https://${BLOB_HOST}/${RAVEN_EGRESS_CONTAINER}"
+fi
 
 echo "==> Storing the public CDN base URL in Key Vault"
 az keyvault secret set --vault-name "${RAVEN_KV}" -n egress-cdn-base-url \
