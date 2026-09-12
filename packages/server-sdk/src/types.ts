@@ -79,7 +79,16 @@ export interface IssuedToken {
   createdAt: string;
 }
 
-export type ConnectionState = 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'DISCONNECTED' | 'FAILED';
+/**
+ * The Control API's own connection-record lifecycle (a stored `ConnectionSummary`
+ * row, polled via `connections.list()`/`diagnostics()`), not a live
+ * `RTCPeerConnection` state — hence the distinct name and the uppercase
+ * values, which mirror the database enum 1:1. For the live, in-call state
+ * on a joined room, see `ConnectionState` in `@ravenkash/rtc` (lowercase;
+ * driven by the browser's own `RTCPeerConnection.connectionState`). The two
+ * are unrelated concepts that happen to share a name in casual conversation.
+ */
+export type ConnectionSummaryState = 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'DISCONNECTED' | 'FAILED';
 
 export interface ConnectionSummary {
   id: string;
@@ -89,7 +98,7 @@ export interface ConnectionSummary {
   roomName: string;
   participantId: string | null;
   participantIdentity: string;
-  state: ConnectionState;
+  state: ConnectionSummaryState;
   disconnectReason: string | null;
   region: string | null;
   sdkVersion: string | null;
@@ -180,7 +189,7 @@ export interface ProjectDiagnostics {
 
 export interface ListConnectionsParams {
   roomId?: string;
-  state?: ConnectionState;
+  state?: ConnectionSummaryState;
   limit?: number;
 }
 
@@ -386,8 +395,11 @@ export interface AddHostParams {
 }
 
 export interface IssuedStreamCredential {
+  /** The stream's id (`stream_...`). Forward this straight through to `LiveStream.join()` — no reassembly needed. */
+  streamId: string;
   identity: string;
   role: LiveStreamHostRole | 'VIEWER';
   rtc: IssuedToken;
   chat?: IssuedChatToken;
+  chatRootMessageId: string | null;
 }

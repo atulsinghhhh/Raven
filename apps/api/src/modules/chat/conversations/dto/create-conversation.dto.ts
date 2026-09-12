@@ -50,7 +50,9 @@ export class CreateConversationDto {
   @ApiPropertyOptional({
     enum: Object.values(ConversationType),
     default: ConversationType.CHANNEL,
-    description: 'Ignored when roomId is set — attaching an RTC room always produces a ROOM conversation.',
+    description:
+      'Defaults to ROOM when roomId is set and to CHANNEL otherwise, but an explicit value here always wins — ' +
+      'e.g. a DIRECT conversation can still be attached to a room to give a 1:1 call a chat panel.',
   })
   @IsOptional()
   @IsIn(Object.values(ConversationType))

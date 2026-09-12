@@ -140,6 +140,26 @@ jobs:
         run: go test -race ./...
         working-directory: services/sfu
 
+      # Forced-TURN-relay path (spec §41, turn_relay_test.go): gated behind
+      # the `turnrelay` build tag because it needs a real, reachable coturn
+      # with a known shared secret — which plain `go test ./...` above has
+      # no way to hand it. The infra step already started coturn with
+      # --allow-loopback-peers for exactly this. Without this step the file
+      # is invisible to CI and only runs when someone remembers to run it
+      # by hand — which is how the Brave/relay-only interop gap (external
+      # developer report #7) went unverified in the first place.
+      #
+      # TURN_HOST is overridden to localhost: the container hostname `coturn`
+      # (this test's own fallback default) only resolves on the Docker
+      # network, not from the runner host where this test process runs.
+      - name: Run TURN relay tests (forced-relay path)
+        run: |
+          set -a
+          source ../../.env
+          set +a
+          TURN_HOST=localhost go test -tags turnrelay -v ./internal/room/
+        working-directory: services/sfu
+
       - name: Run e2e tests
         run: pnpm --filter @raven/api run test:e2e
 

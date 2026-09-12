@@ -26,11 +26,13 @@ const raven = new Raven({
 });
 ```
 
-`apiKey` is the only field the SDK *validates*, but on its own it is not
-enough: `baseUrl` defaults to `http://localhost:4100`, so a client
-constructed with just a key talks to a local dev stack and fails against
-any real deployment with `RAVEN_NETWORK_ERROR`. Pass both unless you are
-genuinely running Livqeno on localhost.
+`apiKey` is the only field the SDK *validates* unconditionally, but on its
+own it is not enough: omitted, `baseUrl` defaults to `http://localhost:4100`,
+so a client constructed with just a key talks to a local dev stack and fails
+against any real deployment with `RAVEN_NETWORK_ERROR`. Pass both unless you
+are genuinely running Livqeno on localhost. With `NODE_ENV=production`, the
+SDK now throws `RAVEN_INVALID_CONFIG` immediately if `baseUrl` is missing,
+rather than silently connecting to that local port.
 
 The SDK **never reads `process.env.RAVEN_API_KEY`, `RAVEN_API_URL`, or any
 other environment variable on its own** — you always pass them explicitly.

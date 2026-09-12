@@ -94,6 +94,35 @@ describe('ConversationsService — webhook events', () => {
         'room.created',
         expect.objectContaining({ rtcRoomId: 'room-uuid', rtcRoomName: 'lobby' }),
       );
+      expect(prisma.conversation.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ type: ConversationType.ROOM }) }),
+      );
+    });
+
+    it('honours an explicit DIRECT type even when roomId is set — a 1:1 call can still be a DM (external report #8b)', async () => {
+      prisma.conversation.findUnique
+        .mockResolvedValueOnce(null) // name collision
+        .mockResolvedValueOnce(null); // roomId already linked?
+      prisma.room.findUnique.mockResolvedValue({
+        id: 'room-uuid',
+        projectId: 'p1',
+        environment: Environment.DEVELOPMENT,
+        name: 'dm-alice-bob',
+      });
+      prisma.conversation.create.mockResolvedValue({
+        id: 'internal-uuid',
+        publicId: 'conv_dm',
+        name: 'dm-alice-bob',
+        type: ConversationType.DIRECT,
+        roomId: 'room-uuid',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      });
+
+      await service.create(SCOPE, { name: 'dm-alice-bob', roomId: 'room-uuid', type: ConversationType.DIRECT });
+
+      expect(prisma.conversation.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ type: ConversationType.DIRECT }) }),
+      );
     });
 
     it('never emits before the conversation is durably stored', async () => {
@@ -225,5 +254,40 @@ describe('ConversationsService — webhook events', () => {
       await expect(service.removeMember(SCOPE, 'conv_abc', 'ghost')).rejects.toThrow();
       expect(webhooks.emit).not.toHaveBeenCalled();
     });
+  });
+});
+
+/**
+ * listForProject()'s `userId` filter — without it, every conversation in
+ * the project comes back regardless of who's asking (external developer
+ * report #8a: forced callers to fan out to listMembers() on each one).
+ */
+describe('ConversationsService — listForProject() userId filter', () => {
+  let service: ConversationsService;
+  let prisma: { conversation: { findMany: jest.Mock } };
+
+  const SCOPE = { projectId: 'p1', environment: Environment.DEVELOPMENT };
+
+  beforeEach(() => {
+    prisma = { conversation: { findMany: jest.fn().mockResolvedValue([]) } };
+    service = new ConversationsService(
+      prisma as unknown as PrismaService,
+      { emit: jest.fn() } as unknown as WebhookEventsService,
+      { publishControl: jest.fn() } as unknown as ChatEventsService,
+    );
+  });
+
+  it('omits the members filter entirely when no userId is given', async () => {
+    await service.listForProject(SCOPE);
+
+    const where = prisma.conversation.findMany.mock.calls[0][0].where;
+    expect(where.members).toBeUndefined();
+  });
+
+  it('scopes to conversations the given user actively belongs to', async () => {
+    await service.listForProject(SCOPE, false, 'user_42');
+
+    const where = prisma.conversation.findMany.mock.calls[0][0].where;
+    expect(where.members).toEqual({ some: { userId: 'user_42', status: ChatMemberStatus.ACTIVE } });
   });
 });

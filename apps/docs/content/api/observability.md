@@ -46,7 +46,7 @@ List the API key's project's real RTC connections
 
 | Parameter | In | Type | Required | Notes |
 |---|---|---|---|---|
-| `state` | query | `ConnectionState` | No |  |
+| `state` | query | `ConnectionSummaryState` | No |  |
 | `roomId` | query | `string` | No |  |
 | `limit` | query | `number` | No | 1–200 |
 
@@ -127,7 +127,7 @@ List a project's real RTC connections
 | Parameter | In | Type | Required | Notes |
 |---|---|---|---|---|
 | `projectId` | path | `string` | Yes | |
-| `state` | query | `ConnectionState` | No |  |
+| `state` | query | `ConnectionSummaryState` | No |  |
 | `roomId` | query | `string` | No |  |
 | `limit` | query | `number` | No | 1–200 |
 

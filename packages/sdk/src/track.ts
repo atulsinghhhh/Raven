@@ -11,6 +11,37 @@ export type { TrackStats } from './internal/telemetry/track-stats';
 export type TrackKind = 'camera' | 'microphone' | 'screenShare' | 'unknown';
 
 /**
+ * The wire-level media vocabulary: what `@ravenkash/server`'s `LiveTrackInfo.kind`
+ * uses, because that's all a `MediaStreamTrack` actually is once it's
+ * published — the SFU has no notion of "camera" vs "screen share", only
+ * `audio`/`video`. `TrackKind` is this SDK's richer, capture-source
+ * vocabulary; the two are related but not equivalent (a `camera` track and
+ * a `screenShare` track are both `video`), so there is no single shared
+ * enum — only a one-way mapping.
+ */
+export type MediaKind = 'audio' | 'video' | 'unknown';
+
+/**
+ * Bridges this SDK's `TrackKind` (capture source: camera/microphone/screen
+ * share) to the server SDK's `LiveTrackInfo['kind']` (media type: audio/
+ * video), so code that has to reconcile a local `Track.kind` against a
+ * remote participant's `LiveTrackInfo.kind` doesn't have to hand-roll the
+ * mapping. One-way only: going from `audio`/`video` back to `camera` vs
+ * `screenShare` is not recoverable from the media type alone.
+ */
+export function trackKindToMediaKind(kind: TrackKind): MediaKind {
+  switch (kind) {
+    case 'camera':
+    case 'screenShare':
+      return 'video';
+    case 'microphone':
+      return 'audio';
+    case 'unknown':
+      return 'unknown';
+  }
+}
+
+/**
  * A structural interface, not a concrete class, so a track can be backed by
  * a raw `MediaStreamTrack` (what the native adapter does) or by a test
  * double, with neither having to inherit anything.

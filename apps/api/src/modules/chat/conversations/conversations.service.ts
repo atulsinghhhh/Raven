@@ -81,7 +81,13 @@ export class ConversationsService {
           projectId,
           environment,
           name: dto.name,
-          type: dto.roomId ? ConversationType.ROOM : (dto.type ?? ConversationType.CHANNEL),
+          // An explicit `type` always wins — a DIRECT conversation attached
+          // to a room (e.g. a 1:1 call's chat panel) is a legitimate
+          // combination, not a contradiction. ROOM is only the *default*
+          // when the caller didn't say, since that's what a roomId usually
+          // means (external developer report #8b: this used to silently
+          // override an explicit DIRECT to ROOM).
+          type: dto.type ?? (dto.roomId ? ConversationType.ROOM : ConversationType.CHANNEL),
           roomId: dto.roomId,
           retentionDays: dto.retentionDays,
           metadata: toJsonInput(dto.metadata),
@@ -127,12 +133,17 @@ export class ConversationsService {
   listForProject(
     scope: ProjectScope,
     includeArchived = false,
+    userId?: string,
   ): Promise<Array<Conversation & { room: { name: string } | null }>> {
     return this.prisma.conversation.findMany({
       where: {
         projectId: scope.projectId,
         environment: scope.environment,
         ...(includeArchived ? {} : { status: ConversationStatus.ACTIVE }),
+        // "mine" filter: without it every conversation in the project comes
+        // back, forcing a caller to fan out to listMembers() on each one
+        // just to find out which ones a given user actually belongs to.
+        ...(userId ? { members: { some: { userId, status: ChatMemberStatus.ACTIVE } } } : {}),
       },
       // The room's *name*, never its uuid: that is the identifier the RTC
       // plane exposes, so both planes name one room the same way.

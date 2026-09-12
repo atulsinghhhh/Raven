@@ -58,6 +58,7 @@ export type {
   DeviceKind,
   LocalParticipant,
   LocalTrack,
+  MediaKind,
   Participant,
   RemoteParticipant,
   RemoteTrack,
@@ -68,7 +69,7 @@ export type {
   Track,
   TrackKind,
 } from '@ravenkash/rtc';
-export { isRTCError } from '@ravenkash/rtc';
+export { isRTCError, trackKindToMediaKind } from '@ravenkash/rtc';
 
 // ---------------------------------------------------------------------------
 // Chat (Phase 12), the @ravenkash/chat integration.

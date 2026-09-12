@@ -148,10 +148,18 @@ export class ChatController {
   }
 
   @Get('conversations')
-  @ApiOperation({ summary: "List the project's conversations" })
-  async listConversations(@CurrentChatActor() actor: ChatActor, @Query('includeArchived') includeArchived?: string) {
+  @ApiOperation({
+    summary: "List the project's conversations",
+    description:
+      'Pass `userId` to list only the conversations that user is an active member of, instead of every conversation in the project.',
+  })
+  async listConversations(
+    @CurrentChatActor() actor: ChatActor,
+    @Query('includeArchived') includeArchived?: string,
+    @Query('userId') userId?: string,
+  ) {
     assertServerActor(actor, 'Listing every conversation in a project');
-    const conversations = await this.conversations.listForProject(actor, includeArchived === 'true');
+    const conversations = await this.conversations.listForProject(actor, includeArchived === 'true', userId);
     return conversations.map((conversation) => toConversationView(conversation));
   }
 

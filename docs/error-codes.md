@@ -1,15 +1,21 @@
 # Error codes and classification
 
-Livqeno has three error vocabularies, and they are separate on purpose:
+Livqeno has five error vocabularies, and they are separate on purpose:
 
 | Vocabulary | Where you see it | Why it is its own thing |
 |---|---|---|
 | **`RAVEN_*` codes** | The `code` field of any HTTP error body | One namespace for the whole REST API, so a single `switch` handles every endpoint |
 | **RTC categories** | Dashboard, `raven errors`, telemetry | A *classification* of a failure that already happened, derived server-side from what the SDK reported — not a response code |
 | **Chat frame codes** | The chat WebSocket `error` frame | A published wire protocol with its own lifetime; see [chat/websocket.md](chat/websocket.md) |
+| **Signaling error codes** | The RTC signaling WebSocket's `error` frame, before an RTC category is even derivable | The raw wire-protocol vocabulary the RTC signaling connection itself speaks — one level below the `RTCErrorCode`/category pair above, which classifies what this produced |
+| **`EffectsErrorCode`** | `@ravenkash/effects`'s thrown/emitted `EffectsError` | Camera effects are a local, no-network pipeline (blur, filters); its failures (unsupported input, bad config, processing failure) have nothing to do with a request or a connection |
 
-A chat failure and a media failure have almost nothing in common, and merging
-them would produce a list that describes neither well.
+A chat failure, a media failure, a signaling handshake failure, and a local
+video-effects failure have almost nothing in common, and merging them would
+produce a list that describes none of them well. See the
+[Signaling error codes](#signaling-error-codes) and
+[Effects error codes](#effects-error-codes) sections below for the two that
+don't get their own top-level doc.
 
 ---
 
@@ -216,6 +222,68 @@ a claim of certainty a Livqeno server can't actually back up. Examples:
 - Dashboard → a project's **Errors** tab and error detail page
 - `GET /v1/projects/:projectId/errors` / `/errors/:errorId` (JWT-guarded)
 
+---
+
+## Signaling error codes
+
+Sent on the raw RTC signaling WebSocket's `error` frame
+(`apps/api/src/modules/signaling/signaling.constants.ts`'s `SignalingErrorCode`),
+before there's even a peer connection to classify. This is one layer below
+the RTC categories above: a signaling error is what the wire actually said;
+an RTC category (e.g. `SIGNALING_ERROR`) is Livqeno's classification of
+what that produced for the SDK caller. The two share a name in one case
+(`SIGNALING_ERROR` the category vs. `NEGOTIATION_FAILED` etc. the codes
+that land in it) but are not the same list.
+
+| Code | Meaning |
+|---|---|
+| `INVALID_TOKEN` | The RTC token was malformed or failed verification. |
+| `TOKEN_EXPIRED` | The RTC token expired before or during the handshake. |
+| `TOKEN_REVOKED` | The token was explicitly revoked. Terminal — mint a new one, don't retry. |
+| `UNAUTHORIZED` | No usable credential presented. |
+| `ROOM_NOT_FOUND` | No such room in this project/environment. |
+| `ROOM_FULL` | The room is at its participant ceiling. |
+| `ROOM_CLOSED` | The room existed but was closed while this participant was in it. Terminal. |
+| `INVALID_MESSAGE` | The frame didn't parse or was missing a required field. |
+| `INVALID_MESSAGE_TYPE` | An unrecognized signaling frame type. |
+| `PARTICIPANT_NOT_FOUND` | Referenced a participant no longer in the room. |
+| `NOT_IN_ROOM` | This connection isn't (or is no longer) subscribed to the room it referenced. |
+| `PERMISSION_DENIED` | Authenticated, but the token's permissions don't allow this action. |
+| `ORIGIN_NOT_ALLOWED` | The page's `Origin` isn't on this project's allow-list. Terminal for this connection. |
+| `RATE_LIMITED` | Too many signaling messages in the current window. |
+| `USAGE_LIMIT_EXCEEDED` | The project has spent its included RTC minutes. Terminal for this join. |
+| `NO_RTC_CAPACITY` | No healthy RTC server had room. An operator-side problem, not the caller's. |
+| `RTC_SERVER_UNREACHABLE` | The assigned RTC server couldn't be reached. Retryable. |
+| `NEGOTIATION_FAILED` | SDP/ICE negotiation failed in a way that isn't retryable without rejoining. |
+| `NEGOTIATION_GLARE` | Both sides tried to offer at once. Retryable — answer the incoming offer, then retry. |
+
+### Where to see this
+
+- The signaling WebSocket's `error` frame, `data.code`
+- Surfaced to a client via the RTC category mapping above when it becomes an SDK-visible error
+
+---
+
+## Effects error codes
+
+`@ravenkash/effects`' camera-effects pipeline (blur, filters, presets) never
+makes a network call, so its failures are a local, synchronous vocabulary —
+`EffectsErrorCode` in `packages/effects/src/errors.ts` — unrelated to any
+`RAVEN_*` HTTP code, RTC category, or signaling code above.
+
+| Code | Meaning |
+|---|---|
+| `RAVEN_EFFECT_UNSUPPORTED` | This device/browser can't run the pipeline (no WebGL2, Canvas2D, or `captureStream`). `attachEffects()` falls back to the original track rather than throwing this to the caller — see `docs/sdk/react.md`. |
+| `RAVEN_EFFECT_INVALID_CONFIG` | A filter or preset config failed validation before the pipeline ran. |
+| `RAVEN_EFFECT_PROCESSING_FAILED` | The pipeline started but failed mid-frame. |
+| `RAVEN_EFFECT_PERMISSION_DENIED` | The operation is blocked by `EFFECT_SECURITY_LIMITS`. |
+| `RAVEN_EFFECT_RESOURCE_LIMIT` | A configured resource ceiling (canvas size, concurrent pipelines) was exceeded. |
+
+### Where to see this
+
+- `EffectsPipeline`'s `error` event
+- A thrown `EffectsError` from `attachToTrack()`/`attachEffects()`
+- `isEffectsError()` to narrow a caught value
 
 ---
 

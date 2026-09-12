@@ -105,10 +105,12 @@ export interface LiveStreamView {
 }
 
 export interface IssuedStreamCredential {
+  streamId: string;
   identity: string;
   role: LiveStreamHostRole | 'VIEWER';
   rtc: IssuedRtcToken;
   chat?: IssuedChatToken;
+  chatRootMessageId: string | null;
 }
 
 /**
@@ -659,7 +661,13 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
       at: host.invitedAt.toISOString(),
     });
 
-    return { identity: dto.identity, role: host.role, ...credential };
+    return {
+      streamId: stream.publicId,
+      identity: dto.identity,
+      role: host.role,
+      chatRootMessageId: stream.chatRootMessageId,
+      ...credential,
+    };
   }
 
   async removeHost(scope: ProjectScope, streamId: string, identity: string): Promise<void> {
@@ -746,7 +754,13 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
       at: new Date().toISOString(),
     });
 
-    return { identity, role: 'VIEWER', ...credential };
+    return {
+      streamId: stream.publicId,
+      identity,
+      role: 'VIEWER',
+      chatRootMessageId: stream.chatRootMessageId,
+      ...credential,
+    };
   }
 
   /**

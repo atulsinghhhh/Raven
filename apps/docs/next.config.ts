@@ -37,6 +37,20 @@ const nextConfig: NextConfig = {
       // /api-reference was one hand-maintained page; it is now the generated
       // /api/* set, with /api as the entry point.
       { source: '/api-reference', destination: '/api', permanent: true },
+
+      // Guessable top-level paths a developer reasonably tries and gets a
+      // 404 from, reported by an external integration (bug #9): none of
+      // these were ever real slugs, but every one has an obvious real
+      // destination one level away.
+      { source: '/errors', destination: '/reference/errors', permanent: true },
+      { source: '/limits', destination: '/reference/limits', permanent: true },
+      { source: '/sdks', destination: '/sdk', permanent: true },
+      { source: '/sdks/overview', destination: '/sdk', permanent: true },
+      { source: '/sdks/web', destination: '/sdk/web', permanent: true },
+      { source: '/rtc/server-sdk', destination: '/sdk/node', permanent: true },
+      // The "Backend" nav section has no index page of its own; /authentication
+      // is its first real entry.
+      { source: '/backend', destination: '/authentication', permanent: true },
     ];
   },
 };

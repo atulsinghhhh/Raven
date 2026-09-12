@@ -53,8 +53,16 @@ export class ChatResource {
     });
   }
 
-  listConversations(): Promise<ChatConversation[]> {
-    return this.http.request<ChatConversation[]>('/v1/chat/conversations');
+  /**
+   * Without `userId`, returns every conversation in the project — you're
+   * expected to want that for admin/moderation tooling. Pass `userId` to
+   * get only the conversations that user actively belongs to instead of
+   * fanning out to `listMembers()` on each one yourself.
+   */
+  listConversations(params?: { userId?: string; includeArchived?: boolean }): Promise<ChatConversation[]> {
+    return this.http.request<ChatConversation[]>('/v1/chat/conversations', {
+      query: { userId: params?.userId, includeArchived: params?.includeArchived },
+    });
   }
 
   /** `room` takes a `conv_...` id, the conversation name, or an attached RTC room id. */

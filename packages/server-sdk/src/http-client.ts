@@ -10,7 +10,11 @@ const BASE_RETRY_DELAY_MS = 300;
 export interface RavenClientOptions {
   /** Required. A project API key (`rvk_....secret`). Never hardcode it; pass it from an environment variable your own code reads explicitly, e.g. `apiKey: process.env.RAVEN_API_KEY`. */
   apiKey: string;
-  /** Defaults to http://localhost:4100 (local dev). Override for any real deployment. */
+  /**
+   * Defaults to http://localhost:4100 (local dev). Override for any real
+   * deployment. Required — throws `RAVEN_INVALID_CONFIG` instead of
+   * silently defaulting — when `NODE_ENV=production` and this is omitted.
+   */
   baseUrl?: string;
   /** Request timeout in milliseconds, default 10000. Nothing here hangs forever. */
   timeout?: number;
@@ -52,6 +56,23 @@ export class RavenHttpClient {
         {
           code: 'RAVEN_INVALID_CONFIG',
         },
+      );
+    }
+
+    // An omitted baseUrl silently falls back to a local dev stack
+    // (DEFAULT_BASE_URL below) that plainly does not exist in production —
+    // a real client constructed with just an apiKey used to get a silent
+    // ECONNREFUSED against localhost:4100 instead of a config error that
+    // actually explains itself (external developer report #5). NODE_ENV is
+    // the same production signal apps/api's own configuration.ts reads;
+    // this only fires when it's unambiguous, never for a request with
+    // NODE_ENV unset, e.g. most local dev and test setups.
+    if (!options.baseUrl && process.env.NODE_ENV === 'production') {
+      throw new RavenError(
+        'baseUrl is required outside local development. Pass your Livqeno API host, e.g. ' +
+          "baseUrl: 'https://api.ravenstack.online' (or your self-hosted deployment's URL) — " +
+          `omitting it defaults to ${DEFAULT_BASE_URL}, which does not exist in production.`,
+        { code: 'RAVEN_INVALID_CONFIG' },
       );
     }
 

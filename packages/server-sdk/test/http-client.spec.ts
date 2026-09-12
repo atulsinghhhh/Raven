@@ -29,6 +29,31 @@ describe('RavenHttpClient', () => {
     expect(() => new RavenHttpClient({ apiKey: '' })).toThrow(/apiKey is required/);
   });
 
+  describe('baseUrl in production (external developer report #5)', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalNodeEnv;
+    });
+
+    it('throws instead of silently defaulting to localhost when NODE_ENV=production and baseUrl is omitted', () => {
+      process.env.NODE_ENV = 'production';
+      expect(() => new RavenHttpClient({ apiKey: 'k' })).toThrow(RavenError);
+      expect(() => new RavenHttpClient({ apiKey: 'k' })).toThrow(/baseUrl is required outside local development/);
+    });
+
+    it('does not throw in production when baseUrl is given explicitly', () => {
+      process.env.NODE_ENV = 'production';
+      expect(() => new RavenHttpClient({ apiKey: 'k', baseUrl: 'https://api.ravenstack.online' })).not.toThrow();
+    });
+
+    it('still defaults to localhost outside production, e.g. NODE_ENV unset or "development"', () => {
+      delete process.env.NODE_ENV;
+      const client = new RavenHttpClient({ apiKey: 'k' });
+      expect(client.toString()).toBe('RavenHttpClient(http://localhost:4100)');
+    });
+  });
+
   it('sends the Authorization header and a User-Agent identifying the SDK', async () => {
     const fetchMock = mockFetchSequence({ status: 200, body: [] });
     const client = new RavenHttpClient({ apiKey: 'rvk_abc.secret' });
