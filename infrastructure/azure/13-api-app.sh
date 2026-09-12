@@ -135,7 +135,9 @@ properties:
       - name: turn-secret
         value: $(kv turn-secret)
       - name: metrics-scrape-secret
-        value: $(kv metrics-scrape-secret)${OAUTH_SECRETS_YAML}
+        value: $(kv metrics-scrape-secret)
+      - name: egress-worker-shared-secret
+        value: $(kv egress-worker-shared-secret)${OAUTH_SECRETS_YAML}
   template:
     containers:
       - image: ${LOGIN_SERVER}/raven-api:${TAG}
@@ -161,6 +163,19 @@ properties:
             value: wss://${FQDN}/v1/rtc
           - name: CORS_ORIGIN
             value: ${CORS_ORIGINS}${APP_URL_ENV_YAML}${OAUTH_ENV_YAML}
+
+          # --- Live Streaming broadcast redesign: the standalone
+          # egress-worker Container App (17-egress-worker-app.sh), reached
+          # over this Container Apps Environment's internal DNS — never
+          # public. Both optional at the env-validation level, but every
+          # BROADCAST-mode stream's start()/end() silently no-ops into
+          # live_stream.egress_failed without them (see
+          # EgressControlService). Run 17-egress-worker-app.sh before this
+          # script if deploying both for the first time.
+          - name: EGRESS_WORKER_BASE_URL
+            value: http://${RAVEN_EGRESS_WORKER_APP}.internal.${DOMAIN}
+          - name: EGRESS_WORKER_SHARED_SECRET
+            secretRef: egress-worker-shared-secret
 
           # --- Supabase. DIRECT_URL is deliberately absent: the running app
           # never reads it, and only the migration job should hold a

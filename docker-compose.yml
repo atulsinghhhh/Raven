@@ -11,6 +11,8 @@ volumes:
     name: raven-redis-data
   raven-minio-data:
     name: raven-minio-data
+  raven-azurite-data:
+    name: raven-azurite-data
 
 services:
   redis:
@@ -196,6 +198,36 @@ services:
     networks:
       - raven-network
 
+  # azurite — Azure Blob Storage emulator, local stand-in for the egress
+  # worker's real Azure Blob Storage + Front Door/CDN production target
+  # (Live Streaming broadcast redesign, backend-core pass). Blob service
+  # only — no queue/table — since HLS segments/manifests are all this
+  # writes. Swap AZURE_STORAGE_CONNECTION_STRING for a real storage
+  # account's in production; the egress worker's driver speaks the real
+  # Azure Blob SDK either way, unlike attachments' S3-only presigner.
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.34.0
+    container_name: raven-azurite
+    restart: unless-stopped
+    # --skipApiVersionCheck: this Azurite release predates the API version
+    # the current @azure/storage-blob SDK sends by default. Real Azure Blob
+    # Storage always supports whatever version a current SDK sends —
+    # this flag only papers over the *emulator* lagging behind, and is
+    # never relevant against a real Azure Storage account in production.
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --silent --skipApiVersionCheck
+    ports:
+      - "${AZURITE_BLOB_PORT:-10000}:10000"
+    volumes:
+      - raven-azurite-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 10000 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - raven-network
+
   # Applies prisma/migrations/ to Supabase once, then exits — the local
   # stand-in for production's one-shot migration job. `api` waits on this
   # completing, so `pnpm infra:up` still needs no manual migrate step.
@@ -305,6 +337,13 @@ services:
       STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:-raven-minio-access}
       STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY}
       STORAGE_FORCE_PATH_STYLE: "true"
+      # Live Streaming broadcast redesign: how the API reaches the standalone
+      # egress-worker service. Container-to-container address — the worker
+      # is on this same network. Both optional at the env-validation level
+      # (see env.validation.ts), but required for any BROADCAST-mode
+      # stream's start()/end() to actually do anything.
+      EGRESS_WORKER_BASE_URL: http://egress-worker:${EGRESS_WORKER_PORT:-8600}
+      EGRESS_WORKER_SHARED_SECRET: ${EGRESS_WORKER_SHARED_SECRET:?EGRESS_WORKER_SHARED_SECRET is required}
     ports:
       - "${API_PORT:-4100}:${API_PORT:-4100}"
     healthcheck:
@@ -313,5 +352,48 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    networks:
+      - raven-network
+
+  # egress-worker — Live Streaming broadcast redesign, backend core. Joins
+  # a BROADCAST-mode stream headlessly (a real, internal, publish:false
+  # viewer over the same @ravenkash/client join path any browser viewer
+  # uses — see services/egress-worker/src/harness), transcodes the host's
+  # real media to HLS via ffmpeg, and uploads segments/manifest to Azure
+  # Blob Storage (Azurite locally). Zero changes to the `sfu` service —
+  # this is one more ordinary viewer to it.
+  egress-worker:
+    build:
+      context: .
+      dockerfile: services/egress-worker/Dockerfile
+    image: raven/egress-worker:dev
+    container_name: raven-egress-worker
+    restart: unless-stopped
+    depends_on:
+      azurite:
+        condition: service_healthy
+      api:
+        condition: service_started
+    environment:
+      PORT: ${EGRESS_WORKER_PORT:-8600}
+      EGRESS_WORKER_SHARED_SECRET: ${EGRESS_WORKER_SHARED_SECRET:?EGRESS_WORKER_SHARED_SECRET is required}
+      # Container-to-container — the api service is on this same network.
+      API_HEARTBEAT_URL: http://api:${API_PORT:-4100}/internal/egress/heartbeat
+      # Azurite's well-known emulator account/key (public, documented by
+      # Microsoft, not a secret) — override both for a real Azure Storage
+      # account in any non-local environment.
+      AZURE_STORAGE_CONNECTION_STRING: ${EGRESS_AZURE_STORAGE_CONNECTION_STRING:-DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;}
+      AZURE_STORAGE_CONTAINER: ${EGRESS_AZURE_STORAGE_CONTAINER:-live-hls}
+      # Host-facing on purpose: this becomes the public playbackUrl handed
+      # back through GET /v1/live-streams/:id/playback, so it must be
+      # reachable from wherever a viewer's HLS player actually runs — never
+      # the container-internal "azurite" address. In production this is
+      # the Azure Front Door/CDN endpoint in front of the real container,
+      # not the storage account's own URL.
+      CDN_BASE_URL: ${EGRESS_CDN_BASE_URL:-http://localhost:${AZURITE_BLOB_PORT:-10000}/devstoreaccount1/live-hls}
+      HLS_SEGMENT_SECONDS: ${HLS_SEGMENT_SECONDS:-6}
+      HLS_LIST_SIZE: ${HLS_LIST_SIZE:-10}
+    ports:
+      - "${EGRESS_WORKER_PORT:-8600}:8600"
     networks:
       - raven-network

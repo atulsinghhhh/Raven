@@ -55,6 +55,10 @@ export const RavenErrorCode = {
   CONVERSATION_ARCHIVED: 'RAVEN_CONVERSATION_ARCHIVED',
   /** A lifecycle operation that isn't valid from the stream's current status: e.g. starting an already-LIVE stream, or anything on an ENDED one. */
   STREAM_INVALID_STATE: 'RAVEN_STREAM_INVALID_STATE',
+  /** `createViewerToken` called on a BROADCAST-mode stream. Distinct from
+   *  STREAM_INVALID_STATE: this isn't about lifecycle, it's "this stream's
+   *  audience path is HLS, not RTC — call GET .../playback instead." */
+  STREAM_DELIVERY_MODE_MISMATCH: 'RAVEN_STREAM_DELIVERY_MODE_MISMATCH',
 
   // --- Request problems ---------------------------------------------------
   VALIDATION_FAILED: 'RAVEN_VALIDATION_FAILED',
@@ -157,6 +161,7 @@ export const LEGACY_ERROR_CODE: Record<RavenErrorCode, string> = {
   [RavenErrorCode.MESSAGE_ALREADY_EXISTS]: 'CONFLICT',
   [RavenErrorCode.CONVERSATION_ARCHIVED]: 'CONVERSATION_ARCHIVED',
   [RavenErrorCode.STREAM_INVALID_STATE]: 'CONFLICT',
+  [RavenErrorCode.STREAM_DELIVERY_MODE_MISMATCH]: 'CONFLICT',
   [RavenErrorCode.VALIDATION_FAILED]: 'VALIDATION_FAILED',
   [RavenErrorCode.RATE_LIMITED]: 'RATE_LIMITED',
   [RavenErrorCode.PAYLOAD_TOO_LARGE]: 'VALIDATION_FAILED',

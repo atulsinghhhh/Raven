@@ -339,6 +339,22 @@ export default () => ({
     maxAttachmentBytes: parseInt(process.env.STORAGE_MAX_ATTACHMENT_BYTES ?? String(25 * 1024 * 1024), 10),
   },
 
+  // Live Streaming broadcast redesign: the API's client for the standalone
+  // egress-worker service. Unset means BROADCAST-mode start()/end() calls
+  // log a failure and move on rather than throw — see EgressControlService.
+  // Deliberately separate from `storage` above: that block is chat's S3-
+  // compatible attachment store; the egress worker owns its own Azure Blob
+  // storage/CDN config directly (services/egress-worker's own env), the API
+  // never touches it.
+  egress: {
+    workerBaseUrl: process.env.EGRESS_WORKER_BASE_URL,
+    workerSharedSecret: process.env.EGRESS_WORKER_SHARED_SECRET,
+    // How stale a heartbeat's lastSegmentAt can get before the API marks
+    // the egress FAILED and fires live_stream.egress_failed. ~3x the
+    // worker's own 5s heartbeat/segment cadence.
+    staleSegmentThresholdMs: parseInt(process.env.EGRESS_STALE_SEGMENT_THRESHOLD_MS ?? '20000', 10),
+  },
+
   email: {
     // Off by default so a fresh clone boots, registers a user and runs the
     // suite with no Resend account at all.

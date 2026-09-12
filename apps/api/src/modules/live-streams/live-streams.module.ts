@@ -7,6 +7,9 @@ import { RtcTokensModule } from '../rtc-tokens/rtc-tokens.module';
 import { UsageMeteringModule } from '../usage/usage-metering.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
 import { DashboardLiveStreamsController } from './dashboard-live-streams.controller';
+import { EgressControlService } from './egress/egress-control.service';
+import { EgressInternalController } from './egress/egress-internal.controller';
+import { EgressWorkerGuard } from './egress/egress-worker.guard';
 import { LiveStreamsController } from './live-streams.controller';
 import { LiveStreamsService } from './live-streams.service';
 
@@ -28,8 +31,8 @@ import { LiveStreamsService } from './live-streams.service';
     WebhooksModule,
     UsageMeteringModule,
   ],
-  controllers: [LiveStreamsController, DashboardLiveStreamsController],
-  providers: [LiveStreamsService],
+  controllers: [LiveStreamsController, DashboardLiveStreamsController, EgressInternalController],
+  providers: [LiveStreamsService, EgressControlService, EgressWorkerGuard],
   exports: [LiveStreamsService],
 })
 export class LiveStreamsModule {}

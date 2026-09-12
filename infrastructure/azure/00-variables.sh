@@ -123,3 +123,17 @@ export RAVEN_API_APP="${RAVEN_API_APP:-raven-api}"
 # 4000); the repo standardises on 4100 and Container Apps targetPort matches.
 export RAVEN_API_PORT="${RAVEN_API_PORT:-4100}"
 export RAVEN_MIGRATE_JOB="${RAVEN_MIGRATE_JOB:-raven-migrate}"
+
+# --- Live Streaming broadcast redesign: egress worker + HLS storage/CDN ---
+# Storage account names are globally unique, lowercase alphanumeric only,
+# 3-24 chars — hence no "raven-" hyphen.
+export RAVEN_EGRESS_STORAGE_ACCOUNT="${RAVEN_EGRESS_STORAGE_ACCOUNT:-ravenlivehls}"
+export RAVEN_EGRESS_CONTAINER="${RAVEN_EGRESS_CONTAINER:-live-hls}"
+# Azure Front Door (Standard) profile/endpoint in front of that container —
+# never expose the storage account's own URL as the public playback URL.
+export RAVEN_EGRESS_FRONTDOOR_PROFILE="${RAVEN_EGRESS_FRONTDOOR_PROFILE:-raven-live-fd}"
+export RAVEN_EGRESS_FRONTDOOR_ENDPOINT="${RAVEN_EGRESS_FRONTDOOR_ENDPOINT:-raven-live}"
+export RAVEN_EGRESS_FRONTDOOR_ORIGIN_GROUP="${RAVEN_EGRESS_FRONTDOOR_ORIGIN_GROUP:-live-hls-origin}"
+export RAVEN_EGRESS_WORKER_APP="${RAVEN_EGRESS_WORKER_APP:-raven-egress-worker}"
+# services/egress-worker/src/config.ts reads PORT (default 8600).
+export RAVEN_EGRESS_WORKER_PORT="${RAVEN_EGRESS_WORKER_PORT:-8600}"

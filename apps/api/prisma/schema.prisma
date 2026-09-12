@@ -664,6 +664,20 @@ enum LiveStreamHostRole {
   CO_HOST
 }
 
+enum LiveStreamDeliveryMode {
+  RTC_ONLY
+  BROADCAST
+}
+
+enum LiveStreamEgressStatus {
+  NOT_STARTED
+  STARTING
+  RUNNING
+  STOPPING
+  STOPPED
+  FAILED
+}
+
 model LiveStream {
   id          String      @id @default(uuid())
   publicId    String      @unique
@@ -691,13 +705,19 @@ model LiveStream {
   status          LiveStreamStatus @default(CREATED)
   peakViewerCount Int              @default(0)
 
+  // Broadcast redesign: RTC_ONLY (default) is today's viewer-as-RTC-participant
+  // behavior, unchanged for every existing/not-yet-opted-in stream. BROADCAST
+  // means the audience never gets an RTC viewer token — see LiveStreamEgress.
+  deliveryMode LiveStreamDeliveryMode @default(RTC_ONLY)
+
   scheduledAt DateTime?
   startedAt   DateTime?
   endedAt     DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  hosts LiveStreamHost[]
+  hosts  LiveStreamHost[]
+  egress LiveStreamEgress?
 
   @@unique([projectId, environment, roomId])
   @@index([projectId, environment, status])
@@ -719,6 +739,34 @@ model LiveStreamHost {
   @@unique([streamId, identity])
   @@index([streamId])
   @@map("live_stream_hosts")
+}
+
+// One egress-worker run per BROADCAST-mode stream: tracks the HLS pipeline's
+// own lifecycle (distinct from LiveStream.status, which only ever reflects
+// the host's RTC session). Deliberately a child table rather than JSON on
+// LiveStream — playbackUrl/lastSegmentAt/status are independently and
+// frequently updated by worker heartbeats, unlike LiveStream.metadata, which
+// stays purely developer-owned.
+model LiveStreamEgress {
+  id       String     @id @default(uuid())
+  streamId String     @unique
+  stream   LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+
+  status LiveStreamEgressStatus @default(NOT_STARTED)
+
+  workerId      String?
+  playbackUrl   String?
+  hlsReadyAt    DateTime?
+  lastSegmentAt DateTime?
+  lastError     String?
+
+  startedAt DateTime?
+  stoppedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([status])
+  @@map("live_stream_egress")
 }
 
 

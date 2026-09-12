@@ -273,6 +273,25 @@ class EnvironmentVariables {
   @IsString()
   STORAGE_ENDPOINT?: string;
 
+  // Live Streaming broadcast redesign: the API's client for the standalone
+  // egress-worker service (services/egress-worker). Both optional so an
+  // existing .env still boots — every BROADCAST-mode call site degrades to
+  // a logged failure, never a thrown error, when these are unset (see
+  // EgressControlService). Only load-bearing for a project that opts a
+  // stream into deliveryMode: BROADCAST.
+  @IsOptional()
+  @IsString()
+  EGRESS_WORKER_BASE_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  EGRESS_WORKER_SHARED_SECRET?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1000)
+  EGRESS_STALE_SEGMENT_THRESHOLD_MS?: number;
+
   // Transactional email (Resend). Every one of these is optional, so an
   // .env written before email existed still boots. EMAIL_ENABLED defaults to
   // false and configuration.ts supplies the rest.

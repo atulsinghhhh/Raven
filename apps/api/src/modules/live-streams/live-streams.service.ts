@@ -4,6 +4,8 @@ import {
   ChatMemberRole,
   ConversationStatus,
   LiveStream,
+  LiveStreamDeliveryMode,
+  LiveStreamEgressStatus,
   LiveStreamHost,
   LiveStreamHostRole,
   LiveStreamStatus,
@@ -33,16 +35,47 @@ import { AddHostDto } from './dto/add-host.dto';
 import { CreateLiveStreamDto } from './dto/create-live-stream.dto';
 import { UpdateLiveStreamDto } from './dto/update-live-stream.dto';
 import { toJsonInput } from './json.util';
+import { EgressControlService, isEgressIdentity } from './egress/egress-control.service';
 
 /** Prisma's unique-constraint code. Same helper, same reasoning, as ConversationsService. */
 function isUniqueViolation(err: unknown): boolean {
   return (err as { code?: string })?.code === 'P2002';
 }
 
+function mapEgressStatus(status: LiveStreamEgressStatus): LiveStreamDeliveryStatus {
+  switch (status) {
+    case LiveStreamEgressStatus.NOT_STARTED:
+      return 'NOT_STARTED';
+    case LiveStreamEgressStatus.STARTING:
+      return 'STARTING';
+    case LiveStreamEgressStatus.RUNNING:
+      return 'READY';
+    case LiveStreamEgressStatus.STOPPING:
+    case LiveStreamEgressStatus.STOPPED:
+      return 'ENDED';
+    case LiveStreamEgressStatus.FAILED:
+      return 'FAILED';
+  }
+}
+
 export interface LiveStreamHostView {
   identity: string;
   role: LiveStreamHostRole;
   invitedAt: string;
+}
+
+/**
+ * What "NOT_APPLICABLE" the delivery status can be follows on-the-wire.
+ * Never leaks storage credentials, container names, worker URLs or ffmpeg
+ * details — `playbackUrl` alone is the one thing that crosses the trust
+ * boundary, and only once egress reports a genuinely fetchable manifest.
+ */
+export type LiveStreamDeliveryStatus = 'NOT_APPLICABLE' | 'NOT_STARTED' | 'STARTING' | 'READY' | 'FAILED' | 'ENDED';
+
+export interface LiveStreamDeliveryView {
+  mode: LiveStreamDeliveryMode;
+  status: LiveStreamDeliveryStatus;
+  playbackUrl: string | null;
 }
 
 export interface LiveStreamView {
@@ -60,6 +93,7 @@ export interface LiveStreamView {
   /** Live participants of the underlying room who aren't registered hosts. `null` means the SFU was unreachable, which isn't the same as a genuine 0. */
   viewerCount: number | null;
   peakViewerCount: number;
+  delivery: LiveStreamDeliveryView;
   conversationId: string | null;
   /** The chat message viewer reactions hang off. See docs/live-streaming/overview.md#reactions. */
   chatRootMessageId: string | null;
@@ -150,6 +184,7 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
     private readonly webhooks: WebhookEventsService,
     private readonly usageAllowances: UsageAllowanceService,
     private readonly configService: ConfigService,
+    private readonly egressControl: EgressControlService,
   ) {}
 
   onModuleInit(): void {
@@ -275,6 +310,7 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
           visibility: dto.visibility,
           metadata: toJsonInput(dto.metadata),
           scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : undefined,
+          deliveryMode: dto.deliveryMode,
           hosts: { create: { identity: dto.hostIdentity, role: LiveStreamHostRole.HOST } },
         },
         include: { hosts: true },
@@ -483,6 +519,16 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
       startedAt: startedAt.toISOString(),
     });
 
+    // Fire-and-forget, logged-not-thrown: the host is already LIVE over RTC
+    // independent of egress, and a failed/slow egress start must never fail
+    // this call — see EgressControlService.start's own doc comment and
+    // live_stream.egress_failed for how a caller learns of it instead.
+    if (updated.deliveryMode === LiveStreamDeliveryMode.BROADCAST) {
+      void this.egressControl
+        .start(scope, updated)
+        .catch((err) => this.logger.error(`egress start failed for stream ${updated.publicId}: ${(err as Error).message}`));
+    }
+
     return this.toView(updated, await this.activeHosts(updated.id), true);
   }
 
@@ -530,6 +576,15 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
 
     const updated = await this.resolveRaw(scope, streamId);
     await this.roomsService.close(stream.roomId, scope);
+
+    // Same best-effort posture as roomsService.close() itself — "a degraded
+    // stop, not a failed one". The host's RTC session is already closed by
+    // now, so an unreachable egress worker cannot block this call.
+    if (updated.deliveryMode === LiveStreamDeliveryMode.BROADCAST) {
+      await this.egressControl
+        .stop(scope, updated)
+        .catch((err) => this.logger.error(`egress stop failed for stream ${updated.publicId}: ${(err as Error).message}`));
+    }
 
     // durationMs is the one number an operator asks for first when a
     // customer reports a stream "cutting out": a stream that ends seconds
@@ -652,6 +707,19 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
   async createViewerToken(scope: ProjectScope, streamId: string, identity: string): Promise<IssuedStreamCredential> {
     const stream = await this.resolveRaw(scope, streamId);
     this.assertNotEnded(stream, scope, 'createViewerToken');
+
+    // BROADCAST-mode streams never hand out an RTC viewer credential — the
+    // whole point of the broadcast redesign is that the audience never
+    // joins the RTC room. Minting one anyway would silently defeat it, so
+    // this is refused rather than degraded into the old behavior.
+    if (stream.deliveryMode === LiveStreamDeliveryMode.BROADCAST) {
+      throw new ConflictError(
+        'This stream is BROADCAST-mode — the audience never joins the RTC room. ' +
+          'Call GET /v1/live-streams/:streamId/playback for the HLS playback URL instead.',
+        RavenErrorCode.STREAM_DELIVERY_MODE_MISMATCH,
+      );
+    }
+
     await this.assertWithinViewerCap(stream);
 
     const credential = await this.mintCredential(scope, stream, identity, {
@@ -693,6 +761,20 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
    * Presence-style best-effort detection is real future work, and nothing
    * here pretends otherwise.
    */
+  /**
+   * The one thing a developer's backend needs for a BROADCAST-mode
+   * stream's audience: whether playback is ready, and if so, the public
+   * CDN URL. Never storage credentials, container names, worker URLs, or
+   * ffmpeg details — those never enter `LiveStreamDeliveryView` at all.
+   *
+   * Works for RTC_ONLY streams too (returns `NOT_APPLICABLE`), so a
+   * caller doesn't need to branch on deliveryMode before calling this.
+   */
+  async getPlaybackInfo(scope: ProjectScope, streamId: string): Promise<LiveStreamDeliveryView> {
+    const stream = await this.resolveRaw(scope, streamId);
+    return this.deliveryView(stream);
+  }
+
   async leave(scope: ProjectScope, streamId: string, identity: string): Promise<void> {
     const stream = await this.resolveRaw(scope, streamId);
     void this.webhooks.emit(scope, 'live_stream.viewer_left', {
@@ -878,7 +960,7 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
 
     const hosts = await this.activeHosts(stream.id);
     const hostIdentities = new Set(hosts.map((h) => h.identity));
-    const viewerCount = liveParticipants.filter((p) => !hostIdentities.has(p.identity)).length;
+    const viewerCount = liveParticipants.filter((p) => !hostIdentities.has(p.identity) && !isEgressIdentity(p.identity)).length;
 
     if (viewerCount >= maxViewers) {
       throw new LiveStreamViewerLimitExceededError({ maxViewers });
@@ -905,7 +987,14 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
 
       if (liveParticipants) {
         const hostIdentities = new Set(hosts.map((h) => h.identity));
-        viewerCount = liveParticipants.filter((p) => !hostIdentities.has(p.identity)).length;
+        // The egress worker (BROADCAST-mode streams only) joins the room
+        // exactly like a real viewer — same credential path, publish:false
+        // — but is internal infrastructure, not public audience traffic,
+        // and must never inflate viewerCount/peakViewerCount or count
+        // against the free-tier viewer cap. Same "real participant, never
+        // counted as public traffic" precedent ChatActor.internal already
+        // sets for the system chat message.
+        viewerCount = liveParticipants.filter((p) => !hostIdentities.has(p.identity) && !isEgressIdentity(p.identity)).length;
 
         if (viewerCount > peakViewerCount) {
           peakViewerCount = viewerCount;
@@ -933,6 +1022,7 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
       hosts: hosts.map((h) => ({ identity: h.identity, role: h.role, invitedAt: h.invitedAt.toISOString() })),
       viewerCount,
       peakViewerCount,
+      delivery: await this.deliveryView(stream),
       conversationId: await this.conversationPublicId(stream),
       chatRootMessageId: stream.chatRootMessageId,
       scheduledAt: stream.scheduledAt?.toISOString() ?? null,
@@ -941,6 +1031,25 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
       createdAt: stream.createdAt.toISOString(),
       updatedAt: stream.updatedAt.toISOString(),
     };
+  }
+
+  /**
+   * RTC_ONLY streams never touch LiveStreamEgress at all — this is a plain
+   * DB read (unlike viewerCount's SFU round trip), but there is no reason
+   * to make every RTC_ONLY row in a `list()` pay a query for a table it
+   * never has a row in.
+   */
+  private async deliveryView(stream: LiveStream): Promise<LiveStreamDeliveryView> {
+    if (stream.deliveryMode !== LiveStreamDeliveryMode.BROADCAST) {
+      return { mode: stream.deliveryMode, status: 'NOT_APPLICABLE', playbackUrl: null };
+    }
+
+    const egress = await this.prisma.liveStreamEgress.findUnique({ where: { streamId: stream.id } });
+    if (!egress) {
+      return { mode: stream.deliveryMode, status: 'NOT_STARTED', playbackUrl: null };
+    }
+
+    return { mode: stream.deliveryMode, status: mapEgressStatus(egress.status), playbackUrl: egress.playbackUrl };
   }
 
   private async conversationPublicId(stream: LiveStream): Promise<string | null> {

@@ -25,6 +25,8 @@ export const WEBHOOK_EVENT_TYPES = [
   'live_stream.host_left',
   'live_stream.viewer_joined',
   'live_stream.viewer_left',
+  'live_stream.broadcast_ready',
+  'live_stream.egress_failed',
 ] as const;
 
 export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number];

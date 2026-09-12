@@ -1,6 +1,8 @@
 import {
   ChatMemberRole,
   ConversationStatus,
+  LiveStreamDeliveryMode,
+  LiveStreamEgressStatus,
   LiveStreamHostRole,
   LiveStreamStatus,
   LiveStreamVisibility,
@@ -37,6 +39,7 @@ describe('LiveStreamsService', () => {
     room: { findUnique: jest.Mock };
     conversation: { findUnique: jest.Mock; update: jest.Mock };
     project: { findUnique: jest.Mock };
+    liveStreamEgress: { findUnique: jest.Mock };
   };
   let roomsService: { create: jest.Mock; close: jest.Mock };
   let sfuRoomState: { listLiveParticipants: jest.Mock };
@@ -47,6 +50,7 @@ describe('LiveStreamsService', () => {
   let webhooks: { emit: jest.Mock };
   let usageAllowances: { assertProjectWithinAllowance: jest.Mock };
   let configService: { get: jest.Mock };
+  let egressControl: { start: jest.Mock; stop: jest.Mock };
 
   const SCOPE = { projectId: 'p1', environment: Environment.DEVELOPMENT };
   const OTHER_PROJECT_SCOPE = { projectId: 'p2', environment: Environment.DEVELOPMENT };
@@ -70,6 +74,7 @@ describe('LiveStreamsService', () => {
     metadata: null,
     status: LiveStreamStatus.CREATED,
     peakViewerCount: 0,
+    deliveryMode: LiveStreamDeliveryMode.RTC_ONLY,
     scheduledAt: null,
     startedAt: null,
     endedAt: null,
@@ -104,6 +109,7 @@ describe('LiveStreamsService', () => {
       room: { findUnique: jest.fn() },
       conversation: { findUnique: jest.fn(), update: jest.fn().mockResolvedValue({}) },
       project: { findUnique: jest.fn().mockResolvedValue({ ownerId: 'owner-1' }) },
+      liveStreamEgress: { findUnique: jest.fn().mockResolvedValue(null) },
     };
     roomsService = {
       create: jest.fn().mockResolvedValue({ id: 'room-uuid', name: 'stream_abc123' }),
@@ -122,6 +128,7 @@ describe('LiveStreamsService', () => {
     chatTokenService = { issue: jest.fn().mockReturnValue({ token: 'chat-jwt' }) };
     webhooks = { emit: jest.fn().mockResolvedValue(undefined) };
     usageAllowances = { assertProjectWithinAllowance: jest.fn().mockResolvedValue(undefined) };
+    egressControl = { start: jest.fn().mockResolvedValue(undefined), stop: jest.fn().mockResolvedValue(undefined) };
     const configValues: Record<string, unknown> = {
       'usage.reaperIntervalMs': 60_000,
       'usage.live.maxConcurrentStreams': 1,
@@ -141,6 +148,7 @@ describe('LiveStreamsService', () => {
       webhooks as never,
       usageAllowances as never,
       configService as never,
+      egressControl as never,
     );
   });
 
@@ -1010,7 +1018,181 @@ describe('LiveStreamsService', () => {
       expect(view.peakViewerCount).toBe(10);
       expect(prisma.liveStream.update).not.toHaveBeenCalled();
     });
+
+    it('excludes the egress worker\'s reserved identity from the viewer count', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(
+        baseStream({ deliveryMode: LiveStreamDeliveryMode.BROADCAST }),
+      );
+      prisma.liveStreamHost.findMany.mockResolvedValue([]);
+      prisma.liveStreamEgress.findUnique.mockResolvedValue(null);
+      prisma.room.findUnique.mockResolvedValue({ name: 'stream_abc123' });
+      sfuRoomState.listLiveParticipants.mockResolvedValue([
+        { identity: 'egress-stream_abc123', joinedAt: new Date(), tracks: [] },
+        { identity: 'dave', joinedAt: new Date(), tracks: [] },
+      ]);
+
+      const view = await service.get(SCOPE, 'stream_abc123');
+
+      expect(view.viewerCount).toBe(1);
+    });
   });
+
+  describe('broadcast delivery (deliveryMode: BROADCAST)', () => {
+    it('passes an explicit deliveryMode through to the created row', async () => {
+      prisma.liveStream.create.mockResolvedValue(
+        baseStream({ hosts: [], deliveryMode: LiveStreamDeliveryMode.BROADCAST }),
+      );
+      prisma.conversation.findUnique.mockResolvedValue({ publicId: 'conv_xyz789' });
+
+      await service.create(SCOPE, {
+        title: 'A broadcast',
+        hostIdentity: 'alice',
+        deliveryMode: LiveStreamDeliveryMode.BROADCAST,
+      } as never);
+
+      expect(prisma.liveStream.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ deliveryMode: LiveStreamDeliveryMode.BROADCAST }) }),
+      );
+    });
+
+    it('start() kicks off egress for a BROADCAST stream, but never for an RTC_ONLY one', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(
+        baseStream({ status: LiveStreamStatus.CREATED, deliveryMode: LiveStreamDeliveryMode.BROADCAST }),
+      );
+      prisma.liveStream.update.mockResolvedValue(
+        baseStream({ status: LiveStreamStatus.LIVE, deliveryMode: LiveStreamDeliveryMode.BROADCAST }),
+      );
+      prisma.liveStreamHost.findMany.mockResolvedValue([]);
+      prisma.liveStreamEgress.findUnique.mockResolvedValue(null);
+
+      await service.start(SCOPE, 'stream_abc123');
+      // start() fires egress.start() with `void` — flush the microtask queue
+      // so the fire-and-forget call has actually been made before asserting.
+      await Promise.resolve();
+
+      expect(egressControl.start).toHaveBeenCalledWith(SCOPE, expect.objectContaining({ id: 'stream-internal-uuid' }));
+    });
+
+    it('never calls egress.start() for an RTC_ONLY stream', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.CREATED }));
+      prisma.liveStream.update.mockResolvedValue(baseStream({ status: LiveStreamStatus.LIVE }));
+      prisma.liveStreamHost.findMany.mockResolvedValue([]);
+
+      await service.start(SCOPE, 'stream_abc123');
+      await Promise.resolve();
+
+      expect(egressControl.start).not.toHaveBeenCalled();
+    });
+
+    it('end() stops egress for a BROADCAST stream that had it running', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(
+        baseStream({ status: LiveStreamStatus.LIVE, deliveryMode: LiveStreamDeliveryMode.BROADCAST }),
+      );
+      prisma.liveStream.update.mockResolvedValue(
+        baseStream({ status: LiveStreamStatus.ENDED, deliveryMode: LiveStreamDeliveryMode.BROADCAST }),
+      );
+      prisma.liveStreamHost.findMany.mockResolvedValue([]);
+      prisma.liveStreamEgress.findUnique.mockResolvedValue(null);
+
+      await service.end(SCOPE, 'stream_abc123');
+
+      expect(egressControl.stop).toHaveBeenCalledWith(SCOPE, expect.objectContaining({ id: 'stream-internal-uuid' }));
+    });
+
+    it('never calls egress.stop() for an RTC_ONLY stream', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.LIVE }));
+      prisma.liveStream.update.mockResolvedValue(baseStream({ status: LiveStreamStatus.ENDED }));
+      prisma.liveStreamHost.findMany.mockResolvedValue([]);
+
+      await service.end(SCOPE, 'stream_abc123');
+
+      expect(egressControl.stop).not.toHaveBeenCalled();
+    });
+
+    it('createViewerToken() refuses a BROADCAST stream instead of minting an RTC viewer credential', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(
+        baseStream({ deliveryMode: LiveStreamDeliveryMode.BROADCAST }),
+      );
+
+      await expect(service.createViewerToken(SCOPE, 'stream_abc123', 'dave')).rejects.toMatchObject({
+        code: RavenErrorCode.STREAM_DELIVERY_MODE_MISMATCH,
+      });
+      expect(rtcTokensService.mintRawCredential).not.toHaveBeenCalled();
+    });
+
+    it('createViewerToken() is unaffected for an RTC_ONLY stream', async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream());
+      prisma.room.findUnique.mockResolvedValue({ name: 'stream_abc123' });
+      prisma.liveStreamHost.findMany.mockResolvedValue([]);
+      sfuRoomState.listLiveParticipants.mockResolvedValue([]);
+      prisma.conversation.findUnique.mockResolvedValue({ publicId: 'conv_xyz789' });
+
+      await expect(service.createViewerToken(SCOPE, 'stream_abc123', 'dave')).resolves.toMatchObject({
+        role: 'VIEWER',
+      });
+    });
+
+    describe('getPlaybackInfo()', () => {
+      it('returns NOT_APPLICABLE and never touches LiveStreamEgress for an RTC_ONLY stream', async () => {
+        prisma.liveStream.findUnique.mockResolvedValue(baseStream());
+
+        const delivery = await service.getPlaybackInfo(SCOPE, 'stream_abc123');
+
+        expect(delivery).toEqual({ mode: LiveStreamDeliveryMode.RTC_ONLY, status: 'NOT_APPLICABLE', playbackUrl: null });
+        expect(prisma.liveStreamEgress.findUnique).not.toHaveBeenCalled();
+      });
+
+      it('reports NOT_STARTED for a BROADCAST stream with no egress row yet', async () => {
+        prisma.liveStream.findUnique.mockResolvedValue(baseStream({ deliveryMode: LiveStreamDeliveryMode.BROADCAST }));
+        prisma.liveStreamEgress.findUnique.mockResolvedValue(null);
+
+        const delivery = await service.getPlaybackInfo(SCOPE, 'stream_abc123');
+
+        expect(delivery).toEqual({ mode: LiveStreamDeliveryMode.BROADCAST, status: 'NOT_STARTED', playbackUrl: null });
+      });
+
+      it('maps RUNNING to READY with the playback URL, once egress reports it', async () => {
+        prisma.liveStream.findUnique.mockResolvedValue(baseStream({ deliveryMode: LiveStreamDeliveryMode.BROADCAST }));
+        prisma.liveStreamEgress.findUnique.mockResolvedValue({
+          status: LiveStreamEgressStatus.RUNNING,
+          playbackUrl: 'https://cdn.example.com/live/stream_abc123/index.m3u8',
+        });
+
+        const delivery = await service.getPlaybackInfo(SCOPE, 'stream_abc123');
+
+        expect(delivery).toEqual({
+          mode: LiveStreamDeliveryMode.BROADCAST,
+          status: 'READY',
+          playbackUrl: 'https://cdn.example.com/live/stream_abc123/index.m3u8',
+        });
+      });
+
+      it('maps FAILED to FAILED', async () => {
+        prisma.liveStream.findUnique.mockResolvedValue(baseStream({ deliveryMode: LiveStreamDeliveryMode.BROADCAST }));
+        prisma.liveStreamEgress.findUnique.mockResolvedValue({
+          status: LiveStreamEgressStatus.FAILED,
+          playbackUrl: null,
+        });
+
+        const delivery = await service.getPlaybackInfo(SCOPE, 'stream_abc123');
+
+        expect(delivery.status).toBe('FAILED');
+      });
+
+      it('maps STOPPING/STOPPED to ENDED', async () => {
+        prisma.liveStream.findUnique.mockResolvedValue(baseStream({ deliveryMode: LiveStreamDeliveryMode.BROADCAST }));
+        prisma.liveStreamEgress.findUnique.mockResolvedValue({
+          status: LiveStreamEgressStatus.STOPPED,
+          playbackUrl: 'https://cdn.example.com/live/stream_abc123/index.m3u8',
+        });
+
+        const delivery = await service.getPlaybackInfo(SCOPE, 'stream_abc123');
+
+        expect(delivery.status).toBe('ENDED');
+      });
+    });
+  });
+
   /**
    * Lifecycle logging (see `LiveStreamsService.event`).
    *

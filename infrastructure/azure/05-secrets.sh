@@ -61,6 +61,10 @@ set_generated api-key-hash-secret
 set_generated sfu-registration-secret
 set_generated turn-secret
 set_generated redis-password
+# Live Streaming broadcast redesign: shared bearer secret between the API
+# and the standalone egress-worker Container App. Additive — nothing
+# existing rotated.
+set_generated egress-worker-shared-secret
 
 # The Supabase strings live in the operator's local .env (gitignored). They
 # are copied into Key Vault so the Phase 3 Container App has one source of

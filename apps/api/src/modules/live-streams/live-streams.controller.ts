@@ -179,6 +179,21 @@ export class LiveStreamsController {
     return this.streams.createViewerToken(scope, streamId, dto.identity);
   }
 
+  @Get(':streamId/playback')
+  @ApiOperation({
+    summary: 'Get broadcast playback info — the HLS URL for a BROADCAST-mode stream',
+    description:
+      'Works for RTC_ONLY streams too (returns delivery.status "NOT_APPLICABLE"), so a caller does not need to ' +
+      'branch on deliveryMode before calling this. Never returns storage credentials, container names, worker ' +
+      'URLs, or ffmpeg details — playbackUrl is the one thing that crosses the trust boundary, and only once ' +
+      "egress reports a genuinely fetchable manifest.",
+  })
+  @ApiResponse({ status: 200, description: 'Delivery info returned' })
+  @ApiNotFoundResponse({ description: "Stream doesn't exist, or belongs to a different project" })
+  getPlaybackInfo(@CurrentScope() scope: ProjectScope, @Param('streamId') streamId: string) {
+    return this.streams.getPlaybackInfo(scope, streamId);
+  }
+
   @Post(':streamId/leave')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({

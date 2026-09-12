@@ -11,10 +11,11 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { LiveStreamVisibility } from '../../../generated/prisma/client';
+import { LiveStreamDeliveryMode, LiveStreamVisibility } from '../../../generated/prisma/client';
 
 const IDENTITY_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 const VISIBILITY_VALUES = Object.values(LiveStreamVisibility);
+const DELIVERY_MODE_VALUES = Object.values(LiveStreamDeliveryMode);
 
 export class CreateLiveStreamDto {
   @ApiProperty({ example: 'Friday Q&A', minLength: 1, maxLength: 200 })
@@ -83,4 +84,16 @@ export class CreateLiveStreamDto {
   @IsOptional()
   @IsDateString()
   scheduledAt?: string;
+
+  @ApiPropertyOptional({
+    enum: DELIVERY_MODE_VALUES,
+    default: LiveStreamDeliveryMode.RTC_ONLY,
+    description:
+      'RTC_ONLY (default): viewers get an RTC credential and join the room, same as today. BROADCAST: the ' +
+      "audience never joins the RTC room — createViewerToken is refused; use GET .../playback instead once " +
+      "the stream is started and egress reports ready.",
+  })
+  @IsOptional()
+  @IsIn(DELIVERY_MODE_VALUES)
+  deliveryMode?: LiveStreamDeliveryMode;
 }
