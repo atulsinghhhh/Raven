@@ -266,9 +266,15 @@ materially separate exercise from verifying the API/SFU stack itself.
 
 ## 11. Remaining known issues
 
-- The 15 pre-existing orphaned rooms/conversations from the original
-  incident are still in the database, identified but not cleaned up (§6) —
-  intentional, not an oversight.
+- ~~The 15 pre-existing orphaned rooms/conversations from the original
+  incident are still in the database, identified but not cleaned up (§6).~~
+  **Cleaned up 2026-09-12** via `apps/api/scripts/cleanup-orphaned-live-stream-rooms.ts`,
+  which reuses `RoomsService.close()` (same idempotent op the fix's own
+  `cleanupFailedCreate` uses) plus the same direct `ConversationStatus.ARCHIVED`
+  update. Ran dry-run first (found exactly the same 15, matching the report's
+  count and shape), then `--execute`: all 15 rooms closed, all 15 matching
+  conversations archived, a final read-back confirmed 0 orphans remain
+  matching the same query.
 - The exact exception that fired against `7fda609` during the original
   08:42–09:16 incident is not recoverable (no surviving logs) — §1(a)'s
   structural fix (compensating cleanup) closes the bug regardless of which
