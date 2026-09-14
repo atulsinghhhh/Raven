@@ -104,5 +104,24 @@ else
   echo "    -- Google OAuth skipped: PROD_GOOGLE_CLIENT_ID / PROD_GOOGLE_CLIENT_SECRET not set"
 fi
 
+# Transactional email (verification, password reset, welcome). Same
+# reasoning as OAuth above: not read from the operator's local .env,
+# because email.service.ts logs-and-skips instead of sending while
+# EMAIL_ENABLED is unset, which is exactly what a fresh clone needs and
+# exactly what production must not stay stuck on. Needs a real Resend
+# account and a sending domain verified there (docs/email.md#domains) —
+# there is no dev/prod split to reuse here the way OAuth has one, since a
+# Resend API key isn't tied to a callback URL, but it IS tied to which
+# domain's DNS was verified, so a key without RAVEN_RESEND_FROM_EMAIL set
+# to an address on that domain is still useless. 13-api-app.sh checks for
+# that pairing and refuses to enable EMAIL_ENABLED without it, the same
+# way it refuses to wire OAuth without RAVEN_APP_URL.
+echo "==> Transactional email (from PROD_RESEND_API_KEY — not generated, not from local .env)"
+if [ -n "${PROD_RESEND_API_KEY:-}" ]; then
+  set_literal resend-api-key "${PROD_RESEND_API_KEY}"
+else
+  echo "    -- Email skipped: PROD_RESEND_API_KEY not set"
+fi
+
 echo "==> Vault contents (names only)"
 az keyvault secret list --vault-name "${RAVEN_KV}" --query "sort_by([].{name:name}, &name)" -o table

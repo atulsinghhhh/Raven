@@ -79,6 +79,41 @@ else
   APP_URL_ENV_YAML=""
 fi
 
+# Transactional email. Optional and off by default (email.service.ts logs
+# and skips instead of sending while EMAIL_ENABLED is unset) — same
+# not-a-boot-failure posture as OAuth above. Populate via 05-secrets.sh's
+# PROD_RESEND_API_KEY first.
+#
+# Unlike OAuth, this can't just wire the secret and let the app boot:
+# env.validation.ts requires RESEND_FROM_EMAIL (a real address on the
+# domain verified in Resend) the instant EMAIL_ENABLED=true, and rejects a
+# missing one at startup — so setting EMAIL_ENABLED without it would
+# crash-loop the container, not merely leave a feature off. Both must be
+# present together or neither is set, mirroring the APP_URL guard above.
+EMAIL_SECRETS_YAML=""
+EMAIL_ENV_YAML=""
+if kv_exists resend-api-key; then
+  if [ -n "${RAVEN_RESEND_FROM_EMAIL:-}" ]; then
+    EMAIL_SECRETS_YAML="
+      - name: resend-api-key
+        value: $(kv resend-api-key)"
+    EMAIL_ENV_YAML="
+          - name: EMAIL_ENABLED
+            value: \"true\"
+          - name: RESEND_API_KEY
+            secretRef: resend-api-key
+          - name: RESEND_FROM_EMAIL
+            value: ${RAVEN_RESEND_FROM_EMAIL}"
+    if [ -n "${RAVEN_RESEND_FROM_NAME:-}" ]; then
+      EMAIL_ENV_YAML="${EMAIL_ENV_YAML}
+          - name: RESEND_FROM_NAME
+            value: ${RAVEN_RESEND_FROM_NAME}"
+    fi
+  else
+    echo "!! resend-api-key is in Key Vault but RAVEN_RESEND_FROM_EMAIL is unset — enabling email without it would crash-loop the container (env.validation.ts requires RESEND_FROM_EMAIL once EMAIL_ENABLED=true). Set RAVEN_RESEND_FROM_EMAIL to an address on your Resend-verified domain and re-run." >&2
+  fi
+fi
+
 # Origins allowed to call the API cross-origin. CORS_ORIGIN must not be "*"
 # in production — the API refuses to boot (env.validation.ts).
 #
@@ -137,7 +172,7 @@ properties:
       - name: metrics-scrape-secret
         value: $(kv metrics-scrape-secret)
       - name: egress-worker-shared-secret
-        value: $(kv egress-worker-shared-secret)${OAUTH_SECRETS_YAML}
+        value: $(kv egress-worker-shared-secret)${OAUTH_SECRETS_YAML}${EMAIL_SECRETS_YAML}
   template:
     containers:
       - image: ${LOGIN_SERVER}/raven-api:${TAG}
@@ -162,7 +197,7 @@ properties:
           - name: RTC_SIGNALING_URL
             value: wss://${FQDN}/v1/rtc
           - name: CORS_ORIGIN
-            value: ${CORS_ORIGINS}${APP_URL_ENV_YAML}${OAUTH_ENV_YAML}
+            value: ${CORS_ORIGINS}${APP_URL_ENV_YAML}${OAUTH_ENV_YAML}${EMAIL_ENV_YAML}
 
           # --- Live Streaming broadcast redesign: the standalone
           # egress-worker Container App (17-egress-worker-app.sh), reached
