@@ -31,7 +31,7 @@ const REVOCATION_KEY_PREFIX = 'auth:revoked-jti:';
 export interface AuthResult {
   accessToken: string;
   expiresIn: string;
-  user: { id: string; email: string; name: string | null; emailVerified: boolean };
+  user: { id: string; email: string; name: string | null; emailVerified: boolean; isPlatformAdmin: boolean };
   /** Where this account is in first-run onboarding, so the dashboard can
    *  route a fresh login to /onboarding or /dashboard without a second
    *  round-trip. */
@@ -390,6 +390,7 @@ export class AuthService {
     email: string;
     name: string | null;
     emailVerifiedAt: Date | null;
+    platformRole?: string | null;
   }): Promise<AuthResult> {
     const onboarding = await this.onboardingService.getStatus(user.id);
     return this.issueToken(user, onboarding);
@@ -401,6 +402,7 @@ export class AuthService {
       email: string;
       name: string | null;
       emailVerifiedAt: Date | null;
+      platformRole?: string | null;
     },
     onboarding: OnboardingStatus,
   ): AuthResult {
@@ -419,6 +421,15 @@ export class AuthService {
         // narrower shape hands us undefined, and an unverified account
         // must never read as verified because a field was absent.
         emailVerified: Boolean(user.emailVerifiedAt),
+        // Lets the dashboard's login form skip the mandatory first-run
+        // onboarding redirect for a Super Admin Portal account: "create
+        // your first project" is a developer-dashboard concept that has
+        // nothing to do with an internal ops account, and forcing one
+        // through it just to reach /super-admin would be a dead end this
+        // account was never meant to complete. Only a boolean crosses this
+        // boundary — never the specific PlatformRole, which stays behind
+        // PlatformRoleGuard's own re-check on every /v1/super-admin/* call.
+        isPlatformAdmin: Boolean(user.platformRole),
       },
       onboarding,
     };

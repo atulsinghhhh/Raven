@@ -21,6 +21,15 @@ export interface AuthenticatedUser {
   name: string | null;
   /** Optional: the dashboard may be newer than the API it's talking to. */
   emailVerified?: boolean;
+  /**
+   * Whether this account holds a Super Admin Portal role. Only a boolean —
+   * never the specific `PlatformRole` — crosses into the browser; the login
+   * form uses it purely to skip the mandatory first-run onboarding redirect
+   * for an ops-only account that will never create a project. Every actual
+   * `/v1/super-admin/*` call is still re-checked server-side by
+   * `PlatformRoleGuard` regardless of what this flag says.
+   */
+  isPlatformAdmin?: boolean;
 }
 
 export interface OnboardingStatus {

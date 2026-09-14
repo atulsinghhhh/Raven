@@ -146,6 +146,7 @@ describe('AuthService', () => {
         email: 'dev@raven.local',
         name: null,
         emailVerified: false,
+        isPlatformAdmin: false,
       });
     });
 

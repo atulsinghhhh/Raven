@@ -34,8 +34,11 @@ export function LoginForm() {
 
       // Incomplete onboarding wins over `next`: an account that never
       // finished first-run setup gets sent back into it, and the flow ends
-      // at the dashboard anyway.
-      if (payload.onboarding && !payload.onboarding.completed) {
+      // at the dashboard anyway. A Super Admin Portal account is exempt —
+      // "create your first project" has nothing to do with an internal ops
+      // account, and forcing one through it would strand a `next=/super-admin`
+      // redirect at a screen it was never meant to complete.
+      if (!payload.user?.isPlatformAdmin && payload.onboarding && !payload.onboarding.completed) {
         router.push('/onboarding');
       } else {
         // `next` carries the page the user was trying to reach: including
