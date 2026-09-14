@@ -36,9 +36,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/onboarding', request.url));
   }
 
+  // /super-admin has no onboarding concept and no redirect loop to worry
+  // about — just "is there a session at all." The real check (does this
+  // session hold a platform role) happens in super-admin/layout.tsx against
+  // the API, the same way /dashboard's real ownership checks happen there
+  // and not here.
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/onboarding/:path*'],
+  matcher: ['/dashboard/:path*', '/onboarding/:path*', '/super-admin/:path*'],
 };

@@ -7,6 +7,8 @@ import { RoomEventsService } from '../signaling/rooms/room-events.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { LiveParticipantInfo, SfuRoomStateService } from './sfu-room-state.service';
 import { ProjectScope } from '../../shared/environment/environment.constants';
+import { ActivityActorType, ActivityEventType } from '../super-admin/activity-events.constants';
+import { ActivityEventsService } from '../super-admin/activity-events.service';
 
 export interface RoomWithLiveState extends Room {
   /** Participants actually connected to the room's SFU node right now. `null` means the node could not be reached: distinct from a genuinely idle 0. */
@@ -23,6 +25,7 @@ export class RoomsService {
     private readonly prisma: PrismaService,
     private readonly roomState: SfuRoomStateService,
     private readonly roomEvents: RoomEventsService,
+    private readonly activityEvents: ActivityEventsService,
   ) {}
 
   async create(scope: ProjectScope, dto: CreateRoomDto): Promise<Room> {
@@ -35,7 +38,36 @@ export class RoomsService {
       throw new ConflictError(`A room named "${dto.name}" already exists in this project's ${environment} environment`);
     }
 
-    return this.prisma.room.create({ data: { projectId, environment, name: dto.name } });
+    const room = await this.prisma.room.create({ data: { projectId, environment, name: dto.name } });
+
+    // One creation path serves both the JWT-guarded dashboard controller
+    // and the API-key-guarded SDK controller, so there is no single caller
+    // identity to attribute this to — `SYSTEM` here, attributed to the
+    // project owner's timeline via `developerId`, is the honest choice
+    // rather than guessing an actor type this layer doesn't know.
+    void this.recordRoomEvent(ActivityEventType.RTC_ROOM_CREATED, room);
+
+    return room;
+  }
+
+  /** Fire-and-forget from callers (`void this.recordRoomEvent(...)`), so this must never throw. */
+  private async recordRoomEvent(eventType: ActivityEventType, room: Room): Promise<void> {
+    try {
+      const project = await this.prisma.project.findUnique({ where: { id: room.projectId }, select: { ownerId: true } });
+      await this.activityEvents.record({
+        eventType,
+        actorType: ActivityActorType.SYSTEM,
+        developerId: project?.ownerId,
+        projectId: room.projectId,
+        resourceType: 'room',
+        resourceId: room.id,
+        metadata: { name: room.name, environment: room.environment },
+      });
+    } catch {
+      // ActivityEventsService.record already logs its own failures; a
+      // failure to even look up the project owner is equally a gap, not
+      // an incident, for the same reason documented on that service.
+    }
   }
 
   findAllForProject(scope: ProjectScope): Promise<Room[]> {
@@ -79,7 +111,7 @@ export class RoomsService {
    */
   async close(id: string, scope: ProjectScope): Promise<void> {
     await this.findOneForProject(id, scope);
-    await this.prisma.room.update({
+    const room = await this.prisma.room.update({
       where: { id },
       data: { status: RoomStatus.CLOSED },
     });
@@ -88,6 +120,8 @@ export class RoomsService {
     // Tell the participants before their PeerConnections simply stop
     // working, so a client can render "this ended" instead of a stall.
     await this.roomEvents.publish(id, { kind: 'closed' });
+
+    void this.recordRoomEvent(ActivityEventType.RTC_ROOM_ENDED, room);
   }
 
   /**

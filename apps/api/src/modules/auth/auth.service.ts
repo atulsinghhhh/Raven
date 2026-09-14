@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { User, UserTokenType } from '../../generated/prisma/client';
-import { ConflictError, UnauthorizedError, ValidationFailedError } from '../../shared/errors/app-error';
+import { ConflictError, ForbiddenError, UnauthorizedError, ValidationFailedError } from '../../shared/errors/app-error';
 import { RedisService } from '../../shared/redis/redis.service';
 import { EmailType } from '../email/email.constants';
 import { EmailService } from '../email/email.service';
@@ -15,8 +15,11 @@ import {
   renderWelcomeEmail,
 } from '../email/templates';
 import { OnboardingService, OnboardingStatus } from '../onboarding/onboarding.service';
+import { ActivityActorType, ActivityEventType } from '../super-admin/activity-events.constants';
+import { ActivityEventsService } from '../super-admin/activity-events.service';
 import { UsageAllowanceService } from '../usage/usage-allowance.service';
 import { UsersService } from '../users/users.service';
+import { AuditContext } from '../audit/audit-context.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { AuthenticatedUser, JwtPayload } from './jwt-payload.interface';
@@ -55,9 +58,10 @@ export class AuthService {
     private readonly emailService: EmailService,
     private readonly onboardingService: OnboardingService,
     private readonly usageAllowances: UsageAllowanceService,
+    private readonly activityEvents: ActivityEventsService,
   ) {}
 
-  async register(dto: RegisterDto): Promise<AuthResult> {
+  async register(dto: RegisterDto, context?: AuditContext): Promise<AuthResult> {
     const existing = await this.usersService.findByEmail(dto.email);
     if (existing) {
       throw new ConflictError('An account with this email already exists');
@@ -89,23 +93,60 @@ export class AuthService {
 
     await this.sendVerificationEmail(user);
 
+    await this.activityEvents.record({
+      eventType: ActivityEventType.USER_SIGNED_UP,
+      actorType: ActivityActorType.USER,
+      actorId: user.id,
+      actorEmail: user.email,
+      developerId: user.id,
+      resourceType: 'user',
+      resourceId: user.id,
+      requestId: context?.requestId,
+      ipAddress: context?.ipAddress,
+      userAgent: context?.userAgent,
+    });
+
     return this.issueSessionForUser(user);
   }
 
-  async login(dto: LoginDto): Promise<AuthResult> {
+  async login(dto: LoginDto, context?: AuditContext): Promise<AuthResult> {
     const user = await this.usersService.findByEmail(dto.email);
     // A null passwordHash is an OAuth-only account. Same message as a wrong
     // password on purpose: "this account signs in with GitHub" would
     // confirm the address is registered, which "invalid email or password"
     // exists to hide.
     if (!user || !user.passwordHash) {
+      await this.recordLoginFailed(dto.email, context);
       throw new UnauthorizedError('Invalid email or password');
     }
 
     const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordMatches) {
+      await this.recordLoginFailed(dto.email, context, user.id);
       throw new UnauthorizedError('Invalid email or password');
     }
+
+    // A Super Admin Portal suspension. Checked after the password so a
+    // suspended developer still gets "invalid email or password" for a
+    // wrong guess rather than a signal their address is registered and
+    // suspended — same reasoning as the OAuth-only check above.
+    if (user.status === 'SUSPENDED') {
+      await this.recordLoginFailed(dto.email, context, user.id);
+      throw new ForbiddenError('This account has been suspended. Contact support for help.');
+    }
+
+    await this.activityEvents.record({
+      eventType: ActivityEventType.USER_LOGIN,
+      actorType: ActivityActorType.USER,
+      actorId: user.id,
+      actorEmail: user.email,
+      developerId: user.id,
+      resourceType: 'user',
+      resourceId: user.id,
+      requestId: context?.requestId,
+      ipAddress: context?.ipAddress,
+      userAgent: context?.userAgent,
+    });
 
     // An unverified address can still sign in. Blocking login here would
     // mean an undelivered email locks a paying developer out of a working
@@ -114,14 +155,43 @@ export class AuthService {
     return this.issueSessionForUser(user);
   }
 
+  private async recordLoginFailed(email: string, context?: AuditContext, userId?: string): Promise<void> {
+    await this.activityEvents.record({
+      eventType: ActivityEventType.LOGIN_FAILED,
+      actorType: ActivityActorType.USER,
+      actorId: userId,
+      actorEmail: email,
+      developerId: userId,
+      resourceType: 'user',
+      resourceId: userId,
+      success: false,
+      requestId: context?.requestId,
+      ipAddress: context?.ipAddress,
+      userAgent: context?.userAgent,
+    });
+  }
+
   /**
    * JWTs are stateless, so there's nothing to delete on logout. We just
    * blocklist this token's jti in Redis until its natural expiry: cheap,
    * bounded, no DB write per request like a real session store would need.
    */
-  async logout(user: AuthenticatedUser): Promise<void> {
+  async logout(user: AuthenticatedUser, context?: AuditContext): Promise<void> {
     const ttlSeconds = Math.max(user.exp - Math.floor(Date.now() / 1000), 1);
     await this.redisService.client.set(`${REVOCATION_KEY_PREFIX}${user.jti}`, '1', 'EX', ttlSeconds);
+
+    await this.activityEvents.record({
+      eventType: ActivityEventType.USER_LOGOUT,
+      actorType: ActivityActorType.USER,
+      actorId: user.id,
+      actorEmail: user.email,
+      developerId: user.id,
+      resourceType: 'user',
+      resourceId: user.id,
+      requestId: context?.requestId,
+      ipAddress: context?.ipAddress,
+      userAgent: context?.userAgent,
+    });
   }
 
   async isRevoked(jti: string): Promise<boolean> {

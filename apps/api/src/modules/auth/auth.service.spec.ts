@@ -7,6 +7,7 @@ import { RedisService } from '../../shared/redis/redis.service';
 import { EmailType } from '../email/email.constants';
 import { EmailService } from '../email/email.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
+import { ActivityEventsService } from '../super-admin/activity-events.service';
 import { UsageAllowanceService } from '../usage/usage-allowance.service';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
@@ -62,6 +63,8 @@ describe('AuthService', () => {
 
     usageAllowances = { ensureProvisioned: jest.fn().mockResolvedValue({ id: 'ua1' }) };
 
+    const activityEvents = { record: jest.fn().mockResolvedValue(undefined) } as unknown as ActivityEventsService;
+
     authService = new AuthService(
       usersService,
       jwtService,
@@ -71,6 +74,7 @@ describe('AuthService', () => {
       emailService as unknown as EmailService,
       onboardingService as unknown as OnboardingService,
       usageAllowances as unknown as UsageAllowanceService,
+      activityEvents,
     );
   });
 

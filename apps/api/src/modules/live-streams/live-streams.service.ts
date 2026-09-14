@@ -29,6 +29,8 @@ import { ChatTokenService, IssuedChatToken } from '../chat/tokens/chat-token.ser
 import { SfuRoomStateService } from '../rooms/sfu-room-state.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { IssuedRtcToken, RtcTokensService } from '../rtc-tokens/rtc-tokens.service';
+import { ActivityActorType, ActivityEventType } from '../super-admin/activity-events.constants';
+import { ActivityEventsService } from '../super-admin/activity-events.service';
 import { UsageAllowanceService } from '../usage/usage-allowance.service';
 import { WebhookEventsService } from '../webhooks/webhook-events.service';
 import { AddHostDto } from './dto/add-host.dto';
@@ -187,6 +189,7 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
     private readonly usageAllowances: UsageAllowanceService,
     private readonly configService: ConfigService,
     private readonly egressControl: EgressControlService,
+    private readonly activityEvents: ActivityEventsService,
   ) {}
 
   onModuleInit(): void {
@@ -333,6 +336,16 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
         visibility: stream.visibility,
         hostIdentity: dto.hostIdentity,
         createdAt: stream.createdAt.toISOString(),
+      });
+
+      void this.activityEvents.record({
+        eventType: ActivityEventType.LIVE_STREAM_CREATED,
+        actorType: ActivityActorType.SYSTEM,
+        developerId: project.ownerId,
+        projectId: scope.projectId,
+        resourceType: 'live_stream',
+        resourceId: stream.id,
+        metadata: { title: stream.title, visibility: stream.visibility },
       });
 
       return this.toView(stream, stream.hosts, false);
@@ -521,6 +534,16 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
       startedAt: startedAt.toISOString(),
     });
 
+    void this.activityEvents.record({
+      eventType: ActivityEventType.LIVE_STREAM_STARTED,
+      actorType: ActivityActorType.SYSTEM,
+      developerId: updated.ownerId,
+      projectId: scope.projectId,
+      resourceType: 'live_stream',
+      resourceId: updated.id,
+      metadata: { title: updated.title },
+    });
+
     // Fire-and-forget, logged-not-thrown: the host is already LIVE over RTC
     // independent of egress, and a failed/slow egress start must never fail
     // this call — see EgressControlService.start's own doc comment and
@@ -606,6 +629,16 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
       endedAt: endedAt.toISOString(),
       durationMs,
       ...(opts.reason ? { reason: opts.reason } : {}),
+    });
+
+    void this.activityEvents.record({
+      eventType: ActivityEventType.LIVE_STREAM_ENDED,
+      actorType: ActivityActorType.SYSTEM,
+      developerId: updated.ownerId,
+      projectId: scope.projectId,
+      resourceType: 'live_stream',
+      resourceId: updated.id,
+      metadata: { title: updated.title, durationMs, reason: opts.reason },
     });
 
     return this.toView(updated, await this.activeHosts(updated.id), false);

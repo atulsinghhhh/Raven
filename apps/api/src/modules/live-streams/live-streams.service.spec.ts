@@ -149,6 +149,7 @@ describe('LiveStreamsService', () => {
       usageAllowances as never,
       configService as never,
       egressControl as never,
+      { record: jest.fn().mockResolvedValue(undefined) } as never,
     );
   });
 

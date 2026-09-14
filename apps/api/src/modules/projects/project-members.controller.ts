@@ -9,6 +9,8 @@ import { ProjectRole } from './project-permissions';
 import { AuditRequestContext, type AuditContext } from '../audit/audit-context.decorator';
 import { AuditAction, AuditResource } from '../audit/audit.constants';
 import { AuditService } from '../audit/audit.service';
+import { ActivityActorType, ActivityEventType } from '../super-admin/activity-events.constants';
+import { ActivityEventsService } from '../super-admin/activity-events.service';
 
 @ApiTags('Project Members')
 @ApiBearerAuth('jwt')
@@ -18,6 +20,7 @@ export class ProjectMembersController {
   constructor(
     private readonly members: ProjectMembersService,
     private readonly audit: AuditService,
+    private readonly activityEvents: ActivityEventsService,
   ) {}
 
   @Get()
@@ -57,6 +60,21 @@ export class ProjectMembersController {
       resourceId: member.userId,
       metadata: { email: member.email, role: member.role },
       context,
+    });
+
+    await this.activityEvents.record({
+      eventType: ActivityEventType.PROJECT_MEMBER_ADDED,
+      actorType: ActivityActorType.USER,
+      actorId: user.id,
+      actorEmail: user.email,
+      projectId,
+      developerId: member.userId,
+      resourceType: AuditResource.Member,
+      resourceId: member.userId,
+      metadata: { email: member.email, role: member.role },
+      requestId: context.requestId,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
     });
 
     return member;
@@ -109,6 +127,20 @@ export class ProjectMembersController {
       resourceType: AuditResource.Member,
       resourceId: userId,
       context,
+    });
+
+    await this.activityEvents.record({
+      eventType: ActivityEventType.PROJECT_MEMBER_REMOVED,
+      actorType: ActivityActorType.USER,
+      actorId: user.id,
+      actorEmail: user.email,
+      projectId,
+      developerId: userId,
+      resourceType: AuditResource.Member,
+      resourceId: userId,
+      requestId: context.requestId,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
     });
   }
 }

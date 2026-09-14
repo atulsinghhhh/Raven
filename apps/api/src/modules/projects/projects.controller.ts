@@ -22,6 +22,8 @@ import { ProjectsService } from './projects.service';
 import { AuditRequestContext, type AuditContext } from '../audit/audit-context.decorator';
 import { AuditAction, AuditResource } from '../audit/audit.constants';
 import { AuditService } from '../audit/audit.service';
+import { ActivityActorType, ActivityEventType } from '../super-admin/activity-events.constants';
+import { ActivityEventsService } from '../super-admin/activity-events.service';
 
 // Dashboard-style management, authenticated by developer session JWT.
 // Every lookup here is scoped to the caller's own projects.
@@ -33,6 +35,7 @@ export class ProjectsController {
   constructor(
     private readonly projectsService: ProjectsService,
     private readonly audit: AuditService,
+    private readonly activityEvents: ActivityEventsService,
   ) {}
 
   @Post()
@@ -53,6 +56,21 @@ export class ProjectsController {
       resourceId: project.id,
       metadata: { name: project.name },
       context,
+    });
+
+    await this.activityEvents.record({
+      eventType: ActivityEventType.PROJECT_CREATED,
+      actorType: ActivityActorType.USER,
+      actorId: user.id,
+      actorEmail: user.email,
+      developerId: user.id,
+      projectId: project.id,
+      resourceType: AuditResource.Project,
+      resourceId: project.id,
+      metadata: { name: project.name },
+      requestId: context.requestId,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
     });
 
     return project;
@@ -99,6 +117,20 @@ export class ProjectsController {
       // into a permanent log.
       metadata: { changed: Object.keys(dto) },
       context,
+    });
+
+    await this.activityEvents.record({
+      eventType: ActivityEventType.PROJECT_UPDATED,
+      actorType: ActivityActorType.USER,
+      actorId: user.id,
+      actorEmail: user.email,
+      projectId: id,
+      resourceType: AuditResource.Project,
+      resourceId: id,
+      metadata: { changed: Object.keys(dto) },
+      requestId: context.requestId,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
     });
 
     return project;
@@ -169,6 +201,19 @@ export class ProjectsController {
       resourceType: AuditResource.Project,
       resourceId: id,
       context,
+    });
+
+    await this.activityEvents.record({
+      eventType: ActivityEventType.PROJECT_DELETED,
+      actorType: ActivityActorType.USER,
+      actorId: user.id,
+      actorEmail: user.email,
+      projectId: id,
+      resourceType: AuditResource.Project,
+      resourceId: id,
+      requestId: context.requestId,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
     });
   }
 }

@@ -3,6 +3,7 @@ import { Environment } from '../../shared/environment/environment.constants';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { ConflictError, NotFoundError } from '../../shared/errors/app-error';
 import { RoomEventsService } from '../signaling/rooms/room-events.service';
+import { ActivityEventsService } from '../super-admin/activity-events.service';
 import { SfuRoomStateService } from './sfu-room-state.service';
 import { RoomsService } from './rooms.service';
 
@@ -18,6 +19,9 @@ describe('RoomsService', () => {
       create: jest.Mock;
       update: jest.Mock;
     };
+    project: {
+      findUnique: jest.Mock;
+    };
   };
   let roomState: {
     listLiveParticipantCounts: jest.Mock;
@@ -25,10 +29,12 @@ describe('RoomsService', () => {
     closeLiveSession: jest.Mock;
   };
   let roomEvents: { publish: jest.Mock };
+  let activityEvents: { record: jest.Mock };
 
   beforeEach(() => {
     prisma = {
       room: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn() },
+      project: { findUnique: jest.fn().mockResolvedValue({ ownerId: 'owner1' }) },
     };
     roomState = {
       listLiveParticipantCounts: jest.fn(),
@@ -36,10 +42,12 @@ describe('RoomsService', () => {
       closeLiveSession: jest.fn().mockResolvedValue(true),
     };
     roomEvents = { publish: jest.fn().mockResolvedValue(undefined) };
+    activityEvents = { record: jest.fn().mockResolvedValue(undefined) };
     service = new RoomsService(
       prisma as unknown as PrismaService,
       roomState as unknown as SfuRoomStateService,
       roomEvents as unknown as RoomEventsService,
+      activityEvents as unknown as ActivityEventsService,
     );
   });
 

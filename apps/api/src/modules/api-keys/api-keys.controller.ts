@@ -30,6 +30,8 @@ import { Capability } from '../projects/project-permissions';
 import { AuditRequestContext, type AuditContext } from '../audit/audit-context.decorator';
 import { AuditAction, AuditResource } from '../audit/audit.constants';
 import { AuditService } from '../audit/audit.service';
+import { ActivityActorType, ActivityEventType } from '../super-admin/activity-events.constants';
+import { ActivityEventsService } from '../super-admin/activity-events.service';
 
 // Management endpoints for a project's API keys: guarded by
 // JwtAuthGuard, so the developer has to be logged in and own the project.
@@ -44,6 +46,7 @@ export class ApiKeysController {
     private readonly audit: AuditService,
     private readonly apiKeysService: ApiKeysService,
     private readonly projectsService: ProjectsService,
+    private readonly activityEvents: ActivityEventsService,
   ) {}
 
   @Post()
@@ -92,6 +95,20 @@ export class ApiKeysController {
       context,
     });
 
+    await this.activityEvents.record({
+      eventType: ActivityEventType.API_KEY_CREATED,
+      actorType: ActivityActorType.USER,
+      actorId: user.id,
+      actorEmail: user.email,
+      projectId,
+      resourceType: AuditResource.ApiKey,
+      resourceId: created.publicId,
+      metadata: { name: created.name, environment: created.environment },
+      requestId: context.requestId,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+    });
+
     return {
       ...created,
       warning: 'This is the only time the full key is shown. Store it securely — it cannot be retrieved again.',
@@ -136,6 +153,20 @@ export class ApiKeysController {
       environment: revoked.environment,
       metadata: { name: revoked.name },
       context,
+    });
+
+    await this.activityEvents.record({
+      eventType: ActivityEventType.API_KEY_REVOKED,
+      actorType: ActivityActorType.USER,
+      actorId: user.id,
+      actorEmail: user.email,
+      projectId,
+      resourceType: AuditResource.ApiKey,
+      resourceId: revoked.publicId,
+      metadata: { name: revoked.name, environment: revoked.environment },
+      requestId: context.requestId,
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
     });
   }
 }

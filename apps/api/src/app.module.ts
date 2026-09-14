@@ -26,6 +26,17 @@ import { RtcServersModule } from './modules/rtc-servers/rtc-servers.module';
 import { RtcTokensModule } from './modules/rtc-tokens/rtc-tokens.module';
 import { ServerApiModule } from './modules/server-api/server-api.module';
 import { SignalingModule } from './modules/signaling/signaling.module';
+import { SuperAdminCoreModule } from './modules/super-admin/super-admin-core.module';
+import { SuperAdminOverviewModule } from './modules/super-admin/overview/super-admin-overview.module';
+import { SuperAdminDevelopersModule } from './modules/super-admin/developers/super-admin-developers.module';
+import { SuperAdminActivityModule } from './modules/super-admin/activity/super-admin-activity.module';
+import { SuperAdminAuditLogsModule } from './modules/super-admin/audit-logs/super-admin-audit-logs.module';
+import { SuperAdminRtcModule } from './modules/super-admin/rtc/super-admin-rtc.module';
+import { SuperAdminChatModule } from './modules/super-admin/chat/super-admin-chat.module';
+import { SuperAdminLiveModule } from './modules/super-admin/live/super-admin-live.module';
+import { SuperAdminApiModule } from './modules/super-admin/api/super-admin-api.module';
+import { SuperAdminUsageModule } from './modules/super-admin/usage/super-admin-usage.module';
+import { SuperAdminOpsModule } from './modules/super-admin/ops/super-admin-ops.module';
 import { UsageModule } from './modules/usage/usage.module';
 import { UsersModule } from './modules/users/users.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
@@ -80,6 +91,17 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
     WebhooksModule,
     ChatModule,
     LiveStreamsModule,
+    SuperAdminCoreModule,
+    SuperAdminOverviewModule,
+    SuperAdminDevelopersModule,
+    SuperAdminActivityModule,
+    SuperAdminAuditLogsModule,
+    SuperAdminRtcModule,
+    SuperAdminChatModule,
+    SuperAdminLiveModule,
+    SuperAdminApiModule,
+    SuperAdminUsageModule,
+    SuperAdminOpsModule,
   ],
 })
 export class AppModule implements NestModule {

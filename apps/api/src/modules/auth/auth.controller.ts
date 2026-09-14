@@ -9,6 +9,7 @@ import {
 } from '@nestjs/swagger';
 import { RateLimit } from '../../shared/rate-limit/rate-limit.decorator';
 import { RateLimitGuard } from '../../shared/rate-limit/rate-limit.guard';
+import { AuditContext, AuditRequestContext } from '../audit/audit-context.decorator';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
@@ -46,8 +47,8 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'Account created', schema: { example: AUTH_RESULT_EXAMPLE } })
   @ApiResponse({ status: 409, description: 'An account with this email already exists' })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
-  register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  register(@Body() dto: RegisterDto, @AuditRequestContext() context: AuditContext) {
+    return this.authService.register(dto, context);
   }
 
   @Post('login')
@@ -61,8 +62,8 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Authenticated', schema: { example: AUTH_RESULT_EXAMPLE } })
   @ApiUnauthorizedResponse({ description: 'Invalid email or password' })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
-  login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  login(@Body() dto: LoginDto, @AuditRequestContext() context: AuditContext) {
+    return this.authService.login(dto, context);
   }
 
   @Post('verify-email')
@@ -146,7 +147,7 @@ export class AuthController {
       'Blocklists this specific token (by jti) in Redis until it would have expired naturally. JWTs are stateless, so this is the only way to make one stop working before its exp claim.',
   })
   @ApiResponse({ status: 204, description: 'Logged out' })
-  async logout(@CurrentUser() user: AuthenticatedUser): Promise<void> {
-    await this.authService.logout(user);
+  async logout(@CurrentUser() user: AuthenticatedUser, @AuditRequestContext() context: AuditContext): Promise<void> {
+    await this.authService.logout(user, context);
   }
 }

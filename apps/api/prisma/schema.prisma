@@ -67,6 +67,26 @@ enum ErrorCategory {
   UNKNOWN_ERROR
 }
 
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+/**
+ * Platform-wide administrative role, entirely separate from `ProjectRole`
+ * (which governs one project's membership). `null` on `User.platformRole`
+ * is the default and the overwhelmingly common case: an ordinary developer
+ * with no access to the Super Admin Portal at all. Holding any value here
+ * is what `PlatformRoleGuard` checks — a project's `ProjectRole.ADMIN`
+ * grants none of this.
+ */
+enum PlatformRole {
+  SUPER_ADMIN
+  ADMIN
+  SUPPORT
+  READ_ONLY
+}
+
 model User {
   id              String    @id @default(uuid())
   email           String    @unique
@@ -76,6 +96,13 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  status          AccountStatus @default(ACTIVE)
+  suspendedAt     DateTime?
+  suspendedReason String?
+
+  /** Non-null only for Raven operators. See PlatformRole doc comment. */
+  platformRole PlatformRole?
+
   projects         Project[]
   memberships      ProjectMember[]
   tokens           UserToken[]
@@ -83,7 +110,9 @@ model User {
   onboarding       UserOnboarding?
   usageAllowances  UsageAllowance[]
   liveStreamsOwned LiveStream[]
+  activityEvents   ActivityEvent[]
 
+  @@index([platformRole])
   @@map("users")
 }
 
@@ -174,6 +203,7 @@ model Project {
   webhookEndpoints WebhookEndpoint[]
   liveStreams      LiveStream[]
   usageSessions    UsageSession[]
+  activityEvents   ActivityEvent[]
 
   @@index([ownerId])
   @@map("projects")
@@ -890,4 +920,155 @@ model UsageSession {
   @@index([projectId, startedAt])
   @@index([endedAt, lastMeteredAt])
   @@map("usage_sessions")
+}
+
+
+// ---------------------------------------------------------------------------
+// Super Admin Portal: cross-product activity stream + admin audit trail
+//
+// Deliberately separate from `AuditLog` above, which is project-scoped and
+// required to have a `projectId` — most of what happens on this platform
+// (a login, a suspicious-activity flag, an admin viewing a developer) has
+// no project at all. `ActivityEvent` is the append-only business/security
+// event stream powering the developer activity timeline and the Global
+// Activity Explorer. `AdminAuditLog` is stricter still: only what a Raven
+// *administrator* did, with before/after state, and is what the Audit Logs
+// section of the Super Admin Portal reads — never editable, same rule as
+// `AuditLog`.
+// ---------------------------------------------------------------------------
+
+enum ActivityActorType {
+  USER
+  ADMIN
+  SYSTEM
+  API_KEY
+}
+
+enum ActivityEventType {
+  // Authentication
+  USER_SIGNED_UP
+  USER_LOGIN
+  USER_LOGOUT
+  LOGIN_FAILED
+  PASSWORD_CHANGED
+  OAUTH_CONNECTED
+
+  // Projects
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROJECT_DELETED
+  PROJECT_MEMBER_ADDED
+  PROJECT_MEMBER_REMOVED
+
+  // API
+  API_KEY_CREATED
+  API_KEY_REVOKED
+  API_REQUEST_FAILED
+
+  // RTC
+  RTC_ROOM_CREATED
+  RTC_ROOM_ENDED
+  RTC_PARTICIPANT_JOINED
+  RTC_PARTICIPANT_LEFT
+  RTC_CONNECTION_FAILED
+  RTC_RECONNECT
+  RTC_TOKEN_CREATED
+
+  // Chat
+  CHAT_CONVERSATION_CREATED
+  CHAT_MEMBER_ADDED
+  CHAT_MESSAGE_SENT
+  CHAT_MESSAGE_FAILED
+
+  // Live Streaming
+  LIVE_STREAM_CREATED
+  LIVE_STREAM_STARTED
+  LIVE_STREAM_ENDED
+  LIVE_STREAM_HOST_JOINED
+  LIVE_STREAM_VIEWER_JOINED
+  LIVE_STREAM_FAILED
+
+  // Security
+  SUSPICIOUS_ACTIVITY
+  RATE_LIMIT_TRIGGERED
+  ACCOUNT_SUSPENDED
+  ACCOUNT_UNSUSPENDED
+
+  // Admin (mirrors AdminAuditLog entries into the unified timeline/explorer)
+  ADMIN_LOGIN
+  ADMIN_USER_VIEWED
+  ADMIN_PROJECT_VIEWED
+  ADMIN_ACCOUNT_SUSPENDED
+  ADMIN_ACCOUNT_UNSUSPENDED
+  ADMIN_LIMIT_CHANGED
+  ADMIN_ACTION
+}
+
+model ActivityEvent {
+  id        String            @id @default(uuid())
+  publicId  String            @unique
+  eventType ActivityEventType
+
+  actorType  ActivityActorType
+  actorId    String?
+  actorEmail String?
+
+  resourceType String?
+  resourceId   String?
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  /** Whose timeline this belongs to (§6/§20) — usually the resource owner, not necessarily the actor. */
+  developerId String?
+  developer   User?   @relation(fields: [developerId], references: [id], onDelete: SetNull)
+
+  success Boolean @default(true)
+
+  requestId String?
+  ipAddress String?
+  userAgent String?
+
+  /** Extra context. Never credentials, never message/chat content. */
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([developerId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([success, createdAt])
+  @@index([createdAt])
+  @@map("activity_events")
+}
+
+model AdminAuditLog {
+  id       String @id @default(uuid())
+  publicId String @unique
+
+  adminId    String
+  adminEmail String
+
+  action     String
+  targetType String
+  targetId   String?
+
+  /** Required by convention at the call site for mutating actions (§9); not DB-enforced since a read-only "viewed" entry has none. */
+  reason String?
+
+  /** Snapshots for mutating actions only. Never secrets — see AdminAuditService. */
+  beforeState Json?
+  afterState  Json?
+
+  requestId String?
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("admin_audit_logs")
 }
