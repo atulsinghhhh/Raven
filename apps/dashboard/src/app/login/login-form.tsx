@@ -41,9 +41,13 @@ export function LoginForm() {
       if (!payload.user?.isPlatformAdmin && payload.onboarding && !payload.onboarding.completed) {
         router.push('/onboarding');
       } else {
-        // `next` carries the page the user was trying to reach: including
-        // the CLI authorisation hand-off, so it has to survive the round trip.
-        router.push(searchParams.get('next') ?? '/dashboard');
+        // `next` carries the page the user was trying to reach — including
+        // the CLI authorisation hand-off — so an explicit one always wins.
+        // Absent that, a Super Admin Portal account lands in the console
+        // it actually uses: it has no projects, so the developer dashboard
+        // is a dead end for this account, not a sensible default.
+        const fallback = payload.user?.isPlatformAdmin ? '/super-admin' : '/dashboard';
+        router.push(searchParams.get('next') ?? fallback);
       }
       router.refresh();
     } catch {
