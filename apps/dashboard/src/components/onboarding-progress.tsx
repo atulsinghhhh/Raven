@@ -7,12 +7,18 @@ import { Card, CardHeader } from '@/components/ui/card';
  * moment the project has any activity at all. The parent page decides
  * when to stop rendering it (once every step is done).
  */
-export function OnboardingProgress({ steps }: { steps: OnboardingStep[] }) {
+export function OnboardingProgress({
+  steps,
+  title = 'Get to your first real connection',
+}: {
+  steps: OnboardingStep[];
+  title?: string;
+}) {
   const doneCount = steps.filter((s) => s.done).length;
 
   return (
     <Card>
-      <CardHeader title="Get to your first real connection" subtitle={`${doneCount} of ${steps.length} steps done.`} />
+      <CardHeader title={title} subtitle={`${doneCount} of ${steps.length} steps done.`} />
       <ol className="flex flex-col gap-0">
         {steps.map((step, i) => (
           <li key={step.step} className="relative flex gap-3 pb-5 last:pb-0">

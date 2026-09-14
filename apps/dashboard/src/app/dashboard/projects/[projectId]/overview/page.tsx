@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
-import { ApiError, ravenApi, type RtcFleetMetrics } from '@/lib/api-client';
+import { ApiError, ravenApi, type ProjectIntegration, type RtcFleetMetrics } from '@/lib/api-client';
 import { Badge, ConnectionStateBadge, ErrorCategoryBadge, StatusBadge } from '@/components/ui/badge';
 import { ButtonLink } from '@/components/ui/button';
 import { Card, CardHeader, SectionHeader, StatCard } from '@/components/ui/card';
@@ -12,8 +12,15 @@ import { MonoId } from '@/components/ui/mono';
 import { Dash, ErrorState, NoDataYet } from '@/components/ui/states';
 import { IconChevronRight } from '@/components/ui/icons';
 import { formatCount, formatDuration, formatRelative, normaliseRange, RANGE_LABEL } from '@/lib/format';
-import { buildOnboardingSteps } from '@/lib/onboarding';
+import { buildIntegrationSteps, buildOnboardingSteps, type IntegrationProductId } from '@/lib/onboarding';
 import { OnboardingProgress } from '@/components/onboarding-progress';
+import { PRODUCTS } from '@/lib/integration-registry';
+
+const INTEGRATION_ENUM_TO_PRODUCT: Record<ProjectIntegration['product'], IntegrationProductId> = {
+  RTC: 'rtc',
+  CHAT: 'chat',
+  LIVE_STREAMING: 'live-streaming',
+};
 
 export default async function OverviewPage({
   params,
@@ -41,6 +48,7 @@ export default async function OverviewPage({
     chatOverviewResult,
     liveStreamsResult,
     rtcFleetResult,
+    integrationsResult,
   ] = await Promise.allSettled([
     ravenApi.getProject(token, projectId),
     ravenApi.getMetrics(token, projectId, range),
@@ -56,6 +64,7 @@ export default async function OverviewPage({
     // calls are failing: a probed node can answer while every node is
     // draining, and then no room can be allocated at all.
     ravenApi.getRtcFleetMetrics(token),
+    ravenApi.getIntegrations(token, projectId),
   ]);
 
   if (projectResult.status === 'rejected') {
@@ -73,17 +82,27 @@ export default async function OverviewPage({
   const chatOverview = chatOverviewResult.status === 'fulfilled' ? chatOverviewResult.value : undefined;
   const liveStreams = liveStreamsResult.status === 'fulfilled' ? liveStreamsResult.value : [];
   const rtcFleet = rtcFleetResult.status === 'fulfilled' ? rtcFleetResult.value : undefined;
+  const integrations = integrationsResult.status === 'fulfilled' ? integrationsResult.value : [];
 
   const base = `/dashboard/projects/${projectId}`;
   const hasActivity = connections.length > 0 || (rooms?.length ?? 0) > 0;
+  const hasConnection = connections.length > 0 || (rooms?.length ?? 0) > 0;
+  const hasChatActivity = (chatOverview?.conversations ?? 0) > 0 || (chatOverview?.messagesStored ?? 0) > 0;
+  const hasLiveStream = liveStreams.length > 0;
 
   const onboardingSteps = buildOnboardingSteps(projectId, {
     hasApiKey: apiKeys.length > 0,
-    hasConnection: connections.length > 0 || (rooms?.length ?? 0) > 0,
-    hasChatActivity: (chatOverview?.conversations ?? 0) > 0 || (chatOverview?.messagesStored ?? 0) > 0,
-    hasLiveStream: liveStreams.length > 0,
+    hasConnection,
+    hasChatActivity,
+    hasLiveStream,
   });
   const onboardingComplete = onboardingSteps.every((s) => s.done);
+
+  const PRODUCT_ACTIVITY: Record<ProjectIntegration['product'], boolean> = {
+    RTC: hasConnection,
+    CHAT: hasChatActivity,
+    LIVE_STREAMING: hasLiveStream,
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -120,6 +139,19 @@ export default async function OverviewPage({
       />
 
       {!onboardingComplete && <OnboardingProgress steps={onboardingSteps} />}
+
+      {integrations.map((integration) => {
+        const productId = INTEGRATION_ENUM_TO_PRODUCT[integration.product];
+        const productLabel = PRODUCTS.find((p) => p.id === productId)?.label ?? productId;
+        const steps = buildIntegrationSteps(projectId, productId, productLabel, {
+          hasApiKey: apiKeys.length > 0,
+          lastVerifiedSuccess: integration.lastVerifiedSuccess,
+          hasProductActivity: PRODUCT_ACTIVITY[integration.product],
+        });
+        return steps.every((s) => s.done) ? null : (
+          <OnboardingProgress key={integration.id} steps={steps} title={`${productLabel} integration`} />
+        );
+      })}
 
       {!hasActivity ? (
         <Card>

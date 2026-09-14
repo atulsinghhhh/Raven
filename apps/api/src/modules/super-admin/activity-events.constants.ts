@@ -43,6 +43,12 @@ export const ACTIVITY_EVENT_GROUPS: Record<string, ActivityEventType[]> = {
     ActivityEventType.LIVE_STREAM_VIEWER_JOINED,
     ActivityEventType.LIVE_STREAM_FAILED,
   ],
+  Integration: [
+    ActivityEventType.INTEGRATION_STACK_SELECTED,
+    ActivityEventType.INTEGRATION_CONNECTION_TESTED,
+    ActivityEventType.INTEGRATION_CONNECTION_SUCCEEDED,
+    ActivityEventType.INTEGRATION_CONNECTION_FAILED,
+  ],
   Security: [
     ActivityEventType.SUSPICIOUS_ACTIVITY,
     ActivityEventType.RATE_LIMIT_TRIGGERED,

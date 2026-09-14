@@ -204,9 +204,39 @@ model Project {
   liveStreams      LiveStream[]
   usageSessions    UsageSession[]
   activityEvents   ActivityEvent[]
+  integrations     ProjectIntegration[]
 
   @@index([ownerId])
   @@map("projects")
+}
+
+/**
+ * One row per (project, product) the developer has picked in the
+ * integration wizard (quickstart page). Deliberately minimal: only real
+ * facts get persisted here — the stack selection itself, and the outcome
+ * of an actual server-side verification check. "SDK installed" or
+ * "example copied" are never stored as self-reported booleans; the
+ * dashboard infers those from real signals the same way
+ * `buildOnboardingSteps` already does for first-run onboarding.
+ */
+model ProjectIntegration {
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  product  UsageProduct
+  language String
+  framework String
+
+  lastVerifiedAt      DateTime?
+  lastVerifiedSuccess Boolean?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, product])
+  @@index([projectId])
+  @@map("project_integrations")
 }
 
 model ProjectMember {
@@ -987,6 +1017,12 @@ enum ActivityEventType {
   LIVE_STREAM_HOST_JOINED
   LIVE_STREAM_VIEWER_JOINED
   LIVE_STREAM_FAILED
+
+  // Integration wizard (quickstart page) — see ProjectIntegration
+  INTEGRATION_STACK_SELECTED
+  INTEGRATION_CONNECTION_TESTED
+  INTEGRATION_CONNECTION_SUCCEEDED
+  INTEGRATION_CONNECTION_FAILED
 
   // Security
   SUSPICIOUS_ACTIVITY

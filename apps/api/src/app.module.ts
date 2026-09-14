@@ -17,6 +17,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { EmailModule } from './modules/email/email.module';
 import { HealthModule } from './modules/health/health.module';
+import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { LiveStreamsModule } from './modules/live-streams/live-streams.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
@@ -91,6 +92,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
     WebhooksModule,
     ChatModule,
     LiveStreamsModule,
+    IntegrationsModule,
     SuperAdminCoreModule,
     SuperAdminOverviewModule,
     SuperAdminDevelopersModule,

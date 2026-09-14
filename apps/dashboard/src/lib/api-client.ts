@@ -701,6 +701,31 @@ export interface ProjectUsage {
   liveStreaming?: LiveStreamingUsageBlock;
 }
 
+/** A saved stack selection for one product, from the quickstart page's integration wizard. */
+export interface ProjectIntegration {
+  id: string;
+  projectId: string;
+  product: 'RTC' | 'CHAT' | 'LIVE_STREAMING';
+  language: string;
+  framework: string;
+  lastVerifiedAt: string | null;
+  lastVerifiedSuccess: boolean | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IntegrationVerifyCheck {
+  id: string;
+  label: string;
+  status: 'pass' | 'fail';
+  detail?: string;
+}
+
+export interface IntegrationVerifyResult {
+  success: boolean;
+  checks: IntegrationVerifyCheck[];
+}
+
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   token?: string;
@@ -793,6 +818,27 @@ export const ravenApi = {
 
   completeOnboarding: (token: string) =>
     apiFetch<OnboardingState>('/v1/onboarding/complete', { method: 'POST', token }),
+
+  getIntegrations: (token: string, projectId: string) =>
+    apiFetch<ProjectIntegration[]>(`/v1/projects/${projectId}/integrations`, { token }),
+
+  selectIntegration: (
+    token: string,
+    projectId: string,
+    product: 'rtc' | 'chat' | 'live-streaming',
+    input: { language: string; framework: string },
+  ) =>
+    apiFetch<ProjectIntegration>(`/v1/projects/${projectId}/integrations/${product}`, {
+      method: 'PATCH',
+      token,
+      body: input,
+    }),
+
+  verifyIntegration: (token: string, projectId: string, product: 'rtc' | 'chat' | 'live-streaming') =>
+    apiFetch<IntegrationVerifyResult>(`/v1/projects/${projectId}/integrations/${product}/verify`, {
+      method: 'POST',
+      token,
+    }),
 
   listProjects: (token: string) => apiFetch<Project[]>('/v1/projects', { token }),
 
