@@ -342,23 +342,26 @@ packages:
   raven_chat:
     dependency: "direct main"
     description:
-      path: "../../sdks/flutter/raven_chat"
-      relative: true
-    source: path
+      name: raven_chat
+      sha256: "3aabe495edd7117984cad9293274e9b30d9ba03695f9656a5e15e78d45a80428"
+      url: "https://pub.dev"
+    source: hosted
     version: "0.1.0"
   raven_live:
     dependency: "direct main"
     description:
-      path: "../../sdks/flutter/raven_live"
-      relative: true
-    source: path
+      name: raven_live
+      sha256: d12765b5f5bdcf5c6085578e971497c347aab21824d50b825421b633e87e9131
+      url: "https://pub.dev"
+    source: hosted
     version: "0.1.0"
   raven_rtc:
     dependency: "direct main"
     description:
-      path: "../../sdks/flutter/raven_rtc"
-      relative: true
-    source: path
+      name: raven_rtc
+      sha256: "29c6720a5fa38a9ab64ec7920a9bb1c089dd519926851fba3dd082d49f60efea"
+      url: "https://pub.dev"
+    source: hosted
     version: "0.1.2"
   record_use:
     dependency: transitive
@@ -454,7 +457,7 @@ packages:
     source: hosted
     version: "15.3.0"
   web:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: web
       sha256: "868d88a33d8a87b18ffc05f9f030ba328ffefba92d6c127917a2ba740f9cfe4a"
