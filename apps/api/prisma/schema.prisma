@@ -111,6 +111,7 @@ model User {
   usageAllowances  UsageAllowance[]
   liveStreamsOwned LiveStream[]
   activityEvents   ActivityEvent[]
+  notifications    Notification[]
 
   @@index([platformRole])
   @@map("users")
@@ -205,6 +206,7 @@ model Project {
   usageSessions    UsageSession[]
   activityEvents   ActivityEvent[]
   integrations     ProjectIntegration[]
+  notifications    Notification[]
 
   @@index([ownerId])
   @@map("projects")
@@ -277,6 +279,44 @@ model AuditLog {
   @@index([projectId, action])
   @@index([actorId])
   @@map("audit_logs")
+}
+
+
+enum NotificationType {
+  WEBHOOK_DELIVERY_FAILED
+  WEBHOOK_ENDPOINT_DISABLED
+  LIVE_STREAM_STARTED
+  LIVE_STREAM_ENDED
+}
+
+model Notification {
+  id       String @id @default(uuid())
+  publicId String @unique
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  type    NotificationType
+  title   String
+  message String
+
+  payload Json?
+
+  dedupeKey String
+
+  read   Boolean   @default(false)
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, projectId, read, createdAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
 }
 
 model ApiKey {
