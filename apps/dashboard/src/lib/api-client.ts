@@ -194,6 +194,16 @@ export interface IceServer {
   credential?: string;
 }
 
+export interface IssuedDashboardWsToken {
+  token: string;
+  tokenId: string;
+  userId: string;
+  projectId: string;
+  /** Where the browser should open its WebSocket. The dashboard never hardcodes this — see apps/api's DashboardWsTokenService.wsUrl. */
+  wsUrl: string;
+  expiresAt: string;
+}
+
 export interface IssuedRtcToken {
   id: string;
   token: string;
@@ -259,6 +269,19 @@ export interface ConnectionEventEntry {
   type: string;
   data: Record<string, unknown> | null;
   timestamp: string;
+}
+
+/**
+ * The dashboard's own connections list is cursor-paginated
+ * (`GET /v1/projects/:projectId/connections`) — unlike `GET /v1/connections`,
+ * the server-SDK-facing endpoint published server SDKs depend on as a bare
+ * `ConnectionSummary[]`, which stays that way on purpose. Two different
+ * response shapes for two different consumers of the same underlying data.
+ */
+export interface ConnectionsPage {
+  data: ConnectionSummary[];
+  nextCursor: string | null;
+  hasMore: boolean;
 }
 
 export interface ConnectionDetail extends ConnectionSummary {
@@ -733,27 +756,69 @@ interface RequestOptions {
 }
 
 async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: options.method ?? 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
-    },
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-    cache: 'no-store',
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      method: options.method ?? 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+      },
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      cache: 'no-store',
+    });
+  } catch {
+    // fetch() itself throws (DNS/connection refused/aborted) rather than resolving with
+    // a bad status. Normalize to ApiError so every caller's `instanceof ApiError` check
+    // covers "API unreachable" the same way it covers "API responded with an error".
+    throw new ApiError(0, 'NETWORK_ERROR', 'Could not reach the Control API');
+  }
 
   if (res.status === 204) {
     return undefined as T;
   }
 
-  const payload = await res.json().catch(() => undefined);
+  const parsed = await res.json().then(
+    (value) => ({ ok: true as const, value }),
+    () => ({ ok: false as const, value: undefined }),
+  );
+  const payload = parsed.value as { code?: string; message?: string } | undefined;
 
   if (!res.ok) {
     throw new ApiError(res.status, payload?.code ?? 'UNKNOWN', payload?.message ?? 'Request failed');
   }
 
+  if (!parsed.ok) {
+    // A 2xx with an unparseable body is a contract violation, not "no data" — surface
+    // it instead of silently handing callers `undefined` typed as T.
+    throw new ApiError(res.status, 'INVALID_RESPONSE', 'Received an unexpected response from the Control API');
+  }
+
   return payload as T;
+}
+
+export type NotificationType =
+  | 'WEBHOOK_DELIVERY_FAILED'
+  | 'WEBHOOK_ENDPOINT_DISABLED'
+  | 'LIVE_STREAM_STARTED'
+  | 'LIVE_STREAM_ENDED';
+
+export interface NotificationSummary {
+  id: string;
+  projectId: string | null;
+  type: NotificationType;
+  title: string;
+  message: string;
+  payload: Record<string, unknown> | null;
+  read: boolean;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface ListNotificationsResult {
+  data: NotificationSummary[];
+  nextCursor: string | null;
+  hasMore: boolean;
 }
 
 export const ravenApi = {
@@ -917,6 +982,9 @@ export const ravenApi = {
       body: { participantIdentity },
     }),
 
+  createDashboardWsToken: (token: string, projectId: string) =>
+    apiFetch<IssuedDashboardWsToken>(`/v1/projects/${projectId}/dashboard-ws-token`, { method: 'POST', token }),
+
   listRtcServers: (token: string, region?: string) =>
     apiFetch<RtcServer[]>(`/v1/rtc/servers${region ? `?region=${encodeURIComponent(region)}` : ''}`, { token }),
 
@@ -966,15 +1034,16 @@ export const ravenApi = {
   listConnections: (
     token: string,
     projectId: string,
-    opts: { roomId?: string; state?: ConnectionLifecycleState; limit?: number } = {},
+    opts: { roomId?: string; state?: ConnectionLifecycleState; limit?: number; cursor?: string } = {},
   ) => {
     const params = new URLSearchParams();
     if (opts.roomId) params.set('roomId', opts.roomId);
     if (opts.state) params.set('state', opts.state);
     // The API caps this at 200 and defaults to 50 (QueryConnectionsDto).
     if (opts.limit) params.set('limit', String(opts.limit));
+    if (opts.cursor) params.set('cursor', opts.cursor);
     const query = params.toString() ? `?${params.toString()}` : '';
-    return apiFetch<ConnectionSummary[]>(`/v1/projects/${projectId}/connections${query}`, { token });
+    return apiFetch<ConnectionsPage>(`/v1/projects/${projectId}/connections${query}`, { token });
   },
 
   getConnection: (token: string, projectId: string, connectionId: string) =>
@@ -1083,4 +1152,31 @@ export const ravenApi = {
   /** Includes the stream's live viewer count. `listLiveStreams` doesn't, to avoid an SFU round trip per row. */
   getLiveStream: (token: string, projectId: string, streamId: string) =>
     apiFetch<LiveStreamSummary>(`/v1/projects/${projectId}/live-streams/${streamId}`, { token }),
+
+  listNotifications: (
+    token: string,
+    projectId: string,
+    opts: { limit?: number; cursor?: string; unreadOnly?: boolean } = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (opts.limit) params.set('limit', String(opts.limit));
+    if (opts.cursor) params.set('cursor', opts.cursor);
+    if (opts.unreadOnly) params.set('unreadOnly', 'true');
+    const query = params.toString();
+    return apiFetch<ListNotificationsResult>(`/v1/projects/${projectId}/notifications${query ? `?${query}` : ''}`, {
+      token,
+    });
+  },
+
+  getUnreadNotificationCount: (token: string, projectId: string) =>
+    apiFetch<{ count: number }>(`/v1/projects/${projectId}/notifications/unread-count`, { token }),
+
+  markNotificationRead: (token: string, projectId: string, notificationId: string) =>
+    apiFetch<NotificationSummary>(`/v1/projects/${projectId}/notifications/${notificationId}/read`, {
+      method: 'PATCH',
+      token,
+    }),
+
+  markAllNotificationsRead: (token: string, projectId: string) =>
+    apiFetch<void>(`/v1/projects/${projectId}/notifications/read-all`, { method: 'POST', token }),
 };

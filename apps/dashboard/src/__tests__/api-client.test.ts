@@ -47,6 +47,35 @@ describe('ravenApi', () => {
     }
   });
 
+  it('normalizes a rejected fetch() (network failure) into an ApiError instead of a raw TypeError', async () => {
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    let caught: unknown;
+    try {
+      await ravenApi.listProjects('token');
+      throw new Error('expected listProjects to throw');
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(ApiError);
+    expect(caught).toMatchObject({ status: 0, code: 'NETWORK_ERROR' });
+  });
+
+  it('throws an ApiError instead of returning undefined when a 2xx body is not valid JSON', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError('Unexpected token');
+      },
+    });
+
+    await expect(ravenApi.listProjects('token')).rejects.toMatchObject({
+      status: 200,
+      code: 'INVALID_RESPONSE',
+    });
+  });
+
   it('returns undefined for a 204 No Content response, without attempting to parse a body', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,

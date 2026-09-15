@@ -36,7 +36,10 @@ export async function fetchLogSources(token: string, projectId: string) {
   ].some((r) => r.status === 'rejected');
 
   return {
-    connections: connectionsResult.status === 'fulfilled' ? connectionsResult.value : [],
+    // listConnections now returns a cursor-paginated page ({data,
+    // nextCursor, hasMore}) — this view only ever wants the first LOG_SCAN_LIMIT
+    // records, so it takes .data and ignores the rest, same as before.
+    connections: connectionsResult.status === 'fulfilled' ? connectionsResult.value.data : [],
     errors: errorsResult.status === 'fulfilled' ? errorsResult.value : [],
     chatConnections: chatConnectionsResult.status === 'fulfilled' ? chatConnectionsResult.value : [],
     webhookDeliveries,

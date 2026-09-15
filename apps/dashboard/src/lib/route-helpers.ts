@@ -18,7 +18,10 @@ export function isResponse(value: unknown): value is NextResponse {
 // Forwards the API's status/code/message: never leaks a raw stack trace.
 export function handleApiError(error: unknown): NextResponse {
   if (error instanceof ApiError) {
-    return NextResponse.json({ code: error.code, message: error.message }, { status: error.status });
+    // status 0 means apiFetch never got a response at all (fetch() threw) — there's no
+    // real upstream status to forward, so report it as a gateway failure.
+    const status = error.status === 0 ? 502 : error.status;
+    return NextResponse.json({ code: error.code, message: error.message }, { status });
   }
   return NextResponse.json({ code: 'NETWORK_ERROR', message: 'Could not reach the Control API' }, { status: 502 });
 }
