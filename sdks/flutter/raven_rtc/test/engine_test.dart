@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:raven_rtc/src/errors.dart';
 import 'package:raven_rtc/src/internal/engine.dart';
@@ -416,6 +419,300 @@ void main() {
       await engine.dispose();
       await signaling.dispose();
     });
+
+    test(
+        'Test E (production failure) — glare recovers off its own response when the SFU never sends anything else, not after a 15s wait',
+        () async {
+      final signaling = clientFor();
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
+      engine.start();
+      await joinRoom(signaling);
+      final pcId = await establishPeerConnection(signaling);
+
+      final media = fakeLocalMedia(pcId);
+      final published = await engine.publish(
+          source: 'camera', stream: media.stream, track: media.track);
+      await Future<void>.delayed(Duration.zero);
+      final offersBefore = socket.sent
+          .where((m) => m['type'] == ClientMessageType.sdpOffer)
+          .length;
+      expect(offersBefore, greaterThan(0),
+          reason: 'camera offer must have gone out first');
+
+      final errors = <RavenException>[];
+      engine.errors.listen(errors.add);
+
+      // The native side now reports what our own setLocalDescription(offer)
+      // actually did.
+      await platform.signalingState(pcId, 'have-local-offer');
+
+      // The server refuses it: its own join-time offer is still in flight
+      // from *its* point of view. Unlike Tests B/D, nothing else is ever
+      // delivered after this line — no SFU offer, no answer, nothing. This
+      // is the production failure verbatim: services/sfu's own
+      // AcceptAnswer for our join-time answer stalled for the full 15s
+      // answerTimeout, with no other signaling event to flush the deferred
+      // publish against in the meantime.
+      socket.receive({
+        'type': ServerMessageType.error,
+        'code': SignalingErrorCode.negotiationGlare,
+        'message':
+            'an offer from the server is already in flight; answer it, then retry',
+      });
+
+      // Only microtask-flushing delays below — no `fakeAsync`, no
+      // `async.elapse`, no real Duration longer than zero. If recovery
+      // needed the SFU's 15s answerTimeout, none of the assertions past
+      // this point could pass.
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        platform.localDescriptionTypes,
+        contains('rollback'),
+        reason:
+            'the glared offer must be rolled back locally before anything retries on top of it',
+      );
+
+      expect(
+        socket.sent
+            .where((m) => m['type'] == ClientMessageType.sdpOffer)
+            .length,
+        greaterThan(offersBefore),
+        reason:
+            'the deferred publish must retry off the glare response itself — '
+            'nothing else was ever going to arrive to flush it',
+      );
+
+      expect(errors, isEmpty,
+          reason:
+              'glare and its immediate, bounded retry must never surface as a media error');
+
+      // The publication itself was never lost, only its negotiation.
+      expect(engine.publishedTracks.map((t) => t.source), contains('camera'));
+      expect(published.source, 'camera');
+
+      await engine.dispose();
+      await signaling.dispose();
+    });
+
+    test(
+        'Test F — a single glare-triggered retry does not loop: a second glare on the retry falls back to waiting for a real round trip',
+        () async {
+      final signaling = clientFor();
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
+      engine.start();
+      await joinRoom(signaling);
+      final pcId = await establishPeerConnection(signaling);
+
+      final media = fakeLocalMedia(pcId);
+      await engine.publish(
+          source: 'camera', stream: media.stream, track: media.track);
+      await Future<void>.delayed(Duration.zero);
+
+      final errors = <RavenException>[];
+      engine.errors.listen(errors.add);
+
+      // First glare: the bounded immediate retry fires.
+      await platform.signalingState(pcId, 'have-local-offer');
+      socket.receive({
+        'type': ServerMessageType.error,
+        'code': SignalingErrorCode.negotiationGlare,
+        'message': 'glare',
+      });
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      final offersAfterFirstGlare = socket.sent
+          .where((m) => m['type'] == ClientMessageType.sdpOffer)
+          .length;
+      expect(offersAfterFirstGlare, greaterThan(0),
+          reason: 'the first glare must trigger exactly one retry offer');
+
+      // The retry glares too — the server is still stuck. This must not
+      // trigger a second immediate retry (the connection's own message
+      // rate limit, and packages/sdk's own documented history of a
+      // 48-round offer/rollback storm, is exactly what an unbounded loop
+      // here would reproduce).
+      await platform.signalingState(pcId, 'have-local-offer');
+      socket.receive({
+        'type': ServerMessageType.error,
+        'code': SignalingErrorCode.negotiationGlare,
+        'message': 'glare',
+      });
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        socket.sent
+            .where((m) => m['type'] == ClientMessageType.sdpOffer)
+            .length,
+        offersAfterFirstGlare,
+        reason:
+            'a glare on the retry itself must not spend a second immediate '
+            'attempt — it falls back to waiting for _handleOffer/_handleAnswer',
+      );
+
+      // A real round trip — the SFU's own offer finally arriving — earns
+      // a fresh attempt and this is what actually resolves it.
+      await platform.signalingState(pcId, 'stable');
+      socket.receive(
+          {'type': ServerMessageType.sdpOffer, 'sdp': 'v=0 sfu-offer-3'});
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        socket.sent
+            .where((m) => m['type'] == ClientMessageType.sdpOffer)
+            .length,
+        greaterThan(offersAfterFirstGlare),
+        reason:
+            'once a real offer/answer round completes, the publish must retry again',
+      );
+      expect(errors, isEmpty);
+
+      await engine.dispose();
+      await signaling.dispose();
+    });
+
+    test(
+        'Test G — publish() called before the SFU\'s initial offer arrives waits for it instead of racing it',
+        () async {
+      final signaling = clientFor();
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
+      engine.start();
+      await joinRoom(signaling);
+
+      // A peer connection has to exist to hand a track to, but creating
+      // one is not what's under test here — ensureDataChannel() creates
+      // one without ever sending an offer (see the "concurrent callers"
+      // test below), unlike publish().
+      unawaited(engine.ensureDataChannel());
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      final pcId = platform.lastPeerConnectionId!;
+
+      // publish() called immediately after joining — before the SFU's own
+      // join-time offer has even arrived, let alone been answered. This is
+      // main_live_host.dart's enableCamera() called right after
+      // RavenLiveStream.join() resolves.
+      final media = fakeLocalMedia(pcId);
+      final publishing = engine.publish(
+          source: 'camera', stream: media.stream, track: media.track);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        socket.sent.where((m) => m['type'] == ClientMessageType.sdpOffer),
+        isEmpty,
+        reason:
+            'nothing must be offered before the SFU\'s own join-time offer has been answered',
+      );
+
+      // Now the SFU's initial offer arrives and gets answered.
+      socket.receive({'type': ServerMessageType.sdpOffer, 'sdp': 'v=0 offer'});
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(socket.lastSent(ClientMessageType.sdpAnswer), isNotNull);
+
+      await platform.signalingState(pcId, 'stable');
+      await publishing.timeout(const Duration(seconds: 2));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        socket.sent.where((m) => m['type'] == ClientMessageType.sdpOffer),
+        isNotEmpty,
+        reason:
+            'only once the join-offer is answered may the publish negotiation begin',
+      );
+
+      await engine.dispose();
+      await signaling.dispose();
+    });
+
+    test(
+        'Test H — the initial-offer barrier only gates the very first offer of a generation, never a later publish',
+        () async {
+      final signaling = clientFor();
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
+      engine.start();
+      await joinRoom(signaling);
+      final pcId = await establishPeerConnection(signaling);
+
+      final camera =
+          fakeLocalMedia(pcId, trackId: 'camera-track', kind: 'video');
+      await engine
+          .publish(source: 'camera', stream: camera.stream, track: camera.track)
+          .timeout(const Duration(seconds: 2));
+      final offersAfterCamera = socket.sent
+          .where((m) => m['type'] == ClientMessageType.sdpOffer)
+          .length;
+      expect(offersAfterCamera, greaterThan(0));
+
+      // Let the camera's own offer settle before publishing the
+      // microphone, so this exercises the initial-offer barrier
+      // specifically — not the pre-existing "defer behind our own
+      // outstanding offer" path Test C already covers.
+      await platform.signalingState(pcId, 'stable');
+
+      final mic = fakeLocalMedia(pcId, trackId: 'mic-track', kind: 'audio');
+      await engine
+          .publish(source: 'microphone', stream: mic.stream, track: mic.track)
+          .timeout(const Duration(seconds: 2));
+
+      expect(
+        socket.sent
+            .where((m) => m['type'] == ClientMessageType.sdpOffer)
+            .length,
+        greaterThan(offersAfterCamera),
+        reason:
+            'the barrier must already be satisfied for every publish after the first',
+      );
+
+      await engine.dispose();
+      await signaling.dispose();
+    });
+  });
+
+  group('peer connection creation — concurrent callers (spec §3)', () {
+    test(
+        'a local publish racing an incoming SFU offer for the very first peer connection share one, not two',
+        () async {
+      final signaling = clientFor();
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
+      engine.start();
+      await joinRoom(signaling);
+
+      // Two things that both need a peer connection to exist, fired
+      // without awaiting either first: exactly the shape of the race a
+      // participant hits joining an already-live room and publishing
+      // right away — the SFU's join-time offer and this device's own
+      // publish both reach _ensurePeerConnection() before either has
+      // finished creating one.
+      final ensuring = engine.ensureDataChannel();
+      socket.receive({'type': ServerMessageType.sdpOffer, 'sdp': 'v=0 offer'});
+
+      await ensuring;
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        platform.calls.where((call) => call == 'createPeerConnection').length,
+        1,
+        reason:
+            'concurrent callers must share one peer connection, not silently create and orphan a second',
+      );
+
+      await engine.dispose();
+      await signaling.dispose();
+    });
   });
 
   group('sendData — data-channel negotiation (spec §7)', () {
@@ -449,6 +746,49 @@ void main() {
 
       expect(sent, isTrue);
       expect(platform.calls, contains('dataChannelSend'));
+
+      await engine.dispose();
+      await signaling.dispose();
+    });
+
+    test(
+        'sendData() times out with a RavenException instead of hanging forever if the channel never opens',
+        () async {
+      final signaling = clientFor();
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
+      engine.start();
+      await joinRoom(signaling);
+      socket.receive({'type': ServerMessageType.sdpOffer, 'sdp': 'v=0 offer'});
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      // Deliberately never calls platform.openDataChannel: this is the
+      // field report's scenario — negotiation never actually completes,
+      // so nothing ever tells the engine the channel opened, and the old
+      // behavior was to wait on a bare Completer forever.
+      Object? caught;
+      var settled = false;
+      fakeAsync((async) {
+        unawaited(engine.sendData([1, 2, 3]).then(
+          (_) => settled = true,
+          onError: (Object error) {
+            caught = error;
+            settled = true;
+          },
+        ));
+
+        async.elapse(const Duration(seconds: 14));
+        expect(settled, isFalse,
+            reason: 'must not time out before the documented deadline');
+
+        async.elapse(const Duration(seconds: 2));
+      });
+
+      expect(settled, isTrue,
+          reason: 'sendData() must settle, not hang forever, once the channel never opens');
+      expect(caught, isA<RavenException>());
+      expect((caught as RavenException).code, RavenErrorCode.timeout);
 
       await engine.dispose();
       await signaling.dispose();

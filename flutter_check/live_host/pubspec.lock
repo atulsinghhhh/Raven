@@ -359,7 +359,7 @@ packages:
       path: "../../sdks/flutter/raven_rtc"
       relative: true
     source: path
-    version: "0.1.2"
+    version: "0.1.3"
   record_use:
     dependency: transitive
     description:

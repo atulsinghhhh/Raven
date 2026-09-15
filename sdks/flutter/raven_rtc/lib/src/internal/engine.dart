@@ -103,6 +103,45 @@ class RavenEngine {
       <String, ({rtc.MediaStreamTrack track, rtc.MediaStream stream})>{};
   final _deferredPublishes = <Future<void> Function()>[];
 
+  /// Completes once the SFU's first offer for the *current* peer connection
+  /// generation has been answered (see [_handleOffer]).
+  ///
+  /// [publish] awaits this before ever calling [_negotiatePublish]. Without
+  /// it, `enableCamera()`/`enableMicrophone()` called right after joining
+  /// can call [_ensurePeerConnection] and offer before the SFU's own
+  /// join-time offer has even been read off the socket — a race
+  /// `pc.getSignalingState()` cannot see, because a peer connection that
+  /// has not touched a description at all is `stable` too. This closes
+  /// that half of the race deterministically: no timer, no polling, just
+  /// awaiting the one event that has to happen anyway.
+  ///
+  /// Recreated in [_createPeerConnection] for every new generation ([
+  /// _pcGeneration]), so a reconnect's fresh peer connection gets its own
+  /// barrier instead of resolving instantly off the previous connection's.
+  Completer<void> _initialOfferHandled = Completer<void>();
+
+  /// Whether this negotiation round has already used its one immediate,
+  /// no-inbound-message-required retry after a [SignalingErrorCode.
+  /// negotiationGlare] response — see the `ServerMessageType.error` case in
+  /// [_handleMessage].
+  ///
+  /// Bounded to one attempt per round on purpose. The SFU's glare
+  /// rejection is a plain refusal, not a state change — retrying while its
+  /// `offerInFlight` guard is still set (see services/sfu's
+  /// `Participant.beginNegotiation`) glares again, and retrying *that*
+  /// immediately too would reproduce the exact failure packages/sdk's own
+  /// history warns about: an unbounded offer/rollback storm that trips the
+  /// connection's message rate limit. One immediate attempt costs at most
+  /// one extra round trip and resolves the common case (the SFU's answer
+  /// processing was merely a little behind); if the round is genuinely
+  /// stuck, this falls back to the existing, already-tested recovery via
+  /// [_handleOffer]/[_handleAnswer] — or, failing that, the SFU's own
+  /// retry once it abandons its stale offer.
+  ///
+  /// Reset at the start of [_handleOffer] and [_handleAnswer]: a real
+  /// round trip completing is what earns the next glare a fresh attempt.
+  bool _glareRecoveryAttempted = false;
+
   /// Serializes every operation that can change [_pc]'s `signalingState` —
   /// our own offers, the SFU's offers, its answers to ours — so an async
   /// gap inside one can never let another run against a signalingState it
@@ -119,12 +158,13 @@ class RavenEngine {
   /// FIFO chain gets the same guarantee everywhere `RavenEngine` runs.
   ///
   /// Only entry points reached from *outside* an already-serialized task
-  /// go through this ([_handleMessage]'s offer/answer cases, and
-  /// [publish]/[unpublish]). [_flushDeferredPublishes] calls
+  /// go through this ([_handleMessage]'s offer/answer/glare-error cases,
+  /// and [publish]/[unpublish]). [_flushDeferredPublishes] calls
   /// [_negotiatePublish] directly, never wrapped again: it only ever runs
-  /// from inside [_handleOffer]/[_handleAnswer], which are themselves
-  /// already the chain's current task, and re-wrapping there would queue
-  /// behind a task waiting on that very call — a deadlock.
+  /// from inside [_handleOffer], [_handleAnswer], or [_recoverFromGlare],
+  /// which are themselves already the chain's current task, and
+  /// re-wrapping there would queue behind a task waiting on that very
+  /// call — a deadlock.
   Future<void> _negotiationChain = Future<void>.value();
 
   Future<T> _serialized<T>(Future<T> Function() operation) {
@@ -202,6 +242,17 @@ class RavenEngine {
   /// Called on the first join and after every reconnect. On a reconnect
   /// the reported set is authoritative, so tracks nobody is publishing any
   /// more are dropped, not lingering.
+  ///
+  /// A late joiner's own `onTrack` for an already-live publisher's media
+  /// can fire before this runs — `room.joined` and the SFU's join-time
+  /// offer arrive close together, and nothing orders "the roster's own
+  /// announcements landed" ahead of "the peer connection's tracks
+  /// arrived" the way [_announceTrack] is ordered relative to a *later*
+  /// publish. Without draining [_pendingMedia] here the way
+  /// [_announceTrack] already does, a track parked before this call ran
+  /// never gets a second chance: nothing else was ever going to announce
+  /// it again, so it sits there forever and that participant's media
+  /// never completes subscribing.
   void applyJoinedState(JoinedPayload payload) {
     final present = <String>{};
     for (final participant in payload.participants) {
@@ -210,6 +261,12 @@ class RavenEngine {
         present.add(key);
         _announced[key] = track;
         _announcedOwners[key] = participant.id;
+
+        final pending = _pendingMedia.remove(track.trackId);
+        if (pending != null) {
+          _completeSubscription(
+              participant.id, track, pending.track, pending.stream);
+        }
       }
     }
 
@@ -263,10 +320,20 @@ class RavenEngine {
           // as unpublished despite a successful-looking `publish()` call.
           //
           // Requeued through the same path a publish takes when it finds
-          // the peer connection already mid-round: [_handleOffer], which
-          // is about to receive the SFU's offer this glare made way for,
-          // rolls our local offer back, answers, and flushes this queue.
+          // the peer connection already mid-round, so it is still covered
+          // if [_handleOffer]/[_handleAnswer] is what ends up flushing it
+          // — the SFU's own offer, the one this glare made way for, is the
+          // normal, expected way this resolves.
           _deferredPublishes.add(_negotiatePublish);
+          // But that offer is not guaranteed to arrive promptly: a live
+          // trace showed the SFU's *own* AcceptAnswer for our join-time
+          // answer stall for the full 15s answerTimeout before it retried
+          // on its own, during which nothing else was ever going to flush
+          // this queue. One immediate, bounded retry — see
+          // [_glareRecoveryAttempted] for why it is bounded — gives this
+          // round a free chance to resolve in well under that, without
+          // waiting on any inbound message at all.
+          await _serialized(_recoverFromGlare);
           return;
         }
         _errors.add(RavenException(
@@ -276,20 +343,109 @@ class RavenEngine {
     }
   }
 
+  /// Rolls our glare-refused offer back and, once only, retries whatever
+  /// is deferred behind it right away — see [_glareRecoveryAttempted].
+  ///
+  /// Safe to call whether or not our own offer is actually still
+  /// outstanding: [_handleOffer] may already have rolled it back if the
+  /// SFU's offer won the race to arrive first, in which case this is a
+  /// no-op past the state check and [_flushDeferredPublishes] finds
+  /// nothing left to do.
+  Future<void> _recoverFromGlare() async {
+    if (_glareRecoveryAttempted) {
+      // Already spent this round's one attempt; wait for a real round
+      // trip ([_handleOffer]/[_handleAnswer]) to earn another, exactly as
+      // before this method existed.
+      return;
+    }
+    _glareRecoveryAttempted = true;
+
+    final pc = _pc;
+    if (pc == null) return;
+    try {
+      // Live read, same reasoning as [_handleOffer]'s: the platform's
+      // cached signalingState getter can lag the setLocalDescription(offer)
+      // call that just glared.
+      final state = await pc.getSignalingState();
+      if (state == rtc.RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
+        try {
+          // Same wire form as _handleOffer's rollback — flutter_webrtc has
+          // no dedicated rollback call.
+          await pc
+              .setLocalDescription(rtc.RTCSessionDescription('', 'rollback'));
+        } catch (error) {
+          // Best-effort, same as _handleOffer: the retry offer below
+          // performs an implicit rollback on platforms where an explicit
+          // one fails.
+        }
+      }
+    } catch (error) {
+      // A failed live-state read leaves the offer in whatever state it
+      // was in; _flushDeferredPublishes below still gets a chance to run,
+      // and _negotiatePublish's own state check protects it either way.
+    }
+
+    await _flushDeferredPublishes();
+  }
+
   // -------------------------------------------------------------------
   // Peer connection
   // -------------------------------------------------------------------
 
-  Future<rtc.RTCPeerConnection> _ensurePeerConnection() async {
-    final existing = _pc;
-    if (existing != null) return existing;
+  /// The in-flight creation, while one is running; cleared once it
+  /// settles, successfully or not, so the next caller that finds [_pc]
+  /// still null starts a fresh attempt instead of joining a dead one.
+  ///
+  /// Without this, [_ensurePeerConnection] is a classic check-then-await
+  /// race: two callers can both read [_pc] as null before either's
+  /// `createPeerConnection()` resolves, and both proceed to create one.
+  /// Whichever finishes last silently wins `_pc = pc`; the other's
+  /// connection is now orphaned, but its caller still holds a reference
+  /// to it and keeps negotiating on it as if it were live. The SFU only
+  /// expects one session per participant, so from its side this looks
+  /// like a confused peer sending two overlapping SDP/ICE exchanges for
+  /// the same participant, and whichever one it ends up tracking is not
+  /// guaranteed to be the one this engine kept as [_pc] — `onTrack`
+  /// on the connection that lost gets attached, but frequently never
+  /// fires, since the SFU never completed a real ICE/DTLS session with
+  /// it. This is exactly the shape of race a participant hits by
+  /// joining an already-live room and publishing right away: the SFU's
+  /// join-time offer (needing a peer connection to answer on) and this
+  /// device's own `publish()` (needing one to add a track to) both reach
+  /// [_ensurePeerConnection] within the same span of microtasks.
+  Future<rtc.RTCPeerConnection>? _pcCreating;
 
+  /// Bumped by [resetPeerConnection] so a creation already in flight at
+  /// reset time can tell it's stale once it finishes, instead of
+  /// resurrecting [_pc] with a connection the reset already discarded.
+  /// [_pcCreating] alone isn't enough for that: nulling it out mid-flight
+  /// stops *new* callers from joining the stale attempt, but the
+  /// attempt itself is still running and would otherwise still assign
+  /// `_pc = pc` on completion.
+  int _pcGeneration = 0;
+
+  Future<rtc.RTCPeerConnection> _ensurePeerConnection() {
+    final existing = _pc;
+    if (existing != null) return Future.value(existing);
+    return _pcCreating ??= _createPeerConnection(_pcGeneration);
+  }
+
+  Future<rtc.RTCPeerConnection> _createPeerConnection(int generation) async {
     final pc = await rtc.createPeerConnection({
       'iceServers': iceServers,
       // Unified plan is the only spec-compliant semantics and the only
       // one an SFU can negotiate reliably.
       'sdpSemantics': 'unified-plan',
     });
+
+    if (generation != _pcGeneration) {
+      // A reset landed while this was in flight. Close it rather than
+      // leaving it to leak: nothing will ever reference it as [_pc], so
+      // it would otherwise sit there holding a camera/mic and gathering
+      // ICE candidates for a session nobody is using.
+      unawaited(pc.close());
+      throw StateError('peer connection reset while it was being created');
+    }
 
     pc.onIceCandidate = (candidate) {
       if (candidate.candidate == null) {
@@ -306,7 +462,7 @@ class RavenEngine {
       ).toJson());
     };
 
-    pc.onTrack = (event) => _handleIncomingTrack(event);
+    pc.onTrack = (event) => unawaited(_handleIncomingTrack(event));
 
     pc.onDataChannel = (channel) {
       if (channel.label != _dataChannelLabel) return;
@@ -314,10 +470,16 @@ class RavenEngine {
     };
 
     _pc = pc;
+    _pcCreating = null;
     return pc;
   }
 
   Future<void> _handleOffer(String sdp) async {
+    // A real round trip is starting: whatever glare a previous offer hit
+    // has, at minimum, been superseded by this one. See
+    // [_glareRecoveryAttempted]'s doc comment for why this is where its
+    // one-shot budget refills.
+    _glareRecoveryAttempted = false;
     final pc = await _ensurePeerConnection();
     try {
       // Live read — see _negotiatePublish's doc comment on why the cached
@@ -342,7 +504,7 @@ class RavenEngine {
           // platform ever sees the call.
           await pc
               .setLocalDescription(rtc.RTCSessionDescription('', 'rollback'));
-        } catch (_) {
+        } catch (error) {
           // Best-effort: setRemoteDescription(offer) below performs an
           // implicit rollback per the WebRTC spec on platforms where an
           // explicit one fails or isn't implemented, so proceed either
@@ -362,6 +524,14 @@ class RavenEngine {
         'sdp': local?.sdp ?? answer.sdp ?? '',
       });
 
+      // The SFU's first offer for this generation has now been answered —
+      // whatever was waiting on [_initialOfferHandled] (a publish() that
+      // arrived before this offer did) is free to negotiate. Idempotent:
+      // every offer after the first finds this already completed.
+      if (!_initialOfferHandled.isCompleted) {
+        _initialOfferHandled.complete();
+      }
+
       await _flushDeferredPublishes();
     } catch (error) {
       _errors.add(RavenException(
@@ -375,6 +545,9 @@ class RavenEngine {
   Future<void> _handleAnswer(String sdp) async {
     final pc = _pc;
     if (pc == null) return;
+    // See _handleOffer's matching reset — an answer to our own offer is
+    // just as much a completed round trip as the SFU offering first.
+    _glareRecoveryAttempted = false;
     try {
       await pc.setRemoteDescription(rtc.RTCSessionDescription(sdp, 'answer'));
 
@@ -474,18 +647,53 @@ class RavenEngine {
   /// this completes the subscription only when both halves are present,
   /// and parks whichever arrived first. A path that only worked in one
   /// order would drop tracks nondeterministically.
-  void _handleIncomingTrack(rtc.RTCTrackEvent event) {
+  ///
+  /// The id used to do that matching is [_remoteTrackIdFor]'s, never
+  /// [rtc.MediaStreamTrack.id] directly — see that method's doc for why
+  /// trusting the platform's own id here silently drops every
+  /// subscription.
+  Future<void> _handleIncomingTrack(rtc.RTCTrackEvent event) async {
     final track = event.track;
     final stream = event.streams.isNotEmpty ? event.streams.first : null;
     if (stream == null) return;
 
-    final owner = _ownerOfAnnouncedTrack(track.id ?? '');
+    final resolvedId = await _remoteTrackIdFor(event) ?? track.id ?? '';
+    final owner = _ownerOfAnnouncedTrack(resolvedId);
     if (owner == null) {
-      _pendingMedia[track.id ?? ''] = (track: track, stream: stream);
+      _pendingMedia[resolvedId] = (track: track, stream: stream);
       return;
     }
 
     _completeSubscription(owner.participantId, owner.track, track, stream);
+  }
+
+  /// The id the SFU actually published this track under, read from the
+  /// remote SDP's `a=msid:` line — never [rtc.MediaStreamTrack.id].
+  ///
+  /// `RTCTrackEvent.track.id` is **not** the remote track id: the
+  /// platform mints a fresh local id for a track it just received and
+  /// ignores the `msid` the sender put on the wire, which is what the SFU
+  /// actually announces in `track.published`. Matching on the local id
+  /// therefore never matches anything — every subscription silently
+  /// parks in [_pendingMedia] forever, with no error, because from this
+  /// engine's point of view the announcement simply "hasn't arrived yet".
+  /// `packages/sdk`'s adapter hit the identical bug against Chrome and
+  /// documents the same fix: read the id the remote peer actually picked
+  /// out of the SDP, located by the transceiver's `mid` rather than by
+  /// scanning for the first `a=msid:` line, since a participant
+  /// publishing both a camera and a screen share has two video
+  /// m-sections and the wrong one mislabels both.
+  ///
+  /// Returns null when the mid or the msid can't be read yet — an
+  /// `msid`-less section, or a transceiver whose `mid` hasn't settled —
+  /// so the caller can fall back to the local id rather than guessing.
+  Future<String?> _remoteTrackIdFor(rtc.RTCTrackEvent event) async {
+    final mid = event.transceiver?.mid;
+    if (mid == null || mid.isEmpty) return null;
+    final remote = await _pc?.getRemoteDescription();
+    final sdp = remote?.sdp;
+    if (sdp == null) return null;
+    return _msidTrackIdForMid(sdp, mid);
   }
 
   ({String participantId, ServerTrack track})? _ownerOfAnnouncedTrack(
@@ -616,6 +824,15 @@ class RavenEngine {
       sender: sender,
     );
     _published[source] = published;
+
+    // Everything above is local (or, for track.publish, fire-and-forget
+    // and order-independent of the offer/answer round) and safe to do the
+    // instant the app calls publish() — including before the SFU's own
+    // join-time offer has even arrived. Only the actual offer has to
+    // wait: see [_initialOfferHandled]'s doc comment for the race this
+    // closes. A no-op await once the first round has completed, which is
+    // true for every publish after the first.
+    await _initialOfferHandled.future;
 
     // Serialized: publish()/unpublish() are called from outside any
     // chain task (app code, via RavenRoom), unlike _flushDeferredPublishes,
@@ -762,6 +979,15 @@ class RavenEngine {
     _attachDataChannel(channel);
   }
 
+  /// How long [sendData] waits for the data channel to open before giving
+  /// up. Chosen to comfortably outlast one ordinary negotiation round
+  /// trip without leaving a caller stuck for the length of a whole call:
+  /// the data channel piggybacks on the same offer/answer machinery as
+  /// every other negotiation here, so a channel that hasn't opened by
+  /// then almost always means negotiation itself is stuck, and no amount
+  /// of further waiting fixes that.
+  static const _dataChannelOpenTimeout = Duration(seconds: 15);
+
   /// Resolves once the data channel is open.
   ///
   /// What [sendData] actually needs to wait for. A data channel needs its
@@ -770,13 +996,29 @@ class RavenEngine {
   /// sends immediately either throws against a channel that is not open
   /// yet or, on platforms that buffer instead, has no way to know the
   /// payload has not actually left.
+  ///
+  /// Bounded by [_dataChannelOpenTimeout]: an unbounded wait here means
+  /// that if negotiation itself never completes — a stuck round the
+  /// caller has no other visibility into — [sendData] simply never
+  /// returns, with no error and no way out short of the caller inventing
+  /// its own timeout around a call that documents none.
   Future<void> _dataChannelOpened() {
     if (_dataChannel?.state == rtc.RTCDataChannelState.RTCDataChannelOpen) {
       return Future.value();
     }
     final completer = Completer<void>();
     _dataChannelWaiters.add(completer);
-    return completer.future;
+    return completer.future.timeout(
+      _dataChannelOpenTimeout,
+      onTimeout: () {
+        _dataChannelWaiters.remove(completer);
+        throw RavenException(
+          RavenErrorCode.timeout,
+          'The data channel did not open within '
+          '${_dataChannelOpenTimeout.inSeconds}s.',
+        );
+      },
+    );
   }
 
   void _settleDataChannelWaiters() {
@@ -843,6 +1085,18 @@ class RavenEngine {
   Future<void> resetPeerConnection() async {
     final pc = _pc;
     _pc = null;
+    // Both belong to the connection just torn down. Nulling _pcCreating
+    // stops *new* callers from joining a stale attempt; bumping the
+    // generation is what stops that attempt itself from resurrecting
+    // [_pc] once it finishes — see [_createPeerConnection].
+    _pcCreating = null;
+    _pcGeneration++;
+    // A fresh generation means a fresh SFU session and a fresh join-time
+    // offer to wait for — see [_initialOfferHandled]'s doc comment. A
+    // completer already-completed for the *previous* connection would let
+    // a post-reconnect publish() skip the wait entirely.
+    _initialOfferHandled = Completer<void>();
+    _glareRecoveryAttempted = false;
     _dataChannel = null;
     _subscribed.clear();
     _pendingMedia.clear();
@@ -889,4 +1143,29 @@ class RavenEngine {
 
   static String _key(String participantId, String trackId) =>
       '$participantId/$trackId';
+}
+
+/// The track id in the `a=msid:` line of the m-section with this `mid`.
+///
+/// `a=msid:<stream-id> <track-id>`; the stream-only form is legal and
+/// names no track, and a section can carry no msid at all, so this
+/// returns null rather than guessing. See [RavenEngine._remoteTrackIdFor]
+/// for why this is read at all instead of trusting the platform's track
+/// id.
+String? _msidTrackIdForMid(String sdp, String mid) {
+  final sections = sdp.split(RegExp(r'\r?\nm=')).skip(1);
+  for (final section in sections) {
+    final lines = section.split(RegExp(r'\r?\n'));
+    if (!lines.any((line) => line.trim() == 'a=mid:$mid')) continue;
+
+    final msidLine = lines.firstWhere(
+      (line) => line.startsWith('a=msid:'),
+      orElse: () => '',
+    );
+    if (msidLine.isEmpty) return null;
+    final parts =
+        msidLine.substring('a=msid:'.length).trim().split(RegExp(r'\s+'));
+    return parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null;
+  }
+  return null;
 }

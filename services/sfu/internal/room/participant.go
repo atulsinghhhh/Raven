@@ -492,11 +492,37 @@ var ErrNegotiationInProgress = errors.New("negotiation already in progress")
 // False means one is already in flight; we've noted that another round is
 // needed. A burst of track changes therefore collapses into a single
 // follow-up offer instead of a backlog of stale ones.
+//
+// offerInFlight alone is not sufficient: abandonNegotiation can clear it
+// after answerTimeout expires while the underlying PeerConnection is still
+// sitting in have-local-offer, because Pion has no legal way to cancel an
+// offer it already sent (rollback is not a supported transition out of
+// have-local-offer — verified directly against pion/webrtc v4.2.20; both
+// SetLocalDescription(rollback) and SetRemoteDescription(rollback) are
+// refused). Without this check, a stale offerInFlight=false lets a caller
+// through to CreateOffer -> SetLocalDescription, which Pion then refuses
+// with InvalidModificationError ("have-local-offer->SetLocal(offer)"),
+// and offerInFlight is left false again afterward — permanently desynced
+// from Pion's real state, so every future renegotiation attempt for this
+// participant repeats the same failure.
+//
+// Treating "Pion is not stable" exactly like "offerInFlight is true" —
+// note the pending change, refuse this round — keeps that desync from
+// happening at all, using the same coalescing path already relied on for
+// genuine glare. It intentionally does not attempt any recovery here: the
+// only two ways this participant's PeerConnection can legally return to
+// stable are AcceptAnswer applying a real answer, or AcceptOffer applying
+// a remote offer — both already work once the real event arrives, since
+// neither depends on offerInFlight being accurate.
 func (p *Participant) beginNegotiation() bool {
 	p.negMu.Lock()
 	defer p.negMu.Unlock()
 
 	if p.offerInFlight {
+		p.pendingRenegotiation = true
+		return false
+	}
+	if p.pc.SignalingState() != webrtc.SignalingStateStable {
 		p.pendingRenegotiation = true
 		return false
 	}

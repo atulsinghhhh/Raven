@@ -79,6 +79,15 @@ class FakeWebRtcPlatform {
 
     switch (call.method) {
       case 'createPeerConnection':
+        // A real platform call crosses a genuine async boundary (native
+        // code, or in a real browser a JS interop round trip), wide
+        // enough for two callers racing to create one to both find
+        // nothing there yet. A same-isolate mock otherwise resolves this
+        // in roughly the same microtask it was called from, which closes
+        // that window and would make the race this helper exists to
+        // reproduce (see engine_test.dart's "concurrent callers" group)
+        // impossible to hit deterministically.
+        await Future<void>.delayed(Duration.zero);
         _pcCounter++;
         final id = 'pc-$_pcCounter';
         lastPeerConnectionId = id;
