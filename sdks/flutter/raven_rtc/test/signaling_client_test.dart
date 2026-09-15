@@ -1,6 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:raven_rtc/raven_rtc.dart';
 import 'package:raven_rtc/src/internal/protocol.dart';
@@ -9,59 +6,7 @@ import 'package:raven_rtc/src/internal/signaling_client.dart';
 // widening the public surface just to test it.
 import 'package:raven_rtc/src/types.dart' show trackKindFromSource;
 
-/// A socket a test drives directly.
-///
-/// This is why [RavenSocket] is an interface: the join handshake, the
-/// error taxonomy and the reconnect decision are all worth testing, and
-/// none of them needs a server or a WebRTC stack.
-class FakeSocket implements RavenSocket {
-  FakeSocket();
-
-  final _incoming = StreamController<dynamic>.broadcast();
-  final _closed = Completer<int?>();
-  final sent = <Map<String, dynamic>>[];
-  bool closeCalled = false;
-
-  @override
-  Stream<dynamic> get messages => _incoming.stream;
-
-  @override
-  Future<int?> get closed => _closed.future;
-
-  @override
-  void send(String data) => sent.add(jsonDecode(data) as Map<String, dynamic>);
-
-  @override
-  Future<void> close([int? code, String? reason]) async {
-    closeCalled = true;
-    if (!_closed.isCompleted) _closed.complete(code);
-  }
-
-  /// Delivers a server message.
-  void receive(Map<String, dynamic> message) =>
-      _incoming.add(jsonEncode(message));
-
-  /// Simulates the server or network closing the connection.
-  void drop(int code) {
-    if (!_closed.isCompleted) _closed.complete(code);
-  }
-
-  Map<String, dynamic>? lastSent(String type) {
-    for (final message in sent.reversed) {
-      if (message['type'] == type) return message;
-    }
-    return null;
-  }
-}
-
-/// An unsigned Livqeno RTC token whose claims the client can read.
-String fakeToken(Map<String, dynamic> claims) {
-  String encode(Object value) =>
-      base64Url.encode(utf8.encode(jsonEncode(value))).replaceAll('=', '');
-  return '${encode({'alg': 'HS256', 'typ': 'JWT'})}'
-      '.${encode(claims)}'
-      '.signature-not-checked-by-the-client';
-}
+import 'helpers/fake_socket.dart';
 
 void main() {
   group('decodeTokenClaims', () {
@@ -252,8 +197,8 @@ void main() {
 
       // Livqeno's signaling is text-only. A binary frame means something
       // else is on this socket.
-      socket._incoming.add([1, 2, 3]);
-      socket._incoming.add('{not json');
+      socket.incoming.add([1, 2, 3]);
+      socket.incoming.add('{not json');
       await Future<void>.delayed(Duration.zero);
 
       expect(received, isEmpty);

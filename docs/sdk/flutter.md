@@ -21,7 +21,7 @@ follows Dart.
 
 ```yaml
 dependencies:
-  raven_rtc: ^0.1.0
+  raven_rtc: ^0.1.2
   raven_chat: ^0.1.0   # only if you want messaging
 ```
 
@@ -337,6 +337,29 @@ Raven(token: token, endpoint: endpoint, adaptiveStream: false, dynacast: false);
 - **Simulators can't capture video.** Test on real hardware.
 - **`minSdkVersion 23`** on Android; WebRTC won't build below it.
 - **Use `wss://` and `https://`.** Android blocks cleartext by default.
+- **Verification status of `raven_rtc` 0.1.2.** The join/signaling race
+  that could leave remote media never arriving, and a room/token check
+  that rejected any room known by name rather than internal id (0.1.1
+  and 0.1.2's changelog entries), are fixed and covered by unit tests
+  that exercise the real `Raven`/`RavenEngine`/`RavenRoom` negotiation
+  and data-channel code against a mocked `flutter_webrtc` platform
+  channel. Those tests prove the SDK's own logic is correct; they are
+  not a substitute for a live end-to-end run against a real SFU and
+  real Android/iOS/browser devices before you depend on this release in
+  production. Run that matrix — publisher and subscriber on each
+  platform you ship, checking that `framesDecoded` / `bytesReceived`
+  actually increase, not just that signaling completes — before
+  treating RTC as verified for your app.
+- **Verification status of `raven_live`.** Genuinely end-to-end
+  verified once, not merely unit-tested: a real Flutter *Web* build
+  (Chrome, fake camera device) publishing to a real local backend and
+  SFU, with a real browser subscriber confirming actual frame/byte
+  growth, and the reverse direction (real browser host, Flutter Web
+  viewer). See `apps/api/test/flutter-live-streaming.e2e-spec.ts` and
+  `flutter_check/live_host`. Not yet verified: a native iOS/Android
+  build (this repo has no device/simulator with camera access to test
+  against), and Flutter-host-to-Flutter-viewer specifically. Re-run
+  before depending on either.
 
 ## Troubleshooting
 

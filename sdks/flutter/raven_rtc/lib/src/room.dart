@@ -61,13 +61,27 @@ class RavenRoom extends ChangeNotifier {
   }
 
   /// @internal
+  ///
+  /// Wires the room up to [signaling] and starts [engine] consuming it —
+  /// before [signaling] is ever asked to connect. That ordering is load
+  /// bearing: `_wire()` (called from the constructor) subscribes to
+  /// `signaling.joins` and `signaling.messages`, and [RavenEngine.start]
+  /// subscribes to `signaling.messages` too. Both are broadcast streams
+  /// with no replay, so a message the SFU sends the instant `room.joined`
+  /// resolves — an `sdp.offer`, most often — is only ever seen if a
+  /// listener already existed when it arrived. Building the room and
+  /// starting the engine only *after* `connect()` resolved, as this used
+  /// to, left exactly that gap: the offer had nowhere to land and was
+  /// dropped, and the subscriber transport it would have answered never
+  /// came up.
+  ///
+  /// Call [applyInitialJoin] once `signaling.connect()` resolves.
   static RavenRoom attach({
     required SignalingClient signaling,
     required RavenEngine engine,
     required String roomId,
     required String localIdentity,
     String? localMetadata,
-    required JoinedPayload joined,
   }) {
     final room = RavenRoom._(
       signaling: signaling,
@@ -76,10 +90,20 @@ class RavenRoom extends ChangeNotifier {
       localIdentity: localIdentity,
       localMetadata: localMetadata,
     );
-    room._applyJoined(joined);
     engine.start();
     return room;
   }
+
+  /// @internal Applies the payload `signaling.connect()` resolved with.
+  ///
+  /// The `signaling.joins` listener `_wire()` already set up covers this
+  /// same event — and every reconnect after it — since it was subscribed
+  /// before `connect()` was even called. This call exists so the very
+  /// first join's state (roster, `rtcServer`, `region`) is available the
+  /// instant `Raven.join()` returns, rather than depending on exactly
+  /// when that listener's microtask happens to run. [_handleJoined] is
+  /// idempotent, so the two calls landing on the same payload is harmless.
+  void applyInitialJoin(JoinedPayload joined) => _handleJoined(joined);
 
   final SignalingClient _signaling;
   final RavenEngine _engine;
@@ -95,14 +119,25 @@ class RavenRoom extends ChangeNotifier {
   final _participantsController =
       StreamController<List<RavenParticipant>>.broadcast();
   final _errorController = StreamController<RavenException>.broadcast();
-  final _dataController = StreamController<List<int>>.broadcast();
+
+  /// Opens this participant's data channel the moment someone actually
+  /// wants [data], including a participant who never publishes and never
+  /// calls [sendData]. Without this, a purely receive-only participant
+  /// had no channel for the SFU to relay anything onto, and hearing
+  /// nothing looked exactly like nobody sending anything (see
+  /// [RavenEngine.ensureDataChannel]). `onListen` rather than eagerly at
+  /// construction: most calls never touch data at all, and an SCTP
+  /// association nobody asked for is a cost with nothing behind it.
+  late final _dataController = StreamController<List<int>>.broadcast(
+    onListen: () => unawaited(_engine.ensureDataChannel()),
+  );
 
   final _subscriptions = <StreamSubscription<Object?>>[];
 
   /// Identities the server has reported, in join order.
   final _remoteIdentities = <String>[];
 
-  RavenConnectionState _connectionState = RavenConnectionState.connected;
+  RavenConnectionState _connectionState = RavenConnectionState.connecting;
   String? _rtcServer;
   String? _region;
   bool _disposed = false;
@@ -440,15 +475,7 @@ class RavenRoom extends ChangeNotifier {
       }
     }));
 
-    _subscriptions.add(_signaling.joins.listen((payload) {
-      // A reconnect re-runs the join, so the reported roster is
-      // authoritative. Replacing rather than merging is what stops a
-      // participant who left during an outage from lingering.
-      _applyJoined(payload);
-      _engine.applyJoinedState(payload);
-      _setConnectionState(RavenConnectionState.connected);
-      _emitParticipants();
-    }));
+    _subscriptions.add(_signaling.joins.listen(_handleJoined));
 
     _subscriptions.add(_signaling.lifecycle.listen((state) {
       switch (state) {
@@ -464,6 +491,24 @@ class RavenRoom extends ChangeNotifier {
           _emitError(error);
       }
     }));
+  }
+
+  /// Runs on the first join (via [applyInitialJoin]) and on every
+  /// reconnect (via the `signaling.joins` subscription in [_wire]).
+  ///
+  /// A reconnect re-runs the join, so the reported roster is
+  /// authoritative. Replacing rather than merging is what stops a
+  /// participant who left during an outage from lingering. Applying the
+  /// engine's side ([RavenEngine.applyJoinedState]) here too, rather than
+  /// leaving it to whoever handles `sdp.offer`, is what restores tracks
+  /// published right before a reconnect: the SFU's post-reconnect roster
+  /// already lists them, and this is where that roster becomes the
+  /// engine's own state, ahead of any renegotiation.
+  void _handleJoined(JoinedPayload payload) {
+    _applyJoined(payload);
+    _engine.applyJoinedState(payload);
+    _setConnectionState(RavenConnectionState.connected);
+    _emitParticipants();
   }
 
   void _applyJoined(JoinedPayload payload) {

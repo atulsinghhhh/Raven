@@ -114,19 +114,48 @@ class Raven {
 
     final claims = decodeTokenClaims(token);
     final tokenRoomId = claims?['rid'] as String?;
-    if (tokenRoomId != null && tokenRoomId != roomId) {
+    final tokenRoomName = claims?['rnm'] as String?;
+    // Matches the web SDK's assertTokenMatchesRoom exactly: a token names
+    // its room by *both* an internal id (`rid`) and a human name (`rnm`)
+    // where it carries either, and a caller may reasonably know either
+    // one — a room created via `POST /v1/rooms {name:}` by its chosen
+    // name, a live stream by its public id, which is what the room's own
+    // `name` was set to and is never its internal id. Checking `rid`
+    // alone rejected the second case outright: every live stream,
+    // always, since a stream's public id is never its underlying room's
+    // internal id.
+    if ((tokenRoomId != null || tokenRoomName != null) &&
+        tokenRoomId != roomId &&
+        tokenRoomName != roomId) {
       // Fails before opening a socket: clearer than letting the server
       // reject it, and it costs nothing to check.
       throw RavenException(
         RavenErrorCode.roomNotFound,
-        'This token was minted for room "$tokenRoomId", not "$roomId".',
+        'This token was minted for room "${tokenRoomName ?? tokenRoomId}", not "$roomId".',
+      );
+    }
+
+    // The wire-level room id is always the token's own `rid` claim, never
+    // the [roomId] argument above — that argument exists only for the
+    // sanity check just done, matching the web SDK's roomIdFromToken().
+    // The server's own join check names the room by `rid` alone (spec's
+    // signaling layer), so sending anything else — this SDK's previous
+    // behavior, which sent [roomId] verbatim — got a room that passed
+    // the client-side check but failed server-side for every caller who,
+    // like a live stream, legitimately knows the room by its name rather
+    // than its internal id.
+    final wireRoomId = tokenRoomId;
+    if (wireRoomId == null) {
+      throw const RavenException(
+        RavenErrorCode.invalidToken,
+        'RTC token does not name a room.',
       );
     }
 
     final signaling = SignalingClient(
       endpoint: endpoint,
       token: token,
-      roomId: roomId,
+      roomId: wireRoomId,
       region: region,
       autoReconnect: autoReconnect,
       refreshToken: refreshToken,
@@ -141,15 +170,30 @@ class Raven {
       adaptiveStream: adaptiveStream,
     );
 
+    // Wired up — and the engine listening — before signaling ever opens a
+    // socket. `room.joined` and whatever the SFU sends right after it
+    // (typically `sdp.offer`) race the moment `connect()` resolves, and
+    // both stream sideways off `signaling`'s broadcast controllers with
+    // no replay. A subscriber has to already be there when a message
+    // arrives, or it is simply gone; attaching the room only after
+    // `connect()` returned used to be exactly that gap. See
+    // [RavenRoom.attach].
+    final room = RavenRoom.attach(
+      signaling: signaling,
+      engine: engine,
+      roomId: roomId,
+      localIdentity: claims?['sub'] as String? ?? '',
+    );
+
     final JoinedPayload joined;
     try {
       joined = await signaling.connect();
     } catch (error) {
-      // Dispose before rethrowing: a half-open signaling client still
-      // holds a socket and a reconnect timer, and leaking one per failed
-      // join is how a retry loop exhausts a device.
-      await signaling.dispose();
-      await engine.dispose();
+      // Disposing the room tears down the engine and the signaling
+      // client with it. A half-open signaling client still holds a
+      // socket and a reconnect timer, and leaking one per failed join is
+      // how a retry loop exhausts a device.
+      room.dispose();
       throw error is RavenException
           ? error
           : RavenException(
@@ -159,13 +203,7 @@ class Raven {
             );
     }
 
-    final room = RavenRoom.attach(
-      signaling: signaling,
-      engine: engine,
-      roomId: roomId,
-      localIdentity: claims?['sub'] as String? ?? '',
-      joined: joined,
-    );
+    room.applyInitialJoin(joined);
     _room = room;
     return room;
   }

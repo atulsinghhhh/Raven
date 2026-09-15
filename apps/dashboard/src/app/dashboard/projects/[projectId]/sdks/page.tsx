@@ -40,7 +40,11 @@ const SURFACE_LABEL: Record<Surface, string> = {
   browser: 'Browser',
   server: 'Server',
   react: 'React',
-  flutter: 'iOS, Android',
+  // Web is verified end to end (real camera/mic through a real SFU, a real
+  // browser observing real frame growth — see docs/sdk/flutter.md's
+  // "Verification status" notes). iOS and Android are not: there's no
+  // device or simulator with camera access to test against yet.
+  flutter: 'Flutter — Web verified, iOS/Android pending',
 };
 
 const SDKS: SdkEntry[] = [
@@ -167,12 +171,12 @@ function Stage() {
   },
   {
     name: 'raven_rtc',
-    version: '0.1.0',
+    version: '0.1.2',
     surface: 'flutter',
     headline: 'Join rooms and publish camera/mic from Flutter',
     description:
-      'Livqeno Flutter SDK — join a room, publish camera/microphone, render participants. Hides WebRTC, SDP, ICE, STUN, TURN and the media server behind a small typed API. Add raven_chat for messaging and raven_live for live streaming — separate packages, so a video app never pulls in a message store.',
-    install: { language: 'yaml', code: 'dependencies:\n  raven_rtc: ^0.1.0' },
+      'Livqeno Flutter SDK — join a room, publish camera/microphone, render participants. Hides WebRTC, SDP, ICE, STUN, TURN and the media server behind a small typed API. Add raven_chat for messaging and raven_live for live streaming — separate packages, so a video app never pulls in a message store. Verified end to end on Flutter Web (real camera/mic through a real SFU); Android and iOS have not yet been device-verified.',
+    install: { language: 'yaml', code: 'dependencies:\n  raven_rtc: ^0.1.2' },
     usage: {
       language: 'dart',
       code: `import 'package:raven_rtc/raven_rtc.dart';
@@ -187,6 +191,34 @@ final room = await raven.join(roomId);
 
 await room.enableCamera();
 await room.enableMicrophone();`,
+    },
+    docsHref: `${DOCS_URL}/sdk/flutter.md`,
+    docsLabel: 'docs/sdk/flutter.md',
+  },
+  {
+    name: 'raven_live',
+    version: '0.1.0',
+    surface: 'flutter',
+    headline: 'Live streaming — host and viewer, from Flutter',
+    description:
+      'Livqeno Flutter live-streaming SDK — composes raven_rtc and raven_chat rather than reimplementing either: join a stream as host or viewer, publish if you\'re the host, render whoever is live. Verified end to end on Flutter Web — a real Flutter build published camera/mic through a real SFU to a real browser viewer, and the reverse direction; see docs/sdk/flutter.md. Android and iOS have not yet been device-verified.',
+    install: { language: 'yaml', code: 'dependencies:\n  raven_live: ^0.1.0\n  raven_rtc: ^0.1.2 # RavenVideoView, for rendering video' },
+    usage: {
+      language: 'dart',
+      code: `import 'package:raven_live/raven_live.dart';
+
+// credentials come from your backend's POST /v1/live-streams/:id/hosts
+// (or .../viewer-tokens) — never minted on the device.
+final stream = await RavenLiveStream.join(credentials);
+
+if (stream.isHost) {
+  await stream.room.enableCamera();
+  await stream.room.enableMicrophone();
+}
+
+// stream.room is an ordinary raven_rtc RavenRoom — RavenVideoView,
+// participantChanges, everything else on it already works.
+await stream.leave();`,
     },
     docsHref: `${DOCS_URL}/sdk/flutter.md`,
     docsLabel: 'docs/sdk/flutter.md',

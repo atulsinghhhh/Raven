@@ -5,6 +5,7 @@ import type { IntegrationVerifyResult, Project, ProjectIntegration } from '@/lib
 import {
   FRAMEWORKS,
   LANGUAGES,
+  PLATFORM_STATUS,
   PRODUCTS,
   getIntegrationEntry,
   isSupported,
@@ -30,6 +31,33 @@ const ENUM_TO_PRODUCT: Record<ProjectIntegration['product'], Product> = {
   LIVE_STREAMING: 'live-streaming',
 };
 
+/**
+ * Per-OS-target verification for the currently selected framework —
+ * currently only Flutter has one (`PLATFORM_STATUS`), since every other
+ * framework here targets exactly one runtime. Renders nothing for any
+ * framework without an entry, so this never affects TypeScript's rows.
+ */
+function PlatformStatusRow({ framework }: { framework: Framework }) {
+  const platforms = PLATFORM_STATUS[framework];
+  if (!platforms) return null;
+
+  return (
+    <div className="mt-3 flex flex-col gap-1.5">
+      <div className="flex flex-wrap items-center gap-2">
+        {platforms.map((p) => (
+          <Badge key={p.id} tone={p.verification === 'verified' ? 'success' : 'neutral'}>
+            {FRAMEWORKS.find((f) => f.id === framework)?.label} {p.label} —{' '}
+            {p.verification === 'verified' ? 'Supported & verified' : 'Verification pending'}
+          </Badge>
+        ))}
+      </div>
+      <p className="text-xs leading-relaxed text-muted">
+        {platforms.map((p) => `${p.label}: ${p.detail}`).join(' ')}
+      </p>
+    </div>
+  );
+}
+
 export function IntegrationWizard({
   project,
   initialIntegrations,
@@ -47,6 +75,24 @@ export function IntegrationWizard({
   const [confirmed, setConfirmed] = useState(savedProducts.length > 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
+
+  // Frameworks are language-specific (Flutter only exists under Dart, the
+  // four JS frameworks only exist under TypeScript) — filter rather than
+  // showing every framework regardless of the language picked above it.
+  const frameworksForLanguage = useMemo(() => FRAMEWORKS.filter((f) => f.language === language), [language]);
+
+  function selectLanguage(id: string) {
+    setLanguage(id);
+    // The current framework may belong to a different language than the
+    // one just picked (e.g. switching TypeScript -> Dart while "Next.js"
+    // was selected) — fall back to that language's first framework so the
+    // wizard never holds a mismatched language/framework pair.
+    const stillValid = FRAMEWORKS.some((f) => f.id === framework && f.language === id);
+    if (!stillValid) {
+      const next = FRAMEWORKS.find((f) => f.language === id);
+      if (next) setFramework(next.id);
+    }
+  }
 
   function toggleProduct(id: Product) {
     setSelectedProducts((prev) => {
@@ -119,7 +165,7 @@ export function IntegrationWizard({
                 type="button"
                 disabled={!l.supported}
                 aria-pressed={language === l.id}
-                onClick={() => l.supported && setLanguage(l.id)}
+                onClick={() => l.supported && selectLanguage(l.id)}
                 className={`rounded-md border px-3.5 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                   language === l.id ? 'border-accent bg-accent-subtle text-fg' : 'border-line bg-canvas text-muted hover:border-line-strong'
                 }`}
@@ -134,7 +180,7 @@ export function IntegrationWizard({
         <section>
           <h2 className="text-sm font-semibold text-fg">What framework are you using?</h2>
           <div className="mt-4 flex flex-wrap gap-2">
-            {FRAMEWORKS.map((f) => (
+            {frameworksForLanguage.map((f) => (
               <button
                 key={f.id}
                 type="button"
@@ -148,6 +194,7 @@ export function IntegrationWizard({
               </button>
             ))}
           </div>
+          <PlatformStatusRow framework={framework} />
         </section>
 
         {error && <ErrorState title="Could not save your selection" description={error} />}
@@ -163,21 +210,24 @@ export function IntegrationWizard({
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-center justify-between rounded-md border border-line bg-surface-raised p-3">
-        <p className="text-sm text-muted">
-          <span className="font-medium text-fg">{LANGUAGES.find((l) => l.id === language)?.label}</span>
-          {' + '}
-          <span className="font-medium text-fg">{FRAMEWORKS.find((f) => f.id === framework)?.label}</span>
-          {' + '}
-          <span className="font-medium text-fg">
-            {Array.from(selectedProducts)
-              .map((p) => PRODUCTS.find((pr) => pr.id === p)?.label)
-              .join(', ')}
-          </span>
-        </p>
-        <Button variant="ghost" size="sm" onClick={() => setConfirmed(false)}>
-          Change stack
-        </Button>
+      <div className="rounded-md border border-line bg-surface-raised p-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted">
+            <span className="font-medium text-fg">{LANGUAGES.find((l) => l.id === language)?.label}</span>
+            {' + '}
+            <span className="font-medium text-fg">{FRAMEWORKS.find((f) => f.id === framework)?.label}</span>
+            {' + '}
+            <span className="font-medium text-fg">
+              {Array.from(selectedProducts)
+                .map((p) => PRODUCTS.find((pr) => pr.id === p)?.label)
+                .join(', ')}
+            </span>
+          </p>
+          <Button variant="ghost" size="sm" onClick={() => setConfirmed(false)}>
+            Change stack
+          </Button>
+        </div>
+        <PlatformStatusRow framework={framework} />
       </div>
 
       {Array.from(selectedProducts).map((product) => (
@@ -255,14 +305,7 @@ function ProductIntegrationCard({
         <li>
           <p className="text-sm font-medium text-fg">1. Install</p>
           <div className="mt-2">
-            <CodeTabs
-              samples={[
-                { label: 'npm', language: 'bash', code: entry.install.npm },
-                { label: 'pnpm', language: 'bash', code: entry.install.pnpm },
-                { label: 'yarn', language: 'bash', code: entry.install.yarn },
-                { label: 'bun', language: 'bash', code: entry.install.bun },
-              ]}
-            />
+            <CodeTabs samples={entry.install} />
           </div>
         </li>
 

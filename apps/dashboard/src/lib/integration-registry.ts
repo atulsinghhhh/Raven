@@ -21,8 +21,8 @@ import type { Project } from './api-client';
  */
 
 export type Product = 'rtc' | 'chat' | 'live-streaming';
-export type Language = 'typescript';
-export type Framework = 'nextjs' | 'react' | 'vanilla' | 'node';
+export type Language = 'typescript' | 'dart';
+export type Framework = 'nextjs' | 'react' | 'vanilla' | 'node' | 'flutter';
 
 export const PRODUCTS: { id: Product; label: string; description: string; examples: string[] }[] = [
   {
@@ -45,10 +45,18 @@ export const PRODUCTS: { id: Product; label: string; description: string; exampl
   },
 ];
 
-export const LANGUAGES: { id: Language | 'python' | 'dart'; label: string; supported: boolean }[] = [
+// Dart (Flutter) is `supported: true` because real, published integration
+// recipes exist for it below (raven_rtc/raven_chat/raven_live, all live on
+// pub.dev — see docs/sdk-publication-audit.md). Python stays `false`: it is
+// a real, published-to-git server SDK, but this wizard only ever generates
+// full client integration examples, and there is no Python client SDK.
+// "supported" here means "this language has at least one framework with a
+// real recipe below" — per-product/framework availability is still decided
+// by `getIntegrationEntry` at lookup time, not by this flag alone.
+export const LANGUAGES: { id: Language | 'python'; label: string; supported: boolean }[] = [
   { id: 'typescript', label: 'TypeScript / JavaScript', supported: true },
+  { id: 'dart', label: 'Dart (Flutter)', supported: true },
   { id: 'python', label: 'Python', supported: false },
-  { id: 'dart', label: 'Dart (Flutter)', supported: false },
 ];
 
 export const FRAMEWORKS: { id: Framework; label: string; language: Language }[] = [
@@ -56,7 +64,53 @@ export const FRAMEWORKS: { id: Framework; label: string; language: Language }[] 
   { id: 'react', label: 'React (Vite)', language: 'typescript' },
   { id: 'vanilla', label: 'Vanilla JavaScript', language: 'typescript' },
   { id: 'node', label: 'Node.js (backend only)', language: 'typescript' },
+  { id: 'flutter', label: 'Flutter', language: 'dart' },
 ];
+
+export type PlatformVerification = 'verified' | 'pending';
+
+export interface PlatformStatus {
+  id: string;
+  label: string;
+  verification: PlatformVerification;
+  detail: string;
+}
+
+/**
+ * Per-OS-target verification, keyed by framework. Only Flutter has an
+ * entry: every other framework here targets exactly one runtime (a
+ * browser, or Node.js), so there is nothing to disambiguate. A framework
+ * with no entry renders no platform status at all — this is additive
+ * metadata, not a new required field on every `IntegrationEntry`.
+ *
+ * Flutter's code is the same Dart across every OS target — the platform
+ * split lives inside `flutter_webrtc`, below `raven_rtc`, not in anything
+ * this wizard generates — so this is a claim about what has actually been
+ * *tested*, not about what the code can theoretically run on.
+ *
+ * Web is `verified`: a real `flutter build web` release build published
+ * camera and microphone through a real local SFU to a real browser
+ * subscriber, which observed `framesDecoded`/`bytesReceived` actually
+ * increase over a sustained window — not merely that signaling completed.
+ * See `flutter_check/live_host` and
+ * `apps/api/test/flutter-live-streaming.e2e-spec.ts`. Android and iOS are
+ * `pending`: this environment has no device or simulator with camera
+ * access to test against, and claiming otherwise would be exactly the
+ * "package published, therefore supported" leap this system exists to
+ * avoid.
+ */
+export const PLATFORM_STATUS: Partial<Record<Framework, PlatformStatus[]>> = {
+  flutter: [
+    {
+      id: 'web',
+      label: 'Web',
+      verification: 'verified',
+      detail: 'Verified with real live-streaming media, end to end, against a real SFU.',
+    },
+    { id: 'android', label: 'Android', verification: 'pending', detail: 'Device verification pending.' },
+    { id: 'ios', label: 'iOS', verification: 'pending', detail: 'Device verification pending.' },
+  ],
+};
 
 export interface EnvVar {
   name: string;
@@ -70,12 +124,25 @@ export interface CodeFile {
   code: string;
 }
 
+/**
+ * One tab in the "Install" step. Modelled as a list rather than a fixed
+ * `{npm, pnpm, yarn, bun}` shape so a non-npm ecosystem (Dart's `flutter
+ * pub add`, one command, no package-manager choice) fits the same type
+ * without a special case — `CodeTabs` already renders an arbitrary list of
+ * `{label, language, code}` samples.
+ */
+export interface InstallCommand {
+  label: string;
+  language: string;
+  code: string;
+}
+
 export interface IntegrationEntry {
   product: Product;
   framework: Framework;
   supported: true;
   packages: { server?: string; client?: string };
-  install: { npm: string; pnpm: string; yarn: string; bun: string };
+  install: InstallCommand[];
   env: { client: EnvVar[]; server: EnvVar[] };
   files: CodeFile[];
   runCommand: string;
@@ -104,14 +171,20 @@ const SERVER_ENV: EnvVar[] = [
   },
 ];
 
-function installCommands(pkgs: string[]): IntegrationEntry['install'] {
+function installCommands(pkgs: string[]): InstallCommand[] {
   const list = pkgs.join(' ');
-  return {
-    npm: `npm install ${list}`,
-    pnpm: `pnpm add ${list}`,
-    yarn: `yarn add ${list}`,
-    bun: `bun add ${list}`,
-  };
+  return [
+    { label: 'npm', language: 'bash', code: `npm install ${list}` },
+    { label: 'pnpm', language: 'bash', code: `pnpm add ${list}` },
+    { label: 'yarn', language: 'bash', code: `yarn add ${list}` },
+    { label: 'bun', language: 'bash', code: `bun add ${list}` },
+  ];
+}
+
+// One command, no package-manager choice — `flutter pub add` is the only
+// way pub.dev packages get installed.
+function flutterInstallCommand(pkgs: string[]): InstallCommand[] {
+  return [{ label: 'flutter pub add', language: 'bash', code: `flutter pub add ${pkgs.join(' ')}` }];
 }
 
 // ---------------------------------------------------------------------------
@@ -274,6 +347,130 @@ document.getElementById('joinButton').addEventListener('click', async () => {
 });`,
 };
 
+// Trimmed from the real, running examples/flutter-rtc-chat/lib/main.dart —
+// same Raven/RavenRoom/RavenVideoView API, chat panel removed since this is
+// the RTC-only recipe. Every method below is real: raven.dart (Raven,
+// RavenIceServer), room.dart (join/enableCamera/enableMicrophone/
+// remoteParticipants/localParticipant, RavenRoom extends ChangeNotifier),
+// video_view.dart (RavenVideoView), permissions.dart (RavenPermissions).
+const RTC_FLUTTER_CLIENT: CodeFile = {
+  path: 'lib/call_screen.dart',
+  language: 'dart',
+  code: `import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:raven_rtc/raven_rtc.dart';
+
+// Your app's own backend — never a Raven credential on the device. On a
+// real device, localhost means the phone: pass your machine's LAN IP via
+// --dart-define, as in the run command below.
+const backendUrl = String.fromEnvironment(
+  'RAVEN_BACKEND_URL',
+  defaultValue: 'http://localhost:3000',
+);
+
+class CallScreen extends StatefulWidget {
+  const CallScreen({super.key, required this.identity, required this.roomName});
+
+  final String identity;
+  final String roomName;
+
+  @override
+  State<CallScreen> createState() => _CallScreenState();
+}
+
+class _CallScreenState extends State<CallScreen> {
+  Raven? _raven;
+  RavenRoom? _room;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_connect());
+  }
+
+  @override
+  void dispose() {
+    final raven = _raven;
+    if (raven != null) unawaited(raven.leave());
+    _room?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _connect() async {
+    // Prompt before joining — discovering a refused camera mid-call is
+    // worse than being asked up front.
+    await RavenPermissions.request();
+
+    final response = await http.post(
+      Uri.parse('\$backendUrl/api/rtc-token'),
+      headers: {'content-type': 'application/json'},
+      body: jsonEncode({'identity': widget.identity, 'roomName': widget.roomName}),
+    );
+    final grant = jsonDecode(response.body) as Map<String, dynamic>;
+
+    final raven = Raven(
+      token: grant['token'] as String,
+      endpoint: grant['endpoint'] as String,
+      iceServers: (grant['iceServers'] as List<dynamic>? ?? [])
+          .map((s) => RavenIceServer.fromJson(s as Map<String, dynamic>))
+          .toList(),
+    );
+    final room = await raven.join(widget.roomName);
+    await room.enableCamera();
+    await room.enableMicrophone();
+
+    if (!mounted) {
+      // The screen went away while connecting — release instead of
+      // leaving a call running behind a dismissed route.
+      await raven.leave();
+      return;
+    }
+    setState(() {
+      _raven = raven;
+      _room = room;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final room = _room;
+    if (room == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // RavenRoom is a ChangeNotifier; ListenableBuilder rebuilds this
+    // subtree as participants and tracks change.
+    return ListenableBuilder(
+      listenable: room,
+      builder: (context, _) {
+        final remotes = room.remoteParticipants;
+        final featured = remotes.isEmpty ? null : remotes.first;
+
+        return Scaffold(
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: RavenVideoView(participant: featured, room: room),
+              ),
+              Positioned(
+                right: 16,
+                top: 16,
+                width: 96,
+                height: 140,
+                child: RavenVideoView(participant: room.localParticipant, room: room),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}`,
+};
+
 const RTC_CHECKS = [
   { id: 'apiKey', label: 'API credentials' },
   { id: 'signaling', label: 'Signaling' },
@@ -333,6 +530,19 @@ const RTC_ENTRIES: IntegrationEntry[] = [
     runCommand: 'node server.js',
     checks: RTC_CHECKS,
     source: 'quickstart/page.tsx NODE_TOKEN — backend-only; pick a client framework separately for the browser half',
+  },
+  {
+    product: 'rtc',
+    framework: 'flutter',
+    supported: true,
+    packages: { server: '@ravenkash/server', client: 'raven_rtc' },
+    install: flutterInstallCommand(['raven_rtc']),
+    env: { client: [], server: SERVER_ENV },
+    files: [RTC_SERVER_FILE('server.js'), RTC_FLUTTER_CLIENT],
+    runCommand: 'flutter run --dart-define=RAVEN_BACKEND_URL=http://<your-lan-ip>:3000   # backend runs separately, e.g. node server.js',
+    checks: RTC_CHECKS,
+    source:
+      'sdks/flutter/raven_rtc/lib/src/raven.dart (Raven, join, enableCamera/enableMicrophone) + lib/src/video_view.dart (RavenVideoView) + examples/flutter-rtc-chat/lib/main.dart',
   },
 ];
 
@@ -432,6 +642,119 @@ chat.on('message', (message) => console.log(message));
 await chat.sendMessage({ text: 'Hello' });`,
 };
 
+// Trimmed from the chat half of examples/flutter-rtc-chat/lib/main.dart.
+// Every member is real: chat_client.dart (RavenChat, connect, send,
+// messages stream, RavenChat extends ChangeNotifier), models.dart
+// (RavenMessage.senderId/.text).
+const CHAT_FLUTTER_CLIENT: CodeFile = {
+  path: 'lib/chat_screen.dart',
+  language: 'dart',
+  code: `import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:raven_chat/raven_chat.dart';
+
+const backendUrl = String.fromEnvironment(
+  'RAVEN_BACKEND_URL',
+  defaultValue: 'http://localhost:3000',
+);
+
+class ChatScreen extends StatefulWidget {
+  const ChatScreen({super.key, required this.userId, required this.conversation});
+
+  final String userId;
+  final String conversation;
+
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  RavenChat? _chat;
+  final _messages = <RavenMessage>[];
+  final _composer = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_connect());
+  }
+
+  @override
+  void dispose() {
+    _composer.dispose();
+    _chat?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _connect() async {
+    final response = await http.post(
+      Uri.parse('\$backendUrl/api/chat-token'),
+      headers: {'content-type': 'application/json'},
+      body: jsonEncode({'userId': widget.userId, 'conversation': widget.conversation}),
+    );
+    final grant = jsonDecode(response.body) as Map<String, dynamic>;
+
+    final chat = RavenChat(token: grant['token'] as String, apiUrl: grant['apiUrl'] as String);
+    await chat.connect(widget.conversation);
+
+    chat.messages.listen((message) {
+      if (!mounted) return;
+      setState(() => _messages.add(message));
+    });
+
+    if (!mounted) {
+      chat.dispose();
+      return;
+    }
+    setState(() => _chat = chat);
+  }
+
+  Future<void> _send() async {
+    final text = _composer.text.trim();
+    final chat = _chat;
+    if (text.isEmpty || chat == null) return;
+    _composer.clear();
+    // Completes once Livqeno has durably stored it; the message itself
+    // arrives back through the messages stream above.
+    await chat.send(text);
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        body: Column(
+          children: [
+            Expanded(
+              child: ListView.builder(
+                itemCount: _messages.length,
+                itemBuilder: (context, index) => ListTile(
+                  title: Text(_messages[index].senderId),
+                  subtitle: Text(_messages[index].text ?? ''),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _composer,
+                      onSubmitted: (_) => unawaited(_send()),
+                    ),
+                  ),
+                  IconButton(icon: const Icon(Icons.send), onPressed: () => unawaited(_send())),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+}`,
+};
+
 const CHAT_CHECKS = [
   { id: 'apiKey', label: 'API credentials' },
   { id: 'signaling', label: 'Chat gateway' },
@@ -489,6 +812,18 @@ const CHAT_ENTRIES: IntegrationEntry[] = [
     runCommand: 'node server.js',
     checks: CHAT_CHECKS,
     source: 'packages/server-sdk/src/resources/chat.ts — backend-only',
+  },
+  {
+    product: 'chat',
+    framework: 'flutter',
+    supported: true,
+    packages: { server: '@ravenkash/server', client: 'raven_chat' },
+    install: flutterInstallCommand(['raven_chat']),
+    env: { client: [], server: SERVER_ENV },
+    files: [CHAT_SERVER_FILE('server.js'), CHAT_FLUTTER_CLIENT],
+    runCommand: 'flutter run --dart-define=RAVEN_BACKEND_URL=http://<your-lan-ip>:3000   # backend runs separately, e.g. node server.js',
+    checks: CHAT_CHECKS,
+    source: 'sdks/flutter/raven_chat/lib/src/chat_client.dart (RavenChat, connect, send, messages) + examples/flutter-rtc-chat/lib/main.dart',
   },
 ];
 
@@ -572,6 +907,144 @@ stream.room.on('trackSubscribed', (track) => {
 });`,
 });
 
+// Verified against the real sdks/flutter/raven_live and raven_rtc: this is
+// the same shape flutter_check/live_host runs in
+// apps/api/test/flutter-live-streaming.e2e-spec.ts (a real end-to-end check
+// — real backend, real SFU, real browser subscriber observing real frames).
+// RavenLiveStream.join(credentials), .isHost, .room (an ordinary RavenRoom
+// — enableCamera/enableMicrophone are the same raven_rtc methods used in the
+// RTC recipe above), .leave(). RavenVideoView isn't re-exported by
+// raven_live (see lib/raven_live.dart's own comment on this), so rendering
+// video needs a direct `package:raven_rtc/raven_rtc.dart` import and
+// raven_rtc as a direct dependency, not merely a transitive one.
+const LIVE_FLUTTER_CLIENT: CodeFile = {
+  path: 'lib/live_stream_screen.dart',
+  language: 'dart',
+  code: `import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:raven_live/raven_live.dart';
+import 'package:raven_rtc/raven_rtc.dart'; // RavenVideoView — not re-exported by raven_live
+
+const backendUrl = String.fromEnvironment(
+  'RAVEN_BACKEND_URL',
+  defaultValue: 'http://localhost:3000',
+);
+
+class LiveStreamScreen extends StatefulWidget {
+  const LiveStreamScreen({super.key, required this.title, required this.identity, required this.asHost});
+
+  final String title;
+  final String identity;
+  final bool asHost;
+
+  @override
+  State<LiveStreamScreen> createState() => _LiveStreamScreenState();
+}
+
+class _LiveStreamScreenState extends State<LiveStreamScreen> {
+  RavenLiveStream? _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_join());
+  }
+
+  @override
+  void dispose() {
+    final stream = _stream;
+    if (stream != null) unawaited(stream.leave());
+    super.dispose();
+  }
+
+  Future<void> _join() async {
+    // credentials come from your backend's /api/live/host (host) or
+    // /api/live/viewer (viewer) below — never minted on the device.
+    final route = widget.asHost ? '/api/live/host' : '/api/live/viewer';
+    final response = await http.post(
+      Uri.parse('\$backendUrl\$route'),
+      headers: {'content-type': 'application/json'},
+      body: jsonEncode(
+        widget.asHost
+            ? {'title': widget.title, 'hostIdentity': widget.identity}
+            : {'streamId': widget.title, 'identity': widget.identity},
+      ),
+    );
+    final credentials = RavenLiveStreamCredentials.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+
+    // join() reaches the underlying RTC room internally — there is no
+    // separate room-join step for a live stream.
+    final stream = await RavenLiveStream.join(credentials);
+
+    if (stream.isHost) {
+      await stream.room.enableCamera();
+      await stream.room.enableMicrophone();
+    }
+
+    if (!mounted) {
+      // The screen went away while connecting.
+      await stream.leave();
+      return;
+    }
+    setState(() => _stream = stream);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final stream = _stream;
+    if (stream == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // RavenRoom is a ChangeNotifier; ListenableBuilder rebuilds this
+    // subtree as participants and tracks change.
+    return ListenableBuilder(
+      listenable: stream.room,
+      builder: (context, _) {
+        final room = stream.room;
+        final remotes = room.remoteParticipants;
+        final featured = remotes.isEmpty ? null : remotes.first;
+
+        return Scaffold(
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: RavenVideoView(participant: featured, room: room),
+              ),
+              if (stream.isHost)
+                Positioned(
+                  right: 16,
+                  top: 16,
+                  width: 96,
+                  height: 140,
+                  child: RavenVideoView(participant: room.localParticipant, room: room),
+                ),
+              Positioned(
+                left: 16,
+                bottom: 16,
+                child: FloatingActionButton(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  child: const Icon(Icons.call_end),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Leaving (above) releases this device's own connection. Ending the
+// stream itself (LIVE -> ENDED, for every participant) is a separate,
+// server-side call — see your backend's raven.liveStreams.end(streamId).`,
+};
+
 const LIVE_CHECKS = [
   { id: 'apiKey', label: 'API credentials' },
   { id: 'sfu', label: 'SFU (media plane)' },
@@ -630,36 +1103,104 @@ const LIVE_ENTRIES: IntegrationEntry[] = [
     checks: LIVE_CHECKS,
     source: 'packages/server-sdk/src/resources/live-streams.ts — backend-only',
   },
+  {
+    product: 'live-streaming',
+    framework: 'flutter',
+    supported: true,
+    // raven_rtc alongside raven_live: RavenVideoView (used below to render
+    // remote/local video) isn't re-exported by raven_live — see that
+    // package's lib/raven_live.dart — so rendering anything needs raven_rtc
+    // as a direct dependency, not merely the one raven_live pulls in
+    // transitively.
+    packages: { server: '@ravenkash/server', client: 'raven_live raven_rtc' },
+    install: flutterInstallCommand(['raven_live', 'raven_rtc']),
+    env: { client: [], server: SERVER_ENV },
+    files: [LIVE_SERVER_FILE('server.js'), LIVE_FLUTTER_CLIENT],
+    runCommand: 'flutter run --dart-define=RAVEN_BACKEND_URL=http://<your-lan-ip>:3000   # backend runs separately, e.g. node server.js',
+    checks: LIVE_CHECKS,
+    source:
+      'sdks/flutter/raven_live/lib/src/live_stream.dart (RavenLiveStream.join/.isHost/.room/.leave) + ' +
+      'sdks/flutter/raven_rtc/lib/src/video_view.dart (RavenVideoView). Verified end to end on Flutter ' +
+      'Web — real camera/mic publish through a real SFU, a real browser observing real frame growth — via ' +
+      'flutter_check/live_host and apps/api/test/flutter-live-streaming.e2e-spec.ts. Android/iOS: see PLATFORM_STATUS above.',
+  },
 ];
 
 const ALL_ENTRIES: IntegrationEntry[] = [...RTC_ENTRIES, ...CHAT_ENTRIES, ...LIVE_ENTRIES];
 
+/**
+ * Capability-based lookup (spec §12): a combination is "supported" exactly
+ * when a real `IntegrationEntry` exists for it in `ALL_ENTRIES` — there is
+ * no blanket "only TypeScript" gate. This is what lets Dart/Flutter (and
+ * any future SDK) become available by adding entries, not by editing this
+ * function's logic.
+ *
+ * Three distinct reasons a combination can come back unsupported, each
+ * with an answer specific enough to act on rather than a single generic
+ * "coming soon" (spec §13/§20):
+ *   1. The language itself isn't supported at all (`LANGUAGES[].supported`).
+ *   2. The framework doesn't exist, or belongs to a different language than
+ *      the one requested (shouldn't happen through the wizard's own UI,
+ *      which filters frameworks by language, but is still a real state a
+ *      direct/stale call can reach).
+ *   3. The language is supported and the framework is real, but this
+ *      specific product has no recipe for it yet — e.g. if Dart later
+ *      gained RTC and Chat but not Live Streaming, only Live Streaming
+ *      would report unsupported, not the whole language.
+ */
 export function getIntegrationEntry(
   product: Product,
   language: Language | string,
   framework: Framework | string,
 ): IntegrationEntry | UnsupportedEntry {
-  if (language !== 'typescript') {
+  const languageMeta = LANGUAGES.find((l) => l.id === language);
+  const frameworkMeta = FRAMEWORKS.find((f) => f.id === framework);
+
+  if (!languageMeta || !languageMeta.supported) {
     return {
       product,
       framework: framework as Framework,
       supported: false,
-      reason: `${language} is not yet supported for browser/server integration examples.`,
+      reason: `${languageMeta?.label ?? language} is not yet supported for integration examples.`,
       alternative:
         language === 'python'
-          ? 'Python is supported for server-side use only (install via git — see the SDKs page). For the browser half, pick a TypeScript/JavaScript framework above.'
-          : 'This language is coming soon. Pick TypeScript/JavaScript for a working integration today.',
+          ? 'Python is supported for server-side use only (install via git — see the SDKs page). For the client half, pick TypeScript/JavaScript or Dart (Flutter) above.'
+          : 'Pick TypeScript/JavaScript or Dart (Flutter) for a working integration today.',
     };
   }
 
-  const entry = ALL_ENTRIES.find((e) => e.product === product && e.framework === framework);
-  if (!entry) {
+  if (!frameworkMeta || frameworkMeta.language !== language) {
+    const choices = FRAMEWORKS.filter((f) => f.language === language)
+      .map((f) => f.label)
+      .join(', ');
     return {
       product,
       framework: framework as Framework,
       supported: false,
       reason: `This combination isn't available yet.`,
-      alternative: 'Choose Next.js, React (Vite), Vanilla JavaScript, or Node.js (backend only).',
+      alternative: `Choose a ${languageMeta.label} framework: ${choices}.`,
+    };
+  }
+
+  const entry = ALL_ENTRIES.find((e) => e.product === product && e.framework === framework);
+  if (!entry) {
+    const productLabel = PRODUCTS.find((p) => p.id === product)?.label ?? product;
+    const availableProducts = [
+      ...new Set(
+        ALL_ENTRIES.filter((e) => FRAMEWORKS.find((f) => f.id === e.framework)?.language === language).map(
+          (e) => PRODUCTS.find((p) => p.id === e.product)?.label ?? e.product,
+        ),
+      ),
+    ];
+    return {
+      product,
+      framework: framework as Framework,
+      supported: false,
+      reason: `${productLabel} isn't available yet for ${frameworkMeta.label}.`,
+      alternative:
+        availableProducts.length > 0
+          ? `Available for ${frameworkMeta.label}: ${availableProducts.join(', ')}.`
+          : `Nothing is available for ${frameworkMeta.label} yet.`,
     };
   }
   return entry;
@@ -676,18 +1217,23 @@ export function isSupported(entry: IntegrationEntry | UnsupportedEntry): entry i
  */
 export function renderIntegrationReadme(entry: IntegrationEntry, project: Pick<Project, 'id' | 'name'>): string {
   const productLabel = PRODUCTS.find((p) => p.id === entry.product)?.label ?? entry.product;
-  const frameworkLabel = FRAMEWORKS.find((f) => f.id === entry.framework)?.label ?? entry.framework;
+  const frameworkMeta = FRAMEWORKS.find((f) => f.id === entry.framework);
+  const frameworkLabel = frameworkMeta?.label ?? entry.framework;
+  const languageLabel = LANGUAGES.find((l) => l.id === frameworkMeta?.language)?.label ?? '';
 
   const lines: string[] = [
     `# Raven Integration — ${project.name}`,
     ``,
-    `TypeScript + ${frameworkLabel} + ${productLabel}`,
+    `${languageLabel} + ${frameworkLabel} + ${productLabel}`,
     ``,
     `## 1. Install`,
     ``,
-    '```bash',
-    entry.install.npm,
+    '```' + (entry.install[0]?.language ?? 'bash'),
+    entry.install[0]?.code ?? '',
     '```',
+    ...(entry.install.length > 1
+      ? [``, `Other package managers: ${entry.install.map((cmd) => cmd.label).join(', ')}.`]
+      : []),
     ``,
     `## 2. Environment`,
     ``,

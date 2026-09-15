@@ -93,6 +93,7 @@ class RavenEngine {
   rtc.RTCPeerConnection? _pc;
   rtc.RTCDataChannel? _dataChannel;
   StreamSubscription<Map<String, dynamic>>? _messages;
+  StreamSubscription<SignalingLifecycle>? _lifecycle;
 
   final _subscribed = <String, SubscribedTrack>{};
   final _published = <String, PublishedTrack>{};
@@ -105,6 +106,11 @@ class RavenEngine {
   final _changes = StreamController<void>.broadcast();
   final _errors = StreamController<RavenException>.broadcast();
   final _data = StreamController<List<int>>.broadcast();
+
+  /// Callers of [sendData] and [ensureDataChannel] waiting for the data
+  /// channel to open. Settled together, in [_attachDataChannel], once it
+  /// does; failed together on a terminal signaling failure ([_abortDataChannelWaiters]).
+  final _dataChannelWaiters = <Completer<void>>[];
 
   String? _remoteIceState;
   String? _remotePeerState;
@@ -130,10 +136,31 @@ class RavenEngine {
   String? get iceConnectionState => _pc?.iceConnectionState?.name;
   String? get signalingState => _pc?.signalingState?.name;
 
-  /// Starts consuming signaling. Call once, after the join completes.
+  /// Starts consuming signaling.
+  ///
+  /// Called from [RavenRoom.attach], before [signaling] is asked to
+  /// connect — not after the join completes. Subscribing only once
+  /// already joined is what used to drop the SFU's `sdp.offer`: it and
+  /// `room.joined` race the instant the join resolves, and a broadcast
+  /// stream with no listener yet simply loses whatever is added to it.
   void start() {
     _messages = signaling.messages.listen((message) {
       unawaited(_handleMessage(message));
+    });
+    _lifecycle = signaling.lifecycle.listen((state) {
+      switch (state) {
+        case SignalingFailed(:final error):
+          _abortDataChannelWaiters(error);
+        case SignalingClosed():
+          _abortDataChannelWaiters(const RavenException(
+            RavenErrorCode.connectionFailed,
+            'The connection closed before the data channel could open.',
+          ));
+        case SignalingReconnecting():
+          // Not aborted: rejoining recreates the channel and settles the
+          // wait normally. See _abortDataChannelWaiters.
+          break;
+      }
     });
   }
 
@@ -596,27 +623,103 @@ class RavenEngine {
       // controls, which is worse than saying nothing.
       _data.add(message.binary);
     };
+    channel.onDataChannelState = (state) {
+      if (state == rtc.RTCDataChannelState.RTCDataChannelOpen) {
+        _settleDataChannelWaiters();
+      }
+    };
+    // A channel that arrives already open — restored on a live
+    // connection, or opened before this listener was attached — never
+    // fires `onDataChannelState` for us.
+    if (channel.state == rtc.RTCDataChannelState.RTCDataChannelOpen) {
+      _settleDataChannelWaiters();
+    }
+  }
+
+  /// Opens this participant's data channel if nothing has already, so a
+  /// participant that only wants [data] gets one even though it never
+  /// published or called [sendData].
+  ///
+  /// The SFU fans data out over each recipient's *own* channel (spec
+  /// §18), so a participant who never opened one does not merely fail to
+  /// send: they never receive anything either, since there is no channel
+  /// for the SFU to relay onto. A channel is still opened on demand
+  /// rather than unconditionally, since most calls never touch data at
+  /// all and an SCTP association for every participant regardless is a
+  /// cost with nothing behind it.
+  Future<void> ensureDataChannel() async {
+    if (_dataChannel != null) return;
+    final pc = await _ensurePeerConnection();
+    if (_dataChannel != null) return;
+    final channel = await pc.createDataChannel(
+      _dataChannelLabel,
+      rtc.RTCDataChannelInit()..ordered = true,
+    );
+    _attachDataChannel(channel);
+  }
+
+  /// Resolves once the data channel is open.
+  ///
+  /// What [sendData] actually needs to wait for. A data channel needs its
+  /// own `m=application` section, which costs a round trip before the
+  /// first byte can go anywhere; a caller that does not wait for that and
+  /// sends immediately either throws against a channel that is not open
+  /// yet or, on platforms that buffer instead, has no way to know the
+  /// payload has not actually left.
+  Future<void> _dataChannelOpened() {
+    if (_dataChannel?.state == rtc.RTCDataChannelState.RTCDataChannelOpen) {
+      return Future.value();
+    }
+    final completer = Completer<void>();
+    _dataChannelWaiters.add(completer);
+    return completer.future;
+  }
+
+  void _settleDataChannelWaiters() {
+    if (_dataChannelWaiters.isEmpty) return;
+    final waiters = List.of(_dataChannelWaiters);
+    _dataChannelWaiters.clear();
+    for (final waiter in waiters) {
+      if (!waiter.isCompleted) waiter.complete();
+    }
+  }
+
+  /// Fails everyone waiting on the data channel, because it is never
+  /// going to open.
+  ///
+  /// Only for a connection that is finished — a terminal signaling
+  /// failure, or teardown. A reconnect deliberately does *not* come
+  /// through here: [resetPeerConnection] drops the channel, but rejoining
+  /// recreates it and settles the wait normally, so a [sendData] made
+  /// mid-blip still goes out afterwards instead of throwing at the caller.
+  void _abortDataChannelWaiters(RavenException error) {
+    if (_dataChannelWaiters.isEmpty) return;
+    final waiters = List.of(_dataChannelWaiters);
+    _dataChannelWaiters.clear();
+    for (final waiter in waiters) {
+      if (!waiter.isCompleted) waiter.completeError(error);
+    }
   }
 
   /// Sends a payload to everyone else in the room.
+  ///
+  /// Waits for the channel to finish opening rather than sending
+  /// immediately: [rtc.RTCDataChannel.send] on a channel whose SCTP
+  /// association has not yet come up either throws or, on platforms that
+  /// buffer instead of rejecting, leaves the caller with no way to tell
+  /// the payload actually left. Queuing the wait here means every payload
+  /// sent before the channel opens still goes out, once it does, instead
+  /// of being silently dropped.
   Future<void> sendData(List<int> payload) async {
-    final pc = _pc;
-    if (pc == null) {
+    await ensureDataChannel();
+    await _dataChannelOpened();
+
+    final channel = _dataChannel;
+    if (channel == null) {
       throw const RavenException(
         RavenErrorCode.connectionFailed,
         'sendData() requires an active connection.',
       );
-    }
-
-    var channel = _dataChannel;
-    if (channel == null) {
-      // Opened on demand: a channel costs an SCTP association, and most
-      // calls never send data.
-      channel = await pc.createDataChannel(
-        _dataChannelLabel,
-        rtc.RTCDataChannelInit()..ordered = true,
-      );
-      _attachDataChannel(channel);
     }
 
     await channel.send(rtc.RTCDataChannelMessage.fromBinary(
@@ -657,6 +760,11 @@ class RavenEngine {
     _disposed = true;
 
     await _messages?.cancel();
+    await _lifecycle?.cancel();
+    _abortDataChannelWaiters(const RavenException(
+      RavenErrorCode.connectionFailed,
+      'The connection was disposed before the data channel could open.',
+    ));
 
     for (final published in _published.values) {
       await published.track.stop();
