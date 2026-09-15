@@ -107,10 +107,10 @@ const issued = await raven.tokens.create({
     headline: 'The same server API, for Python backends',
     description:
       'Livqeno server SDK for Python — mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Requires Python 3.10 or newer, and ships both a synchronous Livqeno client and an async AsyncRaven. Never for use in a browser.',
-    // Not `pip install raven-sdk` — that PyPI name is an unrelated project.
+    // Not yet published to PyPI — don't advertise an install command that doesn't work.
     install: {
       language: 'bash',
-      code: 'pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"',
+      code: '# Coming soon — contact support for early access',
     },
     usage: {
       language: 'python',
@@ -177,7 +177,7 @@ export default async function SdksPage({ params }: { params: Promise<{ projectId
     <div className="flex flex-col gap-8">
       <PageHeader
         title="SDKs"
-        description="Official Livqeno client libraries. Every package listed here is built from this repository — versions and descriptions come straight from each package's own manifest."
+        description="Official Livqeno client libraries — versions and descriptions come straight from each package's own manifest."
         actions={
           <ButtonLink href={`${base}/quickstart`} variant="primary">
             Quickstart

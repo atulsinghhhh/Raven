@@ -70,8 +70,8 @@ export function AuthShell({
         </div>
 
         <div className="relative z-10 flex flex-wrap items-center gap-2">
-          <TrustChip>Open source</TrustChip>
-          <TrustChip>Self-hostable</TrustChip>
+          <TrustChip>Managed infrastructure</TrustChip>
+          <TrustChip>Built for production</TrustChip>
           <TrustChip>TypeScript, React, Flutter &amp; Python SDKs</TrustChip>
         </div>
       </aside>

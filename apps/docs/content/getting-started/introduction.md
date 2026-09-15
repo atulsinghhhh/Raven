@@ -46,15 +46,17 @@ for how the pieces fit together.
 - Wiring up your backend? [Access tokens](/authentication/tokens) and the
   [REST API](/api).
 - Want the vocabulary first? [Core concepts](/concepts).
-- Running this yourself? [Production → Security](/production/security)
+- Taking this to production? [Production → Security](/production/security)
   and [Production → Environments](/production/environments).
 
-## Running it yourself
+## Hosted, not self-managed
 
-Livqeno is open source, and self-hosting is a first-class path rather than an
-afterthought. `docker compose up` brings up everything except Postgres,
-which is deliberately yours to point at. See
-[Self-hosting](/self-hosting).
+Livqeno is a managed platform: Raven operates the control plane, the SFU
+fleet, and the TURN relays. There is no stack to deploy, patch, or keep
+healthy — you integrate entirely through the SDKs and the API. Create a
+project, install an SDK, and generate credentials from your backend; see
+[Quickstart](/getting-started/quickstart) to do exactly that in a few
+minutes.
 
 ## What Livqeno does not do
 

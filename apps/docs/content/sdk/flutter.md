@@ -20,18 +20,14 @@ Dart.
 ## Install
 
 Not on pub.dev yet, and Livqeno's source isn't a public repository —
-point a path dependency at your local checkout instead:
+[contact support](mailto:support@mail.ravenstack.online) for early access to
+the `raven_rtc`/`raven_chat`/`raven_live` packages while they're pre-release:
 
 ```yaml
 dependencies:
-  raven_rtc:
-    path: ../path/to/your-checkout/sdks/flutter/raven_rtc
-  raven_chat:                    # only if you want messaging
-    path: ../path/to/your-checkout/sdks/flutter/raven_chat
+  raven_rtc: ^0.1.0
+  raven_chat: ^0.1.0                    # only if you want messaging
 ```
-
-See [Installing from source](/getting-started/installing-from-source)
-for how to get that checkout building in the first place.
 
 **Permissions** — the SDK can't add these for you.
 
@@ -179,8 +175,7 @@ every API on both packages already works on what it hands back.
 
 ```yaml
 dependencies:
-  raven_live:
-    path: ../path/to/your-checkout/sdks/flutter/raven_live
+  raven_live: ^0.1.0
 ```
 
 ```dart
@@ -215,7 +210,8 @@ separate, privileged, server-side call.
 
 - **Screen share on iOS** needs a Broadcast Upload Extension target in
   Xcode — a platform requirement, not something a package can add for
-  you. A written walkthrough isn't published yet; open an issue on
-  [GitHub](https://github.com/atulsinghhhh/Raven/issues) if you get stuck wiring it up.
+  you. A written walkthrough isn't published yet;
+  [contact support](mailto:support@mail.ravenstack.online) if you get stuck
+  wiring it up.
 - **`minSdkVersion 23`** and **iOS 13+** are hard floors, not
   suggestions — WebRTC won't build below them.

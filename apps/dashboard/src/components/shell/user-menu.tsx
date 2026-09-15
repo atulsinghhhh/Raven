@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { Menu, MenuItem, MenuSeparator } from '@/components/ui/menu';
-import { IconExternal, IconFolder, IconGitHub, IconSettings, IconSignOut } from '@/components/ui/icons';
-import { DOCS_URL, GITHUB_URL } from '@/lib/nav';
+import { IconExternal, IconFolder, IconSettings, IconSignOut } from '@/components/ui/icons';
+import { DOCS_URL } from '@/lib/nav';
 
 function initials(name: string | null | undefined, email: string | undefined): string {
   const source = name?.trim() || email?.split('@')[0];
@@ -66,9 +66,6 @@ export function UserMenu({ email, name }: { email?: string; name?: string | null
       <MenuSeparator />
       <MenuItem href={DOCS_URL} icon={<IconExternal className="size-3.5" />}>
         Documentation
-      </MenuItem>
-      <MenuItem href={GITHUB_URL} icon={<IconGitHub className="size-3.5" />}>
-        GitHub
       </MenuItem>
       <MenuSeparator />
       <MenuItem onClick={signOut} danger icon={<IconSignOut className="size-3.5" />}>

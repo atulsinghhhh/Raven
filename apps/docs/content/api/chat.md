@@ -88,7 +88,7 @@ Create a conversation, optionally attached to an RTC room
 | Parameter | In | Type | Required | Notes |
 |---|---|---|---|---|
 | `name` | body | `string` | Yes | 1–128 chars, pattern-checked — Unique within the project. Doubles as a human-readable handle for chat.connect({ room }). |
-| `type` | body | `ConversationType` | No | Ignored when roomId is set — attaching an RTC room always produces a ROOM conversation. |
+| `type` | body | `ConversationType` | No | Defaults to ROOM when roomId is set and to CHANNEL otherwise, but an explicit value here always wins —  |
 | `roomId` | body | `string` | No | Attach this conversation to an existing RTC room, giving that video call a chat panel. |
 | `retentionDays` | body | `number` | No | 1–3650 — Overrides CHAT_RETENTION_DAYS for this conversation. |
 | `members` | body | `ConversationMemberDto[]` | No | array |

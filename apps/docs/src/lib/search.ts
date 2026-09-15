@@ -180,7 +180,6 @@ export function assertIndexIsSound(records: SearchRecord[], expectedHeadingIds: 
     ['mute mic', 'rtc/audio-and-video'],
     ['viewer publish', 'live-streaming/viewers'],
     ['live stream lifecycle', 'live-streaming/streams'],
-    ['API_PUBLIC_URL', 'self-hosting/environment-variables'],
     ['idempotency key', 'backend/idempotency'],
     ['signaling protocol', 'rtc/signaling-protocol'],
     ['known limitations', 'reference/known-limitations'],

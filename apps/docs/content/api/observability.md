@@ -32,8 +32,44 @@ dashboard session. Same data, different credential.
 | GET | [`/v1/projects/{projectId}/diagnostics`](#get-v1projectsprojectiddiagnostics) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/errors`](#get-v1projectsprojectiderrors) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/errors/{errorId}`](#get-v1projectsprojectiderrorserrorid) | Dashboard session (JWT) |
+| GET | [`/v1/projects/{projectId}/integrations`](#get-v1projectsprojectidintegrations) | Dashboard session (JWT) |
+| PATCH | [`/v1/projects/{projectId}/integrations/{product}`](#patch-v1projectsprojectidintegrationsproduct) | Dashboard session (JWT) |
+| POST | [`/v1/projects/{projectId}/integrations/{product}/verify`](#post-v1projectsprojectidintegrationsproductverify) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/metrics`](#get-v1projectsprojectidmetrics) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/usage`](#get-v1projectsprojectidusage) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/activity`](#get-v1superadminactivity) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/admins`](#get-v1superadminadmins) | Dashboard session (JWT) |
+| POST | [`/v1/super-admin/admins`](#post-v1superadminadmins) | Dashboard session (JWT) |
+| DELETE | [`/v1/super-admin/admins/{userId}`](#delete-v1superadminadminsuserid) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/api/activity`](#get-v1superadminapiactivity) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/api/keys`](#get-v1superadminapikeys) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/api/overview`](#get-v1superadminapioverview) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/audit-logs`](#get-v1superadminauditlogs) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/chat/conversations`](#get-v1superadminchatconversations) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/chat/conversations/{id}`](#get-v1superadminchatconversationsid) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/chat/overview`](#get-v1superadminchatoverview) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/developers`](#get-v1superadmindevelopers) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/developers/{id}`](#get-v1superadmindevelopersid) | Dashboard session (JWT) |
+| POST | [`/v1/super-admin/developers/{id}/suspend`](#post-v1superadmindevelopersidsuspend) | Dashboard session (JWT) |
+| POST | [`/v1/super-admin/developers/{id}/unsuspend`](#post-v1superadmindevelopersidunsuspend) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/errors`](#get-v1superadminerrors) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/errors/{id}`](#get-v1superadminerrorsid) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/infrastructure`](#get-v1superadmininfrastructure) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/live/overview`](#get-v1superadminliveoverview) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/live/streams`](#get-v1superadminlivestreams) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/live/streams/{id}`](#get-v1superadminlivestreamsid) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/me`](#get-v1superadminme) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/overview`](#get-v1superadminoverview) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/rtc/overview`](#get-v1superadminrtcoverview) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/rtc/participants/{id}`](#get-v1superadminrtcparticipantsid) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/rtc/rooms`](#get-v1superadminrtcrooms) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/rtc/rooms/{id}`](#get-v1superadminrtcroomsid) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/security`](#get-v1superadminsecurity) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/settings`](#get-v1superadminsettings) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/usage/developers`](#get-v1superadminusagedevelopers) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/usage/developers/{userId}`](#get-v1superadminusagedevelopersuserid) | Dashboard session (JWT) |
+| PATCH | [`/v1/super-admin/usage/developers/{userId}/allowance`](#patch-v1superadminusagedevelopersuseridallowance) | Dashboard session (JWT) |
+| GET | [`/v1/super-admin/usage/overview`](#get-v1superadminusageoverview) | Dashboard session (JWT) |
 | POST | [`/v1/telemetry/events`](#post-v1telemetryevents) | RTC token |
 | GET | [`/v1/usage`](#get-v1usage) | Dashboard session (JWT) |
 | GET | [`/v1/usage/detail`](#get-v1usagedetail) | Dashboard session (JWT) |
@@ -46,7 +82,7 @@ List the API key's project's real RTC connections
 
 | Parameter | In | Type | Required | Notes |
 |---|---|---|---|---|
-| `state` | query | `ConnectionSummaryState` | No |  |
+| `state` | query | `ConnectionState` | No |  |
 | `roomId` | query | `string` | No |  |
 | `limit` | query | `number` | No | 1–200 |
 
@@ -127,7 +163,7 @@ List a project's real RTC connections
 | Parameter | In | Type | Required | Notes |
 |---|---|---|---|---|
 | `projectId` | path | `string` | Yes | |
-| `state` | query | `ConnectionSummaryState` | No |  |
+| `state` | query | `ConnectionState` | No |  |
 | `roomId` | query | `string` | No |  |
 | `limit` | query | `number` | No | 1–200 |
 
@@ -176,6 +212,40 @@ Get one classified error, with its connection if any
 | `errorId` | path | `string` | Yes | |
 | `projectId` | path | `string` | Yes | |
 
+### GET `/v1/projects/{projectId}/integrations`
+
+A project's saved integration selections, one per product
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `projectId` | path | `string` | Yes | |
+
+### PATCH `/v1/projects/{projectId}/integrations/{product}`
+
+Save the chosen language/framework for a product
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `product` | path | `string` | Yes | |
+| `projectId` | path | `string` | Yes | |
+| `language` | body | `string` | Yes | 0–32 chars |
+| `framework` | body | `string` | Yes | 0–32 chars |
+
+### POST `/v1/projects/{projectId}/integrations/{product}/verify`
+
+Run a real, server-side check of this project's readiness for a product
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `product` | path | `string` | Yes | |
+| `projectId` | path | `string` | Yes | |
+
 ### GET `/v1/projects/{projectId}/metrics`
 
 Real aggregate connection/error metrics for this project
@@ -197,6 +267,387 @@ One project's contribution to its owner's RTC, Chat and Live Streaming allowance
 | `projectId` | path | `string` | Yes | |
 | `limit` | query | `number` | No | 1–200 — How many history rows to return, newest first. |
 | `days` | query | `number` | No | 1–365 — How many UTC days of the daily rollup to return, including today. |
+
+### GET `/v1/super-admin/activity`
+
+Global Activity Explorer — every ActivityEvent across the platform, newest first
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `developerId` | query | `string` | No | 0–64 chars — Restrict to one developer, by their internal user id. |
+| `projectId` | query | `string` | No | 0–64 chars — Restrict to one project, by its internal id. |
+| `eventType` | query | `ActivityEventType` | No | Restrict to one event type. |
+| `actorType` | query | `ActivityActorType` | No | Restrict to one actor type. |
+| `success` | query | `boolean` | No | true for successful events only, false for failures only. |
+| `ipAddress` | query | `string` | No | 0–64 chars — Restrict to one IP address. |
+| `requestId` | query | `string` | No | 0–128 chars — Restrict to one request id. |
+| `resourceId` | query | `string` | No | 0–128 chars — Restrict to one resource, by its public id. |
+| `search` | query | `string` | No | 0–256 chars — Case-insensitive substring match against actor email, resource id, or request id. |
+| `from` | query | `string` | No | ISO 8601 timestamp — events at or after this instant. |
+| `to` | query | `string` | No | ISO 8601 timestamp — events at or before this instant. |
+| `limit` | query | `number` | No | 1–200 |
+| `offset` | query | `number` | No | 0–∞ |
+
+### GET `/v1/super-admin/admins`
+
+List every user holding a platform role
+
+**Credential** Dashboard session (JWT)
+
+_No parameters._
+
+### POST `/v1/super-admin/admins`
+
+Grant an existing developer a platform role
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `email` | body | `string` | Yes |  |
+| `platformRole` | body | `PlatformRole` | Yes |  |
+| `reason` | body | `string` | Yes | 3–500 chars — Why this admin is being granted platform access. Required — this is the most sensitive action in the portal. |
+
+### DELETE `/v1/super-admin/admins/{userId}`
+
+Revoke a platform role
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `userId` | path | `string` | Yes | |
+| `reason` | body | `string` | Yes | 3–500 chars — Why this admin is losing platform access. Required. |
+
+### GET `/v1/super-admin/api/activity`
+
+API-related ActivityEvent rows: API_KEY_CREATED, API_KEY_REVOKED, API_REQUEST_FAILED, RATE_LIMIT_TRIGGERED
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `developerId` | query | `string` | No | 0–64 chars — Restrict to one developer, by their internal user id. |
+| `projectId` | query | `string` | No | 0–64 chars — Restrict to one project, by its internal id. |
+| `eventType` | query | `ActivityEventType` | No | Restrict to one event type. |
+| `actorType` | query | `ActivityActorType` | No | Restrict to one actor type. |
+| `success` | query | `boolean` | No | true for successful events only, false for failures only. |
+| `ipAddress` | query | `string` | No | 0–64 chars — Restrict to one IP address. |
+| `requestId` | query | `string` | No | 0–128 chars — Restrict to one request id. |
+| `resourceId` | query | `string` | No | 0–128 chars — Restrict to one resource, by its public id. |
+| `search` | query | `string` | No | 0–256 chars — Case-insensitive substring match against actor email, resource id, or request id. |
+| `from` | query | `string` | No | ISO 8601 timestamp — events at or after this instant. |
+| `to` | query | `string` | No | ISO 8601 timestamp — events at or before this instant. |
+| `limit` | query | `number` | No | 1–200 |
+| `offset` | query | `number` | No | 0–∞ |
+
+### GET `/v1/super-admin/api/keys`
+
+Every project's API keys, paginated — never includes secretHash or the raw secret
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `status` | query | `ApiKeyStatus` | No | Restrict to keys in this status. |
+| `projectId` | query | `string` | No | 0–64 chars — Restrict to one project, by its internal id. |
+| `environment` | query | `Environment` | No | Restrict to keys minted for this environment. |
+| `from` | query | `string` | No | ISO 8601 timestamp — keys created at or after this instant. |
+| `to` | query | `string` | No | ISO 8601 timestamp — keys created at or before this instant. |
+| `limit` | query | `number` | No | 1–200 |
+| `offset` | query | `number` | No | 0–∞ |
+
+### GET `/v1/super-admin/api/overview`
+
+API key lifecycle stats, platform-wide — real ApiKey/ActivityEvent counts only
+
+**Credential** Dashboard session (JWT)
+
+_No parameters._
+
+### GET `/v1/super-admin/audit-logs`
+
+Administrative actions taken on the platform, newest first
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `adminId` | query | `string` | No | Restrict to admin actions taken by one platform admin, by user id. |
+| `action` | query | `string` | No | Restrict to one admin action. |
+| `targetType` | query | `string` | No | Restrict to one target type. |
+| `targetId` | query | `string` | No | Restrict to one target, by its id. |
+| `from` | query | `string` | No | ISO 8601. Entries recorded at or after this instant. |
+| `to` | query | `string` | No | ISO 8601. Entries recorded at or before this instant. |
+| `limit` | query | `number` | No | 1–200 |
+| `offset` | query | `number` | No | 0–∞ |
+
+### GET `/v1/super-admin/chat/conversations`
+
+Conversations across every project, paginated
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `projectId` | query | `string` | No | 0–64 chars — Restrict to one project, by its internal id. |
+| `status` | query | `ConversationStatus` | No |  |
+| `type` | query | `ConversationType` | No |  |
+| `search` | query | `string` | No | 0–256 chars — Case-insensitive substring match against the conversation name. |
+| `limit` | query | `number` | No | 1–200 |
+| `offset` | query | `number` | No | 0–∞ |
+
+### GET `/v1/super-admin/chat/conversations/{id}`
+
+One conversation — members, counts, timestamps, status. Never message content.
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `id` | path | `string` | Yes | |
+
+### GET `/v1/super-admin/chat/overview`
+
+Platform-wide chat metrics
+
+**Credential** Dashboard session (JWT)
+
+_No parameters._
+
+### GET `/v1/super-admin/developers`
+
+The developer directory
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `search` | query | `string` | No | Case-insensitive substring match against name or email. |
+| `status` | query | `AccountStatus` | No | Restrict to one account status. |
+| `from` | query | `string` | No | Only developers whose account was created on/after this ISO date. |
+| `to` | query | `string` | No | Only developers whose account was created on/before this ISO date. |
+| `sortBy` | query | `DeveloperSortField` | No |  |
+| `sortDir` | query | `'asc' | 'desc'` | No | `asc` · `desc` |
+| `limit` | query | `number` | No | 1–100 |
+| `offset` | query | `number` | No | 0–∞ |
+
+### GET `/v1/super-admin/developers/{id}`
+
+One developer, every tab in a single payload
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `id` | path | `string` | Yes | |
+
+### POST `/v1/super-admin/developers/{id}/suspend`
+
+Suspend a developer account
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `id` | path | `string` | Yes | |
+| `reason` | body | `string` | Yes | 0–1000 chars — Why this action is being taken. Recorded verbatim in the admin audit log. |
+
+### POST `/v1/super-admin/developers/{id}/unsuspend`
+
+Unsuspend a developer account
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `id` | path | `string` | Yes | |
+| `reason` | body | `string` | Yes | 0–1000 chars — Why this action is being taken. Recorded verbatim in the admin audit log. |
+
+### GET `/v1/super-admin/errors`
+
+Errors grouped by category + message, across every project
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `category` | query | `ErrorCategory` | No | Restrict to one error category. |
+| `limit` | query | `number` | No | 1–200 |
+| `offset` | query | `number` | No | 0–∞ |
+
+### GET `/v1/super-admin/errors/{id}`
+
+One error event, with its project and connection
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `id` | path | `string` | Yes | |
+
+### GET `/v1/super-admin/infrastructure`
+
+API/DB/Redis/TURN/SFU dependency status, plus per-node RTC fleet detail
+
+**Credential** Dashboard session (JWT)
+
+_No parameters._
+
+### GET `/v1/super-admin/live/overview`
+
+Live Streaming operations overview
+
+**Credential** Dashboard session (JWT)
+
+_No parameters._
+
+### GET `/v1/super-admin/live/streams`
+
+List live streams across every project, newest first
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `status` | query | `LiveStreamStatus` | No | Restrict to one lifecycle status. |
+| `projectId` | query | `string` | No | 0–64 chars — Restrict to one project, by its internal id. |
+| `from` | query | `string` | No | ISO 8601 timestamp — streams created at or after this instant. |
+| `to` | query | `string` | No | ISO 8601 timestamp — streams created at or before this instant. |
+| `limit` | query | `number` | No | 1–200 |
+| `offset` | query | `number` | No | 0–∞ |
+
+### GET `/v1/super-admin/live/streams/{id}`
+
+One stream in full detail
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `id` | path | `string` | Yes | |
+
+### GET `/v1/super-admin/me`
+
+The signed-in platform admin
+
+**Credential** Dashboard session (JWT)
+
+_No parameters._
+
+### GET `/v1/super-admin/overview`
+
+Platform-wide operations dashboard
+
+**Credential** Dashboard session (JWT)
+
+_No parameters._
+
+### GET `/v1/super-admin/rtc/overview`
+
+Platform-wide RTC overview — active rooms/participants, RTC minutes, SFU health, and more
+
+**Credential** Dashboard session (JWT)
+
+_No parameters._
+
+### GET `/v1/super-admin/rtc/participants/{id}`
+
+One participant — its connection history and RTC tokens
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `id` | path | `string` | Yes | |
+
+### GET `/v1/super-admin/rtc/rooms`
+
+Paginated list of rooms across every project on the platform
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `status` | query | `RoomStatus` | No | Restrict to one room status. |
+| `projectId` | query | `string` | No | 0–64 chars — Restrict to one project, by its internal id. |
+| `from` | query | `string` | No | ISO 8601 timestamp — rooms created at or after this instant. |
+| `to` | query | `string` | No | ISO 8601 timestamp — rooms created at or before this instant. |
+| `limit` | query | `number` | No | 1–200 |
+| `offset` | query | `number` | No | 0–∞ |
+
+### GET `/v1/super-admin/rtc/rooms/{id}`
+
+One room — its project/developer, SFU assignment, and its participants
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `id` | path | `string` | Yes | |
+
+### GET `/v1/super-admin/security`
+
+Platform security posture: failed logins, suspicious activity, lockouts, and per-developer risk
+
+**Credential** Dashboard session (JWT)
+
+_No parameters._
+
+### GET `/v1/super-admin/settings`
+
+Data-retention policy and platform-role reference
+
+**Credential** Dashboard session (JWT)
+
+_No parameters._
+
+### GET `/v1/super-admin/usage/developers`
+
+Every developer, with their per-product usage against allowance
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `search` | query | `string` | No | 0–256 chars — Case-insensitive substring match against the developer email. |
+| `atRisk` | query | `boolean` | No | Only include developers with at least one product at or above 90% of its allowance (the same flag the row itself carries). |
+| `limit` | query | `number` | No | 1–200 |
+| `offset` | query | `number` | No | 0–∞ |
+
+### GET `/v1/super-admin/usage/developers/{userId}`
+
+One developer's full usage breakdown
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `userId` | path | `string` | Yes | |
+
+### PATCH `/v1/super-admin/usage/developers/{userId}/allowance`
+
+Change one product's included-minutes/-count grant for a developer
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `userId` | path | `string` | Yes | |
+| `product` | body | `UsageProduct` | Yes | Which allowance pool to change. |
+| `includedMinutes` | body | `number` | No | 0–1_000_000 — New included-minutes grant. Required when product is RTC or LIVE_STREAMING, ignored for CHAT. |
+| `includedCount` | body | `number` | No | 0–10_000_000 — New included-message-count grant. Required when product is CHAT, ignored otherwise. |
+| `reason` | body | `string` | Yes | 0–500 chars — Why this limit is being changed. Required — every allowance edit is written to the admin audit log with this text attached. |
+
+### GET `/v1/super-admin/usage/overview`
+
+Platform-wide usage totals
+
+**Credential** Dashboard session (JWT)
+
+_No parameters._
 
 ### POST `/v1/telemetry/events`
 

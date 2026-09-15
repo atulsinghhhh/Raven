@@ -8,7 +8,7 @@
     "server": "node server.mjs"
   },
   "dependencies": {
-    "@ravenkash/server": "file:../../packages/server-sdk",
+    "@ravenkash/server": "^0.1.0",
     "express": "^4.19.2"
   }
 }

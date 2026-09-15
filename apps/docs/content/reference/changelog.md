@@ -22,8 +22,8 @@ numbers don't match across packages:
 | `raven_rtc`, `raven_chat`, `raven_live` | Unpublished (pub.dev) |
 | `raven-sdk` | Unpublished (PyPI) |
 
-For Python and Flutter, install from a checkout —
-[Installing from source](/getting-started/installing-from-source).
+Python and Flutter aren't published yet —
+[contact support](mailto:support@mail.ravenstack.online) for early access.
 
 This page doesn't pin exact version numbers — check the npm link for each
 package's current `latest` tag. It will carry real per-version release
@@ -58,11 +58,11 @@ can version without the REST API having to.
 
 ## Where to watch for changes
 
-- The repository's release notes, once the first release lands.
+- Each package's npm release notes, once the first tagged release lands.
 - [Known limitations](/reference/known-limitations) — the honest list of
   what is not finished, updated as things land.
 
 ## Next steps
 
 - [Known limitations](/reference/known-limitations)
-- [Installing from source](/getting-started/installing-from-source)
+- [Install an SDK](/get-started/install-an-sdk)

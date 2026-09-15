@@ -1,14 +1,21 @@
 # CLI workflow: zero to a joined room
 
-The canonical path through `@ravenkash/cli`, exactly as verified end-to-end
-against a real local Livqeno deployment (`docker compose up`, `apps/api`
-on `:4100`, dashboard on `:3000`). Every command below is real — no
-placeholders elided for brevity beyond your own project name.
+The canonical path through `@ravenkash/cli` against hosted Raven Cloud
+(`https://api.ravenstack.online`, dashboard at `https://app.ravenstack.online`).
+Every command below is real — no placeholders elided for brevity beyond
+your own project name.
+
+> **Caveat:** `@ravenkash/cli` is published to npm (see `PUBLISHING.md`),
+> and the commands below reflect the CLI's documented behavior against
+> the hosted API. This workflow was previously verified end-to-end
+> against a local `docker compose` deployment; it has not been
+> re-verified end-to-end against production exactly as written below, so
+> treat step 7's health check and any environment-specific behavior as
+> unconfirmed against the hosted stack until you've run it yourself.
 
 ```bash
-# 1. Install (local build, this phase doesn't publish to npm)
-cd packages/cli && npm install && npm run build
-# expose ./dist/index.js as `raven` on your PATH
+# 1. Install
+npm install -g @ravenkash/cli
 
 # 2. Authenticate — opens your browser, no password in the terminal
 raven login
@@ -59,7 +66,7 @@ raven rooms list
 # 10. Mint a short-lived RTC token from YOUR OWN BACKEND using the API
 #     key from step 8 — never mint tokens in the browser, and the CLI
 #     itself never mints a permanent one either:
-curl -X POST http://localhost:4100/v1/rooms/a1b2c3d4-.../rtc-tokens \
+curl -X POST https://api.ravenstack.online/v1/rooms/a1b2c3d4-.../rtc-tokens \
   -H "Authorization: Bearer rvk_xxxxxxxxxxxx.yyyy..." \
   -H "Content-Type: application/json" \
   -d '{"participantIdentity": "alice", "permissions": {"join": true, "subscribe": true, "publish": true, "publishAudio": true, "publishVideo": true}}'
@@ -71,7 +78,7 @@ open http://localhost:8900/index.html
 # 12. Repeat steps 10-11 with a second identity ("bob") in a second tab
 #     to see both participants join the same room.
 
-# 13. Verified outcome: Terminal → Livqeno CLI → Livqeno API → Livqeno
+# 13. Expected outcome: Terminal → Livqeno CLI → Livqeno API → Livqeno
 #     infrastructure → a real RTC application, end to end.
 ```
 
@@ -84,10 +91,10 @@ open http://localhost:8900/index.html
   there is no CLI-only backend.
 - The API key minted by the CLI mints a real, working RTC token from the
   Control API, which a real browser SDK client (`@ravenkash/rtc`) can use to
-  join and connect to a real Livqeno SFU node — confirmed live via
-  `Status: connected` and correct remote-participant discovery in both
-  browser tabs, with real signaling frames visible in the browser
-  console.
+  join and connect to a real Livqeno SFU node — expect `Status: connected`
+  and correct remote-participant discovery in both browser tabs, with
+  real signaling frames visible in the browser console (see the caveat
+  above on end-to-end re-verification against the hosted platform).
 
 ## A note on step 11 in an automated/headless environment
 

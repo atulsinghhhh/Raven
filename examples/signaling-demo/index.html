@@ -93,14 +93,19 @@
     <p class="hint">
       A minimal manual test page for the WebSocket signaling layer — no media, no build step. Open this same file in two
       browser tabs to act as two participants in the same room. Get RTC tokens via
-      <code>POST /v1/rooms/:roomId/rtc-tokens</code> (see the Swagger UI at <code>/docs</code>, or
-      <code>docs/local-development.md</code>).
+      <code>POST /v1/rooms/:roomId/rtc-tokens</code> against
+      <code>https://api.ravenstack.online</code> with your project API key
+      (see <code>docs/sdk.md#authentication</code>).
     </p>
 
     <fieldset>
       <legend>Connection</legend>
       <label>Signaling URL</label>
-      <input id="wsUrl" value="ws://localhost:4100/v1/rtc" />
+      <input id="wsUrl" value="wss://api.ravenstack.online/v1/rtc" />
+      <p class="hint">Hosted Raven Cloud default shown. If your token
+      response's <code>endpoint</code> field differs, paste that value
+      here instead — it's the authoritative signaling URL for your
+      project/region.</p>
       <label>RTC token</label>
       <input id="token" placeholder="paste an RTC token from POST /v1/rooms/:roomId/rtc-tokens" />
       <button id="connectBtn">Connect</button>

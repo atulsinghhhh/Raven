@@ -37,13 +37,9 @@ that expires, is scoped to one user, and can be revoked.
 
 ## Running it
 
-You need the Livqeno stack up (`pnpm infra:up` from the repo root) and a project
-API key. Create one in the dashboard, or:
-
-```bash
-# from the repo root
-pnpm dashboard:dev     # sign up, create a project, create an API key
-```
+You need a Raven Cloud project and API key: sign up at the
+[dashboard](https://app.ravenstack.online), create a project, then create
+an API key from the project's API Keys tab.
 
 Then:
 
@@ -52,7 +48,7 @@ cd examples/chat
 npm install
 
 # Terminal 1 — the backend that holds the API key
-RAVEN_API_KEY=rvk_xxx.yyy npm run server
+RAVEN_API_KEY=rvk_xxx.yyy RAVEN_API_URL=https://api.ravenstack.online npm run server
 
 # Terminal 2 — the frontend
 npm run dev
@@ -67,14 +63,15 @@ other.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `RAVEN_API_KEY` | *(required)* | Project API key. Backend only. |
-| `RAVEN_API_URL` | `http://localhost:4100` | Livqeno Control API base URL. |
+| `RAVEN_API_URL` | `http://localhost:4100` | Livqeno Control API base URL. Set this to `https://api.ravenstack.online` to use hosted Raven Cloud — the `localhost:4100` default only exists as a fallback for developers running Raven's own backend locally. |
 | `RAVEN_CHAT_ROOM` | `example-chat` | Conversation name. Created on first run. |
 | `PORT` | `8788` | Port for this example's backend. |
 
 ## Things worth trying
 
-**Reconnection.** With both tabs open, restart the Livqeno API
-(`docker compose restart api`). Watch the connection badge go
+**Reconnection.** With both tabs open, briefly interrupt the backend's
+connectivity to Raven Cloud (e.g. toggle your network off and on, or stop
+the `npm run server` process and restart it). Watch the connection badge go
 `reconnecting` → `connected`, and note that no messages are lost — the SDK
 refetches what it missed from history, because the WebSocket is never the
 source of truth.

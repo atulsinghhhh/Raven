@@ -1,15 +1,16 @@
 # Contributing to Livqeno
 
-Thanks for being here. Livqeno is real-time communication infrastructure —
-an API, SDKs and a dashboard that other people build products on — so the
-bar is "someone can depend on this", not "it works on my machine". This
-page is what you need to clear it.
+Livqeno is a proprietary, hosted platform — the control plane, SFU, and
+dashboard in this repository are Raven's own infrastructure, not something
+external contributors deploy or operate. This guide is for **Raven's
+internal engineering team**, and for contributions to the public,
+MIT-licensed `@ravenkash/*` / `raven-sdk` / `raven_*` client SDKs.
 
-- **Found a security problem?** Do not open an issue. See
+The bar is "someone can depend on this", not "it works on my machine".
+This page is what you need to clear it.
+
+- **Found a security problem?** Do not open a public issue. See
   [SECURITY.md](./SECURITY.md).
-- **Just want a good first task?** [`docs/issues/`](./docs/issues/) is ten
-  real, self-contained problems, each written so you can pick it up without
-  the deployment context in your head.
 
 ---
 
@@ -19,9 +20,11 @@ Be straightforward and assume good faith. Critique code, not people.
 Disagreement is fine and useful; contempt is not. Maintainers will remove
 comments and contributors that make this an unpleasant place to work.
 
-By contributing you agree your work is licensed under the repository's
-[MIT licence](./LICENSE) — inbound matches outbound. There is no CLA to
-sign.
+If your contribution touches the public SDK packages (`packages/*`,
+`sdks/*`), you agree your work is licensed under those packages'
+[MIT licence](./LICENSE) — inbound matches outbound, no CLA required.
+The platform code (`apps/api`, `services/sfu`, `apps/dashboard`) is
+proprietary and not open to external contribution.
 
 ---
 

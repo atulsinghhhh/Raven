@@ -19,16 +19,15 @@ room.on('trackSubscribed', (track, participant) => {
 
 ## Running it
 
-1. Bring up Livqeno's infrastructure (from the repo root) and build the SDK:
+1. Sign up for a Raven Cloud project at the
+   [dashboard](https://app.ravenstack.online) and create an API key.
+2. Install `@ravenkash/rtc` from npm and copy its bundle into this folder
+   (this example loads it via a browser import map, not a bundler — see
+   below for why):
    ```bash
-   pnpm infra:up
-   pnpm --filter @ravenkash/rtc build
-   ```
-2. Copy the freshly-built SDK into this folder (this example loads it via
-   a browser import map, not a bundler — see below for why):
-   ```bash
-   cp ../../packages/sdk/dist/index.js ./raven-rtc.js
-   cp ../../packages/sdk/dist/index.js.map ./raven-rtc.js.map
+   npm install @ravenkash/rtc
+   cp node_modules/@ravenkash/rtc/dist/index.js ./raven-rtc.js
+   cp node_modules/@ravenkash/rtc/dist/index.js.map ./raven-rtc.js.map
    ```
    One file is all it takes now: `@ravenkash/rtc` has no runtime
    dependency to vendor alongside it. WebRTC comes from the browser.
@@ -37,7 +36,8 @@ room.on('trackSubscribed', (track, participant) => {
    python3 -m http.server 8900
    ```
 4. Mint two RTC tokens for the same room (different `participantIdentity`
-   values) via Swagger UI at `http://localhost:4100/docs`, or `curl` — see
+   values) against `https://api.ravenstack.online` — via `curl` with your
+   API key, or `raven rooms create` + `raven` CLI — see
    docs/sdk.md#authentication for the exact fields you need.
 5. Open `http://localhost:8900` in two browser tabs, paste one token's JSON
    response into each, and click **Join Room** in both.

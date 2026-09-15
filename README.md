@@ -5,13 +5,13 @@
 [docs](https://docs.ravenstack.online) ·
 API at `https://api.ravenstack.online`
 
-**Open-source real-time communication infrastructure.** Add video, voice,
-chat and data to your own app — without running WebRTC or WebSocket
-infrastructure yourself.
+**Managed real-time infrastructure for developers.** Add video, voice,
+chat and live streaming to your own app — without running WebRTC or
+WebSocket infrastructure yourself.
 
 Livqeno is infrastructure, not a video-calling app: you get an API, SDKs and
-a dashboard, and you build the product. Comparable to LiveKit Cloud, Daily
-or Agora, except you can self-host the whole thing.
+a dashboard, and you build the product. Raven operates the control plane,
+signaling and media plane; you never deploy or manage any of it.
 
 ```
 Your backend  ──API key──▶  Livqeno Control API  ──▶ short-lived token
@@ -21,9 +21,10 @@ Your frontend ◀─────────────────────
       └──token──▶  Livqeno Signaling ──▶ Livqeno SFU ──▶ other participants
 ```
 
-- **Node.js ≥ 20**, **pnpm 11**, Docker, and a Postgres connection string.
-- Media plane is Livqeno's own SFU: Go, built on [Pion](https://github.com/pion/webrtc).
+- **Node.js ≥ 20** (or Python) in your own backend, and any modern frontend.
 - Everything speaks standards-compliant WebRTC — ICE, DTLS-SRTP, RTP/RTCP.
+- No infrastructure to provision: no SFU, no TURN server, no Redis, no
+  Postgres. Raven Cloud runs all of it.
 
 ---
 
@@ -171,7 +172,7 @@ client.
 | Package | Install | Reference |
 |---|---|---|
 | `@ravenkash/server` | `npm i @ravenkash/server` | [docs/sdk/server/typescript.md](./docs/sdk/server/typescript.md) |
-| `raven-sdk` (Python) | not on PyPI yet — [install from source](./docs/sdk/server/python.md#installation) | [docs/sdk/server/python.md](./docs/sdk/server/python.md) |
+| `raven-sdk` (Python) | coming soon to PyPI — [contact support](mailto:support@mail.ravenstack.online) for early access | [docs/sdk/server/python.md](./docs/sdk/server/python.md) |
 
 Both hold a permanent project API key that never reaches a browser, mint
 short-lived RTC and chat tokens, and read rooms, connections, errors and
@@ -259,77 +260,24 @@ scripts/              Load tests, infra verification, TURN certs
 
 ---
 
-## Running it locally
+## Working on Raven itself
 
-```bash
-cp .env.example .env       # then fill in real secrets — see below
-pnpm install                # one-time setup — this is a pnpm workspace, `npm install` will not work here
-npm run infra:up            # Redis, the SFU, coturn, MinIO, api
-npm run db:migrate          # apply migrations to your Postgres
-npm run infra:verify        # confirm every dependency is actually healthy
-npm run db:seed             # optional: demo developer, project, key, room
-```
+Raven is a hosted platform — integrating with it never requires running its
+backend, SFU, TURN server, Redis or Postgres yourself (see Quickstart above).
 
-Then: interactive API docs at <http://localhost:4100/docs>.
-
-**Postgres is not in the compose stack.** Livqeno's own deployment uses
-managed Postgres, and `.env` needs `DATABASE_URL` and `DIRECT_URL` before
-anything works. Any Postgres will do.
-
-Two secrets must be distinct from each other and from `JWT_SECRET` —
-production boot *refuses to start* otherwise, because a deployment where
-one leaked credential mints all of them is worse than one that will not run:
-
-```bash
-openssl rand -hex 32   # RTC_TOKEN_SECRET
-openssl rand -hex 32   # SFU_REGISTRATION_SECRET
-```
-
-The dashboard runs separately:
-
-```bash
-npm run build --workspace=@raven/dashboard
-npm run start --workspace=@raven/dashboard   # http://localhost:3000
-```
-
-Ports, troubleshooting, and running the API on the host with hot reload:
-[docs/local-development.md](./docs/local-development.md).
+The instructions for standing up the full stack locally are for **Raven's
+own engineering team**, not for integrating with Raven: see
+[docs/local-development.md](./docs/local-development.md) (internal).
 
 ---
 
-## Testing
+## Testing Raven's own infrastructure
 
-Different layers prove different things, and none of them substitutes for
-another.
-
-```bash
-# The SFU: real Pion peers, real ICE/DTLS/SRTP, real RTP forwarding.
-cd services/sfu && go test -race ./...
-
-# Scale: 2 / 10 / 50 / 100 participants, plus a 20-way mesh.
-cd services/sfu && go test ./internal/room/ -run TestScale -v
-
-# Unit tests, per package.
-npm test                                        # apps/api
-npm test --workspace=@ravenkash/rtc              # and any other package
-
-# End-to-end. Needs a scratch Postgres — the suite refuses to run
-# against a shared database — plus Chromium for the browser suites.
-npm exec --workspace=@raven/api -- playwright install chromium
-docker run --rm -d --name raven-e2e-db -p 5455:5432 \
-  -e POSTGRES_PASSWORD=scratch -e POSTGRES_DB=raven postgres:16-alpine
-E2E_DB="postgresql://postgres:scratch@localhost:5455/raven"
-DATABASE_URL="$E2E_DB" DIRECT_URL="$E2E_DB" npm run prisma:migrate:deploy --workspace=@raven/api
-DATABASE_URL="$E2E_DB" DIRECT_URL="$E2E_DB" npm run test:e2e
-```
-
-The e2e suite builds and runs a **real SFU** as a child process, and two of
-its suites drive **real Chromium** through publish, subscribe and decode.
-That matters: browser-behaviour bugs are invisible to every other layer.
-
-What is and is not tested — including the network conditions that have
-**never** been exercised — is stated plainly in
-[docs/rtc/test-matrix.md](./docs/rtc/test-matrix.md).
+How Raven's engineering team runs the SFU, unit and end-to-end suites is
+internal engineering process, not part of integrating with the platform —
+see [CONTRIBUTING.md](./CONTRIBUTING.md) and
+[docs/rtc/test-matrix.md](./docs/rtc/test-matrix.md) for what is and is not
+exercised.
 
 ---
 
@@ -370,31 +318,14 @@ Grouped by what you are trying to do.
 [Attachments](./docs/chat/attachments.md) ·
 [Webhooks](./docs/chat/webhooks.md)
 
-**Contribute to Livqeno**
+**Reference**
+[Error codes](./docs/error-codes.md) ·
+[Dashboard](./docs/dashboard.md)
+
+**Working on Raven itself** (internal engineering — not required to integrate)
 [Contributing guide](./CONTRIBUTING.md) ·
 [Security policy](./SECURITY.md) ·
-[Development — formatting, linting, testing](./docs/development.md) ·
-[Security scanning](./docs/security.md) ·
-[Releases and versioning](./docs/releases.md) ·
-[Known issues](./docs/issues/)
-
-**Operate it**
-[Local development](./docs/local-development.md) ·
-[Control plane](./docs/control-plane.md) ·
-[Transactional email](./docs/email.md) ·
-[coturn reference](./docs/turn.md) ·
-[Observability](./docs/observability.md) ·
-[Telemetry](./docs/telemetry.md) ·
-[Diagnostics](./docs/diagnostics.md) ·
-[Error codes](./docs/error-codes.md) ·
-[Dashboard](./docs/dashboard.md) ·
-[Production deployment](./docs/deployment/production.md)
-
-**Decisions and history**
-[Infrastructure decisions](./docs/architecture/infrastructure-decisions.md) ·
-[WebRTC primer](./docs/architecture/webrtc.md) ·
-[Native RTC migration map](./docs/architecture/native-rtc-migration-map.md) ·
-[Migrating from LiveKit](./docs/migration/from-livekit.md)
+[Development](./docs/development.md)
 
 **Examples**
 [`examples/`](./examples) — a runnable app per path: plain JS, React,

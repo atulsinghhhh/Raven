@@ -8,16 +8,21 @@ just this example's framework of choice.
 
 ## Running it
 
+Sign up for a Raven Cloud project at the
+[dashboard](https://app.ravenstack.online) and create an API key from the
+project's API Keys tab (or `raven keys create` — see `docs/cli.md`).
+
 ```bash
 cd examples/python-server
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt   # installs raven-sdk from the local sdks/python source
-RAVEN_API_KEY=rvk_xxxx.yyyy uvicorn main:app --port 8787
+pip install -r requirements.txt   # installs raven-sdk from local source — not yet published to PyPI, see note below
+RAVEN_API_KEY=rvk_xxxx.yyyy RAVEN_API_URL=https://api.ravenstack.online uvicorn main:app --port 8787
 # → http://127.0.0.1:8787
 ```
 
-Get a real `RAVEN_API_KEY` via `raven keys create` (see `docs/cli.md`) or
-the dashboard's API Keys tab.
+`raven-sdk` (Python) is **not yet published to PyPI** — `requirements.txt`
+installs it from local monorepo source for development purposes only.
+See `PUBLISHING.md` and `apps/docs/content/getting-started/installing-from-source.md`.
 
 ## Try it
 

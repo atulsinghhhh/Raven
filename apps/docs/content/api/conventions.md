@@ -10,11 +10,13 @@ Everything on the endpoint pages assumes what is on this one.
 All versioned routes live under `/v1`. There is no unversioned alias.
 
 ```
-https://api.your-raven-deployment.example/v1/...
+https://api.ravenstack.online/v1/...
 ```
 
-On a local stack the host is `http://localhost:4100` — see
-[Docker Compose](/self-hosting/docker-compose).
+Your backend reads this from `RAVEN_API_URL`. The SDKs default to
+`http://localhost:4100` when it's unset, which is only correct while
+you're pointed at a local mock or proxy — set it explicitly everywhere
+else.
 
 ## Authentication
 

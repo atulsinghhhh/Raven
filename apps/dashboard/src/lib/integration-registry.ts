@@ -99,8 +99,8 @@ const SERVER_ENV: EnvVar[] = [
   },
   {
     name: 'RAVEN_API_URL',
-    description: 'Your Raven Control API deployment. Optional — defaults to http://localhost:4100.',
-    example: 'http://localhost:4100',
+    description: 'Your Raven Control API deployment. Optional — defaults to https://api.ravenstack.online.',
+    example: 'https://api.ravenstack.online',
   },
 ];
 
@@ -130,7 +130,7 @@ const RTC_SERVER_FILE = (path: string): CodeFile => ({
 
 const raven = new Raven({
   apiKey: process.env.RAVEN_API_KEY!,
-  baseUrl: process.env.RAVEN_API_URL, // defaults to http://localhost:4100
+  baseUrl: process.env.RAVEN_API_URL, // defaults to https://api.ravenstack.online
 });
 
 // Your own auth decides who "identity" is — never trust a client-supplied id.

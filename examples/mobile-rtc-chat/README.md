@@ -6,8 +6,9 @@ array.
 
 ## Running it
 
-Needs the Livqeno stack up (`pnpm infra:up` from the repo root) and a
-project API key.
+You need a Raven Cloud project and API key: sign up at the
+[dashboard](https://app.ravenstack.online), create a project, then create
+an API key from the project's API Keys tab.
 
 ```bash
 cd examples/mobile-rtc-chat
@@ -15,16 +16,17 @@ npm install
 cd ios && pod install && cd ..     # iOS only
 
 # Terminal 1 — backend that holds RAVEN_API_KEY and mints both tokens
-RAVEN_API_KEY=rvk_xxx.yyy npm run server
+RAVEN_API_KEY=rvk_xxx.yyy RAVEN_API_URL=https://api.ravenstack.online npm run server
 
 # Terminal 2
 npm run ios      # or: npm run android
 ```
 
 **On a real device, `localhost` means the phone.** Point `BACKEND_URL` in
-`src/App.tsx` at your machine's LAN IP, and make sure `RAVEN_API_URL`
-and the returned `endpoint` are reachable from the device too — the
-defaults point at `localhost` and will fail on hardware.
+`src/App.tsx` at your machine's LAN IP so the device can reach this
+example's backend; the backend itself talks to Raven Cloud over the
+internet (`RAVEN_API_URL=https://api.ravenstack.online`), so there is no
+LAN-reachability requirement on that hop.
 
 ## What it demonstrates
 

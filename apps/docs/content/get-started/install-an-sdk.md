@@ -8,9 +8,8 @@ tokens; your **client** holds a token and joins. Those are different
 packages, and neither can do the other's job.
 
 > **The `@ravenkash/*` packages are on npm; the Python and Flutter SDKs are
-> not on PyPI or pub.dev yet.** For Python and Flutter, install from a
-> checkout — see
-> [Installing from source](/getting-started/installing-from-source).
+> not on PyPI or pub.dev yet.**
+> [Contact support](mailto:support@mail.ravenstack.online) for early access.
 
 ## Your backend
 
@@ -26,10 +25,11 @@ npm install @ravenkash/server
 
 > **Not on PyPI — and do not `pip install raven-sdk`.** That name belongs
 > to an unrelated third-party package, so it installs someone else's code.
-> See [the Python SDK page](/sdk/python).
+> [Contact support](mailto:support@mail.ravenstack.online) for early access;
+> see [the Python SDK page](/sdk/python) for details.
 
 ```bash
-pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"
+pip install raven-sdk  # once published to PyPI
 ```
 
 </Tab>
@@ -83,8 +83,8 @@ dependencies:
   raven_live: ^0.1.0    # live streaming
 ```
 
-Not on pub.dev yet — see
-[Installing from source](/getting-started/installing-from-source).
+Not on pub.dev yet —
+[contact support](mailto:support@mail.ravenstack.online) for early access.
 
 </Tab>
 </Tabs>

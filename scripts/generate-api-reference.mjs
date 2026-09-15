@@ -21,6 +21,14 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONTENT = path.join(ROOT, 'apps/docs/content');
+// Repo-root `docs/` is Raven's own internal engineering tree — not part of
+// the public docs site (apps/docs/content), and not built or link-checked
+// by it. The full environment-variable reference below (TURN secrets, SFU
+// registration, control-plane internals) is written here rather than into
+// the public site: Livqeno has no self-hosting offering, so there is no
+// public reader who needs it, but Raven's own engineers running the real
+// control plane still do.
+const INTERNAL_DOCS = path.join(ROOT, 'docs');
 const gt = JSON.parse(fs.readFileSync(path.join(ROOT, 'apps/docs/groundtruth.json'), 'utf8'));
 
 const CREDENTIAL_LABEL = {
@@ -481,14 +489,14 @@ function writeEnvVars() {
     '',
     '## Next steps',
     '',
-    '- [Docker Compose](/self-hosting/docker-compose) — the stack these configure.',
-    '- [Limits & quotas](/reference/limits) — the ceilings several of these set.',
+    '- [Local development](./local-development.md) — the stack these configure.',
+    '- [Limits & quotas](../apps/docs/content/reference/limits.md) — the ceilings several of these set.',
     '',
   ].join('\n');
 
-  fs.mkdirSync(path.join(CONTENT, 'self-hosting'), { recursive: true });
-  fs.writeFileSync(path.join(CONTENT, 'self-hosting/environment-variables.md'), page);
-  return { slug: 'self-hosting/environment-variables', endpoints: all.size };
+  fs.mkdirSync(INTERNAL_DOCS, { recursive: true });
+  fs.writeFileSync(path.join(INTERNAL_DOCS, 'environment-variables.md'), page);
+  return { slug: 'docs/environment-variables (internal)', endpoints: all.size };
 }
 
 const LIMIT_GROUPS = [
@@ -579,9 +587,8 @@ function writeLimits() {
     'description: Every ceiling and TTL a developer meets, with the variable that sets it. Generated from the API configuration.',
     '---',
     '',
-    "Every value below is a **default**, read out of the API's configuration. A",
-    'self-hosted deployment can change any of them; a hosted one has whatever',
-    'its operator set.',
+    "Every value below is a **default**, read out of the API's configuration,",
+    "as Livqeno's hosted platform runs it today.",
     '',
     'Nothing here is a billing quota. The quotas Livqeno does enforce are the',
     'three independent free-tier allowances every account is granted — RTC',
@@ -620,7 +627,7 @@ function writeLimits() {
     '## Next steps',
     '',
     '- [Rate limits](/production/rate-limits) — what the budget is keyed on.',
-    '- [Errors](/reference/errors) · [Environment variables](/self-hosting/environment-variables)',
+    '- [Errors](/reference/errors) · [Usage](/concepts/usage)',
     '',
   ].join('\n');
 

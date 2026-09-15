@@ -16,37 +16,35 @@ this exercises.
 
 ## Running it
 
-**1. Bring up Livqeno's infrastructure** (from the repo root):
+**1. Get a real API key.** Sign up for a Raven Cloud project at the
+[dashboard](https://app.ravenstack.online) and create an API key from the
+project's API Keys tab (or `raven keys create` — see `docs/cli.md`).
 
-```bash
-pnpm infra:up
-```
-
-**2. Get a real API key** — `raven keys create` (see `docs/cli.md`), or
-the dashboard's API Keys tab, or `pnpm db:seed` for a demo one.
-
-**3. Start the backend** that mints tokens for this page:
+**2. Start the backend** that mints tokens for this page:
 
 ```bash
 cd examples/media-demo
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt   # installs raven-sdk from the local sdks/python source
-RAVEN_API_KEY=rvk_xxxx.yyyy uvicorn server:app --port 8788
+pip install -r requirements.txt   # installs raven-sdk from local source — not yet published to PyPI, see note below
+RAVEN_API_KEY=rvk_xxxx.yyyy RAVEN_API_URL=https://api.ravenstack.online uvicorn server:app --port 8788
 ```
 
-**4. Serve this folder over HTTP** (browsers restrict camera/microphone
+`raven-sdk` (Python) is **not yet published to PyPI** — `requirements.txt`
+installs it from local monorepo source for development purposes only.
+
+**3. Serve this folder over HTTP** (browsers restrict camera/microphone
 access on `file://` pages), on a *different* port than the backend:
 
 ```bash
 python3 -m http.server 8899
 ```
 
-**5. Open `http://localhost:8899/`.** Enter a room name and an identity,
+**4. Open `http://localhost:8899/`.** Enter a room name and an identity,
 click **Join Room** — the page asks the backend for a token itself; you
 never touch the Control API or paste JSON by hand. Click **Camera** and
 **Mic** to publish, granting the browser's permission prompts.
 
-**6. Repeat with a different identity** (same room name) in another tab
+**5. Repeat with a different identity** (same room name) in another tab
 or device — each sees the other's video/audio appear automatically
 under "Remote participants". Try a 3rd and 4th identity for a group
 call.
@@ -86,12 +84,14 @@ imports — so `app.js` is exactly what a real app's code would look
 like after a bundler (Vite, webpack, esbuild) resolves that import;
 only the resolution mechanism differs.
 
-To refresh the vendored files after an SDK change:
+`@ravenkash/rtc` is published to npm, so the vendored file no longer has
+to come from a local monorepo build — install it into a scratch
+`node_modules` and copy the same bundle out:
 
 ```bash
-pnpm --filter @ravenkash/rtc build
-cp ../../packages/sdk/dist/index.js ./raven-rtc.js
-cp ../../packages/sdk/dist/index.js.map ./raven-rtc.js.map
+npm install @ravenkash/rtc
+cp node_modules/@ravenkash/rtc/dist/index.js ./raven-rtc.js
+cp node_modules/@ravenkash/rtc/dist/index.js.map ./raven-rtc.js.map
 ```
 
 In a real project, you would simply `npm install @ravenkash/rtc` and let

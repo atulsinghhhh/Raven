@@ -66,7 +66,7 @@ client is handed an address nothing can reach, and the call fails with no
 obvious cause.
 
 **Mitigation:** a separate database per environment. This is the single
-highest-value thing to get right when self-hosting.
+highest-value thing to get right about environment isolation.
 
 ### Chat attachments need a storage driver your deployment actually has
 

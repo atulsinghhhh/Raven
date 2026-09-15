@@ -180,8 +180,8 @@ from. Room allocation prefers the requested region but falls back to any
 region rather than failing the call — so a production room can be handed to
 a laptop.
 
-Use a separate database per environment. This is the single
-highest-value thing to get right when self-hosting, and it is recorded in
+This is the single highest-value thing to get right about environment
+isolation, and it is recorded in
 [Known limitations](/reference/known-limitations).
 
 ## Next steps

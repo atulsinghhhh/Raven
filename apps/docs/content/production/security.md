@@ -76,14 +76,12 @@ egress-filter the delivery worker at the network level. See
 
 ## Reporting a vulnerability
 
-Use [GitHub private vulnerability reporting](https://github.com/atulsinghhhh/Raven/security/advisories/new).
-It stays private between you and the maintainers, and it issues the
-advisory when a fix ships.
+Email **security@ravenstack.online** with what you found. It stays
+private between you and the Livqeno security team, and we'll follow up
+with next steps and, once a fix ships, an acknowledgment.
 
-**Do not open a public issue.** That discloses the problem to everyone at
-once, including people who will use it before anyone can deploy the fix.
-If the link above 404s, private reporting is not enabled yet — open an
-issue titled "Security contact request" carrying *no technical detail at
-all* and we will reply with a private channel. The repository's
-[`SECURITY.md`](https://github.com/atulsinghhhh/Raven/blob/main/SECURITY.md) is the authoritative version of
-this policy.
+**Do not disclose a vulnerability publicly before it's fixed.** That
+exposes every other customer to it before anyone can deploy a fix. If you
+don't hear back within a couple of business days, send a follow-up — it
+means your first email didn't land, not that the report is being
+ignored.

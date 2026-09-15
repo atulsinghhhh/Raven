@@ -3,10 +3,10 @@ title: Environment variables
 description: Every variable any Livqeno component reads, grouped by what it configures. Generated from source.
 ---
 
-Livqeno's components read **129** environment variables between them —
-**109** by the control plane, **16** by the SFU,
-**6** by the dashboard. `.env.example` documents
-**113**, which leaves **26** read but
+Livqeno's components read **131** environment variables between them —
+**112** by the control plane, **16** by the SFU,
+**5** by the dashboard. `.env.example` documents
+**117**, which leaves **27** read but
 undocumented there; those are marked below.
 
 This page is generated from the source, so it is the complete set.
@@ -236,10 +236,15 @@ openssl rand -hex 32   # TURN_SECRET
 | `CAPACITY_MINT_CONCURRENCY` | not in `.env.example` |
 | `CAPACITY_MINT_QUEUE_DEPTH` | not in `.env.example` |
 | `CAPACITY_MINT_QUEUE_TIMEOUT_MS` | not in `.env.example` |
+| `EGRESS_AZURE_STORAGE_CONNECTION_STRING` |   |
+| `EGRESS_AZURE_STORAGE_CONTAINER` |   |
+| `EGRESS_CDN_BASE_URL` |   |
+| `EGRESS_STALE_SEGMENT_THRESHOLD_MS` | not in `.env.example` |
+| `EGRESS_WORKER_BASE_URL` | not in `.env.example` |
+| `EGRESS_WORKER_SHARED_SECRET` |   |
 | `HOSTNAME` | not in `.env.example` |
 | `METRICS_SCRAPE_SECRET` |   |
 | `NEXT_PUBLIC_DOCS_URL` | not in `.env.example` |
-| `NEXT_PUBLIC_GITHUB_URL` | not in `.env.example` |
 | `NEXT_PUBLIC_SUPPORT_URL` | not in `.env.example` |
 | `RAVEN_API_KEY` | not in `.env.example` |
 | `RAVEN_API_URL` | not in `.env.example` |
@@ -258,5 +263,5 @@ openssl rand -hex 32   # TURN_SECRET
 
 ## Next steps
 
-- [Docker Compose](/self-hosting/docker-compose) — the stack these configure.
-- [Limits & quotas](/reference/limits) — the ceilings several of these set.
+- [Local development](./local-development.md) — the stack these configure.
+- [Limits & quotas](../apps/docs/content/reference/limits.md) — the ceilings several of these set.

@@ -9,8 +9,8 @@ import { deriveSystemStatus } from '@/components/ui/badge';
 import { Card, SectionHeader } from '@/components/ui/card';
 import { CodeBlock } from '@/components/ui/code-block';
 import { PageHeader } from '@/components/ui/page-header';
-import { IconChevronRight, IconCli, IconExternal, IconGitHub, IconKeys, IconWebhooks } from '@/components/ui/icons';
-import { DOCS_URL, GITHUB_URL } from '@/lib/nav';
+import { IconChevronRight, IconCli, IconExternal, IconKeys, IconQuickstart, IconWebhooks } from '@/components/ui/icons';
+import { DOCS_URL } from '@/lib/nav';
 
 export const metadata: Metadata = {
   title: 'Developers — Livqeno',
@@ -115,14 +115,14 @@ export default async function DevelopersPage() {
             </Card>
             <Card className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <IconGitHub className="size-4 text-subtle" />
+                <IconQuickstart className="size-4 text-subtle" />
                 <p className="text-sm font-medium text-fg">Examples</p>
               </div>
               <p className="text-sm text-muted">
-                Working apps for every product — video calls, chat, live streaming, mobile — in the open-source repo.
+                Working apps for every product — video calls, chat, live streaming, mobile — in our example apps.
               </p>
               <a
-                href={`${GITHUB_URL}/tree/main/examples`}
+                href={`${DOCS_URL}/examples`}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-sm font-medium text-accent-text hover:underline"

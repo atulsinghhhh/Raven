@@ -9,20 +9,21 @@ Phase 4.
 
 ## Running it
 
-1. Make sure the stack is running: `pnpm infra:up` (from the repo root).
-2. Get two RTC tokens for the same room. Fastest way — seed demo data
-   and mint tokens against the seeded room:
+1. Sign up for a Raven Cloud project at the
+   [dashboard](https://app.ravenstack.online) and create an API key from
+   the project's API Keys tab.
+2. Get two RTC tokens for the same room:
 
    ```bash
-   pnpm db:seed   # prints a demo project/API key/room
-   curl -X POST http://localhost:4100/v1/rooms/<roomId>/rtc-tokens \
-     -H "Authorization: Bearer <api-key-from-seed>" \
+   curl -X POST https://api.ravenstack.online/v1/rooms/<roomId>/rtc-tokens \
+     -H "Authorization: Bearer <your-api-key>" \
      -H "Content-Type: application/json" \
      -d '{"participantIdentity":"alice","permissions":{"join":true,"subscribe":true,"publish":true}}'
    ```
 
    Run it again with `"participantIdentity":"bob"` for a second token.
-   Or use the Swagger UI at `http://localhost:4100/docs` instead of curl.
+   (Create a room first with `raven rooms create` or `POST /v1/rooms` if
+   you don't have a `roomId` yet.)
 
 3. Open `index.html` directly in two browser tabs (double-click it, or
    `open index.html` — no server needed, `file://` works fine since the

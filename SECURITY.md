@@ -14,15 +14,9 @@ imperfectly than late and precisely.
 everyone at once, including people who will use it before anyone can
 deploy a fix.
 
-Use **[GitHub private vulnerability reporting](https://github.com/atulsinghhhh/Raven/security/advisories/new)**
-— it is private between you and the maintainers, it lets us collaborate on
-a fix in a private fork, and it issues the CVE and advisory when we
-publish.
-
-> If that link 404s, private reporting has not been enabled yet on this
-> repository. In that case open a public issue titled **"Security contact
-> request"** with **no technical detail at all** — just ask us to get in
-> touch — and we will reply with a private channel.
+Email **security@ravenstack.online** with the details below. This is
+private between you and the Raven security team, and we will coordinate a
+fix and any advisory directly with you.
 
 ### What to include
 
@@ -69,17 +63,14 @@ There is no bug bounty. We can offer credit and genuine thanks.
 
 ## Supported versions
 
-Livqeno is **pre-1.0 and has not had its first release**. Nothing on npm,
-PyPI or pub.dev is published from this repository yet, and no version is
-under long-term support.
+The hosted platform (`api.ravenstack.online`) always runs the latest
+fix. The public `@ravenkash/*` npm packages, `raven-sdk` and `raven_*`
+client SDKs are pre-1.0; no version is under long-term support yet.
 
 | Version | Supported |
 |---|---|
-| `main` | ✅ Fixes land here |
+| Latest published SDK release | ✅ |
 | Anything else | ❌ |
-
-Once packages are released this table will list the supported minors. Until
-then, "supported" means `main`.
 
 ---
 
@@ -107,33 +98,6 @@ then, "supported" means `main`.
   impact.
 - Denial of service by sheer volume against a public demo.
 - Social engineering, physical access, or a compromised end-user device.
-- The known, already-documented issues below.
-
----
-
-## Already known
-
-These are public, documented, and do **not** need a private report. Ranked
-by what will hurt first.
-
-- **[coturn fails open](./docs/issues/05-coturn-fails-open.md)** — an
-  unreadable config turns the TURN server into an open relay. This is a
-  real security issue in the deployed configuration.
-- **[Every environment shares one database](./docs/issues/01-shared-database-sfu-registry.md)**
-  — development SFUs can register into the production fleet.
-- **[bcrypt blocks the event loop](./docs/issues/03-bcrypt-blocks-event-loop.md)**
-  — authenticated REST tops out around 13 req/s, which is a cheap
-  denial-of-service.
-- **[Browser RTC is unverified end to end](./docs/issues/09-browser-rtc-unverified.md)**
-  and relay-only NAT traversal has never been forced in a test — see
-  [the test matrix](./docs/rtc/test-matrix.md) for exactly what is and is
-  not exercised.
-
-Full list: [`docs/issues/`](./docs/issues/).
-
-A finding that is *worse than documented* — for example, an actual exploit
-path for the coturn issue — is worth a private report even though the issue
-itself is public.
 
 ---
 
@@ -168,9 +132,11 @@ The load-bearing invariants:
 
 ---
 
-## For operators
+## For Raven's own infrastructure operators (internal)
 
-If you run Livqeno yourself, most of your real risk is configuration:
+Raven operates the hosted platform; customers never deploy this
+infrastructure themselves. For the team running it, most of the real risk
+is configuration:
 
 - Generate `JWT_SECRET`, `RTC_TOKEN_SECRET`, `API_KEY_HASH_SECRET`,
   `CHAT_TOKEN_SECRET` and `SFU_REGISTRATION_SECRET` independently

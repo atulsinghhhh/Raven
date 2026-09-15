@@ -169,8 +169,8 @@ raven rtc servers drain <server>      # stop new rooms; live ones keep running
 ```
 
 `raven rooms` and `raven rtc rooms` are different groups: the first reads
-control-plane records, the second reads live media-server state. See
-[Running the SFU](/self-hosting/sfu).
+control-plane records, the second reads live media-server state on
+Livqeno's hosted SFU fleet.
 
 ## Project scaffolding
 
@@ -258,5 +258,4 @@ everything your account can do.
 ## Next steps
 
 - [Errors](/reference/errors) — what a non-zero exit is reporting.
-- [Running the SFU](/self-hosting/sfu) — what `raven rtc servers` manages.
 - [SDKs](/sdk) — the packages the CLI does not replace.

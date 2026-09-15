@@ -25,6 +25,7 @@ See [Streams & lifecycle](/live-streaming/streams).
 | POST | [`/v1/live-streams/{streamId}/hosts`](#post-v1livestreamsstreamidhosts) | Project API key |
 | DELETE | [`/v1/live-streams/{streamId}/hosts/{identity}`](#delete-v1livestreamsstreamidhostsidentity) | Project API key |
 | POST | [`/v1/live-streams/{streamId}/leave`](#post-v1livestreamsstreamidleave) | Project API key |
+| GET | [`/v1/live-streams/{streamId}/playback`](#get-v1livestreamsstreamidplayback) | Project API key |
 | POST | [`/v1/live-streams/{streamId}/start`](#post-v1livestreamsstreamidstart) | Project API key |
 | POST | [`/v1/live-streams/{streamId}/viewer-tokens`](#post-v1livestreamsstreamidviewertokens) | Project API key |
 | GET | [`/v1/projects/{projectId}/live-streams`](#get-v1projectsprojectidlivestreams) | Dashboard session (JWT) |
@@ -59,6 +60,7 @@ Create a live stream — a dedicated RTC room plus an attached chat conversation
 | `visibility` | body | `LiveStreamVisibility` | No |  |
 | `metadata` | body | `Record<string, unknown>` | No | Your own JSON, capped at 4 KB — same convention as Room/Conversation metadata. |
 | `scheduledAt` | body | `string` | No | When set, the stream is created for a future start — see docs/live-streaming/overview.md#scheduled-streams. Livqeno does not automatically transition status at this time; your backend still calls start(). |
+| `deliveryMode` | body | `LiveStreamDeliveryMode` | No | RTC_ONLY (default): viewers get an RTC credential and join the room, same as today. BROADCAST: the  |
 
 ### GET `/v1/live-streams/{streamId}`
 
@@ -132,6 +134,16 @@ Signal that a viewer left, for live_stream.viewer_left
 | `streamId` | path | `string` | Yes | |
 | `identity` | body | `string` | Yes | 1–128 chars, pattern-checked |
 
+### GET `/v1/live-streams/{streamId}/playback`
+
+Get broadcast playback info — the HLS URL for a BROADCAST-mode stream
+
+**Credential** Project API key
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `streamId` | path | `string` | Yes | |
+
 ### POST `/v1/live-streams/{streamId}/start`
 
 CREATED → LIVE
@@ -182,6 +194,7 @@ Create a live stream in this project
 | `visibility` | body | `LiveStreamVisibility` | No |  |
 | `metadata` | body | `Record<string, unknown>` | No | Your own JSON, capped at 4 KB — same convention as Room/Conversation metadata. |
 | `scheduledAt` | body | `string` | No | When set, the stream is created for a future start — see docs/live-streaming/overview.md#scheduled-streams. Livqeno does not automatically transition status at this time; your backend still calls start(). |
+| `deliveryMode` | body | `LiveStreamDeliveryMode` | No | RTC_ONLY (default): viewers get an RTC credential and join the room, same as today. BROADCAST: the  |
 
 ### GET `/v1/projects/{projectId}/live-streams/{streamId}`
 

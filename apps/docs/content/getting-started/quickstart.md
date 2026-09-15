@@ -9,14 +9,11 @@ a client.
 
 ## Before you start
 
-Livqeno is software that runs somewhere, so you need one of two things:
-
-- **A Livqeno deployment you can reach** — your team's, or a hosted one. Its
-  dashboard is linked in the top bar of this site.
-- **A local one.** `docker compose up` brings up everything except
-  Postgres. See [Docker Compose](/self-hosting/docker-compose).
-
-You also need the dashboard or the CLI to create your first API key.
+Livqeno is a hosted platform — there's no infrastructure to deploy. All
+you need is a Livqeno account: sign up in the
+[dashboard](https://app.ravenstack.online) and create a project. The
+dashboard is linked in the top bar of this site, and it's also where you
+create your first API key.
 
 Every Livqeno SDK is published on npm under the `@ravenkash` scope, so
 nothing here needs a checkout. The two you want for a first integration are
@@ -38,31 +35,10 @@ name `raven-sdk` there belongs to an unrelated project — see
 
 ## 1. Create a project and a key
 
-### If you are running Livqeno locally
-
-The seed script is the fastest route to a working credential. It creates a
-demo developer, project and room, and **prints an API key**:
-
-```bash
-pnpm db:seed
-```
-
-```
-Seed complete:
-  Developer login: demo@raven.local / demo-password-123
-  Project: Demo Project (…)
-  Room: demo-room (…)
-  API key (shown once — this run only): rvk_8Kd2nQxwYtLm.aG9wZXlvdWFyZWhhdmluZ2Fsb3ZlbHlkYXk
-```
-
-Copy that key and skip to step 2. Re-running the seed is safe, but it will
-not print the key again — it only shows a secret it just created.
-
-### If you are using an existing deployment
-
-Register in that deployment's dashboard and create a project. Every project
-starts with a development environment — safe to experiment in, isolated
-from staging and production. Then create an API key scoped to it:
+Register in the [dashboard](https://app.ravenstack.online) and create a
+project. Every project starts with a development environment — safe to
+experiment in, isolated from staging and production. Then create an API
+key scoped to it:
 
 ```bash
 raven login
@@ -188,26 +164,6 @@ The conversation has to exist first — `raven.chat.createConversation({ name:
 'demo-room' })` — and the grant is scoped to exactly the conversations you
 name, so a browser holding it cannot read a room you did not list. See
 [Chat → Overview](/chat) for the rest.
-
-## Local development
-
-Running Livqeno's own control plane locally, rather than against a hosted
-instance:
-
-```bash
-cp .env.example .env
-pnpm infra:up       # Redis, the media server, TURN, the API
-pnpm infra:verify   # confirms everything is healthy
-pnpm db:migrate     # apply migrations to your Postgres
-pnpm db:seed        # optional: a demo developer + project + key + room
-```
-
-`.env` needs a `DATABASE_URL` and `DIRECT_URL` before any of this works —
-Postgres is not part of the compose stack. Any Postgres will do; Livqeno's
-own deployment uses managed Postgres on Supabase, whose free tier gives you
-both connection strings in a couple of minutes.
-
-Interactive API docs are then at `http://localhost:4100/docs`.
 
 ## Next
 

@@ -3,9 +3,8 @@ title: Limits & quotas
 description: Every ceiling and TTL a developer meets, with the variable that sets it. Generated from the API configuration.
 ---
 
-Every value below is a **default**, read out of the API's configuration. A
-self-hosted deployment can change any of them; a hosted one has whatever
-its operator set.
+Every value below is a **default**, read out of the API's configuration,
+as Livqeno's hosted platform runs it today.
 
 Nothing here is a billing quota. The quotas Livqeno does enforce are the
 three independent free-tier allowances every account is granted — RTC
@@ -117,4 +116,4 @@ signaling connection limit closes the socket with code `4429`.
 ## Next steps
 
 - [Rate limits](/production/rate-limits) — what the budget is keyed on.
-- [Errors](/reference/errors) · [Environment variables](/self-hosting/environment-variables)
+- [Errors](/reference/errors) · [Usage](/concepts/usage)

@@ -6,18 +6,16 @@ process — the browser only ever sees a short-lived RTC token.
 
 ## Running it
 
-```bash
-# From the repo root: build the SDK this example depends on
-pnpm --filter @ravenkash/server build
+Sign up for a Raven Cloud project at the
+[dashboard](https://app.ravenstack.online) and create an API key from the
+project's API Keys tab (or `raven keys create` — see `docs/cli.md`).
 
+```bash
 cd examples/node-server
-npm install     # resolves @ravenkash/server via a local file: dependency
-RAVEN_API_KEY=rvk_xxxx.yyyy npm start
+npm install     # installs @ravenkash/server from npm
+RAVEN_API_KEY=rvk_xxxx.yyyy RAVEN_API_URL=https://api.ravenstack.online npm start
 # → Livqeno node-server example listening on http://localhost:8787
 ```
-
-Get a real `RAVEN_API_KEY` via `raven keys create` (see `docs/cli.md`) or
-the dashboard's API Keys tab.
 
 ## Try it
 

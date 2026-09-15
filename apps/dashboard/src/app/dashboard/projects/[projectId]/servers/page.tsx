@@ -89,11 +89,10 @@ export default async function ServersPage({ params }: { params: Promise<{ projec
           title="No RTC servers registered"
           description={
             <>
-              No SFU has registered with this deployment, so <strong>every join will fail</strong> with{' '}
-              <code className="font-mono text-xs text-fg">RAVEN_NO_RTC_CAPACITY</code>. A node registers itself on boot
-              — it needs <code className="font-mono text-xs text-fg">SFU_CONTROL_PLANE_URL</code> pointing at this API
-              and a matching <code className="font-mono text-xs text-fg">SFU_REGISTRATION_SECRET</code>. Locally that is{' '}
-              <code className="font-mono text-xs text-fg">docker compose up -d sfu</code>.
+              Raven provisions RTC servers automatically for active projects, so nodes typically appear here within a
+              few minutes of a project going live. If none have appeared, every join will fail with{' '}
+              <code className="font-mono text-xs text-fg">RAVEN_NO_RTC_CAPACITY</code> in the meantime — check this
+              project&rsquo;s status and dependencies, or contact support if the fleet still hasn&rsquo;t provisioned.
             </>
           }
           action={

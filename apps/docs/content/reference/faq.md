@@ -28,8 +28,8 @@ table.
 The `@ravenkash/*` JavaScript/TypeScript packages (including the CLI) are —
 `npm install` them directly. Python (`raven-sdk`) and Flutter
 (`raven_rtc`/`raven_chat`/`raven_live`) aren't on PyPI or pub.dev yet;
-install those from a checkout —
-[Installing from source](/getting-started/installing-from-source).
+[contact support](mailto:support@mail.ravenstack.online) for early access to
+those packages.
 
 ## Tokens and authentication
 
@@ -141,13 +141,10 @@ permission is signed into the token.
 
 ### Do I have to self-host?
 
-No, but Livqeno is open source and self-hosting is a first-class path. See
-[Self-hosting](/self-hosting).
-
-### Why isn't Postgres in the Docker Compose stack?
-
-Because a database in a throwaway volume is the wrong default for something
-holding every message you have. Point at any Postgres.
+No — Livqeno doesn't offer a self-hosting path. Raven operates the control
+plane, the SFU fleet, and the TURN relays for you; you integrate entirely
+through the SDKs and the API. See [Quickstart](/getting-started/quickstart)
+to get connected without deploying anything.
 
 ### Which browsers work?
 
@@ -155,11 +152,13 @@ Chromium is the only one exercised with real media. Support is
 feature-detected, so others report as supported — a claim about
 capabilities, not interop. See [Browser support](/sdk/browser-support).
 
-### Do I need TURN?
+### Do I need to configure TURN myself?
 
-In practice yes. Without a relay, a share of users on corporate and mobile
-networks get calls that connect and carry nothing. See
-[TURN & NAT traversal](/self-hosting/turn).
+No. Livqeno's hosted TURN relays are included automatically in every
+token grant — your client just uses the `iceServers` it's handed. Without
+a relay, a share of users on corporate and mobile networks would get calls
+that connect and carry nothing; Raven runs that infrastructure so you
+don't have to.
 
 ### What does Livqeno send about my users?
 

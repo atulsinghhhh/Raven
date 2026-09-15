@@ -11,9 +11,9 @@
     "start": "react-native start"
   },
   "dependencies": {
-    "@ravenkash/chat": "file:../../packages/chat-sdk",
-    "@ravenkash/react-native": "file:../../packages/react-native-sdk",
-    "@ravenkash/rtc": "file:../../packages/sdk",
+    "@ravenkash/chat": "^0.1.0",
+    "@ravenkash/react-native": "^0.1.0",
+    "@ravenkash/rtc": "^0.4.0",
     "@react-native-community/netinfo": "^11.4.1",
     "react": "^18.3.1",
     "react-native": "^0.76.5",
@@ -21,7 +21,7 @@
     "react-native-webrtc": "^124.0.8"
   },
   "devDependencies": {
-    "@ravenkash/server": "file:../../packages/server-sdk",
+    "@ravenkash/server": "^0.1.0",
     "@types/react": "^18.3.12",
     "express": "^4.19.2",
     "typescript": "^5.7.2"

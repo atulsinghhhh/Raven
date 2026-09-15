@@ -15,8 +15,7 @@
  *
  * Section order follows the path a developer actually takes: understand, get
  * running, then whichever product they came for, then the reference material
- * they return to. Self-hosting sits near the end because most readers are on a
- * hosted deployment, and Resources last because it is looked up rather than
+ * they return to. Resources sits last because it is looked up rather than
  * read through.
  */
 export type ProductId = 'rtc' | 'chat' | 'live-streaming' | 'effects';
@@ -67,7 +66,6 @@ export const NAV: NavSection[] = [
       { slug: 'get-started/install-an-sdk', title: 'Install an SDK' },
       { slug: 'get-started/first-token', title: 'Generate a token' },
       { slug: 'get-started/first-room', title: 'Join your first room' },
-      { slug: 'getting-started/installing-from-source', title: 'Installing from source' },
     ],
   },
   {
@@ -229,17 +227,6 @@ export const NAV: NavSection[] = [
       { slug: 'api/observability', title: 'Observability' },
       { slug: 'api/webhooks', title: 'Webhooks' },
       { slug: 'api/all-endpoints', title: 'All endpoints' },
-    ],
-  },
-  {
-    title: 'Self-hosting',
-    items: [
-      { slug: 'self-hosting', title: 'Overview' },
-      { slug: 'self-hosting/docker-compose', title: 'Docker Compose' },
-      { slug: 'self-hosting/environment-variables', title: 'Environment variables' },
-      { slug: 'self-hosting/turn', title: 'TURN & NAT traversal' },
-      { slug: 'self-hosting/sfu', title: 'Running the SFU' },
-      { slug: 'self-hosting/health-and-metrics', title: 'Health & metrics' },
     ],
   },
   {

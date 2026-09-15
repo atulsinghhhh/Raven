@@ -155,9 +155,10 @@ which is exactly the `failed` path above.
 ## Production considerations
 
 - **TURN is what makes reconnection work on real networks.** A client that
-  changes network — Wi-Fi to cellular — usually needs a relay. If TURN is
-  misconfigured, reconnects fail in ways that look random. See
-  [TURN & NAT traversal](/self-hosting/turn).
+  changes network — Wi-Fi to cellular — usually needs a relay. Livqeno's
+  hosted TURN relays are included in every token grant automatically, so
+  reconnects failing in ways that look random usually trace back to the
+  next point instead.
 - **`iceServers` must come from a fresh mint.** TURN credentials expire
   with the token. Reusing an old `iceServers` array on a rejoin is a common
   and confusing failure.

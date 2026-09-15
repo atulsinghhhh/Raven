@@ -40,7 +40,7 @@ Backend (Node):
 ```bash
 npm install @ravenkash/server
 ```
-(Python backend? Not on PyPI yet — install from source: `pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"`. Same methods, snake_case: `raven.live_streams.create(...)`, etc. Do **not** `pip install raven` or `pip install raven-sdk` — both names belong to unrelated third parties.)
+(Python backend? `raven-sdk` is coming soon to PyPI — [contact support](mailto:support@mail.ravenstack.online) for early access. Same methods, snake_case: `raven.live_streams.create(...)`, etc. Do **not** `pip install raven` or `pip install raven-sdk` — both names belong to unrelated third parties.)
 
 Frontend:
 ```bash
@@ -52,7 +52,7 @@ Env vars for your backend:
 | Var | Required | Notes |
 |---|---|---|
 | `RAVEN_API_KEY` | yes | Secret. Server-side only. Never send to the browser. |
-| `RAVEN_API_URL` | yes in production | Set explicitly, e.g. `https://api.ravenstack.online` (or your self-hosted deployment). Omitting it falls back to `http://localhost:4100` — fine locally, but the SDK now throws rather than silently connecting to that in production (`NODE_ENV=production` with no `baseUrl`/`RAVEN_API_URL`). |
+| `RAVEN_API_URL` | yes in production | Set explicitly, e.g. `https://api.ravenstack.online`. Omitting it falls back to `http://localhost:4100` — fine locally, but the SDK now throws rather than silently connecting to that in production (`NODE_ENV=production` with no `baseUrl`/`RAVEN_API_URL`). |
 
 ---
 

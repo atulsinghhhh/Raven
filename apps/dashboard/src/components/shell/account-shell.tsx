@@ -10,7 +10,6 @@ import {
   IconCli,
   IconExternal,
   IconFolder,
-  IconGitHub,
   IconHelp,
   IconMenu,
   IconOverview,
@@ -18,7 +17,7 @@ import {
   IconUsage,
   RavenMark,
 } from '@/components/ui/icons';
-import { ACCOUNT_NAV, DOCS_URL, GITHUB_URL, SUPPORT_URL, type AccountNavItem } from '@/lib/nav';
+import { ACCOUNT_NAV, DOCS_URL, SUPPORT_URL, type AccountNavItem } from '@/lib/nav';
 import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
 
@@ -95,7 +94,6 @@ export function AccountShell({
     <div className="flex flex-col gap-0.5 border-t border-line px-3 py-3">
       <ExternalNavLink href={DOCS_URL} label="Documentation" icon={IconExternal} compact={compact} />
       <ExternalNavLink href={SUPPORT_URL} label="Support" icon={IconHelp} compact={compact} />
-      <ExternalNavLink href={GITHUB_URL} label="GitHub" icon={IconGitHub} compact={compact} />
     </div>
   );
 

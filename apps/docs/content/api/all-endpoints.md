@@ -3,8 +3,8 @@ title: All endpoints
 description: Every route the Livqeno API serves, generated from the controllers.
 ---
 
-Livqeno serves **116** versioned endpoints under `/v1`, plus
-**4** unversioned infrastructure routes. This page is generated
+Livqeno serves **153** versioned endpoints under `/v1`, plus
+**5** unversioned infrastructure routes. This page is generated
 from `apps/api`, so it is the whole surface — not a curated subset.
 
 Interactive request/response schemas are served by the API itself at `/docs`.
@@ -63,6 +63,7 @@ Interactive request/response schemas are served by the API itself at `/docs`.
 | POST | `/v1/live-streams/{streamId}/hosts` | Project API key | [Live Streaming](/api/live-streams) |
 | DELETE | `/v1/live-streams/{streamId}/hosts/{identity}` | Project API key | [Live Streaming](/api/live-streams) |
 | POST | `/v1/live-streams/{streamId}/leave` | Project API key | [Live Streaming](/api/live-streams) |
+| GET | `/v1/live-streams/{streamId}/playback` | Project API key | [Live Streaming](/api/live-streams) |
 | POST | `/v1/live-streams/{streamId}/start` | Project API key | [Live Streaming](/api/live-streams) |
 | POST | `/v1/live-streams/{streamId}/viewer-tokens` | Project API key | [Live Streaming](/api/live-streams) |
 | GET | `/v1/metrics` | Project API key | [Observability](/api/observability) |
@@ -92,6 +93,9 @@ Interactive request/response schemas are served by the API itself at `/docs`.
 | GET | `/v1/projects/{projectId}/diagnostics` | Dashboard session (JWT) | [Observability](/api/observability) |
 | GET | `/v1/projects/{projectId}/errors` | Dashboard session (JWT) | [Observability](/api/observability) |
 | GET | `/v1/projects/{projectId}/errors/{errorId}` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/projects/{projectId}/integrations` | Dashboard session (JWT) | [Observability](/api/observability) |
+| PATCH | `/v1/projects/{projectId}/integrations/{product}` | Dashboard session (JWT) | [Observability](/api/observability) |
+| POST | `/v1/projects/{projectId}/integrations/{product}/verify` | Dashboard session (JWT) | [Observability](/api/observability) |
 | GET | `/v1/projects/{projectId}/live-streams` | Dashboard session (JWT) | [Live Streaming](/api/live-streams) |
 | POST | `/v1/projects/{projectId}/live-streams` | Dashboard session (JWT) | [Live Streaming](/api/live-streams) |
 | GET | `/v1/projects/{projectId}/live-streams/{streamId}` | Dashboard session (JWT) | [Live Streaming](/api/live-streams) |
@@ -126,6 +130,39 @@ Interactive request/response schemas are served by the API itself at `/docs`.
 | POST | `/v1/rtc/servers/{name}/undrain` | Dashboard session (JWT) | [RTC](/api/rtc) |
 | GET | `/v1/rtc/servers/metrics` | Dashboard session (JWT) | [RTC](/api/rtc) |
 | POST | `/v1/rtc/servers/register` | SFU registration secret | [RTC](/api/rtc) |
+| GET | `/v1/super-admin/activity` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/admins` | Dashboard session (JWT) | [Observability](/api/observability) |
+| POST | `/v1/super-admin/admins` | Dashboard session (JWT) | [Observability](/api/observability) |
+| DELETE | `/v1/super-admin/admins/{userId}` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/api/activity` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/api/keys` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/api/overview` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/audit-logs` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/chat/conversations` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/chat/conversations/{id}` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/chat/overview` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/developers` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/developers/{id}` | Dashboard session (JWT) | [Observability](/api/observability) |
+| POST | `/v1/super-admin/developers/{id}/suspend` | Dashboard session (JWT) | [Observability](/api/observability) |
+| POST | `/v1/super-admin/developers/{id}/unsuspend` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/errors` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/errors/{id}` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/infrastructure` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/live/overview` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/live/streams` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/live/streams/{id}` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/me` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/overview` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/rtc/overview` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/rtc/participants/{id}` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/rtc/rooms` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/rtc/rooms/{id}` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/security` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/settings` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/usage/developers` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/usage/developers/{userId}` | Dashboard session (JWT) | [Observability](/api/observability) |
+| PATCH | `/v1/super-admin/usage/developers/{userId}/allowance` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/super-admin/usage/overview` | Dashboard session (JWT) | [Observability](/api/observability) |
 | POST | `/v1/telemetry/events` | RTC token | [Observability](/api/observability) |
 | GET | `/v1/usage` | Dashboard session (JWT) | [Observability](/api/observability) |
 | GET | `/v1/usage/detail` | Dashboard session (JWT) | [Observability](/api/observability) |
@@ -141,6 +178,7 @@ Not part of the versioned API and not covered by its compatibility promise.
 | GET | `/health` | Alias of /health/ready, kept for backward compatibility — unauthenticated |
 | GET | `/health/live` | Liveness probe — no dependency calls, unauthenticated |
 | GET | `/health/ready` | Readiness probe — checks dependencies, unauthenticated |
+| POST | `/internal/egress/heartbeat` | — |
 | GET | `/metrics` | — |
 
 {/* /generated:endpoints */}

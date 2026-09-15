@@ -2,22 +2,6 @@
  * External links shown in the nav/footer. Centralized so the same URL
  * doesn't drift between the two places it's rendered.
  */
-// The repository, now the landing page's one community link in place of a
-// Discord invite.
-//
-// IT 404s FOR EVERYONE UNTIL THE REPO IS MADE PUBLIC. `atulsinghhhh/Raven`
-// is private today — an anonymous GET returns 404, which is how GitHub
-// hides a private repo rather than admitting it exists. The note that used
-// to stand here said a repo link was impossible for exactly this reason and
-// it was right; the link is wired up because it was asked for and because
-// the repo going public is one setting away, not because it resolves now.
-//
-// The docs and README have said "open source" all along; the repo setting
-// is what lags. docs/production/readiness-audit.md tracks the flip and
-// what resolves with it. (An earlier version of this comment claimed the
-// audit called Livqeno closed-source — it does not, and never did.)
-export const GITHUB_REPO_URL = 'https://github.com/atulsinghhhh/Raven';
-
 /**
  * Direct WhatsApp chat, shown in the footer's Community column.
  *

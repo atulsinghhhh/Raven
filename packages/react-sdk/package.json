@@ -1,7 +1,7 @@
 {
   "name": "@ravenkash/react",
   "version": "0.1.1",
-  "description": "React hooks and optional UI primitives for @ravenkash/rtc — headless by default, no UI lock-in.",
+  "description": "Official React SDK for the Livqeno hosted platform — hooks and optional UI primitives for @ravenkash/rtc, headless by default, no UI lock-in.",
   "license": "MIT",
   "repository": {
     "type": "git",

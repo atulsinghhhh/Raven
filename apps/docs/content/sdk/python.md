@@ -12,9 +12,8 @@ see [Authentication](/authentication).
 > **Not published to PyPI yet — and do not `pip install raven-sdk`.**
 > That name is already taken on PyPI by an unrelated project ("Async
 > Kafka and HTTP producer SDK for Livqeno AI logs"), so installing it
-> gets you someone else's package, not this one. Install from a local
-> checkout instead — see
-> [Installing from source](/getting-started/installing-from-source).
+> gets you someone else's package, not this one.
+> [Contact support](mailto:support@mail.ravenstack.online) for early access.
 > The final published name will be announced before release.
 
 ## Initialization

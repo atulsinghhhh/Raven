@@ -48,12 +48,11 @@ optional, for call-audio routing.
 
 ```yaml
 dependencies:
-  raven_rtc:
-    path: ../path/to/your-checkout/sdks/flutter/raven_rtc
+  raven_rtc: ^0.1.0
 ```
 
-Not on pub.dev yet — see
-[Installing from source](/getting-started/installing-from-source).
+Not on pub.dev yet —
+[contact support](mailto:support@mail.ravenstack.online) for early access.
 
 </Tab>
 </Tabs>

@@ -8,9 +8,10 @@ shown in full — nothing is elided, and there's no starter template to
 clone. At the end you'll have two browser tabs seeing and hearing each
 other.
 
-You need Node 20+, a Livqeno control plane running locally (see
-[Installing from source](/getting-started/installing-from-source)), and
-about fifteen minutes.
+You need Node 20+, a Livqeno account with an API key (see
+[Create a project](/get-started/create-a-project)), and about fifteen
+minutes. There's no control plane to run — everything below talks to the
+hosted API.
 
 ## What you're building
 
@@ -33,14 +34,13 @@ npm init -y
 npm install express
 ```
 
-Then link the SDKs from your Livqeno checkout — they aren't published yet:
+Then install the SDKs from npm:
 
 ```bash
-npm install file:../Raven/packages/server-sdk file:../Raven/packages/sdk
+npm install @ravenkash/server @ravenkash/rtc
 ```
 
-Adjust `../Raven` to wherever you cloned it. This gives you
-`@ravenkash/server` (backend) and `@ravenkash/rtc` (browser).
+This gives you `@ravenkash/server` (backend) and `@ravenkash/rtc` (browser).
 
 ## Step 2 — Get an API key
 
@@ -76,7 +76,7 @@ app.use(express.static('public'));
 
 const raven = new Raven({
   apiKey: process.env.RAVEN_API_KEY,
-  baseUrl: 'http://localhost:4100', // your local control plane
+  baseUrl: process.env.RAVEN_API_URL, // https://api.ravenstack.online
 });
 
 // Create the room once at startup. In a real app you'd create rooms in
@@ -291,8 +291,9 @@ identity, one room, and an explicit permission set, expiring in an hour.
 
 ## Common problems
 
-**"Cannot find module '@ravenkash/rtc'"** — the packages need building
-first: `pnpm --filter "./packages/*" run build` in your Livqeno checkout.
+**"Cannot find module '@ravenkash/rtc'"** — re-run `npm install
+@ravenkash/server @ravenkash/rtc` from the project root; the bundler in
+Step 5 needs both packages present in `node_modules`.
 
 **Camera works, but the other tab sees nothing** — check that both tabs
 used *different* identities. Two participants with the same identity in

@@ -1,7 +1,7 @@
 {
   "name": "@ravenkash/react-native",
   "version": "0.1.0",
-  "description": "Livqeno SDK for React Native — real-time video, voice, and messaging on iOS and Android with the same API as Livqeno Web.",
+  "description": "Official React Native SDK for the Livqeno hosted platform — real-time video, voice, and messaging on iOS and Android with the same API as Livqeno Web.",
   "license": "MIT",
   "repository": {
     "type": "git",

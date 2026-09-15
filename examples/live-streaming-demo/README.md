@@ -11,42 +11,45 @@ This is deliberately not a polished product UI — see
 
 ## Running it
 
-**1. Bring up Livqeno's infrastructure** (from the repo root): `pnpm infra:up`
+**1. Get a real API key.** Sign up for a Raven Cloud project at the
+[dashboard](https://app.ravenstack.online) and create an API key from the
+project's API Keys tab (or `raven keys create`).
 
-**2. Get a real API key** — `raven keys create`, the dashboard, or `pnpm db:seed`.
-
-**3. Build the three SDK bundles this demo vendors** (no bundler, no CDN — same convention as `examples/media-demo` and `examples/video-call`):
+**2. Get the three SDK bundles this demo vendors.** `@ravenkash/rtc`,
+`@ravenkash/chat`, and `@ravenkash/client` are all published to npm, so
+install them and copy their bundles in (no bundler, no CDN — same
+convention as `examples/media-demo` and `examples/video-call`):
 
 ```bash
-pnpm --filter @ravenkash/rtc --filter @ravenkash/chat --filter @ravenkash/client run build
 cd examples/live-streaming-demo
-cp ../../packages/sdk/dist/index.js{,.map} .
+npm install @ravenkash/rtc @ravenkash/chat @ravenkash/client
+cp node_modules/@ravenkash/rtc/dist/index.js{,.map} .
 mv index.js raven-rtc.js; mv index.js.map raven-rtc.js.map
-cp ../../packages/chat-sdk/dist/index.js{,.map} .
+cp node_modules/@ravenkash/chat/dist/index.js{,.map} .
 mv index.js raven-chat.js; mv index.js.map raven-chat.js.map
-cp ../../packages/client/dist/index.js{,.map} .
+cp node_modules/@ravenkash/client/dist/index.js{,.map} .
 mv index.js raven-client.js; mv index.js.map raven-client.js.map
 ```
 
-**4. Start the backend** (mints tokens with a real API key — never sent to the browser):
+**3. Start the backend** (mints tokens with a real API key — never sent to the browser):
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-RAVEN_API_KEY=rvk_xxxx.yyyy uvicorn server:app --port 8790
+RAVEN_API_KEY=rvk_xxxx.yyyy RAVEN_API_URL=https://api.ravenstack.online uvicorn server:app --port 8790
 ```
 
-**5. Serve the page**: `python3 -m http.server 8891`
+**4. Serve the page**: `python3 -m http.server 8891`
 
-**6. Host tab**: open `http://localhost:8891/?role=host`, enter a title
+**5. Host tab**: open `http://localhost:8891/?role=host`, enter a title
 and identity, click **Create + Go Live**. Grant the camera/microphone
 permission prompts. Copy the Stream ID shown.
 
-**7. Viewer tab**: open `http://localhost:8891/?role=viewer&stream=<id>`
+**6. Viewer tab**: open `http://localhost:8891/?role=viewer&stream=<id>`
 (or paste the id manually), enter an identity, click **Join Stream** —
 the host's video should appear within a couple of seconds.
 
-**8. Chat both ways, react from the viewer tab, then End Stream from the host tab.**
+**7. Chat both ways, react from the viewer tab, then End Stream from the host tab.**
 
 ## What this proves
 

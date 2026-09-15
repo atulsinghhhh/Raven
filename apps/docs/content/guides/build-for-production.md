@@ -32,24 +32,12 @@ Never let a production key into a developer's shell. See
 
 ### 2. Get secrets out of your repository
 
-Five secrets matter, and none belongs in source control:
+Two secrets matter, and neither belongs in source control:
 
 | Secret | Held by |
 |---|---|
 | `RAVEN_API_KEY` | Your backend only |
 | `RAVEN_WEBHOOK_SECRET` | Your webhook receiver only |
-| `JWT_SECRET`, `RTC_TOKEN_SECRET`, `CHAT_TOKEN_SECRET` | Your Livqeno deployment, if self-hosting |
-
-If you self-host, generate each independently:
-
-```bash
-openssl rand -hex 32
-```
-
-Self-hosted deployments must set `RTC_TOKEN_SECRET` and `CHAT_TOKEN_SECRET`
-explicitly. They fall back to `JWT_SECRET` so a fresh clone boots, and
-production validation refuses that fallback at start-up — one secret must
-not be able to mint another's credentials.
 
 ### 3. Mint short tokens, and refresh them
 
@@ -95,23 +83,22 @@ CORS_ORIGIN=https://app.example.com,https://admin.example.com
 
 The chat gateway rejects a mismatched `Origin` with close code `4403`.
 
-### 5. Make TURN work, then prove it
+### 5. Forward TURN credentials untouched, then prove it
 
-TURN is what makes calls connect on corporate networks and mobile. If it is
-misconfigured, failures look random and land on symmetric-NAT users only.
+TURN is what makes calls connect on corporate networks and mobile. Livqeno
+runs the relay for you — there's nothing to stand up — but it only helps
+if your client actually uses it:
 
-- Serve `turn:` on 3478 and, if you have a real certificate, `turns:` too.
-- Reachable UDP relay range, opened at the firewall.
 - Forward `iceServers` from the mint response **untouched** — those
   credentials are minted per token and expire with it.
+- Never hard-code or cache an old `iceServers` array; a stale one fails
+  silently on exactly the networks that need TURN most.
 
 Then check it actually relays, rather than assuming:
 
 ```bash
 raven diagnostics
 ```
-
-See [TURN & NAT traversal](/self-hosting/turn).
 
 ### 6. Verify webhooks, and watch the deliveries
 
@@ -136,9 +123,6 @@ raven connections list          # what connected, and how it ended
 raven errors list               # classified failures with likely causes
 raven diagnostics               # is the whole stack reachable
 ```
-
-If you self-host, scrape `/metrics` and probe `/health/ready` — see
-[Health & metrics](/self-hosting/health-and-metrics).
 
 Alert on the rate of `FAILED` connections rather than on any single
 failure. One failed call is a bad network; a rising rate is your problem.
@@ -182,4 +166,3 @@ to a launch date.
 
 - [Production checklist](/production/checklist) — the same content as a list you can tick off.
 - [Security](/authentication/security) · [Limits & quotas](/reference/limits)
-- [Self-hosting](/self-hosting) — if you run Livqeno yourself.

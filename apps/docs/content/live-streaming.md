@@ -79,8 +79,8 @@ independently of it:
 | Viewers per stream | 100 | The 101st viewer-token request is refused with `403 RAVEN_STREAM_VIEWER_LIMIT_EXCEEDED`. |
 | Stream duration | 240 minutes | A stream still `LIVE` past this is automatically ended. |
 
-See [Usage](/concepts/usage) for the full accounting model, error shapes,
-and self-hosting configuration.
+See [Usage](/concepts/usage) for the full accounting model and error
+shapes.
 
 ## Chat and reactions
 

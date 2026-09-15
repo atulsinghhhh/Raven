@@ -44,14 +44,16 @@ can be handed the same identifier.
 
 ## Running it
 
-Needs the Livqeno stack (`pnpm infra:up` from the repo root) and a project API key.
+You need a Raven Cloud project and API key: sign up at the
+[dashboard](https://app.ravenstack.online), create a project, then create
+an API key from the project's API Keys tab.
 
 ```bash
 cd examples/rtc-chat
 npm install
 
 # Terminal 1 — backend (holds RAVEN_API_KEY, mints both tokens)
-RAVEN_API_KEY=rvk_xxx.yyy npm run server
+RAVEN_API_KEY=rvk_xxx.yyy RAVEN_API_URL=https://api.ravenstack.online npm run server
 
 # Terminal 2 — frontend
 npm run dev
@@ -63,17 +65,21 @@ identities, and allow camera/microphone access.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `RAVEN_API_KEY` | *(required)* | Project API key. Backend only. |
-| `RAVEN_API_URL` | `http://localhost:4100` | Livqeno Control API base URL. |
+| `RAVEN_API_URL` | `http://localhost:4100` | Livqeno Control API base URL. Set this to `https://api.ravenstack.online` to use hosted Raven Cloud — the `localhost:4100` default only exists as a fallback for developers running Raven's own backend locally. |
 | `PORT` | `8789` | Port for this example's backend. |
 
 ## Things worth trying
 
-**Independence.** With both tabs in a call, run
-`docker compose restart sfu`. The video tiles drop and recover; the chat
-panel never flinches, and messages sent during the outage are all there.
+**Independence.** With both tabs in a call, briefly interrupt the
+backend's connectivity to Raven Cloud (stop and restart the `npm run
+server` process, or toggle your network). The video tiles drop and
+recover; the chat panel never flinches, and messages sent during the
+outage are all there.
 
-Then the reverse: `docker compose restart api`. Chat shows `reconnecting`,
-video stays connected, and once chat is back it refetches what it missed.
+The reverse also holds: interrupt just the chat WebSocket (e.g. by
+briefly blocking outbound traffic to the chat endpoint) and video stays
+connected while chat shows `reconnecting`, then refetches what it missed
+once it's back.
 
 **Cross-plane token rejection.** Paste the RTC token into a chat connection (or
 vice versa) — both are rejected. They're signed with different keys and carry

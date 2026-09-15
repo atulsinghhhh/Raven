@@ -124,9 +124,5 @@ export const ACCOUNT_NAV: AccountNavItem[] = [
   { href: '/dashboard/settings', label: 'Settings', icon: 'settings' },
 ];
 
-/** The public repository. Overridable for forks, same reasoning as DOCS_URL. */
-export const GITHUB_URL = process.env.NEXT_PUBLIC_GITHUB_URL ?? 'https://github.com/atulsinghhhh/Raven';
-
-/** Where "Support" goes. Issues by default — it's where an open-source
- *  deployment can actually answer. */
-export const SUPPORT_URL = process.env.NEXT_PUBLIC_SUPPORT_URL ?? `${GITHUB_URL}/issues`;
+/** Where "Support" goes — a real support contact, not an issue tracker. */
+export const SUPPORT_URL = process.env.NEXT_PUBLIC_SUPPORT_URL ?? 'mailto:support@mail.ravenstack.online';

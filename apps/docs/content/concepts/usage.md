@@ -252,24 +252,6 @@ separate errors — `RAVEN_STREAM_CONCURRENCY_LIMIT_EXCEEDED` and
 `RAVEN_USAGE_LIMIT_EXCEEDED`: these mean "not right now," not "you're out,"
 so a client can tell the two apart.
 
-## Self-hosting
-
-Environment variables read by `apps/api`:
-
-| Variable | Default | Effect |
-|---|---|---|
-| `USAGE_FREE_TIER_RTC_MINUTES` | `10000` | Minutes granted to **newly provisioned** RTC allowances. Renamed from `USAGE_FREE_TIER_MINUTES`. Existing accounts keep what they were granted. |
-| `USAGE_FREE_TIER_CHAT_MESSAGES` | `100000` | Messages granted to newly provisioned Chat allowances. |
-| `USAGE_FREE_TIER_LIVE_HOST_HOURS` | `100` | Host-hours granted to newly provisioned Live Streaming allowances. |
-| `USAGE_FREE_TIER_LIVE_CONCURRENT_STREAMS` | `1` | Max concurrent `LIVE` streams per account. |
-| `USAGE_FREE_TIER_LIVE_MAX_VIEWERS` | `100` | Max viewers per stream. |
-| `USAGE_FREE_TIER_LIVE_MAX_STREAM_DURATION_MINUTES` | `240` | Max wall-clock duration of one stream. |
-| `USAGE_ENFORCE_LIMIT` | `true` | Set `false` to keep metering but stop refusing usage, for every product. A deployment running its own SFU and TURN fleet has no reason to cap itself. |
-
-With enforcement off, the dashboard still reports each allowance as
-exhausted once it is — the figures stay honest, only the refusal goes away.
-Live Streaming's product limits (concurrency, viewers, duration) are
-enforced independently of `USAGE_ENFORCE_LIMIT` — they're capacity
-ceilings, not part of the allowance model that flag governs.
-
-See [Environment variables](/self-hosting/environment-variables).
+Every allowance and product limit above is fixed by Livqeno's hosted
+platform — there's no configuration your project needs to set to enable
+or size them.

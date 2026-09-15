@@ -144,5 +144,5 @@ to configure.
 ## Next steps
 
 - [Events](/rtc/events) — the typed form of these frames.
-- [Errors](/reference/errors#signaling-errors) · [Running the SFU](/self-hosting/sfu)
+- [Errors](/reference/errors#signaling-errors)
 - [Chat WebSocket protocol](/chat/websocket) — the other socket, deliberately a different protocol.

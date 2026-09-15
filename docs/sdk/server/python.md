@@ -8,12 +8,10 @@ Django, Flask, or plain Python — no framework-specific SDK.
 
 ## Installation
 
-```bash
-# Not on PyPI yet. `pip install raven-sdk` installs an UNRELATED third-party
-# package of that name ("Async Kafka and HTTP producer SDK for Livqeno AI
-# logs"), not this SDK — see docs/releases.md#python--raven-sdk.
-pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"
-```
+`raven-sdk` is coming soon to PyPI — [contact support](mailto:support@mail.ravenstack.online)
+for early access. Note that `pip install raven-sdk` currently installs an UNRELATED
+third-party package of that name ("Async Kafka and HTTP producer SDK for Livqeno AI
+logs"), not this SDK — see docs/releases.md#python--raven-sdk.
 
 Requires Python ≥3.10. Uses modern typing (`dataclasses`, `TypedDict`,
 `X | None`) throughout — no untyped dicts in the public API.

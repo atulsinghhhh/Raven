@@ -14,15 +14,19 @@ engine reads the pipeline's effect list fresh every frame.
 
 ## Running it
 
-**1. Build the SDK bundle this demo vendors** (no bundler, no CDN — same
-convention as `examples/live-streaming-demo`):
+**1. Get the SDK bundle this demo vendors.** `@ravenkash/effects` is
+published to npm, so install it and copy its bundle in (no bundler, no
+CDN — same convention as `examples/live-streaming-demo`):
 
 ```bash
-pnpm --filter @ravenkash/effects run build
 cd examples/effects-demo
-cp ../../packages/effects/dist/index.js{,.map} .
+npm install @ravenkash/effects
+cp node_modules/@ravenkash/effects/dist/index.js{,.map} .
 mv index.js raven-effects.js; mv index.js.map raven-effects.js.map
 ```
+
+(No account, API key, or backend needed for this particular demo — it
+never calls Raven Cloud, see "What this proves" below.)
 
 **2. Serve this directory** (needs to be `http://` or `https://` for
 `getUserMedia()` — opening `index.html` as a `file://` URL won't work):

@@ -12,21 +12,21 @@ underlying SDK from the React/hooks side.
 
 ## Running it
 
-```bash
-# From the repo root: build the SDKs this example depends on
-pnpm --filter @ravenkash/rtc build
-pnpm --filter @ravenkash/react build
+Sign up for a Raven Cloud project at the
+[dashboard](https://app.ravenstack.online) and create an API key from the
+project's API Keys tab.
 
+```bash
 cd examples/react-video-call
-npm install   # resolves @ravenkash/rtc and @ravenkash/react via local file: deps
+npm install   # installs @ravenkash/rtc and @ravenkash/react from npm
 npm run dev   # → http://localhost:8901
 ```
 
-Mint a real RTC token (e.g. via Swagger UI at `http://localhost:4100/docs`,
-or `raven rooms create` + a direct `POST /v1/rooms/:roomId/rtc-tokens`),
-paste the full JSON response into the textarea, and click **Join Room**.
-Open a second tab with a different `participantIdentity` in the same
-room to see two-way video.
+Mint a real RTC token against `https://api.ravenstack.online` (e.g.
+`raven rooms create` + a direct `POST /v1/rooms/:roomId/rtc-tokens` with
+your API key as a bearer token), paste the full JSON response into the
+textarea, and click **Join Room**. Open a second tab with a different
+`participantIdentity` in the same room to see two-way video.
 
 ## What this proves
 

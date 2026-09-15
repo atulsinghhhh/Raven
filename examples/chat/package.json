@@ -11,9 +11,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ravenkash/chat": "file:../../packages/chat-sdk",
-    "@ravenkash/react": "file:../../packages/react-sdk",
-    "@ravenkash/server": "file:../../packages/server-sdk",
+    "@ravenkash/chat": "^0.1.0",
+    "@ravenkash/react": "^0.1.1",
+    "@ravenkash/server": "^0.1.0",
     "express": "^4.19.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
