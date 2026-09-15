@@ -122,7 +122,7 @@ need more allocated" — conflating them would make a caller unable to tell
 
 ### Server-SDK-local codes
 
-Raised by `@ravenkash/server` and `raven-sdk` before a request leaves the
+Raised by `@ravenkash/server` and `livqeno-sdk` before a request leaves the
 process, so they never appear in an HTTP body — but they share the
 namespace so one `switch` covers everything:
 

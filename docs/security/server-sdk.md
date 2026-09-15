@@ -1,6 +1,6 @@
 # Server SDK security model
 
-Applies to both `@ravenkash/server` (TypeScript) and `raven-sdk` (Python).
+Applies to both `@ravenkash/server` (TypeScript) and `livqeno-sdk` (Python).
 
 ## Three separate authentication layers — never confuse them
 

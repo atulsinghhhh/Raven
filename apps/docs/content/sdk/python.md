@@ -3,18 +3,14 @@ title: Python SDK
 description: Server-side RTC and chat — sync and async, built on httpx.
 ---
 
-`raven-sdk` is Livqeno's server-side Python SDK. It runs on your backend,
+`livqeno-sdk` is Livqeno's server-side Python SDK. It runs on your backend,
 holds your API key, and mints the tokens your frontend actually uses —
 see [Authentication](/authentication).
 
 ## Install
 
-> **Not published to PyPI yet — and do not `pip install raven-sdk`.**
-> That name is already taken on PyPI by an unrelated project ("Async
-> Kafka and HTTP producer SDK for Livqeno AI logs"), so installing it
-> gets you someone else's package, not this one.
+> **Not published to PyPI yet.** It will publish as `livqeno-sdk`.
 > [Contact support](mailto:support@mail.ravenstack.online) for early access.
-> The final published name will be announced before release.
 
 ## Initialization
 

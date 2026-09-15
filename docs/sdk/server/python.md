@@ -1,4 +1,4 @@
-# raven-sdk — Python server SDK
+# livqeno-sdk — Python server SDK
 
 Backend-only. Mints short-lived RTC tokens and reads real project data
 (rooms, connections, errors, metrics, diagnostics) using a permanent
@@ -8,10 +8,10 @@ Django, Flask, or plain Python — no framework-specific SDK.
 
 ## Installation
 
-`raven-sdk` is coming soon to PyPI — [contact support](mailto:support@mail.ravenstack.online)
-for early access. Note that `pip install raven-sdk` currently installs an UNRELATED
+`livqeno-sdk` is coming soon to PyPI — [contact support](mailto:support@mail.ravenstack.online)
+for early access. Note that `pip install livqeno-sdk` currently installs an UNRELATED
 third-party package of that name ("Async Kafka and HTTP producer SDK for Livqeno AI
-logs"), not this SDK — see docs/releases.md#python--raven-sdk.
+logs"), not this SDK — see docs/releases.md#python--livqeno-sdk.
 
 Requires Python ≥3.10. Uses modern typing (`dataclasses`, `TypedDict`,
 `X | None`) throughout — no untyped dicts in the public API.

@@ -14,7 +14,7 @@ import { registerChatPresenceCommand } from './presence.js';
  * CLI should store, or encourage anyone to paste into a terminal.
  *
  * Which is why there's no `raven chat send`. Use `@ravenkash/server` or
- * `raven-sdk` from your backend for that. See docs/cli.md#chat.
+ * `livqeno-sdk` from your backend for that. See docs/cli.md#chat.
  */
 export function registerChatCommand(program: Command): void {
   const chat = program.command('chat').description("Inspect a project's chat activity, conversations, and connections");

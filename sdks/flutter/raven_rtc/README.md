@@ -4,7 +4,7 @@ Livqeno's Flutter SDK — join a room, publish camera and microphone, render
 participants. Hides WebRTC, SDP, ICE, STUN, TURN and the media server
 behind a small typed API.
 
-Part of [Livqeno](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
+Part of [Livqeno](https://livqeno.com), managed real-time communication infrastructure.
 
 ## Requirements
 

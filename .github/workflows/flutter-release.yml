@@ -1,0 +1,124 @@
+name: Release Flutter SDK
+
+# Two ways to publish an sdks/flutter/* package to pub.dev, both delegating
+# the actual verify+publish steps to flutter-publish-package.yml:
+#
+# 1. Automatic, on push to main: if a package's pubspec.yaml `version` no
+#    longer matches what's live on pub.dev, that package publishes. The
+#    human gate is the version bump itself — bumping raven_rtc's version
+#    and merging it to main IS the release approval, same philosophy as
+#    the npm changesets flow in release.yml ("a deliberate human step",
+#    not a push that publishes by itself). A push that doesn't change any
+#    version publishes nothing.
+#
+# 2. Manual, via workflow_dispatch: pick a package from the dropdown,
+#    type PUBLISH, and it publishes regardless of whether its pubspec
+#    version changed — useful for the very first release of a package, or
+#    a deliberate republish attempt.
+#
+# Order is enforced either way: raven_live depends on raven_rtc and
+# raven_chat as hosted `^0.1.0` constraints (see
+# sdks/flutter/raven_live/pubspec.yaml), so its job waits for theirs
+# (`needs:`), regardless of trigger.
+#
+# Uses pub.dev's GitHub Actions OIDC automated publishing — no token
+# stored in this repo. One-time setup per package, once it exists on
+# pub.dev: pub.dev -> package -> Admin -> Automated publishing ->
+# GitHub Actions, repository `atulsinghhhh/Raven`, workflow filename
+# `flutter-publish-package.yml` (the reusable workflow that actually runs
+# `flutter pub publish`, not this file).
+# https://dart.dev/tools/pub/automated-publishing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sdks/flutter/raven_rtc/pubspec.yaml"
+      - "sdks/flutter/raven_chat/pubspec.yaml"
+      - "sdks/flutter/raven_live/pubspec.yaml"
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package to publish (manual run — publishes even without a version change)"
+        required: true
+        type: choice
+        options:
+          - raven_rtc
+          - raven_chat
+          - raven_live
+      confirm:
+        description: "Type PUBLISH to confirm uploading to pub.dev"
+        required: true
+
+concurrency:
+  group: flutter-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # Push trigger only: for each package, compares pubspec.yaml's version
+  # against what pub.dev currently serves. Manual dispatch skips this
+  # entirely — the chosen package always publishes on that path.
+  detect:
+    name: Detect version changes
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      rtc: ${{ steps.diff.outputs.rtc }}
+      chat: ${{ steps.diff.outputs.chat }}
+      live: ${{ steps.diff.outputs.live }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compare local versions against pub.dev
+        id: diff
+        run: |
+          set -euo pipefail
+          for pkg in raven_rtc raven_chat raven_live; do
+            local_version=$(grep '^version:' "sdks/flutter/$pkg/pubspec.yaml" | head -1 | awk '{print $2}')
+            published_version=$(curl -fsS "https://pub.dev/api/packages/$pkg" 2>/dev/null | node -pe "JSON.parse(require('fs').readFileSync(0,'utf8')).latest.version" 2>/dev/null || echo "")
+            echo "$pkg: local=$local_version published=${published_version:-<not published>}"
+            if [ "$local_version" != "$published_version" ]; then
+              echo "$pkg=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "$pkg=false" >> "$GITHUB_OUTPUT"
+            fi
+          done
+
+  publish-rtc:
+    name: raven_rtc
+    needs: detect
+    if: |
+      (github.event_name == 'push' && needs.detect.outputs.rtc == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.package == 'raven_rtc' && github.event.inputs.confirm == 'PUBLISH')
+    uses: ./.github/workflows/flutter-publish-package.yml
+    with:
+      package: raven_rtc
+
+  publish-chat:
+    name: raven_chat
+    needs: detect
+    if: |
+      (github.event_name == 'push' && needs.detect.outputs.chat == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.package == 'raven_chat' && github.event.inputs.confirm == 'PUBLISH')
+    uses: ./.github/workflows/flutter-publish-package.yml
+    with:
+      package: raven_chat
+
+  publish-live:
+    name: raven_live
+    needs: [detect, publish-rtc, publish-chat]
+    # always() so this still runs when publish-rtc/publish-chat were
+    # skipped (their own package didn't change) rather than counted as
+    # failed — only an actual failure in either should block raven_live.
+    if: |
+      always() &&
+      needs.publish-rtc.result != 'failure' && needs.publish-chat.result != 'failure' &&
+      (
+        (github.event_name == 'push' && needs.detect.outputs.live == 'true') ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.package == 'raven_live' && github.event.inputs.confirm == 'PUBLISH')
+      )
+    uses: ./.github/workflows/flutter-publish-package.yml
+    with:
+      package: raven_live

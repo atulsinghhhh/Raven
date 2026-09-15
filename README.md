@@ -172,7 +172,7 @@ client.
 | Package | Install | Reference |
 |---|---|---|
 | `@ravenkash/server` | `npm i @ravenkash/server` | [docs/sdk/server/typescript.md](./docs/sdk/server/typescript.md) |
-| `raven-sdk` (Python) | coming soon to PyPI — [contact support](mailto:support@mail.ravenstack.online) for early access | [docs/sdk/server/python.md](./docs/sdk/server/python.md) |
+| `livqeno-sdk` (Python) | coming soon to PyPI — [contact support](mailto:support@mail.ravenstack.online) for early access | [docs/sdk/server/python.md](./docs/sdk/server/python.md) |
 
 Both hold a permanent project API key that never reaches a browser, mint
 short-lived RTC and chat tokens, and read rooms, connections, errors and
@@ -251,7 +251,7 @@ packages/
   cli/                @ravenkash/cli          — terminal workflow
 sdks/
   flutter/            raven_rtc, raven_chat, raven_live
-  python/             raven-sdk
+  python/             livqeno-sdk
 examples/             Runnable apps, one per integration path
 infrastructure/       docker/ · k8s/ · azure/
 docs/                 Architecture, references, operations

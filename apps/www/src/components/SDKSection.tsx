@@ -15,7 +15,7 @@ const SDKS = [
   },
   { name: 'Flutter', packages: ['raven_rtc', 'raven_chat', 'raven_live'], href: DOCS_ROUTES.sdkFlutter },
   { name: 'Node.js', packages: ['@ravenkash/server'], href: DOCS_ROUTES.sdkNode },
-  { name: 'Python', packages: ['raven-sdk'], href: DOCS_ROUTES.sdkPython },
+  { name: 'Python', packages: ['livqeno-sdk'], href: DOCS_ROUTES.sdkPython },
   { name: 'CLI', packages: ['@ravenkash/cli'], href: DOCS_ROUTES.cli },
 ];
 
@@ -31,14 +31,14 @@ export function SDKSection() {
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted">
               One wire protocol, seven SDKs speaking it. The JavaScript and TypeScript packages are on npm under the{' '}
-              <span className="font-mono text-fg">@ravenkash</span> scope — with{' '}
-              <span className="font-mono text-fg">rtc</span> and <span className="font-mono text-fg">client</span>{' '}
-              awaiting a 0.1.1 republish. The Flutter and Python SDKs are not on pub.dev or PyPI yet — install those
-              from a local checkout; see{' '}
-              <a href={DOCS_ROUTES.installingFromSource} className="text-accent-text hover:underline">
-                Installing from source
-              </a>
-              .
+              <span className="font-mono text-fg">@ravenkash</span> scope, and the Flutter packages (
+              <span className="font-mono text-fg">raven_rtc</span>, <span className="font-mono text-fg">raven_chat</span>,{' '}
+              <span className="font-mono text-fg">raven_live</span>) are on pub.dev. The Python SDK isn&rsquo;t on PyPI
+              yet —{' '}
+              <a href="mailto:support@mail.ravenstack.online" className="text-accent-text hover:underline">
+                contact support
+              </a>{' '}
+              for early access.
             </p>
           </div>
         </Reveal>

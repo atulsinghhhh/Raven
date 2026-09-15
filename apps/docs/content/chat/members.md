@@ -75,7 +75,7 @@ read in this conversation until re-added.
 
 ## What this means for each SDK
 
-Membership calls exist on `@ravenkash/server` and `raven-sdk` (Python) only.
+Membership calls exist on `@ravenkash/server` and `livqeno-sdk` (Python) only.
 `@ravenkash/chat`, `@ravenkash/react`, `@ravenkash/react-native`, and `raven_chat`
 (Flutter) can read who's *currently present* via
 [Presence](/chat/presence), but none of them can add, remove, or list

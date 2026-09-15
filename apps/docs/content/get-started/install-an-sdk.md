@@ -7,9 +7,10 @@ Livqeno splits along one line: your **backend** holds the API key and mints
 tokens; your **client** holds a token and joins. Those are different
 packages, and neither can do the other's job.
 
-> **The `@ravenkash/*` packages are on npm; the Python and Flutter SDKs are
-> not on PyPI or pub.dev yet.**
-> [Contact support](mailto:support@mail.ravenstack.online) for early access.
+> **The `@ravenkash/*` packages are on npm and the Flutter SDKs
+> (`raven_rtc`/`raven_chat`/`raven_live`) are on pub.dev. The Python SDK
+> is not on PyPI yet** — [contact support](mailto:support@mail.ravenstack.online)
+> for early access.
 
 ## Your backend
 
@@ -23,13 +24,12 @@ npm install @ravenkash/server
 </Tab>
 <Tab title="Python">
 
-> **Not on PyPI — and do not `pip install raven-sdk`.** That name belongs
-> to an unrelated third-party package, so it installs someone else's code.
+> **Not on PyPI yet.** It will publish as `livqeno-sdk`.
 > [Contact support](mailto:support@mail.ravenstack.online) for early access;
 > see [the Python SDK page](/sdk/python) for details.
 
 ```bash
-pip install raven-sdk  # once published to PyPI
+pip install livqeno-sdk  # once published to PyPI
 ```
 
 </Tab>
@@ -83,9 +83,6 @@ dependencies:
   raven_live: ^0.1.0    # live streaming
 ```
 
-Not on pub.dev yet —
-[contact support](mailto:support@mail.ravenstack.online) for early access.
-
 </Tab>
 </Tabs>
 
@@ -94,7 +91,7 @@ Not on pub.dev yet —
 | Package | Runs in | Holds |
 |---|---|---|
 | `@ravenkash/server` | Your backend | The API key |
-| `raven-sdk` (Python) | Your backend | The API key |
+| `livqeno-sdk` (Python) | Your backend | The API key |
 | `@ravenkash/rtc` | Browser | An RTC token |
 | `@ravenkash/chat` | Browser | A chat token |
 | `@ravenkash/client` | Browser | Both, behind one `Raven` object |

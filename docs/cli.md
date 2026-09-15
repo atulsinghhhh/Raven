@@ -340,7 +340,7 @@ key**, which is a runtime credential your backend holds. The CLI doesn't
 store one, and encouraging people to paste one into a terminal would
 undo the point of having short-lived tokens at all.
 
-So there is no `raven chat send`. Use `@ravenkash/server` or `raven-sdk` from
+So there is no `raven chat send`. Use `@ravenkash/server` or `livqeno-sdk` from
 your backend for that — see `docs/sdk/server/typescript.md` and
 `docs/sdk/server/python.md`.
 
@@ -510,6 +510,6 @@ token is never in scope to leak.
 - `raven chat` is read-only. Sending messages, minting chat tokens and
   creating conversations all require a project API key, which belongs in
   your backend rather than in a terminal — use `@ravenkash/server` or
-  `raven-sdk`.
+  `livqeno-sdk`.
 - `raven chat presence` takes a conversation's `conv_…` id, not its name.
   Same backend gap as `rooms inspect`.

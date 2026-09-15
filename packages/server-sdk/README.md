@@ -50,8 +50,7 @@ on the cause rather than parse a message. Codes are listed in
 - Runnable example: [`examples/node-server`](https://github.com/atulsinghhhh/Raven/tree/main/examples/node-server)
 
 Python backend? See [Livqeno's Python SDK](https://github.com/atulsinghhhh/Raven/tree/main/sdks/python). It is not on PyPI
-yet — `pip install raven-sdk` installs an unrelated third-party package of
-that name, not this one.
+yet — it will publish as `livqeno-sdk`.
 
 ## License
 

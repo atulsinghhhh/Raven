@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "raven-sdk"
+name = "livqeno-sdk"
 version = "0.1.0"
 description = "Official Python SDK for the Raven hosted platform — mint short-lived RTC tokens, manage rooms, and read connection/error diagnostics from your own backend. Never for use in a browser."
 readme = "README.md"
@@ -11,6 +11,23 @@ license = { text = "MIT" }
 requires-python = ">=3.10"
 dependencies = [
     "httpx>=0.28.1,<1.0",
+]
+keywords = ["webrtc", "rtc", "chat", "live-streaming", "sdk", "livqeno"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Communications :: Chat",
+    "Topic :: Internet",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 
 [project.optional-dependencies]

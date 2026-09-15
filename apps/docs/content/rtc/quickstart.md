@@ -51,9 +51,6 @@ dependencies:
   raven_rtc: ^0.1.0
 ```
 
-Not on pub.dev yet —
-[contact support](mailto:support@mail.ravenstack.online) for early access.
-
 </Tab>
 </Tabs>
 
@@ -367,7 +364,7 @@ aren't a thrown error (e.g. "works on Wi-Fi, fails on cellular").
 
 ## Production notes
 
-- Never call `raven.tokens.create()` (or any `@ravenkash/server`/`raven-sdk`
+- Never call `raven.tokens.create()` (or any `@ravenkash/server`/`livqeno-sdk`
   method) from a browser or app — it needs your project API key, which
   must never leave your backend.
 - Derive `identity` from your own authenticated session, never from a

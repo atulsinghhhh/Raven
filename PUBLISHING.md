@@ -45,6 +45,10 @@ npm view @ravenkash/rtc dist-tags.latest
 npx @ravenkash/cli --help
 ```
 
-Python (`raven-sdk`) and Flutter (`raven_rtc`/`raven_chat`/`raven_live`)
-are not part of this pipeline and are not yet published to PyPI or
-pub.dev — see `apps/docs/content/getting-started/installing-from-source.md`.
+Flutter (`raven_rtc`/`raven_chat`/`raven_live`) is on pub.dev as of `0.1.0`,
+published manually (see `docs/releases.md`); a `workflow_dispatch`-gated
+CI workflow (`.github/workflows/flutter-release.yml`) can also publish a
+chosen package, and pushes to `main` that bump a package's `pubspec.yaml`
+version publish it automatically. Python (`livqeno-sdk`) is not part of this
+pipeline and is not yet published to PyPI — its package name conflicts
+with an unrelated existing PyPI project; see `docs/sdk-publication-audit.md`.

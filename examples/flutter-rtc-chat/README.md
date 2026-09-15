@@ -25,11 +25,6 @@ flutter run --dart-define=RAVEN_BACKEND_URL=http://<your-lan-ip>:8791
 token-minting backend (on your LAN), not at Raven Cloud directly — the
 backend is the only thing that talks to `RAVEN_API_URL`.
 
-The Flutter SDK packages (`raven_rtc`, `raven_chat`) are **not yet
-published** to pub.dev — `pubspec.yaml` resolves them from local
-monorepo source (`path: ../../sdks/flutter/...`) for development
-purposes only.
-
 **On a real device, `localhost` means the phone.** Pass your machine's
 LAN IP via `--dart-define`, and make sure the returned `endpoint` is
 reachable from the device too.

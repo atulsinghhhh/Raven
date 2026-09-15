@@ -133,7 +133,7 @@ jobs:
 
       # Audits the resolved dependency set the SDK actually installs, rather
       # than the loose ranges declared in pyproject.toml.
-      - name: Audit raven-sdk dependencies
+      - name: Audit livqeno-sdk dependencies
         run: pip-audit --strict --progress-spinner off .
 
   # ---------------------------------------------------------------------------

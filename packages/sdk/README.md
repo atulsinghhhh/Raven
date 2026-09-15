@@ -16,8 +16,8 @@ npm install @ravenkash/rtc
 
 The token and endpoint come from your own backend — never mint them in a
 browser. See [`@ravenkash/server`](https://www.npmjs.com/package/@ravenkash/server)
-or [Livqeno's Python SDK](https://github.com/atulsinghhhh/Raven/tree/main/sdks/python) for Python (not on PyPI yet — the
-`raven-sdk` name there belongs to an unrelated project).
+or [Livqeno's Python SDK](https://github.com/atulsinghhhh/Raven/tree/main/sdks/python) for Python (not on PyPI yet — will
+publish as `livqeno-sdk`).
 
 ```ts
 import { createRTCClient } from '@ravenkash/rtc';

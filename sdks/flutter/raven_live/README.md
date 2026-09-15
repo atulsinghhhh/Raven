@@ -3,7 +3,7 @@
 Livqeno Live Streaming for Flutter — join a stream as a host, co-host or
 viewer, with the room and the live chat that come with it.
 
-Part of [Livqeno](https://github.com/atulsinghhhh/Raven), open-source real-time communication infrastructure.
+Part of [Livqeno](https://livqeno.com), managed real-time communication infrastructure.
 
 Composes [`raven_rtc`](https://pub.dev/packages/raven_rtc) and
 [`raven_chat`](https://pub.dev/packages/raven_chat); it adds no media or

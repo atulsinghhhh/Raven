@@ -20,7 +20,7 @@ import { DOCS_URL } from '@/lib/nav';
  * themselves use for their own SDK_VERSION constants.
  */
 
-type Surface = 'browser' | 'server' | 'react';
+type Surface = 'browser' | 'server' | 'react' | 'flutter';
 
 interface SdkEntry {
   name: string;
@@ -40,6 +40,7 @@ const SURFACE_LABEL: Record<Surface, string> = {
   browser: 'Browser',
   server: 'Server',
   react: 'React',
+  flutter: 'iOS, Android',
 };
 
 const SDKS: SdkEntry[] = [
@@ -101,7 +102,7 @@ const issued = await raven.tokens.create({
     docsLabel: 'docs/sdk/server/typescript.md',
   },
   {
-    name: 'raven-sdk',
+    name: 'livqeno-sdk',
     version: '0.1.0',
     surface: 'server',
     headline: 'The same server API, for Python backends',
@@ -164,6 +165,32 @@ function Stage() {
     docsNote:
       'No published reference page yet — the exported hooks and components are listed in packages/react-sdk/src/index.ts, and the underlying behaviour is documented in docs/sdk.md.',
   },
+  {
+    name: 'raven_rtc',
+    version: '0.1.0',
+    surface: 'flutter',
+    headline: 'Join rooms and publish camera/mic from Flutter',
+    description:
+      'Livqeno Flutter SDK — join a room, publish camera/microphone, render participants. Hides WebRTC, SDP, ICE, STUN, TURN and the media server behind a small typed API. Add raven_chat for messaging and raven_live for live streaming — separate packages, so a video app never pulls in a message store.',
+    install: { language: 'yaml', code: 'dependencies:\n  raven_rtc: ^0.1.0' },
+    usage: {
+      language: 'dart',
+      code: `import 'package:raven_rtc/raven_rtc.dart';
+
+final raven = Raven(
+  token: grant.token,
+  endpoint: grant.endpoint,
+  iceServers: grant.iceServers,
+);
+
+final room = await raven.join(roomId);
+
+await room.enableCamera();
+await room.enableMicrophone();`,
+    },
+    docsHref: `${DOCS_URL}/sdk/flutter.md`,
+    docsLabel: 'docs/sdk/flutter.md',
+  },
 ];
 
 export default async function SdksPage({ params }: { params: Promise<{ projectId: string }> }) {
@@ -190,7 +217,7 @@ export default async function SdksPage({ params }: { params: Promise<{ projectId
           <span className="font-medium">One rule splits these packages:</span> server SDKs authenticate with a permanent
           project API key and mint tokens; the browser SDK only ever receives an already-minted token. Never install{' '}
           <span className="font-mono text-xs">@ravenkash/server</span> or{' '}
-          <span className="font-mono text-xs">raven-sdk</span> into anything that ships to a browser.
+          <span className="font-mono text-xs">livqeno-sdk</span> into anything that ships to a browser.
         </p>
       </section>
 
@@ -223,9 +250,14 @@ export default async function SdksPage({ params }: { params: Promise<{ projectId
         <CardHeader title="Not available" subtitle="Stated so you don't go looking." />
         <ul className="flex flex-col gap-2 text-sm leading-relaxed text-muted">
           <li>
-            <span className="font-medium text-fg">Native mobile.</span> React Native, Flutter, iOS and Android are
-            explicitly out of scope for <span className="font-mono text-xs">@ravenkash/rtc</span>, which targets current
-            versions of Chrome, Firefox, Safari and Edge.
+            <span className="font-medium text-fg">React Native.</span> Not shown on this page yet, though{' '}
+            <span className="font-mono text-xs">@ravenkash/react-native</span> is published — see the{' '}
+            <a href={`${DOCS_URL}/sdk/react-native.md`} className="text-accent-text hover:underline">
+              React Native SDK reference
+            </a>
+            . <span className="font-mono text-xs">@ravenkash/rtc</span> itself remains browser-only, targeting current
+            versions of Chrome, Firefox, Safari and Edge — native mobile in the browser SDK&rsquo;s scope goes through
+            React Native or Flutter instead.
           </li>
           <li>
             <span className="font-medium text-fg">Other server languages.</span> Node.js and Python are the only server

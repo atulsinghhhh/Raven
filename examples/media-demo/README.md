@@ -2,7 +2,7 @@
 
 A minimal static page proving real WebRTC media through `@ravenkash/rtc` —
 actual camera/microphone, not a mock — plus a small FastAPI backend
-using `raven-sdk` to mint tokens and surface project diagnostics.
+using `livqeno-sdk` to mint tokens and surface project diagnostics.
 
 This is built entirely on Livqeno's public SDKs: `app.js` never touches
 SDP, ICE candidates, `RTCPeerConnection`, or any type specific to the
@@ -25,11 +25,11 @@ project's API Keys tab (or `raven keys create` — see `docs/cli.md`).
 ```bash
 cd examples/media-demo
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt   # installs raven-sdk from local source — not yet published to PyPI, see note below
+pip install -r requirements.txt   # installs livqeno-sdk from local source — not yet published to PyPI, see note below
 RAVEN_API_KEY=rvk_xxxx.yyyy RAVEN_API_URL=https://api.ravenstack.online uvicorn server:app --port 8788
 ```
 
-`raven-sdk` (Python) is **not yet published to PyPI** — `requirements.txt`
+`livqeno-sdk` (Python) is **not yet published to PyPI** — `requirements.txt`
 installs it from local monorepo source for development purposes only.
 
 **3. Serve this folder over HTTP** (browsers restrict camera/microphone

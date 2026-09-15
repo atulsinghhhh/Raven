@@ -64,7 +64,7 @@ There is no bug bounty. We can offer credit and genuine thanks.
 ## Supported versions
 
 The hosted platform (`api.ravenstack.online`) always runs the latest
-fix. The public `@ravenkash/*` npm packages, `raven-sdk` and `raven_*`
+fix. The public `@ravenkash/*` npm packages, `livqeno-sdk` and `raven_*`
 client SDKs are pre-1.0; no version is under long-term support yet.
 
 | Version | Supported |

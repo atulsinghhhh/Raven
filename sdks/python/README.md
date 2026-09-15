@@ -1,12 +1,12 @@
-# raven-sdk
+# livqeno-sdk
 
 Livqeno's official **Python server SDK** — mint short-lived RTC and chat
 tokens, manage rooms and live streams, and read connection/error
 diagnostics from your own backend.
 
-Livqeno is open-source real-time communication infrastructure: video, voice,
-chat and data for your app, without running WebRTC or WebSocket servers
-yourself. Full project: <https://github.com/atulsinghhhh/Raven>
+Livqeno is a managed real-time infrastructure platform: video, voice, chat
+and live streaming for your app, without running WebRTC or WebSocket
+servers yourself. Learn more: <https://livqeno.com>
 
 > **Backend only.** This package holds a permanent project API key. It must
 > never be imported into browser, mobile or any other client-side code. The
@@ -20,11 +20,12 @@ yourself. Full project: <https://github.com/atulsinghhhh/Raven>
 ## Install
 
 ```bash
-# Not on PyPI yet. `pip install raven-sdk` installs an UNRELATED third-party
-# package of that name ("Async Kafka and HTTP producer SDK for Livqeno AI
-# logs"), not this SDK — see docs/releases.md#python--raven-sdk.
+# Not on PyPI yet — see docs/releases.md#python--livqeno-sdk.
 pip install "git+https://github.com/atulsinghhhh/Raven.git#subdirectory=sdks/python"
 ```
+
+Once published: `pip install livqeno-sdk`. The importable module stays
+`raven` either way — `from raven import Raven`.
 
 ## Mint a token
 

@@ -12,7 +12,7 @@ Those are different packages and neither can do the other's job.
 | Package | Runs in | Holds | Reference |
 |---|---|---|---|
 | `@ravenkash/server` | Your Node backend | API key | [Node.js](/sdk/node) |
-| `raven-sdk` | Your Python backend | API key | [Python](/sdk/python) |
+| `livqeno-sdk` | Your Python backend | API key | [Python](/sdk/python) |
 | `@ravenkash/rtc` | Browser | RTC token | [Web](/sdk/web) |
 | `@ravenkash/chat` | Browser | Chat token | [Web](/sdk/web) |
 | `@ravenkash/client` | Browser | Both, behind one object | [Livqeno Client](/sdk/client) |
@@ -25,7 +25,7 @@ Those are different packages and neither can do the other's job.
 ## Stability
 
 **The `@ravenkash/*` JavaScript/TypeScript packages (including the CLI) are
-published to npm.** `raven-sdk` (Python) and `raven_rtc`/`raven_chat`/
+published to npm.** `livqeno-sdk` (Python) and `raven_rtc`/`raven_chat`/
 `raven_live` (Flutter) are not yet on PyPI or pub.dev —
 [contact support](mailto:support@mail.ravenstack.online) for early access.
 

@@ -111,7 +111,7 @@ downloadable and inspectable.
 Flutter app
     │  your own authenticated request
     ▼
-Your backend  ──(@ravenkash/server or raven-sdk)──►  Livqeno
+Your backend  ──(@ravenkash/server or livqeno-sdk)──►  Livqeno
     │                                              │
     │◄──────────── short-lived token ──────────────┘
     ▼

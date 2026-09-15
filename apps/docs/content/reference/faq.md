@@ -19,17 +19,17 @@ not fine for a product.
 
 ### Which SDK do I install?
 
-One for your backend (`@ravenkash/server` or `raven-sdk`) and one for your
+One for your backend (`@ravenkash/server` or `livqeno-sdk`) and one for your
 client, by platform. [Install an SDK](/get-started/install-an-sdk) has the
 table.
 
 ### Are the packages on npm yet?
 
 The `@ravenkash/*` JavaScript/TypeScript packages (including the CLI) are —
-`npm install` them directly. Python (`raven-sdk`) and Flutter
-(`raven_rtc`/`raven_chat`/`raven_live`) aren't on PyPI or pub.dev yet;
-[contact support](mailto:support@mail.ravenstack.online) for early access to
-those packages.
+`npm install` them directly. The Flutter packages
+(`raven_rtc`/`raven_chat`/`raven_live`) are on pub.dev too — `flutter pub add`
+them directly. Python (`livqeno-sdk`) isn't on PyPI yet;
+[contact support](mailto:support@mail.ravenstack.online) for early access.
 
 ## Tokens and authentication
 

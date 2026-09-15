@@ -4,7 +4,7 @@ Livqeno is a proprietary, hosted platform — the control plane, SFU, and
 dashboard in this repository are Raven's own infrastructure, not something
 external contributors deploy or operate. This guide is for **Raven's
 internal engineering team**, and for contributions to the public,
-MIT-licensed `@ravenkash/*` / `raven-sdk` / `raven_*` client SDKs.
+MIT-licensed `@ravenkash/*` / `livqeno-sdk` / `raven_*` client SDKs.
 
 The bar is "someone can depend on this", not "it works on my machine".
 This page is what you need to clear it.
@@ -222,7 +222,7 @@ apps/dashboard/     Developer console (Next.js)
 services/sfu/       The SFU. Go, Pion. The only place media is touched.
 packages/           The eight published @ravenkash/* npm packages
 sdks/flutter/       raven_rtc, raven_chat, raven_live
-sdks/python/        raven-sdk
+sdks/python/        livqeno-sdk
 examples/           A runnable app per integration path
 infrastructure/     docker/ · k8s/ · azure/
 docs/               Architecture, references, operations, known issues

@@ -121,13 +121,13 @@ React hook API.
 
 - **`node-server`** — a real Express server minting RTC tokens with
   `@ravenkash/server`.
-- **`python-server`** — the same, with `raven-sdk` and FastAPI.
+- **`python-server`** — the same, with `livqeno-sdk` and FastAPI.
 
 ## RTC + Chat combined
 
 - **`media-demo`** — a minimal static page proving real WebRTC media
   through `@ravenkash/rtc`, backed by a small FastAPI server using
-  `raven-sdk`.
+  `livqeno-sdk`.
 
 ## Next
 

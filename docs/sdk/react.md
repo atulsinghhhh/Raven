@@ -212,6 +212,6 @@ never exported from either package (Phase 11 spec §27).
 
 Same model as `@ravenkash/rtc` — `<RavenRoom>` only ever takes the
 short-lived RTC token your backend minted (via `@ravenkash/server`/
-`raven-sdk`, see `docs/security/server-sdk.md`). It never accepts or
+`livqeno-sdk`, see `docs/security/server-sdk.md`). It never accepts or
 needs a Livqeno API key, a TURN static credential, or any other permanent
 credential.

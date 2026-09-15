@@ -345,7 +345,7 @@ session, and the UI around messages/typing/presence.
 ## Production notes
 
 - Never call `raven.chat.createConversation()`/`createToken()` (or any
-  `@ravenkash/server`/`raven-sdk` method) from a browser or app.
+  `@ravenkash/server`/`livqeno-sdk` method) from a browser or app.
 - Derive `userId` from your own authenticated session — a chat token
   minted for the wrong user lets them send as someone else.
 - `clientMessageId` is attached automatically if you don't supply one,

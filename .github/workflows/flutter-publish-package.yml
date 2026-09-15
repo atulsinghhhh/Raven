@@ -1,0 +1,54 @@
+name: Publish one Flutter package (reusable)
+
+# Called by flutter-release.yml — never triggered directly. Verifies one
+# sdks/flutter/* package (format, analyze, test, dry-run) and publishes it
+# to pub.dev via GitHub Actions OIDC. No credential is stored in this repo;
+# see the trusted-publisher setup note in flutter-release.yml.
+
+on:
+  workflow_call:
+    inputs:
+      package:
+        required: true
+        type: string
+
+env:
+  FLUTTER_VERSION: "3.47.2"
+
+jobs:
+  publish:
+    name: Verify and publish ${{ inputs.package }}
+    runs-on: ubuntu-latest
+    environment: pubdev
+    permissions:
+      # Required for pub.dev's GitHub Actions OIDC publishing.
+      id-token: write
+    defaults:
+      run:
+        working-directory: sdks/flutter/${{ inputs.package }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Format check
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Tests
+        run: flutter test
+
+      - name: Publish dry run (contents preview)
+        run: flutter pub publish --dry-run
+
+      - name: Publish to pub.dev
+        run: flutter pub publish --force

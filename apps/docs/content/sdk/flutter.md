@@ -19,15 +19,13 @@ Dart.
 
 ## Install
 
-Not on pub.dev yet, and Livqeno's source isn't a public repository —
-[contact support](mailto:support@mail.ravenstack.online) for early access to
-the `raven_rtc`/`raven_chat`/`raven_live` packages while they're pre-release:
-
 ```yaml
 dependencies:
   raven_rtc: ^0.1.0
   raven_chat: ^0.1.0                    # only if you want messaging
 ```
+
+Or: `flutter pub add raven_rtc raven_chat`.
 
 **Permissions** — the SDK can't add these for you.
 
@@ -177,6 +175,8 @@ every API on both packages already works on what it hands back.
 dependencies:
   raven_live: ^0.1.0
 ```
+
+Or: `flutter pub add raven_live`.
 
 ```dart
 import 'package:raven_live/raven_live.dart';

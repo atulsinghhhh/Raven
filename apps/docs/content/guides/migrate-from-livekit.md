@@ -27,7 +27,7 @@ from having done it rather than from reading a comparison table.
 | Track | [Track](/concepts/track) | Livqeno declares the *source* — `camera`, `microphone`, `screenShare`. |
 | Access token | [Token](/concepts/token) | Minted server-side. Max 6 hours; no non-expiring option. |
 | API key / secret | [API key](/concepts/api-key) | One `rvk_<env>_id.secret` string rather than a key/secret pair. |
-| Server SDK | `@ravenkash/server`, `raven-sdk` | Same job. |
+| Server SDK | `@ravenkash/server`, `livqeno-sdk` | Same job. |
 | Egress / Ingress | — | **No equivalent.** Livqeno has no recording and no RTMP ingest. |
 | Webhooks | [Webhooks](/webhooks) | Livqeno's fire for chat and live-stream events, not RTC lifecycle. |
 

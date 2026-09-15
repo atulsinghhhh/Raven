@@ -279,11 +279,36 @@ it.
 
 ---
 
-## Python — `raven-sdk`
+## Python — `livqeno-sdk`
 
-Not yet automated. CI (`ci.yml`, job `python`) builds the sdist and wheel
-and runs `twine check` on every PR, so the artefact is known-good; the
-upload is manual.
+**Not yet published — blocked on a name conflict**, not on tooling:
+
+> **The name `livqeno-sdk` on PyPI is already taken by an unrelated project**
+> (confirmed live via `pypi.org/pypi/livqeno-sdk/json`). Resolve that before
+> the first upload, then configure a Trusted Publisher on pypi.org for
+> whatever name is used — see `docs/sdk-publication-audit.md` and
+> `PUBLISHING.md`.
+
+CI (`ci.yml`, job `python`) builds the sdist and wheel and runs `twine
+check` on every PR, so the artefact is known-good. Once the name is
+settled, `.github/workflows/python-release.yml` publishes it, mirroring
+the Flutter workflow's two paths:
+
+- **Push to `main`** that changes `pyproject.toml`'s `version` publishes
+  automatically. The version bump + merge *is* the release approval — a
+  push that doesn't change the version publishes nothing.
+- **`workflow_dispatch`** publishes immediately regardless of whether the
+  version changed — for the first release or a deliberate republish.
+  Requires typing `PUBLISH` to confirm.
+
+Both use PyPI Trusted Publishing (OIDC) — no stored token, same approach
+as the `@ravenkash/*` npm packages and the Flutter packages. Neither path
+can succeed until the name conflict above is resolved and a Trusted
+Publisher (or *pending* Trusted Publisher, which pypi.org supports
+setting up before the project exists — Account → Publishing → Add a
+pending publisher) is configured for whatever name is chosen.
+
+Manual publish still works as a fallback once the name is resolved:
 
 ```bash
 cd sdks/python
@@ -295,26 +320,42 @@ twine upload dist/*
 Bump `version` in `pyproject.toml` and keep it in step with the TypeScript
 server SDK's feature set.
 
-> **The name `raven-sdk` on PyPI is already taken by an unrelated project.**
-> Resolve that before the first upload — see the note in the audit and in
-> `PUBLISHING.md`.
-
 ---
 
 ## Dart — `raven_rtc`, `raven_chat`, `raven_live`
 
-Not yet automated. CI validates each package (`flutter pub publish
---dry-run`) but never uploads.
+**Live on pub.dev as of `0.1.0`** (published manually, in dependency
+order — `raven_rtc` and `raven_chat` first, then `raven_live`, since it
+declares them as hosted `^0.1.0` constraints — see
+`sdks/flutter/raven_live/pubspec.yaml`).
+
+Further releases are automated through
+`.github/workflows/flutter-release.yml` and its reusable counterpart
+`flutter-publish-package.yml`, using pub.dev's GitHub Actions OIDC
+automated publishing (no stored token):
+
+- **Push to `main`** that changes a package's `pubspec.yaml` `version`
+  publishes that package automatically. The version bump + merge *is* the
+  release approval — a push that doesn't change any version publishes
+  nothing. `raven_live`'s job waits (`needs:`) for `raven_rtc`'s and
+  `raven_chat`'s, so dependency order is enforced by the workflow, not by
+  memory.
+- **`workflow_dispatch`** publishes one chosen package immediately,
+  regardless of whether its version changed — for a first release or a
+  deliberate republish. Requires typing `PUBLISH` to confirm.
+
+Either path requires "Automated publishing" configured per package on
+pub.dev first (Admin tab → GitHub Actions → repository
+`atulsinghhhh/Raven`, workflow filename `flutter-publish-package.yml` —
+that's the reusable workflow that actually runs `flutter pub publish`,
+not the orchestrator).
+
+Manual publish still works as a fallback:
 
 ```bash
 cd sdks/flutter/raven_rtc
 flutter pub publish
 ```
-
-Publish in dependency order: `raven_rtc` and `raven_chat` first, then
-`raven_live`. `raven_live` declares them as hosted `^0.1.0` constraints with
-local `dependency_overrides`, so it cannot be published until both siblings
-are on pub.dev.
 
 ---
 
@@ -327,7 +368,7 @@ One-off, before the first real release:
 - [ ] Enable npm trusted publishing per package (`atulsinghhhh/Raven`,
       `release.yml`) — required for every package, not just the ones
       releasing today
-- [ ] Settle the PyPI `raven-sdk` name conflict
+- [ ] Settle the PyPI `livqeno-sdk` name conflict
 - [ ] Confirm `.changeset/config.json`'s `ignore` list still matches the
       private apps
 - [ ] `node scripts/verify-package-metadata.mjs` passes

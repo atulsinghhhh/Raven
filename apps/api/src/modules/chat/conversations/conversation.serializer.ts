@@ -16,7 +16,7 @@ import { ChatMember, Conversation } from '../../../generated/prisma/client';
  *
  * `publicId` keeps its name. Renaming it to `id` would read more
  * consistently with the message serializer, but every existing consumer —
- * `raven-sdk`'s `ChatConversation`, `@ravenkash/server`, the docs, anyone's
+ * `livqeno-sdk`'s `ChatConversation`, `@ravenkash/server`, the docs, anyone's
  * application code — reads `publicId` today, and breaking all of them buys
  * no security: the leak is the *presence* of the internal uuid, not the
  * spelling of the public one. So `id` is emitted alongside it as the same

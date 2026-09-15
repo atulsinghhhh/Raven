@@ -40,7 +40,7 @@ Backend (Node):
 ```bash
 npm install @ravenkash/server
 ```
-(Python backend? `raven-sdk` is coming soon to PyPI — [contact support](mailto:support@mail.ravenstack.online) for early access. Same methods, snake_case: `raven.live_streams.create(...)`, etc. Do **not** `pip install raven` or `pip install raven-sdk` — both names belong to unrelated third parties.)
+(Python backend? `livqeno-sdk` is coming soon to PyPI — [contact support](mailto:support@mail.ravenstack.online) for early access. Same methods, snake_case: `raven.live_streams.create(...)`, etc. Do **not** `pip install raven` or `pip install livqeno-sdk` — both names belong to unrelated third parties.)
 
 Frontend:
 ```bash

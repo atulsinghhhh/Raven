@@ -29,8 +29,7 @@ Add `@ravenkash/chat` for messaging, `@ravenkash/react` for hooks, or
 used below. The full list is on
 [Install an SDK](/get-started/install-an-sdk).
 
-Python is the one exception: Livqeno's Python SDK is **not** on PyPI, and the
-name `raven-sdk` there belongs to an unrelated project — see
+Python is the one exception: Livqeno's Python SDK is **not** on PyPI yet — see
 [Python SDK](/sdk/python) before installing anything.
 
 ## 1. Create a project and a key

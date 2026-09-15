@@ -10,10 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  raven_rtc:
-    path: ../../sdks/flutter/raven_rtc
-  raven_chat:
-    path: ../../sdks/flutter/raven_chat
+  raven_rtc: ^0.1.0
+  raven_chat: ^0.1.0
   http: ^1.2.2
 
 dev_dependencies:

@@ -19,10 +19,12 @@ numbers don't match across packages:
 | `@ravenkash/react-native` | [npm](https://www.npmjs.com/package/@ravenkash/react-native) |
 | `@ravenkash/server` | [npm](https://www.npmjs.com/package/@ravenkash/server) |
 | `@ravenkash/cli` | [npm](https://www.npmjs.com/package/@ravenkash/cli) |
-| `raven_rtc`, `raven_chat`, `raven_live` | Unpublished (pub.dev) |
-| `raven-sdk` | Unpublished (PyPI) |
+| `raven_rtc` | [pub.dev](https://pub.dev/packages/raven_rtc) |
+| `raven_chat` | [pub.dev](https://pub.dev/packages/raven_chat) |
+| `raven_live` | [pub.dev](https://pub.dev/packages/raven_live) |
+| `livqeno-sdk` | Unpublished (PyPI) |
 
-Python and Flutter aren't published yet —
+Python isn't published yet —
 [contact support](mailto:support@mail.ravenstack.online) for early access.
 
 This page doesn't pin exact version numbers — check the npm link for each

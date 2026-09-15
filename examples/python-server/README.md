@@ -1,7 +1,7 @@
-# Python backend example — `raven-sdk`
+# Python backend example — `livqeno-sdk`
 
 The Phase 10 quickstart: a real FastAPI server that mints RTC tokens for
-your frontend, using `raven-sdk`. `RAVEN_API_KEY` never leaves this
+your frontend, using `livqeno-sdk`. `RAVEN_API_KEY` never leaves this
 process — the browser only ever sees a short-lived RTC token. The SDK
 itself works the same way with Flask/Django/plain Python — FastAPI is
 just this example's framework of choice.
@@ -15,12 +15,12 @@ project's API Keys tab (or `raven keys create` — see `docs/cli.md`).
 ```bash
 cd examples/python-server
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt   # installs raven-sdk from local source — not yet published to PyPI, see note below
+pip install -r requirements.txt   # installs livqeno-sdk from local source — not yet published to PyPI, see note below
 RAVEN_API_KEY=rvk_xxxx.yyyy RAVEN_API_URL=https://api.ravenstack.online uvicorn main:app --port 8787
 # → http://127.0.0.1:8787
 ```
 
-`raven-sdk` (Python) is **not yet published to PyPI** — `requirements.txt`
+`livqeno-sdk` (Python) is **not yet published to PyPI** — `requirements.txt`
 installs it from local monorepo source for development purposes only.
 See `PUBLISHING.md` and `apps/docs/content/getting-started/installing-from-source.md`.
 

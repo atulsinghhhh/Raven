@@ -150,7 +150,7 @@ There is deliberately no `raven streams hosts add/remove` or
 `raven streams token host/viewer` — those mint real RTC + chat
 credentials, and the CLI holds a developer session (a JWT), not a
 project API key, same reason `raven chat send` doesn't exist. Run those
-from your own backend with `@ravenkash/server` or `raven-sdk`.
+from your own backend with `@ravenkash/server` or `livqeno-sdk`.
 
 ## RTC — the media plane
 
