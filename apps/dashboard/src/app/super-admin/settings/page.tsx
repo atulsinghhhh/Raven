@@ -58,7 +58,10 @@ export default async function SuperAdminSettingsPage() {
     return (
       <div className="flex flex-col gap-8">
         <PageHeader title="Settings" eyebrow="Console" />
-        <ErrorState title="Could not load settings" description="The Control API is unreachable right now. Retry in a moment." />
+        <ErrorState
+          title="Could not load settings"
+          description="The Control API is unreachable right now. Retry in a moment."
+        />
       </div>
     );
   }
@@ -79,7 +82,10 @@ export default async function SuperAdminSettingsPage() {
         <Card padded={false}>
           <dl className="divide-y divide-line">
             {Object.entries(data.retentionPolicy).map(([key, value]) => (
-              <div key={key} className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+              <div
+                key={key}
+                className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
+              >
                 <dt className="text-sm font-medium text-fg">{RETENTION_LABEL[key] ?? key}</dt>
                 <dd className="text-sm text-muted sm:text-right">{value}</dd>
               </div>
@@ -93,7 +99,10 @@ export default async function SuperAdminSettingsPage() {
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {data.platformRoles.map((role) => (
             <Card key={role.role}>
-              <CardHeader title={<Badge tone={ROLE_TONE[role.role]}>{ROLE_LABEL[role.role]}</Badge>} subtitle={role.summary} />
+              <CardHeader
+                title={<Badge tone={ROLE_TONE[role.role]}>{ROLE_LABEL[role.role]}</Badge>}
+                subtitle={role.summary}
+              />
               <ul className="flex flex-col gap-1.5 text-sm text-muted">
                 {role.canDo.map((item, i) => (
                   <li key={i} className="flex items-start gap-2">

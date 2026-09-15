@@ -51,7 +51,11 @@ export default async function SuperAdminInfrastructurePage() {
             icon={<IconServer className="size-6" />}
           />
         ) : (
-          <ErrorState title="Could not load infrastructure status" description="The Control API is unreachable right now. Retry in a moment." retryHref={base} />
+          <ErrorState
+            title="Could not load infrastructure status"
+            description="The Control API is unreachable right now. Retry in a moment."
+            retryHref={base}
+          />
         )}
       </div>
     );
@@ -81,10 +85,22 @@ export default async function SuperAdminInfrastructurePage() {
       <section>
         <SectionHeader title="RTC fleet" subtitle="Aggregate totals across every registered node." />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Servers" value={formatCount(data.fleet.servers)} hint={`${formatCount(data.fleet.healthyServers)} healthy`} />
+          <StatCard
+            label="Servers"
+            value={formatCount(data.fleet.servers)}
+            hint={`${formatCount(data.fleet.healthyServers)} healthy`}
+          />
           <StatCard label="Draining" value={formatCount(data.fleet.drainingServers)} />
-          <StatCard label="Unhealthy" value={formatCount(data.fleet.unhealthyServers)} tone={data.fleet.unhealthyServers > 0 ? 'danger' : 'default'} />
-          <StatCard label="Active rooms" value={formatCount(data.fleet.activeRooms)} hint={`${formatCount(data.fleet.activeParticipants)} participants`} />
+          <StatCard
+            label="Unhealthy"
+            value={formatCount(data.fleet.unhealthyServers)}
+            tone={data.fleet.unhealthyServers > 0 ? 'danger' : 'default'}
+          />
+          <StatCard
+            label="Active rooms"
+            value={formatCount(data.fleet.activeRooms)}
+            hint={`${formatCount(data.fleet.activeParticipants)} participants`}
+          />
         </div>
       </section>
 
@@ -92,7 +108,11 @@ export default async function SuperAdminInfrastructurePage() {
         <SectionHeader title="Nodes" subtitle="One row per registered RTC server." />
 
         {data.nodes.length === 0 ? (
-          <EmptyState title="No RTC servers registered" description="No SFU node has registered with the fleet yet." icon={<IconServer className="size-6" />} />
+          <EmptyState
+            title="No RTC servers registered"
+            description="No SFU node has registered with the fleet yet."
+            icon={<IconServer className="size-6" />}
+          />
         ) : (
           <>
             <TableWrap className="hidden sm:block">
@@ -126,13 +146,19 @@ export default async function SuperAdminInfrastructurePage() {
                         </span>
                       </TD>
                       <TD align="right">
-                        <span className="tabular font-mono text-sm text-fg">{formatCount(node.activeParticipants)}</span>
+                        <span className="tabular font-mono text-sm text-fg">
+                          {formatCount(node.activeParticipants)}
+                        </span>
                       </TD>
                       <TD align="right">
-                        <span className="tabular font-mono text-sm text-muted">{formatPercent(node.cpuPercent) ?? <NoDataYet label="—" />}</span>
+                        <span className="tabular font-mono text-sm text-muted">
+                          {formatPercent(node.cpuPercent) ?? <NoDataYet label="—" />}
+                        </span>
                       </TD>
                       <TD align="right">
-                        <span className="tabular font-mono text-sm text-muted">{formatPercent(node.memoryPercent) ?? <NoDataYet label="—" />}</span>
+                        <span className="tabular font-mono text-sm text-muted">
+                          {formatPercent(node.memoryPercent) ?? <NoDataYet label="—" />}
+                        </span>
                       </TD>
                       <TD>
                         {node.lastHeartbeatAt ? (

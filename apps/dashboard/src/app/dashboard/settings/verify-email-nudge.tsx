@@ -19,7 +19,9 @@ export function VerifyEmailNudge() {
     try {
       const res = await fetch('/api/auth/verify-email/resend', { method: 'POST' });
       const payload = await readJson(res);
-      setMessage(errorMessage(payload, res.ok ? 'A new verification link is on its way.' : 'Could not send the email.'));
+      setMessage(
+        errorMessage(payload, res.ok ? 'A new verification link is on its way.' : 'Could not send the email.'),
+      );
     } catch {
       setMessage('Could not reach the server. Check your connection and try again.');
     } finally {

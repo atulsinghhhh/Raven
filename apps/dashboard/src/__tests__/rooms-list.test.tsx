@@ -128,7 +128,9 @@ describe('RoomsList', () => {
     act(() => sockets[0].open());
     expectAbsent('brand-new-room');
 
-    act(() => sockets[0].receive({ type: 'room.created', roomId: 'r2', name: 'brand-new-room', environment: 'development' }));
+    act(() =>
+      sockets[0].receive({ type: 'room.created', roomId: 'r2', name: 'brand-new-room', environment: 'development' }),
+    );
 
     await waitFor(() => expectVisible('brand-new-room'));
     expectVisible('room-r1'); // the original room survives the merge
@@ -141,7 +143,12 @@ describe('RoomsList', () => {
     act(() => sockets[0].open());
 
     act(() =>
-      sockets[0].receive({ type: 'connection.state_changed', connectionId: 'conn_abc', roomId: 'r1', state: 'CONNECTED' }),
+      sockets[0].receive({
+        type: 'connection.state_changed',
+        connectionId: 'conn_abc',
+        roomId: 'r1',
+        state: 'CONNECTED',
+      }),
     );
 
     await new Promise((resolve) => setTimeout(resolve, 500)); // past the debounce window
@@ -175,7 +182,9 @@ describe('RoomsList', () => {
     act(() => sockets[0].open());
 
     for (let i = 0; i < 5; i += 1) {
-      act(() => sockets[0].receive({ type: 'room.created', roomId: `r${i}`, name: `room-${i}`, environment: 'development' }));
+      act(() =>
+        sockets[0].receive({ type: 'room.created', roomId: `r${i}`, name: `room-${i}`, environment: 'development' }),
+      );
     }
 
     await new Promise((resolve) => setTimeout(resolve, 600)); // past the 400ms debounce

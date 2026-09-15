@@ -68,7 +68,7 @@ describe('WebhookDeliveryWorker — dashboard realtime nudges (Phase 5D)', () =>
     global.fetch = originalFetch;
   });
 
-  it('emits webhook.delivery_failed when a delivery attempt fails, scoped to the endpoint\'s project', async () => {
+  it("emits webhook.delivery_failed when a delivery attempt fails, scoped to the endpoint's project", async () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('ECONNREFUSED'));
     const { attempt, dashboardEvents } = makeWorker();
 
@@ -182,7 +182,7 @@ describe('WebhookDeliveryWorker — dashboard realtime nudges (Phase 5D)', () =>
     expect(dashboardEvents.publish).not.toHaveBeenCalled();
   });
 
-  it('emits no dashboard event for an unrelated endpoint\'s successful delivery, even mid-failure-streak elsewhere', async () => {
+  it("emits no dashboard event for an unrelated endpoint's successful delivery, even mid-failure-streak elsewhere", async () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 204 });
     const { attempt, dashboardEvents } = makeWorker();
 

@@ -62,7 +62,7 @@ describe('live_stream.started/ended — single producer (Phase 5E)', () => {
  * DashboardEventsService and publish this event type at all.
  */
 describe('no chat-membership / RTC-room event collision (Phase 5A finding, Phase 5C guard)', () => {
-  it('ConversationsService — the actual producer of the webhook module\'s room.created/participant.* — never imports the dashboard realtime publisher', () => {
+  it("ConversationsService — the actual producer of the webhook module's room.created/participant.* — never imports the dashboard realtime publisher", () => {
     const source = read('modules/chat/conversations/conversations.service.ts');
     expect(source).not.toMatch(/DashboardEventsService/);
     expect(source).not.toMatch(/dashboard-ws/);
@@ -74,7 +74,7 @@ describe('no chat-membership / RTC-room event collision (Phase 5A finding, Phase
     expect(source).not.toMatch(/DashboardWsModule/);
   });
 
-  it('RoomsService — the sole producer of the dashboard\'s room.created — is the real RTC room lifecycle, not chat', () => {
+  it("RoomsService — the sole producer of the dashboard's room.created — is the real RTC room lifecycle, not chat", () => {
     const source = read('modules/rooms/rooms.service.ts');
     expect(source).toMatch(/DashboardWsEventType\.RoomCreated/);
     // The published roomId comes from `room.id` (the just-created Room
@@ -84,7 +84,7 @@ describe('no chat-membership / RTC-room event collision (Phase 5A finding, Phase
     expect(source).not.toMatch(/ConversationsService|conversationId/);
   });
 
-  it('the webhook module\'s room.created stays entirely separate: DashboardWsEventType is never imported by webhooks', () => {
+  it("the webhook module's room.created stays entirely separate: DashboardWsEventType is never imported by webhooks", () => {
     const source = read('modules/webhooks/webhook-events.service.ts');
     expect(source).not.toMatch(/DashboardWsEventType|DashboardEventsService/);
   });

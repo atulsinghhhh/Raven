@@ -84,7 +84,10 @@ export function getUsageOverview(token: string): Promise<UsageOverview> {
 }
 
 /** `GET /v1/super-admin/usage/developers` — paginated, per-developer breakdown. */
-export function listUsageDevelopers(token: string, filters: ListUsageDevelopersFilters = {}): Promise<DeveloperUsagePage> {
+export function listUsageDevelopers(
+  token: string,
+  filters: ListUsageDevelopersFilters = {},
+): Promise<DeveloperUsagePage> {
   return superAdminFetch<DeveloperUsagePage>(`/v1/super-admin/usage/developers${buildQuery(filters)}`, { token });
 }
 
@@ -98,7 +101,11 @@ export function getDeveloperUsage(token: string, userId: string): Promise<Develo
  * mutating call in this domain. Requires SUPER_ADMIN or ADMIN server-side
  * and a non-empty `reason`; the API 400s without one.
  */
-export function updateAllowance(token: string, userId: string, input: UpdateAllowanceInput): Promise<ProductUsageBreakdown> {
+export function updateAllowance(
+  token: string,
+  userId: string,
+  input: UpdateAllowanceInput,
+): Promise<ProductUsageBreakdown> {
   return superAdminFetch<ProductUsageBreakdown>(`/v1/super-admin/usage/developers/${userId}/allowance`, {
     token,
     method: 'PATCH',

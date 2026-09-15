@@ -79,7 +79,9 @@ export class AdminAuditService {
         },
       });
     } catch (err) {
-      this.logger.error(`failed to record admin audit entry ${entry.action} for ${entry.targetType}: ${(err as Error).message}`);
+      this.logger.error(
+        `failed to record admin audit entry ${entry.action} for ${entry.targetType}: ${(err as Error).message}`,
+      );
     }
 
     await this.activityEvents.record({

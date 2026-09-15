@@ -7,7 +7,11 @@ describe('readJson', () => {
   });
 
   it('resolves undefined instead of throwing when the body is not valid JSON', async () => {
-    const response = { json: async () => { throw new SyntaxError('Unexpected token <'); } } as unknown as Response;
+    const response = {
+      json: async () => {
+        throw new SyntaxError('Unexpected token <');
+      },
+    } as unknown as Response;
     await expect(readJson(response)).resolves.toBeUndefined();
   });
 });

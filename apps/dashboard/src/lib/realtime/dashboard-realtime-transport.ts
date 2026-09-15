@@ -117,7 +117,8 @@ export class DashboardRealtimeTransport {
   }
 
   private open(): void {
-    const factory = this.options.socketFactory ?? ((url: string) => new WebSocket(url) as unknown as DashboardRealtimeSocketLike);
+    const factory =
+      this.options.socketFactory ?? ((url: string) => new WebSocket(url) as unknown as DashboardRealtimeSocketLike);
 
     // Token rides in the query string because the browser WebSocket API
     // can't set headers on an upgrade. Same trade Chat and RTC make.
@@ -203,7 +204,11 @@ export class DashboardRealtimeTransport {
     }
 
     this.attempt += 1;
-    const delayMs = backoffDelayMs(this.attempt, this.options.initialReconnectDelayMs, this.options.maxReconnectDelayMs);
+    const delayMs = backoffDelayMs(
+      this.attempt,
+      this.options.initialReconnectDelayMs,
+      this.options.maxReconnectDelayMs,
+    );
 
     this.handlers.onReconnecting(this.attempt, delayMs);
 

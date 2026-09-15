@@ -85,7 +85,11 @@ export default async function SuperAdminErrorsPage({ searchParams }: { searchPar
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <StatCard label="Error signatures" value={page ? formatCount(page.total) : '—'} hint="Distinct category + message groups" />
+        <StatCard
+          label="Error signatures"
+          value={page ? formatCount(page.total) : '—'}
+          hint="Distinct category + message groups"
+        />
         <StatCard label="Occurrences on this page" value={page ? formatCount(totalOccurrences) : '—'} />
         <StatCard
           label="Filter"
@@ -154,10 +158,14 @@ export default async function SuperAdminErrorsPage({ searchParams }: { searchPar
                         <span className="tabular font-mono text-sm text-fg">{formatCount(row.count)}</span>
                       </TD>
                       <TD align="right">
-                        <span className="tabular font-mono text-sm text-muted">{formatCount(row.affectedProjects)}</span>
+                        <span className="tabular font-mono text-sm text-muted">
+                          {formatCount(row.affectedProjects)}
+                        </span>
                       </TD>
                       <TD align="right">
-                        <span className="tabular font-mono text-sm text-muted">{formatCount(row.affectedDevelopers)}</span>
+                        <span className="tabular font-mono text-sm text-muted">
+                          {formatCount(row.affectedDevelopers)}
+                        </span>
                       </TD>
                       <TD>
                         <span className="text-xs text-subtle" title={formatDateTime(row.firstSeen)}>
@@ -194,7 +202,14 @@ export default async function SuperAdminErrorsPage({ searchParams }: { searchPar
               </MobileList>
             </div>
 
-            <Pagination base={base} sp={sp} offset={offset} limit={DEFAULT_LIMIT} total={page.total} shown={page.items.length} />
+            <Pagination
+              base={base}
+              sp={sp}
+              offset={offset}
+              limit={DEFAULT_LIMIT}
+              total={page.total}
+              shown={page.items.length}
+            />
           </>
         )}
       </section>

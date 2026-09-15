@@ -226,15 +226,15 @@ describe('validateEnv — production-only checks', () => {
   });
 
   it('rejects a dashboard-ws-token secret shared with chat', () => {
-    expect(() =>
-      validateEnv(productionConfig({ DASHBOARD_WS_TOKEN_SECRET: 'a-distinct-chat-token-secret' })),
-    ).toThrow(/DASHBOARD_WS_TOKEN_SECRET must differ from CHAT_TOKEN_SECRET/);
+    expect(() => validateEnv(productionConfig({ DASHBOARD_WS_TOKEN_SECRET: 'a-distinct-chat-token-secret' }))).toThrow(
+      /DASHBOARD_WS_TOKEN_SECRET must differ from CHAT_TOKEN_SECRET/,
+    );
   });
 
   it('rejects a dashboard-ws-token secret shared with RTC', () => {
-    expect(() =>
-      validateEnv(productionConfig({ DASHBOARD_WS_TOKEN_SECRET: 'a-distinct-rtc-token-secret' })),
-    ).toThrow(/DASHBOARD_WS_TOKEN_SECRET must differ from RTC_TOKEN_SECRET/);
+    expect(() => validateEnv(productionConfig({ DASHBOARD_WS_TOKEN_SECRET: 'a-distinct-rtc-token-secret' }))).toThrow(
+      /DASHBOARD_WS_TOKEN_SECRET must differ from RTC_TOKEN_SECRET/,
+    );
   });
 
   it('rejects production config without a metrics scrape secret', () => {

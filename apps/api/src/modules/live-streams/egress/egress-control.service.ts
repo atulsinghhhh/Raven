@@ -96,7 +96,11 @@ export class EgressControlService implements OnModuleInit, OnModuleDestroy {
     const baseUrl = this.configService.get<string>('egress.workerBaseUrl');
     const secret = this.configService.get<string>('egress.workerSharedSecret');
     if (!baseUrl || !secret) {
-      await this.fail(scope, stream, 'egress worker not configured (EGRESS_WORKER_BASE_URL/EGRESS_WORKER_SHARED_SECRET unset)');
+      await this.fail(
+        scope,
+        stream,
+        'egress worker not configured (EGRESS_WORKER_BASE_URL/EGRESS_WORKER_SHARED_SECRET unset)',
+      );
       return;
     }
 
@@ -209,7 +213,12 @@ export class EgressControlService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async callWorker(baseUrl: string, secret: string, path: string, body: Record<string, unknown>): Promise<void> {
+  private async callWorker(
+    baseUrl: string,
+    secret: string,
+    path: string,
+    body: Record<string, unknown>,
+  ): Promise<void> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), EgressControlService.REQUEST_TIMEOUT_MS);
     try {

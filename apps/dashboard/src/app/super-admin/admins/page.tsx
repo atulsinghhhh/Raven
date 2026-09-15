@@ -37,7 +37,10 @@ export default async function SuperAdminAdminsPage() {
     return (
       <div className="flex flex-col gap-8">
         <PageHeader title="Admins" eyebrow="Console" />
-        <ErrorState title="Could not load admins" description="The Control API is unreachable right now. Retry in a moment." />
+        <ErrorState
+          title="Could not load admins"
+          description="The Control API is unreachable right now. Retry in a moment."
+        />
       </div>
     );
   }
@@ -49,7 +52,11 @@ export default async function SuperAdminAdminsPage() {
         eyebrow="Console"
         description="Everyone with Super Admin Portal access. Granting or revoking a platform role is the most sensitive action in this console — both require a stated reason and only a Super Admin can perform them."
       />
-      <AdminsManager initialAdmins={data.admins} currentAdminId={data.me.id} canManage={data.me.platformRole === 'SUPER_ADMIN'} />
+      <AdminsManager
+        initialAdmins={data.admins}
+        currentAdminId={data.me.id}
+        canManage={data.me.platformRole === 'SUPER_ADMIN'}
+      />
     </div>
   );
 }

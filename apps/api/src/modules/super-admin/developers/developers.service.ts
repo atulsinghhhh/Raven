@@ -176,7 +176,11 @@ export class DevelopersService {
         _sum: { meteredSeconds: true },
       }),
       this.prisma.project.findMany({ where: { ownerId: { in: ids } }, select: { id: true, ownerId: true } }),
-      this.prisma.activityEvent.groupBy({ by: ['developerId'], where: { developerId: { in: ids } }, _max: { createdAt: true } }),
+      this.prisma.activityEvent.groupBy({
+        by: ['developerId'],
+        where: { developerId: { in: ids } },
+        _max: { createdAt: true },
+      }),
       this.prisma.activityEvent.groupBy({
         by: ['developerId'],
         where: { developerId: { in: ids }, eventType: ActivityEventType.LOGIN_FAILED, createdAt: { gte: dayAgo } },
@@ -219,18 +223,26 @@ export class DevelopersService {
 
     const projectCountByUser = new Map(projectCounts.map((r) => [r.userId, r._count._all]));
     const loginFailedByUser = new Map(
-      loginFailedCounts.filter((r): r is typeof r & { developerId: string } => r.developerId !== null).map((r) => [r.developerId, r._count._all]),
+      loginFailedCounts
+        .filter((r): r is typeof r & { developerId: string } => r.developerId !== null)
+        .map((r) => [r.developerId, r._count._all]),
     );
     const suspiciousByUser = new Map(
-      suspiciousCounts.filter((r): r is typeof r & { developerId: string } => r.developerId !== null).map((r) => [r.developerId, r._count._all]),
+      suspiciousCounts
+        .filter((r): r is typeof r & { developerId: string } => r.developerId !== null)
+        .map((r) => [r.developerId, r._count._all]),
     );
     const apiEventsByUser = new Map(
-      apiEventCounts.filter((r): r is typeof r & { developerId: string } => r.developerId !== null).map((r) => [r.developerId, r._count._all]),
+      apiEventCounts
+        .filter((r): r is typeof r & { developerId: string } => r.developerId !== null)
+        .map((r) => [r.developerId, r._count._all]),
     );
     const rtcSumByUser = new Map(rtcSums.map((r) => [r.userId, r._sum.meteredSeconds ?? 0]));
     const liveSumByUser = new Map(liveSums.map((r) => [r.userId, r._sum.meteredSeconds ?? 0]));
     const lastActiveByUser = new Map(
-      lastActive.filter((r): r is typeof r & { developerId: string } => r.developerId !== null).map((r) => [r.developerId, r._max.createdAt]),
+      lastActive
+        .filter((r): r is typeof r & { developerId: string } => r.developerId !== null)
+        .map((r) => [r.developerId, r._max.createdAt]),
     );
 
     return users.map((user) => {
@@ -274,36 +286,44 @@ export class DevelopersService {
 
     const monthStart = startOfCurrentMonthUtc();
 
-    const [memberships, lastActiveEvent, allowances, recentActivity, recentSecurity, recentErrors, rtcSumRow, liveSumRow] =
-      await Promise.all([
-        this.prisma.projectMember.findMany({
-          where: { userId: id },
-          include: { project: true },
-          orderBy: { project: { createdAt: 'desc' } },
-          take: PROJECTS_LIST_CAP,
-        }),
-        this.prisma.activityEvent.findFirst({ where: { developerId: id }, orderBy: { createdAt: 'desc' } }),
-        this.prisma.usageAllowance.findMany({ where: { userId: id } }),
-        this.activityEvents.timelineForDeveloper(id, ACTIVITY_TAB_LIMIT),
-        this.prisma.activityEvent.findMany({
-          where: { developerId: id, eventType: { in: SECURITY_EVENT_TYPES } },
-          orderBy: { createdAt: 'desc' },
-          take: SECURITY_TAB_LIMIT,
-        }),
-        this.prisma.errorEvent.findMany({
-          where: { project: { ownerId: id } },
-          orderBy: { timestamp: 'desc' },
-          take: OVERVIEW_RECENT_LIMIT,
-        }),
-        this.prisma.usageSession.aggregate({
-          where: { userId: id, product: 'RTC', startedAt: { gte: monthStart } },
-          _sum: { meteredSeconds: true },
-        }),
-        this.prisma.usageSession.aggregate({
-          where: { userId: id, product: 'LIVE_STREAMING', startedAt: { gte: monthStart } },
-          _sum: { meteredSeconds: true },
-        }),
-      ]);
+    const [
+      memberships,
+      lastActiveEvent,
+      allowances,
+      recentActivity,
+      recentSecurity,
+      recentErrors,
+      rtcSumRow,
+      liveSumRow,
+    ] = await Promise.all([
+      this.prisma.projectMember.findMany({
+        where: { userId: id },
+        include: { project: true },
+        orderBy: { project: { createdAt: 'desc' } },
+        take: PROJECTS_LIST_CAP,
+      }),
+      this.prisma.activityEvent.findFirst({ where: { developerId: id }, orderBy: { createdAt: 'desc' } }),
+      this.prisma.usageAllowance.findMany({ where: { userId: id } }),
+      this.activityEvents.timelineForDeveloper(id, ACTIVITY_TAB_LIMIT),
+      this.prisma.activityEvent.findMany({
+        where: { developerId: id, eventType: { in: SECURITY_EVENT_TYPES } },
+        orderBy: { createdAt: 'desc' },
+        take: SECURITY_TAB_LIMIT,
+      }),
+      this.prisma.errorEvent.findMany({
+        where: { project: { ownerId: id } },
+        orderBy: { timestamp: 'desc' },
+        take: OVERVIEW_RECENT_LIMIT,
+      }),
+      this.prisma.usageSession.aggregate({
+        where: { userId: id, product: 'RTC', startedAt: { gte: monthStart } },
+        _sum: { meteredSeconds: true },
+      }),
+      this.prisma.usageSession.aggregate({
+        where: { userId: id, product: 'LIVE_STREAMING', startedAt: { gte: monthStart } },
+        _sum: { meteredSeconds: true },
+      }),
+    ]);
 
     // `Message` carries `projectId` as a plain scalar with no declared Prisma
     // relation (only `ErrorEvent` has that), so "chat usage" is scoped to
@@ -319,7 +339,11 @@ export class DevelopersService {
     const projects = await this.buildProjectRows(memberships);
 
     const loginFailedLast24h = await this.prisma.activityEvent.count({
-      where: { developerId: id, eventType: ActivityEventType.LOGIN_FAILED, createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+      where: {
+        developerId: id,
+        eventType: ActivityEventType.LOGIN_FAILED,
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
     });
     const suspiciousLast7d = await this.prisma.activityEvent.count({
       where: {
@@ -388,10 +412,26 @@ export class DevelopersService {
     if (projectIds.length === 0) return [];
 
     const [rtcByProject, liveByProject, chatByProject, apiByProject] = await Promise.all([
-      this.prisma.usageSession.groupBy({ by: ['projectId'], where: { projectId: { in: projectIds }, product: 'RTC' }, _sum: { meteredSeconds: true } }),
-      this.prisma.usageSession.groupBy({ by: ['projectId'], where: { projectId: { in: projectIds }, product: 'LIVE_STREAMING' }, _sum: { meteredSeconds: true } }),
-      this.prisma.message.groupBy({ by: ['projectId'], where: { projectId: { in: projectIds } }, _count: { _all: true } }),
-      this.prisma.activityEvent.groupBy({ by: ['projectId'], where: { projectId: { in: projectIds } }, _count: { _all: true } }),
+      this.prisma.usageSession.groupBy({
+        by: ['projectId'],
+        where: { projectId: { in: projectIds }, product: 'RTC' },
+        _sum: { meteredSeconds: true },
+      }),
+      this.prisma.usageSession.groupBy({
+        by: ['projectId'],
+        where: { projectId: { in: projectIds }, product: 'LIVE_STREAMING' },
+        _sum: { meteredSeconds: true },
+      }),
+      this.prisma.message.groupBy({
+        by: ['projectId'],
+        where: { projectId: { in: projectIds } },
+        _count: { _all: true },
+      }),
+      this.prisma.activityEvent.groupBy({
+        by: ['projectId'],
+        where: { projectId: { in: projectIds } },
+        _count: { _all: true },
+      }),
     ]);
 
     const rtcMap = new Map(rtcByProject.map((r) => [r.projectId, r._sum.meteredSeconds ?? 0]));
@@ -420,7 +460,10 @@ export class DevelopersService {
     if (user.status === 'SUSPENDED') throw new ConflictException('This account is already suspended');
 
     const now = new Date();
-    await this.prisma.user.update({ where: { id }, data: { status: 'SUSPENDED', suspendedAt: now, suspendedReason: reason } });
+    await this.prisma.user.update({
+      where: { id },
+      data: { status: 'SUSPENDED', suspendedAt: now, suspendedReason: reason },
+    });
 
     return { id, status: 'SUSPENDED' as const, suspendedAt: now.toISOString(), suspendedReason: reason };
   }
@@ -430,7 +473,10 @@ export class DevelopersService {
     if (!user) throw new NotFoundException('Developer not found');
     if (user.status === 'ACTIVE') throw new ConflictException('This account is not suspended');
 
-    await this.prisma.user.update({ where: { id }, data: { status: 'ACTIVE', suspendedAt: null, suspendedReason: null } });
+    await this.prisma.user.update({
+      where: { id },
+      data: { status: 'ACTIVE', suspendedAt: null, suspendedReason: null },
+    });
 
     return { id, status: 'ACTIVE' as const };
   }
@@ -451,7 +497,11 @@ function authProvidersFor(user: Pick<DeveloperRow, 'authAccounts' | 'passwordHas
   return providers;
 }
 
-function deriveRiskLevel(input: { suspended: boolean; loginFailedLast24h: number; suspiciousLast7d: number }): RiskLevel {
+function deriveRiskLevel(input: {
+  suspended: boolean;
+  loginFailedLast24h: number;
+  suspiciousLast7d: number;
+}): RiskLevel {
   if (input.suspended) return 'CRITICAL';
   if (input.loginFailedLast24h >= 5) return 'HIGH';
   if (input.suspiciousLast7d > 0) return 'MEDIUM';

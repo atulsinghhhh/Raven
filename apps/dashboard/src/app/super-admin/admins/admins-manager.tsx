@@ -170,7 +170,10 @@ export function AdminsManager({
 
       <Card padded={false}>
         <div className="px-5 pt-5">
-          <CardHeader title="Platform admins" subtitle={`${admins.length} account(s) with Super Admin Portal access.`} />
+          <CardHeader
+            title="Platform admins"
+            subtitle={`${admins.length} account(s) with Super Admin Portal access.`}
+          />
         </div>
 
         {revokeError && (
@@ -181,7 +184,11 @@ export function AdminsManager({
 
         {admins.length === 0 ? (
           <div className="px-5 pb-5">
-            <EmptyState icon={<IconCli className="size-6" />} title="No platform admins" description="Nobody currently holds a platform role." />
+            <EmptyState
+              icon={<IconCli className="size-6" />}
+              title="No platform admins"
+              description="Nobody currently holds a platform role."
+            />
           </div>
         ) : (
           <>
@@ -228,7 +235,12 @@ export function AdminsManager({
                                   className="w-56 rounded-md border border-line bg-surface px-2 py-1 text-xs text-fg placeholder:text-subtle focus:border-line-strong"
                                 />
                                 <div className="flex gap-2">
-                                  <Button variant="ghost" size="sm" onClick={() => setConfirmingId(undefined)} disabled={revokingId === admin.id}>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setConfirmingId(undefined)}
+                                    disabled={revokingId === admin.id}
+                                  >
                                     Cancel
                                   </Button>
                                   <Button
@@ -291,7 +303,11 @@ export function AdminsManager({
                           >
                             {/* Matches the desktop table's label: once this second tap
                                 is the actual irreversible action, it says so. */}
-                            {revokingId === admin.id ? 'Revoking…' : confirmingId === admin.id ? 'Confirm revoke' : 'Revoke'}
+                            {revokingId === admin.id
+                              ? 'Revoking…'
+                              : confirmingId === admin.id
+                                ? 'Confirm revoke'
+                                : 'Revoke'}
                           </Button>
                         </div>
                       )}

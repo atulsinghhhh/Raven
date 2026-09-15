@@ -31,11 +31,7 @@ const MEMBER_STATUS_TONE: Record<'ACTIVE' | 'LEFT', BadgeTone> = {
  * so there is nothing to show even if a list were added; only counts,
  * timestamps, and the member roster.
  */
-export default async function SuperAdminChatConversationPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function SuperAdminChatConversationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   const token = await getSessionToken();

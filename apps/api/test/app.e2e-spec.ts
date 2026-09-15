@@ -365,9 +365,7 @@ describe('Control plane (e2e)', () => {
         // Dashboard-only endpoint: cursor-paginated, { data, nextCursor,
         // hasMore } — unlike GET /v1/connections below, which stays a bare
         // array because published server SDKs depend on that shape.
-        expect(list.body).toEqual(
-          expect.objectContaining({ data: expect.any(Array), hasMore: expect.any(Boolean) }),
-        );
+        expect(list.body).toEqual(expect.objectContaining({ data: expect.any(Array), hasMore: expect.any(Boolean) }));
         const found = list.body.data.find((c: { publicId: string }) => c.publicId === connectionPublicId);
         expect(found).toBeDefined();
         expect(found.state).toBe('CONNECTED');

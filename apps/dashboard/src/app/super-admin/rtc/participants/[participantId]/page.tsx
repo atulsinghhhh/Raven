@@ -11,11 +11,7 @@ import { Dash, EmptyState, ErrorState } from '@/components/ui/states';
 import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { formatCount, formatDateTime, formatDuration, formatMs } from '@/lib/format';
 
-export default async function SuperAdminRtcParticipantPage({
-  params,
-}: {
-  params: Promise<{ participantId: string }>;
-}) {
+export default async function SuperAdminRtcParticipantPage({ params }: { params: Promise<{ participantId: string }> }) {
   const { participantId } = await params;
 
   const token = await getSessionToken();
@@ -65,10 +61,7 @@ export default async function SuperAdminRtcParticipantPage({
             <MonoId value={participant.id} copy />
           </KeyValue>
           <KeyValue label="Room">
-            <a
-              href={`/super-admin/rtc/rooms/${participant.room.id}`}
-              className="text-accent-text hover:underline"
-            >
+            <a href={`/super-admin/rtc/rooms/${participant.room.id}`} className="text-accent-text hover:underline">
               {participant.room.name}
             </a>
           </KeyValue>
@@ -90,13 +83,21 @@ export default async function SuperAdminRtcParticipantPage({
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
             label="State"
-            value={participant.connectionState ? <ConnectionStateBadge state={participant.connectionState} /> : <Dash />}
+            value={
+              participant.connectionState ? <ConnectionStateBadge state={participant.connectionState} /> : <Dash />
+            }
           />
           <StatCard label="RTT" value={formatMs(participant.networkQuality.rttMs) ?? <Dash />} hint="Send direction" />
           <StatCard label="Jitter" value={formatMs(participant.networkQuality.jitterMs) ?? <Dash />} />
           <StatCard
             label="Packet loss"
-            value={participant.networkQuality.packetLossPercent === null ? <Dash /> : `${participant.networkQuality.packetLossPercent}%`}
+            value={
+              participant.networkQuality.packetLossPercent === null ? (
+                <Dash />
+              ) : (
+                `${participant.networkQuality.packetLossPercent}%`
+              )
+            }
           />
         </div>
       </section>
@@ -108,7 +109,10 @@ export default async function SuperAdminRtcParticipantPage({
         />
 
         {participant.connections.length === 0 ? (
-          <EmptyState title="No connection records" description="No telemetry has been recorded for this participant yet." />
+          <EmptyState
+            title="No connection records"
+            description="No telemetry has been recorded for this participant yet."
+          />
         ) : (
           <>
             <div className="hidden sm:block">
@@ -141,7 +145,9 @@ export default async function SuperAdminRtcParticipantPage({
                       <ConnectionStateBadge state={connection.state} />
                     </div>
                     <MobileField label="Started">{formatDateTime(connection.startedAt)}</MobileField>
-                    <MobileField label="Ended">{connection.disconnectedAt ? formatDateTime(connection.disconnectedAt) : <Dash />}</MobileField>
+                    <MobileField label="Ended">
+                      {connection.disconnectedAt ? formatDateTime(connection.disconnectedAt) : <Dash />}
+                    </MobileField>
                     <MobileField label="Duration">{formatDuration(connection.durationMs)}</MobileField>
                     <MobileField label="Reconnects">{formatCount(connection.reconnectCount)}</MobileField>
                   </MobileRow>
@@ -216,7 +222,9 @@ function ConnectionRow({ connection }: { connection: RtcParticipantConnection })
         <span className="tabular text-xs text-muted">{formatDateTime(connection.startedAt)}</span>
       </TD>
       <TD>
-        <span className="tabular text-xs text-muted">{connection.disconnectedAt ? formatDateTime(connection.disconnectedAt) : <Dash />}</span>
+        <span className="tabular text-xs text-muted">
+          {connection.disconnectedAt ? formatDateTime(connection.disconnectedAt) : <Dash />}
+        </span>
       </TD>
     </TR>
   );

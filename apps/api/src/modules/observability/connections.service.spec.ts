@@ -243,7 +243,7 @@ describe('ConnectionsService', () => {
   });
 
   describe('dashboard realtime nudges (Phase 5C)', () => {
-    it('publishes connection.state_changed on a real lifecycle transition, scoped to the connection\'s project', async () => {
+    it("publishes connection.state_changed on a real lifecycle transition, scoped to the connection's project", async () => {
       prisma.connection.findUnique.mockResolvedValue(null);
       prisma.connection.create.mockResolvedValue({
         id: 'row-1',
@@ -286,7 +286,11 @@ describe('ConnectionsService', () => {
     });
 
     it('does not publish for a stats event — the high-frequency, bursty one that never moves lifecycle state', async () => {
-      prisma.connection.findUnique.mockResolvedValue({ id: 'row-1', reconnectCount: 0, state: ConnectionState.CONNECTED });
+      prisma.connection.findUnique.mockResolvedValue({
+        id: 'row-1',
+        reconnectCount: 0,
+        state: ConnectionState.CONNECTED,
+      });
       prisma.connection.update.mockResolvedValue({ id: 'row-1', state: ConnectionState.CONNECTED });
 
       await service.recordEvent(ctx, {
@@ -299,7 +303,11 @@ describe('ConnectionsService', () => {
     });
 
     it('does not publish when the reported state is unchanged from the existing row — a duplicate/replayed event', async () => {
-      prisma.connection.findUnique.mockResolvedValue({ id: 'row-1', reconnectCount: 0, state: ConnectionState.CONNECTED });
+      prisma.connection.findUnique.mockResolvedValue({
+        id: 'row-1',
+        reconnectCount: 0,
+        state: ConnectionState.CONNECTED,
+      });
       prisma.connection.update.mockResolvedValue({
         id: 'row-1',
         publicId: 'conn_abc',
@@ -325,7 +333,11 @@ describe('ConnectionsService', () => {
     });
 
     it('does publish when the state genuinely changes on an existing row', async () => {
-      prisma.connection.findUnique.mockResolvedValue({ id: 'row-1', reconnectCount: 0, state: ConnectionState.CONNECTING });
+      prisma.connection.findUnique.mockResolvedValue({
+        id: 'row-1',
+        reconnectCount: 0,
+        state: ConnectionState.CONNECTING,
+      });
       prisma.connection.update.mockResolvedValue({
         id: 'row-1',
         publicId: 'conn_abc',

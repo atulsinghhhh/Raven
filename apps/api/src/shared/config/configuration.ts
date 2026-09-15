@@ -71,9 +71,7 @@ export default () => ({
       enabled: Boolean(process.env.GITHUB_CLIENT_ID),
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      callbackUrl:
-          process.env.GITHUB_CALLBACK_URL ??
-          `${process.env.APP_URL}/api/auth/oauth/github/callback`
+      callbackUrl: process.env.GITHUB_CALLBACK_URL ?? `${process.env.APP_URL}/api/auth/oauth/github/callback`,
     },
     google: {
       enabled: Boolean(process.env.GOOGLE_CLIENT_ID),

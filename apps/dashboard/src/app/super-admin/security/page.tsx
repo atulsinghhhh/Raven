@@ -58,7 +58,11 @@ export default async function SuperAdminSecurityPage() {
             icon={<IconShield className="size-6" />}
           />
         ) : (
-          <ErrorState title="Could not load security data" description="The Control API is unreachable right now. Retry in a moment." retryHref={base} />
+          <ErrorState
+            title="Could not load security data"
+            description="The Control API is unreachable right now. Retry in a moment."
+            retryHref={base}
+          />
         )}
       </div>
     );
@@ -77,14 +81,26 @@ export default async function SuperAdminSecurityPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Failed logins" value={formatCount(data.failedLogins.today)} hint={`${formatCount(data.failedLogins.thisWeek)} this week`} />
+        <StatCard
+          label="Failed logins"
+          value={formatCount(data.failedLogins.today)}
+          hint={`${formatCount(data.failedLogins.thisWeek)} this week`}
+        />
         <StatCard
           label="Suspicious activity"
           value={formatCount(data.suspiciousActivity.today)}
           hint={`${formatCount(data.suspiciousActivity.thisWeek)} this week`}
         />
-        <StatCard label="Lockouts" value={formatCount(data.accountLockouts.today)} hint={`${formatCount(data.accountLockouts.currentlySuspended)} currently suspended`} />
-        <StatCard label="Revoked API keys" value={formatCount(data.revokedApiKeys.today)} hint={`${formatCount(data.revokedApiKeys.thisWeek)} this week`} />
+        <StatCard
+          label="Lockouts"
+          value={formatCount(data.accountLockouts.today)}
+          hint={`${formatCount(data.accountLockouts.currentlySuspended)} currently suspended`}
+        />
+        <StatCard
+          label="Revoked API keys"
+          value={formatCount(data.revokedApiKeys.today)}
+          hint={`${formatCount(data.revokedApiKeys.thisWeek)} this week`}
+        />
         <StatCard
           label="Rate-limit violations"
           value={formatCount(data.rateLimitViolations.today)}
@@ -134,7 +150,9 @@ export default async function SuperAdminSecurityPage() {
                         <span className="tabular font-mono text-sm text-fg">{formatCount(r.loginFailedCount24h)}</span>
                       </TD>
                       <TD align="right">
-                        <span className="tabular font-mono text-sm text-fg">{formatCount(r.suspiciousOrRateLimitCount7d)}</span>
+                        <span className="tabular font-mono text-sm text-fg">
+                          {formatCount(r.suspiciousOrRateLimitCount7d)}
+                        </span>
                       </TD>
                       <TD>
                         <span className="text-xs text-muted">{r.reasons.join('; ')}</span>
@@ -154,7 +172,9 @@ export default async function SuperAdminSecurityPage() {
                       <Badge tone={RISK_TONE[r.riskLevel]}>{r.riskLevel}</Badge>
                     </div>
                     <MobileField label="Failed logins (24h)">{formatCount(r.loginFailedCount24h)}</MobileField>
-                    <MobileField label="Suspicious/rate-limit (7d)">{formatCount(r.suspiciousOrRateLimitCount7d)}</MobileField>
+                    <MobileField label="Suspicious/rate-limit (7d)">
+                      {formatCount(r.suspiciousOrRateLimitCount7d)}
+                    </MobileField>
                     <p className="mt-2 text-xs text-muted">{r.reasons.join('; ')}</p>
                   </MobileRow>
                 ))}
@@ -165,9 +185,9 @@ export default async function SuperAdminSecurityPage() {
       </section>
 
       <Card className="text-xs text-subtle">
-        Risk rules: CRITICAL = suspended in the last 24h. HIGH = 5+ failed logins in 24h. MEDIUM = any suspicious-activity or
-        rate-limit event in the last 7 days. LOW = has a recent security event but matches none of the above. Deterministic
-        rules only, by design — no ML model.
+        Risk rules: CRITICAL = suspended in the last 24h. HIGH = 5+ failed logins in 24h. MEDIUM = any
+        suspicious-activity or rate-limit event in the last 7 days. LOW = has a recent security event but matches none
+        of the above. Deterministic rules only, by design — no ML model.
       </Card>
     </div>
   );

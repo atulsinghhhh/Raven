@@ -20,7 +20,15 @@ import { MetricsService } from './metrics.service';
 // from rather than pushed to MetricsService the way MetricsMiddleware
 // pushes HTTP metrics (that push is same-module, no cross-module edge).
 @Module({
-  imports: [ChatModule, SignalingModule, RtcServersModule, SfuLinkModule, DashboardWsModule, WebhooksModule, NotificationsModule],
+  imports: [
+    ChatModule,
+    SignalingModule,
+    RtcServersModule,
+    SfuLinkModule,
+    DashboardWsModule,
+    WebhooksModule,
+    NotificationsModule,
+  ],
   controllers: [MetricsController],
   providers: [MetricsService, MetricsMiddleware, MetricsAuthGuard],
   exports: [MetricsService, MetricsMiddleware],

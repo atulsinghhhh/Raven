@@ -74,7 +74,8 @@ describe('LoginForm — post-login redirect target', () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => authResponse({ user: { id: 'user_1', email: 'ops@example.com', name: null, isPlatformAdmin: true } }),
+      json: async () =>
+        authResponse({ user: { id: 'user_1', email: 'ops@example.com', name: null, isPlatformAdmin: true } }),
     });
 
     render(<LoginForm />);

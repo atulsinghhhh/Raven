@@ -105,7 +105,10 @@ describe('useDashboardRealtime', () => {
     expect(screen.getByTestId('status')).toHaveTextContent('connecting');
 
     await waitFor(() => expect(sockets).toHaveLength(1));
-    expect(global.fetch).toHaveBeenCalledWith('/api/projects/project-1/dashboard-ws-token', expect.objectContaining({ method: 'POST' }));
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/projects/project-1/dashboard-ws-token',
+      expect.objectContaining({ method: 'POST' }),
+    );
     expect(sockets[0].url).toContain('token=token-for-project-1');
 
     act(() => sockets[0].open());
@@ -199,13 +202,23 @@ describe('useDashboardRealtime', () => {
     const received: Record<string, unknown>[] = [];
 
     render(
-      <ProbeWithCallbacks projectId="project-1" sockets={sockets} onEvent={(frame) => received.push(frame)} onReconnected={() => {}} />,
+      <ProbeWithCallbacks
+        projectId="project-1"
+        sockets={sockets}
+        onEvent={(frame) => received.push(frame)}
+        onReconnected={() => {}}
+      />,
     );
     await waitFor(() => expect(sockets).toHaveLength(1));
     act(() => sockets[0].open());
 
     act(() =>
-      sockets[0].receive({ type: 'connection.state_changed', connectionId: 'conn_abc', roomId: 'room-1', state: 'CONNECTED' }),
+      sockets[0].receive({
+        type: 'connection.state_changed',
+        connectionId: 'conn_abc',
+        roomId: 'room-1',
+        state: 'CONNECTED',
+      }),
     );
     act(() => sockets[0].receive({ type: 'room.created', roomId: 'r1', name: 'lobby', environment: 'development' }));
 
@@ -261,7 +274,14 @@ describe('useDashboardRealtime', () => {
     );
     await waitFor(() => expect(sockets).toHaveLength(1));
     act(() => sockets[0].open());
-    act(() => sockets[0].receive({ type: 'connection.state_changed', connectionId: 'conn_abc', roomId: 'room-1', state: 'CONNECTED' }));
+    act(() =>
+      sockets[0].receive({
+        type: 'connection.state_changed',
+        connectionId: 'conn_abc',
+        roomId: 'room-1',
+        state: 'CONNECTED',
+      }),
+    );
     act(() => sockets[0].receive({ type: 'room.created', roomId: 'r1', name: 'lobby', environment: 'development' }));
 
     expect(reconnectCount).toBe(0);

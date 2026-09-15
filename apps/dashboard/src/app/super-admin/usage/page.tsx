@@ -2,7 +2,12 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
 import { ApiError } from '@/lib/super-admin-client';
-import { getUsageOverview, listUsageDevelopers, type DeveloperUsageRow, type UsageAlertBand } from '@/lib/super-admin/usage';
+import {
+  getUsageOverview,
+  listUsageDevelopers,
+  type DeveloperUsageRow,
+  type UsageAlertBand,
+} from '@/lib/super-admin/usage';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/card';
@@ -48,15 +53,25 @@ export default async function SuperAdminUsagePage({
 
   const [overviewResult, developersResult] = await Promise.allSettled([
     getUsageOverview(token),
-    listUsageDevelopers(token, { search: search || undefined, atRisk: atRiskOnly || undefined, limit: PAGE_SIZE, offset }),
+    listUsageDevelopers(token, {
+      search: search || undefined,
+      atRisk: atRiskOnly || undefined,
+      limit: PAGE_SIZE,
+      offset,
+    }),
   ]);
 
   if (overviewResult.status === 'rejected' || developersResult.status === 'rejected') {
-    const failure = overviewResult.status === 'rejected' ? overviewResult.reason : (developersResult as PromiseRejectedResult).reason;
+    const failure =
+      overviewResult.status === 'rejected' ? overviewResult.reason : (developersResult as PromiseRejectedResult).reason;
     if (failure instanceof ApiError && (failure.status === 401 || failure.status === 403)) redirect('/dashboard');
     return (
       <div className="flex flex-col gap-8">
-        <PageHeader eyebrow="Operations" title="Usage" description="Platform-wide RTC, Chat and Live Streaming allowances, per developer." />
+        <PageHeader
+          eyebrow="Operations"
+          title="Usage"
+          description="Platform-wide RTC, Chat and Live Streaming allowances, per developer."
+        />
         <ErrorState
           title="Could not load usage"
           description="The Super Admin API is unreachable right now. Retry in a moment."
@@ -109,10 +124,21 @@ export default async function SuperAdminUsagePage({
       <section className="flex flex-col gap-4">
         <form className="flex flex-wrap items-end gap-3" action="/super-admin/usage" method="get">
           <div className="w-full max-w-xs">
-            <Input name="search" placeholder="Search by email" defaultValue={search ?? ''} aria-label="Search by email" />
+            <Input
+              name="search"
+              placeholder="Search by email"
+              defaultValue={search ?? ''}
+              aria-label="Search by email"
+            />
           </div>
           <label className="flex items-center gap-2 text-sm text-muted">
-            <input type="checkbox" name="atRisk" value="1" defaultChecked={atRiskOnly} className="size-4 rounded border-line" />
+            <input
+              type="checkbox"
+              name="atRisk"
+              value="1"
+              defaultChecked={atRiskOnly}
+              className="size-4 rounded border-line"
+            />
             At-risk only (≥90%)
           </label>
           <Button type="submit" variant="secondary" size="sm">
@@ -171,7 +197,8 @@ export default async function SuperAdminUsagePage({
 
             <nav className="flex items-center justify-between text-sm text-muted" aria-label="Pagination">
               <span>
-                {formatCount(Math.min(offset + 1, total))}–{formatCount(offset + developers.length)} of {formatCount(total)}
+                {formatCount(Math.min(offset + 1, total))}–{formatCount(offset + developers.length)} of{' '}
+                {formatCount(total)}
               </span>
               <div className="flex gap-2">
                 {offset === 0 ? (
@@ -205,7 +232,10 @@ function DeveloperTableRow({ row }: { row: DeveloperUsageRow }) {
   return (
     <TR interactive>
       <TD>
-        <a href={`/super-admin/usage/developers/${row.userId}`} className="font-mono text-xs text-accent-text hover:underline">
+        <a
+          href={`/super-admin/usage/developers/${row.userId}`}
+          className="font-mono text-xs text-accent-text hover:underline"
+        >
           {row.email}
         </a>
       </TD>

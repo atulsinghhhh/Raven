@@ -2,91 +2,91 @@
 var RavenChatError = class extends Error {
   constructor(code, message, cause) {
     super(message);
-    this.name = "RavenChatError";
+    this.name = 'RavenChatError';
     this.code = code;
     this.cause = cause;
   }
 };
 var RavenChatConnectionError = class extends RavenChatError {
-  constructor(message, code = "CONNECTION_FAILED", cause) {
+  constructor(message, code = 'CONNECTION_FAILED', cause) {
     super(code, message, cause);
-    this.name = "RavenChatConnectionError";
+    this.name = 'RavenChatConnectionError';
   }
 };
 var RavenChatAuthenticationError = class extends RavenChatError {
-  constructor(message, code = "INVALID_TOKEN", cause) {
+  constructor(message, code = 'INVALID_TOKEN', cause) {
     super(code, message, cause);
-    this.name = "RavenChatAuthenticationError";
+    this.name = 'RavenChatAuthenticationError';
   }
 };
 var RavenChatPermissionError = class extends RavenChatError {
-  constructor(message, code = "PERMISSION_DENIED", cause) {
+  constructor(message, code = 'PERMISSION_DENIED', cause) {
     super(code, message, cause);
-    this.name = "RavenChatPermissionError";
+    this.name = 'RavenChatPermissionError';
   }
 };
 var RavenMessageError = class extends RavenChatError {
-  constructor(message, code = "INVALID_MESSAGE", cause) {
+  constructor(message, code = 'INVALID_MESSAGE', cause) {
     super(code, message, cause);
-    this.name = "RavenMessageError";
+    this.name = 'RavenMessageError';
   }
 };
 var RavenRateLimitError = class extends RavenChatError {
   constructor(message, retryAfterSeconds) {
-    super("RATE_LIMITED", message);
-    this.name = "RavenRateLimitError";
+    super('RATE_LIMITED', message);
+    this.name = 'RavenRateLimitError';
     this.retryAfterSeconds = retryAfterSeconds;
   }
 };
 var RavenRoomError = class extends RavenChatError {
-  constructor(message, code = "ROOM_NOT_FOUND", cause) {
+  constructor(message, code = 'ROOM_NOT_FOUND', cause) {
     super(code, message, cause);
-    this.name = "RavenRoomError";
+    this.name = 'RavenRoomError';
   }
 };
 var RavenAttachmentError = class extends RavenChatError {
-  constructor(message, code = "ATTACHMENT_NOT_FOUND", cause) {
+  constructor(message, code = 'ATTACHMENT_NOT_FOUND', cause) {
     super(code, message, cause);
-    this.name = "RavenAttachmentError";
+    this.name = 'RavenAttachmentError';
   }
 };
 function isRavenChatError(value) {
   return value instanceof RavenChatError;
 }
 function toRavenChatError(code, message, extra = {}) {
-  const chatCode = code ?? "INTERNAL_ERROR";
+  const chatCode = code ?? 'INTERNAL_ERROR';
   switch (chatCode) {
-    case "INVALID_TOKEN":
-    case "TOKEN_EXPIRED":
-    case "TOKEN_REVOKED":
-    case "UNAUTHORIZED":
+    case 'INVALID_TOKEN':
+    case 'TOKEN_EXPIRED':
+    case 'TOKEN_REVOKED':
+    case 'UNAUTHORIZED':
       return new RavenChatAuthenticationError(message, chatCode);
-    case "PERMISSION_DENIED":
-    case "NOT_A_MEMBER":
-    case "ORIGIN_NOT_ALLOWED":
+    case 'PERMISSION_DENIED':
+    case 'NOT_A_MEMBER':
+    case 'ORIGIN_NOT_ALLOWED':
       return new RavenChatPermissionError(message, chatCode);
-    case "ROOM_NOT_FOUND":
-    case "NOT_IN_ROOM":
-    case "TOO_MANY_SUBSCRIPTIONS":
-    case "CONVERSATION_ARCHIVED":
+    case 'ROOM_NOT_FOUND':
+    case 'NOT_IN_ROOM':
+    case 'TOO_MANY_SUBSCRIPTIONS':
+    case 'CONVERSATION_ARCHIVED':
       return new RavenRoomError(message, chatCode);
-    case "RATE_LIMITED":
+    case 'RATE_LIMITED':
       return new RavenRateLimitError(message, extra.retryAfterSeconds);
-    case "ATTACHMENT_NOT_FOUND":
-    case "ATTACHMENTS_NOT_CONFIGURED":
-    case "ATTACHMENT_TOO_LARGE":
+    case 'ATTACHMENT_NOT_FOUND':
+    case 'ATTACHMENTS_NOT_CONFIGURED':
+    case 'ATTACHMENT_TOO_LARGE':
       return new RavenAttachmentError(message, chatCode);
-    case "MESSAGE_NOT_FOUND":
-    case "MESSAGE_DELETED":
-    case "MESSAGE_TOO_LARGE":
-    case "INVALID_MESSAGE":
-    case "INVALID_MESSAGE_TYPE":
-    case "INVALID_CURSOR":
+    case 'MESSAGE_NOT_FOUND':
+    case 'MESSAGE_DELETED':
+    case 'MESSAGE_TOO_LARGE':
+    case 'INVALID_MESSAGE':
+    case 'INVALID_MESSAGE_TYPE':
+    case 'INVALID_CURSOR':
       return new RavenMessageError(message, chatCode);
-    case "CONNECTION_FAILED":
-    case "CONNECTION_CLOSED":
-    case "NETWORK_ERROR":
-    case "TIMEOUT":
+    case 'CONNECTION_FAILED':
+    case 'CONNECTION_CLOSED':
+    case 'NETWORK_ERROR':
+    case 'TIMEOUT':
       return new RavenChatConnectionError(message, chatCode);
     default:
       return new RavenChatError(chatCode, message);
@@ -95,60 +95,66 @@ function toRavenChatError(code, message, extra = {}) {
 
 // src/config.ts
 function decodeChatToken(token) {
-  const parts = token.split(".");
+  const parts = token.split('.');
   if (parts.length !== 3) {
-    throw new RavenChatAuthenticationError("Chat token is malformed (expected a JWT with 3 parts)");
+    throw new RavenChatAuthenticationError('Chat token is malformed (expected a JWT with 3 parts)');
   }
   try {
-    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
     const payload = JSON.parse(atob(base64));
-    if (!payload.sub || !payload.pid || typeof payload.exp !== "number") {
-      throw new Error("missing claims");
+    if (!payload.sub || !payload.pid || typeof payload.exp !== 'number') {
+      throw new Error('missing claims');
     }
     return payload;
   } catch (error) {
-    throw new RavenChatAuthenticationError("Chat token payload could not be decoded", "INVALID_TOKEN", error);
+    throw new RavenChatAuthenticationError('Chat token payload could not be decoded', 'INVALID_TOKEN', error);
   }
 }
 function validateConfig(config) {
-  if (!config || typeof config !== "object") {
-    throw new RavenChatAuthenticationError("createChatClient(config) requires a configuration object");
+  if (!config || typeof config !== 'object') {
+    throw new RavenChatAuthenticationError('createChatClient(config) requires a configuration object');
   }
-  if (!config.token || typeof config.token !== "string") {
+  if (!config.token || typeof config.token !== 'string') {
     throw new RavenChatAuthenticationError(
-      "config.token is required; the chat token your backend minted via POST /v1/chat/tokens"
+      'config.token is required; the chat token your backend minted via POST /v1/chat/tokens',
     );
   }
   const payload = decodeChatToken(config.token);
   if (payload.exp * 1e3 <= Date.now()) {
-    throw new RavenChatAuthenticationError("Chat token has already expired", "TOKEN_EXPIRED");
+    throw new RavenChatAuthenticationError('Chat token has already expired', 'TOKEN_EXPIRED');
   }
   const chatUrl = config.chatUrl ?? deriveChatUrl(config.apiUrl);
   if (!chatUrl) {
     throw new RavenChatAuthenticationError(
-      'createChatClient needs an address as well as a token: pass "chatUrl" or "apiUrl". Both are fields of the POST /v1/chat/tokens response, so forwarding that whole response \u2014 createChatClient(grant) \u2014 satisfies this.'
+      'createChatClient needs an address as well as a token: pass "chatUrl" or "apiUrl". Both are fields of the POST /v1/chat/tokens response, so forwarding that whole response \u2014 createChatClient(grant) \u2014 satisfies this.',
     );
   }
   return {
     token: config.token,
     chatUrl,
     apiUrl: config.apiUrl ?? deriveApiUrl(chatUrl),
-    logLevel: config.logLevel ?? "silent",
+    logLevel: config.logLevel ?? 'silent',
     autoReconnect: config.autoReconnect ?? true,
     maxReconnectAttempts: config.maxReconnectAttempts ?? 10,
     initialReconnectDelayMs: config.initialReconnectDelayMs ?? 500,
     maxReconnectDelayMs: config.maxReconnectDelayMs ?? 3e4,
     requestTimeoutMs: config.requestTimeoutMs ?? 15e3,
-    onTokenExpiring: config.onTokenExpiring
+    onTokenExpiring: config.onTokenExpiring,
   };
 }
 function deriveChatUrl(apiUrl) {
   if (!apiUrl) return void 0;
-  const ws = apiUrl.replace(/^http:/, "ws:").replace(/^https:/, "wss:").replace(/\/$/, "");
+  const ws = apiUrl
+    .replace(/^http:/, 'ws:')
+    .replace(/^https:/, 'wss:')
+    .replace(/\/$/, '');
   return `${ws}/v1/chat/ws`;
 }
 function deriveApiUrl(chatUrl) {
-  return chatUrl.replace(/^ws:/, "http:").replace(/^wss:/, "https:").replace(/\/v1\/chat\/ws$/, "");
+  return chatUrl
+    .replace(/^ws:/, 'http:')
+    .replace(/^wss:/, 'https:')
+    .replace(/\/v1\/chat\/ws$/, '');
 }
 
 // src/events.ts
@@ -179,10 +185,10 @@ var TypedEventEmitter = class {
     }
   }
   once(event, handler) {
-    const wrapped = ((...args) => {
+    const wrapped = (...args) => {
       unsubscribe();
       handler(...args);
-    });
+    };
     const unsubscribe = this.on(event, wrapped);
     return unsubscribe;
   }
@@ -207,23 +213,23 @@ var TypedEventEmitter = class {
 };
 
 // src/logger.ts
-var LEVELS = ["silent", "error", "warn", "info", "debug"];
-function createLogger(level = "silent") {
+var LEVELS = ['silent', 'error', 'warn', 'info', 'debug'];
+function createLogger(level = 'silent') {
   const rank = LEVELS.indexOf(level);
   const enabled = (l) => LEVELS.indexOf(l) <= rank;
   return {
     error: (...args) => {
-      if (enabled("error")) console.error("[raven-chat]", ...args);
+      if (enabled('error')) console.error('[raven-chat]', ...args);
     },
     warn: (...args) => {
-      if (enabled("warn")) console.warn("[raven-chat]", ...args);
+      if (enabled('warn')) console.warn('[raven-chat]', ...args);
     },
     info: (...args) => {
-      if (enabled("info")) console.info("[raven-chat]", ...args);
+      if (enabled('info')) console.info('[raven-chat]', ...args);
     },
     debug: (...args) => {
-      if (enabled("debug")) console.debug("[raven-chat]", ...args);
-    }
+      if (enabled('debug')) console.debug('[raven-chat]', ...args);
+    },
   };
 }
 
@@ -237,7 +243,7 @@ var RestClient = class {
     this.token = token;
   }
   async request(path, options = {}) {
-    const url = new URL(`${this.baseUrl.replace(/\/$/, "")}${path}`);
+    const url = new URL(`${this.baseUrl.replace(/\/$/, '')}${path}`);
     for (const [key, value] of Object.entries(options.query ?? {})) {
       if (value !== void 0 && value !== null) {
         url.searchParams.set(key, String(value));
@@ -246,15 +252,15 @@ var RestClient = class {
     let response;
     try {
       response = await fetch(url.toString(), {
-        method: options.method ?? "GET",
+        method: options.method ?? 'GET',
         headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${this.token}`
+          'content-type': 'application/json',
+          authorization: `Bearer ${this.token}`,
         },
-        body: options.body !== void 0 ? JSON.stringify(options.body) : void 0
+        body: options.body !== void 0 ? JSON.stringify(options.body) : void 0,
       });
     } catch (error) {
-      throw new RavenChatConnectionError("Could not reach Livqeno", "NETWORK_ERROR", error);
+      throw new RavenChatConnectionError('Could not reach Livqeno', 'NETWORK_ERROR', error);
     }
     if (response.status === 204) {
       return void 0;
@@ -262,7 +268,7 @@ var RestClient = class {
     const payload = await response.json().catch(() => void 0);
     if (!response.ok) {
       throw toRavenChatError(payload?.code, payload?.message ?? `Request failed with status ${response.status}`, {
-        retryAfterSeconds: payload?.retryAfterSeconds
+        retryAfterSeconds: payload?.retryAfterSeconds,
       });
     }
     return payload;
@@ -280,7 +286,7 @@ function backoffDelayMs(attempt, initialDelayMs, maxDelayMs, random = Math.rando
 var TERMINAL_CLOSE_CODES = /* @__PURE__ */ new Set([
   4401,
   // auth failed
-  4403
+  4403,
   // origin not allowed
 ]);
 var TOKEN_EXPIRED_CLOSE_CODE = 4440;
@@ -307,11 +313,11 @@ var SocketTransport = class {
   }
   send(frame) {
     if (!this.socket || this.socket.readyState !== 1) {
-      throw new RavenChatConnectionError("Not connected; call connect() first", "CONNECTION_CLOSED");
+      throw new RavenChatConnectionError('Not connected; call connect() first', 'CONNECTION_CLOSED');
     }
     this.socket.send(JSON.stringify(frame));
   }
-  disconnect(code = NORMAL_CLOSURE, reason = "client disconnect") {
+  disconnect(code = NORMAL_CLOSURE, reason = 'client disconnect') {
     this.intentionallyClosed = true;
     this.clearReconnectTimer();
     this.attempt = 0;
@@ -324,21 +330,20 @@ var SocketTransport = class {
       socket.onmessage = null;
       try {
         socket.close(code, reason);
-      } catch {
-      }
+      } catch {}
     }
   }
   open() {
     const factory = this.options.socketFactory ?? ((url2) => new WebSocket(url2));
     const url = `${this.options.url}?token=${encodeURIComponent(this.token)}&sdkVersion=${encodeURIComponent(
-      this.options.sdkVersion
+      this.options.sdkVersion,
     )}&platform=browser`;
     let socket;
     try {
       socket = factory(url);
     } catch (error) {
       this.handlers.onError(
-        new RavenChatConnectionError("Could not open a chat connection", "CONNECTION_FAILED", error)
+        new RavenChatConnectionError('Could not open a chat connection', 'CONNECTION_FAILED', error),
       );
       this.scheduleReconnect();
       return;
@@ -353,13 +358,13 @@ var SocketTransport = class {
       try {
         frame = JSON.parse(String(event.data));
       } catch {
-        this.options.logger.warn("discarded a malformed frame from the server");
+        this.options.logger.warn('discarded a malformed frame from the server');
         return;
       }
       this.handlers.onFrame(frame);
     };
     socket.onerror = () => {
-      this.options.logger.debug("chat socket error");
+      this.options.logger.debug('chat socket error');
     };
     socket.onclose = (event) => {
       this.socket = void 0;
@@ -368,7 +373,7 @@ var SocketTransport = class {
           code: event.code,
           reason: event.reason,
           willReconnect: false,
-          terminal: false
+          terminal: false,
         });
         return;
       }
@@ -379,10 +384,10 @@ var SocketTransport = class {
         code: event.code,
         reason: event.reason,
         willReconnect,
-        terminal: terminal || this.options.autoReconnect && attemptsExhausted
+        terminal: terminal || (this.options.autoReconnect && attemptsExhausted),
       });
       if (terminal) {
-        this.handlers.onError(toRavenChatError(event.reason || "UNAUTHORIZED", "The chat connection was rejected"));
+        this.handlers.onError(toRavenChatError(event.reason || 'UNAUTHORIZED', 'The chat connection was rejected'));
         return;
       }
       if (willReconnect) {
@@ -393,8 +398,8 @@ var SocketTransport = class {
         this.handlers.onError(
           new RavenChatConnectionError(
             `Could not reconnect after ${this.options.maxReconnectAttempts} attempts`,
-            "CONNECTION_FAILED"
-          )
+            'CONNECTION_FAILED',
+          ),
         );
       }
     };
@@ -407,8 +412,8 @@ var SocketTransport = class {
       this.handlers.onError(
         new RavenChatConnectionError(
           `Could not reconnect after ${this.options.maxReconnectAttempts} attempts`,
-          "CONNECTION_FAILED"
-        )
+          'CONNECTION_FAILED',
+        ),
       );
       return;
     }
@@ -416,10 +421,10 @@ var SocketTransport = class {
     const delayMs = backoffDelayMs(
       this.attempt,
       this.options.initialReconnectDelayMs,
-      this.options.maxReconnectDelayMs
+      this.options.maxReconnectDelayMs,
     );
     this.options.logger.info(
-      `reconnecting in ${delayMs}ms (attempt ${this.attempt}/${this.options.maxReconnectAttempts})`
+      `reconnecting in ${delayMs}ms (attempt ${this.attempt}/${this.options.maxReconnectAttempts})`,
     );
     this.handlers.onReconnecting(this.attempt, delayMs);
     this.clearReconnectTimer();
@@ -549,7 +554,7 @@ var RecoveryTracker = class {
     let gap = false;
     let cursor = start;
     let attempt = 0;
-    for (; ; ) {
+    for (;;) {
       if (!this.deps.isConnected()) {
         this.deps.logger.debug(`recovery for ${room} interrupted; will resume on the next reconnect`);
         return { room, recovered, gap };
@@ -560,7 +565,7 @@ var RecoveryTracker = class {
         attempt = 0;
       } catch (error) {
         const chatError = error;
-        if (chatError?.code === "INVALID_CURSOR") {
+        if (chatError?.code === 'INVALID_CURSOR') {
           this.deps.logger.warn(`resume point for ${room} was rejected; recovering from the newest page`);
           gap = true;
           this.cursors.delete(room);
@@ -569,7 +574,7 @@ var RecoveryTracker = class {
         attempt += 1;
         if (attempt >= this.deps.maxAttempts) {
           this.deps.logger.warn(
-            `could not recover ${room} after ${attempt} attempts: ${chatError?.message ?? String(error)}`
+            `could not recover ${room} after ${attempt} attempts: ${chatError?.message ?? String(error)}`,
           );
           return { room, recovered, gap, error: chatError };
         }
@@ -608,13 +613,13 @@ var AttachmentsApi = class {
   createUploadTicket(input) {
     const room = input.room ?? this.defaultRoom();
     return this.rest.request(`/v1/chat/conversations/${encodeURIComponent(room)}/attachments`, {
-      method: "POST",
+      method: 'POST',
       body: {
         filename: input.filename,
         mimeType: input.mimeType,
         size: input.size,
-        metadata: input.metadata
-      }
+        metadata: input.metadata,
+      },
     });
   }
   /**
@@ -622,37 +627,37 @@ var AttachmentsApi = class {
    * `sendMessage({ attachmentId })`.
    */
   async upload(file, options = {}) {
-    const filename = options.filename ?? (file instanceof File ? file.name : "upload");
+    const filename = options.filename ?? (file instanceof File ? file.name : 'upload');
     const ticket = await this.createUploadTicket({
       filename,
-      mimeType: file.type || "application/octet-stream",
+      mimeType: file.type || 'application/octet-stream',
       size: file.size,
       room: options.room,
-      metadata: options.metadata
+      metadata: options.metadata,
     });
     let response;
     try {
       response = await fetch(ticket.uploadUrl, {
         method: ticket.uploadMethod,
         headers: ticket.uploadHeaders,
-        body: file
+        body: file,
       });
     } catch (error) {
-      throw new RavenAttachmentError("Could not reach object storage to upload the file", "NETWORK_ERROR", error);
+      throw new RavenAttachmentError('Could not reach object storage to upload the file', 'NETWORK_ERROR', error);
     }
     if (!response.ok) {
       throw new RavenAttachmentError(
         `Object storage rejected the upload (status ${response.status})`,
-        "ATTACHMENT_NOT_FOUND"
+        'ATTACHMENT_NOT_FOUND',
       );
     }
     await this.complete(ticket.id);
-    return { ...ticket, status: "uploaded" };
+    return { ...ticket, status: 'uploaded' };
   }
   /** Marks an upload finished, making the attachment sendable. */
   complete(attachmentId) {
     return this.rest.request(`/v1/chat/attachments/${encodeURIComponent(attachmentId)}/complete`, {
-      method: "POST"
+      method: 'POST',
     });
   }
   /**
@@ -711,8 +716,8 @@ var MessagesApi = class {
         after: options.after,
         threadRootId: options.threadRootId,
         senderId: options.senderId,
-        includeDeleted: options.includeDeleted
-      }
+        includeDeleted: options.includeDeleted,
+      },
     });
   }
   /** Also available as `chat.sendMessage(...)`; both are the same call. */
@@ -736,8 +741,8 @@ var MessagesApi = class {
    */
   update(messageId, changes) {
     return this.rest.request(`/v1/chat/messages/${encodeURIComponent(messageId)}`, {
-      method: "PATCH",
-      body: changes
+      method: 'PATCH',
+      body: changes,
     });
   }
   /**
@@ -747,33 +752,33 @@ var MessagesApi = class {
    */
   delete(messageId) {
     return this.rest.request(`/v1/chat/messages/${encodeURIComponent(messageId)}`, {
-      method: "DELETE"
+      method: 'DELETE',
     });
   }
   /** Adding the same reaction twice is a no-op, not a duplicate. */
   addReaction(messageId, emoji) {
     return this.rest.request(`/v1/chat/messages/${encodeURIComponent(messageId)}/reactions`, {
-      method: "POST",
-      body: { emoji }
+      method: 'POST',
+      body: { emoji },
     });
   }
   removeReaction(messageId, emoji) {
     return this.rest.request(
       `/v1/chat/messages/${encodeURIComponent(messageId)}/reactions/${encodeURIComponent(emoji)}`,
-      { method: "DELETE" }
+      { method: 'DELETE' },
     );
   }
 };
 
 // src/version.ts
-var CHAT_SDK_VERSION = "0.1.0";
+var CHAT_SDK_VERSION = '0.1.0';
 
 // src/client.ts
 var ChatClient = class extends TypedEventEmitter {
   /** @internal Use `createChatClient(config)`. The second parameter exists purely so tests can inject a fake socket. */
   constructor(config, socketFactory) {
     super();
-    this.state = "idle";
+    this.state = 'idle';
     /** Rooms the caller asked to be in. Re-joined automatically after a reconnect. */
     this.desiredRooms = /* @__PURE__ */ new Set();
     this.pending = /* @__PURE__ */ new Map();
@@ -795,7 +800,7 @@ var ChatClient = class extends TypedEventEmitter {
       this.rest,
       () => this.defaultRoom(),
       (options) => this.sendMessage(options),
-      (page) => this.recovery.observeHistory(page.data)
+      (page) => this.recovery.observeHistory(page.data),
     );
     this.attachments = new AttachmentsApi(this.rest, () => this.defaultRoom());
     const payload = decodeChatToken(config.token);
@@ -806,12 +811,12 @@ var ChatClient = class extends TypedEventEmitter {
       // application would make. Recovery has no privileged path into the
       // store, so a room the token cannot read cannot be recovered either.
       listMessages: (options) => this.messages.listRaw(options),
-      deliver: (message) => this.emit("message", message),
+      deliver: (message) => this.emit('message', message),
       logger: this.logger,
-      isConnected: () => this.state === "connected",
+      isConnected: () => this.state === 'connected',
       maxAttempts: 3,
       retryDelayMs: (attempt) => Math.min(500 * 2 ** (attempt - 1), 5e3),
-      sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+      sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     });
   }
   /** Who this client speaks as, read from the token. You can't set it from here. */
@@ -838,14 +843,14 @@ var ChatClient = class extends TypedEventEmitter {
    * so a resolved `connect()` really does mean you can send.
    */
   async connect(options = {}) {
-    for (const room of [...options.room ? [options.room] : [], ...options.rooms ?? []]) {
+    for (const room of [...(options.room ? [options.room] : []), ...(options.rooms ?? [])]) {
       this.desiredRooms.add(room);
     }
-    if (this.state === "connected") {
+    if (this.state === 'connected') {
       await this.syncRooms();
       return;
     }
-    this.setState("connecting");
+    this.setState('connecting');
     this.transport = new SocketTransport(
       {
         url: this.config.chatUrl,
@@ -856,18 +861,18 @@ var ChatClient = class extends TypedEventEmitter {
         initialReconnectDelayMs: this.config.initialReconnectDelayMs,
         maxReconnectDelayMs: this.config.maxReconnectDelayMs,
         logger: this.logger,
-        socketFactory: this.socketFactory
+        socketFactory: this.socketFactory,
       },
       {
-        onOpen: () => this.logger.debug("socket open, waiting for server hello"),
+        onOpen: () => this.logger.debug('socket open, waiting for server hello'),
         onFrame: (frame) => this.handleFrame(frame),
         onClose: (info) => this.handleClose(info),
         onReconnecting: (attempt) => {
-          this.setState("reconnecting");
-          this.emit("reconnecting", attempt);
+          this.setState('reconnecting');
+          this.emit('reconnecting', attempt);
         },
-        onError: (error) => this.fail(error)
-      }
+        onError: (error) => this.fail(error),
+      },
     );
     const connected = new Promise((resolve, reject) => {
       this.connectPromise = { resolve, reject };
@@ -883,7 +888,7 @@ var ChatClient = class extends TypedEventEmitter {
     this.typingTimers.clear();
     for (const [, request] of this.pending) {
       clearTimeout(request.timer);
-      request.reject(new RavenChatConnectionError("Connection closed before the server replied", "CONNECTION_CLOSED"));
+      request.reject(new RavenChatConnectionError('Connection closed before the server replied', 'CONNECTION_CLOSED'));
     }
     this.pending.clear();
     this.transport?.disconnect();
@@ -891,7 +896,7 @@ var ChatClient = class extends TypedEventEmitter {
     this.connectionId = void 0;
     this.pendingLive.clear();
     this.recovering = false;
-    this.setState("disconnected");
+    this.setState('disconnected');
   }
   /**
    * Force a reconnect right now. Rarely needed, since the SDK reconnects
@@ -921,16 +926,16 @@ var ChatClient = class extends TypedEventEmitter {
   // -------------------------------------------------------------------------
   async joinRoom(room) {
     this.desiredRooms.add(room);
-    if (this.state === "connected") {
-      await this.request("room.join", { room });
+    if (this.state === 'connected') {
+      await this.request('room.join', { room });
     }
   }
   async leaveRoom(room) {
     this.desiredRooms.delete(room);
     this.recovery.forget(room);
     this.pendingLive.delete(room);
-    if (this.state === "connected") {
-      await this.request("room.leave", { room });
+    if (this.state === 'connected') {
+      await this.request('room.leave', { room });
     }
   }
   // -------------------------------------------------------------------------
@@ -946,13 +951,13 @@ var ChatClient = class extends TypedEventEmitter {
    */
   async sendMessage(options) {
     const room = options.room ?? this.defaultRoom();
-    if (this.state !== "connected") {
+    if (this.state !== 'connected') {
       return this.rest.request(`/v1/chat/conversations/${encodeURIComponent(room)}/messages`, {
-        method: "POST",
-        body: { ...options, room: void 0, clientMessageId: options.clientMessageId ?? generateClientMessageId() }
+        method: 'POST',
+        body: { ...options, room: void 0, clientMessageId: options.clientMessageId ?? generateClientMessageId() },
       });
     }
-    const ack = await this.request("message.send", {
+    const ack = await this.request('message.send', {
       room,
       text: options.text,
       messageType: options.type,
@@ -960,7 +965,7 @@ var ChatClient = class extends TypedEventEmitter {
       clientMessageId: options.clientMessageId ?? generateClientMessageId(),
       attachmentId: options.attachmentId,
       metadata: options.metadata,
-      clientSentAt: Date.now()
+      clientSentAt: Date.now(),
     });
     return { ...ack.message, deduplicated: ack.deduplicated };
   }
@@ -976,12 +981,12 @@ var ChatClient = class extends TypedEventEmitter {
    */
   async startTyping(room) {
     const target = room ?? this.defaultRoom();
-    this.send("typing.start", { room: target });
+    this.send('typing.start', { room: target });
     const existing = this.typingTimers.get(target);
     if (existing) clearTimeout(existing);
     this.typingTimers.set(
       target,
-      setTimeout(() => void this.stopTyping(target).catch(() => void 0), 5e3)
+      setTimeout(() => void this.stopTyping(target).catch(() => void 0), 5e3),
     );
   }
   async stopTyping(room) {
@@ -991,20 +996,20 @@ var ChatClient = class extends TypedEventEmitter {
       clearTimeout(timer);
       this.typingTimers.delete(target);
     }
-    this.send("typing.stop", { room: target });
+    this.send('typing.stop', { room: target });
   }
   /** Marks this message, and everything before it, as read. */
   async markAsRead(messageId) {
-    if (this.state === "connected") {
-      return this.request("read.mark", { messageId });
+    if (this.state === 'connected') {
+      return this.request('read.mark', { messageId });
     }
     return this.rest.request(`/v1/chat/messages/${encodeURIComponent(messageId)}/read`, {
-      method: "POST"
+      method: 'POST',
     });
   }
   /** Sets presence across every room this connection is holding. */
   async setPresence(status) {
-    this.send("presence.set", { status });
+    this.send('presence.set', { status });
   }
   /** Who is present in a room right now. */
   async getPresence(room) {
@@ -1028,8 +1033,8 @@ var ChatClient = class extends TypedEventEmitter {
     const first = this.desiredRooms.values().next();
     if (first.done) {
       throw new RavenRoomError(
-        "No room selected; pass { room } to connect(), or a `room` option on this call",
-        "NOT_IN_ROOM"
+        'No room selected; pass { room } to connect(), or a `room` option on this call',
+        'NOT_IN_ROOM',
       );
     }
     return first.value;
@@ -1037,7 +1042,7 @@ var ChatClient = class extends TypedEventEmitter {
   setState(state) {
     if (this.state === state) return;
     this.state = state;
-    this.emit("connectionStateChanged", state);
+    this.emit('connectionStateChanged', state);
   }
   send(type, payload) {
     if (!this.transport?.isOpen) {
@@ -1049,13 +1054,13 @@ var ChatClient = class extends TypedEventEmitter {
   /** Sends a frame and waits for its correlated ack, with a timeout. */
   request(type, payload) {
     if (!this.transport?.isOpen) {
-      return Promise.reject(new RavenChatConnectionError("Not connected; call connect() first", "CONNECTION_CLOSED"));
+      return Promise.reject(new RavenChatConnectionError('Not connected; call connect() first', 'CONNECTION_CLOSED'));
     }
     const id = `r${++this.requestCounter}`;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new RavenChatConnectionError("The server did not respond in time", "TIMEOUT"));
+        reject(new RavenChatConnectionError('The server did not respond in time', 'TIMEOUT'));
       }, this.config.requestTimeoutMs);
       this.pending.set(id, { resolve, reject, timer });
       try {
@@ -1070,83 +1075,83 @@ var ChatClient = class extends TypedEventEmitter {
   handleFrame(frame) {
     const type = String(frame.type);
     switch (type) {
-      case "connected":
+      case 'connected':
         this.onServerHello(frame);
         return;
-      case "ack": {
+      case 'ack': {
         const request = this.takePending(frame.id);
         request?.resolve(frame.data);
         return;
       }
-      case "error": {
-        const error = toRavenChatError(frame.code, String(frame.message ?? "Chat request failed"), {
-          retryAfterSeconds: frame.retryAfterSeconds
+      case 'error': {
+        const error = toRavenChatError(frame.code, String(frame.message ?? 'Chat request failed'), {
+          retryAfterSeconds: frame.retryAfterSeconds,
         });
         const request = this.takePending(frame.id);
         if (request) {
           request.reject(error);
           return;
         }
-        this.emit("error", error);
+        this.emit('error', error);
         return;
       }
-      case "room.joined":
-      case "room.left": {
+      case 'room.joined':
+      case 'room.left': {
         const request = this.takePending(frame.id);
         request?.resolve(frame);
         return;
       }
-      case "message":
+      case 'message':
         this.onLiveMessage(frame.message);
         return;
-      case "message.updated":
-        this.emit("messageUpdated", frame.message);
+      case 'message.updated':
+        this.emit('messageUpdated', frame.message);
         return;
-      case "message.deleted":
-        this.emit("messageDeleted", {
+      case 'message.deleted':
+        this.emit('messageDeleted', {
           messageId: String(frame.messageId),
           roomId: String(frame.roomId),
           deletedAt: String(frame.deletedAt),
-          deletedBy: frame.deletedBy ?? null
+          deletedBy: frame.deletedBy ?? null,
         });
         return;
-      case "reaction.added":
-      case "reaction.removed": {
+      case 'reaction.added':
+      case 'reaction.removed': {
         const event = {
           messageId: String(frame.messageId),
           roomId: String(frame.roomId),
           userId: String(frame.userId),
           emoji: String(frame.emoji),
-          at: String(frame.at)
+          at: String(frame.at),
         };
-        this.emit(type === "reaction.added" ? "reactionAdded" : "reactionRemoved", event);
+        this.emit(type === 'reaction.added' ? 'reactionAdded' : 'reactionRemoved', event);
         return;
       }
-      case "typing.started":
-      case "typing.stopped":
-        this.emit("typing", {
+      case 'typing.started':
+      case 'typing.stopped':
+        this.emit('typing', {
           userId: String(frame.userId),
           roomId: String(frame.roomId),
-          isTyping: type === "typing.started"
+          isTyping: type === 'typing.started',
         });
         return;
-      case "presence":
-        this.emit("presence", {
+      case 'presence':
+        this.emit('presence', {
           userId: String(frame.userId),
           roomId: String(frame.roomId),
           status: frame.status,
-          at: String(frame.at)
+          at: String(frame.at),
         });
         return;
-      case "read":
-        this.emit("read", {
+      case 'read':
+        this.emit('read', {
           userId: String(frame.userId),
           roomId: String(frame.roomId),
           messageId: frame.messageId ?? null,
-          at: String(frame.at)
+          at: String(frame.at),
         });
         return;
-      case "pong":
+      case 'pong':
         return;
       default:
         this.logger.debug(`ignoring unknown frame "${type}"`);
@@ -1156,42 +1161,44 @@ var ChatClient = class extends TypedEventEmitter {
     this.connectionId = frame.connectionId;
     const wasReconnecting = this.hasConnectedBefore;
     this.hasConnectedBefore = true;
-    this.setState("connected");
+    this.setState('connected');
     this.scheduleTokenRefresh(frame.expiresAt);
     this.connectPromise?.resolve();
     this.connectPromise = void 0;
     if (wasReconnecting) {
-      void this.syncRooms().then(() => {
-        this.emit("reconnected");
-        return this.recoverMissedMessages();
-      }).catch((error) => this.logger.warn(`reconnect handling failed: ${String(error)}`));
+      void this.syncRooms()
+        .then(() => {
+          this.emit('reconnected');
+          return this.recoverMissedMessages();
+        })
+        .catch((error) => this.logger.warn(`reconnect handling failed: ${String(error)}`));
     } else {
-      this.emit("connected");
+      this.emit('connected');
     }
   }
   handleClose(info) {
     this.connectionId = void 0;
     for (const [, request] of this.pending) {
       clearTimeout(request.timer);
-      request.reject(new RavenChatConnectionError("Connection closed before the server replied", "CONNECTION_CLOSED"));
+      request.reject(new RavenChatConnectionError('Connection closed before the server replied', 'CONNECTION_CLOSED'));
     }
     this.pending.clear();
     if (info.willReconnect) {
-      this.setState("reconnecting");
+      this.setState('reconnecting');
       return;
     }
-    this.setState(info.terminal ? "failed" : "disconnected");
-    this.emit("disconnected");
+    this.setState(info.terminal ? 'failed' : 'disconnected');
+    this.emit('disconnected');
     this.connectPromise?.reject(
-      new RavenChatConnectionError(`Chat connection closed (${info.code})`, "CONNECTION_CLOSED")
+      new RavenChatConnectionError(`Chat connection closed (${info.code})`, 'CONNECTION_CLOSED'),
     );
     this.connectPromise = void 0;
   }
   fail(error) {
-    this.setState("failed");
+    this.setState('failed');
     this.connectPromise?.reject(error);
     this.connectPromise = void 0;
-    this.emit("error", error);
+    this.emit('error', error);
   }
   /**
    * Every live message goes through here rather than straight to the
@@ -1218,7 +1225,7 @@ var ChatClient = class extends TypedEventEmitter {
       return;
     }
     if (this.recovery.accept(message)) {
-      this.emit("message", message);
+      this.emit('message', message);
     }
   }
   /**
@@ -1237,7 +1244,7 @@ var ChatClient = class extends TypedEventEmitter {
     const rooms = Array.from(this.desiredRooms).filter((room) => this.recovery.has(room));
     if (rooms.length === 0) {
       this.flushPendingLive();
-      this.emit("recovered", { recovered: 0, perRoom: [], gap: false, errors: [] });
+      this.emit('recovered', { recovered: 0, perRoom: [], gap: false, errors: [] });
       return;
     }
     this.recovering = true;
@@ -1252,14 +1259,16 @@ var ChatClient = class extends TypedEventEmitter {
       recovered: perRoom.reduce((total, result) => total + result.recovered, 0),
       perRoom,
       gap: perRoom.some((result) => result.gap),
-      errors: perRoom.filter((result) => result.error !== void 0)
+      errors: perRoom.filter((result) => result.error !== void 0),
     };
     if (summary.recovered > 0 || summary.gap || summary.errors.length > 0) {
       this.logger.info(
-        `recovered ${summary.recovered} missed message(s)` + (summary.gap ? " (with a gap)" : "") + (summary.errors.length > 0 ? `; ${summary.errors.length} room(s) incomplete` : "")
+        `recovered ${summary.recovered} missed message(s)` +
+          (summary.gap ? ' (with a gap)' : '') +
+          (summary.errors.length > 0 ? `; ${summary.errors.length} room(s) incomplete` : ''),
       );
     }
-    this.emit("recovered", summary);
+    this.emit('recovered', summary);
   }
   /** Delivers messages that arrived mid-catch-up, in the order they came in. */
   flushPendingLive() {
@@ -1268,16 +1277,16 @@ var ChatClient = class extends TypedEventEmitter {
     this.pendingLive.clear();
     for (const message of buffered) {
       if (this.recovery.accept(message)) {
-        this.emit("message", message);
+        this.emit('message', message);
       }
     }
   }
   async syncRooms() {
     for (const room of this.desiredRooms) {
       try {
-        await this.request("room.join", { room });
+        await this.request('room.join', { room });
       } catch (error) {
-        this.emit("error", error instanceof RavenChatError ? error : toRavenChatError(void 0, String(error)));
+        this.emit('error', error instanceof RavenChatError ? error : toRavenChatError(void 0, String(error)));
       }
     }
   }
@@ -1303,8 +1312,10 @@ var ChatClient = class extends TypedEventEmitter {
           await this.reconnect();
         } catch (error) {
           this.emit(
-            "error",
-            error instanceof RavenChatError ? error : toRavenChatError("TOKEN_EXPIRED", "Could not refresh the chat token")
+            'error',
+            error instanceof RavenChatError
+              ? error
+              : toRavenChatError('TOKEN_EXPIRED', 'Could not refresh the chat token'),
           );
         }
       })();
@@ -1317,7 +1328,7 @@ var ChatClient = class extends TypedEventEmitter {
     }
   }
   takePending(id) {
-    if (typeof id !== "string") return void 0;
+    if (typeof id !== 'string') return void 0;
     const request = this.pending.get(id);
     if (!request) return void 0;
     clearTimeout(request.timer);
@@ -1329,10 +1340,28 @@ function createChatClient(config) {
   return new ChatClient(validateConfig(config));
 }
 function generateClientMessageId() {
-  const random = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+  const random =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
   return `cm_${random}`;
 }
 
-export { AttachmentsApi, CHAT_SDK_VERSION, ChatClient, MessagesApi, RavenAttachmentError, RavenChatAuthenticationError, RavenChatConnectionError, RavenChatError, RavenChatPermissionError, RavenMessageError, RavenRateLimitError, RavenRoomError, createChatClient, isRavenChatError };
+export {
+  AttachmentsApi,
+  CHAT_SDK_VERSION,
+  ChatClient,
+  MessagesApi,
+  RavenAttachmentError,
+  RavenChatAuthenticationError,
+  RavenChatConnectionError,
+  RavenChatError,
+  RavenChatPermissionError,
+  RavenMessageError,
+  RavenRateLimitError,
+  RavenRoomError,
+  createChatClient,
+  isRavenChatError,
+};
 //# sourceMappingURL=index.js.map
 //# sourceMappingURL=index.js.map

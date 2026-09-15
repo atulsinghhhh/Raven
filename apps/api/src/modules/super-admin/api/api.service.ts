@@ -222,9 +222,7 @@ export class ApiOpsService {
    */
   async listApiActivity(query: ApiActivityQuery): Promise<ActivityEventPage> {
     if (query.eventType && !(API_ACTIVITY_EVENT_TYPES as readonly ActivityEventType[]).includes(query.eventType)) {
-      throw new BadRequestException(
-        `eventType must be one of: ${API_ACTIVITY_EVENT_TYPES.join(', ')}`,
-      );
+      throw new BadRequestException(`eventType must be one of: ${API_ACTIVITY_EVENT_TYPES.join(', ')}`);
     }
 
     const limit = Math.min(Math.max(query.limit ?? DEFAULT_LIMIT, 1), MAX_LIMIT);

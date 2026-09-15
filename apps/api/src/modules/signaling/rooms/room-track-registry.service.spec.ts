@@ -112,17 +112,31 @@ describe('RoomTrackRegistryService', () => {
     const clock = { now: 0 };
     const { registry } = makeRegistry(clock);
 
-    await registry.publish('room-1', 'alice', { trackId: 't1', kind: 'video', source: 'camera', muted: false, simulcast: false });
+    await registry.publish('room-1', 'alice', {
+      trackId: 't1',
+      kind: 'video',
+      source: 'camera',
+      muted: false,
+      simulcast: false,
+    });
 
     const byParticipant = await registry.listByParticipant('room-1');
-    expect(byParticipant.get('alice')).toEqual([{ trackId: 't1', kind: 'video', source: 'camera', muted: false, simulcast: false }]);
+    expect(byParticipant.get('alice')).toEqual([
+      { trackId: 't1', kind: 'video', source: 'camera', muted: false, simulcast: false },
+    ]);
   });
 
   describe('refreshTtl (heartbeat keep-alive)', () => {
     it('keeps a room’s track list past the original TTL when refreshed before it lapses', async () => {
       const clock = { now: 0 };
       const { registry } = makeRegistry(clock);
-      await registry.publish('room-1', 'alice', { trackId: 't1', kind: 'video', source: 'camera', muted: false, simulcast: false });
+      await registry.publish('room-1', 'alice', {
+        trackId: 't1',
+        kind: 'video',
+        source: 'camera',
+        muted: false,
+        simulcast: false,
+      });
 
       clock.now += (SIGNALING_PARTICIPANT_TTL_SECONDS - 5) * 1000;
       await registry.refreshTtl('room-1');
@@ -135,7 +149,13 @@ describe('RoomTrackRegistryService', () => {
     it('without a refresh, the track list falls out once the TTL lapses (documents the bug this fixes)', async () => {
       const clock = { now: 0 };
       const { registry } = makeRegistry(clock);
-      await registry.publish('room-1', 'alice', { trackId: 't1', kind: 'video', source: 'camera', muted: false, simulcast: false });
+      await registry.publish('room-1', 'alice', {
+        trackId: 't1',
+        kind: 'video',
+        source: 'camera',
+        muted: false,
+        simulcast: false,
+      });
 
       clock.now += (SIGNALING_PARTICIPANT_TTL_SECONDS + 1) * 1000;
 

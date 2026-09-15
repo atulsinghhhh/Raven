@@ -9,19 +9,23 @@ import { DashboardWsTokenService, IssuedDashboardWsToken } from './tokens/dashbo
 
 const USER: AuthenticatedUser = { id: 'user-1', email: 'dev@example.com', jti: 'jti-1', exp: 0 };
 
-function makeController(overrides: {
-  authorize?: jest.Mock;
-  issue?: jest.Mock;
-} = {}) {
+function makeController(
+  overrides: {
+    authorize?: jest.Mock;
+    issue?: jest.Mock;
+  } = {},
+) {
   const authorize = overrides.authorize ?? jest.fn().mockResolvedValue({ project: {}, role: 'OWNER' });
-  const issue = overrides.issue ?? jest.fn().mockReturnValue({
-    token: 'signed-token',
-    tokenId: 'dwt_1',
-    userId: USER.id,
-    projectId: 'project-1',
-    expiresAt: new Date(),
-    wsUrl: 'wss://api.example.com/v1/dashboard/ws',
-  } satisfies IssuedDashboardWsToken);
+  const issue =
+    overrides.issue ??
+    jest.fn().mockReturnValue({
+      token: 'signed-token',
+      tokenId: 'dwt_1',
+      userId: USER.id,
+      projectId: 'project-1',
+      expiresAt: new Date(),
+      wsUrl: 'wss://api.example.com/v1/dashboard/ws',
+    } satisfies IssuedDashboardWsToken);
 
   const projectsService = { authorize } as unknown as ProjectsService;
   const tokens = { issue } as unknown as DashboardWsTokenService;

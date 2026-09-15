@@ -43,7 +43,8 @@ export class UpdateAllowanceDto {
   includedCount?: number;
 
   @ApiProperty({
-    description: 'Why this limit is being changed. Required — every allowance edit is written to the admin audit log with this text attached.',
+    description:
+      'Why this limit is being changed. Required — every allowance edit is written to the admin audit log with this text attached.',
     maxLength: 500,
   })
   @IsNotEmpty()

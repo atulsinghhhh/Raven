@@ -46,7 +46,12 @@ describe('EgressControlService', () => {
     fetchMock = jest.fn().mockResolvedValue({ ok: true, status: 204 });
     (globalThis as { fetch: unknown }).fetch = fetchMock;
 
-    service = new EgressControlService(prisma as never, configService as never, rtcTokensService as never, webhooks as never);
+    service = new EgressControlService(
+      prisma as never,
+      configService as never,
+      rtcTokensService as never,
+      webhooks as never,
+    );
   });
 
   describe('egressIdentityFor() / isEgressIdentity()', () => {
@@ -97,7 +102,11 @@ describe('EgressControlService', () => {
       expect(prisma.liveStreamEgress.upsert).toHaveBeenLastCalledWith(
         expect.objectContaining({ update: expect.objectContaining({ status: LiveStreamEgressStatus.FAILED }) }),
       );
-      expect(webhooks.emit).toHaveBeenCalledWith(SCOPE, 'live_stream.egress_failed', expect.objectContaining({ streamId: 'stream_abc123' }));
+      expect(webhooks.emit).toHaveBeenCalledWith(
+        SCOPE,
+        'live_stream.egress_failed',
+        expect.objectContaining({ streamId: 'stream_abc123' }),
+      );
     });
 
     it('marks FAILED and emits egress_failed, without throwing, when the worker call itself fails', async () => {
@@ -219,7 +228,11 @@ describe('EgressControlService', () => {
       prisma.liveStream.findUnique.mockResolvedValue(STREAM);
       prisma.liveStreamEgress.findUnique
         .mockResolvedValueOnce({ status: LiveStreamEgressStatus.STARTING, playbackUrl: null, hlsReadyAt: null })
-        .mockResolvedValueOnce({ status: LiveStreamEgressStatus.RUNNING, playbackUrl: 'https://cdn/x.m3u8', hlsReadyAt: new Date() });
+        .mockResolvedValueOnce({
+          status: LiveStreamEgressStatus.RUNNING,
+          playbackUrl: 'https://cdn/x.m3u8',
+          hlsReadyAt: new Date(),
+        });
 
       const heartbeat = {
         streamId: 'stream_abc123',
@@ -238,7 +251,10 @@ describe('EgressControlService', () => {
 
     it('does not emit broadcast_ready while the manifest is not yet reachable', async () => {
       prisma.liveStream.findUnique.mockResolvedValue(STREAM);
-      prisma.liveStreamEgress.findUnique.mockResolvedValue({ status: LiveStreamEgressStatus.STARTING, playbackUrl: null });
+      prisma.liveStreamEgress.findUnique.mockResolvedValue({
+        status: LiveStreamEgressStatus.STARTING,
+        playbackUrl: null,
+      });
 
       await service.recordHeartbeat({
         streamId: 'stream_abc123',

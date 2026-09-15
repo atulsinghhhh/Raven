@@ -25,12 +25,14 @@ function makeRequest(overrides: { token?: string; origin?: string; ip?: string }
   } as unknown as import('http').IncomingMessage;
 }
 
-function makeGateway(overrides: {
-  verify?: jest.Mock;
-  subscribe?: jest.Mock;
-  isAllowed?: jest.Mock;
-  connectionRateLimit?: jest.Mock;
-} = {}) {
+function makeGateway(
+  overrides: {
+    verify?: jest.Mock;
+    subscribe?: jest.Mock;
+    isAllowed?: jest.Mock;
+    connectionRateLimit?: jest.Mock;
+  } = {},
+) {
   const verify = overrides.verify ?? jest.fn();
   const subscribe = overrides.subscribe ?? jest.fn().mockResolvedValue(jest.fn().mockResolvedValue(undefined));
   const isAllowed = overrides.isAllowed ?? jest.fn().mockResolvedValue(true);
@@ -48,7 +50,13 @@ function makeGateway(overrides: {
   return { gateway, sessions, verify, subscribe, isAllowed, connectionRateLimitAllowed, onEvent };
 }
 
-const VALID_CLAIMS = { jti: 'dwt_1', sub: 'user-1', pid: 'project-1', iat: 0, exp: Math.floor(Date.now() / 1000) + 300 };
+const VALID_CLAIMS = {
+  jti: 'dwt_1',
+  sub: 'user-1',
+  pid: 'project-1',
+  iat: 0,
+  exp: Math.floor(Date.now() / 1000) + 300,
+};
 
 describe('DashboardWsGateway.handleConnection', () => {
   it('accepts a valid token, subscribes to the token project channel, and sends a connected frame', async () => {
@@ -110,7 +118,10 @@ describe('DashboardWsGateway.handleConnection', () => {
     });
     const socket = makeSocket();
 
-    await gateway.handleConnection(socket as never, makeRequest({ token: 'a-valid-token', origin: 'https://evil.example.com' }));
+    await gateway.handleConnection(
+      socket as never,
+      makeRequest({ token: 'a-valid-token', origin: 'https://evil.example.com' }),
+    );
 
     expect(isAllowed).toHaveBeenCalledWith('project-1', 'https://evil.example.com');
     expect(subscribe).not.toHaveBeenCalled();

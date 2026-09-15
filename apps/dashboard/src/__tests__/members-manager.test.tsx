@@ -54,7 +54,9 @@ describe('MembersManager', () => {
       json: async () => member('u-new', { email: 'new@example.com' }),
     });
     const user = userEvent.setup();
-    render(<MembersManager projectId="proj-1" initialMembers={[OWNER]} currentUserEmail="owner@example.com" canManage />);
+    render(
+      <MembersManager projectId="proj-1" initialMembers={[OWNER]} currentUserEmail="owner@example.com" canManage />,
+    );
 
     await user.type(screen.getByLabelText('Email'), 'new@example.com');
     await user.click(screen.getByRole('button', { name: 'Add member' }));
@@ -71,7 +73,9 @@ describe('MembersManager', () => {
       json: async () => ({ code: 'NOT_FOUND', message: 'No account with that email' }),
     });
     const user = userEvent.setup();
-    render(<MembersManager projectId="proj-1" initialMembers={[OWNER]} currentUserEmail="owner@example.com" canManage />);
+    render(
+      <MembersManager projectId="proj-1" initialMembers={[OWNER]} currentUserEmail="owner@example.com" canManage />,
+    );
 
     await user.type(screen.getByLabelText('Email'), 'ghost@example.com');
     await user.click(screen.getByRole('button', { name: 'Add member' }));
@@ -84,7 +88,9 @@ describe('MembersManager', () => {
   it('a network failure while adding a member shows the same message inline and as a toast', async () => {
     (global.fetch as jest.Mock).mockRejectedValueOnce(new TypeError('Failed to fetch'));
     const user = userEvent.setup();
-    render(<MembersManager projectId="proj-1" initialMembers={[OWNER]} currentUserEmail="owner@example.com" canManage />);
+    render(
+      <MembersManager projectId="proj-1" initialMembers={[OWNER]} currentUserEmail="owner@example.com" canManage />,
+    );
 
     await user.type(screen.getByLabelText('Email'), 'new@example.com');
     await user.click(screen.getByRole('button', { name: 'Add member' }));
@@ -223,7 +229,9 @@ describe('MembersManager', () => {
       json: async () => ({ code: 'UNAUTHORIZED', message: 'Not signed in' }),
     });
     const user = userEvent.setup();
-    render(<MembersManager projectId="proj-1" initialMembers={[OWNER]} currentUserEmail="owner@example.com" canManage />);
+    render(
+      <MembersManager projectId="proj-1" initialMembers={[OWNER]} currentUserEmail="owner@example.com" canManage />,
+    );
 
     await user.type(screen.getByLabelText('Email'), 'new@example.com');
     await user.click(screen.getByRole('button', { name: 'Add member' }));
@@ -234,7 +242,9 @@ describe('MembersManager', () => {
   });
 
   it('the last remaining owner cannot be removed or demoted', () => {
-    render(<MembersManager projectId="proj-1" initialMembers={[OWNER]} currentUserEmail="owner@example.com" canManage />);
+    render(
+      <MembersManager projectId="proj-1" initialMembers={[OWNER]} currentUserEmail="owner@example.com" canManage />,
+    );
 
     expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled();
     expect(screen.getByText(/only owner/)).toBeInTheDocument();

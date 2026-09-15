@@ -78,7 +78,9 @@ export default async function SuperAdminAuditLogsPage({ searchParams }: { search
 
   // An unrecognised action falls back to "no filter" rather than asking
   // the API for something it will reject.
-  const action = (ADMIN_ACTIONS as readonly string[]).includes(sp.action ?? '') ? (sp.action as AdminAction) : undefined;
+  const action = (ADMIN_ACTIONS as readonly string[]).includes(sp.action ?? '')
+    ? (sp.action as AdminAction)
+    : undefined;
   const adminId = sp.adminId || undefined;
   const targetType = sp.targetType || undefined;
   const targetId = sp.targetId || undefined;
@@ -209,11 +211,22 @@ export default async function SuperAdminAuditLogsPage({ searchParams }: { search
         />
         <Card>
           <div className="flex flex-wrap gap-1.5">
-            <FilterChip href={withAction(undefined)} active={action === undefined} label="All actions" count={all.length}>
+            <FilterChip
+              href={withAction(undefined)}
+              active={action === undefined}
+              label="All actions"
+              count={all.length}
+            >
               All actions
             </FilterChip>
             {ADMIN_ACTIONS.filter((a) => (counts[a] ?? 0) > 0).map((a) => (
-              <FilterChip key={a} href={withAction(a)} active={action === a} label={ACTION_LABEL[a]} count={counts[a] ?? 0}>
+              <FilterChip
+                key={a}
+                href={withAction(a)}
+                active={action === a}
+                label={ACTION_LABEL[a]}
+                count={counts[a] ?? 0}
+              >
                 {ACTION_LABEL[a]}
               </FilterChip>
             ))}
@@ -353,13 +366,7 @@ export default async function SuperAdminAuditLogsPage({ searchParams }: { search
                           <Dash />
                         )}
                       </TD>
-                      <TD>
-                        {entry.reason ? (
-                          <span className="text-sm text-fg">{entry.reason}</span>
-                        ) : (
-                          <Dash />
-                        )}
-                      </TD>
+                      <TD>{entry.reason ? <span className="text-sm text-fg">{entry.reason}</span> : <Dash />}</TD>
                       <TD>
                         <EntryDetails entry={entry} />
                       </TD>
@@ -482,9 +489,7 @@ function EntryDetails({ entry }: { entry: AdminAuditLog }) {
 
   return (
     <details className="group">
-      <summary className="cursor-pointer list-none text-xs font-medium text-accent-text hover:underline">
-        View
-      </summary>
+      <summary className="cursor-pointer list-none text-xs font-medium text-accent-text hover:underline">View</summary>
       <div className="mt-2 flex max-w-md flex-col gap-2 rounded-sm border border-line bg-surface-sunken p-2.5 text-xs">
         {entry.requestId && (
           <div>

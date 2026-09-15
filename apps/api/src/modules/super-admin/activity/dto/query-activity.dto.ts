@@ -38,7 +38,9 @@ export class QueryActivityDto {
 
   @ApiPropertyOptional({ description: 'true for successful events only, false for failures only.' })
   @IsOptional()
-  @Transform(({ value }) => (value === true || value === 'true' ? true : value === false || value === 'false' ? false : value))
+  @Transform(({ value }) =>
+    value === true || value === 'true' ? true : value === false || value === 'false' ? false : value,
+  )
   @IsBoolean()
   success?: boolean;
 

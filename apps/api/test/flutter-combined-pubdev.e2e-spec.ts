@@ -123,10 +123,7 @@ describe('raven_rtc + raven_live + raven_chat together (published pub.dev packag
     signalingEndpoint = `ws://127.0.0.1:${port}/v1/rtc`;
 
     const redis = app.get(RedisService);
-    const stale = [
-      ...(await redis.client.keys('ratelimit:*')),
-      ...(await redis.client.keys('raven:chat:ratelimit:*')),
-    ];
+    const stale = [...(await redis.client.keys('ratelimit:*')), ...(await redis.client.keys('raven:chat:ratelimit:*'))];
     if (stale.length > 0) await redis.client.del(...stale);
 
     await registerLocalSfu(app);

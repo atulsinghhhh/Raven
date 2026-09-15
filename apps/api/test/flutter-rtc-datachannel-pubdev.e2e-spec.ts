@@ -35,16 +35,7 @@ import { registerLocalSfu } from './helpers/register-local-sfu';
  */
 jest.setTimeout(120_000);
 
-const DATA_APP_WEB_DIR = join(
-  __dirname,
-  '..',
-  '..',
-  '..',
-  'flutter_check',
-  'published_consumer',
-  'build',
-  'web_data',
-);
+const DATA_APP_WEB_DIR = join(__dirname, '..', '..', '..', 'flutter_check', 'published_consumer', 'build', 'web_data');
 
 function startStaticServer(rootDir: string, defaultFile: string): Promise<{ server: Server; url: string }> {
   const MIME: Record<string, string> = {
@@ -335,7 +326,8 @@ describe('raven_rtc (published pub.dev package) — data channel and reconnect (
 
       await waitFor(
         alicePage,
-        () => (window as unknown as { __state?: { connectionState?: string } }).__state?.connectionState === 'connected',
+        () =>
+          (window as unknown as { __state?: { connectionState?: string } }).__state?.connectionState === 'connected',
         'connectionState to return to connected once autoReconnect rejoins',
         60_000,
       );

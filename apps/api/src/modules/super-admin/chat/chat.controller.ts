@@ -9,12 +9,7 @@ import { AdminAuditService } from '../admin-audit.service';
 import { CurrentPlatformAdmin } from '../decorators/current-platform-admin.decorator';
 import { RequirePlatformRole } from '../decorators/require-platform-role.decorator';
 import { AuthenticatedPlatformAdmin, PlatformRoleGuard } from '../guards/platform-role.guard';
-import {
-  ChatConversationDetail,
-  ChatConversationPage,
-  ChatOverviewResponse,
-  ChatService,
-} from './chat.service';
+import { ChatConversationDetail, ChatConversationPage, ChatOverviewResponse, ChatService } from './chat.service';
 import { QueryChatConversationsDto } from './dto/query-chat-conversations.dto';
 
 /**

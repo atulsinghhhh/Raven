@@ -26,11 +26,7 @@ const STATUS_TONE: Record<ChatConversationListItem['status'], BadgeTone> = {
  * (`/v1/super-admin/chat/*`) never selects `Message.content`, and this
  * page never renders it either.
  */
-export default async function SuperAdminChatPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string }>;
-}) {
+export default async function SuperAdminChatPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const { page: rawPage } = await searchParams;
   const page = Math.max(Number.parseInt(rawPage ?? '1', 10) || 1, 1);
   const offset = (page - 1) * PAGE_SIZE;
@@ -57,7 +53,8 @@ export default async function SuperAdminChatPage({
   }
 
   const overview = overviewResult.value;
-  const conversations = conversationsResult.status === 'fulfilled' ? conversationsResult.value : { items: [], total: 0 };
+  const conversations =
+    conversationsResult.status === 'fulfilled' ? conversationsResult.value : { items: [], total: 0 };
   const totalPages = Math.max(Math.ceil(conversations.total / PAGE_SIZE), 1);
 
   return (
@@ -161,7 +158,9 @@ export default async function SuperAdminChatPage({
                       <TD className="max-w-[16rem]">
                         <a href={`/super-admin/chat/conversations/${conversation.id}`} className="block min-w-0">
                           <span className="block truncate text-sm font-medium text-fg">{conversation.name}</span>
-                          <span className="block truncate font-mono text-[0.6875rem] text-subtle">{conversation.id}</span>
+                          <span className="block truncate font-mono text-[0.6875rem] text-subtle">
+                            {conversation.id}
+                          </span>
                         </a>
                       </TD>
                       <TD className="max-w-[10rem]">

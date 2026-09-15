@@ -109,7 +109,9 @@ class FakeSocket implements DashboardRealtimeSocketLike {
 }
 
 /** Same as mockFetch, but the token mint succeeds — for tests that need a real (fake) socket to actually open. */
-function mockFetchWithRealtime(connections?: () => Promise<{ ok: boolean; status?: number; json?: () => Promise<unknown> }>) {
+function mockFetchWithRealtime(
+  connections?: () => Promise<{ ok: boolean; status?: number; json?: () => Promise<unknown> }>,
+) {
   const mock = jest.fn((input: RequestInfo | URL) => {
     const url = String(input);
     if (url.includes('/dashboard-ws-token')) {
@@ -267,10 +269,7 @@ describe('ConnectionsList', () => {
       ok: true,
       // A mixed batch: one row matches "alice", one doesn't.
       json: async () => ({
-        data: [
-          connection('c2', { participantIdentity: 'alice' }),
-          connection('c3', { participantIdentity: 'bob' }),
-        ],
+        data: [connection('c2', { participantIdentity: 'alice' }), connection('c3', { participantIdentity: 'bob' })],
         nextCursor: null,
         hasMore: false,
       }),
@@ -314,7 +313,11 @@ describe('ConnectionsList', () => {
 
   it('defers to handleSessionExpiry when Load More gets a 401, without the generic failure toast', async () => {
     (handleSessionExpiry as jest.Mock).mockReturnValue(true);
-    mockFetch(async () => ({ ok: false, status: 401, json: async () => ({ code: 'UNAUTHORIZED', message: 'Not signed in' }) }));
+    mockFetch(async () => ({
+      ok: false,
+      status: 401,
+      json: async () => ({ code: 'UNAUTHORIZED', message: 'Not signed in' }),
+    }));
     const user = userEvent.setup();
     render(
       <ConnectionsList
@@ -421,7 +424,14 @@ describe('ConnectionsList', () => {
       // Initial render: c1 is CONNECTED (the default from connection()).
       expect(screen.getAllByText('Connected').length).toBeGreaterThan(0);
 
-      act(() => sockets[0].receive({ type: 'connection.state_changed', connectionId: 'c1', roomId: 'room-1', state: 'DISCONNECTED' }));
+      act(() =>
+        sockets[0].receive({
+          type: 'connection.state_changed',
+          connectionId: 'c1',
+          roomId: 'room-1',
+          state: 'DISCONNECTED',
+        }),
+      );
 
       await waitFor(() => expect(screen.getAllByText('Disconnected').length).toBeGreaterThan(0));
       expectVisible('user-c1'); // same row, updated in place — not duplicated
@@ -451,7 +461,14 @@ describe('ConnectionsList', () => {
       await waitFor(() => expect(sockets).toHaveLength(1));
       act(() => sockets[0].open());
 
-      act(() => sockets[0].receive({ type: 'connection.state_changed', connectionId: 'c9', roomId: 'a-different-room', state: 'CONNECTED' }));
+      act(() =>
+        sockets[0].receive({
+          type: 'connection.state_changed',
+          connectionId: 'c9',
+          roomId: 'a-different-room',
+          state: 'CONNECTED',
+        }),
+      );
 
       await new Promise((resolve) => setTimeout(resolve, 500));
       expect(connectionsFetchCalls(fetchMock)).toHaveLength(0);
@@ -496,7 +513,7 @@ describe('ConnectionsList', () => {
       await waitFor(() => expect(screen.getAllByText('Disconnected').length).toBeGreaterThan(0));
     });
 
-    it('never touches nextCursor/hasMore — a realtime refresh must not disturb Load More\'s position', async () => {
+    it("never touches nextCursor/hasMore — a realtime refresh must not disturb Load More's position", async () => {
       mockFetchWithRealtime(async () => ({
         ok: true,
         json: async () => ({ data: [connection('c1')], nextCursor: 'should-be-ignored', hasMore: true }),
@@ -505,7 +522,14 @@ describe('ConnectionsList', () => {
       await waitFor(() => expect(sockets).toHaveLength(1));
       act(() => sockets[0].open());
 
-      act(() => sockets[0].receive({ type: 'connection.state_changed', connectionId: 'c1', roomId: 'room-1', state: 'CONNECTED' }));
+      act(() =>
+        sockets[0].receive({
+          type: 'connection.state_changed',
+          connectionId: 'c1',
+          roomId: 'room-1',
+          state: 'CONNECTED',
+        }),
+      );
 
       await new Promise((resolve) => setTimeout(resolve, 500));
       // initialHasMore was false — if the realtime refresh had applied

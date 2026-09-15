@@ -55,9 +55,7 @@ export default async function SuperAdminOverviewPage() {
         title="Overview"
         description="Platform-wide counts across developers, projects, RTC, chat and live streaming, refreshed on every load."
         meta={
-          <span className="mono-label text-[11px] text-subtle">
-            Generated {formatDateTime(overview.generatedAt)}
-          </span>
+          <span className="mono-label text-[11px] text-subtle">Generated {formatDateTime(overview.generatedAt)}</span>
         }
       />
 
@@ -88,10 +86,7 @@ export default async function SuperAdminOverviewPage() {
       </section>
 
       <section>
-        <SectionHeader
-          title="RTC"
-          subtitle="Rooms, participants and connection quality across every project."
-        />
+        <SectionHeader title="RTC" subtitle="Rooms, participants and connection quality across every project." />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard label="Active rooms" value={formatCount(rtc.activeRooms)} />
           <StatCard label="Active participants" value={formatCount(rtc.activeParticipants)} />
@@ -116,7 +111,13 @@ export default async function SuperAdminOverviewPage() {
           />
           <StatCard
             label="Reconnect rate (today)"
-            value={rtc.reconnectRateToday === null ? <NoDataYet label="No connections yet" /> : formatCount(rtc.reconnectRateToday)}
+            value={
+              rtc.reconnectRateToday === null ? (
+                <NoDataYet label="No connections yet" />
+              ) : (
+                formatCount(rtc.reconnectRateToday)
+              )
+            }
             hint="Reconnects per connection"
           />
         </div>
@@ -199,15 +200,7 @@ export default async function SuperAdminOverviewPage() {
   );
 }
 
-function InfraBadge({
-  label,
-  status,
-  icon,
-}: {
-  label: string;
-  status: 'up' | 'down';
-  icon?: React.ReactNode;
-}) {
+function InfraBadge({ label, status, icon }: { label: string; status: 'up' | 'down'; icon?: React.ReactNode }) {
   const tone: BadgeTone = status === 'up' ? 'success' : 'danger';
   return (
     <span className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2">

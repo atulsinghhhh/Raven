@@ -83,7 +83,9 @@ function mockFetch(streams?: () => Promise<{ ok: boolean; status?: number; json?
 }
 
 function streamsFetchCalls(mock: jest.Mock) {
-  return mock.mock.calls.filter(([url]) => String(url).includes('/live-streams') && !String(url).includes('dashboard-ws-token'));
+  return mock.mock.calls.filter(
+    ([url]) => String(url).includes('/live-streams') && !String(url).includes('dashboard-ws-token'),
+  );
 }
 
 function renderWithSocket(props: Partial<React.ComponentProps<typeof StreamsList>> = {}) {
@@ -123,7 +125,10 @@ describe('StreamsList', () => {
 
   describe('realtime (Phase 5E)', () => {
     it('a live_stream.started event refreshes the list — status updates without a manual reload', async () => {
-      mockFetch(async () => ({ ok: true, json: async () => [stream('s1', { status: 'LIVE', startedAt: '2026-01-01T00:05:00.000Z' })] }));
+      mockFetch(async () => ({
+        ok: true,
+        json: async () => [stream('s1', { status: 'LIVE', startedAt: '2026-01-01T00:05:00.000Z' })],
+      }));
       const { sockets } = renderWithSocket();
       await waitFor(() => expect(sockets).toHaveLength(1));
       act(() => sockets[0].open());
@@ -135,7 +140,10 @@ describe('StreamsList', () => {
     });
 
     it('a live_stream.ended event refreshes the list', async () => {
-      mockFetch(async () => ({ ok: true, json: async () => [stream('s1', { status: 'ENDED', endedAt: '2026-01-01T00:10:00.000Z' })] }));
+      mockFetch(async () => ({
+        ok: true,
+        json: async () => [stream('s1', { status: 'ENDED', endedAt: '2026-01-01T00:10:00.000Z' })],
+      }));
       const { sockets } = renderWithSocket({ initialStreams: [stream('s1', { status: 'LIVE' })] });
       await waitFor(() => expect(sockets).toHaveLength(1));
       act(() => sockets[0].open());

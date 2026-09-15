@@ -68,7 +68,10 @@ async function mintToken(projectId: string, signal: AbortSignal): Promise<Minted
  * specific client component that needs it — this file is the transport,
  * not a place to accumulate product state.
  */
-export function useDashboardRealtime(projectId: string, options: UseDashboardRealtimeOptions = {}): UseDashboardRealtimeResult {
+export function useDashboardRealtime(
+  projectId: string,
+  options: UseDashboardRealtimeOptions = {},
+): UseDashboardRealtimeResult {
   const [status, setStatus] = useState<DashboardRealtimeStatus>('connecting');
   const { socketFactory } = options;
 
@@ -250,7 +253,9 @@ export function useDashboardRealtime(projectId: string, options: UseDashboardRea
       // else about a WS connection is ever otherwise logged client-side.
       // No token, no wsUrl (query-string-embedded credential) — project id
       // only, which is already visible in the page's own URL.
-      console.warn(`[dashboard-realtime] connection failed for project ${projectId} — see the toast for the user-facing message`);
+      console.warn(
+        `[dashboard-realtime] connection failed for project ${projectId} — see the toast for the user-facing message`,
+      );
     }
   }, [status, projectId]);
 

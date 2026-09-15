@@ -42,10 +42,14 @@ export class DevelopersController {
   @ApiOperation({
     summary: 'One developer, every tab in a single payload',
     description:
-      'Header + Overview + Projects + Activity + Usage + Security in one response, each list already capped. Every call is itself recorded as an admin.user_viewed entry, since an admin looking at a developer\'s account is exactly the kind of thing this portal\'s own audit trail should never miss.',
+      "Header + Overview + Projects + Activity + Usage + Security in one response, each list already capped. Every call is itself recorded as an admin.user_viewed entry, since an admin looking at a developer's account is exactly the kind of thing this portal's own audit trail should never miss.",
   })
   @ApiForbiddenResponse({ description: 'Your platform role does not permit this' })
-  async detail(@Param('id', ParseUUIDPipe) id: string, @CurrentPlatformAdmin() admin: AuthenticatedPlatformAdmin, @AuditRequestContext() context: AuditContext) {
+  async detail(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentPlatformAdmin() admin: AuthenticatedPlatformAdmin,
+    @AuditRequestContext() context: AuditContext,
+  ) {
     const result = await this.developers.detail(id);
 
     await this.adminAudit.record({
@@ -63,7 +67,8 @@ export class DevelopersController {
   @RequirePlatformRole(PlatformRole.SUPER_ADMIN, PlatformRole.ADMIN)
   @ApiOperation({
     summary: 'Suspend a developer account',
-    description: 'Sets the account to SUSPENDED and blocks future logins (AuthService already 403s a suspended login). Requires a reason.',
+    description:
+      'Sets the account to SUSPENDED and blocks future logins (AuthService already 403s a suspended login). Requires a reason.',
   })
   async suspend(
     @Param('id', ParseUUIDPipe) id: string,

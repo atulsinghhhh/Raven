@@ -1,6 +1,12 @@
 import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
-import { ApiError, ravenApi, type ConnectionSummary, type ProjectIntegration, type RtcFleetMetrics } from '@/lib/api-client';
+import {
+  ApiError,
+  ravenApi,
+  type ConnectionSummary,
+  type ProjectIntegration,
+  type RtcFleetMetrics,
+} from '@/lib/api-client';
 import { Badge, ConnectionStateBadge, ErrorCategoryBadge, StatusBadge } from '@/components/ui/badge';
 import { ButtonLink } from '@/components/ui/button';
 import { Card, CardHeader, SectionHeader, StatCard } from '@/components/ui/card';
@@ -243,7 +249,13 @@ export default async function OverviewPage({
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <RecentConnections base={base} connections={connections} failed={connectionsFailed} />
-            <RecentErrors base={base} errors={errors} errorCount={metrics?.errors} range={range} failed={errorsResult.status === 'rejected'} />
+            <RecentErrors
+              base={base}
+              errors={errors}
+              errorCount={metrics?.errors}
+              range={range}
+              failed={errorsResult.status === 'rejected'}
+            />
           </div>
         </>
       )}

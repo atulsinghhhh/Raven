@@ -49,7 +49,7 @@ export class NotificationsController {
   }
 
   @Patch(':notificationId/read')
-  @ApiOperation({ summary: 'Mark one of the caller\'s own notifications read' })
+  @ApiOperation({ summary: "Mark one of the caller's own notifications read" })
   @ApiResponse({ status: 200, description: 'The notification, now marked read' })
   @ApiNotFoundResponse({ description: "Project not found, or the notification doesn't belong to the caller" })
   async markRead(
@@ -64,7 +64,10 @@ export class NotificationsController {
   @Post('read-all')
   @HttpCode(204)
   @ApiOperation({ summary: "Mark every one of the caller's unread notifications for this project read" })
-  async markAllRead(@CurrentUser() user: AuthenticatedUser, @Param('projectId', ParseUUIDPipe) projectId: string): Promise<void> {
+  async markAllRead(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+  ): Promise<void> {
     await this.projectsService.authorize(projectId, user.id, Capability.ProjectRead);
     await this.notifications.markAllRead(user.id, projectId);
   }

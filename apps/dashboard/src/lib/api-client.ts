@@ -841,10 +841,7 @@ async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<
 }
 
 export type NotificationType =
-  | 'WEBHOOK_DELIVERY_FAILED'
-  | 'WEBHOOK_ENDPOINT_DISABLED'
-  | 'LIVE_STREAM_STARTED'
-  | 'LIVE_STREAM_ENDED';
+  'WEBHOOK_DELIVERY_FAILED' | 'WEBHOOK_ENDPOINT_DISABLED' | 'LIVE_STREAM_STARTED' | 'LIVE_STREAM_ENDED';
 
 export interface NotificationSummary {
   id: string;

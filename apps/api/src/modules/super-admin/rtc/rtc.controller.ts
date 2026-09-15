@@ -24,7 +24,9 @@ export class RtcController {
   constructor(private readonly rtc: RtcService) {}
 
   @Get('overview')
-  @ApiOperation({ summary: 'Platform-wide RTC overview — active rooms/participants, RTC minutes, SFU health, and more' })
+  @ApiOperation({
+    summary: 'Platform-wide RTC overview — active rooms/participants, RTC minutes, SFU health, and more',
+  })
   @ApiQuery({ name: 'range', required: false, enum: ['15m', '1h', '24h', '7d', '30d', '90d'] })
   getOverview(@Query('range') range?: string) {
     return this.rtc.getOverview(range);

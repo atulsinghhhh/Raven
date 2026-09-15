@@ -148,7 +148,11 @@ describe('NotificationsService', () => {
     });
 
     it('publishes notification.created exactly once per call, regardless of member count', async () => {
-      prisma.projectMember.findMany.mockResolvedValue([{ userId: 'user-1' }, { userId: 'user-2' }, { userId: 'user-3' }]);
+      prisma.projectMember.findMany.mockResolvedValue([
+        { userId: 'user-1' },
+        { userId: 'user-2' },
+        { userId: 'user-3' },
+      ]);
 
       await service.notifyProject(SCOPE, {
         type: NotificationType.WEBHOOK_ENDPOINT_DISABLED,
@@ -244,7 +248,11 @@ describe('NotificationsService', () => {
     });
 
     it('requests one extra row and reports hasMore true when a next page exists', async () => {
-      prisma.notification.findMany.mockResolvedValue([row({ publicId: 'notif_1' }), row({ publicId: 'notif_2' }), row({ publicId: 'notif_3' })]);
+      prisma.notification.findMany.mockResolvedValue([
+        row({ publicId: 'notif_1' }),
+        row({ publicId: 'notif_2' }),
+        row({ publicId: 'notif_3' }),
+      ]);
 
       const result = await service.list('user-1', 'project-1', { limit: 2 });
 
@@ -316,7 +324,9 @@ describe('NotificationsService', () => {
     });
 
     it('is idempotent — marking an already-read notification read again is a no-op update', async () => {
-      prisma.notification.findUnique.mockResolvedValue(row({ read: true, readAt: new Date('2026-01-01T00:05:00.000Z') }));
+      prisma.notification.findUnique.mockResolvedValue(
+        row({ read: true, readAt: new Date('2026-01-01T00:05:00.000Z') }),
+      );
 
       await service.markRead('user-1', 'project-1', 'notif_abc');
 
@@ -345,7 +355,7 @@ describe('NotificationsService', () => {
   });
 
   describe('markAllRead', () => {
-    it('updates only the caller\'s own unread rows for this project', async () => {
+    it("updates only the caller's own unread rows for this project", async () => {
       prisma.notification.updateMany.mockResolvedValue({ count: 3 });
 
       const result = await service.markAllRead('user-1', 'project-1');

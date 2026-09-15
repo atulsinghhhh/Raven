@@ -83,7 +83,9 @@ function mockFetch(detail?: () => Promise<{ ok: boolean; status?: number; json?:
 }
 
 function detailFetchCalls(mock: jest.Mock) {
-  return mock.mock.calls.filter(([url]) => String(url).includes('/live-streams/') && !String(url).includes('dashboard-ws-token'));
+  return mock.mock.calls.filter(
+    ([url]) => String(url).includes('/live-streams/') && !String(url).includes('dashboard-ws-token'),
+  );
 }
 
 function renderWithSocket(props: Partial<React.ComponentProps<typeof StreamDetail>> = {}) {
@@ -143,7 +145,10 @@ describe('StreamDetail', () => {
     });
 
     it('a live_stream.ended event for this stream refreshes it', async () => {
-      mockFetch(async () => ({ ok: true, json: async () => stream({ status: 'ENDED', endedAt: '2026-01-01T00:10:00.000Z' }) }));
+      mockFetch(async () => ({
+        ok: true,
+        json: async () => stream({ status: 'ENDED', endedAt: '2026-01-01T00:10:00.000Z' }),
+      }));
       const { sockets } = renderWithSocket({ initialStream: stream({ status: 'LIVE' }) });
       await waitFor(() => expect(sockets).toHaveLength(1));
       act(() => sockets[0].open());

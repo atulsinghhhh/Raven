@@ -82,7 +82,9 @@ export class SuperAdminUsageController {
     description:
       'The one mutating route in this slice. Requires a `reason` (400 without one) and always records an AdminAuditLog entry (action admin.limit_changed, target usage_allowance) with the before/after grant — an admin cannot change a limit silently. Requires the developer to already have an allowance row for this product (i.e. they have used it at least once); this route edits an existing grant, it does not provision a new one.',
   })
-  @ApiNotFoundResponse({ description: 'No developer with that id, or they have no allowance for the given product yet' })
+  @ApiNotFoundResponse({
+    description: 'No developer with that id, or they have no allowance for the given product yet',
+  })
   updateAllowance(
     @Param('userId', ParseUUIDPipe) userId: string,
     @Body() body: UpdateAllowanceDto,
@@ -91,7 +93,12 @@ export class SuperAdminUsageController {
   ): Promise<ProductUsageBreakdown> {
     return this.usage.updateAllowance(
       userId,
-      { product: body.product, includedMinutes: body.includedMinutes, includedCount: body.includedCount, reason: body.reason },
+      {
+        product: body.product,
+        includedMinutes: body.includedMinutes,
+        includedCount: body.includedCount,
+        reason: body.reason,
+      },
       admin,
       context,
     );

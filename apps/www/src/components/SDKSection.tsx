@@ -32,7 +32,8 @@ export function SDKSection() {
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted">
               One wire protocol, seven SDKs speaking it. The JavaScript and TypeScript packages are on npm under the{' '}
               <span className="font-mono text-fg">@ravenkash</span> scope, and the Flutter packages (
-              <span className="font-mono text-fg">raven_rtc</span>, <span className="font-mono text-fg">raven_chat</span>,{' '}
+              <span className="font-mono text-fg">raven_rtc</span>,{' '}
+              <span className="font-mono text-fg">raven_chat</span>,{' '}
               <span className="font-mono text-fg">raven_live</span>) are on pub.dev. The Python SDK isn&rsquo;t on PyPI
               yet —{' '}
               <a href="mailto:support@mail.ravenstack.online" className="text-accent-text hover:underline">

@@ -101,8 +101,7 @@ export function listChatConversations(
  * should treat that the same as any other `ApiError`, not as "not found".
  */
 export function getChatConversation(token: string, id: string): Promise<ChatConversationDetail> {
-  return superAdminFetch<ChatConversationDetail>(
-    `/v1/super-admin/chat/conversations/${encodeURIComponent(id)}`,
-    { token },
-  );
+  return superAdminFetch<ChatConversationDetail>(`/v1/super-admin/chat/conversations/${encodeURIComponent(id)}`, {
+    token,
+  });
 }

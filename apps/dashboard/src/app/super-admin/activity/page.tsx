@@ -100,7 +100,16 @@ export default async function ActivityExplorerPage({ searchParams }: { searchPar
   const now = renderClock();
   const base = '/super-admin/activity';
   const hasFilters = Boolean(
-    sp.q || sp.developerId || sp.projectId || eventType || actorType || sp.success || sp.ipAddress || sp.requestId || sp.from || sp.to,
+    sp.q ||
+    sp.developerId ||
+    sp.projectId ||
+    eventType ||
+    actorType ||
+    sp.success ||
+    sp.ipAddress ||
+    sp.requestId ||
+    sp.from ||
+    sp.to,
   );
 
   return (
@@ -219,7 +228,10 @@ export default async function ActivityExplorerPage({ searchParams }: { searchPar
           subtitle="Grouped by product. Selecting one narrows the table below; clear it to see everything."
           action={
             eventType ? (
-              <a href={hrefWith(sp, { eventType: undefined })} className="text-xs font-medium text-accent-text hover:underline">
+              <a
+                href={hrefWith(sp, { eventType: undefined })}
+                className="text-xs font-medium text-accent-text hover:underline"
+              >
                 Clear filter
               </a>
             ) : undefined
@@ -244,10 +256,7 @@ export default async function ActivityExplorerPage({ searchParams }: { searchPar
       </section>
 
       <section>
-        <SectionHeader
-          title="Events"
-          subtitle={page ? `${formatCount(page.total)} total, newest first.` : undefined}
-        />
+        <SectionHeader title="Events" subtitle={page ? `${formatCount(page.total)} total, newest first.` : undefined} />
 
         {loadError ? (
           loadError.status === 403 ? (
@@ -301,7 +310,11 @@ export default async function ActivityExplorerPage({ searchParams }: { searchPar
                     <Fragment key={event.publicId}>
                       <TR>
                         <TD>
-                          <time dateTime={event.createdAt} title={formatDateTime(event.createdAt)} className="tabular text-xs whitespace-nowrap text-subtle">
+                          <time
+                            dateTime={event.createdAt}
+                            title={formatDateTime(event.createdAt)}
+                            className="tabular text-xs whitespace-nowrap text-subtle"
+                          >
                             {formatRelative(event.createdAt, now)}
                           </time>
                         </TD>
@@ -309,11 +322,7 @@ export default async function ActivityExplorerPage({ searchParams }: { searchPar
                           <span className="text-xs text-fg">{formatEventType(event.eventType)}</span>
                         </TD>
                         <TD>
-                          {event.actorEmail ? (
-                            <span className="text-sm text-fg">{event.actorEmail}</span>
-                          ) : (
-                            <Dash />
-                          )}
+                          {event.actorEmail ? <span className="text-sm text-fg">{event.actorEmail}</span> : <Dash />}
                         </TD>
                         <TD>
                           {event.projectId ? (
@@ -346,13 +355,17 @@ export default async function ActivityExplorerPage({ searchParams }: { searchPar
                           )}
                         </TD>
                         <TD align="right">
-                          <Badge tone={event.success ? 'success' : 'danger'}>{event.success ? 'Success' : 'Failed'}</Badge>
+                          <Badge tone={event.success ? 'success' : 'danger'}>
+                            {event.success ? 'Success' : 'Failed'}
+                          </Badge>
                         </TD>
                       </TR>
                       <tr>
                         <td colSpan={8} className="px-4 py-0 align-middle">
                           <details className="group py-1.5">
-                            <summary className="cursor-pointer text-xs font-medium text-muted hover:text-fg">Details</summary>
+                            <summary className="cursor-pointer text-xs font-medium text-muted hover:text-fg">
+                              Details
+                            </summary>
                             <div className="mt-2 mb-2 flex flex-col gap-1.5 rounded-md border border-line bg-surface-sunken p-3 text-xs">
                               <DetailRow label="Request id" value={event.requestId} />
                               <DetailRow label="IP address" value={event.ipAddress} />
@@ -384,7 +397,11 @@ export default async function ActivityExplorerPage({ searchParams }: { searchPar
                       <Badge tone={event.success ? 'success' : 'danger'}>{event.success ? 'Success' : 'Failed'}</Badge>
                     </div>
                     <MobileField label="When">
-                      <time dateTime={event.createdAt} title={formatDateTime(event.createdAt)} className="tabular text-xs">
+                      <time
+                        dateTime={event.createdAt}
+                        title={formatDateTime(event.createdAt)}
+                        className="tabular text-xs"
+                      >
                         {formatRelative(event.createdAt, now)}
                       </time>
                     </MobileField>
@@ -412,7 +429,9 @@ export default async function ActivityExplorerPage({ searchParams }: { searchPar
                       </MobileField>
                     )}
                     <details className="mt-2">
-                      <summary className="cursor-pointer text-xs font-medium text-muted hover:text-fg">Metadata</summary>
+                      <summary className="cursor-pointer text-xs font-medium text-muted hover:text-fg">
+                        Metadata
+                      </summary>
                       <pre className="mt-1.5 max-w-full overflow-x-auto rounded-sm border border-line bg-surface-sunken p-2 font-mono text-[11px] text-fg">
                         {event.metadata ? JSON.stringify(event.metadata, null, 2) : '—'}
                       </pre>
@@ -422,7 +441,14 @@ export default async function ActivityExplorerPage({ searchParams }: { searchPar
               </MobileList>
             </div>
 
-            <Pagination base={base} sp={sp} offset={offset} limit={DEFAULT_LIMIT} total={page.total} shown={page.items.length} />
+            <Pagination
+              base={base}
+              sp={sp}
+              offset={offset}
+              limit={DEFAULT_LIMIT}
+              total={page.total}
+              shown={page.items.length}
+            />
           </>
         )}
       </section>

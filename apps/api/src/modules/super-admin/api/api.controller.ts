@@ -51,10 +51,11 @@ export class ApiController {
 
   @Get('activity')
   @ApiOperation({
-    summary: 'API-related ActivityEvent rows: API_KEY_CREATED, API_KEY_REVOKED, API_REQUEST_FAILED, RATE_LIMIT_TRIGGERED',
+    summary:
+      'API-related ActivityEvent rows: API_KEY_CREATED, API_KEY_REVOKED, API_REQUEST_FAILED, RATE_LIMIT_TRIGGERED',
     description:
-      'Secondary view. Reuses the Global Activity Explorer\'s QueryActivityDto for its filter shape, but rejects ' +
-      'any eventType outside this domain\'s four API-related types. Omitting eventType merges all four, ' +
+      "Secondary view. Reuses the Global Activity Explorer's QueryActivityDto for its filter shape, but rejects " +
+      "any eventType outside this domain's four API-related types. Omitting eventType merges all four, " +
       'newest first, rather than widening the filter to every event type that exists.',
   })
   async activity(@Query() query: QueryActivityDto): Promise<ActivityEventPage> {

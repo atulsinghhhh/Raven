@@ -48,11 +48,12 @@ export default async function QuickstartPage({ params }: { params: Promise<{ pro
       <IntegrationWizard project={project} initialIntegrations={integrations} defaultFramework={defaultFramework} />
 
       <Card>
-        <CardHeader title="Where to go next" subtitle="Everything below reflects code that exists in this repository." />
+        <CardHeader
+          title="Where to go next"
+          subtitle="Everything below reflects code that exists in this repository."
+        />
         <ul className="flex flex-col gap-2.5 text-sm">
-          <NextLink href={`${base}/sdks`}>
-            SDK reference — every real Raven package, one place
-          </NextLink>
+          <NextLink href={`${base}/sdks`}>SDK reference — every real Raven package, one place</NextLink>
           <NextLink href={`${base}/rooms`}>
             Rooms — inspect live participants and mint a test token from the dashboard
           </NextLink>

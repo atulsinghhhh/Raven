@@ -299,7 +299,12 @@ export class RtcService {
         developerEmail: room.project.owner.email,
         participantCount: room._count.participants,
         rtcServer: room.rtcServer
-          ? { id: room.rtcServer.id, name: room.rtcServer.name, region: room.rtcServer.region, status: room.rtcServer.status }
+          ? {
+              id: room.rtcServer.id,
+              name: room.rtcServer.name,
+              region: room.rtcServer.region,
+              status: room.rtcServer.status,
+            }
           : null,
         createdAt: room.createdAt,
         updatedAt: room.updatedAt,
@@ -365,7 +370,12 @@ export class RtcService {
       peakParticipants,
       connectionFailures,
       rtcServer: room.rtcServer
-        ? { id: room.rtcServer.id, name: room.rtcServer.name, region: room.rtcServer.region, status: room.rtcServer.status }
+        ? {
+            id: room.rtcServer.id,
+            name: room.rtcServer.name,
+            region: room.rtcServer.region,
+            status: room.rtcServer.status,
+          }
         : null,
       participants: room.participants.map((participant) =>
         summarizeParticipant(participant, connectionsByIdentity.get(participant.identity) ?? []),
@@ -468,9 +478,7 @@ function summarizeParticipant(participant: Participant, connections: Connection[
     participant.status === ParticipantStatus.LEFT
       ? (() => {
           const disconnectedTimes = connections.map((c) => c.disconnectedAt).filter((d): d is Date => d !== null);
-          return disconnectedTimes.length > 0
-            ? new Date(Math.max(...disconnectedTimes.map((d) => d.getTime())))
-            : null;
+          return disconnectedTimes.length > 0 ? new Date(Math.max(...disconnectedTimes.map((d) => d.getTime()))) : null;
         })()
       : null;
 

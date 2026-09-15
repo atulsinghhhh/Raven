@@ -125,7 +125,16 @@ export class SuperAdminUsageService {
       // sessions/messages (one row per developer per product), and grouping
       // "developers at risk" in application code avoids a database-specific
       // conditional-aggregate query for arithmetic this simple.
-      this.prisma.usageAllowance.findMany({ select: { userId: true, product: true, includedMinutes: true, includedCount: true, consumedSeconds: true, consumedCount: true } }),
+      this.prisma.usageAllowance.findMany({
+        select: {
+          userId: true,
+          product: true,
+          includedMinutes: true,
+          includedCount: true,
+          consumedSeconds: true,
+          consumedCount: true,
+        },
+      }),
     ]);
 
     const byUser = new Map<string, number>();
@@ -151,7 +160,12 @@ export class SuperAdminUsageService {
     };
   }
 
-  async listDevelopers(opts: { search?: string; atRisk?: boolean; limit?: number; offset?: number }): Promise<DeveloperUsagePage> {
+  async listDevelopers(opts: {
+    search?: string;
+    atRisk?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<DeveloperUsagePage> {
     const limit = Math.min(Math.max(opts.limit ?? 50, 1), 200);
     const offset = Math.max(opts.offset ?? 0, 0);
 
@@ -199,7 +213,10 @@ export class SuperAdminUsageService {
   }
 
   async getDeveloper(userId: string): Promise<DeveloperUsageDetail> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, createdAt: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, createdAt: true },
+    });
     if (!user) {
       throw new NotFoundError('Developer', RavenErrorCode.NOT_FOUND);
     }

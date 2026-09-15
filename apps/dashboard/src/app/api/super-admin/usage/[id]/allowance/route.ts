@@ -29,7 +29,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ code: 'VALIDATION_FAILED', message: 'A valid product is required' }, { status: 400 });
   }
   if (typeof body?.reason !== 'string' || body.reason.trim().length === 0) {
-    return NextResponse.json({ code: 'VALIDATION_FAILED', message: 'A reason is required to change a limit' }, { status: 400 });
+    return NextResponse.json(
+      { code: 'VALIDATION_FAILED', message: 'A reason is required to change a limit' },
+      { status: 400 },
+    );
   }
 
   try {

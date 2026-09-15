@@ -69,7 +69,10 @@ export class RoomsService {
   /** Fire-and-forget from callers (`void this.recordRoomEvent(...)`), so this must never throw. */
   private async recordRoomEvent(eventType: ActivityEventType, room: Room): Promise<void> {
     try {
-      const project = await this.prisma.project.findUnique({ where: { id: room.projectId }, select: { ownerId: true } });
+      const project = await this.prisma.project.findUnique({
+        where: { id: room.projectId },
+        select: { ownerId: true },
+      });
       await this.activityEvents.record({
         eventType,
         actorType: ActivityActorType.SYSTEM,

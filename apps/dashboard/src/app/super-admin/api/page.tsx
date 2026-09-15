@@ -109,13 +109,13 @@ export default async function SuperAdminApiPage({
       <div className="rounded-lg border border-dashed border-line bg-surface-sunken p-4 text-sm leading-relaxed text-muted">
         <p className="font-medium text-fg">What this page can and can&apos;t show</p>
         <p className="mt-1.5">
-          This codebase has no per-request log table — the request logger and metrics middleware only emit a log
-          line and feed Prometheus counters, neither persists a row to Postgres. So this page cannot report API
-          request volume, successful/failed request rates, 4xx/5xx breakdowns, latency, or top
-          endpoints/projects/developers. The numbers above are everything that&apos;s real today: API key lifecycle
-          counts from the <code className="font-mono text-xs">ApiKey</code> table, and API-related activity (key
-          creates/revokes, failed requests, rate-limit triggers) from the platform activity log. Full per-request
-          analytics would need a request-log table added — nothing here is a stand-in for that.
+          This codebase has no per-request log table — the request logger and metrics middleware only emit a log line
+          and feed Prometheus counters, neither persists a row to Postgres. So this page cannot report API request
+          volume, successful/failed request rates, 4xx/5xx breakdowns, latency, or top endpoints/projects/developers.
+          The numbers above are everything that&apos;s real today: API key lifecycle counts from the{' '}
+          <code className="font-mono text-xs">ApiKey</code> table, and API-related activity (key creates/revokes, failed
+          requests, rate-limit triggers) from the platform activity log. Full per-request analytics would need a
+          request-log table added — nothing here is a stand-in for that.
         </p>
       </div>
 

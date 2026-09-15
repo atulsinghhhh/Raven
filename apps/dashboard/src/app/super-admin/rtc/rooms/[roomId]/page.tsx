@@ -36,7 +36,11 @@ export default async function SuperAdminRtcRoomPage({ params }: { params: Promis
       );
     }
     return (
-      <ErrorState title="Could not load this room" description="The API is unreachable right now. Retry in a moment." retryHref={`/super-admin/rtc/rooms/${roomId}`} />
+      <ErrorState
+        title="Could not load this room"
+        description="The API is unreachable right now. Retry in a moment."
+        retryHref={`/super-admin/rtc/rooms/${roomId}`}
+      />
     );
   }
 
@@ -47,7 +51,11 @@ export default async function SuperAdminRtcRoomPage({ params }: { params: Promis
         eyebrow="Super Admin · RTC"
         breadcrumb={{ label: 'All rooms', href: '/super-admin/rtc' }}
         description={`${room.projectName} — owned by ${room.developerEmail}`}
-        meta={<Badge tone={room.status === 'ACTIVE' ? 'success' : 'neutral'}>{room.status === 'ACTIVE' ? 'Active' : 'Closed'}</Badge>}
+        meta={
+          <Badge tone={room.status === 'ACTIVE' ? 'success' : 'neutral'}>
+            {room.status === 'ACTIVE' ? 'Active' : 'Closed'}
+          </Badge>
+        }
       />
 
       <Card>
@@ -84,8 +92,16 @@ export default async function SuperAdminRtcRoomPage({ params }: { params: Promis
         <SectionHeader title="Stats" subtitle="Derived from stored room and connection telemetry." />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Participants" value={formatCount(room.participantCount)} />
-          <StatCard label="Peak participants" value={formatCount(room.peakParticipants)} hint="Best-effort, from connection intervals" />
-          <StatCard label="Duration" value={formatDuration(room.durationMs)} hint={room.endedAt ? 'Ended' : 'Ongoing'} />
+          <StatCard
+            label="Peak participants"
+            value={formatCount(room.peakParticipants)}
+            hint="Best-effort, from connection intervals"
+          />
+          <StatCard
+            label="Duration"
+            value={formatDuration(room.durationMs)}
+            hint={room.endedAt ? 'Ended' : 'Ongoing'}
+          />
           <StatCard
             label="Connection failures"
             value={formatCount(room.connectionFailures)}
@@ -95,10 +111,16 @@ export default async function SuperAdminRtcRoomPage({ params }: { params: Promis
       </section>
 
       <section>
-        <SectionHeader title="Participants" subtitle={`${formatCount(room.participants.length)} participant(s) in this room.`} />
+        <SectionHeader
+          title="Participants"
+          subtitle={`${formatCount(room.participants.length)} participant(s) in this room.`}
+        />
 
         {room.participants.length === 0 ? (
-          <EmptyState title="No participants yet" description="A participant appears here as soon as an RTC token is issued for this room." />
+          <EmptyState
+            title="No participants yet"
+            description="A participant appears here as soon as an RTC token is issued for this room."
+          />
         ) : (
           <>
             <div className="hidden sm:block">
@@ -130,8 +152,12 @@ export default async function SuperAdminRtcRoomPage({ params }: { params: Promis
                       <span className="min-w-0 truncate text-sm font-medium text-fg">{participant.identity}</span>
                       <ParticipantStatusBadge status={participant.status} />
                     </div>
-                    <MobileField label="Joined">{participant.joinedAt ? formatDateTime(participant.joinedAt) : <Dash />}</MobileField>
-                    <MobileField label="Left">{participant.leftAt ? formatDateTime(participant.leftAt) : <Dash />}</MobileField>
+                    <MobileField label="Joined">
+                      {participant.joinedAt ? formatDateTime(participant.joinedAt) : <Dash />}
+                    </MobileField>
+                    <MobileField label="Left">
+                      {participant.leftAt ? formatDateTime(participant.leftAt) : <Dash />}
+                    </MobileField>
                     <MobileField label="Duration">{formatDuration(participant.durationMs)}</MobileField>
                     <MobileField label="Reconnects">{formatCount(participant.reconnectCount)}</MobileField>
                   </MobileRow>
@@ -161,10 +187,14 @@ function ParticipantRow({ participant }: { participant: RtcRoomParticipantSummar
       </TD>
       <TD>{participant.connectionState ? <ConnectionStateBadge state={participant.connectionState} /> : <Dash />}</TD>
       <TD>
-        <span className="tabular text-xs text-muted">{participant.joinedAt ? formatDateTime(participant.joinedAt) : <Dash />}</span>
+        <span className="tabular text-xs text-muted">
+          {participant.joinedAt ? formatDateTime(participant.joinedAt) : <Dash />}
+        </span>
       </TD>
       <TD>
-        <span className="tabular text-xs text-muted">{participant.leftAt ? formatDateTime(participant.leftAt) : <Dash />}</span>
+        <span className="tabular text-xs text-muted">
+          {participant.leftAt ? formatDateTime(participant.leftAt) : <Dash />}
+        </span>
       </TD>
       <TD align="right">
         <span className="tabular text-muted">{formatDuration(participant.durationMs)}</span>

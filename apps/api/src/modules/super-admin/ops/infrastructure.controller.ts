@@ -19,7 +19,8 @@ export class InfrastructureController {
   @Get()
   @ApiOperation({
     summary: 'API/DB/Redis/TURN/SFU dependency status, plus per-node RTC fleet detail',
-    description: 'Dependency probes reuse the same checks as GET /health/ready — this is a second caller, not a second implementation.',
+    description:
+      'Dependency probes reuse the same checks as GET /health/ready — this is a second caller, not a second implementation.',
   })
   getInfrastructure(): Promise<InfrastructureResponse> {
     return this.infrastructure.getInfrastructure();

@@ -31,7 +31,14 @@ interface DueDelivery {
     projectId: string;
     environment: Environment;
   };
-  endpoint: { id: string; publicId: string; projectId: string; url: string; signingSecret: string; consecutiveFailures: number };
+  endpoint: {
+    id: string;
+    publicId: string;
+    projectId: string;
+    url: string;
+    signingSecret: string;
+    consecutiveFailures: number;
+  };
 }
 
 /**

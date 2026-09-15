@@ -52,9 +52,7 @@ function PlatformStatusRow({ framework }: { framework: Framework }) {
           </Badge>
         ))}
       </div>
-      <p className="text-xs leading-relaxed text-muted">
-        {platforms.map((p) => `${p.label}: ${p.detail}`).join(' ')}
-      </p>
+      <p className="text-xs leading-relaxed text-muted">{platforms.map((p) => `${p.label}: ${p.detail}`).join(' ')}</p>
     </div>
   );
 }
@@ -68,11 +66,16 @@ export function IntegrationWizard({
   initialIntegrations: ProjectIntegration[];
   defaultFramework: Framework;
 }) {
-  const savedProducts = useMemo(() => initialIntegrations.map((i) => ENUM_TO_PRODUCT[i.product]), [initialIntegrations]);
+  const savedProducts = useMemo(
+    () => initialIntegrations.map((i) => ENUM_TO_PRODUCT[i.product]),
+    [initialIntegrations],
+  );
 
   const [selectedProducts, setSelectedProducts] = useState<Set<Product>>(new Set(savedProducts));
   const [language, setLanguage] = useState(initialIntegrations[0]?.language ?? 'typescript');
-  const [framework, setFramework] = useState<Framework>((initialIntegrations[0]?.framework as Framework) ?? defaultFramework);
+  const [framework, setFramework] = useState<Framework>(
+    (initialIntegrations[0]?.framework as Framework) ?? defaultFramework,
+  );
   const [confirmed, setConfirmed] = useState(savedProducts.length > 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
@@ -146,7 +149,9 @@ export function IntegrationWizard({
                   aria-pressed={active}
                   onClick={() => toggleProduct(p.id)}
                   className={`rounded-md border px-4 py-3 text-left transition-all ${
-                    active ? 'border-accent bg-accent-subtle shadow-raven-sm' : 'border-line bg-canvas hover:border-line-strong'
+                    active
+                      ? 'border-accent bg-accent-subtle shadow-raven-sm'
+                      : 'border-line bg-canvas hover:border-line-strong'
                   }`}
                 >
                   <span className="block text-sm font-medium text-fg">{p.label}</span>
@@ -168,7 +173,9 @@ export function IntegrationWizard({
                 aria-pressed={language === l.id}
                 onClick={() => l.supported && selectLanguage(l.id)}
                 className={`rounded-md border px-3.5 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                  language === l.id ? 'border-accent bg-accent-subtle text-fg' : 'border-line bg-canvas text-muted hover:border-line-strong'
+                  language === l.id
+                    ? 'border-accent bg-accent-subtle text-fg'
+                    : 'border-line bg-canvas text-muted hover:border-line-strong'
                 }`}
               >
                 {l.label}
@@ -188,7 +195,9 @@ export function IntegrationWizard({
                 aria-pressed={framework === f.id}
                 onClick={() => setFramework(f.id)}
                 className={`rounded-md border px-3.5 py-2 text-sm transition-colors ${
-                  framework === f.id ? 'border-accent bg-accent-subtle text-fg' : 'border-line bg-canvas text-muted hover:border-line-strong'
+                  framework === f.id
+                    ? 'border-accent bg-accent-subtle text-fg'
+                    : 'border-line bg-canvas text-muted hover:border-line-strong'
                 }`}
               >
                 {f.label}
@@ -284,7 +293,10 @@ function ProductIntegrationCard({
     return (
       <Card>
         <CardHeader title={productLabel} />
-        <ErrorState title="This combination isn't currently supported" description={`${entry.reason} ${entry.alternative}`} />
+        <ErrorState
+          title="This combination isn't currently supported"
+          description={`${entry.reason} ${entry.alternative}`}
+        />
       </Card>
     );
   }
@@ -313,9 +325,9 @@ function ProductIntegrationCard({
         <li>
           <p className="text-sm font-medium text-fg">2. Environment variables</p>
           <p className="mt-1 text-xs leading-relaxed text-muted">
-            Server-only — never put these in client-side code, <code className="font-mono">NEXT_PUBLIC_*</code> variables,
-            or version control. There is no client-safe Raven credential: the browser only ever receives a short-lived
-            token your backend forwards to it.
+            Server-only — never put these in client-side code, <code className="font-mono">NEXT_PUBLIC_*</code>{' '}
+            variables, or version control. There is no client-safe Raven credential: the browser only ever receives a
+            short-lived token your backend forwards to it.
           </p>
           <div className="mt-2">
             <CodeBlock

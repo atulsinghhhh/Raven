@@ -124,7 +124,11 @@ export function AllowanceForm({ userId, products }: { userId: string; products: 
             setSaved(false);
           }}
           placeholder={current?.provisioned ? String(current.included) : '0'}
-          hint={current?.provisioned ? `Currently ${current.included} — ${current.used} used so far.` : 'This developer has no grant for this product yet.'}
+          hint={
+            current?.provisioned
+              ? `Currently ${current.included} — ${current.used} used so far.`
+              : 'This developer has no grant for this product yet.'
+          }
           required
         />
       </div>

@@ -55,7 +55,9 @@ async function main(): Promise<void> {
       orderBy: { createdAt: 'asc' },
     });
 
-    console.log(`Found ${orphanedRooms.length} orphaned room(s) (expected ${EXPECTED_ORPHAN_COUNT} per the P0 report).`);
+    console.log(
+      `Found ${orphanedRooms.length} orphaned room(s) (expected ${EXPECTED_ORPHAN_COUNT} per the P0 report).`,
+    );
     if (orphanedRooms.length !== EXPECTED_ORPHAN_COUNT && !force) {
       console.log(
         orphanedRooms.length === 0
@@ -77,7 +79,14 @@ async function main(): Promise<void> {
     }
 
     console.log('');
-    console.log('room.id'.padEnd(38), 'name'.padEnd(20), 'projectId'.padEnd(38), 'environment'.padEnd(12), 'createdAt'.padEnd(28), 'conversation.id');
+    console.log(
+      'room.id'.padEnd(38),
+      'name'.padEnd(20),
+      'projectId'.padEnd(38),
+      'environment'.padEnd(12),
+      'createdAt'.padEnd(28),
+      'conversation.id',
+    );
     for (const { room, conversationId } of rows) {
       console.log(
         room.id.padEnd(38),
@@ -91,7 +100,9 @@ async function main(): Promise<void> {
 
     if (!execute) {
       console.log('');
-      console.log('Dry run only — no writes made. Re-run with --execute to close these rooms and archive their conversations.');
+      console.log(
+        'Dry run only — no writes made. Re-run with --execute to close these rooms and archive their conversations.',
+      );
       return;
     }
 
@@ -108,7 +119,10 @@ async function main(): Promise<void> {
 
       if (conversationId) {
         try {
-          await prisma.conversation.update({ where: { id: conversationId }, data: { status: ConversationStatus.ARCHIVED } });
+          await prisma.conversation.update({
+            where: { id: conversationId },
+            data: { status: ConversationStatus.ARCHIVED },
+          });
           console.log(`  archived conversation ${conversationId}`);
         } catch (err) {
           console.error(`  FAILED to archive conversation ${conversationId}: ${(err as Error).message}`);

@@ -55,7 +55,11 @@ export default async function DeveloperUsagePage({ params }: Params) {
     );
   }
 
-  const rtcDaily = detail.daily.map((d) => ({ label: shortDate(d.date), value: d.rtcMinutes, hint: `${d.date}: ${d.rtcMinutes} min` }));
+  const rtcDaily = detail.daily.map((d) => ({
+    label: shortDate(d.date),
+    value: d.rtcMinutes,
+    hint: `${d.date}: ${d.rtcMinutes} min`,
+  }));
   const liveDaily = detail.daily.map((d) => ({
     label: shortDate(d.date),
     value: d.liveStreamingMinutes,
@@ -79,7 +83,10 @@ export default async function DeveloperUsagePage({ params }: Params) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader title="RTC minutes / day" subtitle="Trailing 30 days, UTC, attributed to the day a session started." />
+          <CardHeader
+            title="RTC minutes / day"
+            subtitle="Trailing 30 days, UTC, attributed to the day a session started."
+          />
           <BarChart data={rtcDaily} caption="RTC minutes per day, trailing 30 days" />
         </Card>
         <Card>
@@ -112,7 +119,8 @@ function ProductCard({ product }: { product: ProductUsageBreakdown }) {
     );
   }
 
-  const tone = product.band === '100' ? 'danger' : product.band === '90' || product.band === '75' ? 'warning' : 'default';
+  const tone =
+    product.band === '100' ? 'danger' : product.band === '90' || product.band === '75' ? 'warning' : 'default';
 
   return (
     <Card>

@@ -126,7 +126,9 @@ export function ConsoleShell({ children, admin }: { children: React.ReactNode; a
         {sidebarHeader}
         <div className="flex-1 overflow-y-auto pb-4 pt-2">{navList()}</div>
         <div className="border-t border-line px-4 py-3">
-          <div className="mono-label text-[10px] uppercase tracking-wider text-subtle">Internal · never shared with developers</div>
+          <div className="mono-label text-[10px] uppercase tracking-wider text-subtle">
+            Internal · never shared with developers
+          </div>
         </div>
       </aside>
 

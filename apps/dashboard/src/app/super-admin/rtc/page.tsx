@@ -1,7 +1,13 @@
 import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
 import { ApiError } from '@/lib/super-admin-client';
-import { getRtcOverview, listRtcRooms, type RoomStatus, type RtcRoomListItem, type RtcSfuNode } from '@/lib/super-admin/rtc';
+import {
+  getRtcOverview,
+  listRtcRooms,
+  type RoomStatus,
+  type RtcRoomListItem,
+  type RtcSfuNode,
+} from '@/lib/super-admin/rtc';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { SectionHeader, StatCard } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
@@ -89,7 +95,13 @@ export default async function SuperAdminRtcPage({
           <StatCard label="Reconnections" value={formatCount(overview.reconnections)} hint={overview.range} />
           <StatCard
             label="Reconnect rate"
-            value={overview.reconnectRate === null ? <NoDataYet label="No connections" /> : `${(overview.reconnectRate * 100).toFixed(1)}%`}
+            value={
+              overview.reconnectRate === null ? (
+                <NoDataYet label="No connections" />
+              ) : (
+                `${(overview.reconnectRate * 100).toFixed(1)}%`
+              )
+            }
             hint={overview.range}
           />
           <StatCard
@@ -112,7 +124,10 @@ export default async function SuperAdminRtcPage({
           subtitle={`${formatCount(overview.sfu.totalNodes)} node(s) — ${formatCount(overview.sfu.healthyNodes)} healthy, ${formatCount(overview.sfu.drainingNodes)} draining, ${formatCount(overview.sfu.unhealthyNodes)} unhealthy.`}
         />
         {overview.sfu.nodes.length === 0 ? (
-          <EmptyState title="No RTC servers registered" description="No SFU node has registered with the control plane yet." />
+          <EmptyState
+            title="No RTC servers registered"
+            description="No SFU node has registered with the control plane yet."
+          />
         ) : (
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {overview.sfu.nodes.map((node) => (
@@ -146,7 +161,10 @@ export default async function SuperAdminRtcPage({
               }
             />
           ) : (
-            <EmptyState title="No rooms yet" description="A room appears here the moment any project's backend creates one." />
+            <EmptyState
+              title="No rooms yet"
+              description="A room appears here the moment any project's backend creates one."
+            />
           )
         ) : (
           <>

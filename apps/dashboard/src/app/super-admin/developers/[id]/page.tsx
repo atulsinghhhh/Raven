@@ -79,7 +79,9 @@ export default async function DeveloperDetailPage({
   }
 
   const developer = detailResult.value;
-  const canMutate = meResult.status === 'fulfilled' && (meResult.value.platformRole === 'SUPER_ADMIN' || meResult.value.platformRole === 'ADMIN');
+  const canMutate =
+    meResult.status === 'fulfilled' &&
+    (meResult.value.platformRole === 'SUPER_ADMIN' || meResult.value.platformRole === 'ADMIN');
   const now = renderClock();
 
   return (
@@ -94,10 +96,20 @@ export default async function DeveloperDetailPage({
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <StatCard label="User ID" value={<span className="font-mono text-sm">{developer.id.slice(0, 8)}…</span>} hint={developer.id} />
+        <StatCard
+          label="User ID"
+          value={<span className="font-mono text-sm">{developer.id.slice(0, 8)}…</span>}
+          hint={developer.id}
+        />
         <StatCard label="Created" value={formatDateTime(developer.createdAt)} />
-        <StatCard label="Last active" value={developer.lastActiveAt ? formatRelative(developer.lastActiveAt, now) : <NoDataYet label="Never" />} />
-        <StatCard label="Auth" value={developer.authProviders.length > 0 ? developer.authProviders.map(providerLabel).join(', ') : <Dash />} />
+        <StatCard
+          label="Last active"
+          value={developer.lastActiveAt ? formatRelative(developer.lastActiveAt, now) : <NoDataYet label="Never" />}
+        />
+        <StatCard
+          label="Auth"
+          value={developer.authProviders.length > 0 ? developer.authProviders.map(providerLabel).join(', ') : <Dash />}
+        />
         <StatCard label="Risk" value={<RiskBadge level={developer.riskLevel} />} />
       </div>
 
@@ -136,10 +148,19 @@ function StatusBadge({ status }: { status: DeveloperDetail['status'] }) {
   return status === 'ACTIVE' ? <Badge tone="success">Active</Badge> : <Badge tone="danger">Suspended</Badge>;
 }
 
-const RISK_TONE: Record<DeveloperDetail['riskLevel'], BadgeTone> = { LOW: 'neutral', MEDIUM: 'info', HIGH: 'warning', CRITICAL: 'danger' };
+const RISK_TONE: Record<DeveloperDetail['riskLevel'], BadgeTone> = {
+  LOW: 'neutral',
+  MEDIUM: 'info',
+  HIGH: 'warning',
+  CRITICAL: 'danger',
+};
 
 function RiskBadge({ level }: { level: DeveloperDetail['riskLevel'] }) {
-  return <Badge tone={RISK_TONE[level]}>{level === 'LOW' ? 'Low' : level === 'MEDIUM' ? 'Medium' : level === 'HIGH' ? 'High' : 'Critical'}</Badge>;
+  return (
+    <Badge tone={RISK_TONE[level]}>
+      {level === 'LOW' ? 'Low' : level === 'MEDIUM' ? 'Medium' : level === 'HIGH' ? 'High' : 'Critical'}
+    </Badge>
+  );
 }
 
 /** Surfaced by the suspend/unsuspend route handlers via a `?error=` redirect param — the API's HTTP status, or `reason_required` for a client-side check. */
@@ -264,7 +285,11 @@ function OverviewTab({ developer, now }: { developer: DeveloperDetail; now: numb
         <section>
           <SectionHeader title="Recent security events" />
           <Card>
-            <ActivityList events={developer.overview.recentSecurityEvents} now={now} empty="No security events recorded." />
+            <ActivityList
+              events={developer.overview.recentSecurityEvents}
+              now={now}
+              empty="No security events recorded."
+            />
           </Card>
         </section>
       </div>
@@ -303,7 +328,13 @@ function OverviewTab({ developer, now }: { developer: DeveloperDetail; now: numb
 
 function ProjectsTab({ projects }: { projects: DeveloperProjectRow[] }) {
   if (projects.length === 0) {
-    return <EmptyState title="No projects" description="This developer doesn't own or belong to any project." icon={<IconMembers className="size-6" />} />;
+    return (
+      <EmptyState
+        title="No projects"
+        description="This developer doesn't own or belong to any project."
+        icon={<IconMembers className="size-6" />}
+      />
+    );
   }
 
   return (
@@ -365,7 +396,10 @@ function ProjectsTab({ projects }: { projects: DeveloperProjectRow[] }) {
 function ActivityTab({ events }: { events: ActivityEventSummary[] }) {
   return (
     <Card>
-      <CardHeader title="Activity timeline" subtitle="Newest first. Every business and security event recorded against this developer." />
+      <CardHeader
+        title="Activity timeline"
+        subtitle="Newest first. Every business and security event recorded against this developer."
+      />
       <ActivityList events={events} now={renderClock()} empty="No activity recorded yet." dense={false} />
     </Card>
   );
@@ -375,7 +409,17 @@ function ActivityTab({ events }: { events: ActivityEventSummary[] }) {
  * Renders the scannable "HH:mm — Label 'resource'" format from spec §6/§20,
  * e.g. "09:42 — Created project 'VideoApp'".
  */
-function ActivityList({ events, now, empty, dense = true }: { events: ActivityEventSummary[]; now: number; empty: string; dense?: boolean }) {
+function ActivityList({
+  events,
+  now,
+  empty,
+  dense = true,
+}: {
+  events: ActivityEventSummary[];
+  now: number;
+  empty: string;
+  dense?: boolean;
+}) {
   if (events.length === 0) return <NoDataYet label={empty} />;
 
   return (
@@ -391,7 +435,11 @@ function ActivityList({ events, now, empty, dense = true }: { events: ActivityEv
             <span className="text-muted"> — </span>
             <span className="text-fg">{eventLabel(e)}</span>
           </div>
-          <time dateTime={e.createdAt} className="shrink-0 text-xs whitespace-nowrap text-subtle" title={formatDateTime(e.createdAt)}>
+          <time
+            dateTime={e.createdAt}
+            className="shrink-0 text-xs whitespace-nowrap text-subtle"
+            title={formatDateTime(e.createdAt)}
+          >
             {formatRelative(e.createdAt, now)}
           </time>
         </li>

@@ -45,7 +45,13 @@ function mockTokenResponse(projectId: string) {
 }
 
 /** Stands in for NotificationsBell/ConnectionsList/etc — a page-level consumer of realtime. */
-function Consumer({ label, onFrame }: { label: string; onFrame: (label: string, frame: Record<string, unknown>) => void }) {
+function Consumer({
+  label,
+  onFrame,
+}: {
+  label: string;
+  onFrame: (label: string, frame: Record<string, unknown>) => void;
+}) {
   const { status } = useDashboardRealtime('project-1', {
     onEvent: (frame) => onFrame(label, frame),
   });

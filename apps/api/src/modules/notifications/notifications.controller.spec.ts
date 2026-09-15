@@ -18,7 +18,14 @@ function makeController(overrides: { authorize?: jest.Mock } = {}) {
 
   const projectsService = { authorize } as unknown as ProjectsService;
   const notifications = { list, unreadCount, markRead, markAllRead } as unknown as NotificationsService;
-  return { controller: new NotificationsController(projectsService, notifications), authorize, list, unreadCount, markRead, markAllRead };
+  return {
+    controller: new NotificationsController(projectsService, notifications),
+    authorize,
+    list,
+    unreadCount,
+    markRead,
+    markAllRead,
+  };
 }
 
 describe('NotificationsController', () => {
@@ -39,7 +46,7 @@ describe('NotificationsController', () => {
       expect(authorizeOrder).toBeLessThan(listOrder);
     });
 
-    it('always lists the caller\'s own notifications — the userId comes from the session, never a request param', async () => {
+    it("always lists the caller's own notifications — the userId comes from the session, never a request param", async () => {
       const { controller, list } = makeController();
 
       await controller.list(USER, 'project-1', { limit: 20, unreadOnly: false });
@@ -59,13 +66,15 @@ describe('NotificationsController', () => {
       const authorize = jest.fn().mockRejectedValue(new ForbiddenError());
       const { controller, list } = makeController({ authorize });
 
-      await expect(controller.list(USER, 'project-1', { limit: 20, unreadOnly: false })).rejects.toThrow(ForbiddenError);
+      await expect(controller.list(USER, 'project-1', { limit: 20, unreadOnly: false })).rejects.toThrow(
+        ForbiddenError,
+      );
       expect(list).not.toHaveBeenCalled();
     });
   });
 
   describe('unreadCount', () => {
-    it('authorizes before counting, and scopes to the caller\'s own id', async () => {
+    it("authorizes before counting, and scopes to the caller's own id", async () => {
       const { controller, authorize, unreadCount } = makeController();
 
       const result = await controller.unreadCount(USER, 'project-1');
@@ -85,7 +94,7 @@ describe('NotificationsController', () => {
   });
 
   describe('markRead', () => {
-    it('authorizes before marking read, passing the caller\'s own id and the notification id from the URL', async () => {
+    it("authorizes before marking read, passing the caller's own id and the notification id from the URL", async () => {
       const { controller, authorize, markRead } = makeController();
 
       await controller.markRead(USER, 'project-1', 'notif_1');
@@ -94,7 +103,7 @@ describe('NotificationsController', () => {
       expect(markRead).toHaveBeenCalledWith(USER.id, 'project-1', 'notif_1');
     });
 
-    it('propagates a not-found from the service (e.g. another member\'s notification) without marking anything', async () => {
+    it("propagates a not-found from the service (e.g. another member's notification) without marking anything", async () => {
       const { controller, markRead } = makeController();
       markRead.mockRejectedValue(new NotFoundError('Notification'));
 
@@ -103,7 +112,7 @@ describe('NotificationsController', () => {
   });
 
   describe('markAllRead', () => {
-    it('authorizes before marking all read, scoped to the caller\'s own id', async () => {
+    it("authorizes before marking all read, scoped to the caller's own id", async () => {
       const { controller, authorize, markAllRead } = makeController();
 
       await controller.markAllRead(USER, 'project-1');

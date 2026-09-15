@@ -78,7 +78,12 @@ describe('RoomsService', () => {
   describe('dashboard realtime nudges (Phase 5C)', () => {
     it('publishes room.created, scoped to the project the room was created in', async () => {
       prisma.room.findUnique.mockResolvedValue(null);
-      prisma.room.create.mockResolvedValue({ id: 'r1', projectId: 'project1', environment: Environment.DEVELOPMENT, name: 'lobby' });
+      prisma.room.create.mockResolvedValue({
+        id: 'r1',
+        projectId: 'project1',
+        environment: Environment.DEVELOPMENT,
+        name: 'lobby',
+      });
 
       await service.create(DEV, { name: 'lobby' });
 
@@ -107,9 +112,14 @@ describe('RoomsService', () => {
       expect(Object.keys(payload).sort()).toEqual(['environment', 'name', 'roomId', 'type']);
     });
 
-    it('scopes each project\'s room.created to its own channel — no cross-project delivery', async () => {
+    it("scopes each project's room.created to its own channel — no cross-project delivery", async () => {
       prisma.room.findUnique.mockResolvedValue(null);
-      prisma.room.create.mockResolvedValue({ id: 'r2', projectId: 'project2', environment: Environment.DEVELOPMENT, name: 'lobby' });
+      prisma.room.create.mockResolvedValue({
+        id: 'r2',
+        projectId: 'project2',
+        environment: Environment.DEVELOPMENT,
+        name: 'lobby',
+      });
 
       await service.create({ projectId: 'project2', environment: Environment.DEVELOPMENT }, { name: 'lobby' });
 

@@ -102,7 +102,10 @@ export class DashboardWsTokenService {
 
     if (claims.aud !== 'raven-dashboard' || claims.iss !== 'raven') {
       // A dashboard session JWT, a chat token, or an RTC token lands here.
-      throw new DashboardWsError(DashboardWsErrorCode.INVALID_TOKEN, 'This token was not issued for the dashboard realtime transport');
+      throw new DashboardWsError(
+        DashboardWsErrorCode.INVALID_TOKEN,
+        'This token was not issued for the dashboard realtime transport',
+      );
     }
     if (claims.exp * 1000 <= Date.now()) {
       throw new DashboardWsError(DashboardWsErrorCode.TOKEN_EXPIRED, 'Dashboard WS token has expired — mint a new one');

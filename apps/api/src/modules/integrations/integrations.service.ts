@@ -69,16 +69,18 @@ export class IntegrationsService {
       update: { language: dto.language, framework: dto.framework },
     });
 
-    void this.activityEvents.record({
-      eventType: ActivityEventType.INTEGRATION_STACK_SELECTED,
-      actorType: ActivityActorType.USER,
-      actorId: userId,
-      developerId: project.ownerId,
-      projectId: project.id,
-      resourceType: 'integration',
-      resourceId: product,
-      metadata: { product, language: dto.language, framework: dto.framework },
-    }).catch(() => undefined); // Never blocks the wizard on a logging failure.
+    void this.activityEvents
+      .record({
+        eventType: ActivityEventType.INTEGRATION_STACK_SELECTED,
+        actorType: ActivityActorType.USER,
+        actorId: userId,
+        developerId: project.ownerId,
+        projectId: project.id,
+        resourceType: 'integration',
+        resourceId: product,
+        metadata: { product, language: dto.language, framework: dto.framework },
+      })
+      .catch(() => undefined); // Never blocks the wizard on a logging failure.
 
     return row;
   }
@@ -112,7 +114,12 @@ export class IntegrationsService {
       checks.push(
         diagnostics.dependencies.signaling === 'up'
           ? { id: 'signaling', label: 'Chat gateway', status: 'pass' }
-          : { id: 'signaling', label: 'Chat gateway', status: 'fail', detail: 'The chat/signaling gateway is unreachable.' },
+          : {
+              id: 'signaling',
+              label: 'Chat gateway',
+              status: 'fail',
+              detail: 'The chat/signaling gateway is unreachable.',
+            },
       );
     } else {
       checks.push(
@@ -141,28 +148,34 @@ export class IntegrationsService {
       })
       .catch(() => undefined); // No row yet (verified before selecting) — the check result still returns; nothing to persist against.
 
-    void this.activityEvents.record({
-      eventType: ActivityEventType.INTEGRATION_CONNECTION_TESTED,
-      actorType: ActivityActorType.USER,
-      actorId: userId,
-      developerId: project.ownerId,
-      projectId: project.id,
-      resourceType: 'integration',
-      resourceId: product,
-      success,
-      metadata: { product, checks },
-    }).catch(() => undefined);
-    void this.activityEvents.record({
-      eventType: success ? ActivityEventType.INTEGRATION_CONNECTION_SUCCEEDED : ActivityEventType.INTEGRATION_CONNECTION_FAILED,
-      actorType: ActivityActorType.USER,
-      actorId: userId,
-      developerId: project.ownerId,
-      projectId: project.id,
-      resourceType: 'integration',
-      resourceId: product,
-      success,
-      metadata: { product },
-    }).catch(() => undefined);
+    void this.activityEvents
+      .record({
+        eventType: ActivityEventType.INTEGRATION_CONNECTION_TESTED,
+        actorType: ActivityActorType.USER,
+        actorId: userId,
+        developerId: project.ownerId,
+        projectId: project.id,
+        resourceType: 'integration',
+        resourceId: product,
+        success,
+        metadata: { product, checks },
+      })
+      .catch(() => undefined);
+    void this.activityEvents
+      .record({
+        eventType: success
+          ? ActivityEventType.INTEGRATION_CONNECTION_SUCCEEDED
+          : ActivityEventType.INTEGRATION_CONNECTION_FAILED,
+        actorType: ActivityActorType.USER,
+        actorId: userId,
+        developerId: project.ownerId,
+        projectId: project.id,
+        resourceType: 'integration',
+        resourceId: product,
+        success,
+        metadata: { product },
+      })
+      .catch(() => undefined);
 
     return { success, checks };
   }

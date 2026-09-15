@@ -384,10 +384,22 @@ function Pagination({
         Page {formatCount(page)} of {formatCount(totalPages)}
       </span>
       <div className="flex gap-2">
-        <ButtonLink href={prevHref ?? '#'} size="sm" variant="secondary" aria-disabled={!prevHref} className={!prevHref ? 'pointer-events-none opacity-40' : ''}>
+        <ButtonLink
+          href={prevHref ?? '#'}
+          size="sm"
+          variant="secondary"
+          aria-disabled={!prevHref}
+          className={!prevHref ? 'pointer-events-none opacity-40' : ''}
+        >
           Previous
         </ButtonLink>
-        <ButtonLink href={nextHref ?? '#'} size="sm" variant="secondary" aria-disabled={!nextHref} className={!nextHref ? 'pointer-events-none opacity-40' : ''}>
+        <ButtonLink
+          href={nextHref ?? '#'}
+          size="sm"
+          variant="secondary"
+          aria-disabled={!nextHref}
+          className={!nextHref ? 'pointer-events-none opacity-40' : ''}
+        >
           Next
         </ButtonLink>
       </div>

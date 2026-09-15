@@ -80,7 +80,7 @@ describe('getIntegrationEntry — Dart / Flutter', () => {
     }
   });
 
-  it('live-streaming\'s Flutter recipe renders remote/live video and leaves cleanly', () => {
+  it("live-streaming's Flutter recipe renders remote/live video and leaves cleanly", () => {
     const entry = getIntegrationEntry('live-streaming', 'dart', 'flutter');
     if (!isSupported(entry)) throw new Error('expected live-streaming+dart+flutter to be supported');
     const dartFile = entry.files.find((f) => f.language === 'dart');

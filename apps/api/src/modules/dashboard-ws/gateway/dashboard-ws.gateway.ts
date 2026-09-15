@@ -133,13 +133,17 @@ export class DashboardWsGateway implements OnGatewayInit, OnGatewayConnection, O
       claims = await this.tokens.verify(extractToken(request) ?? '');
     } catch (err) {
       const wsError =
-        err instanceof DashboardWsError ? err : new DashboardWsError(DashboardWsErrorCode.INVALID_TOKEN, 'Authentication failed');
+        err instanceof DashboardWsError
+          ? err
+          : new DashboardWsError(DashboardWsErrorCode.INVALID_TOKEN, 'Authentication failed');
       // Never log the token, and never forward a raw verifier message.
       this.logger.warn(`dashboard ws authentication rejected from ${clientIp}: ${wsError.wsCode}`);
       this.rejectConnection(
         socket,
         wsError,
-        wsError.wsCode === DashboardWsErrorCode.TOKEN_EXPIRED ? DASHBOARD_WS_CLOSE_TOKEN_EXPIRED : DASHBOARD_WS_CLOSE_AUTH_FAILED,
+        wsError.wsCode === DashboardWsErrorCode.TOKEN_EXPIRED
+          ? DASHBOARD_WS_CLOSE_TOKEN_EXPIRED
+          : DASHBOARD_WS_CLOSE_AUTH_FAILED,
       );
       return;
     }
@@ -302,7 +306,10 @@ export class DashboardWsGateway implements OnGatewayInit, OnGatewayConnection, O
         this.logger.log(`closing dashboard ws connection ${session.connectionId}: token expired`);
         this.send(
           socket,
-          new DashboardWsError(DashboardWsErrorCode.TOKEN_EXPIRED, 'Dashboard WS token expired — reconnect with a new one').toFrame(),
+          new DashboardWsError(
+            DashboardWsErrorCode.TOKEN_EXPIRED,
+            'Dashboard WS token expired — reconnect with a new one',
+          ).toFrame(),
         );
         await session.unsubscribe();
         this.sessions.delete(socket);

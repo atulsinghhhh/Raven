@@ -79,13 +79,17 @@ function mockFetch(
       return opts.unreadCount ? opts.unreadCount() : Promise.resolve({ ok: true, json: async () => ({ count: 0 }) });
     }
     if (method === 'PATCH' && url.includes('/read')) {
-      return opts.markRead ? opts.markRead() : Promise.resolve({ ok: true, json: async () => notification('n1', { read: true }) });
+      return opts.markRead
+        ? opts.markRead()
+        : Promise.resolve({ ok: true, json: async () => notification('n1', { read: true }) });
     }
     if (method === 'POST' && url.includes('/read-all')) {
       return opts.markAllRead ? opts.markAllRead() : Promise.resolve({ ok: true, status: 204 });
     }
     if (method === 'GET' && url.includes('/notifications')) {
-      return opts.list ? opts.list() : Promise.resolve({ ok: true, json: async () => ({ data: [], nextCursor: null, hasMore: false }) });
+      return opts.list
+        ? opts.list()
+        : Promise.resolve({ ok: true, json: async () => ({ data: [], nextCursor: null, hasMore: false }) });
     }
     return Promise.reject(new Error(`unmocked fetch in test: ${method} ${url}`));
   });
@@ -168,7 +172,10 @@ describe('NotificationsBell', () => {
   });
 
   it('shows the unread count badge and the notification list once loaded', async () => {
-    mockFetch({ list: () => Promise.resolve(listResult([notification('n1')])), unreadCount: () => Promise.resolve(countResult(1)) });
+    mockFetch({
+      list: () => Promise.resolve(listResult([notification('n1')])),
+      unreadCount: () => Promise.resolve(countResult(1)),
+    });
 
     const user = userEvent.setup();
     render(<NotificationsBell projectId="proj-1" />);
@@ -225,7 +232,14 @@ describe('NotificationsBell', () => {
 
   it('defers to handleSessionExpiry when the initial fetch gets a 401, instead of the generic error state', async () => {
     (handleSessionExpiry as jest.Mock).mockReturnValue(true);
-    mockFetch({ list: () => Promise.resolve({ ok: false, status: 401, json: async () => ({ code: 'UNAUTHORIZED', message: 'Not signed in' }) }) });
+    mockFetch({
+      list: () =>
+        Promise.resolve({
+          ok: false,
+          status: 401,
+          json: async () => ({ code: 'UNAUTHORIZED', message: 'Not signed in' }),
+        }),
+    });
 
     render(<NotificationsBell projectId="proj-1" />);
 
@@ -383,7 +397,7 @@ describe('NotificationsBell', () => {
   });
 
   describe('project switching', () => {
-    it('switching projectId clears the previous project\'s state and fetches a fresh snapshot for the new one', async () => {
+    it("switching projectId clears the previous project's state and fetches a fresh snapshot for the new one", async () => {
       mockFetch({
         list: () => Promise.resolve(listResult([notification('n1', { projectId: 'proj-1' })])),
         unreadCount: () => Promise.resolve(countResult(1)),

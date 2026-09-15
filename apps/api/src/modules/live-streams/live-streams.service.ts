@@ -582,7 +582,9 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
     if (updated.deliveryMode === LiveStreamDeliveryMode.BROADCAST) {
       void this.egressControl
         .start(scope, updated)
-        .catch((err) => this.logger.error(`egress start failed for stream ${updated.publicId}: ${(err as Error).message}`));
+        .catch((err) =>
+          this.logger.error(`egress start failed for stream ${updated.publicId}: ${(err as Error).message}`),
+        );
     }
 
     return this.toView(updated, await this.activeHosts(updated.id), true);
@@ -639,7 +641,9 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
     if (updated.deliveryMode === LiveStreamDeliveryMode.BROADCAST) {
       await this.egressControl
         .stop(scope, updated)
-        .catch((err) => this.logger.error(`egress stop failed for stream ${updated.publicId}: ${(err as Error).message}`));
+        .catch((err) =>
+          this.logger.error(`egress stop failed for stream ${updated.publicId}: ${(err as Error).message}`),
+        );
     }
 
     // durationMs is the one number an operator asks for first when a
@@ -1056,7 +1060,9 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
 
     const hosts = await this.activeHosts(stream.id);
     const hostIdentities = new Set(hosts.map((h) => h.identity));
-    const viewerCount = liveParticipants.filter((p) => !hostIdentities.has(p.identity) && !isEgressIdentity(p.identity)).length;
+    const viewerCount = liveParticipants.filter(
+      (p) => !hostIdentities.has(p.identity) && !isEgressIdentity(p.identity),
+    ).length;
 
     if (viewerCount >= maxViewers) {
       throw new LiveStreamViewerLimitExceededError({ maxViewers });
@@ -1090,7 +1096,9 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
         // against the free-tier viewer cap. Same "real participant, never
         // counted as public traffic" precedent ChatActor.internal already
         // sets for the system chat message.
-        viewerCount = liveParticipants.filter((p) => !hostIdentities.has(p.identity) && !isEgressIdentity(p.identity)).length;
+        viewerCount = liveParticipants.filter(
+          (p) => !hostIdentities.has(p.identity) && !isEgressIdentity(p.identity),
+        ).length;
 
         if (viewerCount > peakViewerCount) {
           peakViewerCount = viewerCount;

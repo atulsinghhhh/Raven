@@ -291,9 +291,7 @@ export function WebhooksManager({
                 key={endpoint.publicId}
                 endpoint={endpoint}
                 busy={busyId === endpoint.publicId}
-                onToggleStatus={() =>
-                  void updateStatus(endpoint, endpoint.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE')
-                }
+                onToggleStatus={() => void updateStatus(endpoint, endpoint.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE')}
                 onRemove={() => void remove(endpoint)}
               />
             ))}
@@ -344,8 +342,8 @@ function EndpointRow({
         </p>
         {endpoint.status === 'DISABLED' && (
           <p className="mt-1 text-xs text-danger-text">
-            Livqeno disabled this endpoint after repeated failures. Fix it, then re-enable — re-enabling also clears
-            the failure count.
+            Livqeno disabled this endpoint after repeated failures. Fix it, then re-enable — re-enabling also clears the
+            failure count.
           </p>
         )}
       </div>

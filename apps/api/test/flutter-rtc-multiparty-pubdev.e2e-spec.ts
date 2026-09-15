@@ -38,16 +38,7 @@ import { collectPageDiagnostics, waitForPage } from './helpers/page-diagnostics'
  */
 jest.setTimeout(180_000);
 
-const VIDEO_WEB_DIR = join(
-  __dirname,
-  '..',
-  '..',
-  '..',
-  'flutter_check',
-  'published_consumer',
-  'build',
-  'web_video',
-);
+const VIDEO_WEB_DIR = join(__dirname, '..', '..', '..', 'flutter_check', 'published_consumer', 'build', 'web_video');
 
 const MIME: Record<string, string> = {
   '.html': 'text/html',
@@ -218,7 +209,7 @@ describe('raven_rtc (published pub.dev package) — Flutter-to-Flutter multipart
 
   it(
     'alice publishes, bob joins and publishes into the live room, carol joins mid-call as a viewer — ' +
-      'every participant must see every other publisher\'s camera as live',
+      "every participant must see every other publisher's camera as live",
     async () => {
       let aliceCtx: BrowserContext | undefined;
       let bobCtx: BrowserContext | undefined;
@@ -230,8 +221,16 @@ describe('raven_rtc (published pub.dev package) — Flutter-to-Flutter multipart
         const alicePage = await aliceCtx.newPage();
         const aliceLog = collectPageDiagnostics(alicePage, 'alice');
 
-        await alicePage.goto(flutterAppUrl(videoUrlBase, { roomId, publish: true, creds: aliceCreds, endpoint: signalingEndpoint }));
-        await waitForPage(alicePage, () => (window as unknown as { __state?: { ready?: boolean } }).__state?.ready === true, aliceLog, 'alice to report ready', 60_000);
+        await alicePage.goto(
+          flutterAppUrl(videoUrlBase, { roomId, publish: true, creds: aliceCreds, endpoint: signalingEndpoint }),
+        );
+        await waitForPage(
+          alicePage,
+          () => (window as unknown as { __state?: { ready?: boolean } }).__state?.ready === true,
+          aliceLog,
+          'alice to report ready',
+          60_000,
+        );
 
         const aliceReady = await readState(alicePage);
         console.log('[test] alice state at ready:', JSON.stringify(aliceReady));
@@ -245,8 +244,16 @@ describe('raven_rtc (published pub.dev package) — Flutter-to-Flutter multipart
         const bobPage = await bobCtx.newPage();
         const bobLog = collectPageDiagnostics(bobPage, 'bob');
 
-        await bobPage.goto(flutterAppUrl(videoUrlBase, { roomId, publish: true, creds: bobCreds, endpoint: signalingEndpoint }));
-        await waitForPage(bobPage, () => (window as unknown as { __state?: { ready?: boolean } }).__state?.ready === true, bobLog, 'bob to report ready', 60_000);
+        await bobPage.goto(
+          flutterAppUrl(videoUrlBase, { roomId, publish: true, creds: bobCreds, endpoint: signalingEndpoint }),
+        );
+        await waitForPage(
+          bobPage,
+          () => (window as unknown as { __state?: { ready?: boolean } }).__state?.ready === true,
+          bobLog,
+          'bob to report ready',
+          60_000,
+        );
 
         const bobReady = await readState(bobPage);
         console.log('[test] bob state at ready:', JSON.stringify(bobReady));
@@ -259,8 +266,8 @@ describe('raven_rtc (published pub.dev package) — Flutter-to-Flutter multipart
         await waitForPage(
           bobPage,
           () => {
-            const sources = (window as unknown as { __state: { remoteLiveSources?: Record<string, string[]> } })
-              .__state.remoteLiveSources;
+            const sources = (window as unknown as { __state: { remoteLiveSources?: Record<string, string[]> } }).__state
+              .remoteLiveSources;
             return !!sources?.['alice']?.includes('camera');
           },
           () => `${bobLog()}\n\n${aliceLog()}`,
@@ -275,8 +282,8 @@ describe('raven_rtc (published pub.dev package) — Flutter-to-Flutter multipart
         await waitForPage(
           alicePage,
           () => {
-            const sources = (window as unknown as { __state: { remoteLiveSources?: Record<string, string[]> } })
-              .__state.remoteLiveSources;
+            const sources = (window as unknown as { __state: { remoteLiveSources?: Record<string, string[]> } }).__state
+              .remoteLiveSources;
             return !!sources?.['bob']?.includes('camera');
           },
           () => `${aliceLog()}\n\n${bobLog()}`,
@@ -292,8 +299,16 @@ describe('raven_rtc (published pub.dev package) — Flutter-to-Flutter multipart
         const carolPage = await carolCtx.newPage();
         const carolLog = collectPageDiagnostics(carolPage, 'carol');
 
-        await carolPage.goto(flutterAppUrl(videoUrlBase, { roomId, publish: false, creds: carolCreds, endpoint: signalingEndpoint }));
-        await waitForPage(carolPage, () => (window as unknown as { __state?: { ready?: boolean } }).__state?.ready === true, carolLog, 'carol to report ready', 60_000);
+        await carolPage.goto(
+          flutterAppUrl(videoUrlBase, { roomId, publish: false, creds: carolCreds, endpoint: signalingEndpoint }),
+        );
+        await waitForPage(
+          carolPage,
+          () => (window as unknown as { __state?: { ready?: boolean } }).__state?.ready === true,
+          carolLog,
+          'carol to report ready',
+          60_000,
+        );
 
         const carolReady = await readState(carolPage);
         console.log('[test] carol state at ready:', JSON.stringify(carolReady));
@@ -302,8 +317,8 @@ describe('raven_rtc (published pub.dev package) — Flutter-to-Flutter multipart
         await waitForPage(
           carolPage,
           () => {
-            const sources = (window as unknown as { __state: { remoteLiveSources?: Record<string, string[]> } })
-              .__state.remoteLiveSources;
+            const sources = (window as unknown as { __state: { remoteLiveSources?: Record<string, string[]> } }).__state
+              .remoteLiveSources;
             return !!sources?.['alice']?.includes('camera') && !!sources?.['bob']?.includes('camera');
           },
           () => `${carolLog()}\n\n${aliceLog()}\n\n${bobLog()}`,

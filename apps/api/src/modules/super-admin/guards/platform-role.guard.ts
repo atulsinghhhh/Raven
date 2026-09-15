@@ -61,7 +61,11 @@ export class PlatformRoleGuard implements CanActivate {
       throw new ForbiddenException('Your platform role does not permit this action');
     }
 
-    const platformAdmin: AuthenticatedPlatformAdmin = { id: user.id, email: user.email, platformRole: user.platformRole };
+    const platformAdmin: AuthenticatedPlatformAdmin = {
+      id: user.id,
+      email: user.email,
+      platformRole: user.platformRole,
+    };
     request.platformAdmin = platformAdmin;
     return true;
   }

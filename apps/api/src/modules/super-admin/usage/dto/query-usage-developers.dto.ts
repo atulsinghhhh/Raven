@@ -22,7 +22,9 @@ export class QueryUsageDevelopersDto {
       'Only include developers with at least one product at or above 90% of its allowance (the same flag the row itself carries).',
   })
   @IsOptional()
-  @Transform(({ value }) => (value === true || value === 'true' ? true : value === false || value === 'false' ? false : value))
+  @Transform(({ value }) =>
+    value === true || value === 'true' ? true : value === false || value === 'false' ? false : value,
+  )
   @IsBoolean()
   atRisk?: boolean;
 

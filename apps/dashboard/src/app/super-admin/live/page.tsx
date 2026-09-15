@@ -121,10 +121,7 @@ export default async function SuperAdminLivePage({
       </div>
 
       <section>
-        <SectionHeader
-          title="All streams"
-          subtitle={`${formatCount(page.total)} total, newest first.`}
-        />
+        <SectionHeader title="All streams" subtitle={`${formatCount(page.total)} total, newest first.`} />
 
         <form method="get" className="mb-3 flex flex-wrap items-end gap-2">
           <Select id="status" name="status" label="Status" defaultValue={status ?? ''} className="w-44">
@@ -229,8 +226,7 @@ export default async function SuperAdminLivePage({
 
             <div className="mt-3 flex items-center justify-between gap-3">
               <span className="text-xs text-muted">
-                Showing {formatCount(offset + 1)}–{formatCount(offset + page.items.length)} of{' '}
-                {formatCount(page.total)}
+                Showing {formatCount(offset + 1)}–{formatCount(offset + page.items.length)} of {formatCount(page.total)}
               </span>
               <div className="flex gap-2">
                 <ButtonLink

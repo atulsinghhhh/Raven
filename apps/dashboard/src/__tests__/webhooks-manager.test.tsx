@@ -84,7 +84,9 @@ function mockFetch(webhooks?: () => Promise<{ ok: boolean; status?: number; json
 }
 
 function webhooksFetchCalls(mock: jest.Mock) {
-  return mock.mock.calls.filter(([url]) => String(url).includes('/webhooks') && !String(url).includes('dashboard-ws-token'));
+  return mock.mock.calls.filter(
+    ([url]) => String(url).includes('/webhooks') && !String(url).includes('dashboard-ws-token'),
+  );
 }
 
 function renderWithSocket(props: Partial<React.ComponentProps<typeof WebhooksManager>> = {}) {
@@ -231,7 +233,8 @@ describe('WebhooksManager', () => {
     it('creating an endpoint still shows the signing secret once and prepends the new row', async () => {
       const fetchMock = jest.fn((input: RequestInfo | URL) => {
         const url = String(input);
-        if (url.includes('/dashboard-ws-token')) return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
+        if (url.includes('/dashboard-ws-token'))
+          return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
         if (url.includes('/webhooks') && !url.includes('whe_')) {
           return Promise.resolve({
             ok: true,
@@ -257,7 +260,8 @@ describe('WebhooksManager', () => {
       mockFetch();
       const patchMock = jest.fn((input: RequestInfo | URL) => {
         const url = String(input);
-        if (url.includes('/dashboard-ws-token')) return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
+        if (url.includes('/dashboard-ws-token'))
+          return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
         if (url.includes('/webhooks/whe_1')) {
           return Promise.resolve({ ok: true, json: async () => endpoint('whe_1', { status: 'DISABLED' }) });
         }
@@ -277,7 +281,8 @@ describe('WebhooksManager', () => {
     it('delete still works and removes the row, with its own toast', async () => {
       const deleteMock = jest.fn((input: RequestInfo | URL) => {
         const url = String(input);
-        if (url.includes('/dashboard-ws-token')) return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
+        if (url.includes('/dashboard-ws-token'))
+          return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
         if (url.includes('/webhooks/whe_1')) return Promise.resolve({ ok: true, status: 204 });
         return Promise.reject(new Error(`unmocked: ${url}`));
       });
@@ -288,7 +293,9 @@ describe('WebhooksManager', () => {
 
       await user.click(screen.getByRole('button', { name: 'Delete' }));
       // First click only reveals the restated-consequence confirm row.
-      expect(screen.getByText(/Delete the webhook endpoint for .*\? It stops receiving events immediately\./)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Delete the webhook endpoint for .*\? It stops receiving events immediately\./),
+      ).toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: 'Confirm delete' }));
 
       await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Webhook endpoint removed'));
@@ -298,9 +305,14 @@ describe('WebhooksManager', () => {
     it('a failed status-toggle request still shows the existing error toast, unaffected by realtime', async () => {
       const failMock = jest.fn((input: RequestInfo | URL) => {
         const url = String(input);
-        if (url.includes('/dashboard-ws-token')) return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
+        if (url.includes('/dashboard-ws-token'))
+          return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
         if (url.includes('/webhooks/whe_1')) {
-          return Promise.resolve({ ok: false, status: 502, json: async () => ({ message: 'Could not update the webhook endpoint' }) });
+          return Promise.resolve({
+            ok: false,
+            status: 502,
+            json: async () => ({ message: 'Could not update the webhook endpoint' }),
+          });
         }
         return Promise.reject(new Error(`unmocked: ${url}`));
       });
@@ -323,7 +335,8 @@ describe('WebhooksManager', () => {
     it('a failed create shows both the inline error and a toast (Phase 6A: consistent with the other two mutations here)', async () => {
       const fetchMock = jest.fn((input: RequestInfo | URL) => {
         const url = String(input);
-        if (url.includes('/dashboard-ws-token')) return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
+        if (url.includes('/dashboard-ws-token'))
+          return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
         if (url.includes('/webhooks') && !url.includes('whe_')) {
           return Promise.resolve({
             ok: false,
@@ -362,9 +375,14 @@ describe('WebhooksManager', () => {
     it('a failed delete leaves the row in place and shows the error toast', async () => {
       const failMock = jest.fn((input: RequestInfo | URL) => {
         const url = String(input);
-        if (url.includes('/dashboard-ws-token')) return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
+        if (url.includes('/dashboard-ws-token'))
+          return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
         if (url.includes('/webhooks/whe_1')) {
-          return Promise.resolve({ ok: false, status: 500, json: async () => ({ message: 'Could not remove the webhook endpoint' }) });
+          return Promise.resolve({
+            ok: false,
+            status: 500,
+            json: async () => ({ message: 'Could not remove the webhook endpoint' }),
+          });
         }
         return Promise.reject(new Error(`unmocked: ${url}`));
       });
@@ -384,9 +402,14 @@ describe('WebhooksManager', () => {
       (handleSessionExpiry as jest.Mock).mockReturnValue(true);
       const failMock = jest.fn((input: RequestInfo | URL) => {
         const url = String(input);
-        if (url.includes('/dashboard-ws-token')) return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
+        if (url.includes('/dashboard-ws-token'))
+          return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
         if (url.includes('/webhooks/whe_1')) {
-          return Promise.resolve({ ok: false, status: 401, json: async () => ({ code: 'UNAUTHORIZED', message: 'Not signed in' }) });
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({ code: 'UNAUTHORIZED', message: 'Not signed in' }),
+          });
         }
         return Promise.reject(new Error(`unmocked: ${url}`));
       });

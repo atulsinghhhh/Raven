@@ -108,10 +108,7 @@ describe('ProjectSwitcher', () => {
     await openSwitcher();
 
     expect(screen.getByRole('menuitem', { name: 'All projects' })).toHaveAttribute('href', '/dashboard/projects');
-    expect(screen.getByRole('menuitem', { name: 'New project' })).toHaveAttribute(
-      'href',
-      '/dashboard/projects?new=1',
-    );
+    expect(screen.getByRole('menuitem', { name: 'New project' })).toHaveAttribute('href', '/dashboard/projects?new=1');
     expect(screen.getByRole('menuitem', { name: 'Project settings' })).toHaveAttribute(
       'href',
       '/dashboard/projects/proj_1/settings',

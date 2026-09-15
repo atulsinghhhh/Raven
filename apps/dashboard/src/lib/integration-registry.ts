@@ -500,7 +500,11 @@ const RTC_ENTRIES: IntegrationEntry[] = [
     env: { client: [], server: SERVER_ENV },
     files: [
       { ...RTC_SERVER_FILE('server/raven.ts'), path: 'server/raven.ts' },
-      { ...RTC_NEXTJS_ROUTE, path: 'server/routes/rtc-token.ts', code: RTC_NEXTJS_ROUTE.code.replace('@/lib/raven', '../raven') },
+      {
+        ...RTC_NEXTJS_ROUTE,
+        path: 'server/routes/rtc-token.ts',
+        code: RTC_NEXTJS_ROUTE.code.replace('@/lib/raven', '../raven'),
+      },
       RTC_REACT_CLIENT,
     ],
     runCommand: 'npm run dev   # Vite dev server — run your Node backend separately',
@@ -539,7 +543,8 @@ const RTC_ENTRIES: IntegrationEntry[] = [
     install: flutterInstallCommand(['raven_rtc']),
     env: { client: [], server: SERVER_ENV },
     files: [RTC_SERVER_FILE('server.js'), RTC_FLUTTER_CLIENT],
-    runCommand: 'flutter run --dart-define=RAVEN_BACKEND_URL=http://<your-lan-ip>:3000   # backend runs separately, e.g. node server.js',
+    runCommand:
+      'flutter run --dart-define=RAVEN_BACKEND_URL=http://<your-lan-ip>:3000   # backend runs separately, e.g. node server.js',
     checks: RTC_CHECKS,
     source:
       'sdks/flutter/raven_rtc/lib/src/raven.dart (Raven, join, enableCamera/enableMicrophone) + lib/src/video_view.dart (RavenVideoView) + examples/flutter-rtc-chat/lib/main.dart',
@@ -782,7 +787,11 @@ const CHAT_ENTRIES: IntegrationEntry[] = [
     env: { client: [], server: SERVER_ENV },
     files: [
       { ...CHAT_SERVER_FILE('server/raven-chat.ts') },
-      { ...CHAT_NEXTJS_ROUTE, path: 'server/routes/chat-token.ts', code: CHAT_NEXTJS_ROUTE.code.replace('@/lib/raven-chat', '../raven-chat') },
+      {
+        ...CHAT_NEXTJS_ROUTE,
+        path: 'server/routes/chat-token.ts',
+        code: CHAT_NEXTJS_ROUTE.code.replace('@/lib/raven-chat', '../raven-chat'),
+      },
       CHAT_REACT_HOOKS_CLIENT('src/ChatPanel.tsx'),
     ],
     runCommand: 'npm run dev   # Vite dev server — run your Node backend separately',
@@ -821,9 +830,11 @@ const CHAT_ENTRIES: IntegrationEntry[] = [
     install: flutterInstallCommand(['raven_chat']),
     env: { client: [], server: SERVER_ENV },
     files: [CHAT_SERVER_FILE('server.js'), CHAT_FLUTTER_CLIENT],
-    runCommand: 'flutter run --dart-define=RAVEN_BACKEND_URL=http://<your-lan-ip>:3000   # backend runs separately, e.g. node server.js',
+    runCommand:
+      'flutter run --dart-define=RAVEN_BACKEND_URL=http://<your-lan-ip>:3000   # backend runs separately, e.g. node server.js',
     checks: CHAT_CHECKS,
-    source: 'sdks/flutter/raven_chat/lib/src/chat_client.dart (RavenChat, connect, send, messages) + examples/flutter-rtc-chat/lib/main.dart',
+    source:
+      'sdks/flutter/raven_chat/lib/src/chat_client.dart (RavenChat, connect, send, messages) + examples/flutter-rtc-chat/lib/main.dart',
   },
 ];
 
@@ -1062,7 +1073,8 @@ const LIVE_ENTRIES: IntegrationEntry[] = [
     files: [LIVE_SERVER_FILE('lib/raven-live.ts'), ...LIVE_NEXTJS_ROUTES, LIVE_CLIENT('app/live/page.tsx')],
     runCommand: 'npm run dev',
     checks: LIVE_CHECKS,
-    source: 'packages/server-sdk/src/resources/live-streams.ts + packages/client/src/live/live-stream.ts (LiveStream.join)',
+    source:
+      'packages/server-sdk/src/resources/live-streams.ts + packages/client/src/live/live-stream.ts (LiveStream.join)',
   },
   {
     product: 'live-streaming',
@@ -1071,13 +1083,11 @@ const LIVE_ENTRIES: IntegrationEntry[] = [
     packages: { server: '@ravenkash/server', client: '@ravenkash/client' },
     install: installCommands(['@ravenkash/client']),
     env: { client: [], server: SERVER_ENV },
-    files: [
-      { ...LIVE_SERVER_FILE('server/raven-live.ts') },
-      LIVE_CLIENT('src/live.ts'),
-    ],
+    files: [{ ...LIVE_SERVER_FILE('server/raven-live.ts') }, LIVE_CLIENT('src/live.ts')],
     runCommand: 'npm run dev   # Vite dev server — run your Node backend separately',
     checks: LIVE_CHECKS,
-    source: 'packages/client/src/live/live-stream.ts — no dedicated React hook exists yet, so this uses the same real client class directly',
+    source:
+      'packages/client/src/live/live-stream.ts — no dedicated React hook exists yet, so this uses the same real client class directly',
   },
   {
     product: 'live-streaming',
@@ -1116,7 +1126,8 @@ const LIVE_ENTRIES: IntegrationEntry[] = [
     install: flutterInstallCommand(['raven_live', 'raven_rtc']),
     env: { client: [], server: SERVER_ENV },
     files: [LIVE_SERVER_FILE('server.js'), LIVE_FLUTTER_CLIENT],
-    runCommand: 'flutter run --dart-define=RAVEN_BACKEND_URL=http://<your-lan-ip>:3000   # backend runs separately, e.g. node server.js',
+    runCommand:
+      'flutter run --dart-define=RAVEN_BACKEND_URL=http://<your-lan-ip>:3000   # backend runs separately, e.g. node server.js',
     checks: LIVE_CHECKS,
     source:
       'sdks/flutter/raven_live/lib/src/live_stream.dart (RavenLiveStream.join/.isHost/.room/.leave) + ' +

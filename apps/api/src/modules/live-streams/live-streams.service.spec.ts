@@ -524,14 +524,17 @@ describe('LiveStreamsService', () => {
       expect(Object.keys(payload).sort()).toEqual(['streamId', 'type']);
     });
 
-    it('publishes to the starting stream\'s own project, not some other one', async () => {
+    it("publishes to the starting stream's own project, not some other one", async () => {
       prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.CREATED, projectId: 'p2' }));
       prisma.liveStream.update.mockResolvedValue(baseStream({ status: LiveStreamStatus.LIVE, projectId: 'p2' }));
       prisma.liveStreamHost.findMany.mockResolvedValue([]);
 
       await service.start(OTHER_PROJECT_SCOPE, 'stream_abc123');
 
-      expect(dashboardEvents.publish).toHaveBeenCalledWith('p2', expect.objectContaining({ type: 'live_stream.started' }));
+      expect(dashboardEvents.publish).toHaveBeenCalledWith(
+        'p2',
+        expect.objectContaining({ type: 'live_stream.started' }),
+      );
       expect(dashboardEvents.publish).not.toHaveBeenCalledWith('p1', expect.anything());
     });
 
@@ -574,9 +577,13 @@ describe('LiveStreamsService', () => {
         status: LiveStreamStatus.LIVE,
         startedAt: new Date('2020-01-01T00:00:00.000Z'),
       });
-      prisma.liveStream.findMany.mockResolvedValue([{ id: 'stream-2', projectId: 'p1', environment: Environment.DEVELOPMENT }]);
+      prisma.liveStream.findMany.mockResolvedValue([
+        { id: 'stream-2', projectId: 'p1', environment: Environment.DEVELOPMENT },
+      ]);
       prisma.liveStream.findUnique.mockResolvedValue(overdue);
-      prisma.liveStream.update.mockResolvedValue(baseStream({ status: LiveStreamStatus.ENDED, publicId: 'stream_overdue' }));
+      prisma.liveStream.update.mockResolvedValue(
+        baseStream({ status: LiveStreamStatus.ENDED, publicId: 'stream_overdue' }),
+      );
       prisma.liveStreamHost.findMany.mockResolvedValue([]);
 
       await service.reapOverdueStreams();
@@ -590,7 +597,9 @@ describe('LiveStreamsService', () => {
 
   describe('persistent notifications (Phase 5F)', () => {
     it('start() persists a LIVE_STREAM_STARTED notification, deduped per stream', async () => {
-      prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.CREATED, title: 'Launch Day' }));
+      prisma.liveStream.findUnique.mockResolvedValue(
+        baseStream({ status: LiveStreamStatus.CREATED, title: 'Launch Day' }),
+      );
       prisma.liveStream.update.mockResolvedValue(baseStream({ status: LiveStreamStatus.LIVE, title: 'Launch Day' }));
       prisma.liveStreamHost.findMany.mockResolvedValue([]);
 
@@ -610,7 +619,11 @@ describe('LiveStreamsService', () => {
 
     it('end() persists a LIVE_STREAM_ENDED notification, deduped per stream', async () => {
       prisma.liveStream.findUnique.mockResolvedValue(
-        baseStream({ status: LiveStreamStatus.LIVE, startedAt: new Date('2026-01-01T00:00:00.000Z'), title: 'Launch Day' }),
+        baseStream({
+          status: LiveStreamStatus.LIVE,
+          startedAt: new Date('2026-01-01T00:00:00.000Z'),
+          title: 'Launch Day',
+        }),
       );
       prisma.liveStream.update.mockResolvedValue(baseStream({ status: LiveStreamStatus.ENDED, title: 'Launch Day' }));
       prisma.liveStreamHost.findMany.mockResolvedValue([]);
@@ -635,7 +648,11 @@ describe('LiveStreamsService', () => {
     it('does not persist a notification for host/viewer credential events', async () => {
       prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.CREATED }));
       prisma.liveStreamHost.findUnique.mockResolvedValue(null);
-      prisma.liveStreamHost.create.mockResolvedValue({ id: 'host-1', role: LiveStreamHostRole.CO_HOST, invitedAt: new Date() });
+      prisma.liveStreamHost.create.mockResolvedValue({
+        id: 'host-1',
+        role: LiveStreamHostRole.CO_HOST,
+        invitedAt: new Date(),
+      });
 
       await service.addHost(SCOPE, 'stream_abc123', { identity: 'bob' });
 
@@ -1185,10 +1202,8 @@ describe('LiveStreamsService', () => {
       expect(prisma.liveStream.update).not.toHaveBeenCalled();
     });
 
-    it('excludes the egress worker\'s reserved identity from the viewer count', async () => {
-      prisma.liveStream.findUnique.mockResolvedValue(
-        baseStream({ deliveryMode: LiveStreamDeliveryMode.BROADCAST }),
-      );
+    it("excludes the egress worker's reserved identity from the viewer count", async () => {
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream({ deliveryMode: LiveStreamDeliveryMode.BROADCAST }));
       prisma.liveStreamHost.findMany.mockResolvedValue([]);
       prisma.liveStreamEgress.findUnique.mockResolvedValue(null);
       prisma.room.findUnique.mockResolvedValue({ name: 'stream_abc123' });
@@ -1276,9 +1291,7 @@ describe('LiveStreamsService', () => {
     });
 
     it('createViewerToken() refuses a BROADCAST stream instead of minting an RTC viewer credential', async () => {
-      prisma.liveStream.findUnique.mockResolvedValue(
-        baseStream({ deliveryMode: LiveStreamDeliveryMode.BROADCAST }),
-      );
+      prisma.liveStream.findUnique.mockResolvedValue(baseStream({ deliveryMode: LiveStreamDeliveryMode.BROADCAST }));
 
       await expect(service.createViewerToken(SCOPE, 'stream_abc123', 'dave')).rejects.toMatchObject({
         code: RavenErrorCode.STREAM_DELIVERY_MODE_MISMATCH,
@@ -1304,7 +1317,11 @@ describe('LiveStreamsService', () => {
 
         const delivery = await service.getPlaybackInfo(SCOPE, 'stream_abc123');
 
-        expect(delivery).toEqual({ mode: LiveStreamDeliveryMode.RTC_ONLY, status: 'NOT_APPLICABLE', playbackUrl: null });
+        expect(delivery).toEqual({
+          mode: LiveStreamDeliveryMode.RTC_ONLY,
+          status: 'NOT_APPLICABLE',
+          playbackUrl: null,
+        });
         expect(prisma.liveStreamEgress.findUnique).not.toHaveBeenCalled();
       });
 

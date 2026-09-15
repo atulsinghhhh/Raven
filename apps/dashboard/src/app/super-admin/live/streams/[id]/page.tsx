@@ -90,13 +90,21 @@ export default async function SuperAdminLiveStreamDetailPage({ params }: { param
       </Card>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <StatCard label="Peak viewers" value={formatCount(stream.peakViewerCount)} hint="Highest recorded, this stream" />
+        <StatCard
+          label="Peak viewers"
+          value={formatCount(stream.peakViewerCount)}
+          hint="Highest recorded, this stream"
+        />
         <StatCard
           label="Duration"
           value={durationMs === null ? <Dash /> : formatDuration(durationMs)}
           hint={durationMs === null ? 'Stream has not ended' : 'Started to ended'}
         />
-        <StatCard label="Hosts" value={formatCount(activeHostCount)} hint={`${formatCount(stream.hosts.length)} total, including removed`} />
+        <StatCard
+          label="Hosts"
+          value={formatCount(activeHostCount)}
+          hint={`${formatCount(stream.hosts.length)} total, including removed`}
+        />
       </div>
 
       <section>
@@ -123,7 +131,9 @@ export default async function SuperAdminLiveStreamDetailPage({ params }: { param
                           <span className="font-mono text-xs text-fg">{host.identity}</span>
                         </TD>
                         <TD>
-                          <Badge tone={host.role === 'HOST' ? 'accent' : 'neutral'}>{host.role.replace('_', '-')}</Badge>
+                          <Badge tone={host.role === 'HOST' ? 'accent' : 'neutral'}>
+                            {host.role.replace('_', '-')}
+                          </Badge>
                         </TD>
                         <TD>
                           <span className="tabular text-xs text-muted">{formatDateTime(host.invitedAt)}</span>
@@ -150,7 +160,9 @@ export default async function SuperAdminLiveStreamDetailPage({ params }: { param
                       <Badge tone={host.role === 'HOST' ? 'accent' : 'neutral'}>{host.role.replace('_', '-')}</Badge>
                     </div>
                     <MobileField label="Invited">{formatDateTime(host.invitedAt)}</MobileField>
-                    <MobileField label="Removed">{host.removedAt ? formatDateTime(host.removedAt) : <Dash />}</MobileField>
+                    <MobileField label="Removed">
+                      {host.removedAt ? formatDateTime(host.removedAt) : <Dash />}
+                    </MobileField>
                   </MobileRow>
                 ))}
               </MobileList>

@@ -288,7 +288,8 @@ describe('raven_live + raven_rtc (published pub.dev packages) — Flutter host t
 
         await waitForPage(
           viewerPage,
-          () => (window as unknown as { __state: { connectionState?: string } }).__state.connectionState === 'connected',
+          () =>
+            (window as unknown as { __state: { connectionState?: string } }).__state.connectionState === 'connected',
           () => `${viewerLog()}\n\n${hostLog()}`,
           "the browser viewer's connectionState to reach 'connected'",
         );
@@ -371,7 +372,9 @@ describe('raven_live + raven_rtc (published pub.dev packages) — Flutter host t
         'the browser host harness to become ready',
       );
       expect(
-        await hostPage.evaluate(() => (window as unknown as { __state: { connectionState: string } }).__state.connectionState),
+        await hostPage.evaluate(
+          () => (window as unknown as { __state: { connectionState: string } }).__state.connectionState,
+        ),
       ).toBe('connected');
 
       const viewerCreds = await createViewerToken(streamId, 'dave');
@@ -398,8 +401,8 @@ describe('raven_live + raven_rtc (published pub.dev packages) — Flutter host t
       await waitForPage(
         viewerPage,
         () => {
-          const sources = (window as unknown as { __state: { remoteLiveSources?: Record<string, string[]> } })
-            .__state.remoteLiveSources;
+          const sources = (window as unknown as { __state: { remoteLiveSources?: Record<string, string[]> } }).__state
+            .remoteLiveSources;
           return !!sources && Object.values(sources).some((kinds) => kinds.includes('camera'));
         },
         () => `${viewerLog()}\n\n${hostLog()}`,

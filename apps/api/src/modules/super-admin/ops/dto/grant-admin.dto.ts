@@ -17,7 +17,10 @@ export class GrantAdminDto {
   @IsEnum(PlatformRole)
   platformRole!: PlatformRole;
 
-  @ApiProperty({ description: 'Why this admin is being granted platform access. Required — this is the most sensitive action in the portal.' })
+  @ApiProperty({
+    description:
+      'Why this admin is being granted platform access. Required — this is the most sensitive action in the portal.',
+  })
   @IsString()
   @MinLength(3)
   @MaxLength(500)

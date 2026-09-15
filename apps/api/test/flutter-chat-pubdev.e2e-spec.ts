@@ -220,9 +220,9 @@ describe('raven_chat (published pub.dev package) — two real Flutter Web client
           () => (window as unknown as { __state?: { ready?: boolean } }).__state?.ready === true,
           'bob to report ready',
         );
-        expect(
-          await alicePage.evaluate(() => (window as unknown as { __state: State }).__state.connectionState),
-        ).toBe('connected');
+        expect(await alicePage.evaluate(() => (window as unknown as { __state: State }).__state.connectionState)).toBe(
+          'connected',
+        );
         expect(await bobPage.evaluate(() => (window as unknown as { __state: State }).__state.connectionState)).toBe(
           'connected',
         );
@@ -265,8 +265,9 @@ describe('raven_chat (published pub.dev package) — two real Flutter Web client
         await waitFor(
           bobPage,
           () => {
-            const events = (window as unknown as { __state?: { typingEvents?: { userId?: string; isTyping?: boolean }[] } })
-              .__state?.typingEvents;
+            const events = (
+              window as unknown as { __state?: { typingEvents?: { userId?: string; isTyping?: boolean }[] } }
+            ).__state?.typingEvents;
             return !!events?.some((e) => e.userId === 'alice' && e.isTyping === true);
           },
           "bob to see alice's typing indicator",
@@ -284,8 +285,9 @@ describe('raven_chat (published pub.dev package) — two real Flutter Web client
         await waitFor(
           bobPage,
           () => {
-            const events = (window as unknown as { __state?: { presenceEvents?: { userId?: string; status?: string }[] } })
-              .__state?.presenceEvents;
+            const events = (
+              window as unknown as { __state?: { presenceEvents?: { userId?: string; status?: string }[] } }
+            ).__state?.presenceEvents;
             return !!events?.some((e) => e.userId === 'alice' && e.status === 'away');
           },
           "bob to see alice's presence update",
@@ -293,14 +295,18 @@ describe('raven_chat (published pub.dev package) — two real Flutter Web client
 
         // --- reactions ---
         await bobPage.evaluate(
-          ({ id, emoji }) => (window as unknown as { __doAddReaction: (i: string, e: string) => void }).__doAddReaction(id, emoji),
+          ({ id, emoji }) =>
+            (window as unknown as { __doAddReaction: (i: string, e: string) => void }).__doAddReaction(id, emoji),
           { id: firstMessageId, emoji: '👍' },
         );
         await waitFor(
           alicePage,
           () => {
-            const events = (window as unknown as { __state?: { reactionEvents?: { userId?: string; emoji?: string; added?: boolean }[] } })
-              .__state?.reactionEvents;
+            const events = (
+              window as unknown as {
+                __state?: { reactionEvents?: { userId?: string; emoji?: string; added?: boolean }[] };
+              }
+            ).__state?.reactionEvents;
             return !!events?.some((e) => e.userId === 'bob' && e.emoji === '👍' && e.added === true);
           },
           "alice to see bob's reaction",
@@ -327,8 +333,9 @@ describe('raven_chat (published pub.dev package) — two real Flutter Web client
         await waitFor(
           bobPage,
           (id) => {
-            const updates = (window as unknown as { __state?: { messageUpdates?: { id?: string; text?: string; edited?: boolean }[] } })
-              .__state?.messageUpdates;
+            const updates = (
+              window as unknown as { __state?: { messageUpdates?: { id?: string; text?: string; edited?: boolean }[] } }
+            ).__state?.messageUpdates;
             return !!updates?.some((m) => m.id === id && m.edited === true);
           },
           'bob to see the edited message',
@@ -397,8 +404,11 @@ describe('raven_chat (published pub.dev package) — two real Flutter Web client
       );
       const firstPage = await alicePage.evaluate(
         () =>
-          (window as unknown as { __state: { lastHistory: { messages: unknown[]; nextCursor: string | null; hasMore: boolean } } })
-            .__state.lastHistory,
+          (
+            window as unknown as {
+              __state: { lastHistory: { messages: unknown[]; nextCursor: string | null; hasMore: boolean } };
+            }
+          ).__state.lastHistory,
       );
       console.log('[test] history page 1:', JSON.stringify(firstPage));
       expect(firstPage.messages.length).toBeGreaterThan(0);

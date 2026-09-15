@@ -90,8 +90,8 @@ export class CreateLiveStreamDto {
     default: LiveStreamDeliveryMode.RTC_ONLY,
     description:
       'RTC_ONLY (default): viewers get an RTC credential and join the room, same as today. BROADCAST: the ' +
-      "audience never joins the RTC room — createViewerToken is refused; use GET .../playback instead once " +
-      "the stream is started and egress reports ready.",
+      'audience never joins the RTC room — createViewerToken is refused; use GET .../playback instead once ' +
+      'the stream is started and egress reports ready.',
   })
   @IsOptional()
   @IsIn(DELIVERY_MODE_VALUES)

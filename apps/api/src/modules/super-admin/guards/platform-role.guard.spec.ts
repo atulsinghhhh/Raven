@@ -70,7 +70,7 @@ describe('PlatformRoleGuard', () => {
     );
   });
 
-  it("403s when the route requires a higher role than the caller holds", async () => {
+  it('403s when the route requires a higher role than the caller holds', async () => {
     reflector.getAllAndOverride.mockReturnValue(['SUPER_ADMIN']);
     prisma.user.findUnique.mockResolvedValue({
       id: 'u3',
@@ -115,7 +115,7 @@ describe('PlatformRoleGuard', () => {
     expect(request.platformAdmin).toEqual({ id: 'u5', email: 'admin@example.com', platformRole: 'ADMIN' });
   });
 
-  it("re-checks the database every call rather than trusting the JWT payload", async () => {
+  it('re-checks the database every call rather than trusting the JWT payload', async () => {
     prisma.user.findUnique.mockResolvedValue({
       id: 'u6',
       email: 'admin@example.com',

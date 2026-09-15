@@ -201,8 +201,11 @@ await room.enableMicrophone();`,
     surface: 'flutter',
     headline: 'Live streaming — host and viewer, from Flutter',
     description:
-      'Livqeno Flutter live-streaming SDK — composes raven_rtc and raven_chat rather than reimplementing either: join a stream as host or viewer, publish if you\'re the host, render whoever is live. Verified end to end on Flutter Web — a real Flutter build published camera/mic through a real SFU to a real browser viewer, and the reverse direction; see docs/sdk/flutter.md. Android and iOS have not yet been device-verified.',
-    install: { language: 'yaml', code: 'dependencies:\n  raven_live: ^0.1.0\n  raven_rtc: ^0.1.2 # RavenVideoView, for rendering video' },
+      "Livqeno Flutter live-streaming SDK — composes raven_rtc and raven_chat rather than reimplementing either: join a stream as host or viewer, publish if you're the host, render whoever is live. Verified end to end on Flutter Web — a real Flutter build published camera/mic through a real SFU to a real browser viewer, and the reverse direction; see docs/sdk/flutter.md. Android and iOS have not yet been device-verified.",
+    install: {
+      language: 'yaml',
+      code: 'dependencies:\n  raven_live: ^0.1.0\n  raven_rtc: ^0.1.2 # RavenVideoView, for rendering video',
+    },
     usage: {
       language: 'dart',
       code: `import 'package:raven_live/raven_live.dart';
