@@ -65,6 +65,32 @@ E2E_DB="postgresql://postgres:scratch@localhost:5455/raven"
 docker rm -f raven-e2e-db
 ```
 
+## Published-package validation
+
+`live_host/` builds against the local working tree (`path:` dependencies),
+so it proves the source is correct but not that what an external developer
+actually gets from `pub.dev` behaves the same way. `published_consumer/`
+is the same style of harness pointed at the real, hosted package versions
+(`raven_rtc`, `raven_live`, `raven_chat` as plain `^x.y.z` constraints, no
+`dependency_overrides`) — see the `*-pubdev.e2e-spec.ts` suites under
+`apps/api/test/`.
+
+**raven_rtc 0.1.4 — verified 2026-09-15.** Fixes a join-time signaling
+race (`SignalingClient.send()` silently dropped the client's SDP answer
+when the SFU's offer beat the API's `room.joined` confirmation, so the SFU
+gave up after its 15s `answerTimeout`) and, on the SFU side, an ICE mDNS
+resolution gap that stranded every receive-only Chrome viewer (mDNS was
+fully disabled, so the `.local` candidates Chrome sends for any
+camera/microphone-unpermissioned origin were discarded outright, leaving
+zero usable candidate pairs). Validated with a real Flutter Web build
+against the actual `0.1.4` pub.dev archive, a real spawned SFU, real
+Postgres and Redis, and a real browser viewer: **20/20** passes, each
+confirmed via `RTCPeerConnection.getStats()` showing `framesDecoded` and
+`bytesReceived` genuinely increasing, zero dropped SDP answers, zero
+negotiation timeouts. Listing confirmed live at
+https://pub.dev/packages/raven_rtc (API and package page both report
+`0.1.4`).
+
 ## Known gaps
 
 - No native iOS/Android build has been exercised this way — only
