@@ -100,11 +100,19 @@ func NewManager(cfg *config.Config, events RoomEvents, logger *slog.Logger) (*Ma
 		settings.SetNAT1To1IPs([]string{cfg.PublicIP}, webrtc.ICECandidateTypeHost)
 	}
 
-	// mDNS candidates exist for local peer-to-peer discovery and do nothing
-	// for a server. They'd advertise a .local name no client can resolve,
-	// burning a candidate slot and a few hundred milliseconds of connection
-	// time on every single join.
-	settings.SetICEMulticastDNSMode(ice.MulticastDNSModeDisabled)
+	// QueryOnly, not Disabled: this node still never gathers or advertises
+	// its own candidates as .local names (a client couldn't resolve one
+	// back to this server), but it does need to resolve *incoming* .local
+	// candidates. Chrome hides a page's local IP behind an mDNS name for
+	// any origin that hasn't been granted camera/microphone access —
+	// which is every receive-only participant, i.e. every live-stream
+	// viewer. Disabled discards those candidates outright: the viewer's
+	// ICE agent is left with zero usable pairs and the connection fails
+	// after its consent-timeout, indistinguishable from a real network
+	// failure. QueryOnly resolves the name over mDNS instead of dropping
+	// it, which is the one thing that makes a receive-only Chrome client
+	// reachable at all.
+	settings.SetICEMulticastDNSMode(ice.MulticastDNSModeQueryOnly)
 
 	// Always be the DTLS server, whichever side happened to offer.
 	//

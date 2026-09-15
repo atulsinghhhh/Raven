@@ -181,6 +181,43 @@ void main() {
       await client.dispose();
     });
 
+    test(
+        'an answer sent in reaction to an offer that beats room.joined is '
+        'not dropped', () async {
+      // The SFU's join-time offer travels a path with no ordering
+      // relationship to the API's own room.joined reply — node-link to
+      // gateway straight to the socket, versus the join handler's own
+      // response. When the offer wins that race (the common case: the SFU
+      // creates and sends it synchronously, with no I/O), a real client
+      // answers it before room.joined has arrived. That answer must reach
+      // the wire: gating `send` on "joined" instead of "join dispatched"
+      // silently dropped it here, and the SFU waited out its answerTimeout
+      // for an answer that was never coming.
+      final client = clientFor();
+      final joining = client.connect();
+      await Future<void>.delayed(Duration.zero);
+      expect(socket.lastSent(ClientMessageType.roomJoin), isNotNull);
+      expect(client.isJoined, isFalse);
+
+      socket.receive({'type': ServerMessageType.sdpOffer, 'sdp': 'v=0 offer'});
+      await Future<void>.delayed(Duration.zero);
+
+      // Still not joined — room.joined has not arrived yet.
+      expect(client.isJoined, isFalse);
+      client.send({'type': ClientMessageType.sdpAnswer, 'sdp': 'v=0 answer'});
+
+      expect(
+          socket.lastSent(ClientMessageType.sdpAnswer)?['sdp'], 'v=0 answer');
+
+      socket.receive({
+        'type': ServerMessageType.roomJoined,
+        'roomId': 'room-1',
+        'participants': [],
+      });
+      await joining;
+      await client.dispose();
+    });
+
     test('ignores a non-text frame instead of guessing at it', () async {
       final client = clientFor();
       final joining = client.connect();

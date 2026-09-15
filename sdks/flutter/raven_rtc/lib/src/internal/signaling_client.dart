@@ -87,6 +87,11 @@ class SignalingClient {
   bool _closedByCaller = false;
   bool _joined = false;
 
+  /// True from the moment `room.join` is dispatched on the current socket,
+  /// well before `room.joined` confirms it. See [send]'s doc comment for
+  /// why `send` gates on this instead of [_joined].
+  bool _joinSent = false;
+
   final _messages = StreamController<Map<String, dynamic>>.broadcast();
   final _joins = StreamController<JoinedPayload>.broadcast();
   final _states = StreamController<SignalingLifecycle>.broadcast();
@@ -181,6 +186,7 @@ class SignalingClient {
     // an ordinary drop so the token can be refreshed before retrying.
     unawaited(socket.closed.then((code) {
       _joined = false;
+      _joinSent = false;
       if (!completer.isCompleted) {
         completer.completeError(RavenException(
           RavenErrorCode.signalingError,
@@ -289,15 +295,34 @@ class SignalingClient {
   /// Replaces the token used by future reconnects (spec §21).
   void setToken(String token) => _token = token;
 
+  /// Sends a message on the current socket, or drops it.
+  ///
+  /// Gated on [_joinSent], not [_joined]. The SFU's join-time offer reaches
+  /// the client over a path that has no ordering relationship with the
+  /// API's own `room.joined` reply to this client's `room.join` request:
+  /// the offer travels node-link → gateway → socket, entirely independent
+  /// of the join handler's response. When the SFU (which creates and sends
+  /// its offer synchronously, with no I/O in between) wins that race,
+  /// this client's answer to it is a message this method has to be willing
+  /// to send *before* `room.joined` has arrived — gating on [_joined]
+  /// silently dropped that answer, and every message behind it, leaving the
+  /// SFU's offer permanently unanswered until it gave up after
+  /// `answerTimeout`. [_joinSent] flips the instant `room.join` is
+  /// dispatched, which is exactly the point after which any message this
+  /// socket produces is a legitimate consequence of that join, confirmed or
+  /// not.
   void send(Map<String, dynamic> message) {
     final socket = _socket;
     if (socket == null ||
-        !_joined && message['type'] != ClientMessageType.roomJoin) {
+        !_joinSent && message['type'] != ClientMessageType.roomJoin) {
       // Dropped instead of queued. Every message here describes a moment
       // in a negotiation, and replaying a stale answer after a reconnect
       // would be worse than never sending it: the reconnect re-joins and
       // negotiates afresh.
       return;
+    }
+    if (message['type'] == ClientMessageType.roomJoin) {
+      _joinSent = true;
     }
     try {
       socket.send(jsonEncode(message));
@@ -317,6 +342,7 @@ class SignalingClient {
       send({'type': ClientMessageType.roomLeave});
     }
     _joined = false;
+    _joinSent = false;
 
     await _subscription?.cancel();
     _subscription = null;
