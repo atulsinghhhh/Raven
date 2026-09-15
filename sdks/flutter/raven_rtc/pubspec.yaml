@@ -20,7 +20,7 @@ dependencies:
   # Same role react-native-webrtc plays in @ravenkash/react-native: it
   # provides RTCPeerConnection, getUserMedia and the renderer, and it is
   # never re-exported from this package's public API.
-  flutter_webrtc: ^1.6.0
+  flutter_webrtc: ^1.6.2+hotfix.3
   # The signaling transport. package:web_socket_channel rather than
   # dart:io's WebSocket because Flutter Web is a supported target and
   # dart:io is unavailable there.
