@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SystemStatusIndicator, type SystemStatus } from '@/components/ui/badge';
+import { useFocusTrap } from '@/components/ui/use-focus-trap';
 import {
   IconAnalytics,
   IconClose,
@@ -56,13 +57,12 @@ export function AccountShell({
   const [openedAt, setOpenedAt] = useState<string | null>(null);
   const drawerOpen = openedAt === pathname;
   const setDrawerOpen = (next: boolean) => setOpenedAt(next ? pathname : null);
+  const drawerPanelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    document.body.style.overflow = drawerOpen ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [drawerOpen]);
+  // Same contract as Dialog (and AppShell's own mobile drawer) — Escape
+  // closes, Tab/Shift+Tab stay inside the panel, focus moves in on open
+  // and back to the hamburger button on close, body scroll locks.
+  useFocusTrap({ open: drawerOpen, onClose: () => setDrawerOpen(false), panelRef: drawerPanelRef });
 
   const navList = (compact: boolean) => (
     <nav aria-label="Account" className="flex flex-col gap-0.5 px-3">
@@ -138,9 +138,11 @@ export function AccountShell({
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-scrim" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
           <div
+            ref={drawerPanelRef}
             role="dialog"
             aria-modal="true"
             aria-label="Navigation"
+            tabIndex={-1}
             className="animate-fade-in absolute inset-y-0 left-0 flex w-[17rem] flex-col border-r border-line bg-surface"
           >
             <div className="flex h-14 items-center justify-between px-4">
