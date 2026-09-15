@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module';
+import { DashboardWsModule } from '../dashboard-ws/dashboard-ws.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { WebhookDeliveryWorker } from './webhook-delivery.worker';
 import { WebhookEventsService } from './webhook-events.service';
@@ -13,7 +15,7 @@ import { WebhooksService } from './webhooks.service';
  * (spec §31).
  */
 @Module({
-  imports: [AuditModule, ProjectsModule],
+  imports: [AuditModule, ProjectsModule, DashboardWsModule, NotificationsModule],
   controllers: [WebhooksController],
   providers: [WebhooksService, WebhookEventsService, WebhookDeliveryWorker],
   exports: [WebhookEventsService, WebhooksService],

@@ -5,6 +5,10 @@ import { PrismaService } from '../../shared/database/prisma.service';
 import { RedisService } from '../../shared/redis/redis.service';
 import { Environment } from '../../shared/environment/environment.constants';
 import { RedisKeys } from '../chat/chat.constants';
+import { DashboardWsEventType } from '../dashboard-ws/dashboard-ws-events';
+import { DashboardEventsService } from '../dashboard-ws/realtime/dashboard-events.service';
+import { NotificationType } from '../../generated/prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   WEBHOOK_EVENT_ID_HEADER,
   WEBHOOK_EVENT_TYPE_HEADER,
@@ -27,7 +31,7 @@ interface DueDelivery {
     projectId: string;
     environment: Environment;
   };
-  endpoint: { id: string; url: string; signingSecret: string; consecutiveFailures: number };
+  endpoint: { id: string; publicId: string; projectId: string; url: string; signingSecret: string; consecutiveFailures: number };
 }
 
 /**
@@ -53,6 +57,8 @@ export class WebhookDeliveryWorker implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
     private readonly configService: ConfigService,
+    private readonly dashboardEvents: DashboardEventsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   onModuleInit(): void {
@@ -239,6 +245,7 @@ export class WebhookDeliveryWorker implements OnModuleInit, OnModuleDestroy {
 
     const consecutiveFailures = delivery.endpoint.consecutiveFailures + 1;
     const disableAfter = this.configService.get<number>('webhooks.disableAfterConsecutiveFailures')!;
+    const willDisable = consecutiveFailures >= disableAfter;
     await this.prisma.webhookEndpoint.update({
       where: { id: delivery.endpoint.id },
       data: {
@@ -246,9 +253,53 @@ export class WebhookDeliveryWorker implements OnModuleInit, OnModuleDestroy {
         lastDeliveryAt: new Date(),
         // A permanently dead URL stops burning retry budget forever. The
         // developer re-enables it from the dashboard once it's fixed.
-        ...(consecutiveFailures >= disableAfter ? { status: WebhookEndpointStatus.DISABLED } : {}),
+        ...(willDisable ? { status: WebhookEndpointStatus.DISABLED } : {}),
       },
     });
+
+    // Nudges, published only after both authoritative writes above have
+    // committed (Phase 5A/5D's ordering rule) — the dashboard refetches
+    // GET .../webhooks for the real record, this only tells it to.
+    // Fire-and-forget, same fail-open posture as every other publish call
+    // in this codebase: a Redis blip degrades nudge promptness, never
+    // correctness, since consecutiveFailures/status are already durably
+    // written by the time this runs.
+    void this.dashboardEvents.publish(delivery.endpoint.projectId, {
+      type: DashboardWsEventType.WebhookDeliveryFailed,
+      endpointId: delivery.endpoint.publicId,
+      failureCount: consecutiveFailures,
+    });
+    if (willDisable) {
+      void this.dashboardEvents.publish(delivery.endpoint.projectId, {
+        type: DashboardWsEventType.WebhookEndpointDisabled,
+        endpointId: delivery.endpoint.publicId,
+      });
+    }
+
+    // Persistent notifications (Phase 5F), same "write first, nudge
+    // after" ordering as the dashboard-ws publishes above — notifyProject
+    // upserts on a dedupeKey scoped to this one endpoint, so a run of
+    // failures coalesces into one notification per recipient instead of
+    // spamming a fresh row per retry. Awaited (unlike the ephemeral nudge
+    // above): this is the authoritative write, not a courtesy — see
+    // NotificationsService's class doc.
+    const scope = { projectId: delivery.endpoint.projectId, environment: delivery.event.environment };
+    await this.notifications.notifyProject(scope, {
+      type: NotificationType.WEBHOOK_DELIVERY_FAILED,
+      dedupeKey: `webhook:delivery_failed:${delivery.endpoint.publicId}`,
+      title: 'Webhook delivery failing',
+      message: `${delivery.endpoint.url} has failed ${consecutiveFailures} ${consecutiveFailures === 1 ? 'time' : 'times'} in a row.`,
+      payload: { endpointId: delivery.endpoint.publicId },
+    });
+    if (willDisable) {
+      await this.notifications.notifyProject(scope, {
+        type: NotificationType.WEBHOOK_ENDPOINT_DISABLED,
+        dedupeKey: `webhook:endpoint_disabled:${delivery.endpoint.publicId}`,
+        title: 'Webhook endpoint disabled',
+        message: `${delivery.endpoint.url} was disabled after ${consecutiveFailures} consecutive delivery failures.`,
+        payload: { endpointId: delivery.endpoint.publicId },
+      });
+    }
 
     this.logger.warn(
       `webhook delivery ${delivery.id} attempt ${attempts}/${maxAttempts} failed: ${failure.slice(0, 120)}`,
