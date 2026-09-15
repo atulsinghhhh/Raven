@@ -53,6 +53,18 @@ export class WebhookDeliveryWorker implements OnModuleInit, OnModuleDestroy {
   private draining = false;
   private readonly instanceId = `wh_${process.pid}_${Math.random().toString(36).slice(2, 8)}`;
 
+  /**
+   * Cumulative since process start, for MetricsService's
+   * raven_webhook_deliveries_total{status} gauge (Phase 6H). Per-instance
+   * and deliberately not fleet-summed here: unlike the pending-queue gauge
+   * (a shared Postgres count every instance would report identically),
+   * only the instance holding the delivery lock at any moment processes
+   * anything, so these counts are genuinely this instance's own work —
+   * same reasoning the chat/signaling connection gauges already document.
+   */
+  private deliveredCount = 0;
+  private failedCount = 0;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
@@ -226,6 +238,7 @@ export class WebhookDeliveryWorker implements OnModuleInit, OnModuleDestroy {
           data: { consecutiveFailures: 0, lastDeliveryAt: new Date() },
         }),
       ]);
+      this.deliveredCount += 1;
       return;
     }
 
@@ -301,9 +314,15 @@ export class WebhookDeliveryWorker implements OnModuleInit, OnModuleDestroy {
       });
     }
 
+    this.failedCount += 1;
     this.logger.warn(
-      `webhook delivery ${delivery.id} attempt ${attempts}/${maxAttempts} failed: ${failure.slice(0, 120)}`,
+      `webhook delivery ${delivery.id} project=${delivery.endpoint.projectId} attempt ${attempts}/${maxAttempts} failed: ${failure.slice(0, 120)}`,
     );
+  }
+
+  /** Cumulative counts since this instance started, for MetricsService. */
+  getMetrics(): { delivered: number; failed: number } {
+    return { delivered: this.deliveredCount, failed: this.failedCount };
   }
 
   /** Exponential: base × 2^(attempt-1). 10s, 20s, 40s, 80s, 160s, 320s by default. */

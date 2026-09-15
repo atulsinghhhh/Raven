@@ -69,10 +69,26 @@ const MAX_LIST_LIMIT = 100;
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
+  /**
+   * Cumulative since process start, for MetricsService's
+   * raven_notification_upsert_failures_total gauge (Phase 6H). One failed
+   * recipient is already logged in full below (project/type/user, for
+   * debugging that one case); this is the aggregate that catches a
+   * systemic problem — a DB blip taking out every recipient of every
+   * notification, not just one — that a stream of individually-unremarkable
+   * warn lines doesn't surface as a trend on its own.
+   */
+  private upsertFailureCount = 0;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly dashboardEvents: DashboardEventsService,
   ) {}
+
+  /** Cumulative count since this instance started, for MetricsService. */
+  getMetrics(): { upsertFailures: number } {
+    return { upsertFailures: this.upsertFailureCount };
+  }
 
   /**
    * Fans out one notification to every active member of a project,
@@ -127,8 +143,9 @@ export class NotificationsService {
             },
           });
         } catch (err) {
+          this.upsertFailureCount += 1;
           this.logger.error(
-            `failed to persist notification (${input.type}) for user ${member.userId}: ${(err as Error).message}`,
+            `failed to persist notification (${input.type}) project=${scope.projectId} for user ${member.userId}: ${(err as Error).message}`,
           );
         }
       }),

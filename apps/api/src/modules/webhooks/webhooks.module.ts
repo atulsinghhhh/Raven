@@ -18,6 +18,11 @@ import { WebhooksService } from './webhooks.service';
   imports: [AuditModule, ProjectsModule, DashboardWsModule, NotificationsModule],
   controllers: [WebhooksController],
   providers: [WebhooksService, WebhookEventsService, WebhookDeliveryWorker],
-  exports: [WebhookEventsService, WebhooksService],
+  // WebhookDeliveryWorker exported for MetricsService (Phase 6H) — same
+  // reasoning the gateways are exported for: it is now also a metrics
+  // source, pulled from rather than pushed to (see MetricsService for why
+  // that direction, not the other, keeps this acyclic with ChatModule
+  // already importing WebhooksModule).
+  exports: [WebhookEventsService, WebhooksService, WebhookDeliveryWorker],
 })
 export class WebhooksModule {}

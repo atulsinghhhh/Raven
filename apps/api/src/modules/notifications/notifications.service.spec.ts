@@ -180,6 +180,49 @@ describe('NotificationsService', () => {
       // Still nudges the project even though one member's write failed —
       // the members who did get their row should still be told to refetch.
       expect(dashboardEvents.publish).toHaveBeenCalledTimes(1);
+      // Phase 6H: the aggregate failure counter moved too, alongside the
+      // per-failure log line already asserted by the log-message coverage.
+      expect(service.getMetrics()).toEqual({ upsertFailures: 1 });
+    });
+  });
+
+  describe('getMetrics (Phase 6H)', () => {
+    it('starts at zero', () => {
+      expect(service.getMetrics()).toEqual({ upsertFailures: 0 });
+    });
+
+    it('does not increment when every upsert in the fan-out succeeds', async () => {
+      prisma.projectMember.findMany.mockResolvedValue([{ userId: 'user-1' }]);
+      prisma.notification.upsert.mockResolvedValue(row());
+
+      await service.notifyProject(SCOPE, {
+        type: NotificationType.LIVE_STREAM_STARTED,
+        dedupeKey: 'live_stream:started:stream_1',
+        title: 'Live stream started',
+        message: 'live',
+      });
+
+      expect(service.getMetrics()).toEqual({ upsertFailures: 0 });
+    });
+
+    it('accumulates across separate notifyProject calls, not just within one fan-out', async () => {
+      prisma.projectMember.findMany.mockResolvedValue([{ userId: 'user-1' }]);
+      prisma.notification.upsert.mockRejectedValue(new Error('db blip'));
+
+      await service.notifyProject(SCOPE, {
+        type: NotificationType.LIVE_STREAM_STARTED,
+        dedupeKey: 'a',
+        title: 't',
+        message: 'm',
+      });
+      await service.notifyProject(SCOPE, {
+        type: NotificationType.LIVE_STREAM_ENDED,
+        dedupeKey: 'b',
+        title: 't',
+        message: 'm',
+      });
+
+      expect(service.getMetrics()).toEqual({ upsertFailures: 2 });
     });
   });
 

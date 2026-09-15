@@ -194,6 +194,49 @@ describe('WebhookDeliveryWorker — dashboard realtime nudges (Phase 5D)', () =>
   });
 });
 
+describe('WebhookDeliveryWorker.getMetrics (Phase 6H)', () => {
+  const originalFetch = global.fetch;
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('starts at zero for both outcomes', () => {
+    const { worker } = makeWorker();
+    expect(worker.getMetrics()).toEqual({ delivered: 0, failed: 0 });
+  });
+
+  it('counts a successful attempt as delivered, not failed', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 });
+    const { worker, attempt } = makeWorker();
+
+    await attempt(delivery());
+
+    expect(worker.getMetrics()).toEqual({ delivered: 1, failed: 0 });
+  });
+
+  it('counts a failed attempt as failed, not delivered', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error('ECONNREFUSED'));
+    const { worker, attempt } = makeWorker();
+
+    await attempt(delivery());
+
+    expect(worker.getMetrics()).toEqual({ delivered: 0, failed: 1 });
+  });
+
+  it('accumulates across multiple attempts', async () => {
+    const { worker, attempt } = makeWorker();
+
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 });
+    await attempt(delivery());
+    await attempt(delivery());
+
+    global.fetch = jest.fn().mockRejectedValue(new Error('timeout'));
+    await attempt(delivery());
+
+    expect(worker.getMetrics()).toEqual({ delivered: 2, failed: 1 });
+  });
+});
+
 describe('WebhookDeliveryWorker — persistent notifications (Phase 5F)', () => {
   const originalFetch = global.fetch;
   afterEach(() => {
