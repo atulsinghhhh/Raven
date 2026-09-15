@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect, useId, useRef } from 'react';
+import { useId, useRef } from 'react';
 import { IconClose } from './icons';
-
-const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+import { useFocusTrap } from './use-focus-trap';
 
 /**
  * Modal dialog. Rolled by hand for the same reason Menu is: this and the
@@ -52,103 +50,9 @@ export function Dialog({
   // open means a Space or Enter right after opening dismisses the dialog
   // instead of typing into the first field.
   const bodyRef = useRef<HTMLDivElement>(null);
-  // The last element focused while the dialog was closed: where focus
-  // goes back to on close, normally the trigger.
-  //
-  // Tracked continuously rather than read from document.activeElement on
-  // open, because by then it can already be wrong: anything React
-  // focuses during commit (a child's autoFocus) lands before this
-  // component's effects run, and restoring to a node inside the panel
-  // focuses something about to unmount, dropping focus to <body>.
-  const restoreTo = useRef<HTMLElement | null>(null);
   const id = useId();
 
-  // Held in a ref so the effect below can depend on `open` alone.
-  // Callers pass a fresh closure every render, and depending on it
-  // directly made the effect tear down and re-run on every keystroke:
-  // each run re-captured restoreTo (ending up on a field inside the
-  // dialog instead of the trigger) and re-fired the open-focus, which
-  // yanked the caret back to the first input mid-typing.
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    if (open) return;
-
-    function onFocusIn(e: FocusEvent) {
-      const target = e.target as HTMLElement | null;
-      if (target && target !== document.body) {
-        restoreTo.current = target;
-      }
-    }
-    document.addEventListener('focusin', onFocusIn);
-    return () => document.removeEventListener('focusin', onFocusIn);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    // Focus after paint: the panel isn't in the DOM yet on this tick.
-    const frame = requestAnimationFrame(() => {
-      const body = bodyRef.current;
-      // The first control in the body, by DOM order. Callers should not
-      // put autoFocus on a field to override this: React applies
-      // autoFocus during commit, before the effects here run, which both
-      // races this call and corrupts the focus-restore record.
-      const target = body?.querySelector<HTMLElement>(FOCUSABLE) ?? panelRef.current;
-      target?.focus();
-    });
-
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCloseRef.current();
-        return;
-      }
-      if (e.key !== 'Tab') return;
-
-      // Visibility is filtered by attribute, not by offsetParent. That
-      // is the usual trick for "is this actually on screen", but it
-      // reports null for anything inside a fixed-position ancestor, and
-      // this panel is one, as well as everywhere in jsdom, where there
-      // is no layout at all. Either way the list came back empty and the
-      // trap silently did nothing. The selector already drops [disabled]
-      // and tabindex="-1"; these two cover the rest.
-      const items = Array.from(panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []).filter(
-        (el) => !el.hasAttribute('hidden') && el.getAttribute('aria-hidden') !== 'true',
-      );
-      if (items.length === 0) return;
-
-      const first = items[0];
-      const last = items[items.length - 1];
-      const active = document.activeElement;
-
-      // Wrap at both ends, and pull focus back in if it has somehow
-      // landed outside the panel (browser chrome, an injected element).
-      if (e.shiftKey && (active === first || !panelRef.current?.contains(active))) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && (active === last || !panelRef.current?.contains(active))) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      cancelAnimationFrame(frame);
-      document.body.style.overflow = previousOverflow;
-      // Skip a node that has since been removed: focusing a detached
-      // element is a no-op that drops focus to <body>.
-      if (restoreTo.current?.isConnected) restoreTo.current.focus();
-    };
-  }, [open]);
+  useFocusTrap({ open, onClose, panelRef, initialFocusRef: bodyRef });
 
   if (!open) return null;
 

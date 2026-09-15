@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { Project } from '@/lib/api-client';
 import { SystemStatusIndicator, type SystemStatus } from '@/components/ui/badge';
 import { IconClose, IconExternal, IconHelp, IconMenu, RavenMark } from '@/components/ui/icons';
+import { useFocusTrap } from '@/components/ui/use-focus-trap';
 import { DOCS_URL } from '@/lib/nav';
 import { ProjectProvider } from '@/lib/project-context';
+import { DashboardRealtimeProvider } from '@/lib/realtime/dashboard-realtime-provider';
 import { toast } from '@/lib/toast';
 import { CommandPalette } from './command-palette';
 import { NotificationsBell } from './notifications-bell';
@@ -62,14 +64,15 @@ export function AppShell({
   const drawerOpen = openedAt === pathname;
 
   const setDrawerOpen = (next: boolean) => setOpenedAt(next ? pathname : null);
+  const drawerPanelRef = useRef<HTMLDivElement>(null);
 
-  // Locking scroll is a genuine external-system sync, so it stays an effect.
-  useEffect(() => {
-    document.body.style.overflow = drawerOpen ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [drawerOpen]);
+  // Same contract as Dialog — Escape closes, Tab/Shift+Tab stay inside
+  // the panel, focus moves in on open and back to the hamburger button
+  // on close, body scroll locks — via the hook Dialog itself uses. This
+  // drawer already declared `role="dialog" aria-modal="true"` without
+  // implementing any of that, which is worse than not claiming to be a
+  // dialog at all: assistive tech takes the role at its word.
+  useFocusTrap({ open: drawerOpen, onClose: () => setDrawerOpen(false), panelRef: drawerPanelRef });
 
   const sidebarBody = (
     <>
@@ -95,91 +98,95 @@ export function AppShell({
 
   return (
     <ProjectProvider project={currentProject} capabilities={capabilities}>
-      <div className="min-h-screen bg-canvas">
-        <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-200 focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-sm focus:text-accent-fg"
-        >
-          Skip to content
-        </a>
+      <DashboardRealtimeProvider projectId={currentProject.id}>
+        <div className="min-h-screen bg-canvas">
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-200 focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-sm focus:text-accent-fg"
+          >
+            Skip to content
+          </a>
 
-        {/* Desktop sidebar */}
-        <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-line bg-surface-sunken lg:flex">
-          <div className="flex h-14 items-center gap-2 px-4">
-            <Link href="/dashboard/projects" className="flex items-center gap-2" aria-label="Livqeno home">
-              <RavenMark className="size-6" />
-              <span className="mono-label text-[13px] font-medium text-fg">Livqeno</span>
-            </Link>
-          </div>
-          {sidebarBody}
-        </aside>
+          {/* Desktop sidebar */}
+          <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-line bg-surface-sunken lg:flex">
+            <div className="flex h-14 items-center gap-2 px-4">
+              <Link href="/dashboard/projects" className="flex items-center gap-2" aria-label="Livqeno home">
+                <RavenMark className="size-6" />
+                <span className="mono-label text-[13px] font-medium text-fg">Livqeno</span>
+              </Link>
+            </div>
+            {sidebarBody}
+          </aside>
 
-        {/* Mobile drawer */}
-        {drawerOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <div className="absolute inset-0 bg-scrim" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-label="Navigation"
-              className="animate-fade-in absolute inset-y-0 left-0 flex w-[17rem] flex-col border-r border-line bg-surface"
-            >
-              <div className="flex h-14 items-center justify-between px-4">
-                <span className="flex items-center gap-2">
-                  <RavenMark className="size-6" />
-                  <span className="text-sm font-semibold text-fg">Livqeno</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setDrawerOpen(false)}
-                  aria-label="Close navigation"
-                  className="inline-flex size-8 items-center justify-center rounded-md text-muted hover:bg-surface-raised hover:text-fg"
-                >
-                  <IconClose className="size-4" />
-                </button>
+          {/* Mobile drawer */}
+          {drawerOpen && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <div className="absolute inset-0 bg-scrim" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
+              <div
+                ref={drawerPanelRef}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Navigation"
+                tabIndex={-1}
+                className="animate-fade-in absolute inset-y-0 left-0 flex w-[17rem] flex-col border-r border-line bg-surface"
+              >
+                <div className="flex h-14 items-center justify-between px-4">
+                  <span className="flex items-center gap-2">
+                    <RavenMark className="size-6" />
+                    <span className="text-sm font-semibold text-fg">Livqeno</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen(false)}
+                    aria-label="Close navigation"
+                    className="inline-flex size-8 items-center justify-center rounded-md text-muted hover:bg-surface-raised hover:text-fg"
+                  >
+                    <IconClose className="size-4" />
+                  </button>
+                </div>
+                {sidebarBody}
               </div>
-              {sidebarBody}
             </div>
+          )}
+
+          <div className="lg:pl-60">
+            <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-line bg-canvas/85 px-4 backdrop-blur-md sm:gap-3 lg:px-6">
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                aria-label="Open navigation"
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted hover:bg-surface-raised hover:text-fg lg:hidden"
+              >
+                <IconMenu className="size-4" />
+              </button>
+
+              <div className="min-w-0 flex-1">
+                <CommandPalette />
+              </div>
+
+              <SystemStatusIndicator status={systemStatus} className="hidden md:inline-flex" />
+
+              <a
+                href={DOCS_URL}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Documentation"
+                className="hidden size-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-raised hover:text-fg sm:inline-flex"
+              >
+                <IconHelp className="size-4" />
+              </a>
+
+              <NotificationsBell projectId={currentProject.id} />
+              <ThemeToggle />
+              <UserMenu email={email} />
+            </header>
+
+            <main id="main" className="mx-auto max-w-[85rem] px-4 py-6 lg:px-6 lg:py-8">
+              {children}
+            </main>
           </div>
-        )}
-
-        <div className="lg:pl-60">
-          <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-line bg-canvas/85 px-4 backdrop-blur-md sm:gap-3 lg:px-6">
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(true)}
-              aria-label="Open navigation"
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted hover:bg-surface-raised hover:text-fg lg:hidden"
-            >
-              <IconMenu className="size-4" />
-            </button>
-
-            <div className="min-w-0 flex-1">
-              <CommandPalette />
-            </div>
-
-            <SystemStatusIndicator status={systemStatus} className="hidden md:inline-flex" />
-
-            <a
-              href={DOCS_URL}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Documentation"
-              className="hidden size-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-raised hover:text-fg sm:inline-flex"
-            >
-              <IconHelp className="size-4" />
-            </a>
-
-            <NotificationsBell projectId={currentProject.id} />
-            <ThemeToggle />
-            <UserMenu email={email} />
-          </header>
-
-          <main id="main" className="mx-auto max-w-[85rem] px-4 py-6 lg:px-6 lg:py-8">
-            {children}
-          </main>
         </div>
-      </div>
+      </DashboardRealtimeProvider>
     </ProjectProvider>
   );
 }

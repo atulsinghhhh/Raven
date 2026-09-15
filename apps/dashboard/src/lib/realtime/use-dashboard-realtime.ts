@@ -6,6 +6,7 @@ import {
   type DashboardRealtimeSocketFactory,
   TOKEN_EXPIRED_CLOSE_CODE,
 } from './dashboard-realtime-transport';
+import { useDashboardRealtimeContext } from './dashboard-realtime-context';
 import { toast } from '../toast';
 
 export type DashboardRealtimeStatus = 'connecting' | 'open' | 'reconnecting' | 'closed' | 'failed';
@@ -71,6 +72,17 @@ export function useDashboardRealtime(projectId: string, options: UseDashboardRea
   const [status, setStatus] = useState<DashboardRealtimeStatus>('connecting');
   const { socketFactory } = options;
 
+  // A DashboardRealtimeProvider ancestor (mounted once per AppShell) already
+  // owns the one real connection for this project — every list/detail page
+  // that also calls this hook (Connections, Rooms, Streams, Stream Detail,
+  // Webhooks, alongside NotificationsBell) would otherwise each mint their
+  // own token and open their own socket to the same gateway for the same
+  // project. `shared` is null only when no such provider is mounted above —
+  // which is also exactly the case in every existing unit test for this
+  // hook and its callers, so their standalone-connection behavior is
+  // unchanged.
+  const shared = useDashboardRealtimeContext();
+
   // Always-latest refs for the two callbacks, so a caller passing a new
   // inline function every render doesn't force this effect to tear down
   // and reopen the socket — only `projectId` does that. Updated after
@@ -84,7 +96,22 @@ export function useDashboardRealtime(projectId: string, options: UseDashboardRea
     onReconnectedRef.current = options.onReconnected;
   });
 
+  // Shared-connection path: register against the provider's one socket
+  // instead of opening a second. Reads through the refs above, so it only
+  // needs to (re)subscribe when the shared connection itself changes.
   useEffect(() => {
+    if (!shared) return;
+    return shared.subscribe(
+      (frame) => onEventRef.current?.(frame),
+      () => onReconnectedRef.current?.(),
+    );
+  }, [shared]);
+
+  useEffect(() => {
+    // The provider above already has a real connection open — this effect
+    // is what opens one, so there is nothing left for it to do.
+    if (shared) return;
+
     let cancelled = false;
     let transport: DashboardRealtimeTransport | undefined;
     let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
@@ -200,7 +227,7 @@ export function useDashboardRealtime(projectId: string, options: UseDashboardRea
       transport?.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- socketFactory is a test-only seam, stable in application code
-  }, [projectId]);
+  }, [projectId, shared]);
 
   // No page reads `status` today (it exists for a future indicator), so
   // "reconnecting" — the common, self-healing case — stays silent to avoid
@@ -208,11 +235,24 @@ export function useDashboardRealtime(projectId: string, options: UseDashboardRea
   // interrupting the user for: reconnect attempts are exhausted or the
   // gateway closed for a reason retrying won't fix, and live updates on
   // this page have stopped until they reload.
+  // Local `status` only — when `shared` is set this component never calls
+  // its own setStatus, so this never fires from a subscribing instance.
+  // The provider's own internal call (where `shared` is null) is the one
+  // and only instance that toasts, instead of every subscriber doing it
+  // in unison the moment the one real connection fails.
   useEffect(() => {
     if (status === 'failed') {
       toast.warning('Live updates disconnected. Reload the page to reconnect.');
+      // One line, only on this terminal/rare path — not a general client
+      // logging system (Phase 6H explicitly rules that out). The toast is
+      // the user-facing signal; this is the one thing a developer looking
+      // at devtools during a support session has to go on, since nothing
+      // else about a WS connection is ever otherwise logged client-side.
+      // No token, no wsUrl (query-string-embedded credential) — project id
+      // only, which is already visible in the page's own URL.
+      console.warn(`[dashboard-realtime] connection failed for project ${projectId} — see the toast for the user-facing message`);
     }
-  }, [status]);
+  }, [status, projectId]);
 
-  return { status };
+  return { status: shared ? shared.status : status };
 }

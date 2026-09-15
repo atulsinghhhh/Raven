@@ -84,9 +84,12 @@ function ProbeWithCallbacks({
 }
 
 describe('useDashboardRealtime', () => {
+  let consoleWarnSpy: jest.SpyInstance;
+
   beforeEach(() => {
     global.fetch = jest.fn();
     jest.spyOn(toast, 'warning').mockImplementation(() => 'toast_test');
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -180,6 +183,14 @@ describe('useDashboardRealtime', () => {
     // `status`, so this is the only user-facing signal that live updates stopped.
     expect(toast.warning).toHaveBeenCalledTimes(1);
     expect(toast.warning).toHaveBeenCalledWith(expect.stringContaining('disconnected'));
+
+    // Phase 6H: the one intentional console line for this rare, terminal
+    // path — a developer diagnosing over a screenshare has something to
+    // go on. Names the project, never the token or wsUrl.
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+    const [loggedLine] = consoleWarnSpy.mock.calls[0];
+    expect(loggedLine).toContain('project-1');
+    expect(loggedLine).not.toContain('token-for-project-1');
   });
 
   it('onEvent: forwards every server frame to the consumer, including product events (Phase 5C)', async () => {
