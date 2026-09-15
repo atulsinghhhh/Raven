@@ -7,6 +7,7 @@ import { CodeBlock } from '@/components/ui/code-block';
 import { ErrorState } from '@/components/ui/states';
 import { formatClockTime } from '@/lib/format';
 import type { IssuedRtcToken } from '@/lib/api-client';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 export function TestTokenPanel({ projectId, roomId }: { projectId: string; roomId: string }) {
   const [token, setToken] = useState<IssuedRtcToken>();
@@ -22,9 +23,9 @@ export function TestTokenPanel({ projectId, roomId }: { projectId: string; roomI
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       });
-      const payload = await res.json();
-      if (!res.ok) {
-        setError(payload.message ?? 'Could not mint a test token');
+      const payload = await readJson<IssuedRtcToken>(res);
+      if (!res.ok || !payload) {
+        setError(errorMessage(payload, 'Could not mint a test token'));
         return;
       }
       setToken(payload);

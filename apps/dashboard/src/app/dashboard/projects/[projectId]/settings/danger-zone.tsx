@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { CardHeader } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { ErrorState } from '@/components/ui/states';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 /**
  * DELETE /v1/projects/:id is an archive, not a destructive delete: the
@@ -28,8 +29,8 @@ export function DangerZone({ projectId, projectName }: { projectId: string; proj
     try {
       const res = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
       if (!res.ok && res.status !== 204) {
-        const payload = await res.json().catch(() => undefined);
-        setError(payload?.message ?? 'Could not delete project');
+        const payload = await readJson(res);
+        setError(errorMessage(payload, 'Could not archive project'));
         return;
       }
       router.push('/dashboard/projects');
@@ -79,7 +80,7 @@ export function DangerZone({ projectId, projectName }: { projectId: string; proj
               className="flex-1"
             />
             <Button variant="danger" disabled={!confirmed || deleting} onClick={handleDelete}>
-              {deleting ? 'Deleting…' : 'Delete project'}
+              {deleting ? 'Archiving…' : 'Archive project'}
             </Button>
           </div>
           <p className="text-xs leading-relaxed text-subtle">

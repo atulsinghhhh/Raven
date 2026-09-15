@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
 import { Field, TextareaField } from '@/components/ui/field';
 import { ErrorState } from '@/components/ui/states';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 /**
  * Name and description are the only two mutable fields the Control API
@@ -42,10 +43,10 @@ export function ProjectSettingsForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, description }),
       });
-      const payload = await res.json();
+      const payload = await readJson(res);
 
       if (!res.ok) {
-        setError(payload.message ?? 'Could not save changes');
+        setError(errorMessage(payload, 'Could not save changes'));
         return;
       }
 

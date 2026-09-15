@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
 import { TextareaField } from '@/components/ui/field';
 import { ErrorState } from '@/components/ui/states';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 /**
  * Per-project browser origin allow-list.
@@ -54,10 +55,10 @@ export function AllowedOriginsForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ allowedOrigins: parsed, allowLocalhostOrigins: allowLocalhost }),
       });
-      const payload = await res.json();
+      const payload = await readJson(res);
 
       if (!res.ok) {
-        setError(payload.message ?? 'Could not save allowed origins');
+        setError(errorMessage(payload, 'Could not save allowed origins'));
         return;
       }
 

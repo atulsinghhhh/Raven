@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ErrorState, NoDataYet } from '@/components/ui/states';
 import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { formatBitrate, formatCount, formatPercent, formatRelative } from '@/lib/format';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 const STATUS_TONE: Record<RtcServerStatus, BadgeTone> = {
   HEALTHY: 'success',
@@ -58,12 +59,12 @@ export function FleetTable({ initialServers }: { initialServers: RtcServer[] }) 
         // what they think is the opposite action.
         body: JSON.stringify({ draining }),
       });
-      const payload = await res.json().catch(() => undefined);
-      if (!res.ok) {
-        setError(payload?.message ?? 'Could not change this node’s status.');
+      const payload = await readJson<RtcServer>(res);
+      if (!res.ok || !payload) {
+        setError(errorMessage(payload, 'Could not change this node’s status.'));
         return;
       }
-      setServers((current) => current.map((s) => (s.name === server.name ? (payload as RtcServer) : s)));
+      setServers((current) => current.map((s) => (s.name === server.name ? payload : s)));
     } catch {
       setError('Could not reach the Control API.');
     } finally {

@@ -19,6 +19,7 @@ import { Card, CardHeader } from '@/components/ui/card';
 import { CodeBlock, CodeTabs } from '@/components/ui/code-block';
 import { CopyButton } from '@/components/ui/copy-button';
 import { ErrorState } from '@/components/ui/states';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 const PRODUCT_TO_ENUM: Record<Product, ProjectIntegration['product']> = {
   rtc: 'RTC',
@@ -269,9 +270,9 @@ function ProductIntegrationCard({
     setVerifyError(undefined);
     try {
       const res = await fetch(`/api/projects/${project.id}/integrations/${product}/verify`, { method: 'POST' });
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload?.message ?? 'Could not run the check.');
-      setResult(payload as IntegrationVerifyResult);
+      const payload = await readJson<IntegrationVerifyResult>(res);
+      if (!res.ok || !payload) throw new Error(errorMessage(payload, 'Could not run the check.'));
+      setResult(payload);
     } catch (err) {
       setVerifyError(err instanceof Error ? err.message : 'Could not reach the Control API.');
     } finally {

@@ -8,7 +8,8 @@ import { CopyButton } from '@/components/ui/copy-button';
 import { Field, Select } from '@/components/ui/field';
 import { IconChat, IconLiveStreaming, IconRooms, RavenMark } from '@/components/ui/icons';
 import { ErrorState } from '@/components/ui/states';
-import type { OnboardingState } from '@/lib/api-client';
+import type { CreatedApiKey, OnboardingState, Project } from '@/lib/api-client';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 // Steps 2–7 are the six a person interacts with; the welcome screen is
 // step 1 but isn't worth a progress segment. TOTAL_PROGRESS_STEPS is what
@@ -83,8 +84,8 @@ export function OnboardingFlow({ initialState, hasProjects }: { initialState: On
         body: JSON.stringify({ ...patch, step: nextStep }),
       });
       if (!res.ok) {
-        const payload = await res.json().catch(() => undefined);
-        setError(payload?.message ?? 'Could not save your progress. Please try again.');
+        const payload = await readJson(res);
+        setError(errorMessage(payload, 'Could not save your progress. Please try again.'));
         return;
       }
       setStep(nextStep);
@@ -102,8 +103,8 @@ export function OnboardingFlow({ initialState, hasProjects }: { initialState: On
     try {
       const res = await fetch('/api/onboarding/complete', { method: 'POST' });
       if (!res.ok) {
-        const payload = await res.json().catch(() => undefined);
-        setError(payload?.message ?? 'Could not finish onboarding. Please try again.');
+        const payload = await readJson(res);
+        setError(errorMessage(payload, 'Could not finish onboarding. Please try again.'));
         return;
       }
       router.push(destination);
@@ -476,9 +477,9 @@ function CreateProjectStep({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim() }),
       });
-      const created = await projectRes.json();
-      if (!projectRes.ok) {
-        setError(created.message ?? 'Could not create the project.');
+      const created = await readJson<Project>(projectRes);
+      if (!projectRes.ok || !created) {
+        setError(errorMessage(created, 'Could not create the project.'));
         return;
       }
 
@@ -492,8 +493,8 @@ function CreateProjectStep({
           body: JSON.stringify({ name: 'Default', environment }),
         });
         if (keyRes.ok) {
-          const key = await keyRes.json();
-          apiKey = { publicId: key.publicId, key: key.key, environment: key.environment };
+          const key = await readJson<CreatedApiKey>(keyRes);
+          if (key) apiKey = { publicId: key.publicId, key: key.key, environment: key.environment };
         }
       }
 

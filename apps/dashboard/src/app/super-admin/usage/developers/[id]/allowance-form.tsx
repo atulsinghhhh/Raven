@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Select, TextareaField } from '@/components/ui/field';
 import { ErrorState } from '@/components/ui/states';
 import type { ProductUsageBreakdown, UsageProduct } from '@/lib/super-admin/usage';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 const PRODUCT_LABEL: Record<UsageProduct, string> = {
   RTC: 'RTC (minutes)',
@@ -65,10 +66,10 @@ export function AllowanceForm({ userId, products }: { userId: string; products: 
           reason: reason.trim(),
         }),
       });
-      const payload = await res.json().catch(() => ({}));
+      const payload = await readJson(res);
 
       if (!res.ok) {
-        setError(payload.message ?? 'Could not change the allowance');
+        setError(errorMessage(payload, 'Could not change the allowance'));
         return;
       }
 

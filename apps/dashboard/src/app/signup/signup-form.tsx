@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/states';
 import { Field } from '@/components/ui/field';
+import type { AuthResponse } from '@/lib/api-client';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 export function SignupForm() {
   const router = useRouter();
@@ -25,16 +27,16 @@ export function SignupForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, ...(name.trim() ? { name: name.trim() } : {}) }),
       });
-      const payload = await res.json();
+      const payload = await readJson<AuthResponse>(res);
 
       if (!res.ok) {
-        setError(payload.message ?? 'Registration failed');
+        setError(errorMessage(payload, 'Registration failed'));
         return;
       }
 
       // A brand-new account always has onboarding ahead of it; the fallback
       // covers an older API that doesn't report onboarding state.
-      router.push(payload.onboarding && !payload.onboarding.completed ? '/onboarding' : '/dashboard');
+      router.push(payload?.onboarding && !payload.onboarding.completed ? '/onboarding' : '/dashboard');
       router.refresh();
     } catch {
       setError('Could not reach the server. Check your connection and try again.');

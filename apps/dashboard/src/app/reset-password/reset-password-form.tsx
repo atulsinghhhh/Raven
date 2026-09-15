@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { ErrorState } from '@/components/ui/states';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 // Mirrors RegisterDto/ResetPasswordDto on the API. 72 is bcrypt's input
 // limit, not a preference — the API rejects longer, so the form should say
@@ -37,10 +38,10 @@ export function ResetPasswordForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),
       });
-      const payload = await res.json().catch(() => undefined);
+      const payload = await readJson(res);
 
       if (!res.ok) {
-        setError(payload?.message ?? 'Could not change your password.');
+        setError(errorMessage(payload, 'Could not change your password.'));
         return;
       }
       setDone(true);

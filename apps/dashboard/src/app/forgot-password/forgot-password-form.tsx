@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { ErrorState } from '@/components/ui/states';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
@@ -27,8 +28,8 @@ export function ForgotPasswordForm() {
       // "no such account" — must look identical to success, or this form
       // becomes a way to test whether an address is registered.
       if (res.status === 429) {
-        const payload = await res.json().catch(() => undefined);
-        setError(payload?.message ?? 'Too many attempts. Wait a minute and try again.');
+        const payload = await readJson(res);
+        setError(errorMessage(payload, 'Too many attempts. Wait a minute and try again.'));
         return;
       }
 

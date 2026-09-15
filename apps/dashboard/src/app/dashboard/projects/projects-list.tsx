@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { Project } from '@/lib/api-client';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Field, Input, TextareaField } from '@/components/ui/field';
@@ -83,10 +84,10 @@ export function ProjectsList({
           ...(description.trim() ? { description: description.trim() } : {}),
         }),
       });
-      const payload = await res.json();
+      const payload = await readJson<Project>(res);
 
-      if (!res.ok) {
-        setError(payload.message ?? 'Could not create project');
+      if (!res.ok || !payload) {
+        setError(errorMessage(payload, 'Could not create project'));
         return;
       }
 

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { ErrorState } from '@/components/ui/states';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 export function ProfileForm({ initialName, email }: { initialName: string; email: string }) {
   const router = useRouter();
@@ -27,8 +28,8 @@ export function ProfileForm({ initialName, email }: { initialName: string; email
         body: JSON.stringify({ name }),
       });
       if (!res.ok) {
-        const payload = await res.json().catch(() => undefined);
-        setError(payload?.message ?? 'Could not save your profile.');
+        const payload = await readJson(res);
+        setError(errorMessage(payload, 'Could not save your profile.'));
         return;
       }
       setSaved(true);

@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ButtonLink } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/states';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 type Status = 'verifying' | 'verified' | 'failed' | 'missing-token';
 
@@ -27,11 +28,11 @@ export function VerifyEmailPanel() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
         });
-        const payload = await res.json().catch(() => undefined);
+        const payload = await readJson(res);
 
         if (!res.ok) {
           setStatus('failed');
-          setMessage(payload?.message ?? 'This link could not be confirmed.');
+          setMessage(errorMessage(payload, 'This link could not be confirmed.'));
           return;
         }
         setStatus('verified');
