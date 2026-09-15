@@ -33,7 +33,7 @@
   "dependencies": {
     "chalk": "^6.0.0",
     "commander": "^15.0.0",
-    "open": "^11.0.2"
+    "open": "^11.0.3"
   },
   "devDependencies": {
     "@jest/globals": "^30.5.1",
