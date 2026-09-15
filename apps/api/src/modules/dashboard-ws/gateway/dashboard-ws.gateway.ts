@@ -55,6 +55,25 @@ export class DashboardWsGateway implements OnGatewayInit, OnGatewayConnection, O
   private heartbeatTimer?: NodeJS.Timeout;
   private unsubscribeFromEvents?: () => void;
 
+  /**
+   * Cumulative since process start, for MetricsService's
+   * raven_dashboard_ws_connections_total gauge (Phase 6H). A client that
+   * reconnects is, from here, indistinguishable from a fresh tab opening —
+   * this instance has no notion of "the same browser session as before" —
+   * so this is the honest proxy for reconnect frequency: a roughly stable
+   * set of open tabs producing a rising rate of accepted connections means
+   * something is dropping and retrying.
+   */
+  private totalConnections = 0;
+  /**
+   * Cumulative since process start, keyed by DashboardWsErrorCode, for
+   * raven_dashboard_ws_connection_rejections_total{reason} (Phase 6H) — the
+   * WS-upgrade analog of an HTTP error-rate metric: which category of
+   * rejection (bad/expired/revoked token, disallowed origin, rate limit)
+   * is happening, and how often.
+   */
+  private readonly rejectionsByReason = new Map<string, number>();
+
   constructor(
     private readonly tokens: DashboardWsTokenService,
     private readonly events: DashboardEventsService,
@@ -165,6 +184,7 @@ export class DashboardWsGateway implements OnGatewayInit, OnGatewayConnection, O
 
     this.sessions.set(socket, session);
     this.addToProjectIndex(session.projectId, socket);
+    this.totalConnections += 1;
 
     socket.on('message', (data: RawData) => void this.handleFrame(session, data));
     socket.on('pong', () => {
@@ -325,16 +345,19 @@ export class DashboardWsGateway implements OnGatewayInit, OnGatewayConnection, O
   }
 
   private rejectConnection(socket: WebSocket, error: DashboardWsError, closeCode: number): void {
+    this.rejectionsByReason.set(error.wsCode, (this.rejectionsByReason.get(error.wsCode) ?? 0) + 1);
     this.send(socket, error.toFrame());
     socket.resume();
     socket.close(closeCode, error.wsCode);
   }
 
-  /** Live counts, for /health and metrics. */
+  /** Live counts plus cumulative totals, for /health and MetricsService (raven_dashboard_ws_* gauges). */
   getMetrics() {
     return {
       activeConnections: this.sessions.size,
       subscribedProjectChannels: this.events.getSubscribedChannelCount(),
+      totalConnections: this.totalConnections,
+      rejectionsByReason: Object.fromEntries(this.rejectionsByReason),
     };
   }
 }

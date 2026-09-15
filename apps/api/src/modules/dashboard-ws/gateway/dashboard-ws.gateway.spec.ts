@@ -151,6 +151,57 @@ describe('DashboardWsGateway.handleConnection', () => {
   });
 });
 
+describe('DashboardWsGateway.getMetrics (Phase 6H)', () => {
+  it('counts an accepted connection toward totalConnections but not rejectionsByReason', async () => {
+    const { gateway } = makeGateway({ verify: jest.fn().mockResolvedValue(VALID_CLAIMS) });
+
+    await gateway.handleConnection(makeSocket() as never, makeRequest({ token: 'a-valid-token' }));
+
+    expect(gateway.getMetrics().totalConnections).toBe(1);
+    expect(gateway.getMetrics().rejectionsByReason).toEqual({});
+  });
+
+  it('tallies a rejection under its DashboardWsErrorCode, without touching totalConnections', async () => {
+    const { gateway } = makeGateway({
+      verify: jest.fn().mockRejectedValue(new DashboardWsError(DashboardWsErrorCode.INVALID_TOKEN, 'bad token')),
+    });
+
+    await gateway.handleConnection(makeSocket() as never, makeRequest({ token: 'garbage' }));
+
+    expect(gateway.getMetrics()).toMatchObject({
+      totalConnections: 0,
+      rejectionsByReason: { [DashboardWsErrorCode.INVALID_TOKEN]: 1 },
+    });
+  });
+
+  it('accumulates separate reasons independently across repeated rejections', async () => {
+    const verify = jest
+      .fn()
+      .mockRejectedValueOnce(new DashboardWsError(DashboardWsErrorCode.INVALID_TOKEN, 'bad'))
+      .mockRejectedValueOnce(new DashboardWsError(DashboardWsErrorCode.INVALID_TOKEN, 'bad again'))
+      .mockRejectedValueOnce(new DashboardWsError(DashboardWsErrorCode.TOKEN_EXPIRED, 'expired'));
+    const { gateway } = makeGateway({ verify });
+
+    await gateway.handleConnection(makeSocket() as never, makeRequest({ token: 'a' }));
+    await gateway.handleConnection(makeSocket() as never, makeRequest({ token: 'b' }));
+    await gateway.handleConnection(makeSocket() as never, makeRequest({ token: 'c' }));
+
+    expect(gateway.getMetrics().rejectionsByReason).toEqual({
+      [DashboardWsErrorCode.INVALID_TOKEN]: 2,
+      [DashboardWsErrorCode.TOKEN_EXPIRED]: 1,
+    });
+  });
+
+  it('accepted connections keep accumulating across multiple connects', async () => {
+    const { gateway } = makeGateway({ verify: jest.fn().mockResolvedValue(VALID_CLAIMS) });
+
+    await gateway.handleConnection(makeSocket() as never, makeRequest({ token: 'a' }));
+    await gateway.handleConnection(makeSocket() as never, makeRequest({ token: 'b' }));
+
+    expect(gateway.getMetrics().totalConnections).toBe(2);
+  });
+});
+
 describe('DashboardWsGateway.handleDisconnect', () => {
   it('releases the project channel subscription and removes the session', async () => {
     const { gateway, sessions } = makeGateway({ verify: jest.fn().mockResolvedValue(VALID_CLAIMS) });

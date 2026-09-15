@@ -4,9 +4,12 @@ import { WebhookDeliveryStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { EmailMetricsService } from '../email/email.metrics.service';
 import { ChatGateway } from '../chat/gateway/chat.gateway';
+import { DashboardWsGateway } from '../dashboard-ws/gateway/dashboard-ws.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 import { SignalingGateway } from '../signaling/gateway/signaling.gateway';
 import { SfuLinkService } from '../signaling/sfu/sfu-link.service';
 import { RtcServerRegistryService } from '../rtc-servers/rtc-server-registry.service';
+import { WebhookDeliveryWorker } from '../webhooks/webhook-delivery.worker';
 
 /**
  * Infrastructure metrics for Prometheus: a different concern from
@@ -39,6 +42,9 @@ export class MetricsService {
     private readonly sfuLink: SfuLinkService,
     private readonly rtcServers: RtcServerRegistryService,
     private readonly emailMetrics: EmailMetricsService,
+    private readonly dashboardWsGateway: DashboardWsGateway,
+    private readonly webhookDeliveryWorker: WebhookDeliveryWorker,
+    private readonly notifications: NotificationsService,
   ) {
     collectDefaultMetrics({ register: this.registry });
 
@@ -137,6 +143,53 @@ export class MetricsService {
       registers: [this.registry],
       collect() {
         this.set(signalingGateway.getMetrics().activeParticipants);
+      },
+    });
+
+    // Dashboard WS (Phase 6H) — same per-instance gauge pattern as chat/
+    // signaling above, plus two cumulative-since-start figures the other
+    // gateways don't need: this one has no equivalent to "messages sent"
+    // to gauge activity by, so connection churn itself (totalConnections'
+    // rate) and rejection reasons are the operational signal.
+    const dashboardWsGateway = this.dashboardWsGateway;
+
+    new Gauge({
+      name: 'raven_dashboard_ws_connections_active',
+      help: 'Dashboard realtime WebSocket connections currently held by this instance',
+      registers: [this.registry],
+      collect() {
+        this.set(dashboardWsGateway.getMetrics().activeConnections);
+      },
+    });
+
+    new Gauge({
+      name: 'raven_dashboard_ws_subscribed_project_channels',
+      help: 'Redis pub/sub channels this instance is currently subscribed to for dashboard realtime fan-out',
+      registers: [this.registry],
+      collect() {
+        this.set(dashboardWsGateway.getMetrics().subscribedProjectChannels);
+      },
+    });
+
+    new Gauge({
+      name: 'raven_dashboard_ws_connections_total',
+      help: 'Dashboard WS connections accepted by this instance since it started. A rising rate against a stable set of open tabs indicates reconnect churn.',
+      registers: [this.registry],
+      collect() {
+        this.set(dashboardWsGateway.getMetrics().totalConnections);
+      },
+    });
+
+    new Gauge({
+      name: 'raven_dashboard_ws_connection_rejections_total',
+      help: 'Dashboard WS connections this instance has rejected at the upgrade, by reason, since it started',
+      labelNames: ['reason'],
+      registers: [this.registry],
+      collect() {
+        const byReason = dashboardWsGateway.getMetrics().rejectionsByReason;
+        for (const [reason, count] of Object.entries(byReason)) {
+          this.set({ reason }, count);
+        }
       },
     });
 
@@ -244,6 +297,39 @@ export class MetricsService {
           // Leave the gauge at its last successfully-observed value rather
           // than fail the whole /metrics scrape over one query.
         }
+      },
+    });
+
+    // Per-instance (see WebhookDeliveryWorker's own doc on why: only the
+    // lock-holder at any moment does any work), unlike the pending-queue
+    // gauge just above. Together they answer "is the queue deep because
+    // of volume, or because deliveries keep failing and retrying."
+    const webhookDeliveryWorker = this.webhookDeliveryWorker;
+
+    new Gauge({
+      name: 'raven_webhook_deliveries_total',
+      help: 'Webhook delivery attempts this instance has made since it started, by outcome',
+      labelNames: ['status'],
+      registers: [this.registry],
+      collect() {
+        const counts = webhookDeliveryWorker.getMetrics();
+        this.set({ status: 'delivered' }, counts.delivered);
+        this.set({ status: 'failed' }, counts.failed);
+      },
+    });
+
+    const notifications = this.notifications;
+
+    // No per-recipient label: which recipient's upsert failed isn't an
+    // operational question (NotificationsService's own per-failure log
+    // line already carries that detail) — whether they're failing at all,
+    // trending across every notification this instance has sent, is.
+    new Gauge({
+      name: 'raven_notification_upsert_failures_total',
+      help: 'Notification row upserts (one per recipient, per notifyProject call) that failed and were skipped, since this instance started',
+      registers: [this.registry],
+      collect() {
+        this.set(notifications.getMetrics().upsertFailures);
       },
     });
   }

@@ -27,6 +27,9 @@ import { DashboardWsTokenService } from './tokens/dashboard-ws-token.service';
     DashboardWsConnectionRateLimitService,
     DashboardWsGateway,
   ],
-  exports: [DashboardEventsService],
+  // DashboardWsGateway exported for MetricsService (Phase 6H) — same
+  // "gateway is a metrics source, not just a message pump" reasoning
+  // ChatModule/SignalingModule already export their own gateways for.
+  exports: [DashboardEventsService, DashboardWsGateway],
 })
 export class DashboardWsModule {}
