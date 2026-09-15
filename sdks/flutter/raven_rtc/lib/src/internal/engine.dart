@@ -103,6 +103,39 @@ class RavenEngine {
       <String, ({rtc.MediaStreamTrack track, rtc.MediaStream stream})>{};
   final _deferredPublishes = <Future<void> Function()>[];
 
+  /// Serializes every operation that can change [_pc]'s `signalingState` —
+  /// our own offers, the SFU's offers, its answers to ours — so an async
+  /// gap inside one can never let another run against a signalingState it
+  /// didn't expect to find.
+  ///
+  /// `signaling.messages.listen` in [start] dispatches each message via
+  /// `unawaited(_handleMessage(...))`, so without this, an offer and an
+  /// answer (or two offers) arriving back to back could interleave here.
+  /// packages/sdk avoids the equivalent race by coalescing everything
+  /// behind the browser's `onnegotiationneeded` event; flutter_webrtc's
+  /// native platform channel exposes no such event (only its web backend
+  /// does — see dart_webrtc's `onRenegotiationNeeded`), so this package
+  /// cannot rely on it without behaving differently per platform. A plain
+  /// FIFO chain gets the same guarantee everywhere `RavenEngine` runs.
+  ///
+  /// Only entry points reached from *outside* an already-serialized task
+  /// go through this ([_handleMessage]'s offer/answer cases, and
+  /// [publish]/[unpublish]). [_flushDeferredPublishes] calls
+  /// [_negotiatePublish] directly, never wrapped again: it only ever runs
+  /// from inside [_handleOffer]/[_handleAnswer], which are themselves
+  /// already the chain's current task, and re-wrapping there would queue
+  /// behind a task waiting on that very call — a deadlock.
+  Future<void> _negotiationChain = Future<void>.value();
+
+  Future<T> _serialized<T>(Future<T> Function() operation) {
+    final result = _negotiationChain.then((_) => operation());
+    // Chained regardless of outcome: a failed round must not wedge every
+    // negotiation after it, and the caller still observes the failure
+    // through the Future `result` itself.
+    _negotiationChain = result.then((_) {}, onError: (_) {});
+    return result;
+  }
+
   final _changes = StreamController<void>.broadcast();
   final _errors = StreamController<RavenException>.broadcast();
   final _data = StreamController<List<int>>.broadcast();
@@ -191,9 +224,9 @@ class RavenEngine {
 
     switch (message['type']) {
       case ServerMessageType.sdpOffer:
-        await _handleOffer(message['sdp'] as String? ?? '');
+        await _serialized(() => _handleOffer(message['sdp'] as String? ?? ''));
       case ServerMessageType.sdpAnswer:
-        await _handleAnswer(message['sdp'] as String? ?? '');
+        await _serialized(() => _handleAnswer(message['sdp'] as String? ?? ''));
       case ServerMessageType.iceCandidate:
         await _handleRemoteCandidate(IceCandidatePayload.fromJson(message));
       case ServerMessageType.trackPublished:
@@ -220,8 +253,20 @@ class RavenEngine {
       case ServerMessageType.error:
         final code = message['code'] as String? ?? '';
         if (code == SignalingErrorCode.negotiationGlare) {
-          // Expected: our offer lost a race with the server's. The
-          // deferred publish retries once we answer theirs.
+          // Genuine glare: the SFU refused our offer because its own is
+          // already on the way (services/sfu's AcceptOffer — "our offer
+          // stands, the client retries once it has answered it"). The
+          // refused offer described real local state (a track just
+          // published, most often), so it must not simply be dropped, or
+          // that track sits on the peer connection forever undeclared to
+          // the server: exactly what left publishers showing camera/mic
+          // as unpublished despite a successful-looking `publish()` call.
+          //
+          // Requeued through the same path a publish takes when it finds
+          // the peer connection already mid-round: [_handleOffer], which
+          // is about to receive the SFU's offer this glare made way for,
+          // rolls our local offer back, answers, and flushes this queue.
+          _deferredPublishes.add(_negotiatePublish);
           return;
         }
         _errors.add(RavenException(
@@ -275,6 +320,36 @@ class RavenEngine {
   Future<void> _handleOffer(String sdp) async {
     final pc = await _ensurePeerConnection();
     try {
+      // Live read — see _negotiatePublish's doc comment on why the cached
+      // `pc.signalingState` getter is not trustworthy here either: an
+      // offer we just sent may not have updated it yet.
+      final state = await pc.getSignalingState();
+      if (state == rtc.RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
+        // Real glare: this offer arrived while our own was still
+        // outstanding. The SFU is the impolite peer by design (see
+        // services/sfu's Participant.AcceptOffer) — it has already
+        // refused, or is about to refuse, our offer with
+        // NEGOTIATION_GLARE (see the ServerMessageType.error case above),
+        // so rolling back here just brings the local description in line
+        // with what the server already decided, instead of
+        // setRemoteDescription below throwing "Called in wrong state".
+        try {
+          // flutter_webrtc has no dedicated rollback call. An empty-SDP
+          // description typed 'rollback' is the spec-correct wire form
+          // for one; dart_webrtc's setLocalDescription force-unwraps
+          // description.sdp (rtc_peerconnection_impl.dart), so this has
+          // to be '' rather than null, or the unwrap throws before the
+          // platform ever sees the call.
+          await pc
+              .setLocalDescription(rtc.RTCSessionDescription('', 'rollback'));
+        } catch (_) {
+          // Best-effort: setRemoteDescription(offer) below performs an
+          // implicit rollback per the WebRTC spec on platforms where an
+          // explicit one fails or isn't implemented, so proceed either
+          // way.
+        }
+      }
+
       await pc.setRemoteDescription(rtc.RTCSessionDescription(sdp, 'offer'));
       final answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
@@ -302,6 +377,16 @@ class RavenEngine {
     if (pc == null) return;
     try {
       await pc.setRemoteDescription(rtc.RTCSessionDescription(sdp, 'answer'));
+
+      // The round this answer just completed may have had another
+      // publish queued behind it (_negotiatePublish's `signalingState !=
+      // stable` branch, reached when a second track was published while
+      // our first offer was still outstanding). Without this, that
+      // publish stayed queued until something unrelated prompted the SFU
+      // to offer again — previously only _handleOffer flushed the queue,
+      // so a publish that only ever raced our own offer, never the
+      // SFU's, retried on nothing.
+      await _flushDeferredPublishes();
     } catch (error) {
       _errors.add(RavenException(
         RavenErrorCode.signalingError,
@@ -344,7 +429,18 @@ class RavenEngine {
     final pc = _pc;
     if (pc == null) return;
 
-    if (pc.signalingState != rtc.RTCSignalingState.RTCSignalingStateStable) {
+    // A *live* read, not the cached `pc.signalingState` getter: that
+    // cache only updates from a `signalingState` platform event, which on
+    // Flutter Web arrives via the browser's own `signalingstatechange`
+    // listener — asynchronously, on its own turn of the event loop. Called
+    // right after _handleOffer's own setRemoteDescription/setLocalDescription
+    // (as _flushDeferredPublishes does), that event can easily not have
+    // landed yet, so the cache still reads the description-old state and
+    // this defers a retry that was actually free to send — forever, since
+    // nothing else was going to prompt another flush. getSignalingState()
+    // asks the platform directly and has no such lag.
+    final state = await pc.getSignalingState();
+    if (state != rtc.RTCSignalingState.RTCSignalingStateStable) {
       // The server has an offer in flight. Retry after we answer it,
       // rather than creating a competing offer.
       _deferredPublishes.add(_negotiatePublish);
@@ -521,7 +617,11 @@ class RavenEngine {
     );
     _published[source] = published;
 
-    await _negotiatePublish();
+    // Serialized: publish()/unpublish() are called from outside any
+    // chain task (app code, via RavenRoom), unlike _flushDeferredPublishes,
+    // which calls _negotiatePublish directly because it already runs
+    // inside one. See _serialized's doc comment.
+    await _serialized(_negotiatePublish);
     _notify();
     return published;
   }
@@ -538,7 +638,11 @@ class RavenEngine {
     await published.track.stop();
     await published.stream.dispose();
 
-    await _negotiatePublish();
+    // Serialized: publish()/unpublish() are called from outside any
+    // chain task (app code, via RavenRoom), unlike _flushDeferredPublishes,
+    // which calls _negotiatePublish directly because it already runs
+    // inside one. See _serialized's doc comment.
+    await _serialized(_negotiatePublish);
     _notify();
   }
 

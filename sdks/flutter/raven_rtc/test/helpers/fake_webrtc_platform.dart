@@ -41,9 +41,27 @@ class FakeWebRtcPlatform {
   final _localSdp = <String, String>{};
   final _localType = <String, String>{};
 
+  /// The state `getSignalingState()` (the *live*, non-cached read) reports
+  /// for each peer connection — driven by the actual `setLocalDescription`
+  /// / `setRemoteDescription` calls received, exactly like a real
+  /// RTCPeerConnection's signaling-state machine, not by an explicit event
+  /// a test fires. [RavenEngine] reads this one to decide whether to
+  /// negotiate or defer (see engine.dart's `_negotiatePublish` and
+  /// `_handleOffer`) specifically because the *cached* `signalingState`
+  /// getter (below, driven by [signalingState]) lags a real event's
+  /// arrival on Flutter Web, which is the race the glare-recovery tests
+  /// exist to catch.
+  final _liveSignalingStates = <String, String>{};
+
   /// Every method invoked, in order — for asserting what the engine did
   /// (and did not do) without depending on its private fields.
   final calls = <String>[];
+
+  /// The `type` of every `setLocalDescription` call, in order — `offer`,
+  /// `answer`, or `rollback`. `calls` alone can't distinguish these, and
+  /// the glare-recovery tests need to prove a rollback specifically
+  /// happened, not merely that *some* local description was set.
+  final localDescriptionTypes = <String>[];
 
   /// The peer connection id `createPeerConnection` most recently minted.
   String? lastPeerConnectionId;
@@ -56,8 +74,7 @@ class FakeWebRtcPlatform {
 
   Future<dynamic> _handle(MethodCall call) async {
     calls.add(call.method);
-    final args =
-        (call.arguments as Map?)?.cast<String, dynamic>() ?? const {};
+    final args = (call.arguments as Map?)?.cast<String, dynamic>() ?? const {};
     final peerConnectionId = args['peerConnectionId'] as String?;
 
     switch (call.method) {
@@ -65,13 +82,27 @@ class FakeWebRtcPlatform {
         _pcCounter++;
         final id = 'pc-$_pcCounter';
         lastPeerConnectionId = id;
+        _liveSignalingStates[id] = 'stable';
         return {'peerConnectionId': id, 'sessionId': 'session-$_pcCounter'};
 
       case 'setLocalDescription':
         final description =
             (args['description'] as Map).cast<String, dynamic>();
-        _localSdp[peerConnectionId!] = description['sdp'] as String;
-        _localType[peerConnectionId] = description['type'] as String;
+        final type = description['type'] as String;
+        localDescriptionTypes.add(type);
+        _liveSignalingStates[peerConnectionId!] = switch (type) {
+          'offer' => 'have-local-offer',
+          'pranswer' => 'have-local-pranswer',
+          'answer' || 'rollback' => 'stable',
+          _ => _liveSignalingStates[peerConnectionId] ?? 'stable',
+        };
+        if (type == 'rollback') {
+          // A real rollback discards the pending local offer rather than
+          // replacing it with new SDP; nothing meaningful to store.
+          return null;
+        }
+        _localSdp[peerConnectionId] = description['sdp'] as String;
+        _localType[peerConnectionId] = type;
         return null;
 
       case 'getLocalDescription':
@@ -80,7 +111,10 @@ class FakeWebRtcPlatform {
         return {'sdp': sdp, 'type': _localType[peerConnectionId]};
 
       case 'createOffer':
-        return {'sdp': 'v=0\r\no=- 0 0 IN IP4 0.0.0.0\r\ns=-\r\n', 'type': 'offer'};
+        return {
+          'sdp': 'v=0\r\no=- 0 0 IN IP4 0.0.0.0\r\ns=-\r\n',
+          'type': 'offer'
+        };
 
       case 'createAnswer':
         return {
@@ -114,10 +148,21 @@ class FakeWebRtcPlatform {
         return {'id': _dcCounter, 'flutterId': 'dc-$_dcCounter'};
 
       case 'getSignalingState':
-        return {'state': 'stable'};
+        return {'state': _liveSignalingStates[peerConnectionId] ?? 'stable'};
+
+      case 'setRemoteDescription':
+        final description =
+            (args['description'] as Map).cast<String, dynamic>();
+        final type = description['type'] as String;
+        _liveSignalingStates[peerConnectionId!] = switch (type) {
+          'offer' => 'have-remote-offer',
+          'pranswer' => 'have-remote-pranswer',
+          'answer' => 'stable',
+          _ => _liveSignalingStates[peerConnectionId] ?? 'stable',
+        };
+        return null;
 
       case 'setConfiguration':
-      case 'setRemoteDescription':
       case 'addStream':
       case 'removeStream':
       case 'addCandidate':
@@ -140,6 +185,11 @@ class FakeWebRtcPlatform {
   /// updates from an event like this one — never from the method-channel
   /// response of the call that changed it.
   Future<void> signalingState(String peerConnectionId, String state) {
+    // Also drives the live-read path ([_liveSignalingStates]), so a test
+    // that forces a state this way (rather than through an actual
+    // setLocalDescription/setRemoteDescription call) is visible to
+    // getSignalingState() too, not only the cached property.
+    _liveSignalingStates[peerConnectionId] = state;
     return _sendEvent(
       'FlutterWebRTC/peerConnectionEvent$peerConnectionId',
       {'event': 'signalingState', 'state': state},

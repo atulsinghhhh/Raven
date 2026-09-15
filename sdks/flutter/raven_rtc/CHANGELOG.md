@@ -1,3 +1,56 @@
+## 0.1.3
+
+Fixes a negotiation-glare bug that could leave a locally "published"
+track never actually negotiated with the SFU, found via a real
+end-to-end run against a real backend, SFU and browser. No public API
+changes.
+
+* **Fixed:** the SFU is the impolite peer in a glare (both sides
+  offering at once) by design: it refuses the client's offer with a
+  retryable `NEGOTIATION_GLARE` and expects the client to answer its
+  own offer, then retry. `RavenEngine` received that error and simply
+  discarded it — no rollback, no retry — so a track added right as the
+  SFU's join-time offer arrived could sit on the peer connection with
+  `track.publish` declared but never actually negotiated. Every other
+  participant then saw that source as not published
+  (`camera=false`/`microphone=false`) even though `enableCamera()` /
+  `enableMicrophone()` reported success. `_handleOffer` now rolls the
+  local offer back before accepting a colliding SFU offer, and a
+  glared publish is requeued and retried once that round completes.
+* **Fixed:** the retry itself could stay queued forever. It decided
+  whether to negotiate by reading `RTCPeerConnection.signalingState`,
+  which flutter_webrtc only updates from an asynchronous platform
+  event; read immediately after our own rollback-and-answer (exactly
+  where the retry needs to fire), it could still report the
+  pre-answer state on Flutter Web. It now asks the platform directly
+  (`getSignalingState()`) instead of trusting that cache.
+* Every operation that can change the peer connection's signaling
+  state (an incoming SFU offer, an incoming SFU answer, a local
+  publish) is now serialized through one queue, so two of them can no
+  longer interleave against a signaling state the other has since
+  moved past.
+* Added regression coverage (`test/engine_test.dart`) for glare
+  recovery specifically: a colliding SFU offer rolling ours back, a
+  glared publish surviving instead of being dropped, a publish
+  deferred behind our own offer retrying once that offer is answered
+  (not only once the SFU offers again), and the full
+  publish → glare → rollback → retry → accepted sequence end to end.
+* Verified via repeated real end-to-end runs — a real Flutter Web
+  build publishing camera and microphone to a real live stream through
+  a real local SFU, with a real browser subscriber's raw
+  `RTCPeerConnection.getStats()` confirming `framesDecoded` and
+  `bytesReceived` actually increase — including runs where the glare
+  condition fired live and recovered correctly.
+* **Known issue, not fixed here:** a separate, rarer race was found
+  during this verification, unrelated to glare: a viewer joining right
+  as a Flutter host's negotiation completes can occasionally time out
+  waiting to subscribe. It traces to the SFU only subscribing a new
+  participant to tracks it already considers published at join time,
+  combined with this SDK's `ready`/publish-success signals meaning the
+  local offer was sent, not that the SFU has accepted it yet. Fixing
+  it would mean changing the SFU or the readiness contract; out of
+  scope for this release.
+
 ## 0.1.2
 
 Fixes `Raven.join()` rejecting rooms identified by name, found via a

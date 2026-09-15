@@ -31,7 +31,9 @@ void main() {
   }
 
   group('RavenRoom.attach wiring order (spec §3-4)', () {
-    test('REGRESSION: a joins listener attached only after connect() resolves misses the first join', () async {
+    test(
+        'REGRESSION: a joins listener attached only after connect() resolves misses the first join',
+        () async {
       // Direct proof of the mechanism the fix closes: SignalingClient
       // fires `_joins.add()` synchronously inside the very callback that
       // resolves `connect()` -- before that callback even returns, let
@@ -43,7 +45,11 @@ void main() {
       final signaling = clientFor();
       final joining = signaling.connect();
       await Future<void>.delayed(Duration.zero);
-      socket.receive({'type': ServerMessageType.roomJoined, 'roomId': 'room-1', 'participants': []});
+      socket.receive({
+        'type': ServerMessageType.roomJoined,
+        'roomId': 'room-1',
+        'participants': []
+      });
       await joining;
 
       var receivedAfter = false;
@@ -54,9 +60,12 @@ void main() {
       await signaling.dispose();
     });
 
-    test('the fix: RavenRoom.attach() wires the room before connect() is called, so the first join is never missed', () async {
+    test(
+        'the fix: RavenRoom.attach() wires the room before connect() is called, so the first join is never missed',
+        () async {
       final signaling = clientFor();
-      final engine = RavenEngine(signaling: signaling, iceServers: const [], adaptiveStream: false);
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
 
       // Matches Raven.join(): attach() runs, *then* connect() is called.
       final room = RavenRoom.attach(
@@ -104,9 +113,12 @@ void main() {
       await Future<void>.delayed(Duration.zero);
     });
 
-    test('an sdp.offer immediately after room.joined is answered end to end through Raven.join()\'s real wiring', () async {
+    test(
+        'an sdp.offer immediately after room.joined is answered end to end through Raven.join()\'s real wiring',
+        () async {
       final signaling = clientFor();
-      final engine = RavenEngine(signaling: signaling, iceServers: const [], adaptiveStream: false);
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
       final room = RavenRoom.attach(
         signaling: signaling,
         engine: engine,
@@ -116,7 +128,11 @@ void main() {
 
       final joining = signaling.connect();
       await Future<void>.delayed(Duration.zero);
-      socket.receive({'type': ServerMessageType.roomJoined, 'roomId': 'room-1', 'participants': []});
+      socket.receive({
+        'type': ServerMessageType.roomJoined,
+        'roomId': 'room-1',
+        'participants': []
+      });
       final joined = await joining;
       room.applyInitialJoin(joined);
 
@@ -126,7 +142,8 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(socket.lastSent(ClientMessageType.sdpAnswer), isNotNull,
-          reason: 'the subscriber transport must actually come up -- see spec §3');
+          reason:
+              'the subscriber transport must actually come up -- see spec §3');
 
       room.dispose();
       // Let the fire-and-forget engine/signaling teardown finish
@@ -137,9 +154,12 @@ void main() {
   });
 
   group('applyJoinedState on reconnect', () {
-    test('a reconnect reconciles the roster: departed participants are dropped, new ones appear', () async {
+    test(
+        'a reconnect reconciles the roster: departed participants are dropped, new ones appear',
+        () async {
       final signaling = clientFor(autoReconnect: true);
-      final engine = RavenEngine(signaling: signaling, iceServers: const [], adaptiveStream: false);
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
       final room = RavenRoom.attach(
         signaling: signaling,
         engine: engine,
@@ -189,9 +209,12 @@ void main() {
   });
 
   group('receive-only participants and the data channel (spec §8)', () {
-    test('listening to room.data opens a local data channel even though nothing is published or sent', () async {
+    test(
+        'listening to room.data opens a local data channel even though nothing is published or sent',
+        () async {
       final signaling = clientFor();
-      final engine = RavenEngine(signaling: signaling, iceServers: const [], adaptiveStream: false);
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
       final room = RavenRoom.attach(
         signaling: signaling,
         engine: engine,
@@ -201,7 +224,11 @@ void main() {
 
       final joining = signaling.connect();
       await Future<void>.delayed(Duration.zero);
-      socket.receive({'type': ServerMessageType.roomJoined, 'roomId': 'room-1', 'participants': []});
+      socket.receive({
+        'type': ServerMessageType.roomJoined,
+        'roomId': 'room-1',
+        'participants': []
+      });
       final joined = await joining;
       room.applyInitialJoin(joined);
 
@@ -215,7 +242,8 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(platform.calls, contains('createDataChannel'),
-          reason: 'a receive-only participant still needs a channel for the SFU to relay onto');
+          reason:
+              'a receive-only participant still needs a channel for the SFU to relay onto');
 
       await subscription.cancel();
       room.dispose();
