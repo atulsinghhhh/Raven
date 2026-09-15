@@ -1,3 +1,23 @@
+## 0.1.5
+
+Fixes a data channel that could silently never open, found via a real
+Flutter-to-Flutter and Flutter-to-browser end-to-end sweep against a real
+backend and SFU. No public API changes.
+
+* **Fixed:** `RavenEngine.ensureDataChannel()` created the local data
+  channel but never negotiated it — unlike `publish()`/`unpublish()`,
+  nothing else was ever going to prompt an offer for a participant who
+  only wants `data`. A channel opened this way either rode along behind
+  some unrelated publish's negotiation round, or, for a participant that
+  never published anything, never opened at all: `RavenRoom.data`'s
+  listener calls `ensureDataChannel()` exactly this way (spec §8), so a
+  receive-only participant could not send *or* receive data.
+  `ensureDataChannel()` now awaits the same join-time barrier `publish()`
+  does and negotiates through the same guarded path, so the channel it
+  creates is always the one actually offered to the SFU.
+* Added regression coverage (`test/engine_test.dart`) proving
+  `ensureDataChannel()` negotiates on its own, with no publish required.
+
 ## 0.1.4
 
 Fixes a join-time negotiation race that could leave the SFU's very first
