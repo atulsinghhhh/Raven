@@ -26,6 +26,45 @@ describe('ravenApi', () => {
     expect(options.headers.Authorization).toBe('Bearer secret-token');
   });
 
+  describe('request correlation (Phase 6H)', () => {
+    it('sends a freshly minted x-request-id header on every call', async () => {
+      mockFetchOnce(200, []);
+      await ravenApi.listProjects('token');
+      const [, options] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(options.headers['x-request-id']).toMatch(/^dash_[0-9a-f]{24}$/);
+    });
+
+    it('uses a distinct id per call, not a shared/module-level one', async () => {
+      mockFetchOnce(200, []);
+      mockFetchOnce(200, []);
+      await ravenApi.listProjects('token');
+      await ravenApi.listProjects('token');
+      const [, first] = (global.fetch as jest.Mock).mock.calls[0];
+      const [, second] = (global.fetch as jest.Mock).mock.calls[1];
+      expect(first.headers['x-request-id']).not.toBe(second.headers['x-request-id']);
+    });
+
+    it("prefers the API's own echoed requestId on an error over the one this BFF sent", async () => {
+      mockFetchOnce(404, { code: 'NOT_FOUND', message: 'Project not found', requestId: 'req_from_api' });
+      await expect(ravenApi.getProject('token', 'missing')).rejects.toMatchObject({ requestId: 'req_from_api' });
+    });
+
+    it('falls back to the id it sent when the API error body carries none', async () => {
+      mockFetchOnce(500, { code: 'INTERNAL_ERROR', message: 'boom' });
+      await expect(ravenApi.getProject('token', 'p1')).rejects.toMatchObject({
+        requestId: expect.stringMatching(/^dash_[0-9a-f]{24}$/),
+      });
+    });
+
+    it('still attaches the id it generated when fetch() itself throws (API never reachable)', async () => {
+      (global.fetch as jest.Mock).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      await expect(ravenApi.getProject('token', 'p1')).rejects.toMatchObject({
+        status: 0,
+        requestId: expect.stringMatching(/^dash_[0-9a-f]{24}$/),
+      });
+    });
+  });
+
   it('throws ApiError with the backend-provided status/code/message on failure', async () => {
     mockFetchOnce(404, { code: 'NOT_FOUND', message: 'Project not found' });
 

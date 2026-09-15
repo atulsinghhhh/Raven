@@ -2,6 +2,8 @@
 // browser never hits it directly and never sees the JWT. This is the only
 // file that knows the API's base URL and response shapes. Don't go fetching
 // it from anywhere else.
+import { randomBytes } from 'crypto';
+
 const API_BASE_URL = process.env.RAVEN_API_URL ?? 'http://localhost:4100';
 
 export class ApiError extends Error {
@@ -9,6 +11,15 @@ export class ApiError extends Error {
     public readonly status: number,
     public readonly code: string,
     message: string,
+    /**
+     * The Control API's own correlation id for this call — from its
+     * response body when it sent one, otherwise the id apiFetch generated
+     * and sent as `x-request-id` (still worth keeping: it's what this
+     * BFF's own server log recorded for the attempt, even though the API
+     * never got far enough to log anything itself). Undefined only for a
+     * 204, which never reaches error-construction at all.
+     */
+    public readonly requestId?: string,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -755,13 +766,33 @@ interface RequestOptions {
   body?: unknown;
 }
 
+/**
+ * Same shape as the API's own req_/rvk_/ccn_ ids (short prefix, opaque
+ * body) — see apps/api's request-id.util.ts. `dash_` marks it as
+ * BFF-minted rather than API-minted, which matters when reading a log
+ * line: the API only ever echoes an id back if this is the one that sent
+ * it, so the prefix is the tell for "did the request even reach the API."
+ */
+function generateRequestId(): string {
+  return `dash_${randomBytes(12).toString('hex')}`;
+}
+
 async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  // Minted here, not read from the incoming browser request: the BFF is
+  // the client of the Control API for this call, so it owns correlating
+  // its *own* outbound attempt, the same way any HTTP client would. Sent
+  // as `x-request-id` so the API's own resolveRequestId() (request-id.util.ts)
+  // honors it instead of minting a second, disconnected id — one id spans
+  // both services' logs for the one call.
+  const requestId = generateRequestId();
+
   let res: Response;
   try {
     res = await fetch(`${API_BASE_URL}${path}`, {
       method: options.method ?? 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'x-request-id': requestId,
         ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
       },
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
@@ -771,7 +802,9 @@ async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<
     // fetch() itself throws (DNS/connection refused/aborted) rather than resolving with
     // a bad status. Normalize to ApiError so every caller's `instanceof ApiError` check
     // covers "API unreachable" the same way it covers "API responded with an error".
-    throw new ApiError(0, 'NETWORK_ERROR', 'Could not reach the Control API');
+    // The API never got far enough to log anything against this id, but this BFF's own
+    // request log (see route-helpers.ts's handleApiError) still recorded the attempt under it.
+    throw new ApiError(0, 'NETWORK_ERROR', 'Could not reach the Control API', requestId);
   }
 
   if (res.status === 204) {
@@ -782,16 +815,26 @@ async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<
     (value) => ({ ok: true as const, value }),
     () => ({ ok: false as const, value: undefined }),
   );
-  const payload = parsed.value as { code?: string; message?: string } | undefined;
+  const payload = parsed.value as { code?: string; message?: string; requestId?: string } | undefined;
+  // Prefer what the API echoed back (AllExceptionsFilter always stamps
+  // error bodies with it) — it's the id under which the API itself, not
+  // just this BFF, logged the failure. Falls back to the id we sent, for
+  // a body the API never got the chance to shape (a proxy's own error page).
+  const resolvedRequestId = payload?.requestId ?? requestId;
 
   if (!res.ok) {
-    throw new ApiError(res.status, payload?.code ?? 'UNKNOWN', payload?.message ?? 'Request failed');
+    throw new ApiError(res.status, payload?.code ?? 'UNKNOWN', payload?.message ?? 'Request failed', resolvedRequestId);
   }
 
   if (!parsed.ok) {
     // A 2xx with an unparseable body is a contract violation, not "no data" — surface
     // it instead of silently handing callers `undefined` typed as T.
-    throw new ApiError(res.status, 'INVALID_RESPONSE', 'Received an unexpected response from the Control API');
+    throw new ApiError(
+      res.status,
+      'INVALID_RESPONSE',
+      'Received an unexpected response from the Control API',
+      resolvedRequestId,
+    );
   }
 
   return payload as T;
