@@ -18,7 +18,7 @@ export default function ConnectionsLoading() {
 
       <StatGridSkeleton />
 
-      <TableSkeleton rows={8} cols={6} />
+      <TableSkeleton rows={8} cols={8} />
     </div>
   );
 }

@@ -56,7 +56,9 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ pro
   }
 
   const room = roomResult.value;
-  const connections = connectionsResult.status === 'fulfilled' ? connectionsResult.value : undefined;
+  // listConnections returns a cursor-paginated page; this room's history
+  // only ever wanted the first ROOM_CONNECTION_LIMIT records anyway.
+  const connections = connectionsResult.status === 'fulfilled' ? connectionsResult.value.data : undefined;
   const liveParticipants = room.liveParticipants;
 
   return (
