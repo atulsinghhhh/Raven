@@ -1,15 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ApiKeySummary, CreatedApiKey, Environment } from '@/lib/api-client';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
 import { CopyButton } from '@/components/ui/copy-button';
 import { Field, Select } from '@/components/ui/field';
+import { InlineConfirm } from '@/components/ui/inline-confirm';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { IconKeys } from '@/components/ui/icons';
 import { formatDate, formatRelative } from '@/lib/format';
+import { toast } from '@/lib/toast';
+import { handleSessionExpiry } from '@/lib/session-expiry';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 /**
  * Every real environment a key can be scoped to: fixed set of 3, not
@@ -64,10 +68,13 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name || undefined, environment }),
       });
-      const payload = await res.json();
+      if (handleSessionExpiry(res)) return;
+      const payload = await readJson<CreatedApiKey>(res);
 
-      if (!res.ok) {
-        setError(payload.message ?? 'Could not create API key');
+      if (!res.ok || !payload) {
+        const message = errorMessage(payload, 'Could not create API key');
+        setError(message);
+        toast.error(message);
         return;
       }
 
@@ -88,8 +95,10 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
       ]);
       setName('');
       setEnvironment('DEVELOPMENT');
+      toast.success('API key created');
     } catch {
       setError('Could not reach the server.');
+      toast.error('Could not reach the server.');
     } finally {
       setCreating(false);
     }
@@ -101,16 +110,21 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
 
     try {
       const res = await fetch(`/api/projects/${projectId}/api-keys/${keyId}`, { method: 'DELETE' });
+      if (handleSessionExpiry(res)) return;
       if (!res.ok && res.status !== 204) {
-        const payload = await res.json().catch(() => undefined);
-        setError(payload?.message ?? 'Could not revoke key');
+        const payload = await readJson(res);
+        const message = errorMessage(payload, 'Could not revoke key');
+        setError(message);
+        toast.error(message);
         return;
       }
       setKeys((prev) =>
         prev.map((k) => (k.id === keyId ? { ...k, status: 'REVOKED', revokedAt: new Date().toISOString() } : k)),
       );
+      toast.success('API key revoked');
     } catch {
       setError('Could not reach the server.');
+      toast.error('Could not reach the server.');
     } finally {
       setRevokingId(undefined);
     }
@@ -137,16 +151,24 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
           environment: oldKey.environment,
         }),
       });
-      const created = await createRes.json();
-      if (!createRes.ok) {
-        setError(created.message ?? 'Could not create the replacement key — the old key was not touched.');
+      if (handleSessionExpiry(createRes)) return;
+      const created = await readJson<CreatedApiKey>(createRes);
+      if (!createRes.ok || !created) {
+        const message = errorMessage(created, 'Could not create the replacement key — the old key was not touched.');
+        setError(message);
+        toast.error(message);
         return;
       }
 
       const revokeRes = await fetch(`/api/projects/${projectId}/api-keys/${oldKey.id}`, { method: 'DELETE' });
+      // A 401 here still means the replacement key above was already created and
+      // persisted — safe to send the user to /login, nothing is lost by doing so.
+      if (handleSessionExpiry(revokeRes)) return;
       const revoked = revokeRes.ok || revokeRes.status === 204;
       if (!revoked) {
-        setError('The new key was created, but revoking the old one failed — revoke it manually below.');
+        const message = 'The new key was created, but revoking the old one failed — revoke it manually below.';
+        setError(message);
+        toast.error(message);
       }
 
       setJustCreated(created);
@@ -166,8 +188,12 @@ export function ApiKeysManager({ projectId, initialKeys }: { projectId: string; 
           k.id === oldKey.id && revoked ? { ...k, status: 'REVOKED', revokedAt: new Date().toISOString() } : k,
         ),
       ]);
+      // Only when both halves actually succeeded — the partial-failure
+      // path above already set a specific, actionable error instead.
+      if (revoked) toast.success('API key rotated');
     } catch {
       setError('Could not reach the server.');
+      toast.error('Could not reach the server.');
     } finally {
       setRotatingId(undefined);
     }
@@ -369,6 +395,12 @@ function KeyRow({
   const nameId = `key-name-${apiKey.id}`;
   const [confirming, setConfirming] = useState<'revoke' | 'rotate' | null>(null);
   const busy = revoking || rotating;
+  // Stays mounted across both the trigger and confirm states (only its
+  // children swap), so it's a stable place to send focus back to when
+  // InlineConfirm's Cancel/Confirm removes whichever button had it —
+  // see InlineConfirm's own doc comment for why that's this component's
+  // job, not InlineConfirm's.
+  const actionsRef = useRef<HTMLDivElement>(null);
 
   return (
     <li className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:gap-4">
@@ -420,39 +452,29 @@ function KeyRow({
       </div>
 
       {active && (
-        <div className="shrink-0">
+        <div ref={actionsRef} tabIndex={-1} className="shrink-0 outline-none">
           {confirming ? (
-            <div className="flex flex-col items-end gap-2 rounded-lg border border-line bg-surface-sunken p-3 sm:w-64">
-              <p className="text-xs leading-relaxed text-muted">
-                {confirming === 'revoke'
+            <InlineConfirm
+              message={
+                confirming === 'revoke'
                   ? 'Revoke this key? Anything using it stops working immediately — this can’t be undone.'
-                  : 'Create a replacement key and revoke this one? The old key stops working as soon as the new one is created.'}
-              </p>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setConfirming(null)} disabled={busy}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  aria-describedby={nameId}
-                  disabled={busy}
-                  onClick={() => {
-                    if (confirming === 'revoke') onRevoke();
-                    else onRotate();
-                    setConfirming(null);
-                  }}
-                >
-                  {confirming === 'revoke'
-                    ? revoking
-                      ? 'Revoking…'
-                      : 'Confirm revoke'
-                    : rotating
-                      ? 'Rotating…'
-                      : 'Confirm rotate'}
-                </Button>
-              </div>
-            </div>
+                  : 'Create a replacement key and revoke this one? The old key stops working as soon as the new one is created.'
+              }
+              confirmLabel={confirming === 'revoke' ? 'Confirm revoke' : 'Confirm rotate'}
+              busyLabel={confirming === 'revoke' ? 'Revoking…' : 'Rotating…'}
+              busy={busy}
+              describedBy={nameId}
+              onCancel={() => {
+                setConfirming(null);
+                actionsRef.current?.focus();
+              }}
+              onConfirm={() => {
+                if (confirming === 'revoke') onRevoke();
+                else onRotate();
+                setConfirming(null);
+                actionsRef.current?.focus();
+              }}
+            />
           ) : (
             <div className="flex gap-2">
               <Button variant="secondary" size="sm" onClick={() => setConfirming('rotate')} disabled={busy}>

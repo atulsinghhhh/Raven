@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Dash, EmptyState, ErrorState, NoDataYet } from '@/components/ui/states';
 import { Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { formatClockTime, formatCount, formatDateTime, formatRelative } from '@/lib/format';
+import { SuspendUnsuspendForm } from './suspend-unsuspend-form';
 
 const TABS = ['overview', 'projects', 'activity', 'usage', 'security'] as const;
 type Tab = (typeof TABS)[number];
@@ -154,50 +155,6 @@ function providerLabel(p: string): string {
   if (p === 'GITHUB') return 'GitHub';
   if (p === 'GOOGLE') return 'Google';
   return p;
-}
-
-/**
- * Plain HTML forms posting to Next.js Route Handlers
- * (`app/api/super-admin/developers/[id]/{suspend,unsuspend}/route.ts`) —
- * no client JS required, works with the browser's own POST-then-redirect.
- * Hidden entirely for a `SUPPORT`/`READ_ONLY` admin: the API would 403 the
- * request anyway (`PlatformRoleGuard` re-checks server-side regardless of
- * what this page renders), so this is UX only, not the security boundary.
- */
-function SuspendUnsuspendForm({ id, status, canMutate }: { id: string; status: DeveloperDetail['status']; canMutate: boolean }) {
-  if (!canMutate) return null;
-
-  if (status === 'ACTIVE') {
-    return (
-      <form action={`/api/super-admin/developers/${id}/suspend`} method="POST" className="flex items-center gap-2">
-        <input
-          type="text"
-          name="reason"
-          required
-          placeholder="Reason for suspension"
-          className="h-9 w-56 rounded-md border border-line bg-surface px-3 text-sm text-fg placeholder:text-subtle focus:border-line-strong focus:outline-none"
-        />
-        <button type="submit" className="inline-flex h-9 items-center justify-center rounded-md bg-danger px-3.5 text-sm font-semibold text-white transition-colors hover:opacity-90">
-          Suspend account
-        </button>
-      </form>
-    );
-  }
-
-  return (
-    <form action={`/api/super-admin/developers/${id}/unsuspend`} method="POST" className="flex items-center gap-2">
-      <input
-        type="text"
-        name="reason"
-        required
-        placeholder="Reason for unsuspending"
-        className="h-9 w-56 rounded-md border border-line bg-surface px-3 text-sm text-fg placeholder:text-subtle focus:border-line-strong focus:outline-none"
-      />
-      <button type="submit" className="glow-accent inline-flex h-9 items-center justify-center rounded-md bg-accent px-3.5 text-sm font-semibold text-accent-fg transition-colors hover:bg-accent-hover">
-        Unsuspend account
-      </button>
-    </form>
-  );
 }
 
 // ---------------------------------------------------------------------------

@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ProjectMember, ProjectRole } from '@/lib/api-client';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
+import { InlineConfirm } from '@/components/ui/inline-confirm';
 import { ErrorState } from '@/components/ui/states';
 import { formatDate } from '@/lib/format';
+import { toast } from '@/lib/toast';
+import { handleSessionExpiry } from '@/lib/session-expiry';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 /**
  * Member management.
@@ -77,17 +81,22 @@ export function MembersManager({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, role }),
       });
-      const payload = await res.json();
+      if (handleSessionExpiry(res)) return;
+      const payload = await readJson<ProjectMember>(res);
 
-      if (!res.ok) {
-        setError(payload.message ?? 'Could not add this member');
+      if (!res.ok || !payload) {
+        const message = errorMessage(payload, 'Could not add this member');
+        setError(message);
+        toast.error(message);
         return;
       }
 
-      setMembers((current) => [...current, payload as ProjectMember]);
+      setMembers((current) => [...current, payload]);
       setEmail('');
+      toast.success('Member invited');
     } catch {
       setError('Could not reach the Control API. Nothing was changed.');
+      toast.error('Could not reach the Control API. Nothing was changed.');
     } finally {
       setAdding(false);
     }
@@ -103,22 +112,31 @@ export function MembersManager({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: nextRole }),
       });
-      const payload = await res.json();
+      if (handleSessionExpiry(res)) return;
+      const payload = await readJson<ProjectMember>(res);
 
-      if (!res.ok) {
-        setError(payload.message ?? 'Could not change this role');
+      if (!res.ok || !payload) {
+        const message = errorMessage(payload, 'Could not change this role');
+        setError(message);
+        toast.error(message);
         return;
       }
 
-      setMembers((current) => current.map((m) => (m.userId === member.userId ? (payload as ProjectMember) : m)));
+      setMembers((current) => current.map((m) => (m.userId === member.userId ? payload : m)));
+      toast.success('Member role updated');
     } catch {
       setError('Could not reach the Control API. Nothing was changed.');
+      toast.error('Could not reach the Control API. Nothing was changed.');
     } finally {
       setBusyUserId(undefined);
     }
   }
 
   async function handleRemove(member: ProjectMember) {
+    // The confirm gate lives in the row itself (InlineConfirm, same as
+    // API key revoke/rotate) — restating a permanent action before it
+    // fires, without the unstyled native window.confirm() this used to
+    // reach for.
     setBusyUserId(member.userId);
     setError(undefined);
 
@@ -126,16 +144,21 @@ export function MembersManager({
       const res = await fetch(`/api/projects/${projectId}/members/${member.userId}`, {
         method: 'DELETE',
       });
+      if (handleSessionExpiry(res)) return;
 
       if (!res.ok && res.status !== 204) {
-        const payload = await res.json().catch(() => ({}));
-        setError(payload.message ?? 'Could not remove this member');
+        const payload = await readJson(res);
+        const message = errorMessage(payload, 'Could not remove this member');
+        setError(message);
+        toast.error(message);
         return;
       }
 
       setMembers((current) => current.filter((m) => m.userId !== member.userId));
+      toast.success('Member removed');
     } catch {
       setError('Could not reach the Control API. Nothing was changed.');
+      toast.error('Could not reach the Control API. Nothing was changed.');
     } finally {
       setBusyUserId(undefined);
     }
@@ -202,57 +225,118 @@ export function MembersManager({
             const busy = busyUserId === member.userId;
 
             return (
-              <li key={member.userId} className="flex flex-wrap items-center gap-3 py-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium text-fg">{member.name ?? member.email}</span>
-                    {isSelf && (
-                      <Badge tone="neutral" glyph={false}>
-                        you
-                      </Badge>
-                    )}
-                  </div>
-                  {member.name && <p className="truncate text-xs text-subtle">{member.email}</p>}
-                  <p className="mt-0.5 text-xs text-subtle">Added {formatDate(member.createdAt)}</p>
-                </div>
-
-                {mayEdit ? (
-                  <select
-                    aria-label={`Role for ${member.email}`}
-                    value={member.role}
-                    disabled={busy || isLastOwner}
-                    onChange={(e) => handleRoleChange(member, e.target.value as ProjectRole)}
-                    className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-fg disabled:opacity-50"
-                  >
-                    {ROLES.filter((r) => r !== 'OWNER' || viewerIsOwner).map((r) => (
-                      <option key={r} value={r}>
-                        {r.charAt(0) + r.slice(1).toLowerCase()}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <Badge tone={ROLE_TONE[member.role]} glyph={false}>
-                    {member.role.toLowerCase()}
-                  </Badge>
-                )}
-
-                {mayEdit && (
-                  <Button variant="secondary" disabled={busy || isLastOwner} onClick={() => handleRemove(member)}>
-                    {busy ? 'Working…' : 'Remove'}
-                  </Button>
-                )}
-
-                {isLastOwner && (
-                  <p className="w-full text-xs text-subtle">
-                    The only owner — promote someone else first. A project with no owner can&apos;t be administered by
-                    anyone.
-                  </p>
-                )}
-              </li>
+              <MemberRow
+                key={member.userId}
+                member={member}
+                isSelf={isSelf}
+                isLastOwner={isLastOwner}
+                mayEdit={mayEdit}
+                busy={busy}
+                viewerIsOwner={viewerIsOwner}
+                onRoleChange={(nextRole) => handleRoleChange(member, nextRole)}
+                onRemove={() => handleRemove(member)}
+              />
             );
           })}
         </ul>
       </Card>
     </div>
+  );
+}
+
+function MemberRow({
+  member,
+  isSelf,
+  isLastOwner,
+  mayEdit,
+  busy,
+  viewerIsOwner,
+  onRoleChange,
+  onRemove,
+}: {
+  member: ProjectMember;
+  isSelf: boolean;
+  isLastOwner: boolean;
+  mayEdit: boolean;
+  busy: boolean;
+  viewerIsOwner: boolean;
+  onRoleChange: (role: ProjectRole) => void;
+  onRemove: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  // Stays mounted across both the role-select/Remove state and the
+  // confirm state (only its children swap) — see InlineConfirm's doc
+  // comment for why restoring focus here, not inside InlineConfirm, is
+  // this component's job.
+  const actionsRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <li className="flex flex-wrap items-center gap-3 py-3">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-medium text-fg">{member.name ?? member.email}</span>
+          {isSelf && (
+            <Badge tone="neutral" glyph={false}>
+              you
+            </Badge>
+          )}
+        </div>
+        {member.name && <p className="truncate text-xs text-subtle">{member.email}</p>}
+        <p className="mt-0.5 text-xs text-subtle">Added {formatDate(member.createdAt)}</p>
+      </div>
+
+      {mayEdit && !confirming && (
+        <select
+          aria-label={`Role for ${member.email}`}
+          value={member.role}
+          disabled={busy || isLastOwner}
+          onChange={(e) => onRoleChange(e.target.value as ProjectRole)}
+          className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-fg disabled:opacity-50"
+        >
+          {ROLES.filter((r) => r !== 'OWNER' || viewerIsOwner).map((r) => (
+            <option key={r} value={r}>
+              {r.charAt(0) + r.slice(1).toLowerCase()}
+            </option>
+          ))}
+        </select>
+      )}
+      {!mayEdit && (
+        <Badge tone={ROLE_TONE[member.role]} glyph={false}>
+          {member.role.toLowerCase()}
+        </Badge>
+      )}
+
+      {mayEdit && (
+        <div ref={actionsRef} tabIndex={-1} className="outline-none">
+          {confirming ? (
+            <InlineConfirm
+              message={`Remove ${member.name ?? member.email} from this project? They lose access immediately.`}
+              confirmLabel="Confirm remove"
+              busyLabel="Removing…"
+              busy={busy}
+              onCancel={() => {
+                setConfirming(false);
+                actionsRef.current?.focus();
+              }}
+              onConfirm={() => {
+                onRemove();
+                setConfirming(false);
+                actionsRef.current?.focus();
+              }}
+            />
+          ) : (
+            <Button variant="secondary" disabled={busy || isLastOwner} onClick={() => setConfirming(true)}>
+              Remove
+            </Button>
+          )}
+        </div>
+      )}
+
+      {isLastOwner && (
+        <p className="w-full text-xs text-subtle">
+          The only owner — promote someone else first. A project with no owner can&apos;t be administered by anyone.
+        </p>
+      )}
+    </li>
   );
 }

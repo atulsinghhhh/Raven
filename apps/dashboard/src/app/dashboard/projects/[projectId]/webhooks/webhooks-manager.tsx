@@ -1,15 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { CreatedWebhookEndpoint, WebhookEndpointSummary } from '@/lib/api-client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
 import { CopyButton } from '@/components/ui/copy-button';
 import { Field } from '@/components/ui/field';
-import { EmptyState } from '@/components/ui/states';
+import { InlineConfirm } from '@/components/ui/inline-confirm';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { IconWebhooks } from '@/components/ui/icons';
 import { formatRelative } from '@/lib/format';
+import { toast } from '@/lib/toast';
+import { handleSessionExpiry } from '@/lib/session-expiry';
+import { errorMessage, readJson } from '@/lib/client-fetch';
+import { useDashboardRealtime } from '@/lib/realtime/use-dashboard-realtime';
+import { useDebouncedRefetch } from '@/lib/realtime/use-debounced-refetch';
+import type { DashboardRealtimeSocketFactory } from '@/lib/realtime/dashboard-realtime-transport';
 
 /** The event types the API will accept. Kept in sync with WEBHOOK_EVENT_TYPES server-side. */
 const EVENT_TYPES = [
@@ -36,9 +43,12 @@ const EVENT_TYPES = [
 export function WebhooksManager({
   projectId,
   initialEndpoints,
+  realtimeSocketFactory,
 }: {
   projectId: string;
   initialEndpoints: WebhookEndpointSummary[];
+  /** Test-only seam, threaded straight through to useDashboardRealtime. Never set in application code. */
+  realtimeSocketFactory?: DashboardRealtimeSocketFactory;
 }) {
   const [endpoints, setEndpoints] = useState(initialEndpoints);
   const [url, setUrl] = useState('');
@@ -47,6 +57,54 @@ export function WebhooksManager({
   const [justCreated, setJustCreated] = useState<CreatedWebhookEndpoint>();
   const [error, setError] = useState<string>();
   const [busyId, setBusyId] = useState<string>();
+
+  /**
+   * Refetches the endpoint list and merges it in — same "REST stays
+   * authoritative, WS is only a nudge" model as Connections/Rooms.
+   * Upsert-by-publicId: an endpoint whose failure count or status just
+   * changed server-side is replaced with the fresh copy; anything this
+   * tab doesn't know about yet (created from elsewhere) is prepended.
+   * Never touches `justCreated`/`error`/`creating`/`busyId` — those are
+   * this tab's own in-flight-action state, untouched by a background
+   * nudge about what any tab (including another developer's) triggered.
+   */
+  const refetchLatest = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/webhooks`);
+      if (!res.ok) return; // background nudge — fails silently, same as Connections/Rooms
+      const fresh = (await res.json()) as WebhookEndpointSummary[];
+
+      setEndpoints((prev) => {
+        const freshById = new Map(fresh.map((e) => [e.publicId, e]));
+        const updatedPrev = prev.map((e) => freshById.get(e.publicId) ?? e);
+        const newOnes = fresh.filter((e) => !prev.some((p) => p.publicId === e.publicId));
+        return [...newOnes, ...updatedPrev];
+      });
+    } catch {
+      // Silent, same reasoning as Connections/Rooms: a background nudge
+      // failing must not toast at the user for something they never
+      // asked for. The next successful nudge/reconnect/reload catches up.
+    }
+  }, [projectId]);
+
+  const scheduleRefetch = useDebouncedRefetch(refetchLatest);
+
+  const handleRealtimeEvent = useCallback(
+    (frame: Record<string, unknown>) => {
+      if (frame.type !== 'webhook.delivery_failed' && frame.type !== 'webhook.endpoint_disabled') return;
+      scheduleRefetch();
+    },
+    [scheduleRefetch],
+  );
+
+  // No replay on reconnect (Phase 5A's model) — refetch instead, same as
+  // any other nudge, so a run of failures that happened entirely while
+  // disconnected is still caught up on.
+  useDashboardRealtime(projectId, {
+    onEvent: handleRealtimeEvent,
+    onReconnected: refetchLatest,
+    socketFactory: realtimeSocketFactory,
+  });
 
   async function handleCreate(event: React.FormEvent) {
     event.preventDefault();
@@ -62,10 +120,13 @@ export function WebhooksManager({
         // default, so we send undefined rather than [].
         body: JSON.stringify({ url, events: selectedEvents.length > 0 ? selectedEvents : undefined }),
       });
-      const payload = await response.json();
+      if (handleSessionExpiry(response)) return;
+      const payload = await readJson<CreatedWebhookEndpoint>(response);
 
-      if (!response.ok) {
-        setError(payload.message ?? 'Could not create the webhook endpoint');
+      if (!response.ok || !payload) {
+        const message = errorMessage(payload, 'Could not create the webhook endpoint');
+        setError(message);
+        toast.error(message);
         return;
       }
 
@@ -73,8 +134,10 @@ export function WebhooksManager({
       setEndpoints((previous) => [payload, ...previous]);
       setUrl('');
       setSelectedEvents([]);
+      toast.success('Webhook endpoint created');
     } catch {
       setError('Could not reach the server.');
+      toast.error('Could not reach the server.');
     } finally {
       setCreating(false);
     }
@@ -88,22 +151,39 @@ export function WebhooksManager({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
+      if (handleSessionExpiry(response)) return;
       if (response.ok) {
         const updated = (await response.json()) as WebhookEndpointSummary;
         setEndpoints((previous) => previous.map((e) => (e.publicId === updated.publicId ? updated : e)));
+        toast.success(status === 'ACTIVE' ? 'Webhook endpoint enabled' : 'Webhook endpoint disabled');
+      } else {
+        const payload = await readJson(response);
+        toast.error(errorMessage(payload, 'Could not update the webhook endpoint'));
       }
+    } catch {
+      toast.error('Could not reach the server.');
     } finally {
       setBusyId(undefined);
     }
   }
 
   async function remove(endpoint: WebhookEndpointSummary) {
+    // The confirm gate lives in the row itself (InlineConfirm, same as
+    // API key revoke/rotate and member remove) — restating a permanent
+    // action before it fires, without an unstyled native confirm().
     setBusyId(endpoint.publicId);
     try {
       const response = await fetch(`/api/projects/${projectId}/webhooks/${endpoint.publicId}`, { method: 'DELETE' });
-      if (response.ok) {
+      if (handleSessionExpiry(response)) return;
+      if (response.ok || response.status === 204) {
         setEndpoints((previous) => previous.filter((e) => e.publicId !== endpoint.publicId));
+        toast.success('Webhook endpoint removed');
+      } else {
+        const payload = await readJson(response);
+        toast.error(errorMessage(payload, 'Could not remove the webhook endpoint'));
       }
+    } catch {
+      toast.error('Could not reach the server.');
     } finally {
       setBusyId(undefined);
     }
@@ -169,7 +249,11 @@ export function WebhooksManager({
             </Button>
           </div>
 
-          {error && <p className="text-sm text-danger-text">{error}</p>}
+          {error && (
+            <div className="mt-1">
+              <ErrorState description={error} />
+            </div>
+          )}
         </form>
       </Card>
 
@@ -203,61 +287,97 @@ export function WebhooksManager({
         <Card padded={false}>
           <ul className="divide-y divide-line">
             {endpoints.map((endpoint) => (
-              <li
+              <EndpointRow
                 key={endpoint.publicId}
-                className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between"
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="truncate font-mono text-sm text-fg">{endpoint.url}</span>
-                    <Badge tone={endpoint.status === 'ACTIVE' ? 'success' : 'danger'}>
-                      {endpoint.status.toLowerCase()}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-subtle">
-                    {endpoint.enabledEvents.length === 0 ? 'All events' : endpoint.enabledEvents.join(', ')}
-                  </p>
-                  <p className="mt-1 text-xs text-subtle">
-                    {endpoint.lastDeliveryAt
-                      ? `Last delivery ${formatRelative(endpoint.lastDeliveryAt)}`
-                      : 'No deliveries yet'}
-                    {endpoint.consecutiveFailures > 0 && (
-                      <span className="text-danger-text">
-                        {' '}
-                        · {endpoint.consecutiveFailures} consecutive failure
-                        {endpoint.consecutiveFailures === 1 ? '' : 's'}
-                      </span>
-                    )}
-                  </p>
-                  {endpoint.status === 'DISABLED' && (
-                    <p className="mt-1 text-xs text-danger-text">
-                      Livqeno disabled this endpoint after repeated failures. Fix it, then re-enable — re-enabling also
-                      clears the failure count.
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex shrink-0 gap-2">
-                  <Button
-                    variant="secondary"
-                    disabled={busyId === endpoint.publicId}
-                    onClick={() => void updateStatus(endpoint, endpoint.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE')}
-                  >
-                    {endpoint.status === 'ACTIVE' ? 'Disable' : 'Enable'}
-                  </Button>
-                  <Button
-                    variant="danger"
-                    disabled={busyId === endpoint.publicId}
-                    onClick={() => void remove(endpoint)}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </li>
+                endpoint={endpoint}
+                busy={busyId === endpoint.publicId}
+                onToggleStatus={() =>
+                  void updateStatus(endpoint, endpoint.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE')
+                }
+                onRemove={() => void remove(endpoint)}
+              />
             ))}
           </ul>
         </Card>
       )}
     </div>
+  );
+}
+
+function EndpointRow({
+  endpoint,
+  busy,
+  onToggleStatus,
+  onRemove,
+}: {
+  endpoint: WebhookEndpointSummary;
+  busy: boolean;
+  onToggleStatus: () => void;
+  onRemove: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  // Stays mounted across both the action-buttons state and the confirm
+  // state (only its children swap) — see InlineConfirm's doc comment for
+  // why restoring focus here, not inside InlineConfirm, is this
+  // component's job.
+  const actionsRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <li className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate font-mono text-sm text-fg">{endpoint.url}</span>
+          <Badge tone={endpoint.status === 'ACTIVE' ? 'success' : 'danger'}>{endpoint.status.toLowerCase()}</Badge>
+        </div>
+        <p className="mt-1 text-xs text-subtle">
+          {endpoint.enabledEvents.length === 0 ? 'All events' : endpoint.enabledEvents.join(', ')}
+        </p>
+        <p className="mt-1 text-xs text-subtle">
+          {endpoint.lastDeliveryAt ? `Last delivery ${formatRelative(endpoint.lastDeliveryAt)}` : 'No deliveries yet'}
+          {endpoint.consecutiveFailures > 0 && (
+            <span className="text-danger-text">
+              {' '}
+              · {endpoint.consecutiveFailures} consecutive failure
+              {endpoint.consecutiveFailures === 1 ? '' : 's'}
+            </span>
+          )}
+        </p>
+        {endpoint.status === 'DISABLED' && (
+          <p className="mt-1 text-xs text-danger-text">
+            Livqeno disabled this endpoint after repeated failures. Fix it, then re-enable — re-enabling also clears
+            the failure count.
+          </p>
+        )}
+      </div>
+
+      <div ref={actionsRef} tabIndex={-1} className="shrink-0 outline-none">
+        {confirming ? (
+          <InlineConfirm
+            message={`Delete the webhook endpoint for ${endpoint.url}? It stops receiving events immediately.`}
+            confirmLabel="Confirm delete"
+            busyLabel="Deleting…"
+            busy={busy}
+            onCancel={() => {
+              setConfirming(false);
+              actionsRef.current?.focus();
+            }}
+            onConfirm={() => {
+              onRemove();
+              setConfirming(false);
+              actionsRef.current?.focus();
+            }}
+          />
+        ) : (
+          <div className="flex gap-2">
+            <Button variant="secondary" disabled={busy} onClick={onToggleStatus}>
+              {endpoint.status === 'ACTIVE' ? 'Disable' : 'Enable'}
+            </Button>
+            <Button variant="danger" disabled={busy} onClick={() => setConfirming(true)}>
+              Delete
+            </Button>
+          </div>
+        )}
+      </div>
+    </li>
   );
 }

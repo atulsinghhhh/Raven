@@ -2,6 +2,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ApiKeysManager } from '@/app/dashboard/projects/[projectId]/api-keys/api-keys-manager';
 import type { ApiKeySummary, CreatedApiKey } from '@/lib/api-client';
+import { toast } from '@/lib/toast';
+import { handleSessionExpiry } from '@/lib/session-expiry';
+
+jest.mock('@/lib/session-expiry', () => ({ handleSessionExpiry: jest.fn() }));
 
 const EXISTING_KEY: ApiKeySummary = {
   id: 'key-1',
@@ -27,6 +31,13 @@ const CREATED_KEY: CreatedApiKey = {
 describe('ApiKeysManager', () => {
   beforeEach(() => {
     global.fetch = jest.fn();
+    jest.spyOn(toast, 'success').mockImplementation(() => 'toast_test');
+    jest.spyOn(toast, 'error').mockImplementation(() => 'toast_test');
+    (handleSessionExpiry as jest.Mock).mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('shows an empty state when there are no keys yet', () => {
@@ -80,6 +91,7 @@ describe('ApiKeysManager', () => {
     await waitFor(() => expect(screen.getByText('Revoked')).toBeInTheDocument());
     expect(screen.queryByRole('button', { name: 'Revoke' })).not.toBeInTheDocument();
     expect(global.fetch).toHaveBeenCalledWith('/api/projects/proj-1/api-keys/key-1', { method: 'DELETE' });
+    expect(toast.success).toHaveBeenCalledWith('API key revoked');
   });
 
   it('cancelling the revoke confirmation makes no request', async () => {
@@ -114,6 +126,7 @@ describe('ApiKeysManager', () => {
       expect.objectContaining({ method: 'POST' }),
     );
     expect(global.fetch).toHaveBeenNthCalledWith(2, '/api/projects/proj-1/api-keys/key-1', { method: 'DELETE' });
+    expect(toast.success).toHaveBeenCalledWith('API key rotated');
   });
 
   it('shows an error message when key creation fails, without crashing', async () => {
@@ -128,5 +141,82 @@ describe('ApiKeysManager', () => {
     await user.click(screen.getByRole('button', { name: 'Create key' }));
 
     await waitFor(() => expect(screen.getByText('Too many requests')).toBeInTheDocument());
+    // Phase 6A: every mutation failure toasts, in addition to whatever inline
+    // detail the component also shows — consistent with every other manager.
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('Too many requests');
+  });
+
+  it('shows a toast and an inline error when revoking a key fails', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ code: 'INTERNAL', message: 'Could not revoke key' }),
+    });
+    const user = userEvent.setup();
+    render(<ApiKeysManager projectId="proj-1" initialKeys={[EXISTING_KEY]} />);
+
+    await user.click(screen.getByRole('button', { name: 'Revoke' }));
+    await user.click(screen.getByRole('button', { name: 'Confirm revoke' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not revoke key'));
+    expect(screen.getByText('Could not revoke key')).toBeInTheDocument();
+    // The key is untouched — still active, not silently marked revoked.
+    expect(screen.getByText('Active')).toBeInTheDocument();
+  });
+
+  it('rotate: when the replacement key is created but revoking the old one fails, keeps both keys active with a specific error — never rolls back the new key', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: true, status: 201, json: async () => CREATED_KEY })
+      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({ code: 'INTERNAL', message: 'nope' }) });
+    const user = userEvent.setup();
+    render(<ApiKeysManager projectId="proj-1" initialKeys={[EXISTING_KEY]} />);
+
+    await user.click(screen.getByRole('button', { name: 'Rotate' }));
+    await user.click(screen.getByRole('button', { name: 'Confirm rotate' }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('The new key was created, but revoking the old one failed — revoke it manually below.'),
+      ).toBeInTheDocument(),
+    );
+    expect(toast.error).toHaveBeenCalledWith(
+      'The new key was created, but revoking the old one failed — revoke it manually below.',
+    );
+    // Both keys visible and active — the old one was never rolled back.
+    expect(screen.getByText('new-key')).toBeInTheDocument();
+    expect(screen.getByText('existing-key')).toBeInTheDocument();
+    expect(screen.getAllByText('Active')).toHaveLength(2);
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it('defers to handleSessionExpiry on a 401 and shows no error UI of its own (expired session)', async () => {
+    (handleSessionExpiry as jest.Mock).mockReturnValue(true);
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ code: 'UNAUTHORIZED', message: 'Not signed in' }),
+    });
+    const user = userEvent.setup();
+    render(<ApiKeysManager projectId="proj-1" initialKeys={[]} />);
+
+    await user.click(screen.getByRole('button', { name: 'Create key' }));
+
+    await waitFor(() => expect(handleSessionExpiry).toHaveBeenCalled());
+    // Neither the generic error toast nor the inline banner fires — the
+    // shared session-expiry redirect (tested separately) is the entire
+    // response to an expired session.
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(screen.queryByText('Not signed in')).not.toBeInTheDocument();
+  });
+
+  it('shows a success toast immediately after creating a key, alongside the show-once secret panel', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, status: 201, json: async () => CREATED_KEY });
+    const user = userEvent.setup();
+    render(<ApiKeysManager projectId="proj-1" initialKeys={[]} />);
+
+    await user.click(screen.getByRole('button', { name: 'Create key' }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('API key created'));
   });
 });

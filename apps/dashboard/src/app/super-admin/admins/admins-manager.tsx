@@ -10,6 +10,7 @@ import { EmptyState, ErrorState } from '@/components/ui/states';
 import { MobileField, MobileList, MobileRow, Table, TableWrap, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { formatDate } from '@/lib/format';
 import type { PlatformAdminRow, PlatformRoleName } from '@/lib/super-admin/ops';
+import { errorMessage, readJson } from '@/lib/client-fetch';
 
 const ROLE_OPTIONS: PlatformRoleName[] = ['SUPER_ADMIN', 'ADMIN', 'SUPPORT', 'READ_ONLY'];
 
@@ -65,10 +66,10 @@ export function AdminsManager({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, platformRole, reason }),
       });
-      const payload = await res.json();
+      const payload = await readJson<PlatformAdminRow>(res);
 
-      if (!res.ok) {
-        setGrantError(payload?.message ?? 'Could not grant platform access');
+      if (!res.ok || !payload) {
+        setGrantError(errorMessage(payload, 'Could not grant platform access'));
         return;
       }
 
@@ -98,8 +99,8 @@ export function AdminsManager({
       });
 
       if (!res.ok && res.status !== 204) {
-        const payload = await res.json().catch(() => undefined);
-        setRevokeError(payload?.message ?? 'Could not revoke platform access');
+        const payload = await readJson(res);
+        setRevokeError(errorMessage(payload, 'Could not revoke platform access'));
         return;
       }
 
@@ -220,10 +221,11 @@ export function AdminsManager({
                                 <input
                                   type="text"
                                   autoFocus
+                                  aria-label="Reason for revoking platform access"
                                   placeholder="Reason for revoking"
                                   value={confirmReason}
                                   onChange={(e) => setConfirmReason(e.target.value)}
-                                  className="w-56 rounded-md border border-line bg-surface px-2 py-1 text-xs text-fg placeholder:text-subtle focus:border-line-strong focus:outline-none"
+                                  className="w-56 rounded-md border border-line bg-surface px-2 py-1 text-xs text-fg placeholder:text-subtle focus:border-line-strong"
                                 />
                                 <div className="flex gap-2">
                                   <Button variant="ghost" size="sm" onClick={() => setConfirmingId(undefined)} disabled={revokingId === admin.id}>
@@ -271,6 +273,7 @@ export function AdminsManager({
                         <div className="mt-2 flex flex-col gap-2">
                           <input
                             type="text"
+                            aria-label="Reason for revoking platform access"
                             placeholder="Reason for revoking"
                             value={confirmingId === admin.id ? confirmReason : ''}
                             onFocus={() => setConfirmingId(admin.id)}
@@ -278,7 +281,7 @@ export function AdminsManager({
                               setConfirmingId(admin.id);
                               setConfirmReason(e.target.value);
                             }}
-                            className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-fg placeholder:text-subtle focus:border-line-strong focus:outline-none"
+                            className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-fg placeholder:text-subtle focus:border-line-strong"
                           />
                           <Button
                             variant="danger"
@@ -286,7 +289,9 @@ export function AdminsManager({
                             disabled={confirmingId !== admin.id || !confirmReason.trim() || revokingId === admin.id}
                             onClick={() => handleRevoke(admin.id)}
                           >
-                            {revokingId === admin.id ? 'Revoking…' : 'Revoke'}
+                            {/* Matches the desktop table's label: once this second tap
+                                is the actual irreversible action, it says so. */}
+                            {revokingId === admin.id ? 'Revoking…' : confirmingId === admin.id ? 'Confirm revoke' : 'Revoke'}
                           </Button>
                         </div>
                       )}
