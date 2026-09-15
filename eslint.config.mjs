@@ -42,6 +42,9 @@ export default tseslint.config(
       'scripts/capacity/harness/vendor/**',
       'scripts/capacity/results/**',
       'scripts/capacity/.content/**',
+      // Same again for the egress worker's own harness: a staged copy of
+      // the published SDK builds, rebuilt from source via stage-harness-sdk.mjs.
+      'services/egress-worker/src/harness/vendor/**',
       'apps/dashboard/**',
       'apps/www/**',
       'apps/docs/**',
@@ -62,7 +65,13 @@ export default tseslint.config(
     // docs/repro/* are diagnostic snippets meant to be pasted into a
     // DevTools console against a live page, so they are browser code that
     // happens to live under docs/.
-    files: ['apps/api/test/e2e-harness/*.js', 'scripts/capacity/harness/*.js', 'test/public/*.js', 'docs/repro/*.js'],
+    files: [
+      'apps/api/test/e2e-harness/*.js',
+      'scripts/capacity/harness/*.js',
+      'services/egress-worker/src/harness/*.js',
+      'test/public/*.js',
+      'docs/repro/*.js',
+    ],
     languageOptions: {
       globals: { ...globals.browser },
     },

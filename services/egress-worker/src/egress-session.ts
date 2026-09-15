@@ -105,23 +105,34 @@ export class EgressSession {
 
   private spawnFfmpeg(): ChildProcessByStdio<Writable, null, Readable> {
     const args = [
-      '-f', 'webm',
-      '-i', 'pipe:0',
-      '-c:v', 'libx264',
-      '-preset', 'veryfast',
+      '-f',
+      'webm',
+      '-i',
+      'pipe:0',
+      '-c:v',
+      'libx264',
+      '-preset',
+      'veryfast',
       // Forces a keyframe every hls_time seconds of PTS, regardless of the
       // source's actual frame rate. Without this, libx264's default GOP
       // (~250 frames — several times hls_time at a typical camera frame
       // rate) is the earliest point HLS can legally cut a segment, so the
       // *first* segment silently comes out several times longer than
       // configured and every segment after it inherits the same drift.
-      '-force_key_frames', `expr:gte(t,n_forced*${config.hlsSegmentSeconds})`,
-      '-c:a', 'aac',
-      '-f', 'hls',
-      '-hls_time', String(config.hlsSegmentSeconds),
-      '-hls_list_size', String(config.hlsListSize),
-      '-hls_flags', 'delete_segments+append_list',
-      '-hls_segment_filename', join(this.outDir, 'seg_%05d.ts'),
+      '-force_key_frames',
+      `expr:gte(t,n_forced*${config.hlsSegmentSeconds})`,
+      '-c:a',
+      'aac',
+      '-f',
+      'hls',
+      '-hls_time',
+      String(config.hlsSegmentSeconds),
+      '-hls_list_size',
+      String(config.hlsListSize),
+      '-hls_flags',
+      'delete_segments+append_list',
+      '-hls_segment_filename',
+      join(this.outDir, 'seg_%05d.ts'),
       join(this.outDir, 'index.m3u8'),
     ];
 
@@ -132,7 +143,6 @@ export class EgressSession {
       // process dies unexpectedly, never surfaced as `lastError` on its
       // own, or every healthy heartbeat would report a false failure.
       this.lastFfmpegOutput = chunk.toString('utf8').trim().split('\n').pop();
-      // eslint-disable-next-line no-console
       console.log(`[ffmpeg:${this.request.streamId}] ${this.lastFfmpegOutput}`);
     });
     proc.on('exit', (code) => {
@@ -160,17 +170,16 @@ export class EgressSession {
     // join/subscribe actually happened — surfacing it here is cheap and is
     // what makes a stuck/silent session diagnosable instead of a black box.
     this.page.on('console', (msg) => {
-      // eslint-disable-next-line no-console
       console.log(`[egress:${this.request.streamId}:page] ${msg.text()}`);
     });
     this.page.on('pageerror', (err) => {
-      // eslint-disable-next-line no-console
       console.error(`[egress:${this.request.streamId}:pageerror] ${err.message}`);
     });
 
     await this.page.exposeFunction('__onChunk', (base64: string) => {
-      // eslint-disable-next-line no-console
-      console.log(`[egress:${this.request.streamId}] chunk received: ${base64.length} base64 chars, ffmpeg=${!!this.ffmpeg} stdinDestroyed=${this.ffmpeg?.stdin.destroyed}`);
+      console.log(
+        `[egress:${this.request.streamId}] chunk received: ${base64.length} base64 chars, ffmpeg=${!!this.ffmpeg} stdinDestroyed=${this.ffmpeg?.stdin.destroyed}`,
+      );
       if (this.ffmpeg && !this.ffmpeg.stdin.destroyed) {
         this.ffmpeg.stdin.write(Buffer.from(base64, 'base64'));
       }

@@ -9,6 +9,7 @@
   },
   "scripts": {
     "stage-sdk": "node scripts/stage-harness-sdk.mjs",
+    "prebuild": "pnpm run stage-sdk",
     "build": "tsc -p tsconfig.json && mkdir -p dist/harness/vendor && cp src/harness/viewer.html dist/harness/viewer.html && cp -r src/harness/vendor/. dist/harness/vendor/",
     "start": "node dist/main.js",
     "dev": "node --import tsx src/main.ts",
@@ -32,9 +33,16 @@
     "testEnvironment": "node",
     "rootDir": "test",
     "testRegex": ".*\\.spec\\.ts$",
-    "extensionsToTreatAsEsm": [".ts"],
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
     "transform": {
-      "^.+\\.ts$": ["ts-jest", { "useESM": true }]
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "useESM": true
+        }
+      ]
     },
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1"

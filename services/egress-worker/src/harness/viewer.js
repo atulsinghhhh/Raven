@@ -45,14 +45,15 @@ let audioTrack;
 function startRecorder() {
   if (recorder || !videoTrack) return;
   const media = new MediaStream([videoTrack]);
-  console.log(`starting MediaRecorder: video=${!!videoTrack} audio=${!!audioTrack} (audio track present but not yet included — see comment)`);
+  console.log(
+    `starting MediaRecorder: video=${!!videoTrack} audio=${!!audioTrack} (audio track present but not yet included — see comment)`,
+  );
 
   try {
     recorder = new MediaRecorder(media, { mimeType: 'video/webm;codecs=vp8' });
     recorder.ondataavailable = (event) => {
       if (event.data.size === 0) return;
-      event
-        .data
+      event.data
         .arrayBuffer()
         .then((buffer) => window.__onChunk(toBase64(new Uint8Array(buffer))))
         .catch((err) => window.__onEvent({ type: 'chunkRelayError', message: String(err) }));

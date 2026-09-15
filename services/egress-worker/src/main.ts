@@ -55,7 +55,6 @@ async function main(): Promise<void> {
         // credential-mint response.
         send(res, 204);
         manager.start(body).catch((err) => {
-          // eslint-disable-next-line no-console
           console.error(`egress start failed for stream ${body.streamId}: ${(err as Error).message}`);
         });
         return;
@@ -69,20 +68,17 @@ async function main(): Promise<void> {
 
       return send(res, 404, { error: 'not found' });
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error(`egress-worker request failed: ${(err as Error).message}`);
       return send(res, 500, { error: 'internal error' });
     }
   }
 
   server.listen(config.port, () => {
-    // eslint-disable-next-line no-console
     console.log(`egress-worker (${config.workerId}) listening on port ${config.port}`);
   });
 }
 
 main().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error(err);
   process.exitCode = 1;
 });
