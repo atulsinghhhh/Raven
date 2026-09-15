@@ -182,7 +182,7 @@ diagnostics. Security model: [docs/security/server-sdk.md](./docs/security/serve
 
 | Tool | What it is | Reference |
 |---|---|---|
-| Dashboard (`apps/dashboard`) | Projects, API keys, rooms, participants, the SFU fleet, diagnostics | [docs/dashboard.md](./docs/dashboard.md) |
+| Dashboard (`apps/dashboard`) | Projects, members/roles, API keys, rooms/connections/participants, webhooks, notifications, Chat & Live Streaming activity, the SFU fleet, diagnostics, plus a separate Super Admin Portal | [docs/dashboard.md](./docs/dashboard.md) |
 | `@ravenkash/cli` | `raven login`, `raven projects create`, `raven init`, `raven rtc servers list` | [docs/cli.md](./docs/cli.md) |
 
 ---
