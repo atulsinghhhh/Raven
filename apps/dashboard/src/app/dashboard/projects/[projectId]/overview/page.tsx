@@ -77,14 +77,19 @@ export default async function OverviewPage({
   const diagnostics = diagnosticsResult.status === 'fulfilled' ? diagnosticsResult.value : undefined;
   // listConnections returns a cursor-paginated page; this snapshot only
   // ever wanted the first 8 most-recent records anyway.
-  const connections = connectionsResult.status === 'fulfilled' ? connectionsResult.value.data : [];
-  const errors = errorsResult.status === 'fulfilled' ? errorsResult.value : [];
+  //
+  // `?? []` on every array below is load-bearing, not decorative:
+  // apiFetch() resolves a fulfilled promise to `undefined` for a 204
+  // response (typed as T regardless), so "fulfilled" alone doesn't
+  // guarantee an array — see metrics/page.tsx for the crash this caused.
+  const connections = (connectionsResult.status === 'fulfilled' ? connectionsResult.value.data : []) ?? [];
+  const errors = (errorsResult.status === 'fulfilled' ? errorsResult.value : []) ?? [];
   const rooms = roomsResult.status === 'fulfilled' ? roomsResult.value : undefined;
-  const apiKeys = apiKeysResult.status === 'fulfilled' ? apiKeysResult.value : [];
+  const apiKeys = (apiKeysResult.status === 'fulfilled' ? apiKeysResult.value : []) ?? [];
   const chatOverview = chatOverviewResult.status === 'fulfilled' ? chatOverviewResult.value : undefined;
-  const liveStreams = liveStreamsResult.status === 'fulfilled' ? liveStreamsResult.value : [];
+  const liveStreams = (liveStreamsResult.status === 'fulfilled' ? liveStreamsResult.value : []) ?? [];
   const rtcFleet = rtcFleetResult.status === 'fulfilled' ? rtcFleetResult.value : undefined;
-  const integrations = integrationsResult.status === 'fulfilled' ? integrationsResult.value : [];
+  const integrations = (integrationsResult.status === 'fulfilled' ? integrationsResult.value : []) ?? [];
 
   const base = `/dashboard/projects/${projectId}`;
   // "No activity" must mean the fetches actually succeeded and came back

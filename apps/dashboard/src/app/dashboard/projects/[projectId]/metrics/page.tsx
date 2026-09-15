@@ -150,9 +150,16 @@ export default async function MetricsPage({
   const metrics = metricsResult.status === 'fulfilled' ? metricsResult.value : undefined;
   // listConnections returns a cursor-paginated page; this snapshot only
   // ever wanted the first FETCH_LIMIT records anyway, so .data is enough.
+  //
+  // The `?? []` on both lines below is load-bearing, not decorative:
+  // apiFetch() resolves a fulfilled promise to `undefined` for a 204
+  // response (typed as T regardless), so "fulfilled" alone doesn't
+  // guarantee an array. Without the fallback, a project with an empty
+  // result set crashed this whole page instead of rendering the empty
+  // state every chart below already has one for.
   const connections: ConnectionSummary[] =
-    connectionsResult.status === 'fulfilled' ? connectionsResult.value.data : [];
-  const errors: ErrorSummary[] = errorsResult.status === 'fulfilled' ? errorsResult.value : [];
+    (connectionsResult.status === 'fulfilled' ? connectionsResult.value.data : []) ?? [];
+  const errors: ErrorSummary[] = (errorsResult.status === 'fulfilled' ? errorsResult.value : []) ?? [];
 
   const now = renderClock();
   const connectionSeries = bucketise(
