@@ -1,4 +1,4 @@
-import { ApiKeyStatus, Project, UsageProduct } from '../../generated/prisma/client';
+import { Project, UsageProduct } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { DiagnosticsService } from '../observability/diagnostics.service';
 import { ActivityEventsService } from '../super-admin/activity-events.service';

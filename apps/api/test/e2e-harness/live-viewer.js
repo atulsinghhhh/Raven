@@ -31,6 +31,9 @@ const NativeRTCPeerConnection = window.RTCPeerConnection;
 window.RTCPeerConnection = class extends NativeRTCPeerConnection {
   constructor(...args) {
     super(...args);
+    // Not an outer-`this` alias: capturing the subclass instance itself,
+    // the one real peer connection a subscriber-only viewer ever creates.
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     capturedPc = this;
   }
 };
