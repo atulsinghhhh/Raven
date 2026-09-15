@@ -3,7 +3,7 @@ description: >-
   Livqeno SDK for Flutter — join a room, publish camera and microphone, render
   participants. Hides WebRTC, SDP, ICE, STUN, TURN and the media server behind
   a small typed API.
-version: 0.1.3
+version: 0.1.4
 homepage: https://github.com/atulsinghhhh/Raven
 repository: https://github.com/atulsinghhhh/Raven
 issue_tracker: https://github.com/atulsinghhhh/Raven/issues
@@ -31,6 +31,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  fake_async: ^1.3.0
 
 # Deliberately not declared as a plugin. raven_rtc ships no platform
 # channels and no native code: the iOS and Android WebRTC implementation

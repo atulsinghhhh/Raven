@@ -1,3 +1,31 @@
+## 0.1.4
+
+Fixes a join-time negotiation race that could leave the SFU's very first
+offer permanently unanswered, found via a real end-to-end sweep against a
+real backend, SFU and browser. No public API changes.
+
+* **Fixed:** `SignalingClient.send()` refused to send anything but
+  `room.join` until the server's `room.joined` confirmation arrived,
+  gating on `_joined`. The SFU's join-time offer reaches the client over
+  a path with no ordering relationship to that confirmation — it travels
+  node-link → gateway → socket independently of the join handler's own
+  response — and the SFU builds and sends that offer synchronously, with
+  no I/O in between, so it frequently wins the race. When it did, the
+  client answered it correctly but `send()` silently dropped the answer,
+  and the SFU waited out its full 15s `answerTimeout` for an answer that
+  was never coming. `send()` now gates on a new `_joinSent` flag that
+  flips the instant `room.join` is dispatched, so an answer or ICE
+  candidate produced while a join is still in flight is no longer
+  discarded.
+* Added regression coverage (`test/signaling_client_test.dart`) pinning
+  this exact race: an SFU offer arriving and being answered before
+  `room.joined` has arrived.
+* Verified via a real end-to-end sweep — a real Flutter Web build joining
+  a real live stream through a real local SFU, with a real browser
+  viewer's raw `RTCPeerConnection.getStats()` confirming `framesDecoded`
+  and `bytesReceived` genuinely increasing — at 20/20 with zero dropped
+  answers and zero negotiation timeouts.
+
 ## 0.1.3
 
 Fixes a negotiation-glare bug that could leave a locally "published"
