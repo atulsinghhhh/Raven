@@ -131,7 +131,7 @@ export default async function DevelopersPage({ searchParams }: { searchParams: P
               name="search"
               defaultValue={search ?? ''}
               placeholder="Name or email"
-              className="h-9 rounded-md border border-line bg-surface px-3 text-sm text-fg placeholder:text-subtle focus:border-line-strong focus:outline-none"
+              className="h-9 rounded-md border border-line bg-surface px-3 text-sm text-fg placeholder:text-subtle focus:border-line-strong"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -143,7 +143,7 @@ export default async function DevelopersPage({ searchParams }: { searchParams: P
               type="date"
               name="from"
               defaultValue={from ?? ''}
-              className="h-9 rounded-md border border-line bg-surface px-3 text-sm text-fg focus:border-line-strong focus:outline-none"
+              className="h-9 rounded-md border border-line bg-surface px-3 text-sm text-fg focus:border-line-strong"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -155,7 +155,7 @@ export default async function DevelopersPage({ searchParams }: { searchParams: P
               type="date"
               name="to"
               defaultValue={to ?? ''}
-              className="h-9 rounded-md border border-line bg-surface px-3 text-sm text-fg focus:border-line-strong focus:outline-none"
+              className="h-9 rounded-md border border-line bg-surface px-3 text-sm text-fg focus:border-line-strong"
             />
           </div>
           <input type="hidden" name="sortBy" value={sortBy} />

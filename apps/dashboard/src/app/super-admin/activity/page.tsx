@@ -146,7 +146,7 @@ export default async function ActivityExplorerPage({ searchParams }: { searchPar
                 name="q"
                 defaultValue={sp.q ?? ''}
                 placeholder="Developer email, resource id, or request id…"
-                className="min-w-0 flex-1 rounded-md border border-line bg-surface px-3 py-2 text-sm text-fg placeholder:text-subtle focus:border-line-strong focus:outline-none"
+                className="min-w-0 flex-1 rounded-md border border-line bg-surface px-3 py-2 text-sm text-fg placeholder:text-subtle focus:border-line-strong"
               />
               <button
                 type="submit"
@@ -526,7 +526,7 @@ function FilterInput({ name, label, value }: { name: string; label: string; valu
         type="text"
         name={name}
         defaultValue={value ?? ''}
-        className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-fg placeholder:text-subtle focus:border-line-strong focus:outline-none"
+        className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-fg placeholder:text-subtle focus:border-line-strong"
       />
     </label>
   );
