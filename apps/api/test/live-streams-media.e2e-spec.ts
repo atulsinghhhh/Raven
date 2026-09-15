@@ -1,3 +1,4 @@
+import { execFileSync } from 'child_process';
 import { createReadStream, existsSync } from 'fs';
 import { createServer, type Server } from 'http';
 import { extname, join, normalize } from 'path';
@@ -111,8 +112,15 @@ describe('Live Streaming media fan-out (real browser e2e)', () => {
     if (!existsSync(join(HARNESS_DIR, 'vendor', 'raven-client.js'))) {
       // Staged from packages/*/dist rather than committed, so a run can
       // never measure a stale SDK. See scripts/capacity/README.md.
-      const { stageHarnessSdk } = await import(join(HARNESS_DIR, '..', 'build-harness-sdk.mjs'));
-      stageHarnessSdk({ rebuild: false });
+      //
+      // Shelled out rather than `await import()`-ed: build-harness-sdk.mjs
+      // is a real ESM module with top-level `import` statements, and this
+      // suite's jest-e2e.json only transforms `.ts`/`.js` through ts-jest —
+      // Jest's own module loader chokes on the ESM syntax with "Cannot use
+      // import statement outside a module" before stageHarnessSdk ever runs.
+      execFileSync('node', [join(HARNESS_DIR, '..', 'build-harness-sdk.mjs'), '--no-build'], {
+        stdio: 'inherit',
+      });
     }
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();

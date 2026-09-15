@@ -178,9 +178,9 @@ describe('raven_live — Flutter host to browser viewer (real E2E)', () => {
   });
 
   afterAll(async () => {
-    await new Promise<void>((resolve) => hostServer.close(() => resolve()));
-    await new Promise<void>((resolve) => viewerServer.close(() => resolve()));
-    await app.close();
+    await new Promise<void>((resolve) => (hostServer ? hostServer.close(() => resolve()) : resolve()));
+    await new Promise<void>((resolve) => (viewerServer ? viewerServer.close(() => resolve()) : resolve()));
+    await app?.close();
   });
 
   // A fresh Chromium per test, not one shared across the suite: Chrome's
@@ -319,7 +319,8 @@ describe('raven_live — Flutter host to browser viewer (real E2E)', () => {
         // "join() resolves before media" note as the JS harnesses').
         await waitForPage(
           viewerPage,
-          () => (window as unknown as { __state: { connectionState?: string } }).__state.connectionState === 'connected',
+          () =>
+            (window as unknown as { __state: { connectionState?: string } }).__state.connectionState === 'connected',
           () => `${viewerLog()}\n\n${hostLog()}`,
           "the browser viewer's connectionState to reach 'connected'",
         );
@@ -332,7 +333,8 @@ describe('raven_live — Flutter host to browser viewer (real E2E)', () => {
         expect(viewerState.remoteTrackSubscribed).toBe(true);
 
         // --- Actual media validation: raw getStats(), sampled twice. ---
-        const readStats = () => viewerPage.evaluate(() => (window as unknown as { __stats: () => Promise<FrameStats | null> }).__stats());
+        const readStats = () =>
+          viewerPage.evaluate(() => (window as unknown as { __stats: () => Promise<FrameStats | null> }).__stats());
 
         // Give the decoder a moment past "track subscribed" before the
         // first sample: subscription and the first decoded frame are not
@@ -414,7 +416,9 @@ describe('raven_live — Flutter host to browser viewer (real E2E)', () => {
         'the browser host harness to become ready',
       );
       expect(
-        await hostPage.evaluate(() => (window as unknown as { __state: { connectionState: string } }).__state.connectionState),
+        await hostPage.evaluate(
+          () => (window as unknown as { __state: { connectionState: string } }).__state.connectionState,
+        ),
       ).toBe('connected');
 
       const viewerCreds = await createViewerToken(streamId, 'dave');
@@ -441,8 +445,8 @@ describe('raven_live — Flutter host to browser viewer (real E2E)', () => {
       await waitForPage(
         viewerPage,
         () => {
-          const sources = (window as unknown as { __state: { remoteLiveSources?: Record<string, string[]> } })
-            .__state.remoteLiveSources;
+          const sources = (window as unknown as { __state: { remoteLiveSources?: Record<string, string[]> } }).__state
+            .remoteLiveSources;
           return !!sources && Object.values(sources).some((kinds) => kinds.includes('camera'));
         },
         () => `${viewerLog()}\n\n${hostLog()}`,

@@ -37,6 +37,10 @@ env:
   # (net/http), both of which govulncheck reports as reachable from this
   # service. Keep in step with sfu-publish.yml and security.yml.
   GO_VERSION: "1.26.6"
+  # Kept in step with ci.yml's `flutter` job — a version drift here would
+  # let this workflow build a `live_host` web bundle the format/analyze/test
+  # job never actually validated.
+  FLUTTER_VERSION: "3.47.2"
 
 jobs:
   e2e:
@@ -78,6 +82,17 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: services/sfu/go.sum
 
+      # flutter-live-streaming.e2e-spec.ts drives a real `flutter build web`
+      # release build of flutter_check/live_host as the Flutter host, next
+      # to a real Chromium viewer — same "nothing mocked" posture as the
+      # effects suites. The suite refuses to run without this build rather
+      # than skipping silently, so it has to exist before test:e2e below.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
       - run: pnpm install --frozen-lockfile
 
       # Must come before prisma:generate: prisma.config.ts resolves
@@ -99,6 +114,14 @@ jobs:
 
       - run: pnpm --filter @raven/api run prisma:generate
 
+      # live-streams-media.e2e-spec.ts stages scripts/capacity/harness's
+      # vendor/ SDK from these dist/ folders with `rebuild: false` (see
+      # build-harness-sdk.mjs) — it deliberately does not build them
+      # itself, so they have to exist by the time that suite's beforeAll
+      # runs, same as apps/api and the dashboard need this before the
+      # Build job in ci.yml.
+      - run: pnpm --filter "./packages/*" run build
+
       # The effects suites drive two real Chromium contexts against the
       # SFU — the only tests anywhere in this repo where browser WebRTC
       # talks to Livqeno's media plane. Worth the download: they are what
@@ -106,6 +129,15 @@ jobs:
       # fine. See docs/rtc/test-matrix.md.
       - name: Install Chromium for Playwright
         run: pnpm --filter @raven/api exec playwright install --with-deps chromium
+
+      # Path deps only (raven_live/raven_rtc/raven_chat resolve to this
+      # working tree, see flutter_check/live_host/pubspec.yaml), so this
+      # needs nothing beyond the Flutter SDK set up above.
+      - name: Build Flutter web host for the live-streaming e2e suite
+        working-directory: flutter_check/live_host
+        run: |
+          flutter pub get
+          flutter build web --release
 
       # --no-deps is load-bearing. `sfu` depends_on `api`, which depends_on
       # `migrate` completing, so without it compose also starts the
