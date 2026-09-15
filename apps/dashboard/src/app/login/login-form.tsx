@@ -5,6 +5,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/states';
 import { Field } from '@/components/ui/field';
+import type { AuthResponse } from '@/lib/api-client';
+import { errorMessage, readJson } from '@/lib/client-fetch';
+import { safeInternalPath } from '@/lib/safe-path';
 
 export function LoginForm() {
   const router = useRouter();
@@ -25,10 +28,10 @@ export function LoginForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const payload = await res.json();
+      const payload = await readJson<AuthResponse>(res);
 
       if (!res.ok) {
-        setError(payload.message ?? 'Login failed');
+        setError(errorMessage(payload, 'Login failed'));
         return;
       }
 
@@ -38,7 +41,7 @@ export function LoginForm() {
       // "create your first project" has nothing to do with an internal ops
       // account, and forcing one through it would strand a `next=/super-admin`
       // redirect at a screen it was never meant to complete.
-      if (!payload.user?.isPlatformAdmin && payload.onboarding && !payload.onboarding.completed) {
+      if (!payload?.user?.isPlatformAdmin && payload?.onboarding && !payload.onboarding.completed) {
         router.push('/onboarding');
       } else {
         // `next` carries the page the user was trying to reach — including
@@ -46,8 +49,12 @@ export function LoginForm() {
         // Absent that, a Super Admin Portal account lands in the console
         // it actually uses: it has no projects, so the developer dashboard
         // is a dead end for this account, not a sensible default.
-        const fallback = payload.user?.isPlatformAdmin ? '/super-admin' : '/dashboard';
-        router.push(searchParams.get('next') ?? fallback);
+        // Validated the same way the OAuth start/callback routes validate
+        // their own `next` — this is browser-URL-controlled input, and
+        // pushing it unchecked would hand a crafted `?next=` link an
+        // open redirect straight out of a real sign-in.
+        const fallback = payload?.user?.isPlatformAdmin ? '/super-admin' : '/dashboard';
+        router.push(safeInternalPath(searchParams.get('next')) ?? fallback);
       }
       router.refresh();
     } catch {
