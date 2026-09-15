@@ -3,10 +3,10 @@ title: Environment variables
 description: Every variable any Livqeno component reads, grouped by what it configures. Generated from source.
 ---
 
-Livqeno's components read **131** environment variables between them —
-**112** by the control plane, **16** by the SFU,
+Livqeno's components read **134** environment variables between them —
+**115** by the control plane, **16** by the SFU,
 **5** by the dashboard. `.env.example` documents
-**117**, which leaves **27** read but
+**117**, which leaves **30** read but
 undocumented there; those are marked below.
 
 This page is generated from the source, so it is the complete set.
@@ -236,6 +236,9 @@ openssl rand -hex 32   # TURN_SECRET
 | `CAPACITY_MINT_CONCURRENCY` | not in `.env.example` |
 | `CAPACITY_MINT_QUEUE_DEPTH` | not in `.env.example` |
 | `CAPACITY_MINT_QUEUE_TIMEOUT_MS` | not in `.env.example` |
+| `DASHBOARD_WS_MAX_CONNECTIONS_PER_WINDOW` | not in `.env.example` |
+| `DASHBOARD_WS_TOKEN_SECRET` | not in `.env.example` |
+| `DASHBOARD_WS_TOKEN_TTL_SECONDS` | not in `.env.example` |
 | `EGRESS_AZURE_STORAGE_CONNECTION_STRING` |   |
 | `EGRESS_AZURE_STORAGE_CONTAINER` |   |
 | `EGRESS_CDN_BASE_URL` |   |

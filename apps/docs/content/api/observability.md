@@ -29,6 +29,7 @@ dashboard session. Same data, different credential.
 | PATCH | [`/v1/projects/{id}/allowed-origins`](#patch-v1projectsidallowedorigins) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/connections`](#get-v1projectsprojectidconnections) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/connections/{connectionId}`](#get-v1projectsprojectidconnectionsconnectionid) | Dashboard session (JWT) |
+| POST | [`/v1/projects/{projectId}/dashboard-ws-token`](#post-v1projectsprojectiddashboardwstoken) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/diagnostics`](#get-v1projectsprojectiddiagnostics) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/errors`](#get-v1projectsprojectiderrors) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/errors/{errorId}`](#get-v1projectsprojectiderrorserrorid) | Dashboard session (JWT) |
@@ -36,6 +37,10 @@ dashboard session. Same data, different credential.
 | PATCH | [`/v1/projects/{projectId}/integrations/{product}`](#patch-v1projectsprojectidintegrationsproduct) | Dashboard session (JWT) |
 | POST | [`/v1/projects/{projectId}/integrations/{product}/verify`](#post-v1projectsprojectidintegrationsproductverify) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/metrics`](#get-v1projectsprojectidmetrics) | Dashboard session (JWT) |
+| GET | [`/v1/projects/{projectId}/notifications`](#get-v1projectsprojectidnotifications) | Dashboard session (JWT) |
+| PATCH | [`/v1/projects/{projectId}/notifications/{notificationId}/read`](#patch-v1projectsprojectidnotificationsnotificationidread) | Dashboard session (JWT) |
+| POST | [`/v1/projects/{projectId}/notifications/read-all`](#post-v1projectsprojectidnotificationsreadall) | Dashboard session (JWT) |
+| GET | [`/v1/projects/{projectId}/notifications/unread-count`](#get-v1projectsprojectidnotificationsunreadcount) | Dashboard session (JWT) |
 | GET | [`/v1/projects/{projectId}/usage`](#get-v1projectsprojectidusage) | Dashboard session (JWT) |
 | GET | [`/v1/super-admin/activity`](#get-v1superadminactivity) | Dashboard session (JWT) |
 | GET | [`/v1/super-admin/admins`](#get-v1superadminadmins) | Dashboard session (JWT) |
@@ -85,6 +90,7 @@ List the API key's project's real RTC connections
 | `state` | query | `ConnectionState` | No |  |
 | `roomId` | query | `string` | No |  |
 | `limit` | query | `number` | No | 1–200 |
+| `cursor` | query | `string` | No | The previous page's last connection publicId. Omit for the first page. |
 
 ### GET `/v1/connections/{connectionId}`
 
@@ -156,7 +162,7 @@ Replace a project's allowed browser origins
 
 ### GET `/v1/projects/{projectId}/connections`
 
-List a project's real RTC connections
+List a project's real RTC connections, cursor-paginated
 
 **Credential** Dashboard session (JWT)
 
@@ -166,6 +172,7 @@ List a project's real RTC connections
 | `state` | query | `ConnectionState` | No |  |
 | `roomId` | query | `string` | No |  |
 | `limit` | query | `number` | No | 1–200 |
+| `cursor` | query | `string` | No | The previous page's last connection publicId. Omit for the first page. |
 
 ### GET `/v1/projects/{projectId}/connections/{connectionId}`
 
@@ -176,6 +183,16 @@ Get one connection with its full event timeline and any errors
 | Parameter | In | Type | Required | Notes |
 |---|---|---|---|---|
 | `connectionId` | path | `string` | Yes | |
+| `projectId` | path | `string` | Yes | |
+
+### POST `/v1/projects/{projectId}/dashboard-ws-token`
+
+Mint a short-lived token for the dashboard realtime WebSocket
+
+**Credential** Dashboard session (JWT) · **Rate limit** 30 per window ([details](/production/rate-limits))
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
 | `projectId` | path | `string` | Yes | |
 
 ### GET `/v1/projects/{projectId}/diagnostics`
@@ -249,6 +266,50 @@ Run a real, server-side check of this project's readiness for a product
 ### GET `/v1/projects/{projectId}/metrics`
 
 Real aggregate connection/error metrics for this project
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `projectId` | path | `string` | Yes | |
+
+### GET `/v1/projects/{projectId}/notifications`
+
+List the caller's own notifications for this project, newest first
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `projectId` | path | `string` | Yes | |
+| `limit` | query | `number` | No | 1–100 |
+| `cursor` | query | `string` | No | The previous page's last notification id. Omit for the first page. |
+| `unreadOnly` | query | `boolean` | No |  |
+
+### PATCH `/v1/projects/{projectId}/notifications/{notificationId}/read`
+
+Mark one of the caller's own notifications read
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `notificationId` | path | `string` | Yes | |
+| `projectId` | path | `string` | Yes | |
+
+### POST `/v1/projects/{projectId}/notifications/read-all`
+
+Mark every one of the caller's unread notifications for this project read
+
+**Credential** Dashboard session (JWT)
+
+| Parameter | In | Type | Required | Notes |
+|---|---|---|---|---|
+| `projectId` | path | `string` | Yes | |
+
+### GET `/v1/projects/{projectId}/notifications/unread-count`
+
+The caller's unread notification count for this project
 
 **Credential** Dashboard session (JWT)
 

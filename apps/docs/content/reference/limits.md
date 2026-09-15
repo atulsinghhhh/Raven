@@ -82,7 +82,7 @@ the allowances themselves.
 
 ## Rate-limited endpoints
 
-**16** routes carry a per-window budget. The window itself is
+**17** routes carry a per-window budget. The window itself is
 `60` seconds.
 
 | Endpoint | Per window |
@@ -99,6 +99,7 @@ the allowances themselves.
 | POST `/v1/live-streams/{streamId}/hosts` | 60 |
 | POST `/v1/live-streams/{streamId}/viewer-tokens` | 120 |
 | POST `/v1/projects/{projectId}/api-keys` | 20 |
+| POST `/v1/projects/{projectId}/dashboard-ws-token` | 30 |
 | POST `/v1/projects/{projectId}/rooms/{roomId}/test-token` | 30 |
 | POST `/v1/rooms/{roomId}/rtc-tokens` | 60 |
 | DELETE `/v1/rooms/{roomId}/rtc-tokens/{tokenId}` | 60 |

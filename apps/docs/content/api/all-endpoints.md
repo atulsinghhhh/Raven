@@ -3,7 +3,7 @@ title: All endpoints
 description: Every route the Livqeno API serves, generated from the controllers.
 ---
 
-Livqeno serves **153** versioned endpoints under `/v1`, plus
+Livqeno serves **158** versioned endpoints under `/v1`, plus
 **5** unversioned infrastructure routes. This page is generated
 from `apps/api`, so it is the whole surface — not a curated subset.
 
@@ -90,6 +90,7 @@ Interactive request/response schemas are served by the API itself at `/docs`.
 | GET | `/v1/projects/{projectId}/chat/overview` | Dashboard session (JWT) | [Chat](/api/chat) |
 | GET | `/v1/projects/{projectId}/connections` | Dashboard session (JWT) | [Observability](/api/observability) |
 | GET | `/v1/projects/{projectId}/connections/{connectionId}` | Dashboard session (JWT) | [Observability](/api/observability) |
+| POST | `/v1/projects/{projectId}/dashboard-ws-token` | Dashboard session (JWT) | [Observability](/api/observability) |
 | GET | `/v1/projects/{projectId}/diagnostics` | Dashboard session (JWT) | [Observability](/api/observability) |
 | GET | `/v1/projects/{projectId}/errors` | Dashboard session (JWT) | [Observability](/api/observability) |
 | GET | `/v1/projects/{projectId}/errors/{errorId}` | Dashboard session (JWT) | [Observability](/api/observability) |
@@ -106,6 +107,10 @@ Interactive request/response schemas are served by the API itself at `/docs`.
 | DELETE | `/v1/projects/{projectId}/members/{userId}` | Dashboard session (JWT) | [Projects, Members & Keys](/api/projects) |
 | PATCH | `/v1/projects/{projectId}/members/{userId}` | Dashboard session (JWT) | [Projects, Members & Keys](/api/projects) |
 | GET | `/v1/projects/{projectId}/metrics` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/projects/{projectId}/notifications` | Dashboard session (JWT) | [Observability](/api/observability) |
+| PATCH | `/v1/projects/{projectId}/notifications/{notificationId}/read` | Dashboard session (JWT) | [Observability](/api/observability) |
+| POST | `/v1/projects/{projectId}/notifications/read-all` | Dashboard session (JWT) | [Observability](/api/observability) |
+| GET | `/v1/projects/{projectId}/notifications/unread-count` | Dashboard session (JWT) | [Observability](/api/observability) |
 | GET | `/v1/projects/{projectId}/rooms` | Dashboard session (JWT) | [RTC](/api/rtc) |
 | POST | `/v1/projects/{projectId}/rooms` | Dashboard session (JWT) | [RTC](/api/rtc) |
 | GET | `/v1/projects/{projectId}/rooms/{roomId}` | Dashboard session (JWT) | [RTC](/api/rtc) |
