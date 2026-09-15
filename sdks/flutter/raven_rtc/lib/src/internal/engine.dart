@@ -977,6 +977,17 @@ class RavenEngine {
       rtc.RTCDataChannelInit()..ordered = true,
     );
     _attachDataChannel(channel);
+
+    // A data channel needs its own `m=application` section just like a
+    // newly added track, but unlike publish()/unpublish() nothing else was
+    // ever going to prompt an offer for a participant who only wants
+    // [data]: it previously opened only by riding along behind some
+    // unrelated publish's negotiation round, or never opened at all for a
+    // participant that never published. Same race guard as publish() — a
+    // caller here before the SFU's join-time offer has arrived must not
+    // send a competing offer; see [_initialOfferHandled].
+    await _initialOfferHandled.future;
+    await _serialized(_negotiatePublish);
   }
 
   /// How long [sendData] waits for the data channel to open before giving

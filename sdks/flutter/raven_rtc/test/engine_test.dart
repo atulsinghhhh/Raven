@@ -551,8 +551,7 @@ void main() {
             .where((m) => m['type'] == ClientMessageType.sdpOffer)
             .length,
         offersAfterFirstGlare,
-        reason:
-            'a glare on the retry itself must not spend a second immediate '
+        reason: 'a glare on the retry itself must not spend a second immediate '
             'attempt — it falls back to waiting for _handleOffer/_handleAnswer',
       );
 
@@ -754,22 +753,48 @@ void main() {
     test(
         'sendData() times out with a RavenException instead of hanging forever if the channel never opens',
         () async {
-      final signaling = clientFor();
-      final engine = RavenEngine(
-          signaling: signaling, iceServers: const [], adaptiveStream: false);
-      engine.start();
-      await joinRoom(signaling);
-      socket.receive({'type': ServerMessageType.sdpOffer, 'sdp': 'v=0 offer'});
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
-
       // Deliberately never calls platform.openDataChannel: this is the
       // field report's scenario — negotiation never actually completes,
       // so nothing ever tells the engine the channel opened, and the old
       // behavior was to wait on a bare Completer forever.
       Object? caught;
       var settled = false;
+      late SignalingClient signaling;
+      late RavenEngine engine;
+
       fakeAsync((async) {
+        // Everything — construction included — has to happen inside this
+        // one fakeAsync zone. RavenEngine's `_negotiationChain` starts out
+        // as an already-completed `Future<void>.value()` set at
+        // construction time; a Future completed in one zone never notifies
+        // a `.then()`/`await` registered from a different zone (a
+        // documented fake_async/Dart-Future interaction, reproduced in
+        // isolation while narrowing this test down), so building the
+        // engine outside this zone would silently wedge every negotiation
+        // — including the one ensureDataChannel() now kicks off — forever.
+        signaling = clientFor();
+        engine = RavenEngine(
+            signaling: signaling, iceServers: const [], adaptiveStream: false);
+        engine.start();
+        unawaited(signaling.connect());
+        // A few milliseconds of margin, not zero: createPeerConnection's
+        // own fake platform delay is a real (faked) Timer, and each hop
+        // through it plus the several chained MethodChannel round trips
+        // this drives needs elapsed time to actually fire.
+        async.elapse(const Duration(milliseconds: 10));
+        socket.receive({
+          'type': ServerMessageType.roomJoined,
+          'roomId': 'room-1',
+          'participants': const [],
+        });
+        async.elapse(const Duration(milliseconds: 10));
+        socket
+            .receive({'type': ServerMessageType.sdpOffer, 'sdp': 'v=0 offer'});
+        async.elapse(const Duration(milliseconds: 10));
+        expect(socket.lastSent(ClientMessageType.sdpAnswer), isNotNull,
+            reason: 'setup: the join-time offer must be answered before '
+                'sendData() is exercised');
+
         unawaited(engine.sendData([1, 2, 3]).then(
           (_) => settled = true,
           onError: (Object error) {
@@ -777,6 +802,7 @@ void main() {
             settled = true;
           },
         ));
+        async.elapse(const Duration(milliseconds: 10));
 
         async.elapse(const Duration(seconds: 14));
         expect(settled, isFalse,
@@ -786,7 +812,8 @@ void main() {
       });
 
       expect(settled, isTrue,
-          reason: 'sendData() must settle, not hang forever, once the channel never opens');
+          reason:
+              'sendData() must settle, not hang forever, once the channel never opens');
       expect(caught, isA<RavenException>());
       expect((caught as RavenException).code, RavenErrorCode.timeout);
 
@@ -811,6 +838,20 @@ void main() {
       await engine.ensureDataChannel();
 
       expect(platform.calls, contains('createDataChannel'));
+
+      // The regression this test now also covers: creating a data channel
+      // has to negotiate it, or a participant who never publishes anything
+      // sits with a channel the SFU was never told to expect (spec §18) —
+      // see ensureDataChannel()'s own doc comment. Before this offer, this
+      // participant has no track and never published, so this is the only
+      // negotiation round that could have produced it.
+      expect(
+        socket.sent.where((m) => m['type'] == ClientMessageType.sdpOffer),
+        isNotEmpty,
+        reason: 'ensureDataChannel() must negotiate the channel it just '
+            'created, not merely create it locally and rely on some other '
+            'publish to carry it along',
+      );
 
       await engine.dispose();
       await signaling.dispose();
