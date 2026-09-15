@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   const token = await requireSessionToken();
   if (isResponse(token)) return token;
 
-  const body = await request.json();
+  const body = await request.json().catch(() => ({}));
   if (typeof body?.name !== 'string' || body.name.trim().length === 0) {
     return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'name is required' }, { status: 400 });
   }

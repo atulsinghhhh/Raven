@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   const body = await request.json().catch(() => ({}));
   if (!ROLES.includes(body?.role)) {
-    return NextResponse.json({ message: 'A valid role is required' }, { status: 400 });
+    return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'A valid role is required' }, { status: 400 });
   }
 
   try {

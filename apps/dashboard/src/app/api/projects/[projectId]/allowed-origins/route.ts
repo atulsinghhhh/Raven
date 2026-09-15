@@ -21,9 +21,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (isResponse(token)) return token;
   const { projectId } = await params;
 
-  const body = await request.json();
+  const body = await request.json().catch(() => ({}));
   if (!Array.isArray(body?.allowedOrigins)) {
-    return NextResponse.json({ message: 'allowedOrigins must be an array' }, { status: 400 });
+    return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'allowedOrigins must be an array' }, { status: 400 });
   }
 
   try {

@@ -33,12 +33,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (query.length < 2) return NextResponse.json({ hits: [] });
 
   try {
-    const [rooms, connections, errors, streams] = await Promise.all([
+    const [rooms, connectionsPage, errors, streams] = await Promise.all([
       ravenApi.listRooms(token, projectId).catch(() => []),
-      ravenApi.listConnections(token, projectId, { limit: SCAN_LIMIT }).catch(() => []),
+      // listConnections now returns a cursor-paginated page — the palette
+      // only ever wants the first SCAN_LIMIT hits anyway, so .data is all
+      // this needs.
+      ravenApi
+        .listConnections(token, projectId, { limit: SCAN_LIMIT })
+        .catch(() => ({ data: [], nextCursor: null, hasMore: false })),
       ravenApi.listErrors(token, projectId, { limit: SCAN_LIMIT }).catch(() => []),
       ravenApi.listLiveStreams(token, projectId).catch(() => []),
     ]);
+    const connections = connectionsPage.data;
 
     const base = `/dashboard/projects/${projectId}`;
     const hits: SearchHit[] = [];

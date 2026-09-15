@@ -17,7 +17,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   const email = typeof body?.email === 'string' ? body.email : undefined;
 
   if (!email) {
-    return NextResponse.json({ message: 'An email address is required' }, { status: 400 });
+    return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'An email address is required' }, { status: 400 });
   }
 
   // An unrecognised role is dropped, not forwarded: the API would

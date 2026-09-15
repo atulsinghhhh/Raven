@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { ApiError, ravenApi } from '@/lib/api-client';
+import { ravenApi } from '@/lib/api-client';
+import { handleApiError } from '@/lib/route-helpers';
 import {
   ONBOARDING_COOKIE_NAME,
   SESSION_COOKIE_NAME,
@@ -9,7 +10,7 @@ import {
 } from '@/lib/session';
 
 export async function POST(request: NextRequest) {
-  const { email, password } = await request.json();
+  const { email, password } = await request.json().catch(() => ({}));
 
   if (typeof email !== 'string' || typeof password !== 'string') {
     return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'email and password are required' }, { status: 400 });
@@ -29,9 +30,6 @@ export async function POST(request: NextRequest) {
     store.set(ONBOARDING_COOKIE_NAME, onboardingComplete ? 'complete' : 'pending', onboardingCookieOptions());
     return NextResponse.json({ user: auth.user, onboarding: auth.onboarding ?? { completed: true, step: 7 } });
   } catch (error) {
-    if (error instanceof ApiError) {
-      return NextResponse.json({ code: error.code, message: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ code: 'NETWORK_ERROR', message: 'Could not reach the Control API' }, { status: 502 });
+    return handleApiError(error);
   }
 }

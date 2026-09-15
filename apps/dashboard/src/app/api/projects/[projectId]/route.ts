@@ -11,7 +11,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (isResponse(token)) return token;
   const { projectId } = await params;
 
-  const body = await request.json();
+  const body = await request.json().catch(() => ({}));
 
   try {
     const project = await ravenApi.updateProject(token, projectId, {
