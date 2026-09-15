@@ -148,7 +148,10 @@ export default async function MetricsPage({
   }
 
   const metrics = metricsResult.status === 'fulfilled' ? metricsResult.value : undefined;
-  const connections: ConnectionSummary[] = connectionsResult.status === 'fulfilled' ? connectionsResult.value : [];
+  // listConnections returns a cursor-paginated page; this snapshot only
+  // ever wanted the first FETCH_LIMIT records anyway, so .data is enough.
+  const connections: ConnectionSummary[] =
+    connectionsResult.status === 'fulfilled' ? connectionsResult.value.data : [];
   const errors: ErrorSummary[] = errorsResult.status === 'fulfilled' ? errorsResult.value : [];
 
   const now = renderClock();
@@ -321,6 +324,7 @@ export default async function MetricsPage({
                 className: STATE_SWATCH[s],
               }))}
               caption={`Connection states across ${formatCount(windowConnections.length)} fetched connection records in ${RANGE_LABEL[range].toLowerCase()}.`}
+              failed={connectionsResult.status === 'rejected'}
             />
           </Card>
 
@@ -336,6 +340,7 @@ export default async function MetricsPage({
                 className: CATEGORY_SWATCH[c],
               }))}
               caption={`Error categories across ${formatCount(windowErrors.length)} fetched error records in ${RANGE_LABEL[range].toLowerCase()}.`}
+              failed={errorsResult.status === 'rejected'}
             />
           </Card>
         </div>

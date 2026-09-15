@@ -3,7 +3,7 @@ import { getSessionToken } from '@/lib/session';
 import { ApiError, ravenApi } from '@/lib/api-client';
 import { ButtonLink } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
-import { ErrorState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { ApiKeysManager } from './api-keys-manager';
 
 export default async function ApiKeysPage({ params }: { params: Promise<{ projectId: string }> }) {
@@ -16,7 +16,26 @@ export default async function ApiKeysPage({ params }: { params: Promise<{ projec
     keys = await ravenApi.listApiKeys(token, projectId);
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) redirect('/login');
-    return <ErrorState title="Could not load API keys" description="The Control API is unreachable right now." />;
+    if (error instanceof ApiError && error.status === 404) {
+      return (
+        <EmptyState
+          title="Project not found"
+          description="This project may have been archived, or it belongs to a different account."
+          action={
+            <ButtonLink href="/dashboard/projects" variant="primary">
+              Back to projects
+            </ButtonLink>
+          }
+        />
+      );
+    }
+    return (
+      <ErrorState
+        title="Could not load API keys"
+        description="The Control API is unreachable right now. Your keys are unaffected — retry in a moment."
+        retryHref={`/dashboard/projects/${projectId}/api-keys`}
+      />
+    );
   }
 
   return (
@@ -30,7 +49,7 @@ export default async function ApiKeysPage({ params }: { params: Promise<{ projec
           </ButtonLink>
         }
       />
-      <ApiKeysManager projectId={projectId} initialKeys={keys} />
+      <ApiKeysManager key={projectId} projectId={projectId} initialKeys={keys} />
     </div>
   );
 }

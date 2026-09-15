@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
 import { ApiError, ravenApi } from '@/lib/api-client';
 import { PageHeader } from '@/components/ui/page-header';
-import { ErrorState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
+import { ButtonLink } from '@/components/ui/button';
 import { WebhooksManager } from './webhooks-manager';
 
 /**
@@ -22,6 +23,19 @@ export default async function WebhooksPage({ params }: { params: Promise<{ proje
     endpoints = await ravenApi.listWebhooks(token, projectId);
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) redirect('/login');
+    if (error instanceof ApiError && error.status === 404) {
+      return (
+        <EmptyState
+          title="Project not found"
+          description="This project may have been archived, or it belongs to a different account."
+          action={
+            <ButtonLink href="/dashboard/projects" variant="primary">
+              Back to projects
+            </ButtonLink>
+          }
+        />
+      );
+    }
     return (
       <ErrorState
         title="Unable to load webhooks"
@@ -38,7 +52,7 @@ export default async function WebhooksPage({ params }: { params: Promise<{ proje
         title="Webhooks"
         description="Receive chat events on your own backend. Delivery is asynchronous and retried — it never sits on the message path."
       />
-      <WebhooksManager projectId={projectId} initialEndpoints={endpoints} />
+      <WebhooksManager key={projectId} projectId={projectId} initialEndpoints={endpoints} />
     </div>
   );
 }

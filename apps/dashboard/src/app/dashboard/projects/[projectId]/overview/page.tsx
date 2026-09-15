@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
-import { ApiError, ravenApi, type ProjectIntegration, type RtcFleetMetrics } from '@/lib/api-client';
+import { ApiError, ravenApi, type ConnectionSummary, type ProjectIntegration, type RtcFleetMetrics } from '@/lib/api-client';
 import { Badge, ConnectionStateBadge, ErrorCategoryBadge, StatusBadge } from '@/components/ui/badge';
 import { ButtonLink } from '@/components/ui/button';
 import { Card, CardHeader, SectionHeader, StatCard } from '@/components/ui/card';
@@ -75,7 +75,9 @@ export default async function OverviewPage({
   const project = projectResult.value;
   const metrics = metricsResult.status === 'fulfilled' ? metricsResult.value : undefined;
   const diagnostics = diagnosticsResult.status === 'fulfilled' ? diagnosticsResult.value : undefined;
-  const connections = connectionsResult.status === 'fulfilled' ? connectionsResult.value : [];
+  // listConnections returns a cursor-paginated page; this snapshot only
+  // ever wanted the first 8 most-recent records anyway.
+  const connections = connectionsResult.status === 'fulfilled' ? connectionsResult.value.data : [];
   const errors = errorsResult.status === 'fulfilled' ? errorsResult.value : [];
   const rooms = roomsResult.status === 'fulfilled' ? roomsResult.value : undefined;
   const apiKeys = apiKeysResult.status === 'fulfilled' ? apiKeysResult.value : [];
@@ -85,7 +87,14 @@ export default async function OverviewPage({
   const integrations = integrationsResult.status === 'fulfilled' ? integrationsResult.value : [];
 
   const base = `/dashboard/projects/${projectId}`;
+  // "No activity" must mean the fetches actually succeeded and came back
+  // empty — a rejected connections/rooms fetch is a different truth
+  // (unknown, not zero) and must not collapse into the same onboarding
+  // "nothing has connected yet" message.
+  const connectionsFailed = connectionsResult.status === 'rejected';
+  const roomsFailed = roomsResult.status === 'rejected';
   const hasActivity = connections.length > 0 || (rooms?.length ?? 0) > 0;
+  const activityUnknown = !hasActivity && (connectionsFailed || roomsFailed);
   const hasConnection = connections.length > 0 || (rooms?.length ?? 0) > 0;
   const hasChatActivity = (chatOverview?.conversations ?? 0) > 0 || (chatOverview?.messagesStored ?? 0) > 0;
   const hasLiveStream = liveStreams.length > 0;
@@ -153,7 +162,13 @@ export default async function OverviewPage({
         );
       })}
 
-      {!hasActivity ? (
+      {activityUnknown ? (
+        <ErrorState
+          title="Could not load recent activity"
+          description="The connection and room records are unreachable right now — this is not necessarily an empty project. Retry in a moment."
+          retryHref={`${base}/overview?range=${range}`}
+        />
+      ) : !hasActivity ? (
         <Card>
           <p className="text-sm leading-relaxed text-muted">
             No rooms or connections yet — telemetry appears here automatically the moment your backend mints a token and
@@ -222,8 +237,8 @@ export default async function OverviewPage({
           </section>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <RecentConnections base={base} connections={connections} />
-            <RecentErrors base={base} errors={errors} errorCount={metrics?.errors} range={range} />
+            <RecentConnections base={base} connections={connections} failed={connectionsFailed} />
+            <RecentErrors base={base} errors={errors} errorCount={metrics?.errors} range={range} failed={errorsResult.status === 'rejected'} />
           </div>
         </>
       )}
@@ -374,9 +389,11 @@ function rateTone(
 function RecentConnections({
   base,
   connections,
+  failed,
 }: {
   base: string;
-  connections: Awaited<ReturnType<typeof ravenApi.listConnections>>;
+  connections: ConnectionSummary[];
+  failed: boolean;
 }) {
   return (
     <Card padded={false}>
@@ -392,7 +409,7 @@ function RecentConnections({
       </div>
       {connections.length === 0 ? (
         <div className="px-5 pb-5">
-          <NoDataYet label="No connections recorded yet" />
+          <NoDataYet label={failed ? 'Could not be loaded right now' : 'No connections recorded yet'} />
         </div>
       ) : (
         <ul className="divide-y divide-line border-t border-line">
@@ -422,11 +439,13 @@ function RecentErrors({
   errors,
   errorCount,
   range,
+  failed,
 }: {
   base: string;
   errors: Awaited<ReturnType<typeof ravenApi.listErrors>>;
   errorCount: number | undefined;
   range: string;
+  failed: boolean;
 }) {
   return (
     <Card padded={false}>
@@ -448,7 +467,9 @@ function RecentErrors({
       {errors.length === 0 ? (
         <div className="px-5 pb-5">
           <p className="text-sm text-muted">
-            No errors recorded. Either everything is healthy, or nothing has connected yet.
+            {failed
+              ? 'The error records are unreachable right now — this is not necessarily a healthy project.'
+              : 'No errors recorded. Either everything is healthy, or nothing has connected yet.'}
           </p>
         </div>
       ) : (

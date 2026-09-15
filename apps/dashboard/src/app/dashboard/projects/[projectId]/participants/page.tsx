@@ -49,7 +49,9 @@ export default async function ParticipantsPage({
 
   let connections: ConnectionSummary[];
   try {
-    connections = await ravenApi.listConnections(token, projectId, { limit: CONNECTION_SCAN_LIMIT });
+    // listConnections returns a cursor-paginated page; this view only
+    // ever wanted the first CONNECTION_SCAN_LIMIT records anyway.
+    connections = (await ravenApi.listConnections(token, projectId, { limit: CONNECTION_SCAN_LIMIT })).data;
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) redirect('/login');
     if (error instanceof ApiError && error.status === 404) {

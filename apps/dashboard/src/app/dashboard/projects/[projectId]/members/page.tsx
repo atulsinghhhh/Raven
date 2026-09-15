@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSessionToken } from '@/lib/session';
 import { decodeSessionEmail } from '@/lib/decode-session';
 import { ApiError, ravenApi } from '@/lib/api-client';
+import { Capability, createPermissionChecker } from '@/lib/permissions';
 import { ButtonLink } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState, ErrorState } from '@/components/ui/states';
@@ -55,7 +56,8 @@ export default async function MembersPage({ params }: { params: Promise<{ projec
   // this regardless — asking the API what this user can do, instead of
   // guessing from their role, keeps the two in agreement.
   const viewer = members.find((m) => m.email === email);
-  const canManage = viewer?.capabilities.includes('members:manage') ?? false;
+  const can = createPermissionChecker(viewer?.capabilities);
+  const canManage = can(Capability.MembersManage);
 
   return (
     <div className="flex flex-col gap-8">
@@ -69,6 +71,7 @@ export default async function MembersPage({ params }: { params: Promise<{ projec
       />
 
       <MembersManager
+        key={projectId}
         projectId={projectId}
         initialMembers={members}
         currentUserEmail={email ?? null}
