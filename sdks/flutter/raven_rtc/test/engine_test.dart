@@ -587,9 +587,10 @@ void main() {
       await joinRoom(signaling);
 
       // A peer connection has to exist to hand a track to, but creating
-      // one is not what's under test here — ensureDataChannel() creates
-      // one without ever sending an offer (see the "concurrent callers"
-      // test below), unlike publish().
+      // one is not what's under test here — ensureDataChannel() gates its
+      // own negotiation behind the same [_initialOfferHandled] barrier
+      // publish() does, so calling it now only forces a peer connection
+      // into existence; it will not race the SFU's join-time offer either.
       unawaited(engine.ensureDataChannel());
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
