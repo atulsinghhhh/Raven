@@ -127,13 +127,37 @@ describe('NotificationsBell', () => {
     jest.restoreAllMocks();
   });
 
+  it('the trigger has no accessible name at all when there is nothing unread', async () => {
+    mockFetch({ list: () => Promise.resolve(listResult([])), unreadCount: () => Promise.resolve(countResult(0)) });
+    render(<NotificationsBell projectId="proj-1" />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Notifications' })).toBeInTheDocument());
+  });
+
+  it('the unread count reaches the accessible name, not just the visual badge', async () => {
+    // Menu sets aria-label directly on the trigger button, which replaces
+    // its text content for accessible-name purposes rather than merging
+    // with it — a sr-only span inside the trigger claiming the count would
+    // never actually be read by a screen reader. The count has to be in
+    // the label string itself.
+    mockFetch({
+      list: () => Promise.resolve(listResult([notification('n1')])),
+      unreadCount: () => Promise.resolve(countResult(3)),
+    });
+    render(<NotificationsBell projectId="proj-1" />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Notifications, 3 unread' })).toBeInTheDocument());
+    // The visually-hidden duplicate that never reached assistive tech is gone.
+    expect(screen.queryByText('3 unread notifications')).not.toBeInTheDocument();
+  });
+
   it('shows a loading state before the initial fetch resolves', async () => {
     let resolveList!: (value: FetchResult) => void;
     mockFetch({ list: () => new Promise((resolve) => (resolveList = resolve)) });
 
     const user = userEvent.setup();
     render(<NotificationsBell projectId="proj-1" />);
-    await user.click(screen.getByRole('button', { name: 'Notifications' }));
+    await user.click(screen.getByRole('button', { name: /^Notifications/ }));
 
     // Phase 6B: shape-matching skeleton, not bare "Loading…" text.
     expect(screen.queryByText('Nothing to report right now.')).not.toBeInTheDocument();
@@ -150,7 +174,7 @@ describe('NotificationsBell', () => {
     render(<NotificationsBell projectId="proj-1" />);
     await waitFor(() => expect(screen.getByText('1')).toBeInTheDocument()); // badge
 
-    await user.click(screen.getByRole('button', { name: 'Notifications' }));
+    await user.click(screen.getByRole('button', { name: /^Notifications/ }));
     expect(screen.getByText('Webhook delivery failing')).toBeInTheDocument();
   });
 
@@ -158,7 +182,7 @@ describe('NotificationsBell', () => {
     const user = userEvent.setup();
     render(<NotificationsBell projectId="proj-1" />);
 
-    await user.click(screen.getByRole('button', { name: 'Notifications' }));
+    await user.click(screen.getByRole('button', { name: /^Notifications/ }));
     await waitFor(() => expect(screen.getByText('Nothing to report right now.')).toBeInTheDocument());
   });
 
@@ -167,7 +191,7 @@ describe('NotificationsBell', () => {
 
     const user = userEvent.setup();
     render(<NotificationsBell projectId="proj-1" />);
-    await user.click(screen.getByRole('button', { name: 'Notifications' }));
+    await user.click(screen.getByRole('button', { name: /^Notifications/ }));
 
     await waitFor(() => expect(screen.getByText('Could not load notifications')).toBeInTheDocument());
   });
@@ -185,7 +209,7 @@ describe('NotificationsBell', () => {
 
     const user = userEvent.setup();
     render(<NotificationsBell projectId="proj-1" />);
-    await user.click(screen.getByRole('button', { name: 'Notifications' }));
+    await user.click(screen.getByRole('button', { name: /^Notifications/ }));
     await waitFor(() => expect(screen.getByText('Could not load notifications')).toBeInTheDocument());
 
     // Clicking anything inside the menu closes it (Menu's own behavior, same
@@ -194,7 +218,7 @@ describe('NotificationsBell', () => {
     await user.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(listCallCount).toBe(2));
 
-    await user.click(screen.getByRole('button', { name: 'Notifications' }));
+    await user.click(screen.getByRole('button', { name: /^Notifications/ }));
     await waitFor(() => expect(screen.getByText('Webhook delivery failing')).toBeInTheDocument());
     expect(screen.queryByText('Could not load notifications')).not.toBeInTheDocument();
   });
@@ -206,6 +230,30 @@ describe('NotificationsBell', () => {
     render(<NotificationsBell projectId="proj-1" />);
 
     await waitFor(() => expect(handleSessionExpiry).toHaveBeenCalled());
+  });
+
+  it('ArrowDown moves roving focus between notification items, the same contract Menu documents for every other menu', async () => {
+    mockFetch({
+      list: () => Promise.resolve(listResult([notification('n1'), notification('n2')])),
+      unreadCount: () => Promise.resolve(countResult(2)),
+    });
+    const user = userEvent.setup();
+    render(<NotificationsBell projectId="proj-1" />);
+    await waitFor(() => expect(screen.getByText('2')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: /^Notifications/ }));
+    const items = screen.getAllByRole('menuitem');
+    expect(items).toHaveLength(2);
+
+    // Menu's own arrow-key handling only finds items marked role="menuitem"
+    // (see menu.tsx's onMenuKeyDown) — without it on these notification
+    // links, ArrowDown/ArrowUp silently did nothing. Focused directly
+    // rather than via Tab: "Mark all read" is a real, earlier tab stop
+    // whenever there's something unread (as here), and how many Tabs it
+    // takes to reach the first item isn't what this test is about.
+    items[0].focus();
+    await user.keyboard('{ArrowDown}');
+    expect(items[1]).toHaveFocus();
   });
 
   describe('mark read / mark all read', () => {
@@ -220,7 +268,7 @@ describe('NotificationsBell', () => {
       const user = userEvent.setup();
       render(<NotificationsBell projectId="proj-1" />);
       await waitFor(() => expect(screen.getByText('1')).toBeInTheDocument());
-      await user.click(screen.getByRole('button', { name: 'Notifications' }));
+      await user.click(screen.getByRole('button', { name: /^Notifications/ }));
 
       await user.click(screen.getByText('Webhook delivery failing'));
 
@@ -238,7 +286,7 @@ describe('NotificationsBell', () => {
       const user = userEvent.setup();
       render(<NotificationsBell projectId="proj-1" />);
       await waitFor(() => expect(screen.getByText('1')).toBeInTheDocument());
-      await user.click(screen.getByRole('button', { name: 'Notifications' }));
+      await user.click(screen.getByRole('button', { name: /^Notifications/ }));
       await user.click(screen.getByText('Webhook delivery failing'));
 
       await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not mark that notification read.'));
@@ -256,7 +304,7 @@ describe('NotificationsBell', () => {
       const user = userEvent.setup();
       render(<NotificationsBell projectId="proj-1" />);
       await waitFor(() => expect(screen.getByText('2')).toBeInTheDocument());
-      await user.click(screen.getByRole('button', { name: 'Notifications' }));
+      await user.click(screen.getByRole('button', { name: /^Notifications/ }));
 
       await user.click(screen.getByRole('button', { name: 'Mark all read' }));
 

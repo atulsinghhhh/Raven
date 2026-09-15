@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { NotificationSummary } from '@/lib/api-client';
 import { IconBell } from '@/components/ui/icons';
 import { formatRelative } from '@/lib/format';
@@ -9,12 +9,12 @@ import { ErrorState } from '@/components/ui/states';
 import { SkeletonText } from '@/components/ui/skeleton';
 import { toast } from '@/lib/toast';
 import { handleSessionExpiry } from '@/lib/session-expiry';
+import { readJson } from '@/lib/client-fetch';
 import { useDashboardRealtime } from '@/lib/realtime/use-dashboard-realtime';
+import { useDebouncedRefetch } from '@/lib/realtime/use-debounced-refetch';
 import type { DashboardRealtimeSocketFactory } from '@/lib/realtime/dashboard-realtime-transport';
 
 const LIST_LIMIT = 20;
-/** Same debounce window as every other Phase 5B-5F realtime list. */
-const REALTIME_REFETCH_DEBOUNCE_MS = 400;
 
 const TYPE_LABEL: Record<NotificationSummary['type'], string> = {
   WEBHOOK_DELIVERY_FAILED: 'Webhook',
@@ -73,8 +73,12 @@ export function NotificationsBell({
         setError(true);
         return;
       }
-      const list = (await listRes.json()) as { data: NotificationSummary[] };
-      const count = (await countRes.json()) as { count: number };
+      const list = await readJson<{ data: NotificationSummary[] }>(listRes);
+      const count = await readJson<{ count: number }>(countRes);
+      if (!list || !count) {
+        setError(true);
+        return;
+      }
       setNotifications(list.data);
       setUnreadCount(count.count);
       setError(false);
@@ -106,21 +110,7 @@ export function NotificationsBell({
     resetAndRefetch();
   }, [projectId, refetchLatest]);
 
-  const refetchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  const scheduleRefetch = useCallback(() => {
-    if (refetchTimerRef.current !== undefined) clearTimeout(refetchTimerRef.current);
-    refetchTimerRef.current = setTimeout(() => {
-      refetchTimerRef.current = undefined;
-      void refetchLatest();
-    }, REALTIME_REFETCH_DEBOUNCE_MS);
-  }, [refetchLatest]);
-
-  useEffect(() => {
-    return () => {
-      if (refetchTimerRef.current !== undefined) clearTimeout(refetchTimerRef.current);
-    };
-  }, []);
+  const scheduleRefetch = useDebouncedRefetch(refetchLatest);
 
   const handleRealtimeEvent = useCallback(
     (frame: Record<string, unknown>) => {
@@ -180,7 +170,13 @@ export function NotificationsBell({
 
   return (
     <Menu
-      label="Notifications"
+      // Menu sets this directly as the trigger button's aria-label, which
+      // (per the accessible-name spec) replaces its content entirely — a
+      // sr-only span inside the trigger claiming the unread count would
+      // never actually reach a screen reader, since an explicit aria-label
+      // always wins over subtree text. The count has to ride in the label
+      // itself for that reason.
+      label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
       align="end"
       menuClassName="w-80 sm:w-96 p-0"
       trigger={() => (
@@ -194,7 +190,6 @@ export function NotificationsBell({
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
-          <span className="sr-only">{unreadCount} unread notifications</span>
         </span>
       )}
     >
@@ -235,6 +230,7 @@ export function NotificationsBell({
               <a
                 href={hrefFor(n, base)}
                 onClick={() => void markRead(n)}
+                role="menuitem"
                 className={`block px-3 py-2.5 hover:bg-surface-raised ${n.read ? '' : 'bg-accent-subtle'}`}
               >
                 <div className="flex items-center justify-between gap-2">

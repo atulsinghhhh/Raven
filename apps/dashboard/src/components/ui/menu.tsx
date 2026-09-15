@@ -62,7 +62,22 @@ export function Menu({
   }
 
   return (
-    <div ref={rootRef} className={`relative ${className}`}>
+    <div
+      ref={rootRef}
+      className={`relative ${className}`}
+      onBlur={(e) => {
+        // Tab out of the last item (or Shift+Tab back past the trigger)
+        // moves focus to something outside this root — close then, so
+        // the popover never sits open over the page with focus already
+        // somewhere else. A blur that lands back inside (trigger <->
+        // items) is not a real "leave", and this fires after the
+        // click-to-close handlers below for a mouse selection, so it
+        // never fights them.
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
+    >
       <button
         ref={triggerRef}
         type="button"

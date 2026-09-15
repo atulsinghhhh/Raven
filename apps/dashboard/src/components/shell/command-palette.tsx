@@ -51,6 +51,14 @@ export function CommandPalette() {
   const [cursor, setCursor] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  // The search input this replaces takes focus while open and is
+  // unmounted the instant `open` flips back to false — with nothing
+  // else claiming it, the browser drops focus to <body>, and a keyboard
+  // user who opened this with ⌘K loses their place on the page
+  // entirely. closePalette() below is the one path every close (Escape,
+  // scrim click, selecting a result) goes through, so this ref only
+  // needs setting once, here.
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const pages: Item[] = useMemo(
     () =>
@@ -121,6 +129,14 @@ export function CommandPalette() {
     requestAnimationFrame(() => inputRef.current?.focus());
   }, []);
 
+  // The one path every close goes through — see triggerRef's doc comment
+  // above for why restoring focus here, rather than leaving it to
+  // whatever the browser does with a just-unmounted input, matters.
+  const closePalette = useCallback(() => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  }, []);
+
   // `open` is a dependency so the handler reads it directly rather than
   // through a state updater: updaters must stay pure, and openPalette
   // both sets state and focuses the DOM.
@@ -128,14 +144,14 @@ export function CommandPalette() {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        if (open) setOpen(false);
+        if (open) closePalette();
         else openPalette();
       }
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape' && open) closePalette();
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, openPalette]);
+  }, [open, openPalette, closePalette]);
 
   // Debounced remote search. Short queries stay local (nav pages only);
   // one- and two-character queries match nearly every id and just burn
@@ -171,14 +187,14 @@ export function CommandPalette() {
 
   const go = useCallback(
     (item: Item) => {
-      setOpen(false);
+      closePalette();
       if (item.type === 'action' && item.external) {
         window.open(item.href, '_blank', 'noopener,noreferrer');
         return;
       }
       router.push(item.href);
     },
-    [router],
+    [router, closePalette],
   );
 
   function onInputKeyDown(e: React.KeyboardEvent) {
@@ -191,6 +207,14 @@ export function CommandPalette() {
     } else if (e.key === 'Enter' && items[cursor]) {
       e.preventDefault();
       go(items[cursor]);
+    } else if (e.key === 'Tab') {
+      // The overlay is marked aria-modal="true", and the input is the
+      // only real focusable element inside it — results are a listbox
+      // navigated by arrow keys (aria-activedescendant), not by Tab. Left
+      // alone, Tab would carry focus out to whatever real, still-focusable
+      // element sits behind the scrim (NotificationsBell, ThemeToggle,
+      // UserMenu), breaking the modal contract the aria attribute claims.
+      e.preventDefault();
     }
   }
 
@@ -198,16 +222,16 @@ export function CommandPalette() {
     listRef.current?.querySelector<HTMLElement>(`[data-index="${cursor}"]`)?.scrollIntoView({ block: 'nearest' });
   }, [cursor]);
 
-  if (!open) return <SearchTrigger onClick={openPalette} />;
+  if (!open) return <SearchTrigger buttonRef={triggerRef} onClick={openPalette} />;
 
   let rendered = -1;
 
   return (
     <>
-      <SearchTrigger onClick={openPalette} />
+      <SearchTrigger buttonRef={triggerRef} onClick={openPalette} />
       <div
         className="fixed inset-0 z-100 flex items-start justify-center bg-scrim px-4 pt-[12vh]"
-        onClick={() => setOpen(false)}
+        onClick={closePalette}
       >
         <div
           role="dialog"
@@ -232,7 +256,7 @@ export function CommandPalette() {
               aria-activedescendant={items[cursor] ? `palette-item-${cursor}` : undefined}
               aria-autocomplete="list"
               placeholder="Search rooms, connections, participants, errors…"
-              className="h-12 w-full bg-transparent text-sm text-fg outline-none placeholder:text-subtle"
+              className="h-12 w-full bg-transparent text-sm text-fg placeholder:text-subtle"
             />
             {loading && <span className="text-xs text-subtle">Searching…</span>}
           </div>
@@ -311,9 +335,16 @@ function Hint({ keys, label }: { keys: string; label: string }) {
   );
 }
 
-function SearchTrigger({ onClick }: { onClick: () => void }) {
+function SearchTrigger({
+  onClick,
+  buttonRef,
+}: {
+  onClick: () => void;
+  buttonRef: React.RefObject<HTMLButtonElement | null>;
+}) {
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={onClick}
       className="flex h-8 w-full max-w-xs items-center gap-2 rounded-md border border-line bg-surface px-2.5 text-left text-sm text-subtle transition-colors hover:border-line-strong hover:text-muted"
