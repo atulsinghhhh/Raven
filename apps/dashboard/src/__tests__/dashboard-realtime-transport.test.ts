@@ -1,4 +1,7 @@
-import { DashboardRealtimeTransport, type DashboardRealtimeSocketLike } from '@/lib/realtime/dashboard-realtime-transport';
+import {
+  DashboardRealtimeTransport,
+  type DashboardRealtimeSocketLike,
+} from '@/lib/realtime/dashboard-realtime-transport';
 
 /** A fake socket the test controls directly — no real network involved. */
 class FakeSocket implements DashboardRealtimeSocketLike {
@@ -33,14 +36,16 @@ class FakeSocket implements DashboardRealtimeSocketLike {
   }
 }
 
-function makeTransport(overrides: {
-  onFrame?: jest.Mock;
-  onOpen?: jest.Mock;
-  onClose?: jest.Mock;
-  onReconnecting?: jest.Mock;
-  onError?: jest.Mock;
-  maxReconnectAttempts?: number;
-} = {}) {
+function makeTransport(
+  overrides: {
+    onFrame?: jest.Mock;
+    onOpen?: jest.Mock;
+    onClose?: jest.Mock;
+    onReconnecting?: jest.Mock;
+    onError?: jest.Mock;
+    maxReconnectAttempts?: number;
+  } = {},
+) {
   const sockets: FakeSocket[] = [];
   const socketFactory = jest.fn((url: string) => {
     void url; // captured via socketFactory.mock.calls in assertions below
@@ -119,21 +124,31 @@ describe('DashboardRealtimeTransport', () => {
   });
 
   it('backs off with an increasing delay across consecutive attempts', () => {
-    const { transport, sockets, handlers } = makeTransport();
-    transport.connect();
-    sockets[0].open();
-    sockets[0].serverClose(1006);
-    const [, firstDelay] = handlers.onReconnecting.mock.calls[0];
+    // Full jitter picks independently per attempt, so leaving Math.random
+    // live makes this comparison flaky: the first attempt's own range
+    // ([25, 100]) and the second's ([50, 200]) overlap, so an unlucky pair
+    // (e.g. first near its max, second near its min) can produce a smaller
+    // second delay despite the exponential target having doubled. Pinning
+    // the jitter fraction removes that noise — delay = exponential * (1/4 +
+    // 3r/4) is linear in the exponential target for a fixed r, so a fixed r
+    // makes the doubled target across attempts deterministically produce a
+    // doubled delay.
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    try {
+      const { transport, sockets, handlers } = makeTransport();
+      transport.connect();
+      sockets[0].open();
+      sockets[0].serverClose(1006);
+      const [, firstDelay] = handlers.onReconnecting.mock.calls[0];
 
-    jest.runOnlyPendingTimers();
-    sockets[1].serverClose(1006);
-    const [, secondDelay] = handlers.onReconnecting.mock.calls[1];
+      jest.runOnlyPendingTimers();
+      sockets[1].serverClose(1006);
+      const [, secondDelay] = handlers.onReconnecting.mock.calls[1];
 
-    // Full jitter means neither delay is exact, but the second attempt's
-    // exponential target is strictly larger, and the floor (a quarter of
-    // the target) grows with it — so the second delay is reliably larger
-    // than the first's minimum possible value.
-    expect(secondDelay).toBeGreaterThan(firstDelay * 0.9);
+      expect(secondDelay).toBeGreaterThan(firstDelay);
+    } finally {
+      randomSpy.mockRestore();
+    }
   });
 
   it('does not reconnect after a terminal close (auth failed)', () => {
