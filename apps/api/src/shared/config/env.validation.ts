@@ -250,6 +250,14 @@ class EnvironmentVariables {
   @IsString()
   CHAT_TOKEN_SECRET?: string;
 
+  // Dashboard realtime transport (Phase 5B). Optional for the same reason
+  // CHAT_TOKEN_SECRET and RTC_TOKEN_SECRET are: configuration.ts falls back
+  // to JWT_SECRET for local dev, and a distinct secret is enforced in
+  // validateProductionConfig() instead.
+  @IsOptional()
+  @IsString()
+  DASHBOARD_WS_TOKEN_SECRET?: string;
+
   @IsOptional()
   @IsInt()
   @Min(60)
@@ -639,6 +647,21 @@ function validateProductionConfig(config: EnvironmentVariables): void {
     );
   } else if (config.CHAT_TOKEN_SECRET === config.JWT_SECRET) {
     problems.push('CHAT_TOKEN_SECRET must differ from JWT_SECRET — they authorize different things');
+  }
+  if (!config.DASHBOARD_WS_TOKEN_SECRET) {
+    problems.push(
+      'DASHBOARD_WS_TOKEN_SECRET is required in production — dashboard realtime tokens must not share a signing key with dashboard session JWTs',
+    );
+  } else if (config.DASHBOARD_WS_TOKEN_SECRET === config.JWT_SECRET) {
+    problems.push('DASHBOARD_WS_TOKEN_SECRET must differ from JWT_SECRET — they authorize different things');
+  } else if (config.DASHBOARD_WS_TOKEN_SECRET === config.CHAT_TOKEN_SECRET) {
+    problems.push(
+      'DASHBOARD_WS_TOKEN_SECRET must differ from CHAT_TOKEN_SECRET — a leaked chat key must not authenticate dashboard connections',
+    );
+  } else if (config.DASHBOARD_WS_TOKEN_SECRET === config.RTC_TOKEN_SECRET) {
+    problems.push(
+      'DASHBOARD_WS_TOKEN_SECRET must differ from RTC_TOKEN_SECRET — a leaked RTC key must not authenticate dashboard connections',
+    );
   }
   if (config.EMAIL_DEV_PREVIEW === 'true') {
     problems.push(

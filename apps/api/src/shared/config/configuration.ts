@@ -308,6 +308,27 @@ export default () => ({
     retentionSweepIntervalMs: parseInt(process.env.CHAT_RETENTION_SWEEP_INTERVAL_MS ?? String(6 * 60 * 60 * 1000), 10),
   },
 
+  dashboardWs: {
+    // Dashboard realtime transport token (Phase 5B). Signed with its own
+    // secret, never JWT_SECRET directly: a leaked dashboard-session secret
+    // must not be able to mint a dashboard WS credential, same reasoning as
+    // chat.tokenSecret and rtcToken.secret above.
+    //
+    // Falls back to JWT_SECRET purely so local dev works out of the box
+    // after a `git pull`. Production validation (env.validation.ts) rejects
+    // that.
+    tokenSecret: process.env.DASHBOARD_WS_TOKEN_SECRET ?? process.env.JWT_SECRET,
+    // Short-lived on purpose: this token only ever proves "this browser tab
+    // may hold a dashboard realtime connection for this project", minted
+    // fresh on every socket open/reconnect, never stored beyond the
+    // connection it authenticates.
+    tokenTtlSeconds: parseInt(process.env.DASHBOARD_WS_TOKEN_TTL_SECONDS ?? '300', 10),
+    // Connection attempts per client IP, same fixed-window limiter as
+    // signaling's connect guard, guarding the upgrade handshake rather than
+    // throughput on a connection that's already up.
+    maxConnectionsPerWindow: parseInt(process.env.DASHBOARD_WS_MAX_CONNECTIONS_PER_WINDOW ?? '20', 10),
+  },
+
   webhooks: {
     maxAttempts: parseInt(process.env.WEBHOOK_MAX_ATTEMPTS ?? '6', 10),
     // Base for the exponential backoff: 10s, 20s, 40s, 80s, 160s, 320s.

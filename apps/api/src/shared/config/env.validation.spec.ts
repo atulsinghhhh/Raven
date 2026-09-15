@@ -92,7 +92,7 @@ describe('validateEnv — production-only checks', () => {
 
   it('reports every violated production rule at once, not just the first', () => {
     expect(() => validateEnv(baseConfig({ NODE_ENV: 'production' }))).toThrow(
-      /TURN_TLS_PORT.*CORS_ORIGIN.*TURN_HOST.*RTC_TOKEN_SECRET.*SFU_REGISTRATION_SECRET.*METRICS_SCRAPE_SECRET.*CHAT_TOKEN_SECRET/s,
+      /TURN_TLS_PORT.*CORS_ORIGIN.*TURN_HOST.*RTC_TOKEN_SECRET.*SFU_REGISTRATION_SECRET.*METRICS_SCRAPE_SECRET.*CHAT_TOKEN_SECRET.*DASHBOARD_WS_TOKEN_SECRET/s,
     );
   });
 
@@ -110,6 +110,7 @@ describe('validateEnv — production-only checks', () => {
       TURN_HOST: 'turn.example.com',
       CHAT_TOKEN_SECRET: 'a-distinct-chat-token-secret',
       RTC_TOKEN_SECRET: 'a-distinct-rtc-token-secret',
+      DASHBOARD_WS_TOKEN_SECRET: 'a-distinct-dashboard-ws-token-secret',
       SFU_REGISTRATION_SECRET: 'a-distinct-sfu-registration-secret',
       METRICS_SCRAPE_SECRET: 'a-metrics-scrape-secret',
       STORAGE_ENDPOINT: 'https://storage.example.com',
@@ -207,6 +208,33 @@ describe('validateEnv — production-only checks', () => {
     expect(() => validateEnv(productionConfig({ SFU_REGISTRATION_SECRET: 'a-distinct-rtc-token-secret' }))).toThrow(
       /SFU_REGISTRATION_SECRET must differ from RTC_TOKEN_SECRET/,
     );
+  });
+
+  it('rejects production config without a dedicated dashboard-ws-token secret', () => {
+    // Same reasoning as CHAT_TOKEN_SECRET/RTC_TOKEN_SECRET: a leaked
+    // dashboard-session key must not be able to mint dashboard realtime
+    // credentials (Phase 5B).
+    expect(() => validateEnv(productionConfig({ DASHBOARD_WS_TOKEN_SECRET: undefined }))).toThrow(
+      /DASHBOARD_WS_TOKEN_SECRET is required in production/,
+    );
+  });
+
+  it('rejects a dashboard-ws-token secret that is just the JWT secret again', () => {
+    expect(() =>
+      validateEnv(productionConfig({ DASHBOARD_WS_TOKEN_SECRET: 'a-jwt-secret-at-least-this-long' })),
+    ).toThrow(/DASHBOARD_WS_TOKEN_SECRET must differ from JWT_SECRET/);
+  });
+
+  it('rejects a dashboard-ws-token secret shared with chat', () => {
+    expect(() =>
+      validateEnv(productionConfig({ DASHBOARD_WS_TOKEN_SECRET: 'a-distinct-chat-token-secret' })),
+    ).toThrow(/DASHBOARD_WS_TOKEN_SECRET must differ from CHAT_TOKEN_SECRET/);
+  });
+
+  it('rejects a dashboard-ws-token secret shared with RTC', () => {
+    expect(() =>
+      validateEnv(productionConfig({ DASHBOARD_WS_TOKEN_SECRET: 'a-distinct-rtc-token-secret' })),
+    ).toThrow(/DASHBOARD_WS_TOKEN_SECRET must differ from RTC_TOKEN_SECRET/);
   });
 
   it('rejects production config without a metrics scrape secret', () => {
@@ -335,6 +363,7 @@ describe('validateEnv — email (Resend)', () => {
         TURN_HOST: 'turn.ravenstack.online',
         CHAT_TOKEN_SECRET: 'a-distinct-chat-token-secret',
         RTC_TOKEN_SECRET: 'a-distinct-rtc-token-secret',
+        DASHBOARD_WS_TOKEN_SECRET: 'a-distinct-dashboard-ws-token-secret',
         SFU_REGISTRATION_SECRET: 'a-distinct-sfu-registration-secret',
         METRICS_SCRAPE_SECRET: 'a-metrics-scrape-secret',
         EMAIL_ENABLED: 'true',
