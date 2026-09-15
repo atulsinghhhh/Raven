@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { toast } from '@/lib/toast';
 
 /**
  * Copy-to-clipboard with inline confirmation. The label doubles as the
@@ -29,7 +30,11 @@ export function CopyButton({
     try {
       await navigator.clipboard.writeText(value);
     } catch {
-      return; // Clipboard denied (insecure origin, permissions) — stay silent rather than fake success.
+      // Clipboard denied (insecure origin, permissions) — the button
+      // itself stays silent rather than faking success, but the person
+      // still needs to know the copy didn't happen.
+      toast.error('Unable to copy. Please copy it manually.');
+      return;
     }
     setCopied(true);
     clearTimeout(timer.current);

@@ -84,10 +84,28 @@ describe('OnboardingFlow', () => {
     );
   });
 
-  it('offers no skip on project creation for an account with no projects — the step is mandatory', () => {
+  it('offers no way to skip creating the project itself for an account with no projects — only key minting can be skipped', () => {
     render(<OnboardingFlow initialState={{ ...FRESH, step: 5 }} hasProjects={false} />);
-    expect(screen.queryByRole('button', { name: /skip|existing project/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Use an existing project' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create project' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Skip — create key later' })).toBeInTheDocument();
+  });
+
+  it('skipping key creation still creates the project, but mints no key', async () => {
+    (global.fetch as jest.Mock).mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/projects' && init?.method === 'POST') {
+        return Promise.resolve(okJson({ id: 'proj_1', name: 'My realtime app' }));
+      }
+      return Promise.resolve(okJson());
+    });
+
+    render(<OnboardingFlow initialState={{ ...FRESH, step: 5 }} hasProjects={false} />);
+    await userEvent.type(screen.getByLabelText('Project name'), 'My realtime app');
+    await userEvent.click(screen.getByRole('button', { name: 'Skip — create key later' }));
+
+    expect(await screen.findByRole('heading', { name: 'Project created' })).toBeInTheDocument();
+    expect(screen.getByText(/create an API key any time/i)).toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalledWith('/api/projects/proj_1/api-keys', expect.anything());
   });
 
   it('lets an account that already has projects continue without creating another', () => {

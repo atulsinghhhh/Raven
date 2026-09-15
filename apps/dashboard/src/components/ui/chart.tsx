@@ -91,11 +91,20 @@ export interface Segment {
  * Stacked proportion bar + legend. Used for distributions (connection
  * states, error categories) where the split matters more than the trend.
  */
-export function DistributionBar({ segments, caption }: { segments: Segment[]; caption: string }) {
+export function DistributionBar({
+  segments,
+  caption,
+  failed = false,
+}: {
+  segments: Segment[];
+  caption: string;
+  /** The zero came from a rejected fetch, not a genuinely empty window — same distinction BarChart's emptyLabel makes. */
+  failed?: boolean;
+}) {
   const total = segments.reduce((sum, s) => sum + s.value, 0);
 
   if (total === 0) {
-    return <NoDataYet label="Nothing recorded in this period" />;
+    return <NoDataYet label={failed ? 'Could not be loaded right now' : 'Nothing recorded in this period'} />;
   }
 
   const visible = segments.filter((s) => s.value > 0);

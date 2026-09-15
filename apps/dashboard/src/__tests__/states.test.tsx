@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { EmptyState, ErrorState, NoDataYet } from '@/components/ui/states';
 
 describe('EmptyState', () => {
@@ -31,6 +32,29 @@ describe('ErrorState', () => {
   it('never renders a raw stack trace — only the developer-friendly description passed in', () => {
     render(<ErrorState description="Project not found" />);
     expect(screen.queryByText(/at Object\.<anonymous>/)).not.toBeInTheDocument();
+  });
+
+  it('renders a retryHref as a link when only retryHref is given', () => {
+    render(<ErrorState description="Unreachable" retryHref="/dashboard/projects/p1/overview" />);
+    const retry = screen.getByRole('link', { name: 'Retry' });
+    expect(retry).toHaveAttribute('href', '/dashboard/projects/p1/overview');
+  });
+
+  it('renders onRetry as a button that calls back on click, in place of a navigation link', async () => {
+    const onRetry = jest.fn();
+    const user = userEvent.setup();
+    render(<ErrorState description="Unreachable" retryHref="/should-not-be-used" onRetry={onRetry} />);
+
+    const retry = screen.getByRole('button', { name: 'Retry' });
+    expect(screen.queryByRole('link', { name: 'Retry' })).not.toBeInTheDocument();
+
+    await user.click(retry);
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the retry button as busy when retrying is true', () => {
+    render(<ErrorState description="Unreachable" onRetry={() => {}} retrying />);
+    expect(screen.getByRole('button', { name: 'Retry' })).toHaveAttribute('aria-busy', 'true');
   });
 });
 

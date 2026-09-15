@@ -1,4 +1,4 @@
-import { ButtonLink } from './button';
+import { Button, ButtonLink } from './button';
 
 /**
  * Empty states teach rather than report. Every one of these should leave
@@ -36,11 +36,18 @@ export function ErrorState({
   description,
   requestId,
   retryHref,
+  onRetry,
+  retrying = false,
 }: {
   title?: string;
   description?: React.ReactNode;
   requestId?: string;
+  /** Retry as a navigation (server-rendered page's own URL). */
   retryHref?: string;
+  /** Retry as an in-place refetch (client component). Takes precedence over retryHref if both are given. */
+  onRetry?: () => void;
+  /** Shows the retry button as busy — only meaningful alongside onRetry. */
+  retrying?: boolean;
 }) {
   return (
     <div role="alert" className="rounded-lg border border-danger-line bg-danger-subtle p-5">
@@ -59,12 +66,20 @@ export function ErrorState({
               {requestId}
             </p>
           )}
-          {retryHref && (
+          {onRetry ? (
             <div className="mt-3">
-              <ButtonLink href={retryHref} size="sm" variant="secondary">
+              <Button type="button" size="sm" variant="secondary" onClick={onRetry} loading={retrying}>
                 Retry
-              </ButtonLink>
+              </Button>
             </div>
+          ) : (
+            retryHref && (
+              <div className="mt-3">
+                <ButtonLink href={retryHref} size="sm" variant="secondary">
+                  Retry
+                </ButtonLink>
+              </div>
+            )
           )}
         </div>
       </div>

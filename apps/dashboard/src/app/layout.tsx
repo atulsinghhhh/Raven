@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Fraunces, JetBrains_Mono, Lexend } from 'next/font/google';
+import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -69,7 +70,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

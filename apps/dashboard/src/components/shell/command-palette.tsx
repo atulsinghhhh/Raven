@@ -13,6 +13,7 @@ import {
   IconSearch,
 } from '@/components/ui/icons';
 import type { SearchHit } from '@/app/api/projects/[projectId]/search/route';
+import { useProject } from '@/lib/project-context';
 
 type ActionItem = { type: 'action'; id: string; title: string; subtitle?: string; href: string; external?: boolean };
 type Item = SearchHit | { type: 'page'; id: string; title: string; subtitle?: string; href: string } | ActionItem;
@@ -40,7 +41,8 @@ function ItemIcon({ type }: { type: Item['type'] }) {
   return <IconSearch className={cls} />;
 }
 
-export function CommandPalette({ projectId }: { projectId: string }) {
+export function CommandPalette() {
+  const { projectId } = useProject();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');

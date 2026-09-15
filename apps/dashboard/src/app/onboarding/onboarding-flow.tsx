@@ -460,7 +460,13 @@ function CreateProjectStep({
   const [name, setName] = useState('');
   const [environment, setEnvironment] = useState<'DEVELOPMENT' | 'PRODUCTION'>('DEVELOPMENT');
 
-  async function handleCreate(e: React.FormEvent) {
+  // Project creation stays mandatory for a fresh account (see the comment
+  // in the footer below) — but minting a key at the same moment is not:
+  // some people want to look around before deciding on Development vs
+  // Production, or generate the key from the API Keys page later. `mintKey`
+  // lets the same submit path skip just that sub-step rather than forcing
+  // it every time.
+  async function handleCreate(e: { preventDefault: () => void }, mintKey: boolean) {
     e.preventDefault();
     setError(undefined);
     setBusy(true);
@@ -479,14 +485,16 @@ function CreateProjectStep({
       // The first credential, minted through the same endpoint the API-keys
       // page uses: the secret is shown exactly once, here, and never again.
       let apiKey: CreatedProject['apiKey'];
-      const keyRes = await fetch(`/api/projects/${created.id}/api-keys`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Default', environment }),
-      });
-      if (keyRes.ok) {
-        const key = await keyRes.json();
-        apiKey = { publicId: key.publicId, key: key.key, environment: key.environment };
+      if (mintKey) {
+        const keyRes = await fetch(`/api/projects/${created.id}/api-keys`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'Default', environment }),
+        });
+        if (keyRes.ok) {
+          const key = await keyRes.json();
+          apiKey = { publicId: key.publicId, key: key.key, environment: key.environment };
+        }
       }
 
       setProject({ id: created.id, name: created.name, apiKey });
@@ -554,7 +562,7 @@ function CreateProjectStep({
       <h1 className="text-2xl font-semibold tracking-tight text-fg">Create your first Livqeno project</h1>
       <p className="mt-2 text-sm text-muted">A project holds your rooms, conversations, streams, keys, and usage.</p>
 
-      <form onSubmit={handleCreate} className="mt-8 flex flex-1 flex-col">
+      <form onSubmit={(e) => handleCreate(e, true)} className="mt-8 flex flex-1 flex-col">
         <div className="flex flex-col gap-4">
           <Field
             id="project-name"
@@ -583,12 +591,25 @@ function CreateProjectStep({
           </Button>
           <div className="flex items-center gap-2">
             {/* Project creation is mandatory for a fresh account — the only
-                skip is for people who already have projects to return to. */}
+                full-step skip is for people who already have projects to
+                return to. Minting a key alongside it is not mandatory,
+                though: "Skip" here still creates the project, just without
+                a key, and the next screen's fallback message already
+                covers that case ("create an API key any time"). */}
             {alreadyHadProject && (
               <Button type="button" variant="ghost" onClick={onContinue} disabled={busy}>
                 Use an existing project
               </Button>
             )}
+            <Button
+              type="button"
+              variant="ghost"
+              loading={busy}
+              disabled={name.trim().length < 2}
+              onClick={(e) => handleCreate(e, false)}
+            >
+              Skip — create key later
+            </Button>
             <Button type="submit" loading={busy} disabled={name.trim().length < 2}>
               Create project
             </Button>

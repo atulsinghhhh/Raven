@@ -30,6 +30,7 @@ import {
   IconUsage,
   IconWebhooks,
 } from '@/components/ui/icons';
+import { useProject } from '@/lib/project-context';
 
 const ICONS: Record<NavItem['icon'], (p: { className?: string }) => React.JSX.Element> = {
   overview: IconOverview,
@@ -71,7 +72,8 @@ const SLUG_FAMILIES: Record<string, string[]> = {
   rooms: ['connections', 'participants'],
 };
 
-export function SidebarNav({ projectId, onNavigate }: { projectId: string; onNavigate?: () => void }) {
+export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+  const { projectId } = useProject();
   const pathname = usePathname();
 
   // Longest matching slug wins. Without this, "chat" and

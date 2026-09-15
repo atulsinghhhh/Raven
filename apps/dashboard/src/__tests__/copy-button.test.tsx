@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CopyButton } from '@/components/ui/copy-button';
+import { toast } from '@/lib/toast';
 
 // jsdom's navigator.clipboard is read-only, and React seems to re-derive
 // window.navigator on mount, so a defineProperty override set before render()
@@ -15,7 +16,27 @@ function stubClipboard() {
   return writeText;
 }
 
+// The denied/unsupported path: insecure origin, permissions, or no
+// Clipboard API at all.
+function stubFailingClipboard() {
+  const writeText = jest.fn().mockRejectedValue(new Error('denied'));
+  Object.defineProperty(window, 'navigator', {
+    value: { ...window.navigator, clipboard: { writeText } },
+    configurable: true,
+    writable: true,
+  });
+  return writeText;
+}
+
 describe('CopyButton', () => {
+  beforeEach(() => {
+    jest.spyOn(toast, 'error').mockImplementation(() => 'toast_test');
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('writes the given value to the clipboard when clicked', async () => {
     const user = userEvent.setup();
     render(<CopyButton value="rvk_abc.secret123" />);
@@ -48,5 +69,16 @@ describe('CopyButton', () => {
   it('has an accessible label reflecting its current state', () => {
     render(<CopyButton value="x" label="Copy secret" />);
     expect(screen.getByRole('button', { name: 'Copy secret to clipboard' })).toBeInTheDocument();
+  });
+
+  it('shows a toast, not fake "Copied" success, when the clipboard write is denied', async () => {
+    const user = userEvent.setup();
+    render(<CopyButton value="x" label="Copy key" />);
+    stubFailingClipboard();
+
+    await user.click(screen.getByRole('button'));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Unable to copy. Please copy it manually.'));
+    expect(screen.getByRole('button')).toHaveTextContent('Copy key'); // never flips to "Copied"
   });
 });

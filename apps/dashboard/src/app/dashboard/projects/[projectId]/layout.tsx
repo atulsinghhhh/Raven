@@ -7,7 +7,6 @@ import { AccountShell } from '@/components/shell/account-shell';
 import { deriveSystemStatus } from '@/components/ui/badge';
 import { ButtonLink } from '@/components/ui/button';
 import { EmptyState, ErrorState } from '@/components/ui/states';
-import { buildNotifications } from '@/lib/notifications';
 
 export default async function ProjectLayout({
   children,
@@ -66,29 +65,34 @@ export default async function ProjectLayout({
   const systemStatus =
     healthResult.status === 'fulfilled' ? deriveSystemStatus(healthResult.value.dependencies) : 'unknown';
 
-  // None of these are load-bearing for the page itself: a 403 (no
-  // audit:read capability) or a transient failure just means that source
-  // contributes nothing, not that the whole shell breaks.
-  const [diagnosticsResult, auditLogsResult, webhooksResult] = await Promise.allSettled([
-    ravenApi.getDiagnostics(token, projectId),
-    ravenApi.listAuditLogs(token, projectId, { limit: 5 }),
-    ravenApi.listWebhooks(token, projectId),
-  ]);
+  // Not load-bearing for the page itself: a transient failure just means
+  // capabilities resolve to "none" (see below), not that the whole shell
+  // breaks. NotificationsBell (Phase 5F) fetches its own data client-side
+  // now — this layout no longer needs diagnostics/audit/webhooks just to
+  // feed it a derived list.
+  const membersResult = await ravenApi.listMembers(token, projectId).catch(() => undefined);
 
-  const notifications = buildNotifications({
-    projectId,
-    diagnostics: diagnosticsResult.status === 'fulfilled' ? diagnosticsResult.value : undefined,
-    auditLogs: auditLogsResult.status === 'fulfilled' ? auditLogsResult.value : undefined,
-    webhooks: webhooksResult.status === 'fulfilled' ? webhooksResult.value : undefined,
-  });
+  // Same lookup members/page.tsx already does: the API sends each
+  // member's resolved capability list rather than the dashboard
+  // re-deriving it from a role (see lib/permissions.ts), so this finds
+  // the caller's own row in the member list it already fetched. An empty
+  // array — not fetched, or the caller isn't listed — means "no
+  // capabilities" (Phase 1's can() treats that as fully unprivileged),
+  // never "everything".
+  const members = membersResult ?? [];
+  const capabilities = members.find((m) => m.email === email)?.capabilities ?? [];
 
   return (
     <AppShell
       projects={projects}
       currentProject={project}
+      capabilities={capabilities}
       email={email}
       systemStatus={systemStatus}
-      notifications={notifications}
+      // Distinguishes "the member list failed to load" from "you legitimately
+      // have no capabilities" — both resolve to the same deny-by-default `[]`
+      // above, but only the former is worth telling the user about.
+      capabilitiesUnavailable={membersResult === undefined}
     >
       {children}
     </AppShell>
