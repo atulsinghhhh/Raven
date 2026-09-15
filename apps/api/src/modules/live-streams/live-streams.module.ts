@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ApiKeysModule } from '../api-keys/api-keys.module';
 import { ChatModule } from '../chat/chat.module';
+import { DashboardWsModule } from '../dashboard-ws/dashboard-ws.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { RoomsModule } from '../rooms/rooms.module';
 import { RtcTokensModule } from '../rtc-tokens/rtc-tokens.module';
@@ -30,6 +32,8 @@ import { LiveStreamsService } from './live-streams.service';
     ChatModule,
     WebhooksModule,
     UsageMeteringModule,
+    DashboardWsModule,
+    NotificationsModule,
   ],
   controllers: [LiveStreamsController, DashboardLiveStreamsController, EgressInternalController],
   providers: [LiveStreamsService, EgressControlService, EgressWorkerGuard],

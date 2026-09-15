@@ -23,4 +23,15 @@ export class QueryConnectionsDto {
   @Min(1)
   @Max(200)
   limit: number = 50;
+
+  /**
+   * A connection's `publicId` from the previous page's last row. Absent on
+   * the first page. Never an internal database id — see the comment on
+   * `ConnectionsService.getDetail` on why only the public id ever leaves
+   * this service.
+   */
+  @ApiPropertyOptional({ description: "The previous page's last connection publicId. Omit for the first page." })
+  @IsOptional()
+  @IsString()
+  cursor?: string;
 }

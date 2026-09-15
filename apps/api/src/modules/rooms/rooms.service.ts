@@ -3,6 +3,8 @@ import { Room, RoomStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { ConflictError, NotFoundError } from '../../shared/errors/app-error';
 import { RavenErrorCode } from '../../shared/errors/error-codes';
+import { DashboardWsEventType } from '../dashboard-ws/dashboard-ws-events';
+import { DashboardEventsService } from '../dashboard-ws/realtime/dashboard-events.service';
 import { RoomEventsService } from '../signaling/rooms/room-events.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { LiveParticipantInfo, SfuRoomStateService } from './sfu-room-state.service';
@@ -26,6 +28,7 @@ export class RoomsService {
     private readonly roomState: SfuRoomStateService,
     private readonly roomEvents: RoomEventsService,
     private readonly activityEvents: ActivityEventsService,
+    private readonly dashboardEvents: DashboardEventsService,
   ) {}
 
   async create(scope: ProjectScope, dto: CreateRoomDto): Promise<Room> {
@@ -46,6 +49,19 @@ export class RoomsService {
     // project owner's timeline via `developerId`, is the honest choice
     // rather than guessing an actor type this layer doesn't know.
     void this.recordRoomEvent(ActivityEventType.RTC_ROOM_CREATED, room);
+
+    // A nudge, not a snapshot (Phase 5A's approved model): the dashboard
+    // refetches GET /v1/projects/:id/rooms, this only tells it to. This
+    // is an actual RTC room — RoomsService.create() is the one producer
+    // — never to be confused with the same-named `room.created` webhook
+    // event, which fires from chat conversation membership instead (see
+    // dashboard-ws-events.ts).
+    void this.dashboardEvents.publish(projectId, {
+      type: DashboardWsEventType.RoomCreated,
+      roomId: room.id,
+      name: room.name,
+      environment: room.environment,
+    });
 
     return room;
   }

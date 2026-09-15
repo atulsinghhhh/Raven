@@ -33,7 +33,7 @@ export class DashboardObservabilityController {
   ) {}
 
   @Get('connections')
-  @ApiOperation({ summary: "List a project's real RTC connections" })
+  @ApiOperation({ summary: "List a project's real RTC connections, cursor-paginated" })
   @ApiNotFoundResponse({ description: 'Project not found, or not owned by the caller' })
   async listConnections(
     @CurrentUser() user: AuthenticatedUser,
@@ -41,7 +41,7 @@ export class DashboardObservabilityController {
     @Query() query: QueryConnectionsDto,
   ) {
     await this.projectsService.authorize(projectId, user.id, Capability.ProjectRead);
-    return this.connectionsService.listForProject(projectId, query);
+    return this.connectionsService.listForProjectPaginated(projectId, query);
   }
 
   @Get('connections/:connectionId')

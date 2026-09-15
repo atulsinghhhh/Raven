@@ -3,6 +3,8 @@ import { Connection, ConnectionState, Prisma } from '../../generated/prisma/clie
 import { PrismaService } from '../../shared/database/prisma.service';
 import { NotFoundError } from '../../shared/errors/app-error';
 import { generateId } from '../../shared/utils/crypto.util';
+import { DashboardWsEventType } from '../dashboard-ws/dashboard-ws-events';
+import { DashboardEventsService } from '../dashboard-ws/realtime/dashboard-events.service';
 import { VerifiedRtcToken } from '../signaling/authentication/rtc-token-verifier.service';
 import { classifyError } from './error-classifier';
 import { IngestEventDto } from './dto/ingest-event.dto';
@@ -117,7 +119,10 @@ function extractStatsPatch(data: Record<string, unknown>): Partial<ConnectionPat
  */
 @Injectable()
 export class ConnectionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly dashboardEvents: DashboardEventsService,
+  ) {}
 
   async recordEvent(ctx: VerifiedRtcToken, dto: IngestEventDto): Promise<void> {
     const timestamp = dto.timestamp ? new Date(dto.timestamp) : new Date();
@@ -208,25 +213,41 @@ export class ConnectionsService {
     // "leave unset" reliably for `create` only, not for spread objects.
     const cleanPatch = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
 
-    if (existing) {
-      return this.prisma.connection.update({
-        where: { id: existing.id },
-        data: { ...cleanPatch, reconnectCount: existing.reconnectCount + reconnectDelta },
+    const connection = existing
+      ? await this.prisma.connection.update({
+          where: { id: existing.id },
+          data: { ...cleanPatch, reconnectCount: existing.reconnectCount + reconnectDelta },
+        })
+      : await this.prisma.connection.create({
+          data: {
+            publicId,
+            projectId: ctx.projectId,
+            environment: ctx.environment,
+            roomId: ctx.roomId,
+            roomName: ctx.roomName,
+            participantIdentity: ctx.participantId,
+            reconnectCount: reconnectDelta,
+            ...cleanPatch,
+          },
+        });
+
+    // A nudge, not a snapshot (Phase 5A's approved model): the dashboard
+    // refetches the authoritative record over REST, this only tells it
+    // to. Published only when the lifecycle state actually moved —
+    // 'stats' events (the high-frequency, bursty ones: one per
+    // participant every ~5s) never set patch.state, so they never reach
+    // here. That is what keeps this from flooding the dashboard channel
+    // with every telemetry mutation (Phase 5A §12/§7).
+    if (patch.state !== undefined && patch.state !== existing?.state) {
+      void this.dashboardEvents.publish(ctx.projectId, {
+        type: DashboardWsEventType.ConnectionStateChanged,
+        connectionId: connection.publicId,
+        roomId: connection.roomId,
+        state: connection.state,
       });
     }
 
-    return this.prisma.connection.create({
-      data: {
-        publicId,
-        projectId: ctx.projectId,
-        environment: ctx.environment,
-        roomId: ctx.roomId,
-        roomName: ctx.roomName,
-        participantIdentity: ctx.participantId,
-        reconnectCount: reconnectDelta,
-        ...cleanPatch,
-      },
-    });
+    return connection;
   }
 
   private async recordError(
@@ -262,6 +283,14 @@ export class ConnectionsService {
     });
   }
 
+  /**
+   * `GET /v1/connections` — the server-SDK-facing endpoint
+   * (api-observability.controller.ts), published and depended on by
+   * `@ravenkash/server`'s and `livqeno-sdk`'s `connections.list()`, both
+   * typed as returning a bare array. This method's return shape is
+   * therefore a public contract and must not change — pagination for the
+   * dashboard is a separate method below, not a variant of this one.
+   */
   async listForProject(projectId: string, query: QueryConnectionsDto): Promise<Connection[]> {
     return this.prisma.connection.findMany({
       where: {
@@ -272,6 +301,43 @@ export class ConnectionsService {
       orderBy: { createdAt: 'desc' },
       take: query.limit,
     });
+  }
+
+  /**
+   * The dashboard's own connections list (dashboard-observability.controller.ts
+   * only) — cursor-paginated by `publicId`, never the internal database id
+   * (same rule as everywhere else in this service). `createdAt desc` alone
+   * isn't a stable sort: telemetry can write several connections in the
+   * same millisecond under load, and Prisma's cursor pagination needs a
+   * genuinely total order to avoid re-showing or skipping a row at the
+   * page boundary. `publicId desc` as the tiebreak makes the order (and
+   * therefore the cursor) deterministic.
+   *
+   * Fetches one extra row to learn `hasMore` without a second `count`
+   * query, then trims it back off before returning. Unlike
+   * `listForProject`, free to evolve: the dashboard frontend is the only
+   * caller, updated in the same change as this method.
+   */
+  async listForProjectPaginated(
+    projectId: string,
+    query: QueryConnectionsDto,
+  ): Promise<{ data: Connection[]; nextCursor: string | null; hasMore: boolean }> {
+    const rows = await this.prisma.connection.findMany({
+      where: {
+        projectId,
+        ...(query.state ? { state: query.state } : {}),
+        ...(query.roomId ? { roomId: query.roomId } : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { publicId: 'desc' }],
+      take: query.limit + 1,
+      ...(query.cursor ? { cursor: { publicId: query.cursor }, skip: 1 } : {}),
+    });
+
+    const hasMore = rows.length > query.limit;
+    const data = hasMore ? rows.slice(0, query.limit) : rows;
+    const nextCursor = hasMore ? data[data.length - 1].publicId : null;
+
+    return { data, nextCursor, hasMore };
   }
 
   async getDetail(projectId: string, publicId: string) {

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DashboardWsModule } from '../dashboard-ws/dashboard-ws.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { RtcServersModule } from '../rtc-servers/rtc-servers.module';
 import { SignalingModule } from '../signaling/signaling.module';
@@ -12,7 +13,7 @@ import { RetentionService } from './retention.service';
 import { TelemetryController } from './telemetry.controller';
 
 @Module({
-  imports: [ProjectsModule, SignalingModule, RtcServersModule],
+  imports: [ProjectsModule, SignalingModule, RtcServersModule, DashboardWsModule],
   controllers: [TelemetryController, DashboardObservabilityController],
   providers: [
     ConnectionsService,

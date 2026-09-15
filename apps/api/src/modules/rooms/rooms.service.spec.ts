@@ -2,6 +2,7 @@ import { RoomStatus } from '../../generated/prisma/client';
 import { Environment } from '../../shared/environment/environment.constants';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { ConflictError, NotFoundError } from '../../shared/errors/app-error';
+import { DashboardEventsService } from '../dashboard-ws/realtime/dashboard-events.service';
 import { RoomEventsService } from '../signaling/rooms/room-events.service';
 import { ActivityEventsService } from '../super-admin/activity-events.service';
 import { SfuRoomStateService } from './sfu-room-state.service';
@@ -30,6 +31,7 @@ describe('RoomsService', () => {
   };
   let roomEvents: { publish: jest.Mock };
   let activityEvents: { record: jest.Mock };
+  let dashboardEvents: { publish: jest.Mock };
 
   beforeEach(() => {
     prisma = {
@@ -43,11 +45,13 @@ describe('RoomsService', () => {
     };
     roomEvents = { publish: jest.fn().mockResolvedValue(undefined) };
     activityEvents = { record: jest.fn().mockResolvedValue(undefined) };
+    dashboardEvents = { publish: jest.fn().mockResolvedValue(undefined) };
     service = new RoomsService(
       prisma as unknown as PrismaService,
       roomState as unknown as SfuRoomStateService,
       roomEvents as unknown as RoomEventsService,
       activityEvents as unknown as ActivityEventsService,
+      dashboardEvents as unknown as DashboardEventsService,
     );
   });
 
@@ -68,6 +72,69 @@ describe('RoomsService', () => {
       ).resolves.toMatchObject({
         projectId: 'project2',
       });
+    });
+  });
+
+  describe('dashboard realtime nudges (Phase 5C)', () => {
+    it('publishes room.created, scoped to the project the room was created in', async () => {
+      prisma.room.findUnique.mockResolvedValue(null);
+      prisma.room.create.mockResolvedValue({ id: 'r1', projectId: 'project1', environment: Environment.DEVELOPMENT, name: 'lobby' });
+
+      await service.create(DEV, { name: 'lobby' });
+
+      expect(dashboardEvents.publish).toHaveBeenCalledWith('project1', {
+        type: 'room.created',
+        roomId: 'r1',
+        name: 'lobby',
+        environment: Environment.DEVELOPMENT,
+      });
+    });
+
+    it('never sends the full room record — only roomId, name, and environment', async () => {
+      prisma.room.findUnique.mockResolvedValue(null);
+      prisma.room.create.mockResolvedValue({
+        id: 'r1',
+        projectId: 'project1',
+        environment: Environment.DEVELOPMENT,
+        name: 'lobby',
+        status: RoomStatus.ACTIVE,
+        createdAt: new Date(),
+      });
+
+      await service.create(DEV, { name: 'lobby' });
+
+      const [, payload] = dashboardEvents.publish.mock.calls[0];
+      expect(Object.keys(payload).sort()).toEqual(['environment', 'name', 'roomId', 'type']);
+    });
+
+    it('scopes each project\'s room.created to its own channel — no cross-project delivery', async () => {
+      prisma.room.findUnique.mockResolvedValue(null);
+      prisma.room.create.mockResolvedValue({ id: 'r2', projectId: 'project2', environment: Environment.DEVELOPMENT, name: 'lobby' });
+
+      await service.create({ projectId: 'project2', environment: Environment.DEVELOPMENT }, { name: 'lobby' });
+
+      expect(dashboardEvents.publish).toHaveBeenCalledWith('project2', expect.objectContaining({ roomId: 'r2' }));
+      expect(dashboardEvents.publish).not.toHaveBeenCalledWith('project1', expect.anything());
+    });
+
+    it('does not publish room.created when creation fails on a duplicate name', async () => {
+      prisma.room.findUnique.mockResolvedValue({ id: 'existing' });
+
+      await expect(service.create(DEV, { name: 'lobby' })).rejects.toBeInstanceOf(ConflictError);
+
+      expect(dashboardEvents.publish).not.toHaveBeenCalled();
+    });
+
+    it('does not publish room.closed — this phase covers creation only', async () => {
+      prisma.room.findUnique.mockResolvedValue({
+        id: 'r1',
+        projectId: 'project1',
+        environment: Environment.DEVELOPMENT,
+      });
+
+      await service.close('r1', DEV);
+
+      expect(dashboardEvents.publish).not.toHaveBeenCalled();
     });
   });
 

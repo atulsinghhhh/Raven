@@ -9,6 +9,7 @@ import {
   LiveStreamHost,
   LiveStreamHostRole,
   LiveStreamStatus,
+  NotificationType,
   UsageProduct,
 } from '../../generated/prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
@@ -22,6 +23,9 @@ import { RavenErrorCode } from '../../shared/errors/error-codes';
 import { generateId } from '../../shared/utils/crypto.util';
 import { ProjectScope } from '../../shared/environment/environment.constants';
 import { ChatActor } from '../chat/auth/chat-actor.interface';
+import { DashboardWsEventType } from '../dashboard-ws/dashboard-ws-events';
+import { DashboardEventsService } from '../dashboard-ws/realtime/dashboard-events.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CHAT_SCOPES } from '../chat/chat-permissions';
 import { ConversationsService } from '../chat/conversations/conversations.service';
 import { MessagesService } from '../chat/messages/messages.service';
@@ -190,6 +194,8 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly egressControl: EgressControlService,
     private readonly activityEvents: ActivityEventsService,
+    private readonly dashboardEvents: DashboardEventsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   onModuleInit(): void {
@@ -534,6 +540,31 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
       startedAt: startedAt.toISOString(),
     });
 
+    // A nudge, not a snapshot (Phase 5A's approved model): the dashboard
+    // refetches GET .../live-streams(/:id), this only tells it to. Same
+    // producer, same moment, same project scope as the webhook emit
+    // above — just a second, unrelated consumer of the one real event.
+    void this.dashboardEvents.publish(scope.projectId, {
+      type: DashboardWsEventType.LiveStreamStarted,
+      streamId: updated.publicId,
+    });
+
+    // Persistent notification (Phase 5F), awaited: the authoritative
+    // write, not a courtesy — see NotificationsService's class doc.
+    // dedupeKey is scoped to this one stream: start() can only ever
+    // transition a given stream CREATED -> LIVE once (the conditional
+    // updateMany above), so there is no realistic duplicate to coalesce
+    // here — this still goes through the same upsert mechanism as
+    // webhook notifications for one consistent code path, not because
+    // this one needs it.
+    await this.notifications.notifyProject(scope, {
+      type: NotificationType.LIVE_STREAM_STARTED,
+      dedupeKey: `live_stream:started:${updated.publicId}`,
+      title: 'Live stream started',
+      message: `"${updated.title}" is now live.`,
+      payload: { streamId: updated.publicId },
+    });
+
     void this.activityEvents.record({
       eventType: ActivityEventType.LIVE_STREAM_STARTED,
       actorType: ActivityActorType.SYSTEM,
@@ -629,6 +660,24 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
       endedAt: endedAt.toISOString(),
       durationMs,
       ...(opts.reason ? { reason: opts.reason } : {}),
+    });
+
+    // Same nudge/webhook pairing as start() above.
+    void this.dashboardEvents.publish(scope.projectId, {
+      type: DashboardWsEventType.LiveStreamEnded,
+      streamId: updated.publicId,
+    });
+
+    // Same persistent-notification pairing as start() above, including
+    // reapOverdueStreams()'s forced end — a developer finding out their
+    // stream was force-ended by the duration cap is exactly the kind of
+    // thing worth a notification for.
+    await this.notifications.notifyProject(scope, {
+      type: NotificationType.LIVE_STREAM_ENDED,
+      dedupeKey: `live_stream:ended:${updated.publicId}`,
+      title: 'Live stream ended',
+      message: `"${updated.title}" has ended.`,
+      payload: { streamId: updated.publicId },
     });
 
     void this.activityEvents.record({

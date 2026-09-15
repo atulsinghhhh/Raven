@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ApiKeysModule } from '../api-keys/api-keys.module';
+import { DashboardWsModule } from '../dashboard-ws/dashboard-ws.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { RtcServersModule } from '../rtc-servers/rtc-servers.module';
 import { RoomEventsModule } from '../signaling/rooms/room-events.module';
@@ -10,7 +11,7 @@ import { RoomsController } from './rooms.controller';
 import { RoomsService } from './rooms.service';
 
 @Module({
-  imports: [ApiKeysModule, ProjectsModule, RtcServersModule, SfuLinkModule, RoomEventsModule],
+  imports: [ApiKeysModule, ProjectsModule, RtcServersModule, SfuLinkModule, RoomEventsModule, DashboardWsModule],
   controllers: [RoomsController, DashboardRoomsController],
   providers: [RoomsService, SfuRoomStateService],
   // SfuRoomStateService is also how Live Streaming derives a live viewer
