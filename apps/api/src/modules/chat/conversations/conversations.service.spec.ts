@@ -4,6 +4,9 @@ import { ConflictError } from '../../../shared/errors/app-error';
 import { Environment } from '../../../shared/environment/environment.constants';
 import { WebhookEventsService } from '../../webhooks/webhook-events.service';
 import { ChatEventsService } from '../realtime/chat-events.service';
+import { ChatActor } from '../auth/chat-actor.interface';
+import { ChatError } from '../chat-error';
+import { ChatErrorCode } from '../chat.constants';
 import { ConversationsService } from './conversations.service';
 
 /**
@@ -189,6 +192,34 @@ describe('ConversationsService — webhook events', () => {
       await expect(service.create(SCOPE, { name: 'launch-team', getOrCreate: true })).resolves.toBe(winner);
       expect(webhooks.emit).not.toHaveBeenCalled();
     });
+
+    it('two genuinely concurrent getOrCreate calls for the same name both resolve to the one conversation that actually got created', async () => {
+      // A stateful fake of the unique (projectId, environment, name) index,
+      // not a canned mockResolvedValueOnce sequence — Client A and Client
+      // B's create() calls are truly in flight together (Promise.all), and
+      // only whichever prisma.conversation.create settles first is allowed
+      // to "win" the unique index.
+      let stored: { id: string; publicId: string; name: string } | null = null;
+      let nextId = 0;
+      prisma.conversation.findUnique.mockImplementation(async () => stored);
+      prisma.conversation.create.mockImplementation(async ({ data }: { data: { name: string } }) => {
+        if (stored) {
+          throw Object.assign(new Error('Unique constraint failed on the fields: (`projectId`,`environment`,`name`)'), {
+            code: 'P2002',
+          });
+        }
+        stored = { id: `internal-${++nextId}`, publicId: `conv_${nextId}`, name: data.name, createdAt: new Date() } as never;
+        return stored;
+      });
+
+      const [a, b] = await Promise.all([
+        service.create(SCOPE, { name: 'test-room', getOrCreate: true }),
+        service.create(SCOPE, { name: 'test-room', getOrCreate: true }),
+      ]);
+
+      expect(a.id).toBe(b.id);
+      expect(prisma.conversation.create).toHaveBeenCalledTimes(2); // one wins, one hits P2002 and refetches
+    });
   });
 
   describe('addMember()', () => {
@@ -279,6 +310,88 @@ describe('ConversationsService — webhook events', () => {
 
       await expect(service.removeMember(SCOPE, 'conv_abc', 'ghost')).rejects.toThrow();
       expect(webhooks.emit).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * External report Issue 2: a conversation created with no `members` is
+   * unreadable by every client token, including one for whoever "created"
+   * it. These tests pin down the three scenarios the fix's documentation
+   * promises, at the authorization chokepoint itself rather than through
+   * the full create-then-connect HTTP flow.
+   */
+  describe('authorize()', () => {
+    const CONVERSATION = {
+      id: 'internal-uuid',
+      publicId: 'conv_abc',
+      projectId: 'p1',
+      environment: Environment.DEVELOPMENT,
+    };
+
+    const clientActor = (userId: string): ChatActor => ({
+      kind: 'client',
+      projectId: 'p1',
+      environment: Environment.DEVELOPMENT,
+      userId,
+      scopes: [],
+    });
+
+    it('Test A — a user added as a member (via members[] or addMember()) can access the conversation', async () => {
+      prisma.conversation.findUnique.mockResolvedValue(CONVERSATION);
+      prisma.chatMember.findUnique.mockResolvedValue({
+        userId: 'user-a',
+        role: ChatMemberRole.MEMBER,
+        status: ChatMemberStatus.ACTIVE,
+      });
+
+      const { member } = await service.authorize(clientActor('user-a'), 'conv_abc');
+
+      expect(member).toMatchObject({ userId: 'user-a' });
+    });
+
+    it('Test B — a user who was never added as a member is refused with the same intentional not-found', async () => {
+      prisma.conversation.findUnique.mockResolvedValue(CONVERSATION);
+      prisma.chatMember.findUnique.mockResolvedValue(null); // user-b was never added
+
+      const attempt = service.authorize(clientActor('user-b'), 'conv_abc');
+
+      await expect(attempt).rejects.toBeInstanceOf(ChatError);
+      await expect(attempt).rejects.toMatchObject({ chatCode: ChatErrorCode.ROOM_NOT_FOUND });
+    });
+
+    it('Test C — a conversation created with zero members exists, but nobody is auto-added as a member', async () => {
+      prisma.conversation.findUnique.mockResolvedValue(CONVERSATION); // the conversation itself does exist
+      prisma.chatMember.findUnique.mockResolvedValue(null); // create() was never given a members[] array
+
+      // resolve() alone (existence) succeeds — proving the conversation is
+      // really there, not a 404 masquerading as one.
+      await expect(service.resolve({ projectId: 'p1', environment: Environment.DEVELOPMENT }, 'conv_abc')).resolves.toMatchObject(
+        { publicId: 'conv_abc' },
+      );
+      // But no client identity was ever granted membership as a side effect
+      // of creation — same refusal as Test B, for every userId.
+      await expect(service.authorize(clientActor('whoever-created-it'), 'conv_abc')).rejects.toMatchObject({
+        chatCode: ChatErrorCode.ROOM_NOT_FOUND,
+      });
+    });
+
+    it('a server actor (project API key) is trusted project-wide and never needs a membership row', async () => {
+      prisma.conversation.findUnique.mockResolvedValue(CONVERSATION);
+      // No chatMember.findUnique stubbed to resolve a row — a server actor
+      // with no userId never even queries membership (see authorize()).
+
+      const serverActor: ChatActor = {
+        kind: 'server',
+        projectId: 'p1',
+        environment: Environment.DEVELOPMENT,
+        userId: null,
+        scopes: [],
+      };
+
+      await expect(service.authorize(serverActor, 'conv_abc')).resolves.toMatchObject({
+        conversation: expect.objectContaining({ publicId: 'conv_abc' }),
+        member: null,
+      });
     });
   });
 });

@@ -111,6 +111,35 @@ describe('RoomsService', () => {
 
       await expect(service.create(DEV, { name: 'lobby' })).rejects.toBeInstanceOf(ConflictError);
     });
+
+    it('two genuinely concurrent getOrCreate calls for the same name both resolve to the one row that actually got created', async () => {
+      // A stateful fake of the unique (projectId, environment, name) index,
+      // not a canned sequence of mockResolvedValueOnce calls — this is what
+      // actually distinguishes "two callers racing" from "one caller retried
+      // twice": both Client A and Client B's create() calls are in flight
+      // at once (Promise.all), and only whichever's prisma.room.create
+      // settles first (Alice.tick()) is allowed to "win" the unique index.
+      let stored: { id: string; name: string } | null = null;
+      let nextId = 0;
+      prisma.room.findUnique.mockImplementation(async () => stored);
+      prisma.room.create.mockImplementation(async ({ data }: { data: { name: string } }) => {
+        if (stored) {
+          throw Object.assign(new Error('Unique constraint failed on the fields: (`projectId`,`environment`,`name`)'), {
+            code: 'P2002',
+          });
+        }
+        stored = { id: `r${++nextId}`, name: data.name };
+        return stored;
+      });
+
+      const [a, b] = await Promise.all([
+        service.create(DEV, { name: 'test-room', getOrCreate: true }),
+        service.create(DEV, { name: 'test-room', getOrCreate: true }),
+      ]);
+
+      expect(a.id).toBe(b.id);
+      expect(prisma.room.create).toHaveBeenCalledTimes(2); // one wins, one hits P2002 and refetches
+    });
   });
 
   describe('dashboard realtime nudges (Phase 5C)', () => {
