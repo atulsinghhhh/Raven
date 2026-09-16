@@ -459,13 +459,16 @@ export class MessageRouterService {
   }
 
   private async handleSdpOffer(session: ParticipantSession, message: SdpOfferMessage): Promise<SignalingActionResult> {
-    if (!session.permissions.publish) {
-      // A client only ever offers in order to publish. Refusing here means
-      // an unauthorized publish never reaches the media plane at all,
-      // though the node checks again regardless (spec §38).
+    if (!session.permissions.publish && !session.permissions.publishData) {
+      // A client offers either to publish media or to negotiate a data
+      // channel (ensureDataChannel) — publishData alone is enough to need
+      // one. Refusing here means an unauthorized publish never reaches the
+      // media plane at all, though the node checks again regardless (spec
+      // §38): canPublishKind still gates media on `publish`, CanPublishData
+      // is its own separate check.
       throw new SignalingError(
         SignalingErrorCode.PERMISSION_DENIED,
-        'publish permission required to negotiate an outgoing track',
+        'publish or publishData permission required to negotiate an outgoing track',
       );
     }
 

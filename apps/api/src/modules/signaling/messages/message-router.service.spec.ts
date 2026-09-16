@@ -483,9 +483,9 @@ describe('MessageRouterService', () => {
       expect(sfuLink.send.mock.calls[0][1].type).toBe(NodeLinkMessageType.SDP_OFFER_FROM_CLIENT);
     });
 
-    it('refuses a client offer without publish permission', async () => {
-      // A client only offers in order to publish.
-      const session = withPermissions(makeSession(), { publish: false });
+    it('refuses a client offer with neither publish nor publishData permission', async () => {
+      // A client only offers in order to negotiate media or a data channel.
+      const session = withPermissions(makeSession(), { publish: false, publishData: false });
       await router.route(session, { type: ClientMessageType.ROOM_JOIN });
       sfuLink.send.mockClear();
 
@@ -493,6 +493,20 @@ describe('MessageRouterService', () => {
         router.route(session, { type: ClientMessageType.SDP_OFFER, sdp: 'v=0 offer' }),
       ).rejects.toMatchObject({ code: SignalingErrorCode.PERMISSION_DENIED });
       expect(sfuLink.send).not.toHaveBeenCalled();
+    });
+
+    it('allows a client offer with only publishData permission (no media publish)', async () => {
+      // A data-channel-only client (raven_rtc's ensureDataChannel) still has
+      // to send an SDP offer to negotiate that channel — publishData alone
+      // is enough, media `publish` is a separate grant the node re-checks
+      // itself via canPublishKind before accepting any actual media track.
+      const session = withPermissions(makeSession(), { publish: false, publishData: true });
+      await router.route(session, { type: ClientMessageType.ROOM_JOIN });
+      sfuLink.send.mockClear();
+
+      await router.route(session, { type: ClientMessageType.SDP_OFFER, sdp: 'v=0 offer' });
+
+      expect(sfuLink.send.mock.calls[0][1].type).toBe(NodeLinkMessageType.SDP_OFFER_FROM_CLIENT);
     });
 
     it('relays an ICE candidate with all of its addressing fields', async () => {
