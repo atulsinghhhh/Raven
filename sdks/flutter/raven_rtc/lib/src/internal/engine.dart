@@ -824,6 +824,13 @@ class RavenEngine {
       sender: sender,
     );
     _published[source] = published;
+    // The local MediaStream is already capturing and ready to render right
+    // here — notify now rather than waiting for the SFU round trip below,
+    // so a local self-preview shows up as soon as the camera/mic actually
+    // opens instead of appearing to hang until negotiation finishes (external
+    // report: local tile stuck on its placeholder while the remote tile,
+    // which has no equivalent avoidable delay, rendered immediately).
+    _notify();
 
     // Everything above is local (or, for track.publish, fire-and-forget
     // and order-independent of the offer/answer round) and safe to do the

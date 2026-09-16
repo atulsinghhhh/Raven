@@ -578,6 +578,50 @@ void main() {
     });
 
     test(
+        'a published local track is available and notified immediately, before the SFU negotiation round trip resolves',
+        () async {
+      // External report: the local self-preview tile stayed on its
+      // placeholder while the remote tile rendered fine, because
+      // enableCamera() only told the UI about the new local track after
+      // publish() fully resolved — which waits on a full SFU offer/answer
+      // round trip the local preview doesn't actually depend on.
+      final signaling = clientFor();
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
+      engine.start();
+      await joinRoom(signaling);
+      unawaited(engine.ensureDataChannel());
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      final pcId = platform.lastPeerConnectionId!;
+
+      var notified = false;
+      final sub = engine.changes.listen((_) => notified = true);
+
+      final media = fakeLocalMedia(pcId);
+      final publishing = engine.publish(
+          source: 'camera', stream: media.stream, track: media.track);
+      await Future<void>.delayed(Duration.zero);
+
+      // The SFU's join-time offer has not arrived yet — publish() itself
+      // cannot have resolved — but the local track must already be
+      // queryable and a change already notified, since a self-preview
+      // never depends on the far end of a negotiation it hasn't finished.
+      expect(engine.publishedTrack('camera'), isNotNull);
+      expect(notified, isTrue);
+
+      socket.receive({'type': ServerMessageType.sdpOffer, 'sdp': 'v=0 offer'});
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await platform.signalingState(pcId, 'stable');
+      await publishing.timeout(const Duration(seconds: 2));
+
+      await sub.cancel();
+      await engine.dispose();
+      await signaling.dispose();
+    });
+
+    test(
         'Test G — publish() called before the SFU\'s initial offer arrives waits for it instead of racing it',
         () async {
       final signaling = clientFor();

@@ -382,30 +382,34 @@ follows track changes.
 `libjingle_peerconnection_so.so`, `Check failed: false` at
 `jvm.cc:81`). This is inside `flutter_webrtc`'s bundled native WebRTC
 binary — `raven_rtc` ships no native code or Android build config of its
-own (see Architecture, below), so there is nothing to patch here. The
-signature matches Android 15+'s 16KB-page-size native-library-alignment
-requirement; `flutter_webrtc` is already pinned to its newest release
-(`1.6.2+hotfix.3` as of this writing) and its own changelog claims 16KB
-support, but that covers the Dart package's `compileSdk`, not necessarily
-a relink of the prebuilt `.so`. Before treating this as a general
-regression, reproduce on a mainstream (non-preview) Android
-image/device — it was first seen on an unusually new API 37.1
-"16KB page size" preview emulator image, and chat (`raven_chat`, no
-WebRTC) worked fine on the same device. Track upstream at
-[flutter-webrtc/flutter-webrtc](https://github.com/flutter-webrtc/flutter-webrtc/issues).
+own (see Architecture, below), so there is nothing to patch here.
+`flutter_webrtc` doesn't build the native WebRTC code itself either: it
+pulls a prebuilt third-party AAR, `io.github.webrtc-sdk:android:150.7871.01`
+(Google stopped publishing official WebRTC AARs), so the native binary's
+own compatibility is entirely out of this repo's — and flutter_webrtc's
+own build config's — control. `flutter_webrtc` is already pinned to its
+newest release (`1.6.2+hotfix.3`) and already carries the `compileSdk 36`
+bump for 16KB-page-size support (upstream
+[flutter-webrtc/flutter-webrtc#1932](https://github.com/flutter-webrtc/flutter-webrtc/issues/1932)),
+but that's the plugin's own compile target, not a relink of the prebuilt
+`.so`. Given the device this was first seen on was an **unreleased
+Android API 37.1 preview** — with `raven_chat` (no WebRTC) working fine
+on the same device — the more likely explanation is that prebuilt binary
+predating a not-yet-released Android version, not a general regression.
+Reproduce on a mainstream (non-preview) Android image/device before
+treating this as broken on real hardware.
 
-**Local self-preview stays on the placeholder while the remote peer's
-video renders fine**, seen consistently on Flutter Web with a headless
-Chromium harness (both directions of a two-client test). `raven_rtc`'s
-own code path is symmetric between local and remote tracks — same
-`RavenVideoView`, same track-sync logic — so this isn't a bug in this
-package. The likely cause is Chrome's autoplay policy, which exempts
-`RTCPeerConnection`-delivered remote tracks but not a locally-captured
-`getUserMedia` preview without a user gesture, common in headless test
-harnesses; `flutter_webrtc`'s web `RTCVideoRenderer`/`RTCVideoView`
-expose no `muted`/autoplay override for this repo to set. Not seen in a
-real browser with a user-initiated join button. If you hit this outside
-a headless harness, file it upstream with a real-browser repro.
+**Local self-preview stayed on the placeholder while the remote peer's
+video rendered fine (fixed in 0.1.8).** `enableCamera()`/
+`enableMicrophone()`/`enableScreenShare()` only notified listeners about
+a newly published local track after the full SFU offer/answer round
+trip finished, even though the local `MediaStream` was already captured
+and ready to render much earlier. A remote track has no equivalent
+avoidable delay, so the local tile visibly lagged behind — most
+noticeable on Flutter Web under a headless Chromium harness. `raven_rtc`
+now notifies as soon as the local track is captured. If you still see a
+stuck local preview on 0.1.8+, that's a new, different issue — file it
+with a repro.
 
 ## Architecture
 

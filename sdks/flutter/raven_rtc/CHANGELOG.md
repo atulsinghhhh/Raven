@@ -1,3 +1,21 @@
+## 0.1.8
+
+Fixes the local self-preview tile staying on its placeholder while the
+remote peer's tile rendered fine, found via the same external-developer
+re-test as 0.1.6/0.1.7.
+
+* **Fixed:** `enableCamera()`/`enableMicrophone()`/`enableScreenShare()`
+  only told the UI about a newly published local track after
+  `RavenEngine.publish()` fully resolved — which waits on a complete SFU
+  offer/answer round trip. The local `MediaStream` is actually available
+  and ready to render much earlier, right after `getUserMedia()`
+  returns, but nothing notified listeners until negotiation finished. A
+  remote track has no equivalent avoidable delay, so this asymmetry
+  showed up exactly as reported: the local tile appearing stuck while
+  the remote tile updated immediately. `RavenEngine.publish()` now
+  notifies as soon as the local track is captured, independent of the
+  negotiation round trip that follows.
+
 ## 0.1.7
 
 Fixes a console warning logged on every single `enableCamera()`/
