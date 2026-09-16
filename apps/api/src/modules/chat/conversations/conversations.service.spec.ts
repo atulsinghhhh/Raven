@@ -208,7 +208,12 @@ describe('ConversationsService — webhook events', () => {
             code: 'P2002',
           });
         }
-        stored = { id: `internal-${++nextId}`, publicId: `conv_${nextId}`, name: data.name, createdAt: new Date() } as never;
+        stored = {
+          id: `internal-${++nextId}`,
+          publicId: `conv_${nextId}`,
+          name: data.name,
+          createdAt: new Date(),
+        } as never;
         return stored;
       });
 
@@ -365,9 +370,9 @@ describe('ConversationsService — webhook events', () => {
 
       // resolve() alone (existence) succeeds — proving the conversation is
       // really there, not a 404 masquerading as one.
-      await expect(service.resolve({ projectId: 'p1', environment: Environment.DEVELOPMENT }, 'conv_abc')).resolves.toMatchObject(
-        { publicId: 'conv_abc' },
-      );
+      await expect(
+        service.resolve({ projectId: 'p1', environment: Environment.DEVELOPMENT }, 'conv_abc'),
+      ).resolves.toMatchObject({ publicId: 'conv_abc' });
       // But no client identity was ever granted membership as a side effect
       // of creation — same refusal as Test B, for every userId.
       await expect(service.authorize(clientActor('whoever-created-it'), 'conv_abc')).rejects.toMatchObject({
