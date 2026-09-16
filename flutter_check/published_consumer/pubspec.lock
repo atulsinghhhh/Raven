@@ -358,10 +358,11 @@ packages:
   raven_rtc:
     dependency: "direct main"
     description:
-      path: "../../sdks/flutter/raven_rtc"
-      relative: true
-    source: path
-    version: "0.1.3"
+      name: raven_rtc
+      sha256: dde97652039c60fd90ceea771ee632bea38aa5c758e8c755f8ba0ea60e777151
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.5"
   record_use:
     dependency: transitive
     description:

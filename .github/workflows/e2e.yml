@@ -139,6 +139,24 @@ jobs:
           flutter pub get
           flutter build web --release
 
+      # The *-pubdev e2e suites (flutter-chat-pubdev, flutter-live-streaming-pubdev,
+      # flutter-rtc-datachannel-pubdev, flutter-rtc-multiparty-pubdev,
+      # flutter-combined-pubdev) each drive their own real `flutter build web`
+      # release build of flutter_check/published_consumer — the one Flutter Web
+      # app that resolves raven_chat/raven_rtc/raven_live from pub.dev rather
+      # than a local path, see its pubspec.yaml. Same "refuses to run without
+      # this build" posture as the live_host suite above, so every target has
+      # to exist before test:e2e below.
+      - name: Build Flutter web pub.dev consumer targets for the *-pubdev e2e suites
+        working-directory: flutter_check/published_consumer
+        run: |
+          flutter pub get
+          flutter build web --release -t lib/main_chat.dart -o build/web_chat
+          flutter build web --release -t lib/main_live_host.dart -o build/web_live_host
+          flutter build web --release -t lib/main_data.dart -o build/web_data
+          flutter build web --release -t lib/main_video.dart -o build/web_video
+          flutter build web --release -t lib/main_combined.dart -o build/web_combined
+
       # --no-deps is load-bearing. `sfu` depends_on `api`, which depends_on
       # `migrate` completing, so without it compose also starts the
       # containerised API and migration job. Neither belongs in CI: the e2e
