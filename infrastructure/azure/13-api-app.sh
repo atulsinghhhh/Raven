@@ -137,7 +137,9 @@ properties:
       - name: metrics-scrape-secret
         value: $(kv metrics-scrape-secret)
       - name: egress-worker-shared-secret
-        value: $(kv egress-worker-shared-secret)${OAUTH_SECRETS_YAML}
+        value: $(kv egress-worker-shared-secret)
+      - name: dashboard-ws-token-secret
+        value: $(kv dashboard-ws-token-secret)${OAUTH_SECRETS_YAML}
   template:
     containers:
       - image: ${LOGIN_SERVER}/raven-api:${TAG}
@@ -203,6 +205,13 @@ properties:
             secretRef: chat-token-secret
           - name: API_KEY_HASH_SECRET
             secretRef: api-key-hash-secret
+          # Dashboard realtime tokens must not share a signing key with
+          # dashboard session JWTs — required in production
+          # (env.validation.ts), and must differ from jwt/chat/rtc-token
+          # secrets above (guaranteed here since each is independently
+          # random).
+          - name: DASHBOARD_WS_TOKEN_SECRET
+            secretRef: dashboard-ws-token-secret
 
           # --- SFU. The API has no SFU_URL and no SFU_PUBLIC_IP: nodes
           # self-register into the rtc_servers table with their own

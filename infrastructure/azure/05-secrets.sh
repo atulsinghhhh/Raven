@@ -65,6 +65,11 @@ set_generated redis-password
 # and the standalone egress-worker Container App. Additive — nothing
 # existing rotated.
 set_generated egress-worker-shared-secret
+# Dashboard realtime tokens must not share a signing key with dashboard
+# session JWTs (env.validation.ts refuses to boot in production without
+# this, and requires it differ from jwt-secret/chat-token-secret/
+# rtc-token-secret — automatic here since each is independently random).
+set_generated dashboard-ws-token-secret
 
 # The Supabase strings live in the operator's local .env (gitignored). They
 # are copied into Key Vault so the Phase 3 Container App has one source of
