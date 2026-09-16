@@ -127,7 +127,26 @@ type Participant struct {
 	// pendingRemoteCandidates holds candidates that turned up before there
 	// was a remote description to attach them to.
 	pendingRemoteCandidates []webrtc.ICECandidateInit
+
+	// Data-channel send buffering, guarded by dataMu. Same shape as the ICE
+	// candidate buffer above: a message that arrives for a recipient whose
+	// own data channel hasn't finished negotiating yet is not a delivery
+	// failure to accept, it is a race to close, since every participant in
+	// a room starts negotiating a data channel at essentially the same
+	// moment (see RavenEngine.ensureDataChannel). Bounded, unlike the ICE
+	// buffer: a recipient without publishData permission never opens a
+	// channel at all, and an unbounded queue behind that would grow for as
+	// long as the room does.
+	dataMu sync.Mutex
+	// pendingOutboundData holds payloads that arrived before this
+	// participant's own data channel was open to send them on.
+	pendingOutboundData [][]byte
 }
+
+// pendingOutboundDataLimit bounds pendingOutboundData. Recent messages,
+// not history: a participant whose channel is still negotiating gets
+// caught up on what just happened, not a replay of the whole room.
+const pendingOutboundDataLimit = 32
 
 func newParticipant(id, sessionID, roomID string, permissions Permissions, pc *webrtc.PeerConnection, events ParticipantEvents, logger *slog.Logger) *Participant {
 	p := &Participant{
@@ -201,6 +220,10 @@ func (p *Participant) wire() {
 				p.events.OnData(p, msg.Data)
 			}
 		})
+		// Fires immediately if the channel is already open by the time we
+		// register it (pion checks ReadyState in OnOpen itself), so this
+		// is safe regardless of which of OnDataChannel/open wins the race.
+		channel.OnOpen(func() { p.flushPendingOutboundData(channel) })
 		p.logger.Info("data channel open")
 	})
 }
@@ -460,15 +483,67 @@ func (p *Participant) SetTrackMuted(trackID string, muted bool) bool {
 
 // SendData pushes a payload down this participant's data channel.
 //
-// Best-effort on purpose. Someone whose channel isn't open yet, or who
-// never opened one at all, gets skipped instead of failing the broadcast
-// for everybody else.
+// Best-effort on purpose: someone who never opens a channel at all — no
+// publishData grant, or simply never calls ensureDataChannel — gets
+// skipped instead of failing the broadcast for everybody else. Someone
+// whose channel merely hasn't finished negotiating *yet* is a narrower
+// case: every participant in a room starts that negotiation at roughly
+// the same moment (see RavenEngine.ensureDataChannel), so "not open yet"
+// is usually a race about to resolve in the next round trip, not a
+// participant who will never receive anything. The payload is buffered
+// for that case and replayed once the channel opens (see
+// flushPendingOutboundData), rather than dropped.
 func (p *Participant) SendData(payload []byte) error {
 	channel := p.dataChannel.Load()
-	if channel == nil || channel.ReadyState() != webrtc.DataChannelStateOpen {
-		return nil
+
+	// Checking ReadyState and deciding to buffer vs. send have to happen
+	// as one atomic step under dataMu, the same lock flushPendingOutboundData
+	// uses to drain the buffer. pion flips ReadyState to Open and then
+	// invokes the OnOpen handler as two separate steps (see
+	// DataChannel.handleOpen), so a send arriving in the narrow gap
+	// between them would otherwise race the flush: read separately,
+	// nothing stops "ReadyState already Open" being observed here a
+	// moment before flushPendingOutboundData has actually drained
+	// everything that was queued ahead of it, which would let this
+	// payload jump the queue. Requiring the buffer to be empty too, not
+	// just the channel to be open, keeps delivery order intact across
+	// that gap without needing pion's own open-handler to have run yet.
+	p.dataMu.Lock()
+	sendDirectly := channel != nil && channel.ReadyState() == webrtc.DataChannelStateOpen && len(p.pendingOutboundData) == 0
+	if !sendDirectly {
+		p.pendingOutboundData = append(p.pendingOutboundData, payload)
+		if overflow := len(p.pendingOutboundData) - pendingOutboundDataLimit; overflow > 0 {
+			p.pendingOutboundData = p.pendingOutboundData[overflow:]
+		}
 	}
-	return channel.Send(payload)
+	p.dataMu.Unlock()
+
+	if sendDirectly {
+		return channel.Send(payload)
+	}
+	return nil
+}
+
+// flushPendingOutboundData replays whatever arrived before this
+// participant's data channel was open, in the order it was sent.
+//
+// Cleared before sending, same reasoning as setRemoteDescription's ICE
+// candidate drain: one payload the channel rejects must not strand the
+// rest in the buffer forever.
+func (p *Participant) flushPendingOutboundData(channel *webrtc.DataChannel) {
+	p.dataMu.Lock()
+	pending := p.pendingOutboundData
+	p.pendingOutboundData = nil
+	p.dataMu.Unlock()
+
+	for _, payload := range pending {
+		if err := channel.Send(payload); err != nil {
+			p.logger.Debug("buffered data message rejected", "err", err)
+		}
+	}
+	if len(pending) > 0 {
+		p.logger.Debug("flushed buffered data messages", "count", len(pending))
+	}
 }
 
 // answerTimeout gives up on a negotiation whose answer never shows.
