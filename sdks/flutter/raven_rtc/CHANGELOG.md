@@ -1,3 +1,31 @@
+## 0.1.6
+
+Fixes `RavenRoom.participantChanges` silently missing the current roster
+for a listener attached after `Raven.join()` returns, found via an
+external-developer re-test of the published package against a real
+backend and SFU — specifically, a viewer joining a live stream already
+in progress.
+
+* **Fixed:** `participantChanges` was a plain broadcast stream fed by
+  `_emitParticipants()`, whose first call happens synchronously while
+  `join()` itself is still resolving — applying the server's initial
+  roster before any caller's code can possibly have attached a
+  listener yet, since the `RavenRoom` (and so this getter) doesn't
+  exist any earlier. A late listener on a broadcast stream simply never
+  sees an event that already fired, so an app that builds its initial
+  UI from this stream (rather than reading `participants`/
+  `remoteParticipants` directly first) saw an empty roster until the
+  *next* change — which, for a viewer joining a room where someone was
+  already publishing, could be never. `participants` and
+  `remoteParticipants` were never affected; they read current state
+  directly. `participantChanges` now replays the current roster to
+  each new listener the instant it subscribes, via `Stream.multi`. No
+  public API changes — same getter, same event shape, now correct for
+  every subscriber regardless of when it attaches.
+* Added regression coverage (`test/room_test.dart`) proving a listener
+  attached well after the initial join still receives the roster that
+  was already there.
+
 ## 0.1.5
 
 Fixes a data channel that could silently never open, found via a real

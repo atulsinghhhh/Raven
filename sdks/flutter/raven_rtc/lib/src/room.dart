@@ -148,8 +148,36 @@ class RavenRoom extends ChangeNotifier {
       _connectionStateController.stream;
 
   /// Fires whenever the roster or anyone's published tracks change.
+  ///
+  /// Each listener gets the *current* roster the moment it subscribes,
+  /// not only future changes. [_emitParticipants]'s first call already
+  /// happens synchronously while [join][Raven.join] itself is resolving
+  /// — applying the server's initial roster — which is before any
+  /// caller's code has had a chance to attach a listener. A plain
+  /// broadcast stream simply drops that first event for anyone who
+  /// wasn't already listening, which is nobody, since nobody can be:
+  /// this getter doesn't exist until `join()` has already returned. That
+  /// silently starved the single most common case for this stream — a
+  /// viewer joining a room, or a live stream, where someone is already
+  /// publishing — of the one event that mattered. [participants] and
+  /// [remoteParticipants] were never affected; they just read current
+  /// state directly. [Stream.multi] runs its callback once per listener
+  /// (unlike a shared broadcast stream's single subscription), which is
+  /// what makes seeding each one individually possible.
   Stream<List<RavenParticipant>> get participantChanges =>
-      _participantsController.stream;
+      Stream.multi((controller) {
+        if (_disposed) {
+          controller.close();
+          return;
+        }
+        controller.add(participants);
+        final subscription = _participantsController.stream.listen(
+          controller.add,
+          onError: controller.addError,
+          onDone: controller.close,
+        );
+        controller.onCancel = subscription.cancel;
+      }, isBroadcast: true);
 
   /// Errors that arrive asynchronously rather than from a call you made;
   /// a reconnect giving up, for instance.

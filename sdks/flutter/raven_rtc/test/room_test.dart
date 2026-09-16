@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:raven_rtc/src/internal/engine.dart';
 import 'package:raven_rtc/src/internal/protocol.dart';
@@ -148,6 +150,78 @@ void main() {
       room.dispose();
       // Let the fire-and-forget engine/signaling teardown finish
       // inside this test, not bleed into the next one's platform mock.
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+    });
+  });
+
+  group('participantChanges replays the current roster to a late listener', () {
+    test(
+        'REGRESSION: a listener attached only after the initial join misses the roster on a plain broadcast stream',
+        () async {
+      // Same mechanism as the joins/connectionState regression above, one
+      // layer up: _emitParticipants()'s first call happens synchronously
+      // inside applyInitialJoin(), before any caller of Raven.join() can
+      // possibly have attached a participantChanges listener yet -- the
+      // getter doesn't even exist until join() has already returned.
+      // Direct proof that a plain .broadcast() stream drops that event
+      // for good.
+      final controller = StreamController<List<int>>.broadcast();
+      controller.add([1]); // the "already published" roster, emitted early
+      var received = false;
+      controller.stream.listen((_) => received = true); // the "late" caller
+      await Future<void>.delayed(Duration.zero);
+
+      expect(received, isFalse);
+      await controller.close();
+    });
+
+    test(
+        'the fix: a listener attached well after join() still sees the roster that was already there',
+        () async {
+      final signaling = clientFor();
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
+      final room = RavenRoom.attach(
+        signaling: signaling,
+        engine: engine,
+        roomId: 'room-1',
+        localIdentity: 'alice',
+      );
+
+      final joining = signaling.connect();
+      await Future<void>.delayed(Duration.zero);
+      socket.receive({
+        'type': ServerMessageType.roomJoined,
+        'roomId': 'room-1',
+        // bob is already publishing camera -- the exact shape of a
+        // viewer joining a live stream in progress, which is what
+        // caught this: the one case this stream exists for.
+        'participants': [
+          {
+            'id': 'bob',
+            'tracks': [
+              {'trackId': 't1', 'kind': 'video', 'source': 'camera'}
+            ],
+          }
+        ],
+      });
+      final joined = await joining;
+      room.applyInitialJoin(joined);
+      // The point of this test: attach the listener well *after*
+      // applyInitialJoin() has already run and _emitParticipants() has
+      // already fired once -- exactly the ordering Raven.join()'s own
+      // caller is stuck with, since the getter isn't reachable any
+      // earlier.
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      final firstEmission = room.participantChanges.first;
+
+      final roster = await firstEmission.timeout(const Duration(seconds: 2));
+      expect(roster.map((p) => p.identity), contains('bob'));
+
+      room.dispose();
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
     });
