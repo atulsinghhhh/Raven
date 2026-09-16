@@ -1,3 +1,18 @@
+## 0.1.7
+
+Fixes a console warning logged on every single `enableCamera()`/
+`enableMicrophone()` call on web, found via the same external-developer
+re-test as 0.1.6.
+
+* **Fixed:** `_cameraConstraints` passed `facingMode: 'user'`
+  unconditionally, including on web. `flutter_webrtc`'s web
+  `getUserMedia` shim only keeps `facingMode` for a mobile-browser user
+  agent — desktop Chrome, including headless Chromium, never matches, so
+  the shim stripped it and logged `[getUserMedia] failed to remove
+  facingMode from mediaConstraints` on every call. `facingMode` is now
+  omitted on web; mobile camera switching is unaffected, since it goes
+  through `Room.switchCamera()` rather than this constraint.
+
 ## 0.1.6
 
 Fixes `RavenRoom.participantChanges` silently missing the current roster

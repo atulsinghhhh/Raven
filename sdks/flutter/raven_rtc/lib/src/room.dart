@@ -14,11 +14,17 @@ import 'types.dart';
 /// `ideal`, never `exact`: an exact resolution fails outright on a device
 /// that cannot provide it, and "the call did not start because your front
 /// camera is 640×480" is not an acceptable outcome.
+/// `facingMode` is omitted on web: flutter_webrtc's web `getUserMedia` shim
+/// only keeps it for a mobile-browser user agent and otherwise strips it
+/// and logs a warning on every single call — desktop Chrome (including
+/// headless Chromium) never matches, so it fired unconditionally. Mobile
+/// camera switching goes through [Room.switchCamera] instead, which
+/// doesn't depend on this constraint.
 const _cameraConstraints = <String, dynamic>{
   'width': {'ideal': 1280},
   'height': {'ideal': 720},
   'frameRate': {'ideal': 30},
-  'facingMode': 'user',
+  if (!kIsWeb) 'facingMode': 'user',
 };
 
 /// All three are on by default because a call without them sounds bad in
