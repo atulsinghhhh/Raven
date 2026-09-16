@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsObject,
@@ -76,7 +77,15 @@ export class CreateConversationDto {
   @Max(3650)
   retentionDays?: number;
 
-  @ApiPropertyOptional({ type: [ConversationMemberDto], maxItems: 100 })
+  @ApiPropertyOptional({
+    type: [ConversationMemberDto],
+    maxItems: 100,
+    description:
+      'IMPORTANT: a conversation created with no members is unreadable and unwritable by every client chat ' +
+      'token, including one minted for whoever "created" it — a project API key is not itself a chat user, ' +
+      'so there is no creator identity to add automatically. List every userId that should be able to ' +
+      'connect here (or call addMember() for each of them before minting their token).',
+  })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(100)
@@ -88,4 +97,17 @@ export class CreateConversationDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'When true, a name collision returns the existing conversation instead of a 409 — including when two ' +
+      'callers race to create the same named conversation concurrently, which the normal "everyone joins by ' +
+      'conversation name" flow does on the very first try. Off by default so a genuine duplicate-name ' +
+      'mistake still fails loudly. `members` is ignored on the fetched-existing path — use addMember() to ' +
+      'add anyone to a conversation that already exists.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  getOrCreate?: boolean;
 }

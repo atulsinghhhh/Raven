@@ -91,6 +91,16 @@ await raven.rooms.create({ name: 'lobby' });
 await raven.rooms.delete(roomId); // soft-closes (status: CLOSED) — never a hard delete
 ```
 
+`create()` 409s (`RAVEN_CONFLICT`) on a name collision by default — including the ordinary case of two
+participants both calling `create({ name: roomId })` for the room they're both about to join, which races
+on the very first try. Pass `getOrCreate: true` to get the existing room back instead of a 409:
+
+```ts
+await raven.rooms.create({ name: roomId, getOrCreate: true });
+```
+
+Mint the room server-side once and only ever hand clients its id if you'd rather avoid the race entirely.
+
 ### `raven.rooms.participants`
 
 ```ts
@@ -142,11 +152,32 @@ address of its own to derive one from.
 Conversations and membership:
 
 ```ts
-const conversation = await raven.chat.createConversation({ type: 'GROUP', name: 'launch-team' });
-await raven.chat.addMember(conversation.room, { userId: 'user-42', role: 'MODERATOR' });
+const conversation = await raven.chat.createConversation({
+  type: 'GROUP',
+  name: 'launch-team',
+  members: [{ userId: 'user-42', role: 'MODERATOR' }], // see warning below
+});
 await raven.chat.listMembers(conversation.room);
 await raven.chat.removeMember(conversation.room, 'user-42');
 ```
+
+**A conversation created with no `members` is unreadable and unwritable by every chat token — including
+one for whoever "created" it.** Your project API key isn't itself a chat user, so `createConversation()`
+has no creator identity to add automatically. Pass every userId that needs access in `members` up front, or
+call `addMember()` for each of them before minting their token:
+
+```ts
+const conversation = await raven.chat.createConversation({ type: 'GROUP', name: 'launch-team' });
+await raven.chat.addMember(conversation.room, { userId: 'user-42', role: 'MODERATOR' });
+```
+
+Skip this and `user-42`'s first request comes back `RAVEN_CONVERSATION_NOT_FOUND` — the same code a
+genuinely missing conversation returns, by design (see `docs/security/server-sdk.md`), so it reads as a
+typo'd id rather than a missing membership.
+
+Like rooms, `createConversation()` 409s on a name collision by default. Pass `getOrCreate: true` to get the
+existing conversation back instead when two callers race to create the same named one concurrently —
+`members` is ignored on that fetched-existing path, so add members with `addMember()` afterward instead.
 
 Messages, including posting as your own backend rather than as a user —
 useful for system notices and bots:

@@ -12,6 +12,10 @@ import { ProjectScope } from '../../shared/environment/environment.constants';
 import { ActivityActorType, ActivityEventType } from '../super-admin/activity-events.constants';
 import { ActivityEventsService } from '../super-admin/activity-events.service';
 
+function isUniqueViolation(err: unknown): boolean {
+  return (err as { code?: string })?.code === 'P2002';
+}
+
 export interface RoomWithLiveState extends Room {
   /** Participants actually connected to the room's SFU node right now. `null` means the node could not be reached: distinct from a genuinely idle 0. */
   liveParticipantCount: number | null;
@@ -38,10 +42,34 @@ export class RoomsService {
     });
 
     if (existing) {
+      if (dto.getOrCreate) {
+        return existing;
+      }
       throw new ConflictError(`A room named "${dto.name}" already exists in this project's ${environment} environment`);
     }
 
-    const room = await this.prisma.room.create({ data: { projectId, environment, name: dto.name } });
+    let room: Room;
+    try {
+      room = await this.prisma.room.create({ data: { projectId, environment, name: dto.name } });
+    } catch (err) {
+      if (!isUniqueViolation(err)) {
+        throw err;
+      }
+      // The findUnique check above is a plain check-then-act race: two
+      // legitimate participants opening the same named room, the ordinary
+      // multi-client case, both pass it and then both reach here. With
+      // getOrCreate, the loser fetches and returns the winner's row
+      // instead of surfacing a 409 for what is not actually a conflict.
+      if (dto.getOrCreate) {
+        const raced = await this.prisma.room.findUnique({
+          where: { projectId_environment_name: { projectId, environment, name: dto.name } },
+        });
+        if (raced) {
+          return raced;
+        }
+      }
+      throw new ConflictError(`A room named "${dto.name}" already exists in this project's ${environment} environment`);
+    }
 
     // One creation path serves both the JWT-guarded dashboard controller
     // and the API-key-guarded SDK controller, so there is no single caller

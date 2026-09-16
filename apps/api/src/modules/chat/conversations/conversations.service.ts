@@ -50,6 +50,9 @@ export class ConversationsService {
       where: { projectId_environment_name: { projectId, environment, name: dto.name } },
     });
     if (existing) {
+      if (dto.getOrCreate) {
+        return existing;
+      }
       throw new ConflictError(
         `A conversation named "${dto.name}" already exists in this project's ${environment} environment`,
       );
@@ -106,9 +109,19 @@ export class ConversationsService {
       // The findUnique check above is a plain check-then-act race: two
       // concurrent creates for the same name can both pass it and then
       // both reach here, with the loser hitting the unique constraint
-      // directly. Surface the same clean ConflictError the pre-check
-      // throws rather than a raw 500.
+      // directly. With getOrCreate, the loser fetches and returns the
+      // winner's row instead of surfacing a 409 for what is not actually
+      // a conflict — otherwise surface the same clean ConflictError the
+      // pre-check throws, rather than a raw 500.
       if (isUniqueViolation(err)) {
+        if (dto.getOrCreate) {
+          const raced = await this.prisma.conversation.findUnique({
+            where: { projectId_environment_name: { projectId, environment, name: dto.name } },
+          });
+          if (raced) {
+            return raced;
+          }
+        }
         throw new ConflictError(
           `A conversation named "${dto.name}" already exists in this project's ${environment} environment`,
         );

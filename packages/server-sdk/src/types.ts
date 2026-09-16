@@ -239,8 +239,24 @@ export interface CreateConversationParams {
   /** Attach to an existing RTC room, giving that call a chat panel. */
   roomId?: string;
   retentionDays?: number;
+  /**
+   * IMPORTANT: a conversation created with no members is unreadable and
+   * unwritable by every chat token, including one minted for whoever
+   * "created" it — your project API key isn't itself a chat user, so
+   * there's no creator identity to add automatically. List every userId
+   * that should be able to connect (or call `addMember()` for each one
+   * before minting their token).
+   */
   members?: Array<{ userId: string; role?: ChatMemberRole }>;
   metadata?: Record<string, unknown>;
+  /**
+   * When true, a name collision returns the existing conversation instead
+   * of throwing — including when two callers race to create the same
+   * named conversation concurrently, which the normal "everyone joins by
+   * conversation name" flow does on the very first try. `members` is
+   * ignored on the fetched-existing path.
+   */
+  getOrCreate?: boolean;
 }
 
 export interface ChatConversation {

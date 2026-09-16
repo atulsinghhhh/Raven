@@ -73,6 +73,44 @@ describe('RoomsService', () => {
         projectId: 'project2',
       });
     });
+
+    it('getOrCreate returns the existing room instead of a 409 on a plain name collision', async () => {
+      const existing = { id: 'r1', name: 'lobby' };
+      prisma.room.findUnique.mockResolvedValue(existing);
+
+      await expect(service.create(DEV, { name: 'lobby', getOrCreate: true })).resolves.toBe(existing);
+      expect(prisma.room.create).not.toHaveBeenCalled();
+    });
+
+    it('getOrCreate returns the winner\'s room instead of a 409 when two creates race', async () => {
+      // The findUnique pre-check is a classic check-then-act race: two
+      // participants both joining the same named room can both pass it,
+      // then both reach prisma.room.create — the loser, having asked for
+      // getOrCreate, fetches and returns the winner's row instead of
+      // surfacing a 409 for what is not actually a conflict.
+      const winner = { id: 'r1', name: 'lobby' };
+      prisma.room.findUnique
+        .mockResolvedValueOnce(null) // pre-check: name looked free
+        .mockResolvedValueOnce(winner); // post-race refetch: the winner already landed
+      prisma.room.create.mockRejectedValue(
+        Object.assign(new Error('Unique constraint failed on the fields: (`projectId`,`environment`,`name`)'), {
+          code: 'P2002',
+        }),
+      );
+
+      await expect(service.create(DEV, { name: 'lobby', getOrCreate: true })).resolves.toBe(winner);
+    });
+
+    it('turns a concurrent duplicate-name race into a clean ConflictError, not a raw Prisma error', async () => {
+      prisma.room.findUnique.mockResolvedValue(null);
+      prisma.room.create.mockRejectedValue(
+        Object.assign(new Error('Unique constraint failed on the fields: (`projectId`,`environment`,`name`)'), {
+          code: 'P2002',
+        }),
+      );
+
+      await expect(service.create(DEV, { name: 'lobby' })).rejects.toBeInstanceOf(ConflictError);
+    });
   });
 
   describe('dashboard realtime nudges (Phase 5C)', () => {

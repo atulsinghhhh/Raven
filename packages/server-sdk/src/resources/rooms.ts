@@ -22,7 +22,14 @@ export class RoomsResource {
     return this.http.request<Room>(`/v1/rooms/${roomId}`);
   }
 
-  create(params: { name: string }): Promise<Room> {
+  /**
+   * `getOrCreate` matters for the ordinary multi-client case: two
+   * participants both calling `create({ name: roomId })` for the room
+   * they're both about to join. Without it, the loser of that race gets a
+   * 409 instead of a Room — pass `getOrCreate: true` so it gets the
+   * winner's room back instead.
+   */
+  create(params: { name: string; getOrCreate?: boolean }): Promise<Room> {
     return this.http.request<Room>('/v1/rooms', { method: 'POST', body: params });
   }
 

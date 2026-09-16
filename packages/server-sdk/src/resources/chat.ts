@@ -45,7 +45,15 @@ export class ChatResource {
     });
   }
 
-  /** Creates a conversation. Pass `roomId` to attach it to an RTC room and give that call a chat panel. */
+  /**
+   * Creates a conversation. Pass `roomId` to attach it to an RTC room and give that call a chat panel.
+   *
+   * A conversation created with no `members` is unreadable and unwritable by every chat token — including
+   * one minted for whoever "created" it, since your project API key isn't itself a chat user. Pass the
+   * userIds who should have access in `members`, or call `addMember()` for each of them before minting
+   * their token; otherwise their first request comes back `RAVEN_CONVERSATION_NOT_FOUND`, indistinguishable
+   * from a typo'd id.
+   */
   createConversation(params: CreateConversationParams): Promise<ChatConversation> {
     return this.http.request<ChatConversation>('/v1/chat/conversations', {
       method: 'POST',

@@ -163,6 +163,32 @@ describe('ConversationsService — webhook events', () => {
       await expect(service.create(SCOPE, { name: 'general' })).rejects.toBeInstanceOf(ConflictError);
       expect(webhooks.emit).not.toHaveBeenCalled();
     });
+
+    it('getOrCreate returns the existing conversation instead of a 409 on a plain name collision', async () => {
+      const existing = { id: 'internal-uuid', publicId: 'conv_existing', name: 'launch-team' };
+      prisma.conversation.findUnique.mockResolvedValue(existing);
+
+      await expect(service.create(SCOPE, { name: 'launch-team', getOrCreate: true })).resolves.toBe(existing);
+      expect(prisma.conversation.create).not.toHaveBeenCalled();
+      expect(webhooks.emit).not.toHaveBeenCalled();
+    });
+
+    it('getOrCreate returns the winner\'s row instead of a 409 when two creates race', async () => {
+      // Same check-then-act race as above, but this time the loser asked
+      // to be handed the winner's row instead of failing.
+      const winner = { id: 'internal-uuid', publicId: 'conv_winner', name: 'launch-team' };
+      prisma.conversation.findUnique
+        .mockResolvedValueOnce(null) // pre-check: name looked free
+        .mockResolvedValueOnce(winner); // post-race refetch: the winner already landed
+      prisma.conversation.create.mockRejectedValue(
+        Object.assign(new Error('Unique constraint failed on the fields: (`projectId`,`environment`,`name`)'), {
+          code: 'P2002',
+        }),
+      );
+
+      await expect(service.create(SCOPE, { name: 'launch-team', getOrCreate: true })).resolves.toBe(winner);
+      expect(webhooks.emit).not.toHaveBeenCalled();
+    });
   });
 
   describe('addMember()', () => {
