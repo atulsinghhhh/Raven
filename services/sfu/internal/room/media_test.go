@@ -570,6 +570,94 @@ func TestSFURejectsPublishWithoutPermission(t *testing.T) {
 	}
 }
 
+// TestSFUUnpublishesTrackWhenPublisherRemovesItMidCall covers the other
+// way a track ends besides its publisher leaving: disableCamera()/
+// disableMicrophone() on a still-connected participant, which the client
+// SDK implements as pc.RemoveTrack + renegotiate, not a departure.
+//
+// Nothing here failed loudly before the fix this pins down — alice's own
+// unpublish() resolved without error, since the client side genuinely
+// did remove the track. What silently never happened was the SFU telling
+// the room: readLayer's cleanup handled losing *some* of a track's
+// simulcast layers (rebalancing subscribers onto what's left) but had no
+// branch at all for losing the *last* one, so a track whose publisher
+// stayed in the call just vanished from everyone else's view with no
+// event, no unsubscribe, and no renegotiation — bob would show alice's
+// camera as live forever.
+func TestSFUUnpublishesTrackWhenPublisherRemovesItMidCall(t *testing.T) {
+	h := newHarness(t)
+
+	aliceTrack := newVideoTrack(t, "alice-video", "alice-camera")
+	alice := h.join("room-5b", "alice", "sess-alice", publisherPermissions(), aliceTrack)
+	alice.waitConnected(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go pumpRTP(ctx, aliceTrack)
+	h.awaitTrackEvent("alice", true)
+
+	bob := h.join("room-5b", "bob", "sess-bob", publisherPermissions(), nil)
+	bob.waitConnected(t)
+	select {
+	case <-bob.tracksReceived:
+	case <-time.After(mediaTimeout):
+		t.Fatal("bob never received alice's track")
+	}
+
+	var sender *webrtc.RTPSender
+	for _, s := range alice.pc.GetSenders() {
+		if track := s.Track(); track != nil && track.ID() == "alice-video" {
+			sender = s
+			break
+		}
+	}
+	if sender == nil {
+		t.Fatal("alice's peer connection has no sender for alice-video")
+	}
+
+	// disableCamera()/disableMicrophone(), reproduced at the transport
+	// level exactly as the client SDK does it: remove the sender, then a
+	// client-initiated offer/answer round trip, same shape
+	// TestSFUForwardsTrackPublishedMidCall uses for the mirror-image case
+	// (adding a track mid-call).
+	if err := alice.pc.RemoveTrack(sender); err != nil {
+		t.Fatalf("remove track from client peer connection: %v", err)
+	}
+	offer, err := alice.pc.CreateOffer(nil)
+	if err != nil {
+		t.Fatalf("client create offer: %v", err)
+	}
+	if err := alice.pc.SetLocalDescription(offer); err != nil {
+		t.Fatalf("client set local description: %v", err)
+	}
+	answer, err := alice.participant.AcceptOffer(offer.SDP)
+	if err != nil {
+		t.Fatalf("sfu accept client offer: %v", err)
+	}
+	if err := alice.pc.SetRemoteDescription(*answer); err != nil {
+		t.Fatalf("client set remote answer: %v", err)
+	}
+	cancel() // stop pumping RTP; the track is gone from alice's side now too
+
+	// The assertion that mattered nothing about before this fix: a
+	// track=false event for alice, without alice ever leaving the room.
+	h.awaitTrackEvent("alice", false)
+
+	// handleTrackUnpublished fires that event and then renegotiates bob
+	// in the same goroutine, asynchronously to the test goroutine — the
+	// event landing doesn't mean bob's round trip has finished. Waiting
+	// for it to actually happen (have-remote-offer, the SFU's offer
+	// arriving) and then settle (stable, the answer applied) keeps
+	// t.Cleanup's teardown from racing an in-flight renegotiation that
+	// calls back into this test's own harness logging.
+	waitForSignalingState(t, bob.pc, webrtc.SignalingStateHaveRemoteOffer)
+	waitForSignalingState(t, bob.pc, webrtc.SignalingStateStable)
+
+	if size := h.roomSize("room-5b"); size != 2 {
+		t.Errorf("room size = %d after alice merely unpublished, want 2 (both still connected)", size)
+	}
+}
+
 func TestSFUUnpublishesTracksWhenParticipantLeaves(t *testing.T) {
 	h := newHarness(t)
 

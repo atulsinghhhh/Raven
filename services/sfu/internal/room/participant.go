@@ -246,6 +246,7 @@ func (p *Participant) handleIncomingTrack(remote *webrtc.TrackRemote, receiver *
 	if !existing {
 		declared := p.declaredSources[remote.ID()]
 		track = newPublishedTrack(p.ID, remote, declared, p.pc.WriteRTCP, p.logger)
+		track.onEnded = func() { p.removePublishedTrack(track) }
 		p.published[remote.ID()] = track
 	}
 	p.mu.Unlock()
@@ -263,6 +264,43 @@ func (p *Participant) handleIncomingTrack(remote *webrtc.TrackRemote, receiver *
 	// read for its interceptors (NACK, TWCC, receiver reports) to work at
 	// all. Leave the stream unread and congestion feedback stalls.
 	go p.drainRTCP(receiver)
+}
+
+// removePublishedTrack drops a single track that ended on its own — the
+// publisher called disableCamera()/disableMicrophone() (removeTrack +
+// renegotiate), or its layers simply stopped arriving — while the
+// participant otherwise stays connected. Wired as PublishedTrack.onEnded
+// in handleIncomingTrack; see readLayer for why this fires.
+//
+// Without this, an unpublish that isn't a full leave() never told anyone:
+// the local disableCamera()/disableMicrophone() call resolved successfully
+// (the track really was removed from this participant's own connection),
+// but nothing informed the room, so every other participant's
+// remoteLiveSources kept reporting the track as live indefinitely.
+//
+// Guarded by p.closed: once the whole participant is closing,
+// Participant.Close() already owns firing OnTrackUnpublished for every
+// track it still holds, under the same p.mu — it clears p.published
+// before this method could find anything left to remove, so the two
+// paths never fire for the same track.
+func (p *Participant) removePublishedTrack(track *PublishedTrack) {
+	if p.closed.Load() {
+		return
+	}
+
+	p.mu.Lock()
+	current, ok := p.published[track.ID]
+	if !ok || current != track {
+		p.mu.Unlock()
+		return
+	}
+	delete(p.published, track.ID)
+	p.mu.Unlock()
+
+	p.logger.Info("track unpublished", "trackId", track.ID, "kind", track.Kind.String())
+	if p.events.OnTrackUnpublished != nil {
+		p.events.OnTrackUnpublished(p, track)
+	}
 }
 
 func (p *Participant) drainRTCP(receiver *webrtc.RTPReceiver) {

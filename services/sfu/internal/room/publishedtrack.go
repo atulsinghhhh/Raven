@@ -84,6 +84,15 @@ type PublishedTrack struct {
 	// track rides the same transport; it doesn't go via the receiver.
 	writeRTCP RTCPWriter
 
+	// onEnded fires exactly once, the moment this track's last layer ends
+	// on its own — the publisher unpublished it (or its connection died)
+	// while staying in the room, as opposed to the whole Participant
+	// tearing down. Wired by Participant.handleIncomingTrack to remove
+	// this track from its own bookkeeping and tell the room, mirroring
+	// what Participant.Close() already does for every track when the
+	// whole connection goes away. See readLayer.
+	onEnded func()
+
 	logger *slog.Logger
 	closed atomic.Bool
 }
@@ -235,6 +244,26 @@ func (t *PublishedTrack) readLayer(layer *trackLayer) {
 		// never send another packet.
 		if remaining > 0 {
 			t.rebalanceAfterLayerLoss(layer.id)
+			return
+		}
+
+		// No layers left: the publisher stopped sending this track
+		// entirely — disableCamera()/disableMicrophone() (removeTrack +
+		// renegotiate), or its connection died — rather than merely
+		// dropping to fewer simulcast layers. ReadRTP only errors this
+		// way when Pion has actually stopped the transceiver, never from
+		// ordinary packet loss (that just blocks waiting for the next
+		// packet), so this is a real, deliberate end, not jitter.
+		//
+		// Close() is reachable from here and from Participant.Close()
+		// tearing down every track at once; only the one that actually
+		// performs the close goes on to fire onEnded, so a participant
+		// disconnecting entirely doesn't double-fire the unpublish this
+		// path exists for.
+		if t.Close() {
+			if onEnded := t.onEnded; onEnded != nil {
+				onEnded()
+			}
 		}
 	}()
 
@@ -458,9 +487,17 @@ func (t *PublishedTrack) Stats() PublishedTrackStats {
 }
 
 // Close stops forwarding and lets go of every subscriber's copy.
-func (t *PublishedTrack) Close() {
+//
+// Returns whether this call was the one that actually performed the
+// close, the same idiom Participant.closed.CompareAndSwap uses one level
+// up. readLayer needs it: Close() can be reached from two independent
+// paths racing each other (this track's own last layer ending, or the
+// whole Participant tearing down and closing every track it holds), and
+// only the winner must go on to fire onEnded — the loser's caller has
+// nothing left to do.
+func (t *PublishedTrack) Close() bool {
 	if !t.closed.CompareAndSwap(false, true) {
-		return
+		return false
 	}
 	t.mu.Lock()
 	downs := t.downTracks
@@ -471,4 +508,5 @@ func (t *PublishedTrack) Close() {
 		down.Close()
 	}
 	t.logger.Info("track closed")
+	return true
 }
