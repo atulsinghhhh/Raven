@@ -124,8 +124,22 @@ class _VideoRunnerState extends State<_VideoRunner> {
         'roomError': {'code': error.code.name, 'message': error.message},
       });
     });
+    // Issue 5 live-verification instrumentation: does the local
+    // participant's own camera show up via the reactive participantChanges
+    // stream *before* enableCamera() itself finishes awaiting the SFU
+    // negotiation round trip, or only once it resolves? Before the
+    // engine.dart fix these were the same instant, since nothing notified
+    // listeners any earlier — this is the harness-side check that they can
+    // now differ.
+    final publishClock = Stopwatch();
+    int? localCameraFirstSeenAtMs;
     room.participantChanges.listen((participants) {
       final remote = participants.where((p) => !p.isLocal);
+      final local = participants.firstWhere((p) => p.isLocal);
+      if (local.isCameraEnabled && localCameraFirstSeenAtMs == null && publishClock.isRunning) {
+        localCameraFirstSeenAtMs = publishClock.elapsedMilliseconds;
+        _publishState({'localCameraFirstSeenAtMs': localCameraFirstSeenAtMs});
+      }
       _publishState({
         'participantIdentities': participants.map((p) => p.identity).toList(),
         'remoteLiveSources': {
@@ -145,8 +159,13 @@ class _VideoRunnerState extends State<_VideoRunner> {
 
     if (shouldPublish) {
       try {
+        publishClock.start();
         await room.enableCamera();
-        _publishState({'cameraPublished': true});
+        publishClock.stop();
+        _publishState({
+          'cameraPublished': true,
+          'enableCameraResolvedAtMs': publishClock.elapsedMilliseconds,
+        });
         await room.enableMicrophone();
         _publishState({'microphonePublished': true});
       } catch (error) {

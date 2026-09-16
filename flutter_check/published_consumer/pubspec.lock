@@ -359,10 +359,10 @@ packages:
     dependency: "direct main"
     description:
       name: raven_rtc
-      sha256: dde97652039c60fd90ceea771ee632bea38aa5c758e8c755f8ba0ea60e777151
+      sha256: a2185d40d481b2c2cb266367e665763220fbbf528fc31a7d19a565269fd235ca
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.5"
+    version: "0.1.8"
   record_use:
     dependency: transitive
     description:
