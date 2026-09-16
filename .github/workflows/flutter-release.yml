@@ -56,6 +56,16 @@ concurrency:
 
 permissions:
   contents: read
+  # A reusable workflow call is capped by what the *calling* job is
+  # itself allowed, not just what the reusable workflow's own job
+  # declares — flutter-publish-package.yml's publish job requests
+  # id-token: write for pub.dev's OIDC trusted publishing, and every
+  # push/dispatch of this workflow failed at startup ("requesting
+  # id-token: write, but is only allowed id-token: none") until this
+  # was granted here too. python-release.yml never hit this because it
+  # does the OIDC-requiring work inline in its own job rather than via
+  # a nested `uses:` call.
+  id-token: write
 
 jobs:
   # Push trigger only: for each package, compares pubspec.yaml's version
