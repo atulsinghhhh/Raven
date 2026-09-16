@@ -99,9 +99,16 @@ jobs:
   publish-rtc:
     name: raven_rtc
     needs: detect
+    # always(): detect's own `if: github.event_name == 'push'` skips it
+    # outright on a workflow_dispatch run, and a job depending on a
+    # skipped job is auto-skipped by default regardless of its own
+    # `if:` — without this, the dispatch path below could never fire.
     if: |
-      (github.event_name == 'push' && needs.detect.outputs.rtc == 'true') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.package == 'raven_rtc' && github.event.inputs.confirm == 'PUBLISH')
+      always() &&
+      (
+        (github.event_name == 'push' && needs.detect.outputs.rtc == 'true') ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.package == 'raven_rtc' && github.event.inputs.confirm == 'PUBLISH')
+      )
     uses: ./.github/workflows/flutter-publish-package.yml
     with:
       package: raven_rtc
@@ -109,9 +116,13 @@ jobs:
   publish-chat:
     name: raven_chat
     needs: detect
+    # Same always() as publish-rtc — see its comment.
     if: |
-      (github.event_name == 'push' && needs.detect.outputs.chat == 'true') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.package == 'raven_chat' && github.event.inputs.confirm == 'PUBLISH')
+      always() &&
+      (
+        (github.event_name == 'push' && needs.detect.outputs.chat == 'true') ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.package == 'raven_chat' && github.event.inputs.confirm == 'PUBLISH')
+      )
     uses: ./.github/workflows/flutter-publish-package.yml
     with:
       package: raven_chat
