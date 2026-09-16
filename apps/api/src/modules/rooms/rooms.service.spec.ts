@@ -82,7 +82,7 @@ describe('RoomsService', () => {
       expect(prisma.room.create).not.toHaveBeenCalled();
     });
 
-    it('getOrCreate returns the winner\'s room instead of a 409 when two creates race', async () => {
+    it("getOrCreate returns the winner's room instead of a 409 when two creates race", async () => {
       // The findUnique pre-check is a classic check-then-act race: two
       // participants both joining the same named room can both pass it,
       // then both reach prisma.room.create — the loser, having asked for

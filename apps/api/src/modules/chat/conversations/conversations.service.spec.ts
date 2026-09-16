@@ -173,7 +173,7 @@ describe('ConversationsService — webhook events', () => {
       expect(webhooks.emit).not.toHaveBeenCalled();
     });
 
-    it('getOrCreate returns the winner\'s row instead of a 409 when two creates race', async () => {
+    it("getOrCreate returns the winner's row instead of a 409 when two creates race", async () => {
       // Same check-then-act race as above, but this time the loser asked
       // to be handed the winner's row instead of failing.
       const winner = { id: 'internal-uuid', publicId: 'conv_winner', name: 'launch-team' };

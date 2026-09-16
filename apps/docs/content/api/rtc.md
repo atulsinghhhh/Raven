@@ -56,6 +56,7 @@ Create a room in this project
 |---|---|---|---|---|
 | `projectId` | path | `string` | Yes | |
 | `name` | body | `string` | Yes | 1–128 chars, pattern-checked — Unique within the project (not globally). Letters, numbers, "-", "_", "." only. |
+| `getOrCreate` | body | `boolean` | No | When true, a name collision returns the existing room instead of a 409 — including when two  |
 
 ### GET `/v1/projects/{projectId}/rooms/{roomId}`
 
@@ -97,6 +98,7 @@ Create a room in the API key's project
 | Parameter | In | Type | Required | Notes |
 |---|---|---|---|---|
 | `name` | body | `string` | Yes | 1–128 chars, pattern-checked — Unique within the project (not globally). Letters, numbers, "-", "_", "." only. |
+| `getOrCreate` | body | `boolean` | No | When true, a name collision returns the existing room instead of a 409 — including when two  |
 
 ### DELETE `/v1/rooms/{id}`
 

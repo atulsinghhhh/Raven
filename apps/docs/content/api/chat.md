@@ -91,8 +91,9 @@ Create a conversation, optionally attached to an RTC room
 | `type` | body | `ConversationType` | No | Defaults to ROOM when roomId is set and to CHANNEL otherwise, but an explicit value here always wins —  |
 | `roomId` | body | `string` | No | Attach this conversation to an existing RTC room, giving that video call a chat panel. |
 | `retentionDays` | body | `number` | No | 1–3650 — Overrides CHAT_RETENTION_DAYS for this conversation. |
-| `members` | body | `ConversationMemberDto[]` | No | array |
+| `members` | body | `ConversationMemberDto[]` | No | array — IMPORTANT: a conversation created with no members is unreadable and unwritable by every client chat  |
 | `metadata` | body | `Record<string, unknown>` | No | Arbitrary developer-owned JSON. Size-capped like message metadata. |
+| `getOrCreate` | body | `boolean` | No | When true, a name collision returns the existing conversation instead of a 409 — including when two  |
 
 ### GET `/v1/chat/conversations/{room}`
 
