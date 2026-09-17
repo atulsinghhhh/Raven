@@ -42,8 +42,10 @@ export 'src/room.dart' show RavenRoom;
 export 'src/types.dart'
     show
         RavenConnectionState,
+        RavenMediaState,
         RavenParticipant,
         RavenRenderableTrack,
+        RavenSimulcastStatus,
         RavenTrackKind;
 export 'src/video_view.dart' show RavenVideoFit, RavenVideoView;
 

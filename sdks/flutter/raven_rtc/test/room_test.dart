@@ -327,4 +327,145 @@ void main() {
       await Future<void>.delayed(Duration.zero);
     });
   });
+
+  group('media state is reported separately from signaling (spec §3)', () {
+    /// A joined room with its peer connection up, which is the state the
+    /// tests below start from.
+    Future<({RavenRoom room, String pcId})> joined() async {
+      final signaling = clientFor();
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
+      final room = RavenRoom.attach(
+        signaling: signaling,
+        engine: engine,
+        roomId: 'room-1',
+        localIdentity: 'alice',
+      );
+
+      final joining = signaling.connect();
+      await Future<void>.delayed(Duration.zero);
+      socket.receive({
+        'type': ServerMessageType.roomJoined,
+        'roomId': 'room-1',
+        'participants': []
+      });
+      room.applyInitialJoin(await joining);
+
+      socket.receive({'type': ServerMessageType.sdpOffer, 'sdp': 'v=0 offer'});
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      return (room: room, pcId: platform.lastPeerConnectionId!);
+    }
+
+    test('a room with no peer connection reports idle, not connected',
+        () async {
+      final signaling = clientFor();
+      final engine = RavenEngine(
+          signaling: signaling, iceServers: const [], adaptiveStream: false);
+      final room = RavenRoom.attach(
+        signaling: signaling,
+        engine: engine,
+        roomId: 'room-1',
+        localIdentity: 'alice',
+      );
+
+      final joining = signaling.connect();
+      await Future<void>.delayed(Duration.zero);
+      socket.receive({
+        'type': ServerMessageType.roomJoined,
+        'roomId': 'room-1',
+        'participants': []
+      });
+      room.applyInitialJoin(await joining);
+
+      expect(room.connectionState, RavenConnectionState.connected);
+      expect(room.mediaState, RavenMediaState.idle,
+          reason: 'nothing has been published or subscribed yet');
+
+      room.dispose();
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+    });
+
+    test(
+        'REGRESSION: a failed ICE transport is visible even though signaling says connected',
+        () async {
+      final context = await joined();
+      final room = context.room;
+
+      final seen = <RavenMediaState>[];
+      final subscription = room.mediaStateChanges.listen(seen.add);
+      await Future<void>.delayed(Duration.zero);
+
+      await platform.peerConnectionState(context.pcId, 'connecting');
+      await platform.peerConnectionState(context.pcId, 'failed');
+      await Future<void>.delayed(Duration.zero);
+
+      // The exact combination that used to be unobservable: the socket is
+      // fine and says so, and no frame will ever arrive.
+      expect(room.connectionState, RavenConnectionState.connected);
+      expect(room.mediaState, RavenMediaState.failed);
+      expect(
+          seen,
+          [
+            RavenMediaState.idle,
+            RavenMediaState.connecting,
+            RavenMediaState.failed,
+          ],
+          reason: 'a new listener is seeded with the current state first');
+
+      await subscription.cancel();
+      room.dispose();
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+    });
+
+    test('a dropped transport reads interrupted, and recovers to connected',
+        () async {
+      final context = await joined();
+      final room = context.room;
+
+      await platform.peerConnectionState(context.pcId, 'connected');
+      await Future<void>.delayed(Duration.zero);
+      expect(room.mediaState, RavenMediaState.connected);
+
+      // A phone changing network passes through here and usually comes
+      // back, which is why this is its own state rather than a failure.
+      await platform.peerConnectionState(context.pcId, 'disconnected');
+      await Future<void>.delayed(Duration.zero);
+      expect(room.mediaState, RavenMediaState.interrupted);
+
+      await platform.peerConnectionState(context.pcId, 'connected');
+      await Future<void>.delayed(Duration.zero);
+      expect(room.mediaState, RavenMediaState.connected);
+
+      room.dispose();
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+    });
+
+    test('a reconnect drops the old transport back to idle', () async {
+      final context = await joined();
+      final room = context.room;
+
+      await platform.peerConnectionState(context.pcId, 'connected');
+      await Future<void>.delayed(Duration.zero);
+      expect(room.mediaState, RavenMediaState.connected);
+
+      // Signaling reconnecting tears the peer connection down: the SFU
+      // allocates a fresh session on rejoin. Continuing to report
+      // `connected` for the connection just discarded would be the most
+      // misleading possible answer.
+      socket.drop(1006);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(room.mediaState, RavenMediaState.idle);
+
+      room.dispose();
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+    });
+  });
 }

@@ -29,6 +29,8 @@ class FakeWebRtcPlatform {
     TestWidgetsFlutterBinding.ensureInitialized();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_channel, _handle);
+    // Subscribed to by flutter_webrtc itself, not by anything under test.
+    _silenceEventChannel('FlutterWebRTC.Event');
   }
 
   static const _channel = MethodChannel('FlutterWebRTC.Method');
@@ -37,6 +39,29 @@ class FakeWebRtcPlatform {
   int _pcCounter = 0;
   int _dcCounter = 0;
   int _senderCounter = 0;
+  int _transceiverCounter = 0;
+  int _textureCounter = 0;
+
+  /// Every `transceiverInit` the SDK passed to `addTransceiver`, in order.
+  ///
+  /// This is the platform-channel payload itself, so a test asserting on it
+  /// is asserting on what genuinely crossed the boundary into native code —
+  /// the same map `PeerConnectionObserver.mapToEncoding` reads `rid`,
+  /// `maxBitrate`, `maxFramerate` and `scaleResolutionDownBy` out of on
+  /// Android.
+  final transceiverInits = <Map<String, dynamic>>[];
+
+  /// Track ids passed to `rtpSenderReplaceTrack`, in order. Proves a
+  /// republish reused its existing transceiver instead of adding an
+  /// m-section.
+  final replacedTracks = <String>[];
+
+  /// Encodings per sender id, as the platform would report them back.
+  final _senderEncodings = <String, List<Map<String, dynamic>>>{};
+
+  /// m-sections the offer will describe, in order.
+  final _mSections = <_MSection>[];
+  final _transceiverMids = <String, String>{};
 
   final _localSdp = <String, String>{};
   final _localType = <String, String>{};
@@ -66,10 +91,38 @@ class FakeWebRtcPlatform {
   /// The peer connection id `createPeerConnection` most recently minted.
   String? lastPeerConnectionId;
 
-  /// Detaches the mock handler. Call from `tearDown`.
+  /// Every stream id handed to `videoRendererSetSrcObject`, in order, with
+  /// `null` for a detach.
+  ///
+  /// This is the boundary a video tile is actually judged at: a widget can
+  /// hold the right track, in the right state, and still render nothing if
+  /// the stream never reaches the renderer's texture. Asserting on the
+  /// widget tree alone cannot tell those apart — see `video_view_test.dart`.
+  final renderedStreamIds = <String?>[];
+
+  /// Accepts `listen`/`cancel` on an EventChannel and delivers nothing.
+  ///
+  /// An EventChannel with no handler throws MissingPluginException the
+  /// moment something subscribes, which fails a test for a reason that
+  /// has nothing to do with what it is asserting.
+  void _silenceEventChannel(String name) {
+    final channel = MethodChannel(name, _codec);
+    _silenced.add(channel);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (_) async => null);
+  }
+
+  final _silenced = <MethodChannel>[];
+
+  /// Detaches the mock handlers. Call from `tearDown`.
   void dispose() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_channel, null);
+    for (final channel in _silenced) {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    }
+    _silenced.clear();
   }
 
   Future<dynamic> _handle(MethodCall call) async {
@@ -90,6 +143,14 @@ class FakeWebRtcPlatform {
         await Future<void>.delayed(Duration.zero);
         _pcCounter++;
         final id = 'pc-$_pcCounter';
+        // RTCPeerConnection subscribes to this as soon as it is
+        // constructed. Unhandled, it throws MissingPluginException into
+        // the zone — invisible to a plain `test`, but a `testWidgets`
+        // treats it as an unexpected framework error and fails whatever
+        // was actually being asserted. Registering a handler only
+        // satisfies `listen`; [_sendEvent] posts to the channel
+        // directly, so the events tests deliver still arrive.
+        _silenceEventChannel('FlutterWebRTC/peerConnectionEvent$id');
         lastPeerConnectionId = id;
         _liveSignalingStates[id] = 'stable';
         return {'peerConnectionId': id, 'sessionId': 'session-$_pcCounter'};
@@ -120,10 +181,7 @@ class FakeWebRtcPlatform {
         return {'sdp': sdp, 'type': _localType[peerConnectionId]};
 
       case 'createOffer':
-        return {
-          'sdp': 'v=0\r\no=- 0 0 IN IP4 0.0.0.0\r\ns=-\r\n',
-          'type': 'offer'
-        };
+        return {'sdp': _buildOfferSdp(), 'type': 'offer'};
 
       case 'createAnswer':
         return {
@@ -133,8 +191,20 @@ class FakeWebRtcPlatform {
 
       case 'addTrack':
         _senderCounter++;
+        final senderId = 'sender-$_senderCounter';
+        // A sender from addTrack has exactly one encoding and no RID —
+        // that is the whole reason simulcast cannot be bolted on
+        // afterwards. Modelled faithfully, because a fake that handed back
+        // three RIDs here would make the broken implementation pass.
+        _senderEncodings[senderId] = const [];
+        _mSections.add(_MSection(
+          kind: 'video',
+          mid: '${_mSections.length}',
+          direction: 'sendrecv',
+          rids: const [],
+        ));
         return {
-          'senderId': 'sender-$_senderCounter',
+          'senderId': senderId,
           'ownsTrack': true,
           'dtmfSenderId': 'dtmf-$_senderCounter',
           'track': {
@@ -151,6 +221,95 @@ class FakeWebRtcPlatform {
             'rtcp': const {'cname': '', 'reducedSize': false},
           },
         };
+
+      case 'addTransceiver':
+        _senderCounter++;
+        _transceiverCounter++;
+        final transceiverSenderId = 'sender-$_senderCounter';
+        final transceiverId = 'transceiver-$_transceiverCounter';
+        final init =
+            (args['transceiverInit'] as Map?)?.cast<String, dynamic>() ??
+                const {};
+        final encodings = ((init['sendEncodings'] as List?) ?? const [])
+            .map((encoding) => (encoding as Map).cast<String, dynamic>())
+            .toList(growable: false);
+
+        // Recorded verbatim so a test can assert on exactly what the SDK
+        // asked the platform for — RIDs, scale factors, bitrates and frame
+        // rates — rather than on the SDK's own notion of what it sent.
+        transceiverInits.add(init);
+        _senderEncodings[transceiverSenderId] = encodings;
+
+        final mid = '${_mSections.length}';
+        _transceiverMids[transceiverId] = mid;
+        _mSections.add(_MSection(
+          kind: (args['mediaType'] as String?) == 'audio' ? 'audio' : 'video',
+          mid: mid,
+          direction:
+              (init['direction'] as String?)?.replaceAll('Only', 'only') ??
+                  'sendrecv',
+          rids: encodings
+              .map((encoding) => encoding['rid'] as String?)
+              .whereType<String>()
+              .toList(growable: false),
+        ));
+
+        return {
+          'transceiverId': transceiverId,
+          'direction': init['direction'] ?? 'sendrecv',
+          'mid': mid,
+          'sender': {
+            'senderId': transceiverSenderId,
+            'ownsTrack': true,
+            'dtmfSenderId': 'dtmf-$_senderCounter',
+            'track': {
+              'id': args['trackId'],
+              'label': 'fake',
+              'kind': 'video',
+              'enabled': true,
+            },
+            'rtpParameters': {
+              'transactionId': 't-$_senderCounter',
+              'encodings': encodings,
+              'headerExtensions': const [],
+              'codecs': const [],
+              'rtcp': const {'cname': '', 'reducedSize': false},
+            },
+          },
+          'receiver': {
+            'receiverId': 'receiver-$_transceiverCounter',
+            'track': {
+              'id': 'recv-${args['trackId']}',
+              'label': 'fake',
+              'kind': 'video',
+              'enabled': true,
+            },
+            'rtpParameters': {
+              'transactionId': 'rt-$_transceiverCounter',
+              'encodings': const [],
+              'headerExtensions': const [],
+              'codecs': const [],
+              'rtcp': const {'cname': '', 'reducedSize': false},
+            },
+          },
+        };
+
+      case 'rtpTransceiverSetDirection':
+        final transceiverId = args['transceiverId'] as String;
+        final mid = _transceiverMids[transceiverId];
+        if (mid != null) {
+          for (final section in _mSections) {
+            if (section.mid == mid) {
+              section.direction =
+                  (args['direction'] as String).replaceAll('Only', 'only');
+            }
+          }
+        }
+        return null;
+
+      case 'rtpSenderReplaceTrack':
+        replacedTracks.add(args['trackId'] as String? ?? '');
+        return null;
 
       case 'createDataChannel':
         _dcCounter++;
@@ -177,6 +336,27 @@ class FakeWebRtcPlatform {
       case 'addCandidate':
       case 'peerConnectionDispose':
       case 'peerConnectionClose':
+      // A texture id is all `RTCVideoRenderer.initialize()` wants back;
+      // everything after it is bookkeeping against that number.
+      case 'createVideoRenderer':
+        final textureId = ++_textureCounter;
+        // The renderer subscribes to this the moment it has an id, and an
+        // unhandled EventChannel fails the test with a
+        // MissingPluginException that has nothing to do with what is
+        // being asserted.
+        _silenceEventChannel('FlutterWebRTC/Texture$textureId');
+        return {'textureId': textureId};
+
+      case 'videoRendererSetSrcObject':
+        // flutter_webrtc sends the empty string, not null, to detach —
+        // recorded as null so a test can say "nothing is bound" without
+        // knowing that.
+        final streamId = args['streamId'] as String?;
+        renderedStreamIds
+            .add(streamId == null || streamId.isEmpty ? null : streamId);
+        return null;
+
+      case 'videoRendererDispose':
       case 'dataChannelSend':
       case 'dataChannelClose':
       case 'dataChannelDispose':
@@ -205,6 +385,22 @@ class FakeWebRtcPlatform {
     );
   }
 
+  /// Delivers a `peerConnectionState` event for [peerConnectionId]:
+  /// `new`, `connecting`, `connected`, `disconnected`, `failed` or
+  /// `closed`.
+  ///
+  /// The only route to this state. flutter_webrtc updates
+  /// `RTCPeerConnection.connectionState` and fires `onConnectionState`
+  /// from this event alone, never from a method-channel response — which
+  /// is the whole reason the SDK could not report media health before it
+  /// listened for it.
+  Future<void> peerConnectionState(String peerConnectionId, String state) {
+    return _sendEvent(
+      'FlutterWebRTC/peerConnectionEvent$peerConnectionId',
+      {'event': 'peerConnectionState', 'state': state},
+    );
+  }
+
   /// Delivers a `dataChannelStateChanged: open` event for the most
   /// recently created data channel, as the native side would once the
   /// SCTP association finishes coming up.
@@ -217,6 +413,112 @@ class FakeWebRtcPlatform {
         'id': _dcCounter,
         'flutterId': 'dc-$_dcCounter',
         'state': 'open',
+      },
+    );
+  }
+
+  /// Builds an offer describing the transceivers that were actually created.
+  ///
+  /// # What this models, and what it cannot
+  ///
+  /// It follows RFC 8853 for the parts that matter here: a send transceiver
+  /// carrying RIDs gets one `a=rid:<id> send` line per layer and a single
+  /// `a=simulcast:send <ids>` line, and a transceiver without RIDs gets
+  /// neither. That is enough to make the distinction the SDK was previously
+  /// getting wrong *visible in the SDP*, which is the only place the claim
+  /// "this publishes simulcast" can be checked at all — an encodings list
+  /// in Dart memory is exactly what the broken implementation had.
+  ///
+  /// It is a model of libwebrtc, not libwebrtc. It cannot prove that a real
+  /// encoder produces three streams, that a device has the capacity to, or
+  /// that Chrome writes these lines the same way. Those need a device; see
+  /// `docs/rtc/test-matrix.md`. What it does prove is that the SDK asks for
+  /// a ladder that would appear in the SDP, and would catch the regression
+  /// this file exists for: `addTrack` plus `setParameters` produces an
+  /// m-section with no `a=rid:` lines at all.
+  String _buildOfferSdp() {
+    final buffer = StringBuffer()
+      ..write('v=0\r\n')
+      ..write('o=- 0 0 IN IP4 0.0.0.0\r\n')
+      ..write('s=-\r\n')
+      ..write('t=0 0\r\n');
+
+    for (final section in _mSections) {
+      buffer
+        ..write('m=${section.kind} 9 UDP/TLS/RTP/SAVPF 96\r\n')
+        ..write('c=IN IP4 0.0.0.0\r\n')
+        ..write('a=mid:${section.mid}\r\n')
+        ..write('a=rtpmap:96 VP8/90000\r\n');
+
+      if (section.rids.isNotEmpty) {
+        // The extensions carrying mid/rid on every packet. Without these
+        // negotiated, a receiver cannot tell one layer from another and
+        // rejects the extra SSRCs outright — which is precisely how the
+        // SFU integration test failed before the harness set them.
+        buffer
+          ..write('a=extmap:1 urn:ietf:params:rtp-hdrext:sdes:mid\r\n')
+          ..write(
+              'a=extmap:2 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\n');
+        for (final rid in section.rids) {
+          buffer.write('a=rid:$rid send\r\n');
+        }
+        buffer.write('a=simulcast:send ${section.rids.join(';')}\r\n');
+      }
+
+      buffer.write('a=${section.direction}\r\n');
+    }
+
+    return buffer.toString();
+  }
+
+  /// Delivers an `onTrack` event for [peerConnectionId], as the native
+  /// side does when the SFU's media for a remote publisher arrives.
+  ///
+  /// No `transceiver` is sent, which is deliberate rather than lazy: with
+  /// no mid to look up, [RavenEngine]'s `_remoteTrackIdFor` falls back to
+  /// the track's own id, so [trackId] here is the id the engine matches
+  /// against what `track.published` announced. That is the same fallback
+  /// a real platform takes on a section whose mid has not settled yet.
+  Future<void> remoteTrack(
+    String peerConnectionId, {
+    required String trackId,
+    required String streamId,
+    String kind = 'video',
+  }) {
+    final track = {
+      'id': trackId,
+      'label': 'remote',
+      'kind': kind,
+      'enabled': true,
+    };
+    return _sendEvent(
+      'FlutterWebRTC/peerConnectionEvent$peerConnectionId',
+      {
+        'event': 'onTrack',
+        'streams': [
+          {
+            'streamId': streamId,
+            'ownerTag': 'remote',
+            'audioTracks': kind == 'audio' ? [track] : <dynamic>[],
+            'videoTracks': kind == 'video' ? [track] : <dynamic>[],
+          },
+        ],
+        'track': track,
+        'receiver': {
+          'receiverId': 'receiver-$trackId',
+          'track': track,
+          // Fully formed, not an empty map: RTCRtpParameters.fromMap
+          // iterates each of these lists unconditionally and throws on a
+          // missing key, which fails the test somewhere unrelated to what
+          // it asserts.
+          'rtpParameters': <String, dynamic>{
+            'transactionId': 'txn-1',
+            'rtcp': {'cname': 'remote', 'reducedSize': false},
+            'headerExtensions': <dynamic>[],
+            'encodings': <dynamic>[],
+            'codecs': <dynamic>[],
+          },
+        },
       },
     );
   }
@@ -240,4 +542,22 @@ class FakeWebRtcPlatform {
   final track =
       MediaStreamTrackNative(trackId, 'fake', kind, true, peerConnectionId);
   return (stream: stream, track: track);
+}
+
+/// One m-section of the offer [FakeWebRtcPlatform] generates.
+class _MSection {
+  _MSection({
+    required this.kind,
+    required this.mid,
+    required this.direction,
+    required this.rids,
+  });
+
+  final String kind;
+  final String mid;
+  String direction;
+
+  /// The simulcast layer ids this section declares. Empty for a sender
+  /// created through `addTrack`, which can never carry any.
+  final List<String> rids;
 }

@@ -1,3 +1,82 @@
+## 0.2.0
+
+Simulcast now actually works. It never had.
+
+* **Fixed (the big one):** `RavenEngine.publish()` called
+  `pc.addTrack()` and then tried to attach a three-layer ladder with
+  `sender.setParameters()`. That cannot work — the WebRTC specification
+  requires implementations to reject a change to a sender's *number* of
+  encodings, and RIDs only reach the SDP when they were present before the
+  offer was generated. The error was caught by a bare `catch (_)` and
+  discarded, so every published camera sent a single full-resolution layer
+  while the SDK reported success. Subscribers had no cheaper layer to drop
+  to, which is what made a call past four or five participants cost every
+  device the full bitrate of every other device.
+
+  A camera is now published through `pc.addTransceiver()` with
+  `sendEncodings` declared at creation, which is the only point a ladder can
+  be declared. The generated offer carries `a=simulcast:send low;medium;high`
+  and three `a=rid:` lines, and the SFU answers `a=simulcast:recv`.
+
+* **Fixed:** an explicit `room.requestLayer(...)` was silently dropped
+  whenever `adaptiveStream` was false — the one combination that means "I
+  will manage quality myself". It now always works; `adaptiveStream` gates
+  only automatic requests.
+
+* **Added:** `RavenSimulcastStatus` and `RavenRoom.simulcastStatusFor(kind)`.
+  Read back from the negotiated sender, never from what was requested. A
+  platform that refuses the ladder reports `unsupported` and logs a warning
+  rather than failing silently, and still publishes a single layer.
+
+* **Changed:** an explicit `requestLayer` now *pins* a track — adaptive
+  streaming will not move it afterwards. Pass `'auto'` to release the pin.
+  Previously a manual choice was undone by the next layout pass. The
+  signature is unchanged; it still takes the layer as a `String`.
+
+* **Changed:** `RavenVideoView`'s adaptive layer selection gained hysteresis
+  and a 250 ms debounce. A grid that lands tiles on a threshold used to flip
+  them between layers on every small nudge, and each flip costs a real layer
+  switch — the SFU waits for a keyframe and the tile stutters.
+
+* **Changed:** republishing a camera reuses its transceiver. Without that,
+  every `disableCamera()`/`enableCamera()` cycle added an m-section that
+  never went away.
+
+* **Fixed:** a tile stayed on its placeholder after the camera it shows
+  was enabled, and would only correct itself when some unrelated event
+  happened to rebuild the tree. Two things had to line up. `RavenRoom`
+  notifies its listeners *synchronously*, before the microtask that
+  delivers the new roster on `participantChanges` runs, so
+  `RavenVideoView`'s own listener re-resolved against a
+  `widget.participant` that was still the snapshot from before the
+  publish — and found nothing. The rebuild that followed carried the
+  right snapshot, but `didUpdateWidget` skipped re-resolving because
+  `RavenParticipant` compares by identity alone: two snapshots of the
+  same person are `==` however different what they are publishing is.
+
+  `RavenVideoView` now reads the participant back from the room by
+  identity rather than trusting the snapshot it was handed, and
+  re-resolves on every rebuild. The workaround that was circulating —
+  keying the view on `isCameraEnabled`/`isScreenSharing` — is no longer
+  needed, and harmless if you keep it. This affected remote tiles as well
+  as local ones, and the layer request adaptive streaming makes on a
+  tile's behalf, which was being dropped for the same reason.
+
+* **Added:** `RavenRoom.mediaState` and `RavenRoom.mediaStateChanges`,
+  reporting a new `RavenMediaState` read from the peer connection itself.
+
+  `RavenConnectionState` is, and has always been, the *signaling*
+  connection: it reads `connected` the moment the server accepts the
+  join, whatever the media transport is doing. A network that permits
+  outbound TLS but drops UDP therefore produced a room that joined
+  cleanly, listed its participants, relayed chat, and never carried a
+  frame — while every observable the SDK offered said `connected`. There
+  was no way to tell that apart from "nobody has published yet" without
+  reading `flutter_webrtc`'s logs. `mediaState` answers that question
+  directly: `idle`, `connecting`, `connected`, `interrupted`, `failed`,
+  `closed`. `RavenConnectionState`'s own documentation now says plainly
+  what it does and does not cover.
+
 ## 0.1.8
 
 Fixes the local self-preview tile staying on its placeholder while the

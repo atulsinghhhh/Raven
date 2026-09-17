@@ -197,7 +197,45 @@ class RavenRoom extends ChangeNotifier {
   /// a claim, not a fact.
   Stream<List<int>> get data => _dataController.stream;
 
+  /// Whether the *signaling* connection is up. See
+  /// [RavenConnectionState]: this says nothing about whether media is
+  /// flowing, and reads `connected` for a room whose transport has
+  /// failed. Pair it with [mediaState] before telling a user a call is
+  /// working.
   RavenConnectionState get connectionState => _connectionState;
+
+  /// Whether media can actually flow, read from the peer connection.
+  ///
+  /// The question [connectionState] cannot answer. A room that joined
+  /// normally and then could not establish a transport — UDP blocked,
+  /// TURN unreachable, the SFU never answering — reads
+  /// `connectionState: connected` and `mediaState: failed`, and the
+  /// second one is the diagnosis.
+  ///
+  /// [RavenMediaState.idle] until something is published or subscribed:
+  /// no peer connection exists before then, and reporting a health for a
+  /// connection that was never attempted would be an invention.
+  RavenMediaState get mediaState => _engine.mediaState;
+
+  /// Changes to [mediaState].
+  ///
+  /// Each listener is given the current value on subscribe, for the same
+  /// reason [participantChanges] is: the interesting transition routinely
+  /// happens while an application is still wiring itself up, and a plain
+  /// broadcast stream drops it.
+  Stream<RavenMediaState> get mediaStateChanges => Stream.multi((controller) {
+        if (_disposed) {
+          controller.close();
+          return;
+        }
+        controller.add(_engine.mediaState);
+        final subscription = _engine.mediaStates.listen(
+          controller.add,
+          onError: controller.addError,
+          onDone: controller.close,
+        );
+        controller.onCancel = subscription.cancel;
+      }, isBroadcast: true);
 
   /// The RTC server serving this room, by name. For support and
   /// diagnostics; never an address.
@@ -429,8 +467,23 @@ class RavenRoom extends ChangeNotifier {
   /// Asks the SFU for a specific simulcast layer of a subscribed track.
   ///
   /// A preference, not a command: the SFU will not hand over a layer the
-  /// publisher is not sending. [RavenVideoView] calls this on your behalf
-  /// when `adaptiveStream` is on.
+  /// publisher is not sending, and congestion control may hold the
+  /// subscriber below what was asked for. [RavenVideoView] calls this on
+  /// your behalf when `adaptiveStream` is on.
+  ///
+  /// # Precedence
+  ///
+  /// Calling this **pins** the track. Adaptive streaming will not move it
+  /// afterwards, however the tile is resized, so a call here is not quietly
+  /// undone by the next layout pass. Pass [RavenVideoLayer.auto] to release
+  /// the pin and hand the track back to adaptive streaming — or, with
+  /// adaptive streaming off, to hand the choice back to the SFU.
+  ///
+  /// Works with `adaptiveStream: false` too. That combination means "I will
+  /// manage quality myself", which is a reasonable thing to want; it used
+  /// to be ignored.
+  /// [layer] is `'low'`, `'medium'`, `'high'`, or `'auto'`. Kept a plain
+  /// String rather than an enum so existing callers keep compiling.
   void requestLayer(
     RavenParticipant participant,
     RavenTrackKind kind,
@@ -439,6 +492,39 @@ class RavenRoom extends ChangeNotifier {
     final track = participant.videoTrackFor(kind);
     if (track == null) return;
     _engine.requestLayer(participant.identity, track.trackId, layer);
+  }
+
+  /// Whether a source this device publishes is genuinely sending a
+  /// simulcast ladder.
+  ///
+  /// Read back from the negotiated sender, not from what was requested. A
+  /// platform that refuses the ladder publishes one full-quality layer and
+  /// reports [RavenSimulcastStatus.unsupported] here, having already logged
+  /// a warning — subscribers then cannot drop to a cheaper layer, which is
+  /// what makes a large call expensive for everyone in it.
+  RavenSimulcastStatus simulcastStatusFor(RavenTrackKind kind) =>
+      _engine.simulcastStatusFor(switch (kind) {
+        RavenTrackKind.camera => 'camera',
+        RavenTrackKind.microphone => 'microphone',
+        RavenTrackKind.screenShare => 'screenShare',
+        RavenTrackKind.unknown => 'unknown',
+      });
+
+  /// @internal Adaptive streaming's own layer request, from
+  /// [RavenVideoView]. Never overrides an application's pin.
+  void requestLayerAutomatically(
+    RavenParticipant participant,
+    RavenTrackKind kind,
+    RavenVideoLayer layer,
+  ) {
+    final track = participant.videoTrackFor(kind);
+    if (track == null) return;
+    _engine.requestLayer(
+      participant.identity,
+      track.trackId,
+      layer.wireName,
+      automatic: true,
+    );
   }
 
   /// Leaves the room and releases all local media.

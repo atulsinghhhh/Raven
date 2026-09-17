@@ -3,6 +3,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 
 import 'dart:async';
 
+import 'internal/adaptive_layer.dart';
 import 'room.dart';
 import 'types.dart';
 
@@ -98,10 +99,17 @@ class _RavenVideoViewState extends State<RavenVideoView> {
       widget.room?.addListener(_syncTrack);
     }
 
-    if (oldWidget.participant != widget.participant ||
-        oldWidget.kind != widget.kind) {
-      _syncTrack();
-    }
+    // Unconditional, deliberately. The obvious guard —
+    // `oldWidget.participant != widget.participant` — is worse than no
+    // guard at all here, because [RavenParticipant] compares by identity
+    // alone: two snapshots of the same person are `==` however different
+    // what they are publishing is. A rebuild carrying the snapshot in
+    // which somebody's camera finally appears therefore looked like no
+    // change, and the tile stayed on its placeholder until some unrelated
+    // event happened to nudge it. [_syncTrack] is already a no-op when
+    // the resolved track hasn't actually changed, so there is nothing to
+    // save by guessing.
+    _syncTrack();
   }
 
   @override
@@ -109,6 +117,10 @@ class _RavenVideoViewState extends State<RavenVideoView> {
     // Without this the room keeps a reference to a dead State object,
     // and every scrolled-away tile stays subscribed forever.
     widget.room?.removeListener(_syncTrack);
+    // A pending layer request outliving the widget would fire against a
+    // disposed State and, worse, ask for a layer for a tile that is no
+    // longer on screen.
+    _resizeDebounce?.cancel();
     // Detached before disposing: a renderer disposed while still bound to
     // a live stream can outlive its texture on the platform side.
     _renderer.srcObject = null;
@@ -130,7 +142,42 @@ class _RavenVideoViewState extends State<RavenVideoView> {
   }
 
   RavenRenderableTrack? _resolveTrack() =>
-      widget.participant?.videoTrackFor(widget.kind);
+      _currentParticipant()?.videoTrackFor(widget.kind);
+
+  /// The room's *current* snapshot of whoever [RavenVideoView.participant]
+  /// names, rather than the snapshot the caller happened to pass.
+  ///
+  /// [RavenParticipant] is a value object: it records what someone was
+  /// publishing at one moment and never updates. That is fine for the
+  /// widget's own build, which the application re-runs with a fresh
+  /// roster, but [_syncTrack] also runs from the room's own
+  /// [ChangeNotifier] — and [RavenRoom] notifies *synchronously*, before
+  /// the microtask that delivers the new roster on `participantChanges`
+  /// has run. So at that moment `widget.participant` is still the previous
+  /// snapshot, with no camera track on it, and resolving from it found
+  /// nothing at exactly the instant there was finally something to find.
+  ///
+  /// Re-reading from the room closes that window: the roster behind
+  /// `room.participants` is already updated by the time listeners are
+  /// notified, so the track is visible on the first notification rather
+  /// than whenever the next unrelated one happens to arrive.
+  ///
+  /// Returns null once the room no longer lists them — they have left, and
+  /// a tile that kept rendering their last frame would be claiming
+  /// somebody is still in the call.
+  RavenParticipant? _currentParticipant() {
+    final participant = widget.participant;
+    final room = widget.room;
+    if (participant == null || room == null) return participant;
+
+    for (final current in room.participants) {
+      if (current.identity == participant.identity &&
+          current.isLocal == participant.isLocal) {
+        return current;
+      }
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -172,23 +219,55 @@ class _RavenVideoViewState extends State<RavenVideoView> {
   /// publisher is not sending. Only sent for remote tracks: asking for a
   /// layer of your own camera would be asking the server to change what
   /// you are sending.
+  ///
+  /// Measured in logical pixels, the same unit the web SDK measures an
+  /// element in, so a tile of a given size picks the same layer on both.
   void _requestLayerFor(BoxConstraints constraints) {
     final room = widget.room;
-    final participant = widget.participant;
+    // The room's current snapshot, for the same reason [_resolveTrack]
+    // uses it: `requestLayerAutomatically` looks the track up on whatever
+    // participant it is handed, so a stale one finds no track and the
+    // request is silently dropped.
+    final participant = _currentParticipant();
     if (room == null || participant == null || participant.isLocal) return;
 
     final width = constraints.maxWidth;
     if (!width.isFinite || width <= 0) return;
 
-    final layer = switch (width) {
-      < 240 => 'low',
-      < 640 => 'medium',
-      _ => 'high',
-    };
+    final layer = adaptiveLayerFor(
+      logicalPixels: width,
+      current: _requestedLayer,
+    );
     if (layer == _requestedLayer) return;
-    _requestedLayer = layer;
-    room.requestLayer(participant, widget.kind, layer);
+
+    // Debounced rather than sent from the layout pass. A resize animation,
+    // a rotation, or a grid reflowing as somebody joins all produce a burst
+    // of constraint changes, and a message per frame is both pointless and
+    // a real step towards the connection's rate limit. Layout must also
+    // stay free of side effects: sending from inside build() is how a
+    // "setState during build" lands on somebody's screen.
+    _pendingLayer = layer;
+    _resizeDebounce?.cancel();
+    _resizeDebounce = Timer(_layerChangeDebounce, () {
+      if (!mounted) return;
+      final next = _pendingLayer;
+      if (next == null || next == _requestedLayer) return;
+      // Resolved again rather than captured: a quarter of a second is
+      // long enough for the roster to have moved on, and the snapshot
+      // taken during layout would by then find no track to ask about.
+      final target = _currentParticipant();
+      if (target == null) return;
+      _requestedLayer = next;
+      room.requestLayerAutomatically(target, widget.kind, next);
+    });
   }
 
-  String? _requestedLayer;
+  RavenVideoLayer? _requestedLayer;
+  RavenVideoLayer? _pendingLayer;
+  Timer? _resizeDebounce;
 }
+
+/// How long a tile has to hold its new size before the layer request goes
+/// out. Long enough to swallow a resize animation, short enough that a
+/// genuine layout change is served well inside a second.
+const _layerChangeDebounce = Duration(milliseconds: 250);

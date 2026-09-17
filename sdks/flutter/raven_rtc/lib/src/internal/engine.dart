@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:typed_data';
 
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 
 import '../errors.dart';
+import '../types.dart';
 import 'protocol.dart';
 import 'signaling_client.dart';
 
@@ -15,11 +17,62 @@ const _dataChannelLabel = 'raven-data';
 ///
 /// Three spatial layers, each a quarter of the previous one's pixel count
 ///: the standard ladder, and the one native WebRTC implements well.
-const _simulcastEncodings = [
-  ('low', 4.0, 150000),
-  ('medium', 2.0, 500000),
-  ('high', 1.0, 1500000),
+///
+/// The RIDs are load-bearing, not labels. They travel in an RTP header
+/// extension on every packet, and the SFU maps them straight onto its own
+/// layer names (`services/sfu/internal/room/downtrack.go`, `layerFromRID`).
+/// An RID that does not reach the wire is a layer the SFU cannot offer
+/// anyone.
+///
+/// `low` is capped at 15fps: at a quarter width it is feeding a thumbnail,
+/// where halving the frame rate is invisible and halves the bitrate again.
+const simulcastEncodings = <SimulcastLayerSpec>[
+  SimulcastLayerSpec(
+      rid: 'low',
+      scaleResolutionDownBy: 4.0,
+      maxBitrate: 150000,
+      maxFramerate: 15),
+  SimulcastLayerSpec(
+      rid: 'medium',
+      scaleResolutionDownBy: 2.0,
+      maxBitrate: 500000,
+      maxFramerate: 30),
+  SimulcastLayerSpec(
+      rid: 'high',
+      scaleResolutionDownBy: 1.0,
+      maxBitrate: 1500000,
+      maxFramerate: 30),
 ];
+
+/// One rung of the ladder.
+class SimulcastLayerSpec {
+  const SimulcastLayerSpec({
+    required this.rid,
+    required this.scaleResolutionDownBy,
+    required this.maxBitrate,
+    required this.maxFramerate,
+  });
+
+  final String rid;
+  final double scaleResolutionDownBy;
+  final int maxBitrate;
+  final int maxFramerate;
+
+  rtc.RTCRtpEncoding toEncoding() => rtc.RTCRtpEncoding(
+        rid: rid,
+        scaleResolutionDownBy: scaleResolutionDownBy,
+        maxBitrate: maxBitrate,
+        maxFramerate: maxFramerate,
+      );
+}
+
+/// Sources that publish a simulcast ladder.
+///
+/// A microphone has no spatial layering to do and Opus manages its own
+/// bitrate. A screen share is left at one high-quality layer on purpose:
+/// the content is usually text, and dropping resolution wrecks legibility
+/// in a way it never does for a face.
+bool sourceUsesSimulcast(String source) => source == 'camera';
 
 /// One track this participant is receiving.
 class SubscribedTrack {
@@ -54,6 +107,11 @@ class PublishedTrack {
   final rtc.MediaStream stream;
   final rtc.RTCRtpSender sender;
   bool muted = false;
+
+  /// Whether the simulcast ladder this source asked for is genuinely on
+  /// the sender. Read back from the platform after negotiation — never
+  /// assumed from what was requested. See [RavenSimulcastStatus].
+  RavenSimulcastStatus simulcast = RavenSimulcastStatus.notApplicable;
 }
 
 /// Drives the peer connection against Livqeno's signaling.
@@ -102,6 +160,30 @@ class RavenEngine {
   final _pendingMedia =
       <String, ({rtc.MediaStreamTrack track, rtc.MediaStream stream})>{};
   final _deferredPublishes = <Future<void> Function()>[];
+
+  /// Transceivers this engine created for a simulcast source, by source.
+  ///
+  /// Kept so republishing reuses the m-section it already has. A ladder can
+  /// only be declared when a transceiver is created, so a camera toggled off
+  /// and on again cannot go back through `addTransceiver` without growing
+  /// the SDP every time. Cleared with the peer connection in
+  /// [_createPeerConnection]: a transceiver belongs to one connection and a
+  /// reconnect builds a new one.
+  final _simulcastTransceivers = <String, rtc.RTCRtpTransceiver>{};
+
+  /// Layers an application pinned explicitly, keyed by `participantId/trackId`.
+  ///
+  /// Adaptive streaming never overrides one of these. See [requestLayer] for
+  /// the precedence rules and how a pin is released.
+  final _pinnedLayers = <String, String>{};
+
+  /// The layer last *sent* for a subscription, keyed the same way.
+  ///
+  /// Purely to avoid re-sending a preference the SFU already has. A tile
+  /// being laid out repeatedly at the same size is the normal case, not the
+  /// exception, and every redundant message is one closer to the
+  /// connection's rate limit.
+  final _sentLayers = <String, String>{};
 
   /// Completes once the SFU's first offer for the *current* peer connection
   /// generation has been answered (see [_handleOffer]).
@@ -188,6 +270,16 @@ class RavenEngine {
   String? _remoteIceState;
   String? _remotePeerState;
   bool _disposed = false;
+
+  final _mediaStates = StreamController<RavenMediaState>.broadcast();
+  RavenMediaState _mediaState = RavenMediaState.idle;
+
+  /// Whether the media transport can actually carry packets, as the peer
+  /// connection itself reports it — never inferred from signaling.
+  RavenMediaState get mediaState => _mediaState;
+
+  /// Changes to [mediaState]. Broadcast, and only fires on a transition.
+  Stream<RavenMediaState> get mediaStates => _mediaStates.stream;
 
   /// Fires whenever the track or participant set changed.
   Stream<void> get changes => _changes.stream;
@@ -447,6 +539,18 @@ class RavenEngine {
       throw StateError('peer connection reset while it was being created');
     }
 
+    // A transceiver belongs to the connection that created it, so anything
+    // cached from the previous generation is now a handle to a closed
+    // object. Kept here rather than in the reconnect path so every route to
+    // a new connection clears it, including ones added later.
+    _simulcastTransceivers.clear();
+    // Subscriptions are renegotiated from scratch too, so the SFU has no
+    // memory of what was last asked for. Pins are application intent and
+    // deliberately survive; what cannot survive is the record of what was
+    // already sent, or a restored subscription would keep whatever layer
+    // the SFU defaults to.
+    _sentLayers.clear();
+
     pc.onIceCandidate = (candidate) {
       if (candidate.candidate == null) {
         // End of gathering. Not forwarded: the server treats the absence
@@ -461,6 +565,8 @@ class RavenEngine {
         sdpMLineIndex: candidate.sdpMLineIndex,
       ).toJson());
     };
+
+    pc.onConnectionState = _handleConnectionState;
 
     pc.onTrack = (event) => unawaited(_handleIncomingTrack(event));
 
@@ -769,8 +875,45 @@ class RavenEngine {
   /// A preference, not a command: the SFU will not hand over a layer the
   /// publisher is not sending, and congestion control may hold it lower.
   /// A UI that treated this as a command would show the wrong quality.
-  void requestLayer(String participantId, String trackId, String layer) {
-    if (!adaptiveStream) return;
+  /// Precedence, highest first:
+  ///
+  /// 1. **An explicit application request** (`automatic: false`). It pins
+  ///    the subscription: adaptive streaming will not move it afterwards.
+  ///    Requesting `auto` releases the pin and hands the track back to
+  ///    adaptive streaming.
+  /// 2. **Adaptive streaming** (`automatic: true`), when [adaptiveStream] is
+  ///    on and the track is not pinned. Driven by rendered tile size from
+  ///    `RavenVideoView`.
+  /// 3. **The SFU's own choice**, when neither has said anything: `auto`,
+  ///    which resolves to the best layer available.
+  ///
+  /// Whatever wins, it stays a preference. The SFU will not hand over a
+  /// layer the publisher is not sending, and congestion control may hold a
+  /// subscriber below the layer it asked for.
+  ///
+  /// [adaptiveStream] gates only rule 2. An explicit request works with
+  /// adaptive streaming off — that combination is precisely "I will manage
+  /// quality myself", and it used to be silently ignored.
+  void requestLayer(
+    String participantId,
+    String trackId,
+    String layer, {
+    bool automatic = false,
+  }) {
+    final key = _subscriptionKey(participantId, trackId);
+
+    if (automatic) {
+      if (!adaptiveStream) return;
+      if (_pinnedLayers.containsKey(key)) return;
+    } else if (layer == 'auto') {
+      _pinnedLayers.remove(key);
+    } else {
+      _pinnedLayers[key] = layer;
+    }
+
+    if (_sentLayers[key] == layer) return;
+    _sentLayers[key] = layer;
+
     signaling.send({
       'type': ClientMessageType.subscriptionUpdate,
       'publisherId': participantId,
@@ -778,6 +921,17 @@ class RavenEngine {
       'layer': layer,
     });
   }
+
+  /// The layer an application pinned for a subscription, if any.
+  String? pinnedLayer(String participantId, String trackId) =>
+      _pinnedLayers[_subscriptionKey(participantId, trackId)];
+
+  /// The simulcast state of a source this device is publishing.
+  RavenSimulcastStatus simulcastStatusFor(String source) =>
+      _published[source]?.simulcast ?? RavenSimulcastStatus.notApplicable;
+
+  static String _subscriptionKey(String participantId, String trackId) =>
+      '$participantId/$trackId';
 
   // -------------------------------------------------------------------
   // Publishing
@@ -791,16 +945,13 @@ class RavenEngine {
   }) async {
     final pc = await _ensurePeerConnection();
 
-    final rtc.RTCRtpSender sender;
-    try {
-      sender = await pc.addTrack(track, stream);
-    } catch (error) {
-      throw RavenException(
-        RavenErrorCode.mediaError,
-        'Could not add the $source track to the connection.',
-        error,
-      );
-    }
+    final attached = await _attachSender(
+      pc: pc,
+      source: source,
+      stream: stream,
+      track: track,
+    );
+    final sender = attached.sender;
 
     // Declared over signaling, not inferred from the SDP: an application
     // cannot choose the stream or track id that reaches the wire, so
@@ -813,16 +964,12 @@ class RavenEngine {
       'source': source,
     });
 
-    if (source == 'camera') {
-      await _applySimulcast(sender);
-    }
-
     final published = PublishedTrack(
       source: source,
       track: track,
       stream: stream,
       sender: sender,
-    );
+    )..simulcast = attached.simulcast;
     _published[source] = published;
     // The local MediaStream is already capturing and ready to render right
     // here — notify now rather than waiting for the SFU round trip below,
@@ -846,8 +993,178 @@ class RavenEngine {
     // which calls _negotiatePublish directly because it already runs
     // inside one. See _serialized's doc comment.
     await _serialized(_negotiatePublish);
+
+    // Only now can the ladder be confirmed. Before the offer/answer round
+    // the platform has not committed to a set of encodings, and asking it
+    // earlier is how the previous implementation convinced itself simulcast
+    // was on: it read back an empty list, took the early return, and never
+    // looked again.
+    if (attached.simulcast == RavenSimulcastStatus.pending) {
+      published.simulcast = await _confirmSimulcast(source, sender);
+    }
+
     _notify();
     return published;
+  }
+
+  /// Puts a local track on the connection, with a simulcast ladder when the
+  /// source calls for one.
+  ///
+  /// # Why this is not `addTrack`
+  ///
+  /// `addTrack` returns a sender with exactly one encoding, and the number
+  /// of encodings on a sender is fixed for its lifetime — `setParameters`
+  /// is specified to reject any change to it. RIDs also only reach the SDP
+  /// (`a=simulcast:send`, `a=rid:`) when they were present before the offer
+  /// was generated. So the ladder has to be declared at the moment the
+  /// transceiver is created and can never be added afterwards, which is
+  /// exactly what the previous `addTrack` + `setParameters` pair tried to
+  /// do, failed at, and hid.
+  ///
+  /// # The transceiver it reuses
+  ///
+  /// The SFU pre-creates a recvonly audio and video transceiver for every
+  /// participant so an ordinary first publish costs no renegotiation, and
+  /// `addTrack` reuses those. A simulcast publisher cannot: those
+  /// transceivers already exist with one encoding. It offers its own
+  /// m-section instead, which `Participant.AcceptOffer` on the SFU answers
+  /// normally.
+  ///
+  /// What it does reuse is its *own* previous transceiver, kept in
+  /// [_simulcastTransceivers]. Without that, every `disableCamera()` /
+  /// `enableCamera()` cycle would add an m-section that never goes away,
+  /// and a call where somebody toggles their camera a few dozen times would
+  /// carry an SDP to match.
+  Future<({rtc.RTCRtpSender sender, RavenSimulcastStatus simulcast})>
+      _attachSender({
+    required rtc.RTCPeerConnection pc,
+    required String source,
+    required rtc.MediaStream stream,
+    required rtc.MediaStreamTrack track,
+  }) async {
+    if (!sourceUsesSimulcast(source)) {
+      try {
+        final sender = await pc.addTrack(track, stream);
+        return (sender: sender, simulcast: RavenSimulcastStatus.notApplicable);
+      } catch (error) {
+        throw RavenException(
+          RavenErrorCode.mediaError,
+          'Could not add the $source track to the connection.',
+          error,
+        );
+      }
+    }
+
+    final existing = _simulcastTransceivers[source];
+    if (existing != null) {
+      try {
+        await existing.sender.replaceTrack(track);
+        await existing.setDirection(rtc.TransceiverDirection.SendOnly);
+        return (
+          sender: existing.sender,
+          simulcast: RavenSimulcastStatus.pending,
+        );
+      } catch (error) {
+        // The transceiver is gone or unusable — a reconnect rebuilt the
+        // peer connection under us, say. Fall through and build a new one
+        // rather than failing a publish over a cache.
+        developer.log(
+          'reusing the $source transceiver failed; creating a new one',
+          name: 'raven_rtc',
+          level: 800, // INFO
+          error: error,
+        );
+        _simulcastTransceivers.remove(source);
+      }
+    }
+
+    try {
+      final transceiver = await pc.addTransceiver(
+        track: track,
+        kind: rtc.RTCRtpMediaType.RTCRtpMediaTypeVideo,
+        init: rtc.RTCRtpTransceiverInit(
+          direction: rtc.TransceiverDirection.SendOnly,
+          streams: [stream],
+          sendEncodings: simulcastEncodings
+              .map((layer) => layer.toEncoding())
+              .toList(growable: false),
+        ),
+      );
+      _simulcastTransceivers[source] = transceiver;
+      return (
+        sender: transceiver.sender,
+        simulcast: RavenSimulcastStatus.pending,
+      );
+    } catch (error) {
+      // A platform that will not take the ladder still has to be able to
+      // publish. Falling back to one layer is the controlled outcome; doing
+      // it silently is what let this ship broken, so it is logged loudly and
+      // recorded on the publication.
+      developer.log(
+        'simulcast is unavailable on this platform: the $source track will '
+        'publish a single full-quality layer, so subscribers cannot drop to '
+        'a cheaper one and a large call will cost every participant the full '
+        'bitrate. Raven.simulcastStatusFor() reports this.',
+        name: 'raven_rtc',
+        level: 900, // WARNING
+        error: error,
+      );
+      try {
+        final sender = await pc.addTrack(track, stream);
+        return (sender: sender, simulcast: RavenSimulcastStatus.unsupported);
+      } catch (fallbackError) {
+        throw RavenException(
+          RavenErrorCode.mediaError,
+          'Could not add the $source track to the connection.',
+          fallbackError,
+        );
+      }
+    }
+  }
+
+  /// Reads the ladder back off the sender once negotiation has settled.
+  ///
+  /// The check that matters is the RID count, because that is what the SFU
+  /// keys layers on. A sender reporting one encoding is publishing one
+  /// layer no matter what was asked for.
+  Future<RavenSimulcastStatus> _confirmSimulcast(
+    String source,
+    rtc.RTCRtpSender sender,
+  ) async {
+    try {
+      final encodings = sender.parameters.encodings ?? const [];
+      final rids = encodings
+          .map((encoding) => encoding.rid)
+          .whereType<String>()
+          .where((rid) => rid.isNotEmpty)
+          .toSet();
+      final wanted = simulcastEncodings.map((layer) => layer.rid).toSet();
+
+      if (rids.containsAll(wanted)) {
+        return RavenSimulcastStatus.enabled;
+      }
+
+      developer.log(
+        'simulcast did not survive negotiation for the $source track: the '
+        'sender reports layers $rids, expected $wanted. Subscribers will all '
+        'receive the one layer being sent.',
+        name: 'raven_rtc',
+        level: 900, // WARNING
+      );
+      return RavenSimulcastStatus.unsupported;
+    } catch (error) {
+      // Reading parameters back is a platform call and can fail on its own.
+      // Unknown is reported as unsupported rather than enabled: claiming a
+      // ladder that may not exist is the failure mode being fixed here.
+      developer.log(
+        'could not read back the $source sender parameters to confirm '
+        'simulcast; assuming it is not active.',
+        name: 'raven_rtc',
+        level: 900, // WARNING
+        error: error,
+      );
+      return RavenSimulcastStatus.unsupported;
+    }
   }
 
   Future<void> unpublish(String source) async {
@@ -912,30 +1229,6 @@ class RavenEngine {
     }
     await previous.stop();
     _notify();
-  }
-
-  Future<void> _applySimulcast(rtc.RTCRtpSender sender) async {
-    try {
-      final parameters = sender.parameters;
-      // Some platforms report no encodings until the first negotiation
-      // completes. Setting them then fails; the SFU falls back to a single
-      // layer, which is correct, not broken.
-      if (parameters.encodings == null || parameters.encodings!.isEmpty) {
-        return;
-      }
-
-      parameters.encodings = _simulcastEncodings
-          .map((encoding) => rtc.RTCRtpEncoding(
-                rid: encoding.$1,
-                scaleResolutionDownBy: encoding.$2,
-                maxBitrate: encoding.$3,
-              ))
-          .toList(growable: false);
-      await sender.setParameters(parameters);
-    } catch (_) {
-      // Not fatal. A publisher without simulcast still publishes; every
-      // subscriber just receives the one layer.
-    }
   }
 
   // -------------------------------------------------------------------
@@ -1126,8 +1419,15 @@ class RavenEngine {
       pc.onIceCandidate = null;
       pc.onTrack = null;
       pc.onDataChannel = null;
+      pc.onConnectionState = null;
       await pc.close();
     }
+    // Back to having no transport at all, which is what `idle` means.
+    // Left reading `connected` from the connection just torn down, the
+    // next reconnect would look healthy for as long as it took the new
+    // connection to report anything — exactly the window where an
+    // application most wants the truth.
+    _setMediaState(RavenMediaState.idle);
     _notify();
   }
 
@@ -1152,11 +1452,46 @@ class RavenEngine {
     await _changes.close();
     await _errors.close();
     await _data.close();
+    await _mediaStates.close();
   }
 
   void _notify() {
     if (_disposed || _changes.isClosed) return;
     _changes.add(null);
+  }
+
+  /// Translates the peer connection's own state into [RavenMediaState].
+  ///
+  /// `new` is reported as [RavenMediaState.connecting] rather than
+  /// [RavenMediaState.idle]: by the time a connection exists to report
+  /// `new`, an attempt is under way, and "idle" is reserved for having no
+  /// connection at all. Distinguishing them is what lets an application
+  /// tell "nobody has published yet" from "we are trying and it is not
+  /// working".
+  void _handleConnectionState(rtc.RTCPeerConnectionState state) {
+    _setMediaState(switch (state) {
+      rtc.RTCPeerConnectionState.RTCPeerConnectionStateNew ||
+      rtc.RTCPeerConnectionState.RTCPeerConnectionStateConnecting =>
+        RavenMediaState.connecting,
+      rtc.RTCPeerConnectionState.RTCPeerConnectionStateConnected =>
+        RavenMediaState.connected,
+      rtc.RTCPeerConnectionState.RTCPeerConnectionStateDisconnected =>
+        RavenMediaState.interrupted,
+      rtc.RTCPeerConnectionState.RTCPeerConnectionStateFailed =>
+        RavenMediaState.failed,
+      rtc.RTCPeerConnectionState.RTCPeerConnectionStateClosed =>
+        RavenMediaState.closed,
+    });
+  }
+
+  void _setMediaState(RavenMediaState next) {
+    if (_disposed || _mediaState == next || _mediaStates.isClosed) return;
+    _mediaState = next;
+    _mediaStates.add(next);
+    // Folded into the same change notification everything else uses, so a
+    // widget rebuilding from the room picks this up without subscribing
+    // to a second thing.
+    _notify();
   }
 
   static String _key(String participantId, String trackId) =>
