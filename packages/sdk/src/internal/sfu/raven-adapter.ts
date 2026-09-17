@@ -5,6 +5,14 @@ import { LocalParticipant, RemoteParticipant } from '../../participant';
 import { LocalTrack, RemoteTrack, type TrackKind } from '../../track';
 import { createCameraTrack, createMicrophoneTrack, createScreenShareTrack } from '../media/capture';
 import { NativeLocalTrackDelegate, NativeRemoteTrackDelegate } from '../media/native-track';
+import { AdaptiveStreamController, type VideoLayer } from '../media/adaptive-stream';
+import {
+  SIMULCAST_LAYERS,
+  confirmSimulcast,
+  kindUsesSimulcast,
+  simulcastSendEncodings,
+  type SimulcastStatus,
+} from './simulcast';
 import { listDevices } from '../devices/enumerate';
 import { connectionRoundTripTimeMs } from '../telemetry/rtc-stats';
 import { ClientMessageType, ServerMessageType, type ServerMessage, type ServerTrack } from '../signaling/protocol';
@@ -139,11 +147,48 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
    */
   private readonly published = new Map<
     TrackKind,
-    { track: LocalTrack; delegate: NativeLocalTrackDelegate; sender?: RTCRtpSender; trackId: string }
+    {
+      track: LocalTrack;
+      delegate: NativeLocalTrackDelegate;
+      sender?: RTCRtpSender;
+      trackId: string;
+      /** Whether the ladder genuinely survived negotiation. */
+      simulcast: SimulcastStatus;
+    }
   >();
 
   /** Subscribed tracks by `publisherId/trackId`. */
   private readonly subscribed = new Map<string, SubscribedTrack>();
+
+  /**
+   * Layers an application pinned explicitly, by `publisherId/trackId`.
+   * Adaptive streaming never overrides one. See {@link requestLayer}.
+   */
+  private readonly pinnedLayers = new Map<string, VideoLayer>();
+
+  /**
+   * The layer last *sent* for a subscription, keyed the same way. Purely to
+   * avoid re-sending a preference the SFU already has.
+   */
+  private readonly sentLayers = new Map<string, VideoLayer>();
+
+  /** Per-track size observers, by `publisherId/trackId`. */
+  private readonly adaptiveControllers = new Map<string, AdaptiveStreamController>();
+
+  /**
+   * Transceivers this SDK created for a simulcast kind.
+   *
+   * Deliberately not on the publication: a publication is deleted by
+   * `unpublish`, and the transceiver has to outlive that. A ladder can only
+   * be declared when a transceiver is created, so a camera toggled off and
+   * on again cannot go back through `addTransceiver` without adding an
+   * m-section that never goes away — a call where somebody fiddles with
+   * their camera would carry an SDP to match.
+   *
+   * Cleared with the peer connection: a transceiver belongs to the
+   * connection that created it, and a reconnect builds a new one.
+   */
+  private readonly simulcastTransceivers = new Map<TrackKind, RTCRtpTransceiver>();
 
   /**
    * What the server says each participant publishes, ahead of the media
@@ -206,12 +251,19 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
    */
   private readonly msidRefreshAttempted = new Set<string>();
 
-  constructor(logger: Logger, autoReconnect: boolean) {
+  constructor(logger: Logger, autoReconnect: boolean, options?: { adaptiveStream: boolean }) {
     super();
     this.logger = logger;
     this.autoReconnect = autoReconnect;
+    // Defaulted here rather than made required, so a caller constructing an
+    // adapter directly (tests, embedders) gets the same behaviour as one
+    // going through RTCClient.
+    this.adaptiveStream = options?.adaptiveStream ?? true;
     this.localParticipant = new LocalParticipant('');
   }
+
+  /** Whether subscriptions follow the size their element is rendered at. */
+  private readonly adaptiveStream: boolean;
 
   get connectionState(): SdkConnectionState {
     return this._connectionState;
@@ -485,6 +537,13 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
 
     const pc = new RTCPeerConnection({ iceServers: this.iceServers });
     this.pc = pc;
+    // A transceiver belongs to the connection that created it, so anything
+    // cached from the previous one is now a handle to a dead object.
+    this.simulcastTransceivers.clear();
+    // The SFU has no memory of layer preferences across a reconnect either,
+    // so the record of what was already sent has to go. Pins are
+    // application intent and deliberately survive.
+    this.sentLayers.clear();
 
     pc.onicecandidate = (event) => {
       if (!event.candidate) {
@@ -643,6 +702,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
         }
       }
       this.reconcilePublicationIds(pc);
+      this.confirmSimulcastStatus();
       // Send `pc.localDescription`: by now it may carry candidates the
       // pre-set copy doesn't.
       signaling.send({
@@ -691,6 +751,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
       // Before the answer goes out, so the SFU knows which publication is
       // which by the time this description lets media flow.
       this.reconcilePublicationIds(pc);
+      this.confirmSimulcastStatus();
 
       this.signaling?.send({
         type: ClientMessageType.SDP_ANSWER,
@@ -1020,6 +1081,7 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     const track = new RemoteTrack(delegate, kind);
 
     this.subscribed.set(key, { track, delegate, participantId, trackId: serverTrack.trackId });
+    this.attachLayerControl(track, key);
     participant.tracks.push(track);
     this.emit('trackSubscribed', track, participant);
 
@@ -1029,6 +1091,10 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
         return;
       }
       this.subscribed.delete(key);
+      this.adaptiveControllers.get(key)?.dispose();
+      this.adaptiveControllers.delete(key);
+      this.pinnedLayers.delete(key);
+      this.sentLayers.delete(key);
       const index = participant.tracks.indexOf(subscription.track);
       if (index !== -1) {
         participant.tracks.splice(index, 1);
@@ -1130,6 +1196,8 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
       track,
       delegate,
       trackId: track.mediaStreamTrack.id,
+      // Nothing is claimed until negotiation has been read back.
+      simulcast: kindUsesSimulcast(track.kind) ? 'pending' : 'notApplicable',
     });
     if (!this.localParticipant.tracks.includes(track)) {
       this.localParticipant.tracks.push(track);
@@ -1180,23 +1248,12 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
 
     const stream = typeof MediaStream !== 'undefined' ? new MediaStream([mediaStreamTrack]) : undefined;
 
-    let sender: RTCRtpSender;
-    try {
-      // `addTrack`, which reuses a compatible transceiver when one exists.
-      //
-      // A transceiver of our own (`addTransceiver`) would be tidier: the
-      // m-section would then always announce our `msid`, and the SFU
-      // could always match a track to its `track.publish` declaration
-      // instead of guessing the source from the codec kind. It is not
-      // shipped because this SFU does not answer a client offer that adds
-      // m-sections — the offer goes out, no answer comes back, and the
-      // publish never completes. Fixing that is an SFU-side change; until
-      // then reuse is the path that actually carries media, and
-      // `publishedTracksMissingFromSdp()` covers what it costs.
-      sender = stream ? pc.addTrack(mediaStreamTrack, stream) : pc.addTrack(mediaStreamTrack);
-    } catch (error) {
-      throw new RTCError('MEDIA_ERROR', 'Could not add the track to the connection', error);
+    const attached = this.attachSender(pc, kind, mediaStreamTrack, stream);
+    const sender = attached.sender;
+    if (attached.transceiver) {
+      this.simulcastTransceivers.set(kind, attached.transceiver);
     }
+    entry.simulcast = attached.simulcast;
 
     // Declared over signaling, never inferred from the SDP. A page can't
     // pick the stream or track id the SDP carries, since both are
@@ -1217,7 +1274,6 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
     entry.sender = sender;
     entry.trackId = mediaStreamTrack.id;
     entry.delegate.setSender(sender);
-    await this.applySimulcast(sender, kind);
 
     // A screen share the user stops from the browser's own bar ends the
     // track without telling us. Unpublishing here keeps the room's view
@@ -1390,49 +1446,225 @@ export class RavenAdapter extends TypedEventEmitter<SFUAdapterEventMap> implemen
   }
 
   /**
-   * Sets up simulcast on a video sender (spec §15).
+   * Puts a local track on the connection, with a simulcast ladder when the
+   * kind calls for one.
    *
-   * Three spatial layers, each a quarter of the previous one's pixel count.
-   * That's the standard ladder and the one browsers actually implement
-   * well. Applied with `setParameters` after `addTrack` instead of through
-   * `addTransceiver`'s `sendEncodings`, because the transceiver may already
-   * exist from the SFU's offer and re-adding it would renegotiate for
-   * nothing at all.
+   * # Why this is not `addTrack`
    *
-   * Audio gets left alone. There's no spatial layering to do, and Opus
-   * already sorts its own bitrate out.
+   * `addTrack` returns a sender with exactly one encoding, and the number
+   * of encodings on a sender is fixed for its lifetime — `setParameters` is
+   * specified to reject any change to it. RIDs also only reach the SDP when
+   * they were present before the offer was generated. So the ladder has to
+   * be declared at the moment the transceiver is created and can never be
+   * added afterwards, which is precisely what the previous `addTrack` +
+   * `setParameters` pair attempted, failed at, and logged at debug level.
+   *
+   * # The comment this replaces
+   *
+   * The old code explained that `addTransceiver` was not shipped "because
+   * this SFU does not answer a client offer that adds m-sections". That was
+   * not true, or is no longer: `Participant.AcceptOffer`
+   * (`services/sfu/internal/room/participant.go`) does a plain
+   * `SetRemoteDescription` + `CreateAnswer` and rejects only on glare,
+   * which is retryable. The Flutter SDK has relied on that path for its
+   * first publish of every kind. It is verified end to end by
+   * `services/sfu/internal/room/simulcast_integration_test.go`, where a
+   * client-offered simulcast m-section is answered with
+   * `a=simulcast:recv low;medium;high`.
+   *
+   * # What it reuses
+   *
+   * Not the SFU's pre-created recvonly transceivers — those exist with one
+   * encoding and can never carry a ladder. Its own previous transceiver,
+   * kept on the publication, so `disableCamera()`/`enableCamera()` cycles
+   * reuse one m-section instead of adding one each time.
    */
-  private async applySimulcast(sender: RTCRtpSender, kind: TrackKind): Promise<void> {
-    if (kind === 'microphone' || sender.track?.kind !== 'video') {
-      return;
+  private attachSender(
+    pc: RTCPeerConnection,
+    kind: TrackKind,
+    mediaStreamTrack: MediaStreamTrack,
+    stream: MediaStream | undefined,
+  ): { sender: RTCRtpSender; transceiver?: RTCRtpTransceiver; simulcast: SimulcastStatus } {
+    if (!kindUsesSimulcast(kind)) {
+      return { sender: this.addPlainTrack(pc, mediaStreamTrack, stream), simulcast: 'notApplicable' };
     }
-    // Screen shares don't simulcast, on purpose. The content is usually
-    // text, and dropping resolution wrecks legibility in a way it never
-    // does for a face. One high-quality layer is the better trade.
-    if (kind === 'screenShare') {
-      return;
+
+    const existing = this.simulcastTransceivers.get(kind);
+    if (existing && existing.sender && pc.getTransceivers().includes(existing)) {
+      try {
+        void existing.sender.replaceTrack(mediaStreamTrack);
+        existing.direction = 'sendonly';
+        // Already negotiated, so the ladder is knowable right now. Leaving
+        // it `pending` would strand the status: `replaceTrack` deliberately
+        // costs no renegotiation, so there is no offer coming to confirm it
+        // on.
+        return {
+          sender: existing.sender,
+          transceiver: existing,
+          simulcast: confirmSimulcast(existing.sender).status,
+        };
+      } catch (error) {
+        // The transceiver is unusable — stopped, or belonging to a
+        // connection a reconnect replaced. Build a new one rather than
+        // failing a publish over a cache.
+        this.logger.debug('reusing the simulcast transceiver failed', (error as Error).message);
+        this.simulcastTransceivers.delete(kind);
+      }
     }
 
     try {
-      const parameters = sender.getParameters();
-      // Some browsers report no encodings at all until the first
-      // negotiation completes, and setting them then just fails. The SFU
-      // falls back to a single layer, which is fine, not broken.
-      if (!parameters.encodings || parameters.encodings.length === 0) {
-        return;
+      const transceiver = pc.addTransceiver(mediaStreamTrack, {
+        direction: 'sendonly',
+        streams: stream ? [stream] : [],
+        sendEncodings: simulcastSendEncodings(),
+      });
+      return { sender: transceiver.sender, transceiver, simulcast: 'pending' };
+    } catch (error) {
+      // A browser that will not take the ladder still has to be able to
+      // publish. Falling back to one layer is the controlled outcome;
+      // doing it silently is what let this ship broken for months, so it
+      // is a warning and it is recorded on the publication.
+      this.logger.warn(
+        'simulcast is unavailable in this browser: the camera will publish a single ' +
+          'full-quality layer, so subscribers cannot drop to a cheaper one and a large ' +
+          'call will cost every participant the full bitrate.',
+        (error as Error).message,
+      );
+      return { sender: this.addPlainTrack(pc, mediaStreamTrack, stream), simulcast: 'unsupported' };
+    }
+  }
+
+  private addPlainTrack(
+    pc: RTCPeerConnection,
+    mediaStreamTrack: MediaStreamTrack,
+    stream: MediaStream | undefined,
+  ): RTCRtpSender {
+    try {
+      return stream ? pc.addTrack(mediaStreamTrack, stream) : pc.addTrack(mediaStreamTrack);
+    } catch (error) {
+      throw new RTCError('MEDIA_ERROR', 'Could not add the track to the connection', error);
+    }
+  }
+
+  /**
+   * Confirms the ladder after negotiation and reports what actually
+   * happened.
+   *
+   * Called from the negotiation paths, once a local description exists:
+   * before that the browser has not committed to a set of encodings.
+   * Asking earlier is how the previous implementation convinced itself
+   * simulcast was on — it read back an empty list, took an early return,
+   * and never looked again.
+   */
+  private confirmSimulcastStatus(): void {
+    for (const [kind, entry] of this.published) {
+      if (entry.simulcast !== 'pending' || !entry.sender) continue;
+
+      const { status, rids } = confirmSimulcast(entry.sender);
+      entry.simulcast = status;
+
+      if (status === 'enabled') {
+        this.logger.debug('simulcast active', `${kind}: ${rids.join(', ')}`);
+        continue;
       }
 
-      parameters.encodings = [
-        { rid: 'low', scaleResolutionDownBy: 4, maxBitrate: 150_000 },
-        { rid: 'medium', scaleResolutionDownBy: 2, maxBitrate: 500_000 },
-        { rid: 'high', scaleResolutionDownBy: 1, maxBitrate: 1_500_000 },
-      ];
-      await sender.setParameters(parameters);
-    } catch (error) {
-      // Not fatal. A publisher without simulcast still publishes, and
-      // every subscriber gets the one layer.
-      this.logger.debug('simulcast not applied', (error as Error).message);
+      this.logger.warn(
+        `simulcast did not survive negotiation for the ${kind} track: the sender reports ` +
+          `[${rids.join(', ')}], expected [${SIMULCAST_LAYERS.map((l) => l.rid).join(', ')}]. ` +
+          'Every subscriber will receive the one layer being sent.',
+      );
     }
+  }
+
+  /**
+   * Gives a newly subscribed track its layer control.
+   *
+   * The controller is created for video only. An audio track has no spatial
+   * layers, and observing the `<audio>` element it is attached to would
+   * produce a stream of size changes that mean nothing.
+   */
+  private attachLayerControl(track: RemoteTrack, key: string): void {
+    if (track.kind === 'microphone') return;
+
+    const controller = new AdaptiveStreamController({
+      request: (layer) => this.requestLayer(track, layer, { automatic: true }),
+    });
+    this.adaptiveControllers.set(key, controller);
+
+    track.setLayerController({
+      request: (layer, options) => this.requestLayer(track, layer, options ?? {}),
+      observe: (element) => controller.observe(element),
+      unobserve: (element) => controller.unobserve(element),
+    });
+  }
+
+  /**
+   * Asks the SFU for a particular layer of a subscribed track.
+   *
+   * Precedence, highest first:
+   *
+   * 1. **An explicit application request** (`automatic: false`). It pins
+   *    the subscription: adaptive streaming will not move it afterwards.
+   *    Requesting `auto` releases the pin.
+   * 2. **Adaptive streaming** (`automatic: true`), when it is enabled and
+   *    the track is not pinned. Driven by rendered element size.
+   * 3. **The SFU's own choice** when neither has spoken: `auto`, which
+   *    resolves to the best layer available.
+   *
+   * Whatever wins, it stays a preference. The SFU will not hand over a
+   * layer the publisher is not sending, and congestion control may hold a
+   * subscriber below what it asked for.
+   *
+   * `adaptiveStream` gates only rule 2. An explicit request works with
+   * adaptive streaming off — that combination is exactly "I will manage
+   * quality myself".
+   */
+  requestLayer(track: RemoteTrack, layer: VideoLayer, options: { automatic?: boolean } = {}): void {
+    const subscription = this.findSubscription(track);
+    if (!subscription) return;
+
+    const key = subscriptionKey(subscription.participantId, subscription.trackId);
+
+    if (options.automatic) {
+      if (!this.adaptiveStream) return;
+      if (this.pinnedLayers.has(key)) return;
+    } else if (layer === 'auto') {
+      this.pinnedLayers.delete(key);
+    } else {
+      this.pinnedLayers.set(key, layer);
+    }
+
+    // A tile laid out repeatedly at the same size is the normal case, not
+    // the exception. Every redundant message is a step towards the
+    // connection's signaling rate limit and buys nothing.
+    if (this.sentLayers.get(key) === layer) return;
+    this.sentLayers.set(key, layer);
+
+    this.signaling?.send({
+      type: ClientMessageType.SUBSCRIPTION_UPDATE,
+      publisherId: subscription.participantId,
+      trackId: subscription.trackId,
+      layer,
+    });
+  }
+
+  /** The layer an application pinned for a subscribed track, if any. */
+  pinnedLayer(track: RemoteTrack): VideoLayer | undefined {
+    const subscription = this.findSubscription(track);
+    if (!subscription) return undefined;
+    return this.pinnedLayers.get(subscriptionKey(subscription.participantId, subscription.trackId));
+  }
+
+  private findSubscription(track: RemoteTrack): SubscribedTrack | undefined {
+    for (const subscription of this.subscribed.values()) {
+      if (subscription.track === track) return subscription;
+    }
+    return undefined;
+  }
+
+  /** The simulcast state of a kind this participant publishes. */
+  simulcastStatus(kind: TrackKind): SimulcastStatus {
+    return this.published.get(kind)?.simulcast ?? 'notApplicable';
   }
 
   // --- Data channel ------------------------------------------------------

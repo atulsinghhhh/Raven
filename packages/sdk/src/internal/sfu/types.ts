@@ -1,6 +1,7 @@
 import type { LocalTrack, TrackKind } from '../../track';
 import type { RemoteParticipant, LocalParticipant } from '../../participant';
 import type { RemoteTrack } from '../../track';
+import type { SimulcastStatus } from './simulcast';
 
 export type SdkConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'failed';
 
@@ -84,6 +85,14 @@ export interface SFUAdapter {
 
   on<E extends keyof SFUAdapterEventMap>(event: E, handler: SFUAdapterEventMap[E]): void;
   off<E extends keyof SFUAdapterEventMap>(event: E, handler: SFUAdapterEventMap[E]): void;
+
+  /**
+   * Whether a published kind is genuinely sending a simulcast ladder.
+   *
+   * Optional so an adapter that predates simulcast reporting, or a test
+   * double that does not care, still satisfies this interface untouched.
+   */
+  simulcastStatus?(kind: TrackKind): SimulcastStatus;
 
   enableCamera(enabled: boolean): Promise<LocalTrack | undefined>;
   enableMicrophone(enabled: boolean): Promise<LocalTrack | undefined>;

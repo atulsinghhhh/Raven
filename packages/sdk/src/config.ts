@@ -29,6 +29,18 @@ export interface RTCClientConfig {
   telemetryUrl?: string;
   /** Defaults to true. Set false to switch telemetry off; RTC never needs it (Phase 9 spec §31). */
   telemetry?: boolean;
+  /**
+   * Defaults to true. Keeps each subscribed video on the smallest simulcast
+   * layer that still covers the element it is rendered in.
+   *
+   * On by default because the alternative is every subscriber receiving
+   * every publisher's full-quality stream regardless of how small it is
+   * being shown, which is what makes a six- or eight-person call
+   * unaffordable on a phone. Turn it off only if you intend to choose
+   * layers yourself with `RemoteTrack.setLayer()`, which keeps working
+   * either way.
+   */
+  adaptiveStream?: boolean;
 }
 
 export interface ResolvedRTCClientConfig {
@@ -39,6 +51,7 @@ export interface ResolvedRTCClientConfig {
   autoReconnect: boolean;
   telemetryUrl?: string;
   telemetry: boolean;
+  adaptiveStream: boolean;
 }
 
 interface DecodedTokenPayload {
@@ -105,6 +118,7 @@ export function validateConfig(config: RTCClientConfig): ResolvedRTCClientConfig
     autoReconnect: config.autoReconnect ?? true,
     telemetryUrl: config.telemetryUrl,
     telemetry: config.telemetry ?? true,
+    adaptiveStream: config.adaptiveStream ?? true,
   };
 }
 

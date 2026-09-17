@@ -22,9 +22,14 @@ import { Room, type ConnectionDiagnostics } from './room';
 import { LocalTrack } from './track';
 import { SDK_VERSION } from './version';
 
-type AdapterFactory = (logger: Logger, autoReconnect: boolean) => SFUAdapter;
+/**
+ * Third parameter is optional so an existing custom factory keeps
+ * compiling; a factory that ignores it simply gets the default behaviour.
+ */
+type AdapterFactory = (logger: Logger, autoReconnect: boolean, options?: { adaptiveStream: boolean }) => SFUAdapter;
 
-const defaultAdapterFactory: AdapterFactory = (logger, autoReconnect) => new RavenAdapter(logger, autoReconnect);
+const defaultAdapterFactory: AdapterFactory = (logger, autoReconnect, options) =>
+  new RavenAdapter(logger, autoReconnect, options);
 
 /**
  * The SDK's entry point. Holds your RTC token and endpoint and gets you
@@ -74,7 +79,9 @@ export class RTCClient {
     });
     telemetry.send('connection_started');
 
-    const adapter = this.adapterFactory(this.logger, this.config.autoReconnect);
+    const adapter = this.adapterFactory(this.logger, this.config.autoReconnect, {
+      adaptiveStream: this.config.adaptiveStream,
+    });
     const room = new Room(adapter, target, this.logger, telemetry);
 
     try {

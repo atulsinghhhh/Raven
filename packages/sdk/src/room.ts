@@ -7,6 +7,7 @@ import { LocalParticipant, RemoteParticipant } from './participant';
 import type { ConnectionQuality, SFUAdapter, SdkConnectionState } from './internal/sfu/types';
 import { LocalTrack, RemoteTrack, type TrackKind, type TrackStats } from './track';
 import { SDK_VERSION } from './version';
+import type { SimulcastStatus } from './internal/sfu/simulcast';
 
 export type ConnectionState = SdkConnectionState;
 
@@ -267,6 +268,19 @@ export class Room extends TypedEventEmitter<RoomEventMap> {
   }
 
   /** Captures and publishes the camera in one go. Resolves to the published track. */
+  /**
+   * Whether a kind you publish is genuinely sending a simulcast ladder.
+   *
+   * Read back from the negotiated sender, not from what was requested. A
+   * browser that refuses the ladder publishes one full-quality layer and
+   * reports `'unsupported'` here, having already logged a warning —
+   * subscribers then cannot drop to a cheaper layer, which is what makes a
+   * large call expensive for everyone in it.
+   */
+  simulcastStatus(kind: TrackKind): SimulcastStatus {
+    return this.adapter.simulcastStatus?.(kind) ?? 'notApplicable';
+  }
+
   async enableCamera(): Promise<LocalTrack | undefined> {
     return this.adapter.enableCamera(true);
   }

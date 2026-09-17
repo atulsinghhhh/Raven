@@ -29,6 +29,7 @@ describe('RTCClient.join', () => {
         logLevel: 'silent',
         autoReconnect: true,
         telemetry: false,
+        adaptiveStream: true,
       },
       () => {
         capturedAdapter = new FakeAdapter();
@@ -47,7 +48,14 @@ describe('RTCClient.join', () => {
     let capturedAdapter: FakeAdapter | undefined;
 
     const client = new RTCClient(
-      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      {
+        token,
+        endpoint: 'wss://rtc.example.com',
+        logLevel: 'silent',
+        autoReconnect: true,
+        telemetry: false,
+        adaptiveStream: true,
+      },
       () => {
         capturedAdapter = new FakeAdapter();
         return capturedAdapter;
@@ -65,7 +73,14 @@ describe('RTCClient.join', () => {
     let capturedAdapter: FakeAdapter | undefined;
 
     const client = new RTCClient(
-      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      {
+        token,
+        endpoint: 'wss://rtc.example.com',
+        logLevel: 'silent',
+        autoReconnect: true,
+        telemetry: false,
+        adaptiveStream: true,
+      },
       () => {
         capturedAdapter = new FakeAdapter();
         return capturedAdapter;
@@ -82,7 +97,14 @@ describe('RTCClient.join', () => {
   it('falls back to the token room id when the token carries no room name', async () => {
     const token = makeToken({ rid: 'room-1' });
     const client = new RTCClient(
-      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      {
+        token,
+        endpoint: 'wss://rtc.example.com',
+        logLevel: 'silent',
+        autoReconnect: true,
+        telemetry: false,
+        adaptiveStream: true,
+      },
       () => new FakeAdapter(),
     );
 
@@ -99,7 +121,14 @@ describe('RTCClient.join', () => {
     let capturedAdapter: FakeAdapter | undefined;
 
     const client = new RTCClient(
-      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      {
+        token,
+        endpoint: 'wss://rtc.example.com',
+        logLevel: 'silent',
+        autoReconnect: true,
+        telemetry: false,
+        adaptiveStream: true,
+      },
       () => {
         capturedAdapter = new FakeAdapter();
         return capturedAdapter;
@@ -135,7 +164,14 @@ describe('RTCClient.join', () => {
   it('propagates a connection failure from the adapter as a rejected promise', async () => {
     const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
     const client = new RTCClient(
-      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      {
+        token,
+        endpoint: 'wss://rtc.example.com',
+        logLevel: 'silent',
+        autoReconnect: true,
+        telemetry: false,
+        adaptiveStream: true,
+      },
       () => {
         const adapter = new FakeAdapter();
         adapter.connect = jest.fn().mockRejectedValue(new RTCError('NETWORK_ERROR', 'unreachable'));
@@ -185,7 +221,14 @@ describe('RTCClient.leave', () => {
     const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
     let capturedAdapter: FakeAdapter | undefined;
     const client = new RTCClient(
-      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      {
+        token,
+        endpoint: 'wss://rtc.example.com',
+        logLevel: 'silent',
+        autoReconnect: true,
+        telemetry: false,
+        adaptiveStream: true,
+      },
       () => {
         capturedAdapter = new FakeAdapter();
         return capturedAdapter;
@@ -218,7 +261,14 @@ describe('RTCClient.setCamera / setMicrophone', () => {
     const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
     let capturedAdapter: FakeAdapter | undefined;
     const client = new RTCClient(
-      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      {
+        token,
+        endpoint: 'wss://rtc.example.com',
+        logLevel: 'silent',
+        autoReconnect: true,
+        telemetry: false,
+        adaptiveStream: true,
+      },
       () => {
         capturedAdapter = new FakeAdapter();
         return capturedAdapter;
@@ -256,6 +306,7 @@ describe('RTCClient.join — telemetry (Phase 9, best-effort, never blocking)', 
         logLevel: 'silent',
         autoReconnect: true,
         telemetry: true,
+        adaptiveStream: true,
         telemetryUrl: 'http://telemetry.example.com',
       },
       () => new FakeAdapter(),
@@ -279,6 +330,7 @@ describe('RTCClient.join — telemetry (Phase 9, best-effort, never blocking)', 
         logLevel: 'silent',
         autoReconnect: true,
         telemetry: true,
+        adaptiveStream: true,
         telemetryUrl: 'http://telemetry.example.com',
       },
       () => new FakeAdapter(),
@@ -302,6 +354,7 @@ describe('RTCClient.join — telemetry (Phase 9, best-effort, never blocking)', 
         logLevel: 'silent',
         autoReconnect: true,
         telemetry: true,
+        adaptiveStream: true,
         telemetryUrl: 'http://telemetry.example.com',
       },
       () => {
@@ -324,7 +377,14 @@ describe('RTCClient.join — telemetry (Phase 9, best-effort, never blocking)', 
 
     const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
     const client = new RTCClient(
-      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      {
+        token,
+        endpoint: 'wss://rtc.example.com',
+        logLevel: 'silent',
+        autoReconnect: true,
+        telemetry: false,
+        adaptiveStream: true,
+      },
       () => new FakeAdapter(),
     );
 
@@ -336,7 +396,14 @@ describe('RTCClient.join — telemetry (Phase 9, best-effort, never blocking)', 
   it('getDiagnostics() throws before join(), and delegates to the room after', async () => {
     const token = makeToken({ rid: 'room-1', rnm: 'support-room' });
     const client = new RTCClient(
-      { token, endpoint: 'wss://rtc.example.com', logLevel: 'silent', autoReconnect: true, telemetry: false },
+      {
+        token,
+        endpoint: 'wss://rtc.example.com',
+        logLevel: 'silent',
+        autoReconnect: true,
+        telemetry: false,
+        adaptiveStream: true,
+      },
       () => new FakeAdapter(),
     );
 

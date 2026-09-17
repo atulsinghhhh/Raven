@@ -5,6 +5,7 @@ import {
   type RawTrackStats,
   type TrackStats,
 } from './internal/telemetry/track-stats';
+import type { VideoLayer } from './internal/media/adaptive-stream';
 import { RTCError } from './errors';
 
 export type { TrackStats } from './internal/telemetry/track-stats';
@@ -230,9 +231,68 @@ export class RemoteTrack extends Track {
   private readonly remoteDelegate: RemoteTrackDelegate;
   private lastSample?: RawTrackStats;
 
+  /**
+   * Set by the adapter when the track is subscribed. Undefined on a track
+   * built by a test double, which is why every use is optional-chained:
+   * a `setLayer()` that threw for want of a controller would make the
+   * public API depend on internal wiring.
+   */
+  private layerController?: {
+    request(layer: VideoLayer, options?: { automatic?: boolean }): void;
+    observe(element: Element): void;
+    unobserve(element: Element): void;
+  };
+
   constructor(delegate: RemoteTrackDelegate, kind: TrackKind) {
     super(delegate, kind);
     this.remoteDelegate = delegate;
+  }
+
+  /** @internal Wires this track to the adapter's layer control. */
+  setLayerController(controller: RemoteTrack['layerController']): void {
+    this.layerController = controller;
+  }
+
+  /**
+   * Asks the SFU for a particular simulcast layer of this track.
+   *
+   * A preference, not a command: the SFU will not hand over a layer the
+   * publisher is not sending, and congestion control may hold you below
+   * what you asked for.
+   *
+   * # Precedence
+   *
+   * Calling this **pins** the track — adaptive streaming will not move it
+   * afterwards, so your choice is not quietly undone the next time the
+   * element is resized. Pass `'auto'` to release the pin and hand the track
+   * back to adaptive streaming (or, with adaptive streaming off, back to
+   * the SFU's own choice).
+   *
+   * Works whether or not `adaptiveStream` is enabled.
+   */
+  setLayer(layer: VideoLayer): void {
+    this.layerController?.request(layer);
+  }
+
+  /**
+   * Attaches, and starts sizing the subscription to the element.
+   *
+   * This is what makes `adaptiveStream` work without an application doing
+   * anything: the element you render into is the only honest measure of how
+   * much resolution this track actually needs.
+   */
+  attach(element?: HTMLMediaElement): HTMLMediaElement {
+    const target = super.attach(element);
+    this.layerController?.observe(target);
+    return target;
+  }
+
+  detach(element?: HTMLMediaElement): HTMLMediaElement[] {
+    const detached = super.detach(element);
+    for (const el of detached) {
+      this.layerController?.unobserve(el);
+    }
+    return detached;
   }
 
   /** Live receive-side stats. `LocalTrack.getStats()` covers the shape and the caveats. */

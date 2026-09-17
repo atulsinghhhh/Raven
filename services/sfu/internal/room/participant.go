@@ -263,7 +263,12 @@ func (p *Participant) handleIncomingTrack(remote *webrtc.TrackRemote, receiver *
 	// Drain RTCP from the publisher's sender-side reports. Pion needs these
 	// read for its interceptors (NACK, TWCC, receiver reports) to work at
 	// all. Leave the stream unread and congestion feedback stalls.
-	go p.drainRTCP(receiver)
+	//
+	// One drainer per *layer*, not per track. A simulcast publisher fires
+	// OnTrack once per RID against the same receiver, and each RID has its
+	// own RTCP interceptor chain — so the drainer has to name the layer it
+	// is reading for. See drainRTCP.
+	go p.drainRTCP(receiver, remote.RID())
 }
 
 // removePublishedTrack drops a single track that ended on its own — the
@@ -303,12 +308,41 @@ func (p *Participant) removePublishedTrack(track *PublishedTrack) {
 	}
 }
 
-func (p *Participant) drainRTCP(receiver *webrtc.RTPReceiver) {
+// drainRTCP reads one layer's RTCP so Pion's interceptors keep working.
+//
+// # Why the rid matters
+//
+// `RTPReceiver.Read` is only valid while a receiver carries a single track.
+// A simulcast publisher gives it three, one per RID, each with its own RTCP
+// interceptor chain — and Pion's `Read` responds to that by logging "use
+// ReadSimulcast(rid) instead" and then reading `tracks[0]` anyway, which
+// dereferences an interceptor that is nil until that track has finished
+// binding. The result is a nil-pointer panic on the node, not a degraded
+// stream: one real simulcast publisher joining was enough to take down
+// every call on it.
+//
+// Nothing caught this because nothing ever published simulcast. Both client
+// SDKs believed they did, but configured it with `setParameters()` after
+// `addTrack()`, which cannot work, so every publisher sent one un-ridded
+// stream and this function only ever saw the single-track case. The tests
+// in simulcast_integration_test.go publish a genuine three-RID ladder and
+// panicked here on the first run.
+//
+// An empty rid means a publisher that is not simulcasting — audio, a screen
+// share, or a client whose platform refused the ladder. That is the
+// single-track case `Read` is for, and it stays on it.
+func (p *Participant) drainRTCP(receiver *webrtc.RTPReceiver, rid string) {
 	buf := make([]byte, 1500)
 	for {
-		if _, _, err := receiver.Read(buf); err != nil {
+		var err error
+		if rid == "" {
+			_, _, err = receiver.Read(buf)
+		} else {
+			_, _, err = receiver.ReadSimulcast(buf, rid)
+		}
+		if err != nil {
 			if !errors.Is(err, io.EOF) && !p.closed.Load() {
-				p.logger.Debug("receiver RTCP read ended", "err", err)
+				p.logger.Debug("receiver RTCP read ended", "rid", rid, "err", err)
 			}
 			return
 		}

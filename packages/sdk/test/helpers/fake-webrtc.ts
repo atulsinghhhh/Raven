@@ -166,6 +166,16 @@ export interface FakeTransceiver {
   sender: FakeRTCRtpSender;
   direction: RTCRtpTransceiverDirection;
   currentDirection: RTCRtpTransceiverDirection | null;
+  /**
+   * The simulcast layer ids this m-section declares.
+   *
+   * Only ever populated from `addTransceiver`'s `sendEncodings`, never from
+   * `setParameters`, because that is the real constraint: a sender's
+   * encoding count is fixed once it exists. A fake that let `setParameters`
+   * add RIDs would make the broken implementation pass, which is exactly
+   * what the previous version of these tests did.
+   */
+  rids: string[];
 }
 
 /**
@@ -310,6 +320,8 @@ export class FakeRTCPeerConnection {
       sender,
       direction: 'sendrecv',
       currentDirection: null,
+      // addTrack cannot produce RIDs. That is the whole constraint.
+      rids: [],
     });
     return sender;
   }
@@ -331,11 +343,23 @@ export class FakeRTCPeerConnection {
    */
   addTransceiver(
     track: FakeMediaStreamTrack,
-    init?: { direction?: RTCRtpTransceiverDirection; streams?: FakeMediaStream[] },
+    init?: {
+      direction?: RTCRtpTransceiverDirection;
+      streams?: FakeMediaStream[];
+      sendEncodings?: RTCRtpEncodingParameters[];
+    },
   ): FakeTransceiver {
     this.markLocalChange();
     this.addedTracks.push(track);
-    const sender = new FakeRTCRtpSender(track, this.nextSenderEncodings);
+
+    // The encodings the caller declared *become* the sender's, which is
+    // what a browser does and what `addTrack` cannot do. Recorded here so
+    // `getParameters()` reports them back and the adapter's own
+    // confirmation step has something real to read.
+    const encodings = init?.sendEncodings ?? this.nextSenderEncodings;
+    this.transceiverInits.push(init ?? {});
+
+    const sender = new FakeRTCRtpSender(track, encodings);
     this.senders.push(sender);
     const transceiver: FakeTransceiver = {
       mid: String(this.transceivers.length),
@@ -343,10 +367,20 @@ export class FakeRTCPeerConnection {
       sender,
       direction: init?.direction ?? 'sendrecv',
       currentDirection: null,
+      rids: encodings
+        .map((encoding) => encoding.rid)
+        .filter((rid): rid is string => typeof rid === 'string' && rid.length > 0),
     };
     this.transceivers.push(transceiver);
     return transceiver;
   }
+
+  /** Every `addTransceiver` init, in order, for assertions. */
+  readonly transceiverInits: Array<{
+    direction?: RTCRtpTransceiverDirection;
+    streams?: FakeMediaStream[];
+    sendEncodings?: RTCRtpEncodingParameters[];
+  }> = [];
 
   getSenders(): FakeRTCRtpSender[] {
     return [...this.senders];
@@ -410,6 +444,20 @@ export class FakeRTCPeerConnection {
         this.msidOverrides.get(transceiver.mid) ?? this.pinnedMsid.get(transceiver.mid) ?? transceiver.sender.track?.id;
       if (trackId) {
         lines.push(`a=msid:stream-${transceiver.mid} ${trackId}`);
+      }
+
+      // RFC 8853, for the part that matters here: a send transceiver
+      // carrying RIDs gets one `a=rid:<id> send` per layer and a single
+      // `a=simulcast:send` line. This is the only place the claim "this
+      // publishes simulcast" is falsifiable — an encodings array in memory
+      // is exactly what the broken implementation had.
+      if (transceiver.rids.length > 0) {
+        lines.push('a=extmap:1 urn:ietf:params:rtp-hdrext:sdes:mid');
+        lines.push('a=extmap:2 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id');
+        for (const rid of transceiver.rids) {
+          lines.push(`a=rid:${rid} send`);
+        }
+        lines.push(`a=simulcast:send ${transceiver.rids.join(';')}`);
       }
     }
     return lines.join('\r\n');
@@ -550,6 +598,10 @@ export class FakeRTCPeerConnection {
         kind,
         sender: new FakeRTCRtpSender(null, this.nextSenderEncodings),
         direction: 'recvonly',
+        // A transceiver the SFU created to receive from us. It can never
+        // carry a ladder, which is why a simulcast publish creates its own
+        // rather than reusing one of these.
+        rids: [],
         currentDirection: null,
       });
     }

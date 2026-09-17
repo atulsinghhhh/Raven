@@ -10,6 +10,10 @@ export { Track, LocalTrack, RemoteTrack, trackKindToMediaKind } from './track';
 export { createCustomTrack } from './internal/media/capture';
 export type { CustomTrackOptions, CustomTrackSource } from './internal/media/capture';
 export type { TrackKind, TrackStats, MediaKind } from './track';
+/** The simulcast layer names `RemoteTrack.setLayer()` accepts. */
+export type { VideoLayer } from './internal/media/adaptive-stream';
+/** What `Room.simulcastStatus()` reports about a published camera. */
+export type { SimulcastStatus } from './internal/sfu/simulcast';
 /**
  * The structural interfaces a `Track` wraps.
  *

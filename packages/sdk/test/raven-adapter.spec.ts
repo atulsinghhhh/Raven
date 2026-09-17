@@ -3,6 +3,7 @@ import { createLogger } from '../src/logger';
 import { RTCError } from '../src/errors';
 import type { RemoteParticipant } from '../src/participant';
 import type { RemoteTrack, TrackKind } from '../src/track';
+import { sdpNegotiatesSimulcast } from '../src/internal/sfu/simulcast';
 import {
   FakeMediaStreamTrack,
   FakeRTCPeerConnection,
@@ -60,9 +61,15 @@ async function waitForNewSocket(previousCount: number): Promise<FakeWebSocket> {
 
 /** Connects an adapter and completes the join handshake. */
 async function connectAdapter(
-  options: { autoReconnect?: boolean; participants?: { id: string; tracks?: unknown[] }[] } = {},
+  options: {
+    autoReconnect?: boolean;
+    participants?: { id: string; tracks?: unknown[] }[];
+    adaptiveStream?: boolean;
+  } = {},
 ): Promise<{ adapter: RavenAdapter; socket: FakeWebSocket }> {
-  const adapter = new RavenAdapter(createLogger('silent'), options.autoReconnect ?? true);
+  const adapter = new RavenAdapter(createLogger('silent'), options.autoReconnect ?? true, {
+    adaptiveStream: options.adaptiveStream ?? true,
+  });
   const connecting = adapter.connect(ENDPOINT, TOKEN, [{ urls: 'stun:localhost:3478' }]);
 
   await flush();
@@ -318,6 +325,121 @@ describe('RavenAdapter', () => {
       expect(joined).toEqual(['bob']);
       expect(left).toEqual(['bob']);
       expect(adapter.remoteParticipants.has('bob')).toBe(false);
+    });
+
+    /**
+     * Layer preference, and who wins when two things want different layers.
+     *
+     * The rules are the same three on both SDKs
+     * (`sdks/flutter/raven_rtc/test/simulcast_test.dart` asserts the
+     * identical set), because a developer moving between them should not
+     * have to relearn whose choice sticks.
+     */
+    describe('layer preference precedence', () => {
+      async function subscribedTrack(options: { adaptiveStream?: boolean } = {}) {
+        const { adapter, socket } = await connectAdapter({
+          participants: [{ id: 'bob' }],
+          adaptiveStream: options.adaptiveStream,
+        });
+        const pc = await receiveOffer(socket);
+
+        let track: RemoteTrack | undefined;
+        adapter.on('trackSubscribed', (subscribed: RemoteTrack) => {
+          track = subscribed;
+        });
+
+        socket.receive({
+          type: 'track.published',
+          participantId: 'bob',
+          track: { trackId: 'bob-cam', kind: 'video', source: 'camera', muted: false, simulcast: true },
+        });
+        await flush();
+        pc.emitTrack(new FakeMediaStreamTrack('video', 'bob-cam'));
+        await flush();
+
+        if (!track) throw new Error('the track never subscribed');
+        return { adapter, socket, track };
+      }
+
+      const layersSent = (socket: FakeWebSocket) =>
+        socket
+          .sentMessages()
+          .filter((message) => message.type === 'subscription.update')
+          .map((message) => message.layer);
+
+      it('sends an explicit request on to the SFU', async () => {
+        const { socket, track } = await subscribedTrack();
+
+        track.setLayer('low');
+        await flush();
+
+        expect(socket.lastSent('subscription.update')).toMatchObject({
+          publisherId: 'bob',
+          trackId: 'bob-cam',
+          layer: 'low',
+        });
+      });
+
+      it('lets an explicit request stand against adaptive streaming', async () => {
+        const { adapter, socket, track } = await subscribedTrack();
+
+        // A spotlighted speaker the application pinned to high.
+        track.setLayer('high');
+        await flush();
+
+        // Adaptive streaming then measures a small tile and wants low.
+        adapter.requestLayer(track, 'low', { automatic: true });
+        await flush();
+
+        expect(layersSent(socket)).toEqual(['high']);
+        expect(adapter.pinnedLayer(track)).toBe('high');
+      });
+
+      it('releases the pin on auto', async () => {
+        const { adapter, socket, track } = await subscribedTrack();
+
+        track.setLayer('high');
+        track.setLayer('auto');
+        await flush();
+        expect(adapter.pinnedLayer(track)).toBeUndefined();
+
+        adapter.requestLayer(track, 'low', { automatic: true });
+        await flush();
+
+        expect(layersSent(socket)).toEqual(['high', 'auto', 'low']);
+      });
+
+      it('honours an explicit request with adaptiveStream off', async () => {
+        // "I will manage quality myself" is a reasonable thing to want.
+        const { socket, track } = await subscribedTrack({ adaptiveStream: false });
+
+        track.setLayer('low');
+        await flush();
+
+        expect(layersSent(socket)).toEqual(['low']);
+      });
+
+      it('drops automatic requests entirely with adaptiveStream off', async () => {
+        const { adapter, socket, track } = await subscribedTrack({ adaptiveStream: false });
+
+        adapter.requestLayer(track, 'low', { automatic: true });
+        await flush();
+
+        expect(layersSent(socket)).toEqual([]);
+      });
+
+      it('does not re-send a layer the SFU already has', async () => {
+        const { adapter, socket, track } = await subscribedTrack();
+
+        for (let i = 0; i < 5; i++) {
+          adapter.requestLayer(track, 'medium', { automatic: true });
+        }
+        await flush();
+
+        // A tile laid out repeatedly at the same size is the normal case,
+        // not the exception.
+        expect(layersSent(socket)).toEqual(['medium']);
+      });
     });
 
     it('subscribes a track announced before its media arrives', async () => {
@@ -577,18 +699,60 @@ describe('RavenAdapter', () => {
       expect(String(socket.lastSent('sdp.offer')?.sdp)).toContain('fake-client-offer');
     });
 
-    it('configures three simulcast layers for a camera', async () => {
+    it('declares three simulcast layers on the transceiver it creates for a camera', async () => {
       // Spec §15. Quarter-pixel steps, which is the ladder browsers
       // actually implement well.
+      //
+      // This test used to assert on `sender.setParametersCalls`, and passed
+      // for months while the SDK published exactly one layer. That is the
+      // trap: `setParameters` was *called*, and the call is specified to be
+      // rejected, so asserting on the call proved only that the SDK tried.
+      // The encodings have to be on the transceiver at creation or they
+      // never reach the SDP at all.
       const { adapter, socket } = await connectAdapter();
       await receiveOffer(socket);
 
       await adapter.enableCamera(true);
       await flush();
 
-      const sender = FakeRTCPeerConnection.latest.senders[0];
-      const encodings = sender.setParametersCalls[0]?.encodings;
-      expect(encodings?.map((encoding) => encoding.rid)).toEqual(['low', 'medium', 'high']);
+      const pc = FakeRTCPeerConnection.latest;
+      expect(pc.transceiverInits).toHaveLength(1);
+
+      const encodings = pc.transceiverInits[0].sendEncodings ?? [];
+      expect(encodings.map((encoding) => encoding.rid)).toEqual(['low', 'medium', 'high']);
+      expect(encodings.map((encoding) => encoding.scaleResolutionDownBy)).toEqual([4, 2, 1]);
+      expect(encodings.map((encoding) => encoding.maxBitrate)).toEqual([150_000, 500_000, 1_500_000]);
+      expect(encodings.map((encoding) => encoding.maxFramerate)).toEqual([15, 30, 30]);
+    });
+
+    it('sends an offer whose SDP actually negotiates simulcast', async () => {
+      // The falsifiable form of the claim. `getParameters()` reporting three
+      // encodings is what a broken implementation looks like too; the SDP is
+      // the only artefact the far side ever sees, and the SFU answers
+      // `a=simulcast:recv` off exactly these lines
+      // (services/sfu/internal/room/simulcast_integration_test.go).
+      const { adapter, socket } = await connectAdapter();
+      await receiveOffer(socket);
+
+      await adapter.enableCamera(true);
+      await flush();
+
+      const sdp = String(socket.lastSent('sdp.offer')?.sdp);
+      expect(sdp).toContain('a=simulcast:send low;medium;high');
+      expect(sdp).toContain('a=rid:low send');
+      expect(sdp).toContain('a=rid:medium send');
+      expect(sdp).toContain('a=rid:high send');
+      expect(sdpNegotiatesSimulcast(sdp)).toBe(true);
+    });
+
+    it('reports simulcast as enabled only after reading the negotiated sender back', async () => {
+      const { adapter, socket } = await connectAdapter();
+      await receiveOffer(socket);
+
+      await adapter.enableCamera(true);
+      await flush();
+
+      expect(adapter.simulcastStatus('camera')).toBe('enabled');
     });
 
     it('does not simulcast a screen share', async () => {
@@ -600,7 +764,9 @@ describe('RavenAdapter', () => {
       await adapter.enableScreenShare(true);
       await flush();
 
-      expect(FakeRTCPeerConnection.latest.senders[0].setParametersCalls).toHaveLength(0);
+      expect(FakeRTCPeerConnection.latest.transceiverInits).toHaveLength(0);
+      expect(String(socket.lastSent('sdp.offer')?.sdp)).not.toContain('a=simulcast:send');
+      expect(adapter.simulcastStatus('screenShare')).toBe('notApplicable');
     });
 
     it('does not simulcast audio', async () => {
@@ -610,7 +776,27 @@ describe('RavenAdapter', () => {
       await adapter.enableMicrophone(true);
       await flush();
 
-      expect(FakeRTCPeerConnection.latest.senders[0].setParametersCalls).toHaveLength(0);
+      expect(FakeRTCPeerConnection.latest.transceiverInits).toHaveLength(0);
+      expect(adapter.simulcastStatus('microphone')).toBe('notApplicable');
+    });
+
+    it('reuses the camera transceiver across a disable/enable cycle', async () => {
+      // Without this, every toggle adds an m-section that never goes away.
+      // A ladder can only be declared when a transceiver is created, so the
+      // naive fix — always addTransceiver — grows the SDP without bound on
+      // a call where somebody fiddles with their camera.
+      const { adapter, socket } = await connectAdapter();
+      await receiveOffer(socket);
+
+      await adapter.enableCamera(true);
+      await flush();
+      await adapter.enableCamera(false);
+      await flush();
+      await adapter.enableCamera(true);
+      await flush();
+
+      expect(FakeRTCPeerConnection.latest.transceiverInits).toHaveLength(1);
+      expect(adapter.simulcastStatus('camera')).toBe('enabled');
     });
 
     it('unmutes an already-published track rather than capturing again', async () => {
