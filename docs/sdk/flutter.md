@@ -21,7 +21,7 @@ follows Dart.
 
 ```yaml
 dependencies:
-  raven_rtc: ^0.1.2
+  raven_rtc: ^0.1.8
   raven_chat: ^0.1.0   # only if you want messaging
 ```
 
@@ -57,7 +57,7 @@ app** the instant it asks.
 class CallScreen extends StatefulWidget { /* … */ }
 
 class _CallScreenState extends State<CallScreen> {
-  Livqeno? _raven;
+  Raven? _raven;
   RavenRoom? _room;
 
   @override
@@ -337,19 +337,30 @@ Raven(token: token, endpoint: endpoint, adaptiveStream: false, dynacast: false);
 - **Simulators can't capture video.** Test on real hardware.
 - **`minSdkVersion 23`** on Android; WebRTC won't build below it.
 - **Use `wss://` and `https://`.** Android blocks cleartext by default.
-- **Verification status of `raven_rtc` 0.1.2.** The join/signaling race
-  that could leave remote media never arriving, and a room/token check
-  that rejected any room known by name rather than internal id (0.1.1
-  and 0.1.2's changelog entries), are fixed and covered by unit tests
-  that exercise the real `Raven`/`RavenEngine`/`RavenRoom` negotiation
-  and data-channel code against a mocked `flutter_webrtc` platform
-  channel. Those tests prove the SDK's own logic is correct; they are
-  not a substitute for a live end-to-end run against a real SFU and
-  real Android/iOS/browser devices before you depend on this release in
-  production. Run that matrix — publisher and subscriber on each
-  platform you ship, checking that `framesDecoded` / `bytesReceived`
-  actually increase, not just that signaling completes — before
-  treating RTC as verified for your app.
+- **Verification status of `raven_rtc` 0.1.8.** Every release from 0.1.4
+  to 0.1.8 fixed a *timing* defect, not a logic one: a dropped SDP answer
+  when the SFU's offer beat `room.joined` (0.1.4), a data channel created
+  but never negotiated (0.1.5), a `participantChanges` listener attached
+  after `join()` never seeing the initial roster (0.1.6), an
+  unconditional `facingMode` on web (0.1.7), and a local self-preview
+  that waited for the full offer/answer round trip before notifying
+  (0.1.8). All are fixed and pinned by unit tests that drive the real
+  `Raven`/`RavenEngine`/`RavenRoom` negotiation and data-channel code
+  against a mocked `flutter_webrtc` platform channel.
+  Those tests prove the SDK's own logic is correct. They are not a
+  substitute for a live run against a real SFU and real
+  Android/iOS/browser devices — note that *every one of the bugs above
+  was found that way and none of them by unit tests*. Run the matrix —
+  publisher and subscriber on each platform you ship, checking that
+  `framesDecoded` / `bytesReceived` actually increase, not just that
+  signaling completes — before treating RTC as verified for your app.
+  **One open defect as of 0.1.8, on Flutter Web:** a remote
+  `RavenVideoView` can fail to render a track that arrives *after* the
+  tile is first built — engine state (`isCameraEnabled`,
+  `remoteParticipants`) is correct while the underlying `<video>` element
+  never receives its `srcObject`. In a two-party call this affects
+  whoever joined and published first. Root cause is not yet pinned and
+  no fix has shipped.
 - **Verification status of `raven_live`.** Genuinely end-to-end
   verified once, not merely unit-tested: a real Flutter *Web* build
   (Chrome, fake camera device) publishing to a real local backend and

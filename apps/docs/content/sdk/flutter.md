@@ -21,7 +21,7 @@ Dart.
 
 ```yaml
 dependencies:
-  raven_rtc: ^0.1.0
+  raven_rtc: ^0.1.8
   raven_chat: ^0.1.0                    # only if you want messaging
 ```
 

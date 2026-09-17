@@ -25,7 +25,7 @@ dependencies:
   # published. The dependency_overrides below point both at the sibling
   # packages in this repo, so local development and CI still resolve
   # against the working tree — overrides are ignored on publish.
-  raven_rtc: ^0.1.0
+  raven_rtc: ^0.1.8
   raven_chat: ^0.1.0
   meta: ^1.15.0
 

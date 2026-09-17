@@ -48,7 +48,7 @@ optional, for call-audio routing.
 
 ```yaml
 dependencies:
-  raven_rtc: ^0.1.0
+  raven_rtc: ^0.1.8
 ```
 
 </Tab>

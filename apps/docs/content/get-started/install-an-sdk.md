@@ -78,7 +78,7 @@ installed directly in your app. You never import it yourself. See
 
 ```yaml
 dependencies:
-  raven_rtc: ^0.1.0     # calls
+  raven_rtc: ^0.1.8     # calls
   raven_chat: ^0.1.0    # messaging
   raven_live: ^0.1.0    # live streaming
 ```

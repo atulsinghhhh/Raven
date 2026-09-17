@@ -114,6 +114,7 @@ describe('validateEnv — production-only checks', () => {
       SFU_REGISTRATION_SECRET: 'a-distinct-sfu-registration-secret',
       METRICS_SCRAPE_SECRET: 'a-metrics-scrape-secret',
       STORAGE_ENDPOINT: 'https://storage.example.com',
+      API_PUBLIC_URL: 'https://api.example.com',
       ...overrides,
     });
   }
@@ -256,6 +257,89 @@ describe('validateEnv — production-only checks', () => {
   it('accepts a fully-correct production configuration', () => {
     expect(() => validateEnv(productionConfig())).not.toThrow();
   });
+
+  // API_PUBLIC_URL becomes the RTC `endpoint`, chat's `chatUrl`/`apiUrl`
+  // and `telemetryUrl` in every mint response. A wrong value here never
+  // fails for the API — it fails in each customer's client, and they have
+  // no way to override it. See docs/RELEASE_READINESS_AUDIT.md; this
+  // regressed twice because nothing checked it at deploy time.
+  describe('API_PUBLIC_URL', () => {
+    it('requires it in production', () => {
+      expect(() => validateEnv(productionConfig({ API_PUBLIC_URL: undefined }))).toThrow(
+        /API_PUBLIC_URL is required in production/,
+      );
+    });
+
+    it('rejects http:// — Android blocks cleartext, so every mobile client fails', () => {
+      expect(() => validateEnv(productionConfig({ API_PUBLIC_URL: 'http://api.example.com' }))).toThrow(
+        /API_PUBLIC_URL must use https/,
+      );
+    });
+
+    it("rejects localhost — clients cannot reach the API's own loopback", () => {
+      expect(() => validateEnv(productionConfig({ API_PUBLIC_URL: 'https://localhost:4100' }))).toThrow(
+        /must be a public hostname in production/,
+      );
+    });
+
+    it('rejects a cluster-internal hostname', () => {
+      expect(() => validateEnv(productionConfig({ API_PUBLIC_URL: 'https://raven-api.internal' }))).toThrow(
+        /not the cluster-internal/,
+      );
+    });
+
+    it('rejects the provider-generated hostname that actually shipped', () => {
+      // The exact value production served: valid TLS, publicly resolvable,
+      // and still wrong — it is tied to the Container App, so recreating
+      // it invalidates every endpoint already handed to a client.
+      expect(() =>
+        validateEnv(
+          productionConfig({
+            API_PUBLIC_URL: 'https://raven-api.salmontree-6311a7e1.eastasia.azurecontainerapps.io',
+            RTC_SIGNALING_URL: 'wss://raven-api.salmontree-6311a7e1.eastasia.azurecontainerapps.io/v1/rtc',
+          }),
+        ),
+      ).toThrow(/provider-generated hostname/);
+    });
+
+    it('does not mistake a customer domain for a generated one', () => {
+      expect(() =>
+        validateEnv(productionConfig({ API_PUBLIC_URL: 'https://api.notazurecontainerapps.io.example.com' })),
+      ).not.toThrow();
+    });
+
+    it('rejects a signaling URL pointing at a different host', () => {
+      expect(() =>
+        validateEnv(
+          productionConfig({
+            API_PUBLIC_URL: 'https://api.example.com',
+            RTC_SIGNALING_URL: 'wss://rtc.elsewhere.example.com/v1/rtc',
+          }),
+        ),
+      ).toThrow(/does not match API_PUBLIC_URL host/);
+    });
+
+    it('accepts a signaling URL on the same host', () => {
+      expect(() =>
+        validateEnv(
+          productionConfig({
+            API_PUBLIC_URL: 'https://api.example.com',
+            RTC_SIGNALING_URL: 'wss://api.example.com/v1/rtc',
+          }),
+        ),
+      ).not.toThrow();
+    });
+
+    it('rejects a value that is not a URL at all', () => {
+      expect(() => validateEnv(productionConfig({ API_PUBLIC_URL: 'api.example.com' }))).toThrow(
+        /must be an absolute URL/,
+      );
+    });
+
+    it('stays out of the way outside production', () => {
+      expect(() => validateEnv(baseConfig({ API_PUBLIC_URL: 'http://localhost:4100' }))).not.toThrow();
+    });
+  });
 });
 
 describe('validateEnv — email (Resend)', () => {
@@ -370,6 +454,7 @@ describe('validateEnv — email (Resend)', () => {
         RESEND_API_KEY: 'a-real-looking-key',
         RESEND_FROM_EMAIL: 'hello@mail.ravenstack.online',
         APP_URL: 'https://app.ravenstack.online',
+        API_PUBLIC_URL: 'https://api.ravenstack.online',
         ...overrides,
       });
     }

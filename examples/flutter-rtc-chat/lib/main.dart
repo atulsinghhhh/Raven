@@ -178,7 +178,7 @@ class CallScreen extends StatefulWidget {
 }
 
 class _CallScreenState extends State<CallScreen> {
-  Livqeno? _raven;
+  Raven? _raven;
   RavenRoom? _room;
   RavenChat? _chat;
 
