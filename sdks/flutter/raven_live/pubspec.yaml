@@ -3,7 +3,7 @@ description: >-
   Livqeno Live Streaming for Flutter — join a stream as a host or a viewer,
   with the room and the live chat that come with it. Composes raven_rtc and
   raven_chat; adds no media or messaging stack of its own.
-version: 0.1.0
+version: 0.2.0
 homepage: https://github.com/atulsinghhhh/Raven
 repository: https://github.com/atulsinghhhh/Raven
 issue_tracker: https://github.com/atulsinghhhh/Raven/issues
@@ -25,7 +25,18 @@ dependencies:
   # published. The dependency_overrides below point both at the sibling
   # packages in this repo, so local development and CI still resolve
   # against the working tree — overrides are ignored on publish.
-  raven_rtc: ^0.1.8
+  # Lower-bounded at 0.2.0, not ^0.1.x, and that bound is load-bearing
+  # rather than housekeeping. Every raven_rtc before 0.2.0 resolves a
+  # tile's track from the participant snapshot it was handed, and
+  # RavenRoom notifies its listeners synchronously — before the roster
+  # that snapshot came from has been replaced. A viewer's tile for the
+  # host therefore resolved against the pre-publish snapshot, found no
+  # track, and stayed on its placeholder for the whole stream while the
+  # connection underneath decoded real video the entire time. Since
+  # `^0.1.8` means `>=0.1.8 <0.2.0` to pub, leaving it that way would
+  # have pinned every raven_live application to versions that cannot
+  # show a viewer the stream they joined.
+  raven_rtc: '>=0.2.0 <0.3.0'
   raven_chat: ^0.1.0
   meta: ^1.15.0
 
