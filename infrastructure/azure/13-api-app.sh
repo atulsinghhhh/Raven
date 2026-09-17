@@ -20,6 +20,25 @@ TAG="${RAVEN_IMAGE_TAG}"
 ENVID="$(az containerapp env show -n "${RAVEN_CAE}" -g "${RAVEN_RG}" --query id -o tsv)"
 DOMAIN="$(az containerapp env show -n "${RAVEN_CAE}" -g "${RAVEN_RG}" --query properties.defaultDomain -o tsv)"
 FQDN="${APP}.${DOMAIN}"
+# The hostname handed to every client in a mint response: the RTC `endpoint`,
+# chat's `chatUrl`/`apiUrl`, and `telemetryUrl` all derive from it.
+#
+# Prefer a bound custom domain over the Azure-generated FQDN. 14-custom-
+# domains.sh binds api.<domain> and then rewrites API_PUBLIC_URL /
+# RTC_SIGNALING_URL / CORS_ORIGIN to match; when this script hardcoded
+# ${FQDN}, every subsequent redeploy silently reverted production to
+# *.azurecontainerapps.io and handed that hostname to every SDK client.
+# That regression is documented in docs/RELEASE_READINESS_AUDIT.md and it
+# recurred, because the old ordering made the fix last only until the next
+# deploy. Reading the binding back makes the two scripts agree in any order.
+#
+# Only an SniEnabled binding counts — a hostname that is added but not bound
+# has no certificate, and pointing clients at it would break TLS for all of
+# them. On a first-ever deploy the app does not exist yet, the query fails,
+# and we fall back to ${FQDN}, which is correct for that moment.
+PUBLIC_HOST="$(az containerapp hostname list -n "${APP}" -g "${RAVEN_RG}" \
+  --query "[?bindingType=='SniEnabled'].name | [0]" -o tsv 2>/dev/null || true)"
+PUBLIC_HOST="${RAVEN_PUBLIC_API_HOST:-${PUBLIC_HOST:-${FQDN}}}"
 LOGIN_SERVER="$(az acr show -n "${RAVEN_ACR}" -g "${RAVEN_RG}" --query loginServer -o tsv)"
 SFU_PRIVATE_IP="$(az vm show -g "${RAVEN_RG}" -n "${RAVEN_SFU_VM}" -d --query privateIps -o tsv)"
 TURN_PRIVATE_IP="$(az vm show -g "${RAVEN_RG}" -n "${RAVEN_TURN_VM}" -d --query privateIps -o tsv)"
@@ -89,7 +108,7 @@ fi
 # the Vercel domains exist; until then this is the API's own origin, which
 # is real (Swagger UI at /docs) and satisfies the check without inventing a
 # domain that does not resolve.
-CORS_ORIGINS="${RAVEN_CORS_ORIGINS:-https://${FQDN}}"
+CORS_ORIGINS="${RAVEN_CORS_ORIGINS:-https://${PUBLIC_HOST}}"
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "${WORK}"' EXIT
@@ -159,10 +178,10 @@ properties:
           - name: METRICS_SCRAPE_SECRET
             secretRef: metrics-scrape-secret
           - name: API_PUBLIC_URL
-            value: https://${FQDN}
+            value: https://${PUBLIC_HOST}
           # Must be wss:// in production — RTC tokens travel on it.
           - name: RTC_SIGNALING_URL
-            value: wss://${FQDN}/v1/rtc
+            value: wss://${PUBLIC_HOST}/v1/rtc
           - name: CORS_ORIGIN
             value: ${CORS_ORIGINS}${APP_URL_ENV_YAML}${OAUTH_ENV_YAML}
 

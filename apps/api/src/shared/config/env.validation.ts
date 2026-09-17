@@ -110,6 +110,22 @@ class EnvironmentVariables {
   @IsString()
   RTC_SIGNALING_URL?: string;
 
+  /**
+   * The hostname clients are handed in every mint response: the RTC
+   * `endpoint`, chat's `chatUrl`/`apiUrl`, and `telemetryUrl` all derive
+   * from it (rtc-tokens.service.ts, chat-token.service.ts).
+   *
+   * Optional because configuration.ts defaults it to localhost for local
+   * development. What it must never be is a value only the API itself can
+   * resolve — that is checked in validateProductionConfig() below, because
+   * a wrong value here does not fail for the API. It fails silently in
+   * every customer's client, days later, and cannot be worked around from
+   * their side.
+   */
+  @IsOptional()
+  @IsString()
+  API_PUBLIC_URL?: string;
+
   @IsOptional()
   @IsString()
   SFU_REGISTRATION_SECRET?: string;
@@ -595,6 +611,95 @@ function validateCapacityConfig(config: EnvironmentVariables): void {
  * Extra checks that only apply once NODE_ENV=production. Local dev should
  * never crash on these. A misconfigured prod deploy should never start.
  */
+/**
+ * Hostnames that exist only because a cloud provider generated them. They
+ * resolve publicly and serve valid TLS, so nothing *observably* breaks when
+ * one is handed out — which is exactly the problem. A deployment that has a
+ * custom domain bound but still advertises one of these is misconfigured:
+ * the generated name embeds a per-deployment token, so recreating the
+ * resource changes it and every credential minted against it goes stale.
+ *
+ * Matched as suffixes so a customer's own `api.example.com` never trips it.
+ */
+const GENERATED_CLOUD_HOST_SUFFIXES = [
+  '.azurecontainerapps.io',
+  '.cloudapp.azure.com',
+  '.azurewebsites.net',
+  '.run.app',
+  '.elb.amazonaws.com',
+  '.herokuapp.com',
+  '.onrender.com',
+  '.fly.dev',
+] as const;
+
+/**
+ * Whether `API_PUBLIC_URL` is something a client on the public internet can
+ * actually use, and whether the signaling URL agrees with it.
+ *
+ * Every one of these was a real production incident, not a hypothetical:
+ * the API kept serving traffic while handing browsers and mobile clients a
+ * hostname they could not reach, could not be told about, and could not
+ * override. See docs/RELEASE_READINESS_AUDIT.md — it regressed twice,
+ * because nothing failed at deploy time.
+ *
+ * Exported for the unit tests; validateProductionConfig() is the only caller.
+ */
+export function publicUrlProblems(apiPublicUrl?: string, rtcSignalingUrl?: string): string[] {
+  const problems: string[] = [];
+
+  if (!apiPublicUrl) {
+    return [
+      'API_PUBLIC_URL is required in production — it becomes the RTC endpoint, chat chatUrl/apiUrl and telemetryUrl handed to every client, and the localhost default is unreachable for all of them',
+    ];
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(apiPublicUrl);
+  } catch {
+    return [`API_PUBLIC_URL must be an absolute URL in production, got "${apiPublicUrl}"`];
+  }
+
+  if (parsed.protocol !== 'https:') {
+    problems.push(
+      `API_PUBLIC_URL must use https:// in production — Android blocks cleartext by default, so an http:// endpoint fails on every mobile client (got "${parsed.protocol}//")`,
+    );
+  }
+
+  const host = parsed.hostname.toLowerCase();
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local')) {
+    problems.push(
+      `API_PUBLIC_URL must be a public hostname in production, not "${host}" — clients receive this value and cannot reach the API's own loopback`,
+    );
+  } else if (host.endsWith('.internal') || host.endsWith('.svc.cluster.local')) {
+    problems.push(
+      `API_PUBLIC_URL must be the address clients use, not the cluster-internal "${host}" — it resolves for the API and for nothing outside it`,
+    );
+  } else if (GENERATED_CLOUD_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix))) {
+    problems.push(
+      `API_PUBLIC_URL is the provider-generated hostname "${host}". Set it to the custom domain bound to this deployment: the generated name is tied to the resource, so recreating it invalidates every endpoint already handed to a client. Set RAVEN_PUBLIC_API_HOST to override if this deployment genuinely has no custom domain.`,
+    );
+  }
+
+  // The two must name the same host. When they disagree, RTC signaling and
+  // chat land on different origins and only one of them is the one that was
+  // actually tested.
+  if (rtcSignalingUrl) {
+    try {
+      const signalingHost = new URL(rtcSignalingUrl).hostname.toLowerCase();
+      if (signalingHost !== host) {
+        problems.push(
+          `RTC_SIGNALING_URL host "${signalingHost}" does not match API_PUBLIC_URL host "${host}" — clients would signal against one origin and send chat and telemetry to another`,
+        );
+      }
+    } catch {
+      problems.push(`RTC_SIGNALING_URL must be an absolute URL in production, got "${rtcSignalingUrl}"`);
+    }
+  }
+
+  return problems;
+}
+
 function validateProductionConfig(config: EnvironmentVariables): void {
   if (config.NODE_ENV !== 'production') {
     return;
@@ -641,6 +746,7 @@ function validateProductionConfig(config: EnvironmentVariables): void {
   if (config.RTC_SIGNALING_URL?.startsWith('ws://')) {
     problems.push('RTC_SIGNALING_URL must use wss:// (TLS) in production, not ws:// — RTC tokens travel on it');
   }
+  problems.push(...publicUrlProblems(config.API_PUBLIC_URL, config.RTC_SIGNALING_URL));
   if (!config.CHAT_TOKEN_SECRET) {
     problems.push(
       'CHAT_TOKEN_SECRET is required in production — chat tokens must not share a signing key with dashboard session JWTs (see docs/chat/websocket.md#authentication)',

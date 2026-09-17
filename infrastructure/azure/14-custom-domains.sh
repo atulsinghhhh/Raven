@@ -24,6 +24,14 @@ TURN_HOST_NEW="turn.${DOMAIN}"
 LANDING="https://${DOMAIN}"
 DASH="https://app.${DOMAIN}"
 DOCS="https://docs.${DOMAIN}"
+# Browser origins allowed against the API. The dashboard is a server-side BFF
+# and does not need this, but SDK consumers and browser WebSocket origins do.
+#
+# During the ravenstack.online -> livqeno.com cutover both families resolve,
+# so the default lists both: setting it to one family silently blocks every
+# caller still on the other. Override with RAVEN_CORS_ORIGINS once the legacy
+# domain is genuinely retired.
+CORS_ORIGINS="${RAVEN_CORS_ORIGINS:-${LANDING},${DASH},${DOCS},https://ravenstack.online,https://app.ravenstack.online,https://docs.ravenstack.online}"
 ACME_EMAIL="${RAVEN_ACME_EMAIL:-}"
 APP="${RAVEN_API_APP:-raven-api}"
 
@@ -155,7 +163,7 @@ az containerapp update -n "${APP}" -g "${RAVEN_RG}" \
   --set-env-vars \
     "API_PUBLIC_URL=https://${API_HOST}" \
     "RTC_SIGNALING_URL=wss://${API_HOST}/v1/rtc" \
-    "CORS_ORIGIN=${LANDING},${DASH},${DOCS}" \
+    "CORS_ORIGIN=${CORS_ORIGINS}" \
     "TURN_HOST=${TURN_HOST_NEW}" \
   --output none
 echo "    API_PUBLIC_URL, RTC_SIGNALING_URL, CORS_ORIGIN, TURN_HOST updated"
