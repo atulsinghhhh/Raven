@@ -94,9 +94,14 @@ class _HostRunnerState extends State<_HostRunner> {
       _fail('bad_creds_json', 'Could not parse `creds` as JSON: $error');
       return;
     }
-    // RTC-only for this check; see the module doc.
-    json.remove('chat');
-    json.remove('chatRootMessageId');
+    // RTC-only for this check; see the module doc. `?withchat=1` keeps the
+    // chat half, for the diagnostic that needs the *whole* credential the
+    // API actually returns.
+    final withChat = Uri.base.queryParameters['withchat'] == '1';
+    if (!withChat) {
+      json.remove('chat');
+      json.remove('chatRootMessageId');
+    }
 
     final RavenLiveStreamCredentials credentials;
     try {
