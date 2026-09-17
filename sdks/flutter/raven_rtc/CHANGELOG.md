@@ -1,3 +1,49 @@
+## 0.2.1
+
+* **Fixed:** an Android client could allocate a TURN relay, never send a
+  CreatePermission for the server's address, never send a relay
+  connectivity check, and sit in `checking` until the SFU gave up on it
+  around thirty seconds later. Because it depended on which message won a
+  race it looked intermittent, and so it read like a network problem.
+
+  It was not. Remote ICE candidates were being discarded: the engine
+  returned early when no peer connection existed yet, and wrapped
+  `addCandidate` in a bare `catch`. `addCandidate` is illegal until a
+  remote description has been applied, and the SFU trickles its candidates
+  as soon as it has them — routinely before its offer has been processed.
+  A client left holding no remote candidate has no peer to permit and
+  nothing to check toward, which is exactly the shape the server-side
+  investigation kept finding.
+
+  Candidates that cannot be applied yet are now held — bounded, oldest
+  dropped past 128 — and drained after every `setRemoteDescription`, on
+  both the offer and the answer path, so neither ordering loses what the
+  other would have applied. Device logs show why it mattered: every run
+  buffers three candidates. The race was happening on every connection;
+  the old code simply got lucky about half the time. Measured on Android
+  against the published 0.2.0, same device and network, alternating: five
+  of ten host connections succeeded before, ten of ten after.
+
+* **Added:** a bounded stall watchdog. A connection still short of
+  `connected` after twelve seconds — comfortably inside the SFU's own
+  thirty-second deadline — gets exactly one ICE restart. Single-flight,
+  one attempt per connection, and skipped outright if a negotiation is
+  already in flight, so it cannot produce a duplicate publisher, a second
+  peer connection, or a retry loop. It reuses the existing offer path, so
+  published tracks stay on their transceivers. In practice it did not need
+  to fire in any of the ten runs above; it is there for the connection
+  that would otherwise wait for the server to end it.
+
+* **Changed:** ICE diagnostics now go through `debugPrint`, so they reach
+  `logcat` on a device. Candidates are logged by shape only —
+  `relay/udp`, `srflx/udp` — never their address, because an ICE candidate
+  line carries the connection's ufrag.
+
+**Not yet validated:** repeated viewer-side sessions, physical devices,
+network transitions, and the ICE restart path on a device. The host path
+is well covered; the viewer path rests on a single clean end-to-end
+session. See `flutter_check/android_ice` for the harness.
+
 ## 0.2.0
 
 Simulcast now actually works. It never had.
