@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 
 import '../errors.dart';
@@ -516,6 +516,37 @@ class RavenEngine {
   /// `_pc = pc` on completion.
   int _pcGeneration = 0;
 
+  /// Remote ICE candidates that arrived before they could be applied.
+  ///
+  /// The SFU trickles its candidates the moment it has them, which is
+  /// routinely *before* its offer has been processed here — and
+  /// `addCandidate` throws when there is no remote description yet.
+  /// Discarding those is what left an Android client with no remote
+  /// candidate to check toward: it allocated a TURN relay, never sent a
+  /// CreatePermission for the server's address because it had no peer to
+  /// permit, never sent a relay connectivity check, and sat in `checking`
+  /// until the SFU's own 30s deadline closed the session. Whether the
+  /// race was lost came down to which message won, which is why it
+  /// looked intermittent.
+  ///
+  /// Bounded: a server that trickles endlessly into a connection that
+  /// never gets a description must not grow this without limit.
+  final _pendingRemoteCandidates = <IceCandidatePayload>[];
+
+  /// Whether a remote description has been applied to [_pc]. `addCandidate`
+  /// is only legal after one, and this is cheaper and more reliable than
+  /// asking the platform on every candidate.
+  bool _remoteDescriptionApplied = false;
+
+  /// Guards ICE recovery so it runs at most once per connection, and never
+  /// concurrently with itself.
+  bool _iceRestartAttempted = false;
+  bool _iceRestartInFlight = false;
+
+  /// Fires if the connection is still trying to reach `connected`. See
+  /// [_armIceWatchdog].
+  Timer? _iceWatchdog;
+
   Future<rtc.RTCPeerConnection> _ensurePeerConnection() {
     final existing = _pc;
     if (existing != null) return Future.value(existing);
@@ -619,6 +650,11 @@ class RavenEngine {
       }
 
       await pc.setRemoteDescription(rtc.RTCSessionDescription(sdp, 'offer'));
+      _remoteDescriptionApplied = true;
+      // Before the answer: the agent can begin checking against these
+      // as soon as it has a local description, and the SFU has usually
+      // trickled several by now.
+      await _drainRemoteCandidates();
       final answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
@@ -656,6 +692,8 @@ class RavenEngine {
     _glareRecoveryAttempted = false;
     try {
       await pc.setRemoteDescription(rtc.RTCSessionDescription(sdp, 'answer'));
+      _remoteDescriptionApplied = true;
+      await _drainRemoteCandidates();
 
       // The round this answer just completed may have had another
       // publish queued behind it (_negotiatePublish's `signalingState !=
@@ -675,20 +713,92 @@ class RavenEngine {
     }
   }
 
+  /// How many un-appliable remote candidates to hold before dropping the
+  /// oldest. A real negotiation produces a handful per m-section; anything
+  /// beyond this is a server trickling into a connection that is never
+  /// going to get a description, and holding it all helps nobody.
+  static const _maxPendingRemoteCandidates = 128;
+
   Future<void> _handleRemoteCandidate(IceCandidatePayload payload) async {
     final pc = _pc;
-    if (pc == null) return;
+    // No connection yet, or no remote description to hang a candidate on.
+    // Hold it: this is the ordering the SFU actually produces, not an
+    // error, and dropping it costs the agent the pair it needed.
+    if (pc == null || !_remoteDescriptionApplied) {
+      _bufferRemoteCandidate(payload);
+      return;
+    }
+    await _addRemoteCandidate(pc, payload, buffered: false);
+  }
+
+  void _bufferRemoteCandidate(IceCandidatePayload payload) {
+    if (_pendingRemoteCandidates.length >= _maxPendingRemoteCandidates) {
+      _pendingRemoteCandidates.removeAt(0);
+      debugPrint('[raven] ice: candidate buffer full, dropped oldest');
+    }
+    _pendingRemoteCandidates.add(payload);
+    debugPrint('[raven] ice: buffered remote candidate '
+        '${_candidateShape(payload.candidate)} '
+        '(pending=${_pendingRemoteCandidates.length})');
+  }
+
+  Future<void> _addRemoteCandidate(
+    rtc.RTCPeerConnection pc,
+    IceCandidatePayload payload, {
+    required bool buffered,
+  }) async {
     try {
       await pc.addCandidate(rtc.RTCIceCandidate(
         payload.candidate,
         payload.sdpMid,
         payload.sdpMLineIndex,
       ));
-    } catch (_) {
-      // Candidates commonly arrive just before a remote description is
-      // set, or for a transceiver that has since gone. Neither is worth
-      // surfacing: the connection succeeds on the ones that do apply.
+      debugPrint('[raven] ice: applied ${buffered ? "buffered " : ""}'
+          'remote candidate ${_candidateShape(payload.candidate)}');
+    } catch (error) {
+      // Still not appliable. If a description has since been set this is a
+      // genuinely stale candidate (a transceiver that has gone) and there
+      // is nothing to retry; otherwise hold it for the next drain.
+      if (!_remoteDescriptionApplied) {
+        _bufferRemoteCandidate(payload);
+        return;
+      }
+      debugPrint('[raven] ice: discarded unusable remote candidate '
+          '${_candidateShape(payload.candidate)}: $error');
     }
+  }
+
+  /// Applies everything held back, oldest first, once a remote description
+  /// exists. Called from both description paths so neither ordering loses
+  /// the candidates the other would have applied.
+  Future<void> _drainRemoteCandidates() async {
+    if (_pendingRemoteCandidates.isEmpty) return;
+    final pc = _pc;
+    if (pc == null || !_remoteDescriptionApplied) return;
+
+    final pending = List.of(_pendingRemoteCandidates);
+    _pendingRemoteCandidates.clear();
+    debugPrint(
+        '[raven] ice: draining ${pending.length} buffered remote candidate(s)');
+    for (final payload in pending) {
+      await _addRemoteCandidate(pc, payload, buffered: true);
+    }
+  }
+
+  /// A candidate's shape — type and transport only, never its address.
+  ///
+  /// Enough to tell host from srflx from relay when reading a log, with
+  /// no IP, port, or ufrag in it: an ICE candidate line carries the
+  /// connection's ufrag, and those are credentials.
+  static String _candidateShape(String candidate) {
+    final type = RegExp(r'\btyp (host|srflx|prflx|relay)\b')
+        .firstMatch(candidate)
+        ?.group(1);
+    final transport = RegExp(r'\b(udp|tcp)\b', caseSensitive: false)
+        .firstMatch(candidate)
+        ?.group(1)
+        ?.toLowerCase();
+    return '${type ?? "unknown"}/${transport ?? "?"}';
   }
 
   Future<void> _flushDeferredPublishes() async {
@@ -1408,6 +1518,15 @@ class RavenEngine {
     // a post-reconnect publish() skip the wait entirely.
     _initialOfferHandled = Completer<void>();
     _glareRecoveryAttempted = false;
+    // All three belong to the connection just discarded. Candidates held
+    // for it name transceivers that no longer exist, and the recovery
+    // budget refills for the new connection — a fresh session gets its own
+    // single restart, rather than inheriting a spent one.
+    _pendingRemoteCandidates.clear();
+    _remoteDescriptionApplied = false;
+    _iceRestartAttempted = false;
+    _iceRestartInFlight = false;
+    _cancelIceWatchdog();
     _dataChannel = null;
     _subscribed.clear();
     _pendingMedia.clear();
@@ -1434,6 +1553,8 @@ class RavenEngine {
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+    _cancelIceWatchdog();
+    _pendingRemoteCandidates.clear();
 
     await _messages?.cancel();
     await _lifecycle?.cancel();
@@ -1460,6 +1581,91 @@ class RavenEngine {
     _changes.add(null);
   }
 
+  /// How long the connection may sit short of `connected` before ICE
+  /// recovery runs.
+  ///
+  /// Comfortably inside the SFU's own never-connected deadline (pion/ice
+  /// defaults: 5s disconnected + 25s failed = ~30s), so a recoverable path
+  /// gets a second attempt while the server-side session is still alive.
+  /// Long enough that an ordinary slow gather — a phone bringing up a TURN
+  /// allocation on mobile data — finishes on its own first.
+  static const _iceStallTimeout = Duration(seconds: 12);
+
+  /// Arms the stall watchdog, replacing any previous one.
+  ///
+  /// Deliberately not a retry loop: it fires once per armed period, and
+  /// recovery itself is one-shot per connection ([_iceRestartAttempted]),
+  /// so a connection that cannot be recovered fails rather than churning.
+  void _armIceWatchdog() {
+    _iceWatchdog?.cancel();
+    if (_disposed) return;
+    final generation = _pcGeneration;
+    _iceWatchdog = Timer(_iceStallTimeout, () {
+      unawaited(_recoverStalledIce(generation));
+    });
+  }
+
+  void _cancelIceWatchdog() {
+    _iceWatchdog?.cancel();
+    _iceWatchdog = null;
+  }
+
+  /// One controlled ICE restart for a connection that never got going.
+  ///
+  /// Reuses the existing offer path rather than building a second
+  /// negotiation route, so glare handling, deferred publishes and the
+  /// transceiver cache all behave exactly as they do for any other offer.
+  /// The published tracks stay on their transceivers throughout — an ICE
+  /// restart renegotiates the transport, not the media — which is what
+  /// keeps this free of duplicate publishers.
+  Future<void> _recoverStalledIce(int generation) async {
+    if (_disposed) return;
+    // A reset or reconnect replaced the connection under us; its own
+    // watchdog governs it now.
+    if (generation != _pcGeneration) return;
+    if (_iceRestartAttempted || _iceRestartInFlight) return;
+    if (_mediaState == RavenMediaState.connected) return;
+
+    final pc = _pc;
+    if (pc == null) return;
+
+    _iceRestartAttempted = true;
+    _iceRestartInFlight = true;
+    debugPrint('[raven] ice: stalled in ${_mediaState.name} after '
+        '${_iceStallTimeout.inSeconds}s, attempting one ICE restart '
+        '(pending=${_pendingRemoteCandidates.length})');
+
+    try {
+      final state = await pc.getSignalingState();
+      if (state != rtc.RTCSignalingState.RTCSignalingStateStable) {
+        // A negotiation is already in flight; it will either connect us or
+        // leave the connection to fail honestly. Starting a competing
+        // offer here is how duplicate m-sections get created.
+        debugPrint(
+            '[raven] ice: skipping restart, negotiation already in flight');
+        return;
+      }
+      final offer = await pc.createOffer({'iceRestart': true});
+      await pc.setLocalDescription(offer);
+      final local = await pc.getLocalDescription();
+      if (generation != _pcGeneration || _disposed) return;
+      signaling.send({
+        'type': ClientMessageType.sdpOffer,
+        'sdp': local?.sdp ?? offer.sdp ?? '',
+      });
+      debugPrint('[raven] ice: restart offer sent');
+    } catch (error) {
+      debugPrint('[raven] ice: restart failed: $error');
+      _errors.add(RavenException(
+        RavenErrorCode.connectionFailed,
+        'The media connection stalled and could not be restarted.',
+        error,
+      ));
+    } finally {
+      _iceRestartInFlight = false;
+    }
+  }
+
   /// Translates the peer connection's own state into [RavenMediaState].
   ///
   /// `new` is reported as [RavenMediaState.connecting] rather than
@@ -1469,6 +1675,20 @@ class RavenEngine {
   /// tell "nobody has published yet" from "we are trying and it is not
   /// working".
   void _handleConnectionState(rtc.RTCPeerConnectionState state) {
+    debugPrint('[raven] ice: peer connection state -> ${state.name}');
+    switch (state) {
+      case rtc.RTCPeerConnectionState.RTCPeerConnectionStateNew:
+      case rtc.RTCPeerConnectionState.RTCPeerConnectionStateConnecting:
+      case rtc.RTCPeerConnectionState.RTCPeerConnectionStateDisconnected:
+        // Still trying. Give it a bounded window to get there by itself.
+        _armIceWatchdog();
+      case rtc.RTCPeerConnectionState.RTCPeerConnectionStateConnected:
+      case rtc.RTCPeerConnectionState.RTCPeerConnectionStateFailed:
+      case rtc.RTCPeerConnectionState.RTCPeerConnectionStateClosed:
+        // Settled either way: nothing left for a watchdog to rescue.
+        _cancelIceWatchdog();
+    }
+
     _setMediaState(switch (state) {
       rtc.RTCPeerConnectionState.RTCPeerConnectionStateNew ||
       rtc.RTCPeerConnectionState.RTCPeerConnectionStateConnecting =>

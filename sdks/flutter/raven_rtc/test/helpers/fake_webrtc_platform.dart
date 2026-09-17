@@ -100,6 +100,22 @@ class FakeWebRtcPlatform {
   /// widget tree alone cannot tell those apart — see `video_view_test.dart`.
   final renderedStreamIds = <String?>[];
 
+  /// Candidate strings that actually reached the platform. The boundary a
+  /// remote candidate is judged at: an engine that buffers correctly gets
+  /// its candidates here, one that drops them does not.
+  final appliedCandidates = <String>[];
+
+  /// How many candidates the platform refused for want of a remote
+  /// description. Non-zero is normal — it is the race being survived.
+  int rejectedCandidates = 0;
+
+  /// Every `createOffer` constraint map, in order. `{'iceRestart': true}`
+  /// marks an ICE restart.
+  final offerConstraints = <Map<String, dynamic>>[];
+
+  /// Peer connections that have had a remote description applied.
+  final _remoteDescriptionSet = <String>{};
+
   /// Accepts `listen`/`cancel` on an EventChannel and delivers nothing.
   ///
   /// An EventChannel with no handler throws MissingPluginException the
@@ -181,6 +197,9 @@ class FakeWebRtcPlatform {
         return {'sdp': sdp, 'type': _localType[peerConnectionId]};
 
       case 'createOffer':
+        offerConstraints.add(
+          (args['constraints'] as Map?)?.cast<String, dynamic>() ?? const {},
+        );
         return {'sdp': _buildOfferSdp(), 'type': 'offer'};
 
       case 'createAnswer':
@@ -322,7 +341,8 @@ class FakeWebRtcPlatform {
         final description =
             (args['description'] as Map).cast<String, dynamic>();
         final type = description['type'] as String;
-        _liveSignalingStates[peerConnectionId!] = switch (type) {
+        _remoteDescriptionSet.add(peerConnectionId!);
+        _liveSignalingStates[peerConnectionId] = switch (type) {
           'offer' => 'have-remote-offer',
           'pranswer' => 'have-remote-pranswer',
           'answer' => 'stable',
@@ -330,10 +350,29 @@ class FakeWebRtcPlatform {
         };
         return null;
 
+      case 'addCandidate':
+        // The real platform refuses a candidate before a remote
+        // description exists, which is exactly the window the SFU
+        // trickles into. Modelling it is what makes the buffer-and-drain
+        // behaviour testable at all — a fake that silently accepts
+        // everything cannot tell a dropped candidate from an applied one.
+        if (_remoteDescriptionSet.contains(peerConnectionId)) {
+          appliedCandidates.add(
+            ((args['candidate'] as Map).cast<String, dynamic>()['candidate']
+                    as String?) ??
+                '',
+          );
+          return null;
+        }
+        rejectedCandidates++;
+        throw PlatformException(
+          code: 'addCandidateFailed',
+          message: 'The remote description was null',
+        );
+
       case 'setConfiguration':
       case 'addStream':
       case 'removeStream':
-      case 'addCandidate':
       case 'peerConnectionDispose':
       case 'peerConnectionClose':
       // A texture id is all `RTCVideoRenderer.initialize()` wants back;
