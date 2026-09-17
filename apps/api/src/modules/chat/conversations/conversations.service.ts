@@ -351,20 +351,44 @@ export class ConversationsService {
   }
 
   /**
-   * The role a user holds, for token minting. Non-members get MEMBER so a
-   * developer's backend can mint a token and add the membership in either
-   * order: the membership check still happens at connect time.
+   * The role a user holds in each of `conversationIds` they are actually
+   * an active member of. Conversations they are not a member of are
+   * simply absent from the map, which is what makes
+   * `POST /v1/chat/tokens` able to report them — see `roleFor`.
    */
-  async roleFor(conversationIds: string[], userId: string): Promise<ChatMemberRole> {
+  async rolesFor(conversationIds: string[], userId: string): Promise<Map<string, ChatMemberRole>> {
     if (conversationIds.length === 0) {
-      return ChatMemberRole.MEMBER;
+      return new Map();
     }
     const members = await this.prisma.chatMember.findMany({
       where: { conversationId: { in: conversationIds }, userId, status: ChatMemberStatus.ACTIVE },
-      select: { role: true },
+      select: { conversationId: true, role: true },
     });
-    if (members.some((m) => m.role === ChatMemberRole.ADMIN)) return ChatMemberRole.ADMIN;
-    if (members.some((m) => m.role === ChatMemberRole.MODERATOR)) return ChatMemberRole.MODERATOR;
+    return new Map(members.map((member) => [member.conversationId, member.role]));
+  }
+
+  /**
+   * The single role a token is minted with, given what `rolesFor`
+   * found: the most privileged one held anywhere in the set.
+   *
+   * Non-members get MEMBER rather than a refusal, so a developer's
+   * backend can mint a token and add the membership in either order —
+   * the membership check still happens at connect time, and is the one
+   * that decides anything. That flexibility used to be silent, though:
+   * a token minted for a non-member looked entirely successful and then
+   * produced a 404 on the first read, which reads as "your conversation
+   * does not exist" rather than "you have not added this user yet". The
+   * mint response now names those conversations; see the controller.
+   */
+  static roleFrom(roles: Map<string, ChatMemberRole>): ChatMemberRole {
+    const held = [...roles.values()];
+    if (held.includes(ChatMemberRole.ADMIN)) return ChatMemberRole.ADMIN;
+    if (held.includes(ChatMemberRole.MODERATOR)) return ChatMemberRole.MODERATOR;
     return ChatMemberRole.MEMBER;
+  }
+
+  /** The most privileged role `userId` holds across `conversationIds`. */
+  async roleFor(conversationIds: string[], userId: string): Promise<ChatMemberRole> {
+    return ConversationsService.roleFrom(await this.rolesFor(conversationIds, userId));
   }
 }

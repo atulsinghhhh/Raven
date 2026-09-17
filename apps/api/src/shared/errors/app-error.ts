@@ -120,10 +120,32 @@ export class UsageLimitExceededError extends AppError {
  * left to give."
  */
 export class LiveStreamConcurrencyLimitExceededError extends AppError {
-  constructor(details: { maxConcurrentStreams: number }) {
+  constructor(details: {
+    maxConcurrentStreams: number;
+    /**
+     * The stream that is in the way, when it could be identified.
+     *
+     * The only action that resolves this error is ending that stream, and
+     * without naming it a client cannot offer to. Integrators were left
+     * telling a user "you already have a stream running" and nothing
+     * more, because the account-wide scope means the blocking stream is
+     * routinely in a *different project or environment* than the one
+     * being called against — so the caller frequently cannot find it by
+     * listing their own.
+     *
+     * Absent when the conflicting row could not be read (it ended in the
+     * gap between the refused write and this lookup, most likely), which
+     * is why this stays optional rather than becoming a second failure.
+     */
+    blockingStream?: { id: string; title: string; startedAt: string | null };
+  }) {
+    const blocking = details.blockingStream;
     super(
       `This account already has ${details.maxConcurrentStreams} live stream(s) running — the free tier allows ` +
-        'only one at a time, across every project and environment. End it before starting another.',
+        'only one at a time, across every project and environment. ' +
+        (blocking
+          ? `End "${blocking.title}" (${blocking.id}) before starting another.`
+          : 'End it before starting another.'),
       HttpStatus.FORBIDDEN,
       RavenErrorCode.STREAM_CONCURRENCY_LIMIT_EXCEEDED,
       details,

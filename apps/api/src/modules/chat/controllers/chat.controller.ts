@@ -7,7 +7,6 @@ import {
   ApiTags,
   ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
-import { ChatMemberRole } from '../../../generated/prisma/client';
 import { AttachmentsService } from '../attachments/attachments.service';
 import { CreateAttachmentDto } from '../attachments/dto/create-attachment.dto';
 import { ChatActor } from '../auth/chat-actor.interface';
@@ -74,13 +73,16 @@ export class ChatController {
   })
   @ApiResponse({
     status: 201,
-    description: 'Token minted',
+    description:
+      'Token minted. `conversations` echoes the public ids (`conv_...`) the token is scoped to — the same form every other endpoint and every SDK takes. `pendingMembership` lists any of those the user is not yet a member of: the token is still valid, but reads against those conversations answer 404 until the membership is added (POST /v1/chat/conversations/:id/members).',
     schema: {
       example: {
         token: 'eyJhbGciOiJIUzI1NiJ9...',
         tokenId: 'ctk_7Qd2nF...',
         userId: 'user-123',
         scopes: ['chat:read', 'chat:send'],
+        conversations: ['conv_LxHO3BNYfAD8CNO8C4K_Cw'],
+        pendingMembership: [],
         chatUrl: 'wss://api.example.com/v1/chat/ws',
         apiUrl: 'https://api.example.com',
         expiresAt: '2026-08-18T13:19:49.233Z',
@@ -93,26 +95,47 @@ export class ChatController {
     // fresh one for a different user, or extend its own lifetime.
     assertServerActor(actor, 'Minting a chat token');
 
-    const conversationIds = await Promise.all(
-      (dto.conversations ?? []).map(async (reference) => {
-        const conversation = await this.conversations.resolve(actor, reference);
-        return conversation.id;
-      }),
+    const conversations = await Promise.all(
+      (dto.conversations ?? []).map((reference) => this.conversations.resolve(actor, reference)),
     );
 
-    const role = await this.conversations.roleFor(conversationIds, dto.userId);
+    const roles = await this.conversations.rolesFor(
+      conversations.map((conversation) => conversation.id),
+      dto.userId,
+    );
 
-    return this.chatTokens.issue({
+    const issued = this.chatTokens.issue({
       projectId: actor.projectId,
       // Inherited from the API key that minted it. A backend holding a
       // development key cannot hand a browser a production token.
       environment: actor.environment,
       userId: dto.userId,
-      conversations: conversationIds,
-      role: role ?? ChatMemberRole.MEMBER,
+      // Public ids, never the internal uuid. Both authorize (see
+      // `ConversationsService.authorize`), but the public id is the only
+      // one a developer ever holds: it is what they passed in, what the
+      // SDKs' `connect()` takes, and what every REST path is addressed
+      // by. Echoing the uuid back sent integrators round a loop of
+      // feeding it to the next call and getting "conversation not
+      // found" for a conversation that plainly exists.
+      conversations: conversations.map((conversation) => conversation.publicId),
+      role: ConversationsService.roleFrom(roles),
       requestedScopes: dto.scopes,
       ttlSeconds: dto.ttlSeconds,
     });
+
+    // Minting for a non-member is allowed on purpose — a backend may add
+    // the membership before or after — but it used to be indistinguishable
+    // from minting for a member, and the consequence only showed up one
+    // call later as a 404 that reads like the conversation is missing.
+    // Naming them here turns that into something the caller can act on at
+    // the point they can still fix it. Never an error: making it one would
+    // break the either-order guarantee that is the whole reason this is
+    // permitted.
+    const pendingMembership = conversations
+      .filter((conversation) => !roles.has(conversation.id))
+      .map((conversation) => conversation.publicId);
+
+    return { ...issued, pendingMembership };
   }
 
   @Delete('tokens/:tokenId')

@@ -492,15 +492,36 @@ export class LiveStreamsService implements OnModuleInit, OnModuleDestroy {
       // count-then-act check here would have exactly the race the comment
       // above describes, just one level up (two different CREATED streams
       // for the same owner both reading "0 live" and both winning).
+      // Read back which stream won, so the error can name it. The cap is
+      // account-wide, so this is routinely a stream in another project or
+      // environment entirely — one the caller cannot find by listing the
+      // streams under the key they just called with. Best-effort: it may
+      // have ended in the gap since the write was refused, and a failure
+      // to identify it must not replace a clear 403 with a 500.
+      const blocking = await this.prisma.liveStream
+        .findFirst({
+          where: { ownerId: stream.ownerId, status: LiveStreamStatus.LIVE },
+          select: { publicId: true, title: true, startedAt: true },
+        })
+        .catch(() => null);
+
       this.logger.warn(
         this.event(scope, 'stream.concurrency_rejected', {
           stream: stream.publicId,
           room: stream.roomId,
           reason: 'owner already has a different stream LIVE',
+          blockedBy: blocking?.publicId,
         }),
       );
       throw new LiveStreamConcurrencyLimitExceededError({
         maxConcurrentStreams: this.configService.get<number>('usage.live.maxConcurrentStreams')!,
+        blockingStream: blocking
+          ? {
+              id: blocking.publicId,
+              title: blocking.title,
+              startedAt: blocking.startedAt?.toISOString() ?? null,
+            }
+          : undefined,
       });
     }
     const { count } = updateResult;

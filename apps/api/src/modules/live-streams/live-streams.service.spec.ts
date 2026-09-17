@@ -27,6 +27,7 @@ describe('LiveStreamsService', () => {
       update: jest.Mock;
       updateMany: jest.Mock;
       findUnique: jest.Mock;
+      findFirst: jest.Mock;
       findMany: jest.Mock;
     };
     liveStreamHost: {
@@ -99,6 +100,9 @@ describe('LiveStreamsService', () => {
         // override it with { count: 0 }.
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         findUnique: jest.fn(),
+        // Only read on the concurrency-cap path, to name the stream that
+        // is in the way. Nothing running means nothing to name.
+        findFirst: jest.fn().mockResolvedValue(null),
         findMany: jest.fn(),
       },
       liveStreamHost: {
@@ -469,6 +473,51 @@ describe('LiveStreamsService', () => {
           Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
         );
 
+        await expect(service.start(SCOPE, 'stream_abc123')).rejects.toMatchObject({
+          code: RavenErrorCode.STREAM_CONCURRENCY_LIMIT_EXCEEDED,
+        });
+      });
+
+      it('names the stream that is in the way, so a client can offer to end it', async () => {
+        prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.CREATED }));
+        prisma.liveStream.updateMany.mockRejectedValue(
+          Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
+        );
+        // Deliberately a stream in a different project: the cap is
+        // account-wide, so the blocker is routinely one the caller
+        // cannot find by listing the streams under their own key.
+        prisma.liveStream.findFirst.mockResolvedValue({
+          publicId: 'stream_elsewhere',
+          title: 'Standup in another project',
+          startedAt: new Date('2026-09-17T09:00:00.000Z'),
+        });
+
+        const error = await service.start(SCOPE, 'stream_abc123').catch((err: AppError) => err);
+
+        // Asserted on the response body, which is what a client actually
+        // receives: AppError spreads `details` into it alongside the code.
+        expect(error).toBeInstanceOf(AppError);
+        expect((error as AppError).getResponse()).toMatchObject({
+          code: RavenErrorCode.STREAM_CONCURRENCY_LIMIT_EXCEEDED,
+          maxConcurrentStreams: expect.any(Number),
+          blockingStream: {
+            id: 'stream_elsewhere',
+            title: 'Standup in another project',
+            startedAt: '2026-09-17T09:00:00.000Z',
+          },
+        });
+        expect((error as AppError).message).toContain('stream_elsewhere');
+      });
+
+      it('still refuses cleanly when the blocking stream cannot be read', async () => {
+        prisma.liveStream.findUnique.mockResolvedValue(baseStream({ status: LiveStreamStatus.CREATED }));
+        prisma.liveStream.updateMany.mockRejectedValue(
+          Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
+        );
+        prisma.liveStream.findFirst.mockRejectedValue(new Error('connection reset'));
+
+        // Identifying the blocker is a courtesy. Failing to would
+        // otherwise turn a clear 403 into a 500 about something else.
         await expect(service.start(SCOPE, 'stream_abc123')).rejects.toMatchObject({
           code: RavenErrorCode.STREAM_CONCURRENCY_LIMIT_EXCEEDED,
         });
