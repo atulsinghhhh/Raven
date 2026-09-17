@@ -97,6 +97,60 @@ describe('reconnection', () => {
     }
   });
 
+  it('re-asserts presence on the new socket, ahead of the rejoin', async () => {
+    jest.useFakeTimers();
+    try {
+      const client = makeClient();
+      const socket = await connected(client, 'support');
+      await client.setPresence('online');
+
+      socket.serverClose(1006, 'abnormal');
+      jest.advanceTimersByTime(5_000);
+
+      const next = FakeSocket.latest;
+      next.open();
+      next.hello();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // Presence is socket state, so the new socket knows nothing of what
+      // was set on the old one. Without this the user stays silently
+      // invisible to everyone else for the rest of the session, while
+      // their own client still reads `connected`.
+      expect(next.lastFrameOfType('presence.set')).toMatchObject({ status: 'online' });
+
+      // Ahead of the rejoin, so the server never processes a join for
+      // somebody it currently believes is absent.
+      const types = next.sent.map((frame) => frame.type);
+      expect(types.indexOf('presence.set')).toBeLessThan(types.indexOf('room.join'));
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('says nothing about presence for a client that never set it', async () => {
+    jest.useFakeTimers();
+    try {
+      const client = makeClient();
+      const socket = await connected(client, 'support');
+
+      socket.serverClose(1006, 'abnormal');
+      jest.advanceTimersByTime(5_000);
+
+      const next = FakeSocket.latest;
+      next.open();
+      next.hello();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // Announcing a status nobody chose would invent one, and would make
+      // a deliberately invisible client impossible to build.
+      expect(next.sent.some((frame) => frame.type === 'presence.set')).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('gives up after maxReconnectAttempts instead of looping forever', async () => {
     jest.useFakeTimers();
     try {

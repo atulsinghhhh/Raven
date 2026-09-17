@@ -108,6 +108,8 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
 
   /** Rooms the caller asked to be in. Re-joined automatically after a reconnect. */
   private readonly desiredRooms = new Set<string>();
+  /** The presence the caller last asked for, re-asserted after a reconnect. See `setPresence`. */
+  private desiredPresence?: PresenceStatus;
   private readonly pending = new Map<string, PendingRequest>();
   private requestCounter = 0;
   /** Resolves on the first `connected` frame, so `await connect()` genuinely means connected. */
@@ -384,8 +386,17 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
     });
   }
 
-  /** Sets presence across every room this connection is holding. */
+  /**
+   * Sets presence across every room this connection is holding.
+   *
+   * Remembered and re-asserted on every reconnect. Presence is socket
+   * state, so the new socket a reconnect opens knows nothing of what was
+   * set on the old one — without this, a client that survived a blip
+   * stayed silently invisible to everybody else for the rest of the
+   * session.
+   */
   async setPresence(status: PresenceStatus): Promise<void> {
+    this.desiredPresence = status;
     this.send('presence.set', { status });
   }
 
@@ -726,6 +737,16 @@ export class ChatClient extends TypedEventEmitter<ChatEventMap> {
   }
 
   private async syncRooms(): Promise<void> {
+    // Presence belongs to the socket, and this may be a new one. Re-sent
+    // before the rooms rather than after, so the server has this
+    // connection's status in hand for the joins it is about to process
+    // instead of briefly listing the user as absent from a room they are
+    // demonstrably in. A no-op until something has actually called
+    // setPresence: re-asserting a status nobody chose would be inventing one.
+    if (this.desiredPresence) {
+      this.send('presence.set', { status: this.desiredPresence });
+    }
+
     for (const room of this.desiredRooms) {
       try {
         await this.request('room.join', { room });
