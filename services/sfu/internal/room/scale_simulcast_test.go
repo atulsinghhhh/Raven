@@ -92,7 +92,6 @@ func sampleRoom(t *testing.T, clients []*testClient, window time.Duration) []sub
 	t.Helper()
 
 	type counter struct{ bytes, packets, dropped uint64 }
-	before := map[string]counter{}
 
 	read := func() map[string]counter {
 		out := map[string]counter{}
@@ -118,7 +117,7 @@ func sampleRoom(t *testing.T, clients []*testClient, window time.Duration) []sub
 		return out
 	}
 
-	before = read()
+	before := read()
 	time.Sleep(window)
 	after := read()
 

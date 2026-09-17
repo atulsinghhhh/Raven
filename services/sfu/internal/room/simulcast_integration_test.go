@@ -302,8 +302,8 @@ func pumpSimulcast(ctx context.Context, publication *simulcastPublication) {
 						},
 						Payload: payload,
 					}
-					_ = packet.Header.SetExtension(uint8(publication.midExtensionID), []byte(publication.mid))
-					_ = packet.Header.SetExtension(uint8(publication.ridExtensionID), []byte(track.RID()))
+					_ = packet.SetExtension(uint8(publication.midExtensionID), []byte(publication.mid))
+					_ = packet.SetExtension(uint8(publication.ridExtensionID), []byte(track.RID()))
 
 					_ = track.WriteRTP(packet)
 				}
