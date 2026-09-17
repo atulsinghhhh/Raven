@@ -303,6 +303,106 @@ The gap that remains worst:
 
 ---
 
+## 5a. Simulcast (spec §15)
+
+Simulcast is the one capability in this document that was, until
+recently, documented as working and measurably not. Both client SDKs
+configured a three-layer ladder with `setParameters()` after
+`addTrack()` — a call the WebRTC specification requires implementations to
+reject, because a sender's encoding count is fixed once it exists — and
+both discarded the resulting error. Every publisher sent a single
+full-resolution layer. The SFU's own tests did not catch it because they
+all publish with `AddTrack` and a bare `TrackLocalStaticRTP`, which
+produces no RID, so they exercised the non-simulcast path exclusively.
+
+### What is tested now
+
+```bash
+# Real Pion publisher, three RID-tagged RTP streams, real DTLS-SRTP.
+cd services/sfu && go test ./internal/room/ -run 'Simulcast|SelectLayers|SwitchesBetween' -v
+
+# Measured room sizes, with the bandwidth comparison below.
+cd services/sfu && go test ./internal/room/ -run TestSimulcastScaleMatrix -v
+```
+
+| What | Where | Proves |
+|---|---|---|
+| Client offer carries `a=simulcast:send` + three `a=rid:` lines | `simulcast_integration_test.go` | The ladder reaches the SDP, not just memory |
+| SFU answers `a=simulcast:recv low;medium;high` | same | The negotiation completes both ways |
+| All three RIDs arrive and map to low/medium/high | same | `layerFromRID` is exercised for real |
+| Three subscribers hold three different layers off one publisher, simultaneously | same | Per-subscriber `DownTrack` selection works |
+| One subscriber walks low→medium→high→low | same | Switching works in both directions, not just down |
+| A non-simulcast publisher still forwards | same | The controlled fallback is intact |
+| SDK sends the ladder at transceiver creation | `packages/sdk/test/raven-adapter.spec.ts`, `sdks/flutter/raven_rtc/test/simulcast_test.dart` | Both SDKs, asserted on the SDP and on the platform payload |
+| Layer precedence: explicit pin beats adaptive, `auto` releases | same two files | The rule is identical on both SDKs |
+
+### Measured bandwidth, by room size
+
+From `TestSimulcastScaleMatrix`. Per-subscriber inbound, with every
+participant publishing the full ladder and every subscriber on the layer an
+N-up grid would ask for, against the same room with every subscriber on
+`high` — which is what every subscriber got before this worked.
+
+| Participants | Tile layer | Adaptive | Everyone on `high` | Saving |
+|---|---|---|---|---|
+| 2 | high | 1 500 kbps | 1 500 kbps | 1.0× |
+| 4 | high | 4 500 kbps | 4 500 kbps | 1.0× |
+| 6 | medium | 2 500 kbps | 7 501 kbps | 3.0× |
+| 8 | medium | 3 500 kbps | 10 500 kbps | 3.0× |
+| 12 | medium | 5 502 kbps | 16 478 kbps | 3.0× |
+
+Slowest join, to the point of publishing all three layers: 92 ms at two
+participants, 172 ms at twelve.
+
+The 2- and 4-participant rows saving nothing is correct, not a gap: at
+those sizes the grid tiles are large enough to genuinely want `high`, and
+a rule that dropped them lower would be picking the wrong layer.
+
+> **These are loopback numbers with synthetic RTP.** The payloads are sized
+> to the ladder's target bitrates so the ratios are representative, but
+> there is no encoder, no decoder, no jitter, no loss and no NAT. What they
+> establish is that the SFU forwards the layer each subscriber asked for and
+> that doing so costs proportionally less. They establish nothing about
+> whether a phone can decode the result.
+
+### Still untested: the device matrix
+
+The metrics that actually answer "does an 8-way call work on a mid-range
+phone" are all properties of an encoder, a decoder and a device, and none
+of the three exists in any automated test here. Specifically **not**
+measured anywhere in this repo:
+
+- decoded and encoded frame rate
+- CPU and memory on the client
+- freezes and stalls
+- real network packet loss
+- concurrent hardware codec limits, which is the constraint most likely to
+  bite first: many mid-range Android SoCs expose only a handful of
+  simultaneous hardware decoder instances, and an N-participant call needs
+  N−1 decoders plus one encoder
+
+Running it needs real devices:
+
+1. Two or more physical phones (one mid-range Android, one older iPhone)
+   plus a desktop browser, joining the same room at 2, 4, 6, 8 and 12
+   participants.
+2. On each, capture `getStats()` over a steady minute:
+   `framesDecoded`/`framesPerSecond` per inbound track, `freezeCount` and
+   `totalFreezesDuration`, `bytesReceived`, `packetsLost`, and
+   `qualityLimitationReason` on the outbound side.
+3. Record the layer each inbound track is actually on
+   (`Room.simulcastStatus()` for the publish side; the SFU's
+   `DownTrack.CurrentLayer()` for the subscribe side) so a frame-rate number
+   can be attributed to a layer.
+4. Watch for the encoder dropping to fewer layers under thermal load —
+   `rebalanceAfterLayerLoss` exists for exactly that and has never been
+   exercised against a real encoder.
+
+Until that runs, no claim about mobile scalability in this repo is backed
+by measurement.
+
+---
+
 ## 6. What would change the picture
 
 In rough order of how much each would tell you:

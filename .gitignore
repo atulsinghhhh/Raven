@@ -90,4 +90,5 @@ docs/architecture/HLD.md
 docs/production/architecture-5k.md
 
 /test
+RAVEN_FLUTTER_E2E_REPORT.md
 .env*

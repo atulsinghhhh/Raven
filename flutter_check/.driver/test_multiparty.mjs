@@ -12,10 +12,16 @@ const HOOK = `(() => { globalThis.__pcs = [];
 
 async function inbound(page) {
   return page.evaluate(async () => {
-    let frames = 0, bytes = 0, streams = 0;
+    let frames = 0,
+      bytes = 0,
+      streams = 0;
     for (const pc of globalThis.__pcs ?? []) {
       (await pc.getStats()).forEach((r) => {
-        if (r.type === 'inbound-rtp') { streams++; frames += r.framesDecoded ?? 0; bytes += r.bytesReceived ?? 0; }
+        if (r.type === 'inbound-rtp') {
+          streams++;
+          frames += r.framesDecoded ?? 0;
+          bytes += r.bytesReceived ?? 0;
+        }
       });
     }
     return { frames, bytes, streams };
@@ -32,7 +38,8 @@ const ice = JSON.stringify(tokens.alice.iceServers);
 
 // One browser process per participant: Chrome's fake camera is a single
 // shared device per process (flutter_check/README.md).
-const browsers = [], pages = {};
+const browsers = [],
+  pages = {};
 try {
   for (const n of NAMES) {
     const b = await chromium.launch({ args: CHROME_ARGS });
@@ -47,10 +54,18 @@ try {
   // which is what exercises the roster-replay path (the 0.1.6 fix).
   for (const n of NAMES) {
     const t = tokens[n];
-    await pages[n].goto(url(8804, { token: t.token, endpoint: t.endpoint, roomId: room.id, iceServers: ice, publish: 'true' }));
+    await pages[n].goto(
+      url(8804, { token: t.token, endpoint: t.endpoint, roomId: room.id, iceServers: ice, publish: 'true' }),
+    );
     const s = await waitForState(pages[n], (x) => x.ready === true || x.error, { label: `${n} ready`, timeout: 90000 });
-    record('multiparty', `${n} joins and publishes`, !s.error && s.cameraPublished === true && s.microphonePublished === true,
-      s.error ? JSON.stringify(s.error).slice(0, 110) : `state=${s.connectionState} cam=${s.cameraPublished} mic=${s.microphonePublished}`);
+    record(
+      'multiparty',
+      `${n} joins and publishes`,
+      !s.error && s.cameraPublished === true && s.microphonePublished === true,
+      s.error
+        ? JSON.stringify(s.error).slice(0, 110)
+        : `state=${s.connectionState} cam=${s.cameraPublished} mic=${s.microphonePublished}`,
+    );
     await sleep(Number(process.env.JOIN_GAP_MS ?? 3000));
   }
 
@@ -62,15 +77,32 @@ try {
     const others = NAMES.filter((o) => o !== n);
     const ok = await waitForState(
       pages[n],
-      (s) => others.every((o) => { const v = s.remoteLiveSources?.[o] ?? []; return v.includes('camera') && v.includes('microphone'); }),
+      (s) =>
+        others.every((o) => {
+          const v = s.remoteLiveSources?.[o] ?? [];
+          return v.includes('camera') && v.includes('microphone');
+        }),
       { label: `${n} sees all ${expectedPeers} peers`, timeout: 60000 },
     ).catch((e) => ({ _err: e.message }));
     if (ok._err) {
       const s = await pages[n].evaluate(() => globalThis.__state?.remoteLiveSources ?? {});
-      const missing = others.filter((o) => { const v = s[o] ?? []; return !(v.includes('camera') && v.includes('microphone')); });
-      record('multiparty', `${n} sees all ${expectedPeers} other publishers`, false, `missing/incomplete: ${JSON.stringify(missing)} — got ${JSON.stringify(s)}`.slice(0, 220));
+      const missing = others.filter((o) => {
+        const v = s[o] ?? [];
+        return !(v.includes('camera') && v.includes('microphone'));
+      });
+      record(
+        'multiparty',
+        `${n} sees all ${expectedPeers} other publishers`,
+        false,
+        `missing/incomplete: ${JSON.stringify(missing)} — got ${JSON.stringify(s)}`.slice(0, 220),
+      );
     } else {
-      record('multiparty', `${n} sees all ${expectedPeers} other publishers`, true, `camera+mic from ${others.join(', ')}`);
+      record(
+        'multiparty',
+        `${n} sees all ${expectedPeers} other publishers`,
+        true,
+        `camera+mic from ${others.join(', ')}`,
+      );
     }
   }
 
@@ -82,8 +114,12 @@ try {
   for (const n of NAMES) {
     const now = await inbound(pages[n]);
     const grew = now.frames > first[n].frames && now.bytes > first[n].bytes;
-    record('multiparty', `${n} decodes live media from the room`, grew,
-      `inbound streams=${now.streams}, frames ${first[n].frames}->${now.frames}, bytes ${first[n].bytes}->${now.bytes}`);
+    record(
+      'multiparty',
+      `${n} decodes live media from the room`,
+      grew,
+      `inbound streams=${now.streams}, frames ${first[n].frames}->${now.frames}, bytes ${first[n].bytes}->${now.bytes}`,
+    );
   }
 
   // Departure propagates to everyone still in the room.
@@ -91,7 +127,10 @@ try {
   await pages.erin.evaluate(() => globalThis.__leave());
   const remaining = NAMES.filter((n) => n !== 'erin');
   for (const n of remaining) {
-    const gone = await waitForState(pages[n], (s) => !(s.remoteLiveSources ?? {}).erin, { label: `${n} drops erin`, timeout: 40000 }).catch((e) => ({ _err: e.message }));
+    const gone = await waitForState(pages[n], (s) => !(s.remoteLiveSources ?? {}).erin, {
+      label: `${n} drops erin`,
+      timeout: 40000,
+    }).catch((e) => ({ _err: e.message }));
     record('multiparty', `${n} sees erin leave`, !gone._err, gone._err ? 'erin still listed' : 'roster updated');
   }
 } finally {

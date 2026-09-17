@@ -106,33 +106,104 @@ nativeloader: Load .../lib/arm64-v8a/libjingle_peerconnection_so.so using class 
 
 ## Issue 5 — Local video remains placeholder
 
-**Root cause (found this session, corrected from a prior "likely upstream" theory):** `RavenEngine.publish()` stored the local `MediaStream` in `_published[source]` immediately but didn't notify listeners until after the full SFU offer/answer round trip finished — even though the local track was ready to render much earlier. `RavenVideoView` and `flutter_webrtc`'s web renderer are both confirmed symmetric between local/remote (no autoplay-policy asymmetry); the bug was purely in when `raven_rtc` chose to notify.
+**Root cause:** `RavenEngine.publish()` stored the local `MediaStream` in `_published[source]` immediately but didn't notify listeners until after the full SFU offer/answer round trip finished — even though the local track was ready to render much earlier.
 
 **Raven-owned?** Yes.
 
 **Fix:** `_notify()` moved to immediately after the local track is stored, independent of the negotiation round trip. Shipped as `raven_rtc` **0.1.8**.
 
-**Tests performed:**
-- Unit: new `engine_test.dart` test proves the local track is queryable and a change notification fires *before* `publish()` resolves. 62/62 `raven_rtc` tests passing.
-- **Live, two real clients, real production API/SFU/TURN, real published 0.1.8**: launched two independent headless Chromium instances (`--use-fake-ui-for-media-stream --use-fake-device-for-media-stream`, matching the original tester's own methodology) against a locally-served build of `flutter_check/published_consumer`'s `main_video.dart` E2E harness, driven via raw Chrome DevTools Protocol (no extension/GUI dependency). Instrumented the harness (not the SDK) to timestamp exactly when the local track becomes visible via the reactive stream vs. when `enableCamera()` itself resolves.
+**Tests performed — round 1 (unit + engine-level live check):**
+- Unit: new `engine_test.dart` test proves the local track is queryable and a change notification fires *before* `publish()` resolves.
+- Live, two real clients against production: local track visible via the reactive stream before `enableCamera()` resolved, in both directions (Alice: 3ms vs 6ms; Bob: 121ms vs 124ms), and each client's `remoteLiveSources` correctly showed the other's camera/mic as live.
 
-  **Solo run:** `localCameraFirstSeenAtMs: 127` vs. `enableCameraResolvedAtMs: 133` — local track visible *before* `enableCamera()` resolved.
+**This round's live check only inspected engine-level participant/track flags (`isCameraEnabled`, `remoteLiveSources`) — not whether a `RavenVideoView` widget actually renders a decoding frame. That gap matters — see below.** The original "FIXED, VERIFIED (live)" status from that check is withdrawn; it was true of what it tested, but what it tested wasn't the layer the regression report is actually about.
 
-  **Concurrent two-client run** (fresh room, `alice2`/`bob2`, both publishing):
-  | | localCameraFirstSeenAtMs | enableCameraResolvedAtMs | sees peer's remote camera+mic |
-  |---|---|---|---|
-  | Alice | 3 | 6 | ✅ `{"bob2":["camera","microphone"]}` |
-  | Bob | 121 | 124 | ✅ `{"alice2":["camera","microphone"]}` |
+**Tests performed — round 2 (real `RavenVideoView` + actual `<video>` element inspection, prompted by a tester report of a new two-participant regression):**
 
-  In both clients, in both runs, the local track became visible *before* `enableCamera()` resolved — exactly the fix's claim, confirmed live, twice, independently. Both clients reached `ready: true` with no errors, and each correctly saw the other's remote camera/microphone.
+Built a second, more rigorous check app using idiomatic `RavenVideoView(participant: p, room: room)` inside a `ListenableBuilder(listenable: room)` (`flutter_check/published_consumer/lib/main_bug4_check.dart`, not committed — throwaway) and inspected the actual DOM `<video>` elements' `readyState`/`videoWidth`/`srcObject` via Chrome DevTools Protocol against two real, independent headless Chromium clients on production, real published 0.1.8.
 
-  Test rooms closed afterward; headless Chrome instances and local web server torn down.
+**Reproduced a real bug:** with Alice joining and publishing first, then Bob joining ~8s later, Alice's own local tile renders correctly throughout, but **Alice's tile for Bob's remote video never renders** — `readyState: 0`, `videoWidth: 0`, no `srcObject` on the actual `<video>` element — for the entire observation window, even though the engine layer correctly reports `remoteCameraEnabled.bob: true`. Bob (second joiner) saw both his own local tile and Alice's remote tile render correctly.
 
-**Not separately tested live:** camera off/on toggle — the E2E harness doesn't expose a toggle control; this remains covered by existing unit tests (`setMuted` coverage in `engine_test.dart`) only.
+Instrumented `video_view.dart` directly (temporary debug prints, not shipped) and confirmed `_syncTrack()` *does* fire for Alice's Bob-tile with a valid, non-null track, and *does* call `_renderer.srcObject = stream` with the correct stream — the Dart-level code runs as expected. The assignment is lost somewhere between that call and the actual `<video>` element, which never receives it (`hasSrcObject: false`, `networkState: 0`/`NETWORK_EMPTY`).
 
-**Result:** Fixed, unit-verified, **and now live-verified against production with two real independent clients.**
+**Ruled out that this is caused by the Issue 5 fix itself:** re-ran the identical test with the `engine.dart` early-`_notify()` change temporarily disabled (matching pre-0.1.8 timing) — **the bug reproduced identically.** This is not a regression introduced by this session's fix; it's a pre-existing defect that a shallow (engine-flags-only) live check didn't catch.
 
-**Status: FIXED, VERIFIED (live).**
+**Attempted fix:** hypothesized the platform view only gets mounted once a track first becomes non-null (gated by `if (track == null) return placeholder;` in `build()`), so the very first `srcObject` assignment for a newly-arriving remote track lands moments before its view is even created. Restructured `RavenVideoView` to mount the `RTCVideoView` platform view as soon as the renderer is ready — independent of whether a track exists yet — with the placeholder as an overlay instead of a structural replacement, keeping a stable key across the null→first-track transition. **This did not resolve the bug** in a retest against the same scenario. Reverted (not shipped) rather than ship an unverified change per instructions.
+
+**Raven-owned?** Not established with confidence. The Dart-level code behaves correctly (confirmed via instrumentation); the failure is between `RTCVideoRenderer.srcObject`'s setter and the actual `<video>` element, which is `flutter_webrtc`'s web platform-view implementation — a layer below `raven_rtc`, analogous to Issue 3's ownership boundary. But unlike Issue 3, no equivalent AAR/version-pin evidence has been gathered yet to confirm it's upstream rather than a `raven_rtc`-side usage pattern that trips an upstream bug.
+
+**Correspondence with the tester's Bug #4 report:** partial. Confirmed: "whoever joins first never sees the second person's video." **Not reproduced**, across every run in this investigation: "whoever joins second never sees their own preview" — in every test here, the second joiner's own local tile rendered correctly. This could mean two related-but-distinct issues, a difference between this test's minimal harness and the tester's actual app, or non-determinism in exactly which side of a two-party subscribe race loses — not resolved here.
+
+**Result:** The Issue 5 *timing* fix (local track visible before negotiation completes) is real, unit-verified, and still believed correct on its own terms. A **separate, more serious, and still-unfixed bug** exists in `RavenVideoView`'s remote-track rendering, independent of that fix, confirmed via direct `<video>`-element inspection against real two-client production sessions.
+
+**Status: Issue 5 (timing) — FIXED.** **New finding, tracked separately below as Bug: Remote video never renders for a track that arrives after the widget is built — NEEDS-INVESTIGATION**, not fixed, ownership not fully established.
+
+---
+
+## Bug: remote `RavenVideoView` never renders for a track that arrives after the tile is first built
+
+**Severity:** High — this breaks the core two-participant call scenario for whichever side loses the race, which per this investigation is specifically the side that joined/published first.
+
+**Root cause:** Not conclusively pinned. Confirmed:
+- Not a `RavenEngine`/participant-bookkeeping bug — `isCameraEnabled`/`videoTrackFor()` correctly reflect a live track throughout.
+- Not (solely) a `RavenVideoView` Dart-logic bug — `_syncTrack()` correctly detects the new track and calls `_renderer.srcObject = stream` with a valid, non-null `MediaStream`.
+- Not caused by this session's Issue 5 `engine.dart` change — reproduces identically with that change reverted.
+- Not fixed by mounting the platform view earlier/keeping its key stable across a null→first-track transition (tried, reverted).
+- The failure is that the browser-level `<video>` element backing the renderer never receives the `srcObject` assignment (`hasSrcObject: false`), specifically for a **remote** track that starts null at widget-build time and arrives later via the reactive `_syncTrack()` path — as opposed to a local track doing the same (works), or a remote track already live when the widget is first built (works).
+
+**Raven-owned?** Undetermined — most likely `flutter_webrtc`'s web platform-view implementation, but not confirmed with the same rigor as Issue 3's dependency-chain evidence.
+
+### Update — a concrete cause found, reproduced, and fixed
+
+A later external report (Android, two emulators) described the same class of
+symptom with a mechanism this session had not identified, and that mechanism
+is real, deterministic, and now covered by a failing-before/passing-after
+test — `raven_rtc/test/video_view_test.dart`, which drives a real `RavenRoom`
+and a real `RavenVideoView` and asserts on what reaches
+`videoRendererSetSrcObject`, not on widget-tree state.
+
+**Mechanism.** Two things had to line up:
+
+1. `RavenRoom._emitParticipants()` calls `notifyListeners()` **synchronously**,
+   before the microtask that delivers the new roster on `participantChanges`.
+   `RavenVideoView` listens to the room's `ChangeNotifier`, so `_syncTrack()`
+   ran while `widget.participant` was still the snapshot from *before* the
+   publish — which has no track, so nothing changed.
+2. The rebuild that followed carried the correct snapshot, but
+   `didUpdateWidget` skipped re-resolving, because `RavenParticipant.==`
+   compares **identity alone**: two snapshots of the same person are equal
+   however different what they are publishing is.
+
+So the one notification that mattered resolved against stale state, and the
+one rebuild that carried fresh state was guarded out. The tile then stayed on
+its placeholder until some unrelated event happened to rebuild it — which is
+exactly the "fixes itself later, sometimes" behaviour reported.
+
+**Fix (shipped in 0.2.0):** `RavenVideoView` reads the participant back from
+the room by identity rather than trusting the snapshot it was handed, and
+re-resolves unconditionally in `didUpdateWidget` (`_syncTrack` was already a
+no-op when the track hasn't changed, so the guard bought nothing and cost
+this). The adaptive-layer request had the same stale-snapshot bug and is
+fixed with it. `RavenParticipant.==` is unchanged — identity equality is what
+keeps a roster diff stable across a publish — but now documents the trap.
+
+**Reproduction, both directions:** with the fix reverted, the regression test
+fails with the published stream never reaching the renderer at all
+(`renderedStreamIds` empty); with it applied, all three cases pass. That is
+the reproduction this report's own standard asked for before shipping
+anything.
+
+**What this does *not* settle.** The failure investigated above was observed
+on Web via `<video>`-element inspection, and the instrumentation at the time
+reported `_syncTrack()` firing with a valid track — which does not obviously
+match the mechanism above. Either that instrumentation was reading a later
+notification than the one that mattered, or there is a second, Web-specific
+defect underneath. **The original two-client Web reproduction has not been
+re-run against the fix**, and until it is, the correct claim is "a real defect
+with this symptom is found and fixed", not "the Web bug is closed".
+
+**Status: FIXED (mechanism reproduced and regression-tested), NEEDS-RETEST**
+on the original two-client Web scenario to confirm it was the whole story.
 
 ---
 
@@ -142,23 +213,29 @@ nativeloader: Load .../lib/arm64-v8a/libjingle_peerconnection_so.so using class 
 **Issue 2:** FIXED, VERIFIED (live)
 **Issue 3:** UPSTREAM (not Raven-owned); crash did not reproduce in this session's test, but on a non-mainstream image — NEEDS-RETEST on genuine mainstream hardware
 **Issue 4:** FIXED, VERIFIED (tester-confirmed on 0.1.7)
-**Issue 5:** FIXED, VERIFIED (live, two real clients against production)
+**Issue 5 (timing fix itself):** FIXED — unit-verified and live-verified at the engine-flag level; this specific claim (local track notifies before negotiation completes) held up under every test
+**New: remote `RavenVideoView` never renders for a late-arriving track:** FIXED (mechanism reproduced and regression-tested in `raven_rtc/test/video_view_test.dart`), NEEDS-RETEST on the original two-client Web scenario. See the update in that section: the cause is a stale participant snapshot in `RavenVideoView`, made invisible by `RavenParticipant`'s identity-only equality, not a `flutter_webrtc` platform-view problem as suspected here. Whether it accounts for *all* of what was observed on Web is unconfirmed until that reproduction is re-run.
 
 ## Remaining blockers
 
+- **The remote-rendering bug above** — root-caused and fixed (stale participant snapshot in `RavenVideoView`; see that section's update). The remaining work is re-running the original two-client Web reproduction against the fix, which is the only thing that will confirm no second, Web-specific defect sits underneath.
 - **Issue 3 mainstream retest** — this sandbox has no non-preview Android image available (confirmed: both local AVDs are 16KB-page preview images, no `cmdline-tools` to fetch a standard one) and no physical device. This is an environment limitation, not a code blocker. Not something further engineering here resolves — needs a real device or a properly-provisioned Android SDK elsewhere.
-- Everything else is closed out.
+- Issues 1, 2, and 4 are fully closed out with no known caveats.
 
 ## Recommended next action
 
-**The published Flutter SDK is ready for another external developer to test**, with one caveat to tell them up front: Issue 3 (Android) is confirmed not-Raven's-fault and didn't reproduce in this session's own attempt, but hasn't been confirmed absent on genuine mainstream hardware — ask them to specifically try a normal (non-preview) Android device or emulator image, not the 16KB-page preview image the original report used. Issues 1, 2, 4, and 5 are fixed and confirmed live against the real production API and the real published packages (`raven_rtc` 0.1.8, `raven_chat`/`raven_live` 0.1.0) — no known caveats remain on those four.
+**The published Flutter SDK is NOT yet ready to tell an external developer "two-participant calls work."** Issues 1, 2, and 4 are genuinely done — fixed and confirmed live against the real production API and the real published packages, no caveats. Issue 5's specific timing claim is also genuinely fixed. But this session's deeper verification found that the actual real-world scenario the original report cared about — two people on a call seeing each other — still fails on Web, for a different, unfixed reason than what 0.1.8 addressed. Recommend: hold off telling a developer this is production-ready for real two-person calls until the remote-rendering bug above is actually root-caused and fixed, and don't repeat the mistake this session found in itself — verify with an actual rendered `RavenVideoView` and real `<video>`-element state, not just engine-level participant flags, before calling anything about RTC video "verified" again.
+
+For Issue 3 specifically: ask a tester to specifically try a normal (non-preview) Android device or emulator image, not the 16KB-page preview image the original report used — that's still the one open question on the Android side.
 
 ## Files changed (this live-verification pass, beyond the earlier fix commits)
 
 - `flutter_check/published_consumer/lib/main_video.dart` — added timing instrumentation (`localCameraFirstSeenAtMs`/`enableCameraResolvedAtMs`) to the existing E2E harness, for the Issue 5 live check. Not part of the SDK.
 - `flutter_check/published_consumer/android/` (new), `lib/main_android_test.dart` (new) — throwaway Android crash-repro scaffold used for the Issue 3 live check. Not part of the SDK.
-- Nothing in `apps/api`, `packages/server-sdk`, or `sdks/flutter/{raven_rtc,raven_chat,raven_live}` changed in this pass — only re-verified.
-- Nothing has been committed.
+- `sdks/flutter/raven_rtc/lib/src/video_view.dart` — a structural fix was attempted (mount the platform view eagerly, keep a stable key across the null→first-track transition) and tested; it did not resolve the remote-rendering bug, so it was **reverted**. Working tree matches the committed 0.1.8 source exactly — nothing shipped from this attempt.
+- Two throwaway diagnostic apps (`main_bug4_check.dart` and temporary debug prints in a pub-cache copy of `video_view.dart`/`engine.dart`) were used to isolate the bug and were deleted/reverted after use — not committed, not left behind.
+- Nothing in `apps/api`, `packages/server-sdk`, or the shipped `sdks/flutter/{raven_rtc,raven_chat,raven_live}` source changed in this pass beyond what was already committed before this live-verification round — only re-verified, and one investigated-but-reverted attempt.
+- Nothing has been committed this round.
 
 ## Exact commands for final verification
 
@@ -185,6 +262,15 @@ curl -X POST "$RAVEN_API_URL/v1/chat/conversations" -H "Authorization: Bearer $R
   -H "Content-Type: application/json" \
   -d '{"name":"verify-fix-convo","members":[{"userId":"test-user"}]}'
 
-# Live retest — Issue 5: join from two clients, enableCamera() on both,
-# confirm each one's OWN local tile renders promptly (not just the remote one).
+# Live retest — Issue 5 timing (still fixed): join from two clients,
+# enableCamera() on both, confirm each one's OWN local tile renders
+# promptly (not just the remote one).
+
+# Live retest — the unfixed remote-rendering bug: have client A join
+# and publish first, wait several seconds, then have client B join and
+# publish. In a REAL browser (not just engine state), check whether
+# A's tile showing B's video actually renders a live frame — inspect
+# the underlying <video> element's readyState/videoWidth/srcObject, not
+# just room.remoteParticipants/isCameraEnabled. Expect this to still
+# fail as of this report.
 ```

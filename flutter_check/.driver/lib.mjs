@@ -6,8 +6,19 @@ export const API = process.env.RAVEN_API_URL ?? 'https://api.ravenstack.online';
 export const KEY = process.env.RAVEN_API_KEY;
 const HARNESS = '/tmp/raven_harness';
 
-const MIME = {'.html':'text/html','.js':'text/javascript','.json':'application/json','.wasm':'application/wasm',
-  '.css':'text/css','.png':'image/png','.svg':'image/svg+xml','.ttf':'font/ttf','.otf':'font/otf','.ico':'image/x-icon','.map':'application/json'};
+const MIME = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.json': 'application/json',
+  '.wasm': 'application/wasm',
+  '.css': 'text/css',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.ico': 'image/x-icon',
+  '.map': 'application/json',
+};
 
 /**
  * One harness per server, mounted at `/`. Flutter's index.html carries
@@ -22,7 +33,8 @@ export function serve(harness, port) {
     if (p === '/' || p.endsWith('/')) p += 'index.html';
     const file = path.join(root, p);
     if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
-      res.writeHead(404); return res.end('nope');
+      res.writeHead(404);
+      return res.end('nope');
     }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] ?? 'application/octet-stream' });
     fs.createReadStream(file).pipe(res);
@@ -37,7 +49,12 @@ async function api(method, p, body, token = KEY) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await res.text();
-  let json; try { json = JSON.parse(text); } catch { json = text; }
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    json = text;
+  }
   if (!res.ok) throw new Error(`${method} ${p} -> ${res.status} ${text.slice(0, 300)}`);
   return json;
 }
@@ -48,7 +65,9 @@ export const patch = (p, b, t) => api('PATCH', p, b, t);
 
 const FULL = { join: true, subscribe: true, publish: true, publishAudio: true, publishVideo: true, publishData: true };
 
-export async function makeRoom(name) { return post('/v1/rooms', { name, getOrCreate: true }); }
+export async function makeRoom(name) {
+  return post('/v1/rooms', { name, getOrCreate: true });
+}
 export async function rtcToken(roomId, identity, permissions = FULL) {
   return post(`/v1/rooms/${roomId}/rtc-tokens`, { participantIdentity: identity, permissions, ttlSeconds: 3600 });
 }
@@ -87,7 +106,7 @@ export function summarize() {
     console.log(`\n${sdk}: ${p}/${rs.length}`);
     for (const r of rs) if (!r.pass) console.log(`   FAILED: ${r.feature} — ${r.detail ?? ''}`);
   }
-  console.log(`\nTOTAL: ${results.filter(r=>r.pass).length}/${results.length} passed`);
+  console.log(`\nTOTAL: ${results.filter((r) => r.pass).length}/${results.length} passed`);
   return failed;
 }
 

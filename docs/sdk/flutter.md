@@ -141,6 +141,54 @@ room.participantChanges.listen((participants) => …);
 chat.messages.listen((message) => …);
 ```
 
+## Knowing whether it actually works
+
+Two connections, two questions, and they fail independently.
+
+```dart
+room.connectionState   // RavenConnectionState — the signaling socket
+room.mediaState        // RavenMediaState      — the media transport
+```
+
+`connectionState` says whether you are *in the room*. It is set from the
+signaling socket alone, so it reads `connected` the moment the server
+accepts the join — whatever the media transport is doing. A network that
+permits outbound TLS but drops UDP (plenty of corporate ones do) gives
+you a room that joins cleanly, lists its participants, relays chat, and
+never carries a single frame. `connectionState` reports `connected`
+throughout, correctly: the socket carrying that news is perfectly
+healthy.
+
+`mediaState` is the other question, read from the peer connection
+itself:
+
+| | |
+|---|---|
+| `idle` | No transport yet — nobody has published or subscribed. |
+| `connecting` | Gathering candidates. |
+| `connected` | Media can flow. |
+| `interrupted` | Dropped, ICE still trying. A phone changing network passes through here and usually recovers. |
+| `failed` | ICE gave up. Nothing will flow on this connection again. |
+| `closed` | Torn down by `leave()` or a reconnect. |
+
+Show both, or label the one you show:
+
+```dart
+room.mediaStateChanges.listen((state) {
+  switch (state) {
+    case RavenMediaState.interrupted:
+      _banner('Connection unstable…');
+    case RavenMediaState.failed:
+      _banner('Could not establish a media connection.');
+    default:
+      _banner(null);
+  }
+});
+```
+
+A UI that renders `connectionState` as an unqualified "connected" is the
+single most common way a media failure gets misreported as an SDK bug.
+
 ## Camera, microphone, screen share
 
 ```dart
@@ -240,17 +288,42 @@ Streams: `messages`, `messageUpdates`, `messageDeletions`, `typing`,
 `presence`, `reactions`, `readReceipts`, `connectionStateChanges`,
 `errors`.
 
+`startTyping()` is safe on every keystroke — it throttles itself to one
+frame every two seconds per conversation, because the server refuses
+more than 20 typing updates per 10 seconds and a fast typist reaches
+that inside a sentence. `stopTyping()` clears the window, so stopping
+and starting again signals immediately.
+
 `send()` completes only once the message is durably stored, and attaches
 an idempotency key automatically — a retry after a reconnect returns the
 original message instead of posting a duplicate. See
 [../chat/overview.md](../chat/overview.md).
 
+## Presence
+
+Connecting is not the same as being present. `chat.connect()` opens the
+socket and joins the conversation; it does not announce the user, so two
+clients that have both connected each see only themselves until they say
+otherwise:
+
+```dart
+await chat.connect(conversationId);
+await chat.setPresence(RavenPresenceStatus.online);
+```
+
+That split is deliberate and shared with every other Livqeno Chat SDK: a
+client that reads a conversation without appearing in it — a moderation
+view, a bot, an agent watching a queue — is an ordinary thing to build,
+and could not be if connecting announced you. Once set, presence is
+re-asserted for you across reconnects.
+
 ## Reconnection
 
 Handled for you, with bounded exponential backoff and jitter. `RavenChat`
-re-joins its rooms on the new socket and stops after
-`maxReconnectAttempts` rather than looping forever. It does not retry a
-rejected token — close codes 4401 and 4403 are terminal.
+re-joins its rooms on the new socket, re-asserts whatever presence you
+last set, and stops after `maxReconnectAttempts` rather than looping
+forever. It does not retry a rejected token — close codes 4401 and 4403
+are terminal.
 
 After a reconnect, refetch what you missed. The socket is never the
 source of truth:

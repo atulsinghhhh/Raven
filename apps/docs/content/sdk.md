@@ -25,9 +25,10 @@ Those are different packages and neither can do the other's job.
 ## Stability
 
 **The `@ravenkash/*` JavaScript/TypeScript packages (including the CLI) are
-published to npm.** `livqeno-sdk` (Python) and `raven_rtc`/`raven_chat`/
-`raven_live` (Flutter) are not yet on PyPI or pub.dev —
-[contact support](mailto:support@mail.ravenstack.online) for early access.
+published to npm, and `raven_rtc`/`raven_chat`/`raven_live` are published to
+pub.dev** — `flutter pub add` them directly. `livqeno-sdk` (Python) is not on
+PyPI yet; [contact support](mailto:support@mail.ravenstack.online) for early
+access.
 
 Treat every SDK signature as pre-1.0 and subject to change regardless of
 registry status. The two wire protocols and the REST API are more settled
