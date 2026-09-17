@@ -1,5 +1,13 @@
 # @ravenkash/client
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [[`63303dd`](https://github.com/atulsinghhhh/Raven/commit/63303dd184adac3beae884ca527cc82fc6f03490), [`01ebb72`](https://github.com/atulsinghhhh/Raven/commit/01ebb72c21f18ed79149bb357a2245853d81f9b7)]:
+  - @ravenkash/chat@0.1.1
+  - @ravenkash/rtc@0.5.0
+
 ## 0.1.4
 
 ### Patch Changes

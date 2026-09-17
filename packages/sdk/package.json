@@ -1,6 +1,6 @@
 {
   "name": "@ravenkash/rtc",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Official browser SDK for the Livqeno hosted platform — join a room, publish camera/microphone, subscribe to remote media. Hides SDP/ICE/STUN/TURN/SFU behind a small typed API.",
   "license": "MIT",
   "repository": {

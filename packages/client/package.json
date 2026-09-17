@@ -1,6 +1,6 @@
 {
   "name": "@ravenkash/client",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Official browser SDK for the Livqeno hosted platform — RTC and chat behind one object. A thin facade over @ravenkash/rtc and @ravenkash/chat.",
   "license": "MIT",
   "repository": {
