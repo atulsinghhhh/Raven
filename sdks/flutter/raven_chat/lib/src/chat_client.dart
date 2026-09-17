@@ -95,6 +95,14 @@ class RavenChat extends ChangeNotifier {
   /// subscriptions.
   final _desiredRooms = <String>{};
 
+  /// When [startTyping] last actually sent a frame, per room. See its
+  /// doc comment for why this is throttled at all.
+  final _lastTypingSignal = <String, DateTime>{};
+
+  /// The presence the caller last asked for, re-asserted after every
+  /// (re)connect. See [setPresence].
+  RavenPresenceStatus? _desiredPresence;
+
   RavenChatConnectionState _state = RavenChatConnectionState.idle;
   int _requestCounter = 0;
   int _reconnectAttempt = 0;
@@ -143,6 +151,22 @@ class RavenChat extends ChangeNotifier {
   /// Completes once the server has authenticated the socket, not merely once
   /// the TCP connection opened, so a completed future genuinely means you
   /// can send.
+  ///
+  /// **Joining is not the same as being present.** This opens the socket
+  /// and joins the conversation; it does not announce the user, so two
+  /// clients that have both connected will each still see only
+  /// themselves in [getPresence] until they say otherwise:
+  ///
+  /// ```dart
+  /// await chat.connect(conversationId);
+  /// await chat.setPresence(RavenPresenceStatus.online);
+  /// ```
+  ///
+  /// Deliberate, and the same in every Livqeno Chat SDK: a client that
+  /// reads a conversation without appearing in it — a moderation view, a
+  /// bot, a support agent watching a queue — is an ordinary thing to
+  /// build, and it could not be built if connecting announced you. Once
+  /// set, presence is re-asserted for you across reconnects.
   Future<void> connect(String room) async {
     _desiredRooms.add(room);
 
@@ -332,15 +356,34 @@ class RavenChat extends ChangeNotifier {
 
   /// Signals that the user is typing.
   ///
-  /// Safe to call on every keystroke: the server only broadcasts on the
-  /// transition into typing, and its state expires on a TTL so a client
-  /// that vanishes mid-sentence doesn't leave a stuck indicator.
+  /// Genuinely safe to call on every keystroke. The server only
+  /// broadcasts on the transition into typing, and its state expires on a
+  /// TTL so a client that vanishes mid-sentence doesn't leave a stuck
+  /// indicator — but it also rate-limits typing frames (20 per 10s) and
+  /// answers the 21st with an error, which a fast typist reaches inside a
+  /// sentence. So the repeats are dropped here rather than sent and
+  /// refused: at most one frame per [_typingInterval] per room, which is
+  /// well inside the limit and still far shorter than the indicator's own
+  /// TTL.
+  ///
+  /// [stopTyping] clears the throttle, so "type, stop, type again" is
+  /// signalled promptly rather than swallowed by a window the first burst
+  /// opened.
   Future<void> startTyping({String? room}) async {
-    _sendFrame({'type': 'typing.start', 'room': room ?? _defaultRoom()});
+    final target = room ?? _defaultRoom();
+
+    final last = _lastTypingSignal[target];
+    final now = DateTime.now();
+    if (last != null && now.difference(last) < _typingInterval) return;
+    _lastTypingSignal[target] = now;
+
+    _sendFrame({'type': 'typing.start', 'room': target});
   }
 
   Future<void> stopTyping({String? room}) async {
-    _sendFrame({'type': 'typing.stop', 'room': room ?? _defaultRoom()});
+    final target = room ?? _defaultRoom();
+    _lastTypingSignal.remove(target);
+    _sendFrame({'type': 'typing.stop', 'room': target});
   }
 
   /// Marks this message, and everything before it, as read.
@@ -364,7 +407,14 @@ class RavenChat extends ChangeNotifier {
   }
 
   /// Sets presence across every room this connection holds.
+  ///
+  /// Remembered and re-asserted on every reconnect. Presence is socket
+  /// state, so the new socket the reconnect opened knows nothing of what
+  /// was set on the old one — without this, a client that survived a
+  /// blip stayed silently invisible to everybody else for the rest of
+  /// the session.
   Future<void> setPresence(RavenPresenceStatus status) async {
+    _desiredPresence = status;
     _sendFrame({'type': 'presence.set', 'status': status.name});
   }
 
@@ -609,6 +659,18 @@ class RavenChat extends ChangeNotifier {
   }
 
   Future<void> _syncRooms() async {
+    // Presence belongs to the socket, and this is a new socket. Re-sent
+    // before the rooms rather than after, so the server has this
+    // connection's status in hand for the joins it is about to process
+    // instead of briefly listing the user as absent from a room they are
+    // demonstrably in. A no-op until something has actually called
+    // setPresence: re-asserting a status nobody chose would be inventing
+    // one.
+    final presence = _desiredPresence;
+    if (presence != null) {
+      _sendFrame({'type': 'presence.set', 'status': presence.name});
+    }
+
     for (final room in _desiredRooms) {
       try {
         await _joinRoom(room);
@@ -784,3 +846,12 @@ String _deriveApiUrl(String? chatUrl) {
       .replaceFirst(RegExp(r'^wss:'), 'https:')
       .replaceFirst(RegExp(r'/v1/chat/ws$'), '');
 }
+
+/// Shortest gap between two `typing.start` frames for the same room.
+///
+/// Chosen against both ends of the problem: the server allows 20 typing
+/// frames per 10 seconds, and the indicator it drives expires on a TTL of
+/// several seconds. Two seconds is comfortably inside the first and
+/// comfortably shorter than the second, so nothing is refused and no
+/// indicator lapses while somebody is still typing.
+const _typingInterval = Duration(seconds: 2);

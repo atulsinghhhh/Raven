@@ -3,7 +3,7 @@ description: >-
   Livqeno Chat for Flutter — real-time messaging with durable history, presence,
   typing indicators, reactions, read receipts and threads. Connect, send, and
   listen without writing WebSocket code.
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/atulsinghhhh/Raven
 repository: https://github.com/atulsinghhhh/Raven
 issue_tracker: https://github.com/atulsinghhhh/Raven/issues
@@ -27,6 +27,9 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  # Test-only. web_socket_channel is built on stream_channel, so the fake
+  # socket the client tests drive has to name StreamChannelMixin itself.
+  stream_channel: ^2.1.2
 
 # Not a plugin. Pure Dart over the platform's own networking — there is no
 # native code to register.
