@@ -1,3 +1,33 @@
+## 0.2.2
+
+* **Fixed:** every other participant in a room hit an unhandled `Bad
+  state: Cannot add new events after calling close` the instant the host
+  ended a broadcast — one exception per participant still connected,
+  every time.
+
+  `_scheduleReconnect()` only checked whether the client had been closed
+  at the moment `_onClosed` decided to start reconnecting, not at any of
+  its own suspension points. When the app tore the client down
+  (`dispose()`) while a reconnect attempt was parked mid-`await` —
+  refreshing the token, or waiting out the backoff — `close()`'s
+  `_reconnectTimer?.cancel()` had nothing to cancel yet, so the chain
+  resumed after dispose anyway and tried to add a lifecycle event to a
+  `StreamController` that `dispose()` had already closed.
+
+  `_scheduleReconnect` now re-checks before every resumption: on entry,
+  after the token-refresh `await`, and inside the retry timer's callback
+  before reopening a socket. Same bug on 0.1.5 through 0.2.1 — the
+  reconnect logic is unchanged across those versions.
+
+  **Validated:** a unit test reproduces the exact race — `dispose()`
+  arriving while a reconnect is parked awaiting a token refresh — against
+  a fake socket, and confirmed it throws the reported exception when the
+  fix is reverted.
+  **Not yet validated:** the failure on a physical device against a real
+  room teardown. This was diagnosed and fixed from the reported stack
+  trace and a controlled reproduction, not by re-running the original
+  broadcast-end scenario end-to-end.
+
 ## 0.2.1
 
 * **Fixed:** an Android client could allocate a TURN relay, never send a
