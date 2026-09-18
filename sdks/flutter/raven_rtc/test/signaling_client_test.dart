@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:raven_rtc/raven_rtc.dart';
 import 'package:raven_rtc/src/internal/protocol.dart';
@@ -355,6 +357,45 @@ void main() {
 
       await subscription.cancel();
       await client.dispose();
+    });
+
+    test(
+        'a reconnect suspended awaiting a token refresh does not crash '
+        'after dispose', () async {
+      // Regression test: dispose() arriving while _scheduleReconnect is
+      // parked in `await _tryRefreshToken()` — before any retry Timer
+      // exists — used to leave close()'s `_reconnectTimer?.cancel()`
+      // with nothing to cancel. The chain would resume once the refresh
+      // settled and add to StreamControllers dispose() had already
+      // closed, surfacing as an unhandled "Bad state: Cannot add new
+      // events after calling close".
+      final refreshGate = Completer<void>();
+      final client = clientFor(
+        autoReconnect: true,
+        refreshToken: () async {
+          await refreshGate.future;
+          return fakeToken({'rid': 'room-1', 'sub': 'alice'});
+        },
+      );
+
+      final joining = client.connect();
+      await Future<void>.delayed(Duration.zero);
+      socket.receive({
+        'type': ServerMessageType.roomJoined,
+        'roomId': 'room-1',
+        'participants': [],
+      });
+      await joining;
+
+      socket.drop(4001); // the server's credential-rejected close code
+      await Future<void>.delayed(Duration.zero);
+
+      await client.dispose();
+      refreshGate.complete();
+
+      // Long enough to cover the reconnect backoff (up to 300ms on the
+      // first attempt) so a resurrected chain would have thrown by now.
+      await Future<void>.delayed(const Duration(milliseconds: 500));
     });
   });
 

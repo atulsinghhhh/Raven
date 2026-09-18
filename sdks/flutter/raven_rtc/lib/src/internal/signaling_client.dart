@@ -243,6 +243,13 @@ class SignalingClient {
   }
 
   Future<void> _scheduleReconnect({required bool refreshFirst}) async {
+    // `close()`/`dispose()` may run while this chain is suspended between
+    // attempts (awaiting a token refresh, or waiting out the backoff
+    // timer). Re-checked at every resumption point below, because a stale
+    // attempt landing after `dispose()` would otherwise add to a
+    // `StreamController` that has already been closed.
+    if (_closedByCaller) return;
+
     if (_reconnectAttempts >= _maxReconnectAttempts) {
       _states.add(SignalingLifecycle.failed(const RavenException(
         RavenErrorCode.connectionFailed,
@@ -262,6 +269,8 @@ class SignalingClient {
       await _tryRefreshToken();
     }
 
+    if (_closedByCaller) return;
+
     final backoffMs = min(
       _reconnectBase.inMilliseconds * pow(2, _reconnectAttempts - 1).toInt(),
       _reconnectMax.inMilliseconds,
@@ -272,6 +281,7 @@ class SignalingClient {
 
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(delay, () {
+      if (_closedByCaller) return;
       _openAndJoin().catchError((Object _) {
         unawaited(_scheduleReconnect(refreshFirst: false));
         // The reconnect loop owns recovery; a failed attempt is not
