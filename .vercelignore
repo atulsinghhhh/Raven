@@ -11,3 +11,9 @@ node_modules
 **/.swc
 .git
 scripts/results
+
+# Native/Flutter build output — not part of any deployed app, and large
+# enough (100s of MB of .apk/.so per checkout) to blow Vercel's 100MB
+# per-file upload limit on its own.
+**/build
+scripts/capacity/.content
