@@ -76,9 +76,9 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
-      rtc: ${{ steps.diff.outputs.rtc }}
-      chat: ${{ steps.diff.outputs.chat }}
-      live: ${{ steps.diff.outputs.live }}
+      rtc: ${{ steps.diff.outputs.raven_rtc }}
+      chat: ${{ steps.diff.outputs.raven_chat }}
+      live: ${{ steps.diff.outputs.raven_live }}
     steps:
       - uses: actions/checkout@v7
       - name: Compare local versions against pub.dev
