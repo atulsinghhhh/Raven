@@ -105,7 +105,8 @@ ssh "${SSH_OPTS[@]}" "${RAVEN_ADMIN_USER}@${TURN_PUBLIC_IP}" \
 # owned by the SSH user reproduces exactly that. The assertion at the end of
 # this script exists because of it.
 printf '%s\n' "${CONF}" | ssh "${SSH_OPTS[@]}" "${RAVEN_ADMIN_USER}@${TURN_PUBLIC_IP}" \
-  "umask 077 && cat > /opt/raven/turnserver.conf \
+  "sudo chown ${RAVEN_ADMIN_USER}:${RAVEN_ADMIN_USER} /opt/raven/turnserver.conf 2>/dev/null; \
+   umask 077 && cat > /opt/raven/turnserver.conf \
    && sudo chown 65534:65534 /opt/raven/turnserver.conf \
    && sudo chmod 600 /opt/raven/turnserver.conf"
 printf '%s\n' "${COMPOSE}" | ssh "${SSH_OPTS[@]}" "${RAVEN_ADMIN_USER}@${TURN_PUBLIC_IP}" \
