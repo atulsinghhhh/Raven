@@ -117,3 +117,67 @@ It builds and runs its own stack rather than attaching to
   latency and loss on real RTP, and reproduces none of a real path's
   middleboxes, bufferbloat or carrier NAT. The report says "emulated"
   and claims no region it has not served a viewer in.
+- **Everything above is one machine.** `run.mjs`'s scenarios all run their
+  audience on the same box as the SFU they measure — see "Running it
+  distributed" below for the one that doesn't.
+
+---
+
+## Running it distributed
+
+`run.mjs` answers "how many viewers can one node serve." `coordinate.mjs`
+answers a different question — docs/production/architecture-5k.md §4's —
+"does the harness itself scale past one machine's renderer budget." It
+points N containerized `worker.mjs` shards at an already-deployed, real
+API/SFU fleet — your own local one, or a real Azure deployment — instead
+of building a stack of its own.
+
+```sh
+docker build -f scripts/capacity/Dockerfile -t raven/capacity-worker:dev .
+
+node coordinate.mjs \
+  --api-url https://raven-api.example.com \
+  --workers 250,250,250 \
+  --duration 300 --sample-interval 10 \
+  --image raven/capacity-worker:dev
+```
+
+What each piece owns:
+
+- **`worker.mjs`** is one shard: it mints its own slice of viewer
+  identities (`--offset` keeps two workers from colliding), opens real
+  Chromium pages against the real fleet, and writes its own media-alive
+  samples to `--out`. It never touches the stream's lifecycle — no create,
+  no start, no end — and it owns no SFU or API of its own. That is what
+  makes it safe to run many of at once: N of these is N renderer
+  processes, optionally N different machines, never N competing stacks.
+- **`coordinate.mjs`** owns the one thing a worker doesn't: the stream. It
+  provisions a project, creates and starts the stream, publishes to it
+  with its own local Chromium host page, launches the workers (one
+  `docker run` per shard, each optionally `--context <name>` for a
+  different Docker daemon already registered with `docker context
+  create` — the real, existing mechanism for "run this on a different
+  machine," not a new one), waits for them, and merges every worker's raw
+  samples through the same `diffSamples`/`summariseJoins` `run.mjs`
+  itself uses. The merged row lands in `results/` next to `tiers`' rows,
+  same shape, same fields.
+- **`--worker-api-url`** only matters for a same-machine smoke test: the
+  coordinator's own Playwright host reaches the API at `127.0.0.1`, but a
+  container's `127.0.0.1` is itself, so its workers need
+  `host.docker.internal` (or the host's real LAN address) instead. A real
+  deployment's `--api-url` is already routable from anywhere, so this is
+  a no-op there.
+
+**Verified locally**, end to end, against a Rig-booted API+SFU with
+`API_PUBLIC_URL` and `SFU_PUBLIC_IP` pointed at the machine's LAN address
+instead of the default loopback (containers can't reach a host's
+127.0.0.1 — see `Rig`'s `sfuPublicHost` option and `ApiProcess`'s
+`apiEnv`): 3 worker containers, 30 real viewers, 28/30 (93.3%) media-alive,
+29.9 fps decode, 47.38 Mbps real viewer-side throughput, 0% loss. That
+confirms the mechanism — mint, join, decode, sample, merge — works
+end-to-end through a container. It does **not** confirm distribution
+across physically separate machines: this repo has exactly one host to
+test from. The `--context` flag is the intended path to that (Docker's
+own cross-host mechanism, not a bespoke one), and it needs a second real
+machine to actually exercise — see docs/production/architecture-5k.md §4
+for what's proven and what's still open.

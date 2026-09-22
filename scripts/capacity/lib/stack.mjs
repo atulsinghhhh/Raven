@@ -172,6 +172,16 @@ export class SfuProcess extends LoggedProcess {
     registrationSecret,
     roomCapacity,
     region = 'local',
+    // The address baked into every ICE candidate this node hands out
+    // (SFU_PUBLIC_IP, via pion's SetNAT1To1IPs — services/sfu/internal/
+    // room/manager.go). 127.0.0.1 is right for a viewer on this same
+    // machine and wrong for anything else, containerized or not: a
+    // container's own 127.0.0.1 is itself, so a viewer running inside one
+    // (coordinate.mjs's workers) needs this set to an address the
+    // container's network can actually route to — this machine's LAN IP
+    // for a same-host smoke test, or a real routable address once the
+    // SFU is genuinely on a different host.
+    publicHost = '127.0.0.1',
   }) {
     super(`sfu:${nodeId}`);
     Object.assign(this, {
@@ -184,6 +194,7 @@ export class SfuProcess extends LoggedProcess {
       registrationSecret,
       roomCapacity,
       region,
+      publicHost,
     });
     this.metricsUrl = `http://127.0.0.1:${httpPort}/metrics`;
     this.internalUrl = `http://127.0.0.1:${httpPort}`;
@@ -197,8 +208,8 @@ export class SfuProcess extends LoggedProcess {
         SFU_REGION: this.region,
         SFU_HTTP_ADDR: `:${this.httpPort}`,
         SFU_INTERNAL_URL: this.internalUrl,
-        SFU_PUBLIC_HOST: '127.0.0.1',
-        SFU_PUBLIC_IP: '127.0.0.1',
+        SFU_PUBLIC_HOST: this.publicHost,
+        SFU_PUBLIC_IP: this.publicHost,
         SFU_CONTROL_PLANE_URL: this.controlPlaneUrl,
         SFU_REGISTRATION_SECRET: this.registrationSecret,
         SFU_UDP_PORT_MIN: String(this.udpMin),
@@ -281,6 +292,7 @@ export class DockerSfuProcess {
     registrationSecret,
     roomCapacity,
     region = 'local',
+    publicHost = '127.0.0.1', // see SfuProcess's identical option for why this exists
   }) {
     Object.assign(this, {
       image,
@@ -293,6 +305,7 @@ export class DockerSfuProcess {
       registrationSecret,
       roomCapacity,
       region,
+      publicHost,
     });
     this.metricsUrl = `http://127.0.0.1:${httpPort}/metrics`;
     this.internalUrl = `http://127.0.0.1:${httpPort}`;
@@ -338,9 +351,9 @@ export class DockerSfuProcess {
       '-e',
       'SFU_HTTP_ADDR=:7000',
       '-e',
-      'SFU_PUBLIC_HOST=127.0.0.1',
+      `SFU_PUBLIC_HOST=${this.publicHost}`,
       '-e',
-      'SFU_PUBLIC_IP=127.0.0.1',
+      `SFU_PUBLIC_IP=${this.publicHost}`,
       // The API runs on the host, so the container reaches it by the
       // Docker Desktop alias rather than by localhost, which inside the
       // container is the container.

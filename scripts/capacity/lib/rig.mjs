@@ -38,6 +38,13 @@ export const DEFAULTS = {
   perPage: 10,
   staggerMs: 120,
   profile: '360p',
+  // The address baked into this node's ICE candidates — see
+  // SfuProcess's constructor doc in lib/stack.mjs. 127.0.0.1 is right
+  // for every existing scenario here, all of which run their viewers on
+  // this same machine; coordinate.mjs is the one caller that overrides
+  // it, because its viewers run in containers that cannot reach the
+  // host's loopback address.
+  sfuPublicHost: '127.0.0.1',
 };
 
 export class Rig {
@@ -219,6 +226,7 @@ export class Rig {
             apiPort: options.apiPort,
             registrationSecret: this.registrationSecret,
             roomCapacity: options.sfuRoomCapacity,
+            publicHost: options.sfuPublicHost,
           })
         : new SfuProcess({
             binary: this.sfuBinary,
@@ -229,6 +237,7 @@ export class Rig {
             controlPlaneUrl: this.api.baseUrl,
             registrationSecret: this.registrationSecret,
             roomCapacity: options.sfuRoomCapacity,
+            publicHost: options.sfuPublicHost,
           });
     this.note('sfu.start', {
       message: `${this.nodeId} (${options.sfuMode ?? 'host'}) http=${options.sfuHttpPort} udp=${options.sfuUdpMin}-${options.sfuUdpMax}`,
