@@ -10,7 +10,7 @@ import { UsageAllowanceService } from '../usage/usage-allowance.service';
 import { RtcTokenRevocationService } from './rtc-token-revocation.service';
 import { RtcTokenSignerService } from './rtc-token-signer.service';
 import { resolvePermissions, toPermissionsDto } from './rtc-token.claims';
-import { buildIceServers, IceServer } from './turn-credential.util';
+import { buildIceServersForHosts, IceServer } from './turn-credential.util';
 import { ProjectScope } from '../../shared/environment/environment.constants';
 import { SIGNALING_PATH } from '../signaling/signaling.constants';
 
@@ -129,8 +129,8 @@ export class RtcTokensService {
       ttlSeconds,
     });
 
-    const iceServers = buildIceServers({
-      turnHost: this.configService.get<string>('turn.host')!,
+    const iceServers = buildIceServersForHosts({
+      turnHosts: this.configService.get<string[]>('turn.hosts')!,
       turnPort: this.configService.get<number>('turn.port')!,
       turnTlsPort: this.configService.get<number | undefined>('turn.tlsPort'),
       turnSecret: this.configService.get<string>('turn.secret')!,

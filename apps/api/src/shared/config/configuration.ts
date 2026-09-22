@@ -1,3 +1,17 @@
+/**
+ * Comma-separated env value → trimmed, non-empty entries. `undefined`
+ * (the var isn't set) and `""` both produce `[]` rather than `['']` —
+ * the difference between "no extra hosts configured" and "one empty
+ * host", which would otherwise silently poison every ICE server list
+ * built from it.
+ */
+function splitHostList(value: string | undefined): string[] {
+  return (value ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
 export default () => ({
   env: process.env.NODE_ENV ?? 'development',
   port: parseInt(process.env.API_PORT ?? '4000', 10),
@@ -132,7 +146,9 @@ export default () => ({
 
   turn: {
     // Host-facing. This is what a real client gets back, not the internal
-    // container address.
+    // container address. Kept singular for every existing reader (the
+    // health check's STUN probe, anything that only ever knew one host) —
+    // `hosts` below is the superset a multi-node-aware caller should use.
     host: process.env.TURN_HOST ?? 'localhost',
     port: parseInt(process.env.TURN_PORT ?? '3478', 10),
     // Only advertised as a turns: ICE server when set. Leave unset if
@@ -142,6 +158,23 @@ export default () => ({
     // The STUN health check runs inside the api container, so it wants
     // coturn's Docker service name here, not the host-facing TURN_HOST.
     internalHost: process.env.TURN_INTERNAL_HOST ?? 'coturn',
+
+    // Every configured coturn node, host-facing. TURN_HOST is always
+    // first (so it stays the "primary" for anything reading `turn.host`
+    // alone); TURN_HOSTS adds more without repeating it. Unset TURN_HOSTS
+    // and this is just `[TURN_HOST]` — a single-node deployment is
+    // unaffected (10k-scaling audit Phase 4: additive, no behavior change
+    // for the common case).
+    hosts: [process.env.TURN_HOST ?? 'localhost', ...splitHostList(process.env.TURN_HOSTS)],
+    // Same list, container-network-facing — what the continuous TURN
+    // health checker (turn-health.service.ts) actually dials from inside
+    // this process. Mirrors host/internalHost's existing split.
+    internalHosts: [process.env.TURN_INTERNAL_HOST ?? 'coturn', ...splitHostList(process.env.TURN_INTERNAL_HOSTS)],
+    // How often TurnHealthService re-runs a real Allocate against every
+    // configured host. Independent of any client-facing timeout — this is
+    // purely "how fast do we notice a host went bad," same reasoning as
+    // RtcServerRegistryService's stale-node sweep interval.
+    healthCheckIntervalSeconds: parseInt(process.env.TURN_HEALTH_CHECK_INTERVAL_SECONDS ?? '30', 10),
   },
 
   apiKey: {
@@ -221,13 +254,17 @@ export default () => ({
    * request, so a revoked key stops working immediately whether or not its
    * secret was recently verified.
    *
-   * It exists because `bcryptjs` is a pure-JavaScript implementation whose
-   * "async" API wraps a synchronous computation — it blocks Node's one
-   * thread for the whole comparison, about 75ms at cost factor 10. That is
-   * a hard ~13 requests/second per process for *every* API-key-authenticated
-   * request, measured and root-caused in docs/production/capacity-report.md
-   * §1.3 and never actually fixed. A burst of viewer mints hit it before it
-   * hit anything else.
+   * Originally existed because `bcryptjs` — a pure-JavaScript
+   * implementation whose "async" API wraps a synchronous computation — blocked
+   * Node's one thread for the whole comparison, about 75ms at cost factor
+   * 10, capping the entire authenticated REST surface at ~13 requests/second
+   * per process (measured and root-caused in
+   * docs/production/capacity-report.md §1.3). `api-keys.service.ts` now uses
+   * native `bcrypt` instead (10k-scaling audit Phase 0), which runs off the
+   * event loop, so that ceiling no longer applies — but a comparison still
+   * costs ~75ms of real CPU on a thread pool shared with everything else
+   * Node offloads there, so the cache still saves real work when a burst of
+   * viewer mints carries the same key.
    *
    * The TTL is short on purpose. It is the window in which a *rotated* key's
    * old secret could still be accepted if the row itself were left ACTIVE,

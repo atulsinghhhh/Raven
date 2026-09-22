@@ -9,6 +9,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { SignalingGateway } from '../signaling/gateway/signaling.gateway';
 import { SfuLinkService } from '../signaling/sfu/sfu-link.service';
 import { RtcServerRegistryService } from '../rtc-servers/rtc-server-registry.service';
+import { TurnHealthService } from '../health/turn-health.service';
 import { WebhookDeliveryWorker } from '../webhooks/webhook-delivery.worker';
 
 /**
@@ -45,6 +46,7 @@ export class MetricsService {
     private readonly dashboardWsGateway: DashboardWsGateway,
     private readonly webhookDeliveryWorker: WebhookDeliveryWorker,
     private readonly notifications: NotificationsService,
+    private readonly turnHealth: TurnHealthService,
   ) {
     collectDefaultMetrics({ register: this.registry });
 
@@ -120,6 +122,15 @@ export class MetricsService {
     });
 
     new Gauge({
+      name: 'raven_chat_connections_total',
+      help: 'Chat WebSocket connections accepted by this instance since it started. Same honest-proxy reasoning as raven_dashboard_ws_connections_total: a rising rate against a stable set of active users indicates reconnect churn, since a socket that reconnects is indistinguishable from a fresh one at this layer.',
+      registers: [this.registry],
+      collect() {
+        this.set(chatGateway.getMetrics().totalConnections);
+      },
+    });
+
+    new Gauge({
       name: 'raven_signaling_connections_active',
       help: 'Signaling WebSocket connections currently held by this instance',
       registers: [this.registry],
@@ -143,6 +154,15 @@ export class MetricsService {
       registers: [this.registry],
       collect() {
         this.set(signalingGateway.getMetrics().activeParticipants);
+      },
+    });
+
+    new Gauge({
+      name: 'raven_signaling_reconnects_total',
+      help: 'Room joins this instance has served where the participant was already in the room fleet-wide — a genuine reconnect (RoomRegistryService.wasReconnect), not a proxy. Cumulative since this instance started.',
+      registers: [this.registry],
+      collect() {
+        this.set(signalingGateway.getMetrics().reconnectsTotal);
       },
     });
 
@@ -211,6 +231,39 @@ export class MetricsService {
       registers: [this.registry],
       collect() {
         this.set(sfuLink.getLinkedServers().reduce((total, server) => total + server.sessions, 0));
+      },
+    });
+
+    // TurnHealthService (10k-scaling audit Phase 4) — per-instance, like
+    // every gauge above: each instance runs its own checks independently,
+    // so Prometheus sums across pods at query time the same way it does
+    // for the connection gauges. A host missing from raven_turn_healthy
+    // entirely means this instance has never completed a check for it
+    // yet (e.g. just booted), not that it's unhealthy — that's a real
+    // "no data" state, not a 0 this gauge would otherwise have to invent.
+    const turnHealth = this.turnHealth;
+
+    new Gauge({
+      name: 'raven_turn_healthy',
+      help: '1 if this instance\'s last real TURN Allocate against this host succeeded and returned a public relay address, 0 otherwise. Absent for a host with no completed check yet.',
+      labelNames: ['host'],
+      registers: [this.registry],
+      collect() {
+        for (const [host, healthy] of Object.entries(turnHealth.getMetrics().healthyByHost)) {
+          this.set({ host }, healthy);
+        }
+      },
+    });
+
+    new Gauge({
+      name: 'raven_turn_health_check_failures_total',
+      help: 'TURN health checks that failed against this host since this instance started (unreachable, auth rejected, or a private relay address — see logs for which).',
+      labelNames: ['host'],
+      registers: [this.registry],
+      collect() {
+        for (const [host, count] of Object.entries(turnHealth.getMetrics().failuresByHost)) {
+          this.set({ host }, count);
+        }
       },
     });
 

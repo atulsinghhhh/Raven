@@ -66,3 +66,36 @@ export function buildIceServers(opts: {
 
   return servers;
 }
+
+/**
+ * Multi-host version of buildIceServers: one node's worth of STUN/TURN/
+ * TURNS entries per configured host, concatenated. The browser's ICE
+ * agent tries every candidate it's given and uses whichever completes
+ * first — handing it more coturn hosts to try is purely additive, never a
+ * behavior change for a client that only sees one.
+ *
+ * Every host shares one `turnPort`/`turnTlsPort`/`turnSecret`: today's
+ * fleet is homogeneous coturn nodes behind one shared REST secret, per
+ * 10k-scaling audit Phase 4. Per-host ports or secrets would be a real
+ * design change (a TURN registry, mirroring the SFU's), not a config
+ * plumbing one — out of scope here.
+ */
+export function buildIceServersForHosts(opts: {
+  turnHosts: string[];
+  turnPort: number;
+  turnTlsPort?: number;
+  turnSecret: string;
+  participantIdentity: string;
+  ttlSeconds: number;
+}): IceServer[] {
+  return opts.turnHosts.flatMap((turnHost) =>
+    buildIceServers({
+      turnHost,
+      turnPort: opts.turnPort,
+      turnTlsPort: opts.turnTlsPort,
+      turnSecret: opts.turnSecret,
+      participantIdentity: opts.participantIdentity,
+      ttlSeconds: opts.ttlSeconds,
+    }),
+  );
+}

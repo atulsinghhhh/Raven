@@ -62,10 +62,26 @@ export RAVEN_SFU_NSG="raven-sfu-nsg"
 # coturn relays packets — it is network-bound, not CPU- or memory-bound, so
 # 1 GB is ample. 2 vCPUs is not a choice: no 1-vCPU v2 size exists, and the
 # legacy 1-vCPU B1s has no capacity in this region.
-export RAVEN_TURN_VM="raven-coturn-01"
-export RAVEN_TURN_SIZE="Standard_B2ats_v2"
-export RAVEN_TURN_IP_NAME="raven-coturn-ip"
-export RAVEN_TURN_NSG="raven-coturn-nsg"
+#
+# Overridable (10k-scaling audit Phase 4), unlike before — a second TURN
+# node is `RAVEN_TURN_VM=raven-coturn-02 RAVEN_TURN_IP_NAME=raven-coturn-02-ip
+# RAVEN_TURN_NSG=raven-coturn-02-nsg ./02-network.sh && ...03-vms.sh &&
+# ...07-deploy-coturn.sh` — the exact same scripts, a different name, no
+# new provisioning code. The NSG can be a fresh one (02-network.sh's rules
+# are name-driven, not node-count-driven) or the primary's existing NSG
+# reused, since the rules are identical for any TURN node. Register the
+# new node's public-IP resource name in RAVEN_TURN_EXTRA_IP_NAMES so
+# 13-api-app.sh includes it in TURN_HOSTS/TURN_INTERNAL_HOSTS.
+export RAVEN_TURN_VM="${RAVEN_TURN_VM:-raven-coturn-01}"
+export RAVEN_TURN_SIZE="${RAVEN_TURN_SIZE:-Standard_B2ats_v2}"
+export RAVEN_TURN_IP_NAME="${RAVEN_TURN_IP_NAME:-raven-coturn-ip}"
+export RAVEN_TURN_NSG="${RAVEN_TURN_NSG:-raven-coturn-nsg}"
+# Space-separated VM names and public-IP resource names for TURN nodes
+# beyond the primary above — same order, paired by position (13-api-app.sh
+# zips them). Both empty by default: a single-node deployment (today's
+# reality: only one TURN node has ever been deployed) is unaffected.
+export RAVEN_TURN_EXTRA_VMS="${RAVEN_TURN_EXTRA_VMS:-}"
+export RAVEN_TURN_EXTRA_IP_NAMES="${RAVEN_TURN_EXTRA_IP_NAMES:-}"
 
 # --- Ports -------------------------------------------------------------
 # Every value below is read from the repository, not chosen here. Changing
@@ -90,6 +106,7 @@ export RAVEN_TURN_METRICS_PORT="9641" # --prometheus-port, never public
 
 # Redis on the SFU VM, private subnet only.
 export RAVEN_REDIS_PORT="6379"
+export RAVEN_REDIS_EXPORTER_PORT="9121" # redis_exporter, private subnet only — same scope as Redis itself
 
 export RAVEN_SSH_KEY="${HOME}/.ssh/raven-azure"
 export RAVEN_ADMIN_USER="ravenadmin"
@@ -137,3 +154,13 @@ export RAVEN_EGRESS_FRONTDOOR_ORIGIN_GROUP="${RAVEN_EGRESS_FRONTDOOR_ORIGIN_GROU
 export RAVEN_EGRESS_WORKER_APP="${RAVEN_EGRESS_WORKER_APP:-raven-egress-worker}"
 # services/egress-worker/src/config.ts reads PORT (default 8600).
 export RAVEN_EGRESS_WORKER_PORT="${RAVEN_EGRESS_WORKER_PORT:-8600}"
+
+# --- Postgres metrics (10k-scaling audit, Phase 1) ------------------------
+# A standalone Container App, not a VM sidecar: unlike Redis, Postgres is
+# Supabase-managed — there is no VM of ours to attach an exporter to, and
+# co-locating it on the SFU VM (the way Redis is) would just reproduce the
+# exact "unrelated service sharing the media-plane VM's fate" pattern this
+# audit flagged as a Redis risk in the first place.
+export RAVEN_POSTGRES_EXPORTER_APP="${RAVEN_POSTGRES_EXPORTER_APP:-raven-postgres-exporter}"
+# prometheuscommunity/postgres-exporter's default listen port.
+export RAVEN_POSTGRES_EXPORTER_PORT="${RAVEN_POSTGRES_EXPORTER_PORT:-9187}"

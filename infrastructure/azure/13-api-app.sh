@@ -44,6 +44,30 @@ SFU_PRIVATE_IP="$(az vm show -g "${RAVEN_RG}" -n "${RAVEN_SFU_VM}" -d --query pr
 TURN_PRIVATE_IP="$(az vm show -g "${RAVEN_RG}" -n "${RAVEN_TURN_VM}" -d --query privateIps -o tsv)"
 TURN_FQDN="$(az network public-ip show -g "${RAVEN_RG}" -n "${RAVEN_TURN_IP_NAME}" --query dnsSettings.fqdn -o tsv)"
 
+# Extra TURN nodes beyond the primary (10k-scaling audit Phase 4) — empty
+# by default, so TURN_HOSTS/TURN_INTERNAL_HOSTS stay unset and
+# RtcTokensService falls back to the single-host behavior it always had.
+# RAVEN_TURN_EXTRA_VMS and RAVEN_TURN_EXTRA_IP_NAMES are paired by
+# position, same convention as RAVEN_TURN_VM/RAVEN_TURN_IP_NAME for the
+# primary.
+TURN_EXTRA_HOSTS=""
+TURN_EXTRA_INTERNAL_HOSTS=""
+if [ -n "${RAVEN_TURN_EXTRA_VMS}" ]; then
+  read -ra extra_vms <<< "${RAVEN_TURN_EXTRA_VMS}"
+  read -ra extra_ips <<< "${RAVEN_TURN_EXTRA_IP_NAMES}"
+  if [ "${#extra_vms[@]}" -ne "${#extra_ips[@]}" ]; then
+    echo "FATAL: RAVEN_TURN_EXTRA_VMS has ${#extra_vms[@]} entries but RAVEN_TURN_EXTRA_IP_NAMES has ${#extra_ips[@]} — they must pair up 1:1." >&2
+    exit 1
+  fi
+  for i in "${!extra_vms[@]}"; do
+    extra_fqdn="$(az network public-ip show -g "${RAVEN_RG}" -n "${extra_ips[$i]}" --query dnsSettings.fqdn -o tsv)"
+    extra_private_ip="$(az vm show -g "${RAVEN_RG}" -n "${extra_vms[$i]}" -d --query privateIps -o tsv)"
+    TURN_EXTRA_HOSTS="${TURN_EXTRA_HOSTS:+${TURN_EXTRA_HOSTS},}${extra_fqdn}"
+    TURN_EXTRA_INTERNAL_HOSTS="${TURN_EXTRA_INTERNAL_HOSTS:+${TURN_EXTRA_INTERNAL_HOSTS},}${extra_private_ip}"
+  done
+  echo "==> ${#extra_vms[@]} extra TURN node(s): TURN_HOSTS+=${TURN_EXTRA_HOSTS}"
+fi
+
 kv() { az keyvault secret show --vault-name "${RAVEN_KV}" -n "$1" --query value -o tsv; }
 kv_exists() { az keyvault secret show --vault-name "${RAVEN_KV}" -n "$1" --output none 2>/dev/null; }
 
@@ -265,6 +289,15 @@ properties:
             value: ${TURN_FQDN}
           - name: TURN_INTERNAL_HOST
             value: ${TURN_PRIVATE_IP}
+          # Additional TURN nodes beyond the primary (10k-scaling audit
+          # Phase 4) — empty string when RAVEN_TURN_EXTRA_VMS is unset,
+          # which RtcTokensService's config layer already treats as "no
+          # extra hosts" (splitHostList in configuration.ts drops blank
+          # entries rather than producing a one-item list of "").
+          - name: TURN_HOSTS
+            value: "${TURN_EXTRA_HOSTS}"
+          - name: TURN_INTERNAL_HOSTS
+            value: "${TURN_EXTRA_INTERNAL_HOSTS}"
           - name: TURN_PORT
             value: "${RAVEN_TURN_PORT}"
           - name: TURN_TLS_PORT

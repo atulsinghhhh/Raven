@@ -1,5 +1,5 @@
 import { createHmac } from 'crypto';
-import { buildIceServers, generateTurnCredential } from './turn-credential.util';
+import { buildIceServers, buildIceServersForHosts, generateTurnCredential } from './turn-credential.util';
 
 describe('generateTurnCredential', () => {
   it('produces a username in "<expiry>:<label>" form, expiring ttlSeconds from now', () => {
@@ -111,5 +111,72 @@ describe('buildIceServers', () => {
     expect(turns?.urls).toContain('localhost:5349');
     expect(turns?.username).toBe(turnUdp?.username);
     expect(turns?.credential).toBe(turnUdp?.credential);
+  });
+});
+
+describe('buildIceServersForHosts', () => {
+  it('with one host, produces exactly what buildIceServers would for that host alone', () => {
+    const single = buildIceServers({
+      turnHost: 'turn-a.example.com',
+      turnPort: 3478,
+      turnSecret: 'test-secret',
+      participantIdentity: 'alice',
+      ttlSeconds: 600,
+    });
+    const multi = buildIceServersForHosts({
+      turnHosts: ['turn-a.example.com'],
+      turnPort: 3478,
+      turnSecret: 'test-secret',
+      participantIdentity: 'alice',
+      ttlSeconds: 600,
+    });
+    expect(multi).toEqual(single);
+  });
+
+  it('with two hosts, concatenates each host’s own server set — additive, not a replacement', () => {
+    const servers = buildIceServersForHosts({
+      turnHosts: ['turn-a.example.com', 'turn-b.example.com'],
+      turnPort: 3478,
+      turnSecret: 'test-secret',
+      participantIdentity: 'alice',
+      ttlSeconds: 600,
+    });
+
+    // 3 entries per host (stun + turn/udp + turn/tcp), no TLS port set.
+    expect(servers).toHaveLength(6);
+    expect(servers.filter((s) => typeof s.urls === 'string' && s.urls.includes('turn-a.example.com'))).toHaveLength(
+      3,
+    );
+    expect(servers.filter((s) => typeof s.urls === 'string' && s.urls.includes('turn-b.example.com'))).toHaveLength(
+      3,
+    );
+  });
+
+  it('every host gets a valid, independently-verifiable credential — not one host’s credential reused on another’s URLs', () => {
+    const servers = buildIceServersForHosts({
+      turnHosts: ['turn-a.example.com', 'turn-b.example.com'],
+      turnPort: 3478,
+      turnSecret: 'shared-secret',
+      participantIdentity: 'alice',
+      ttlSeconds: 600,
+    });
+
+    for (const server of servers) {
+      if (typeof server.urls !== 'string' || !server.urls.startsWith('turn:')) continue;
+      expect(server.username).toBeDefined();
+      const expected = createHmac('sha1', 'shared-secret').update(server.username!).digest('base64');
+      expect(server.credential).toBe(expected);
+    }
+  });
+
+  it('an empty host list produces an empty ICE server list rather than throwing', () => {
+    const servers = buildIceServersForHosts({
+      turnHosts: [],
+      turnPort: 3478,
+      turnSecret: 'test-secret',
+      participantIdentity: 'alice',
+      ttlSeconds: 600,
+    });
+    expect(servers).toEqual([]);
   });
 });

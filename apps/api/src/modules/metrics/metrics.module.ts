@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MetricsMiddleware } from '../../shared/middleware/metrics.middleware';
 import { ChatModule } from '../chat/chat.module';
 import { DashboardWsModule } from '../dashboard-ws/dashboard-ws.module';
+import { HealthModule } from '../health/health.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { RtcServersModule } from '../rtc-servers/rtc-servers.module';
 import { SfuLinkModule } from '../signaling/sfu/sfu-link.module';
@@ -28,6 +29,7 @@ import { MetricsService } from './metrics.service';
     DashboardWsModule,
     WebhooksModule,
     NotificationsModule,
+    HealthModule,
   ],
   controllers: [MetricsController],
   providers: [MetricsService, MetricsMiddleware, MetricsAuthGuard],
