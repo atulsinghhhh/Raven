@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { ApiKeyStatus } from '../../generated/prisma/client';
-import * as bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { UnauthorizedError } from '../../shared/errors/app-error';
 import { pepper } from '../../shared/utils/crypto.util';
@@ -8,15 +8,15 @@ import { ApiKeysService } from './api-keys.service';
 import { Environment } from '../../shared/environment/environment.constants';
 
 /**
- * bcryptjs, wrapped so comparisons can be counted.
+ * Native `bcrypt`, wrapped so comparisons can be counted.
  *
  * A passthrough rather than a stub: the real implementation still runs, so
  * every assertion in this file about what actually authenticates stays
  * honest. Only the call count is added. `jest.spyOn` cannot do this —
  * the module's exports are non-configurable.
  */
-jest.mock('bcryptjs', () => {
-  const real = jest.requireActual<typeof import('bcryptjs')>('bcryptjs');
+jest.mock('bcrypt', () => {
+  const real = jest.requireActual<typeof import('bcrypt')>('bcrypt');
   return { ...real, compare: jest.fn(real.compare) };
 });
 
@@ -171,10 +171,12 @@ describe('ApiKeysService', () => {
   /**
    * The verified-secret cache (see `verifiedSecrets`).
    *
-   * `bcryptjs` blocks Node's one thread for ~75ms per comparison, which
-   * caps the whole authenticated REST surface at roughly thirteen requests
-   * per second per process — the bottleneck a hundred simultaneous viewer
-   * mints hit before they reach Postgres at all. The cache removes it.
+   * Even with native `bcrypt` (off the event loop, on libuv's thread
+   * pool), a comparison still costs ~75ms of real CPU time on a pool
+   * shared with everything else Node offloads there — the cost a hundred
+   * simultaneous viewer mints carrying the same key would otherwise all
+   * pay before any of them reach Postgres. The cache removes that
+   * redundant work.
    *
    * The risk it introduces is obvious and is what most of these cover: a
    * cache in front of authentication must not become a way to keep using a

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiKey, ApiKeyStatus, Project } from '../../generated/prisma/client';
-import * as bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcrypt';
 import { createHash } from 'node:crypto';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { NotFoundError, UnauthorizedError } from '../../shared/errors/app-error';
@@ -49,21 +49,26 @@ export class ApiKeysService {
   /**
    * Recently-verified secrets, keyed by public id.
    *
-   * ## Why this cache has to exist
+   * ## Why this cache still exists
    *
-   * `bcryptjs` is a pure-JavaScript bcrypt. Its "async" API wraps a
-   * synchronous computation, so a comparison does not yield to the event
-   * loop — it *blocks* Node's single thread for the whole thing, about 75ms
-   * at cost factor 10. Every API-key-authenticated request pays it, which
-   * puts a hard ceiling of roughly thirteen requests per second per process
-   * on the entire REST surface, whatever the database is doing. That was
-   * measured and root-caused in docs/production/capacity-report.md §1.3 and
-   * then never fixed.
+   * Originally added because the old dependency here, `bcryptjs`, is a
+   * pure-JavaScript bcrypt whose "async" API wraps a synchronous
+   * computation — it *blocked* Node's single thread for the whole
+   * comparison, about 75ms at cost factor 10, capping the entire
+   * authenticated REST surface at roughly thirteen requests per second per
+   * process regardless of what the database was doing. That was measured
+   * and root-caused in docs/production/capacity-report.md §1.3.
    *
-   * It matters most exactly where Live Streaming is most exposed: a hundred
-   * viewers arriving at once send a hundred mints carrying the *same*
-   * project key, and the old path recomputed the same comparison a hundred
-   * times, single-file, before any of them reached Postgres.
+   * This module now uses the native `bcrypt` package instead (10k-scaling
+   * audit Phase 0): its comparison runs on libuv's worker-thread pool, so
+   * it no longer blocks the event loop, and the per-process ceiling above
+   * no longer applies. The cache still earns its keep for a different
+   * reason — every uncached comparison still costs real CPU on a thread
+   * pool shared with everything else Node offloads there (DNS lookups,
+   * file I/O, other bcrypt calls), and a burst that all carries the same
+   * project key — a hundred Live Streaming viewers arriving at once, all
+   * minting against the same key — would otherwise recompute the identical
+   * comparison a hundred times over.
    *
    * ## What is cached, and what is deliberately not
    *
