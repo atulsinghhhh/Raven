@@ -115,6 +115,7 @@ describe('RoomRegistryService', () => {
   it('reports a reconnect (same participantId) instead of duplicating the slot', async () => {
     const first = makeSession({ participantId: 'alice', connectionId: 'conn-old' });
     await registry.join(first);
+    expect(registry.getMetrics().reconnectsTotal).toBe(0);
 
     const second = makeSession({ participantId: 'alice', connectionId: 'conn-new' });
     const { wasReconnect } = await registry.join(second);
@@ -122,6 +123,7 @@ describe('RoomRegistryService', () => {
     expect(wasReconnect).toBe(true);
     expect(registry.listParticipants('room-1')).toHaveLength(1);
     expect(registry.get('room-1', 'alice')).toBe(second);
+    expect(registry.getMetrics().reconnectsTotal).toBe(1);
   });
 
   it('rejects joining once the room is at its configured capacity', async () => {
@@ -153,7 +155,7 @@ describe('RoomRegistryService', () => {
 
     expect(removed?.participantId).toBe('alice');
     expect(registry.get('room-1', 'alice')).toBeUndefined();
-    expect(registry.getMetrics()).toEqual({ activeRooms: 0, activeParticipants: 0 });
+    expect(registry.getMetrics()).toEqual({ activeRooms: 0, activeParticipants: 0, reconnectsTotal: 0 });
   });
 
   it('leave is a safe no-op for a participant/room that never existed', async () => {
@@ -165,7 +167,7 @@ describe('RoomRegistryService', () => {
     await registry.join(makeSession({ participantId: 'b', roomId: 'room-1' }));
     await registry.join(makeSession({ participantId: 'c', roomId: 'room-2' }));
 
-    expect(registry.getMetrics()).toEqual({ activeRooms: 2, activeParticipants: 3 });
+    expect(registry.getMetrics()).toEqual({ activeRooms: 2, activeParticipants: 3, reconnectsTotal: 0 });
   });
 
   describe('existsFleetWide', () => {

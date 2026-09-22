@@ -66,6 +66,19 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   private heartbeatTimer?: NodeJS.Timeout;
   private unsubscribeFromEvents?: () => void;
 
+  /**
+   * Cumulative since process start, for MetricsService's
+   * raven_chat_connections_total. Same honest-proxy reasoning as
+   * DashboardWsGateway.totalConnections: a client that reconnects opens a
+   * new socket indistinguishable from a first-time connect from here (a
+   * user may legitimately hold several concurrent connections across
+   * devices), so this is the closest thing to a reconnect-rate signal
+   * this gateway has — a roughly stable set of active users producing a
+   * rising rate of accepted connections means something is dropping and
+   * retrying.
+   */
+  private totalConnections = 0;
+
   constructor(
     private readonly chatTokens: ChatTokenService,
     private readonly conversations: ConversationsService,
@@ -196,6 +209,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     });
 
     this.sessions.set(socket, session);
+    this.totalConnections++;
     this.metrics.increment(session.projectId, 'connections_opened');
 
     socket.on('message', (data: RawData) => void this.handleFrame(session, data));
@@ -769,6 +783,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       activeConnections: this.sessions.size,
       subscribedRooms: this.roomIndex.size,
       subscribedChannels: this.events.getSubscribedChannelCount(),
+      totalConnections: this.totalConnections,
     };
   }
 }

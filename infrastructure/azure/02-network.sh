@@ -77,6 +77,16 @@ az network nsg rule create -g "${RAVEN_RG}" --nsg-name "${RAVEN_SFU_NSG}" \
   --description "Redis. Private subnet only." \
   --output none
 
+# redis_exporter, same scope as Redis itself: whatever eventually scrapes
+# it lives in (or reaches through) the Container Apps subnet, and it has
+# no more business facing the Internet than Redis does.
+az network nsg rule create -g "${RAVEN_RG}" --nsg-name "${RAVEN_SFU_NSG}" \
+  -n AllowRedisExporterFromApps --priority 121 --direction Inbound --access Allow \
+  --protocol Tcp --source-address-prefixes "${RAVEN_SUBNET_APPS_CIDR}" \
+  --destination-port-ranges "${RAVEN_REDIS_EXPORTER_PORT}" \
+  --description "redis_exporter metrics. Private subnet only." \
+  --output none
+
 az network nsg rule create -g "${RAVEN_RG}" --nsg-name "${RAVEN_SFU_NSG}" \
   -n AllowSshFromAdmin --priority 300 --direction Inbound --access Allow \
   --protocol Tcp --source-address-prefixes "${ADMIN_CIDR}" \

@@ -74,6 +74,15 @@ log-file=stdout
 verbose
 # No CLI listener; nothing needs to reconfigure this at runtime.
 no-cli
+
+# Prometheus metrics. Reachable on the VM's own interfaces only — the NSG
+# (raven-coturn-nsg) does not open ${RAVEN_TURN_METRICS_PORT} to the
+# Internet and must not; this is for a scraper inside the VNet. Local dev
+# passes the same two settings as CLI flags (docker-compose.yml) rather
+# than config-file lines, since that compose file can't expand \${VARS}
+# the way this heredoc already does.
+prometheus
+prometheus-port=${RAVEN_TURN_METRICS_PORT}
 CONFIG
 )
 

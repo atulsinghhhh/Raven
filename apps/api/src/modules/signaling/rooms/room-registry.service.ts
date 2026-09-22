@@ -41,6 +41,8 @@ export interface JoinResult {
 export class RoomRegistryService {
   private readonly logger = new Logger(RoomRegistryService.name);
   private readonly rooms = new Map<string, Map<string, ParticipantSession>>();
+  /** Reconnects seen by this instance since boot. Read by MetricsService via getMetrics(); see raven_signaling_reconnects_total. */
+  private reconnectsTotal = 0;
   /** Identifies this process within a fleet. Same shape as chat's ConnectionRegistryService.gatewayId. */
   readonly gatewayId = `gw_${process.pid.toString(36)}_${randomBytes(3).toString('hex')}`;
 
@@ -77,6 +79,9 @@ export class RoomRegistryService {
     }
 
     const wasReconnect = fleetParticipantIds.includes(session.participantId);
+    if (wasReconnect) {
+      this.reconnectsTotal++;
+    }
     if (!wasReconnect && fleetParticipantIds.length >= maxParticipants) {
       throw new SignalingError(
         SignalingErrorCode.ROOM_FULL,
@@ -246,11 +251,11 @@ export class RoomRegistryService {
    * probe stays cheap and pays no Redis round trip. Fleet-wide counts belong
    * on the /metrics surface instead.
    */
-  getMetrics(): { activeRooms: number; activeParticipants: number } {
+  getMetrics(): { activeRooms: number; activeParticipants: number; reconnectsTotal: number } {
     let activeParticipants = 0;
     for (const room of this.rooms.values()) {
       activeParticipants += room.size;
     }
-    return { activeRooms: this.rooms.size, activeParticipants };
+    return { activeRooms: this.rooms.size, activeParticipants, reconnectsTotal: this.reconnectsTotal };
   }
 }

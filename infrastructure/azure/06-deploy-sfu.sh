@@ -62,6 +62,22 @@ services:
       timeout: 5s
       retries: 5
 
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.66.0
+    container_name: raven-redis-exporter
+    restart: unless-stopped
+    command:
+      - "--redis.addr=redis://redis:6379"
+      - "--redis.password=\${REDIS_PASSWORD}"
+    # Same bind discipline as redis itself just above: the private NIC
+    # only, never 0.0.0.0, so a future NSG mistake doesn't expose this on
+    # its own. AllowRedisExporterFromApps (02-network.sh) is the NSG side.
+    ports:
+      - "${SFU_PRIVATE_IP}:${RAVEN_REDIS_EXPORTER_PORT}:9121"
+    depends_on:
+      redis:
+        condition: service_healthy
+
   sfu:
     image: ${LOGIN_SERVER}/raven-sfu:${TAG}
     container_name: raven-sfu
