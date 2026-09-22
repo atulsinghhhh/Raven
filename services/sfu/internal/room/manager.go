@@ -310,12 +310,18 @@ func (m *Manager) CloseRoom(roomID string) bool {
 	return true
 }
 
-// Load is what the heartbeat sends home.
+// Load is what the heartbeat sends home, and what the /metrics gauges
+// read (see internal/metrics). Publishers/Subscribers are metrics-only
+// today — the heartbeat wire format (internal/registry) is left
+// untouched here; wiring a future scheduler's placement decisions to
+// these counts is Phase 3 work, not this one.
 type Load struct {
 	Rooms        int
 	Participants int
 	AudioTracks  int
 	VideoTracks  int
+	Publishers   int
+	Subscribers  int
 }
 
 func (m *Manager) Load() Load {
@@ -326,6 +332,9 @@ func (m *Manager) Load() Load {
 		audio, video := target.TrackCount()
 		load.AudioTracks += audio
 		load.VideoTracks += video
+		publishers, subscribers := target.RoleCounts()
+		load.Publishers += publishers
+		load.Subscribers += subscribers
 	}
 	return load
 }

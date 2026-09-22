@@ -30,6 +30,7 @@ type Metrics struct {
 	NegotiationFailures  prometheus.Counter
 	ConnectionsFailed    prometheus.Counter
 	ConnectionsSucceeded prometheus.Counter
+	ICEFailures          prometheus.Counter
 	LayerSwitches        prometheus.Counter
 	KeyframesRequested   prometheus.Counter
 
@@ -40,6 +41,8 @@ type Metrics struct {
 	activeParticipants prometheus.GaugeFunc
 	activeAudioTracks  prometheus.GaugeFunc
 	activeVideoTracks  prometheus.GaugeFunc
+	activePublishers   prometheus.GaugeFunc
+	activeSubscribers  prometheus.GaugeFunc
 	nodeLinkConnected  prometheus.GaugeFunc
 }
 
@@ -89,6 +92,10 @@ func New(manager *room.Manager, linkConnected func() bool) *Metrics {
 			Name: "raven_sfu_connections_failed_total",
 			Help: "PeerConnections that reached the failed state without ever connecting.",
 		}),
+		ICEFailures: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "raven_sfu_ice_failures_total",
+			Help: "ICE connections that reached the failed state. A subset of connections_failed_total — narrower, since a peer connection can fail for reasons other than ICE (e.g. DTLS), and this isolates the one the operator can actually act on (TURN/network, per docs/rtc/networking.md).",
+		}),
 		LayerSwitches: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "raven_sfu_layer_switches_total",
 			Help: "Simulcast layer changes committed for a subscriber.",
@@ -119,6 +126,16 @@ func New(manager *room.Manager, linkConnected func() bool) *Metrics {
 		Help: "Video tracks currently being forwarded, including screen shares.",
 	}, func() float64 { return float64(manager.Load().VideoTracks) })
 
+	m.activePublishers = prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "raven_sfu_active_publishers",
+		Help: "Participants on this node currently sending at least one track. A participant may count as both a publisher and a subscriber.",
+	}, func() float64 { return float64(manager.Load().Publishers) })
+
+	m.activeSubscribers = prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "raven_sfu_active_subscribers",
+		Help: "Participants on this node currently receiving at least one track. A participant may count as both a publisher and a subscriber.",
+	}, func() float64 { return float64(manager.Load().Subscribers) })
+
 	m.nodeLinkConnected = prometheus.NewGaugeFunc(prometheus.GaugeOpts{
 		Name: "raven_sfu_node_link_connected",
 		Help: "1 when a control plane is attached. A node at 0 keeps serving existing calls but accepts no new participants.",
@@ -133,10 +150,11 @@ func New(manager *room.Manager, linkConnected func() bool) *Metrics {
 		m.ParticipantsJoined, m.ParticipantsLeft, m.RoomsCreated,
 		m.TracksPublished, m.TracksUnpublished,
 		m.NegotiationsStarted, m.NegotiationFailures,
-		m.ConnectionsSucceeded, m.ConnectionsFailed,
+		m.ConnectionsSucceeded, m.ConnectionsFailed, m.ICEFailures,
 		m.LayerSwitches, m.KeyframesRequested,
 		m.activeRooms, m.activeParticipants,
 		m.activeAudioTracks, m.activeVideoTracks,
+		m.activePublishers, m.activeSubscribers,
 		m.nodeLinkConnected,
 	)
 
@@ -182,6 +200,8 @@ type trafficCollector struct {
 	packetsReceived *prometheus.Desc
 	packetsSent     *prometheus.Desc
 	packetsDropped  *prometheus.Desc
+	rtcpPackets     *prometheus.Desc
+	packetLoss      *prometheus.Desc
 }
 
 func newTrafficCollector(manager *room.Manager) *trafficCollector {
@@ -207,6 +227,14 @@ func newTrafficCollector(manager *room.Manager) *trafficCollector {
 			"raven_sfu_media_packets_dropped_total",
 			"Packets deliberately not forwarded: a muted track, or a simulcast layer this subscriber is not receiving. Not a loss indicator.", nil, nil,
 		),
+		rtcpPackets: prometheus.NewDesc(
+			"raven_sfu_rtcp_packets_total",
+			"RTCP packets processed from subscribers: PLI, FIR, Receiver/Sender Reports, everything ReadRTCP returns.", nil, nil,
+		),
+		packetLoss: prometheus.NewDesc(
+			"raven_sfu_packet_loss_fraction",
+			"Mean of the most recent RTCP Receiver Report FractionLost (0.0-1.0) across subscribers that have sent at least one report. 0 when none have reported yet — that is 'no data', not 'zero loss measured'; check raven_sfu_active_subscribers before reading this as a real number.", nil, nil,
+		),
 	}
 }
 
@@ -216,10 +244,14 @@ func (c *trafficCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.packetsReceived
 	ch <- c.packetsSent
 	ch <- c.packetsDropped
+	ch <- c.rtcpPackets
+	ch <- c.packetLoss
 }
 
 func (c *trafficCollector) Collect(ch chan<- prometheus.Metric) {
 	var bytesIn, bytesOut, packetsIn, packetsOut, dropped float64
+	var lossSum float64
+	var lossReporters int
 
 	for _, activeRoom := range c.manager.Rooms() {
 		for _, participant := range activeRoom.Participants() {
@@ -231,14 +263,37 @@ func (c *trafficCollector) Collect(ch chan<- prometheus.Metric) {
 					bytesOut += float64(down.BytesSent)
 					packetsOut += float64(down.PacketsSent)
 					dropped += float64(down.PacketsDropped)
+					if down.HasLossReport {
+						lossSum += down.PacketLossFraction
+						lossReporters++
+					}
 				}
 			}
 		}
 	}
+
+	var meanLoss float64
+	if lossReporters > 0 {
+		meanLoss = lossSum / float64(lossReporters)
+	}
+
+	// A track/downtrack closed between two scrapes drops out of the live
+	// sum above entirely, which used to make these counters go backwards
+	// during ordinary churn (room.ClosedTrafficTotals's own doc comment
+	// has the detail). Adding each closed track's final tally back in is
+	// what keeps this genuinely monotonic.
+	closedBytesIn, closedBytesOut, closedPacketsIn, closedPacketsOut, closedDropped := room.ClosedTrafficTotals()
+	bytesIn += float64(closedBytesIn)
+	bytesOut += float64(closedBytesOut)
+	packetsIn += float64(closedPacketsIn)
+	packetsOut += float64(closedPacketsOut)
+	dropped += float64(closedDropped)
 
 	ch <- prometheus.MustNewConstMetric(c.bytesReceived, prometheus.CounterValue, bytesIn)
 	ch <- prometheus.MustNewConstMetric(c.bytesSent, prometheus.CounterValue, bytesOut)
 	ch <- prometheus.MustNewConstMetric(c.packetsReceived, prometheus.CounterValue, packetsIn)
 	ch <- prometheus.MustNewConstMetric(c.packetsSent, prometheus.CounterValue, packetsOut)
 	ch <- prometheus.MustNewConstMetric(c.packetsDropped, prometheus.CounterValue, dropped)
+	ch <- prometheus.MustNewConstMetric(c.rtcpPackets, prometheus.CounterValue, float64(room.RTCPPacketsProcessed()))
+	ch <- prometheus.MustNewConstMetric(c.packetLoss, prometheus.GaugeValue, meanLoss)
 }

@@ -392,6 +392,22 @@ func (r *Room) TrackCount() (audio, video int) {
 	return audio, video
 }
 
+// RoleCounts totals how many participants in the room are currently
+// publishing at least one track, and how many hold at least one
+// subscription. A participant can be both, or neither (joined but not yet
+// negotiated). Feeds the metrics registry (spec §27).
+func (r *Room) RoleCounts() (publishers, subscribers int) {
+	for _, participant := range r.Participants() {
+		if participant.IsPublishing() {
+			publishers++
+		}
+		if participant.IsSubscribing() {
+			subscribers++
+		}
+	}
+	return publishers, subscribers
+}
+
 // State is the snapshot that put an end to polling LiveKit's
 // RoomServiceClient.
 func (r *Room) State() State {

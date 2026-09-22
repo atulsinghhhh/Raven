@@ -499,6 +499,13 @@ func (t *PublishedTrack) Close() bool {
 	if !t.closed.CompareAndSwap(false, true) {
 		return false
 	}
+
+	// See traffic_totals.go: this track's received bytes/packets are about
+	// to drop out of the live sum the metrics collector reads, so bank the
+	// final tally before that happens.
+	closedTrackTraffic.bytesReceived.Add(t.bytesReceived.Load())
+	closedTrackTraffic.packetsReceived.Add(t.packetsReceived.Load())
+
 	t.mu.Lock()
 	downs := t.downTracks
 	t.downTracks = make(map[string]*DownTrack)

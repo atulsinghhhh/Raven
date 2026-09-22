@@ -366,6 +366,23 @@ func (p *Participant) canPublishKind(kind webrtc.RTPCodecType) bool {
 func (p *Participant) CanSubscribe() bool   { return p.permissions.Subscribe }
 func (p *Participant) CanPublishData() bool { return p.permissions.PublishData }
 
+// IsPublishing reports whether this participant currently has at least one
+// track flowing in. Feeds the publisher/subscriber role split in
+// Room.RoleCounts, for the metrics registry (spec §27).
+func (p *Participant) IsPublishing() bool {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return len(p.published) > 0
+}
+
+// IsSubscribing reports whether this participant currently holds at least
+// one copy of someone else's track. See IsPublishing.
+func (p *Participant) IsSubscribing() bool {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return len(p.subscriptions) > 0
+}
+
 // Subscribe attaches one of someone else's tracks to this participant.
 //
 // Doesn't renegotiate. The caller batches subscriptions and renegotiates
@@ -425,7 +442,7 @@ func (p *Participant) Subscribe(track *PublishedTrack) error {
 	// publisher's encoder. Skip it and a subscriber's PLI (its decoder
 	// asking for a keyframe after loss) goes unseen, leaving the picture
 	// broken until the next scheduled keyframe wanders past.
-	go p.forwardSubscriberFeedback(sender, track)
+	go p.forwardSubscriberFeedback(sender, track, down)
 
 	p.logger.Debug("subscribed", "publisher", track.ParticipantID, "trackId", track.ID)
 	return nil
@@ -438,7 +455,7 @@ func (p *Participant) Subscribe(track *PublishedTrack) error {
 // decoder gives up, fires a PLI at the SFU, SFU asks the publisher for a
 // keyframe. Dropping these on the floor is a classic SFU bug, and the
 // symptom is always "video sometimes just never comes back after a blip".
-func (p *Participant) forwardSubscriberFeedback(sender *webrtc.RTPSender, track *PublishedTrack) {
+func (p *Participant) forwardSubscriberFeedback(sender *webrtc.RTPSender, track *PublishedTrack, down *DownTrack) {
 	for {
 		packets, _, err := sender.ReadRTCP()
 		if err != nil {
@@ -447,10 +464,18 @@ func (p *Participant) forwardSubscriberFeedback(sender *webrtc.RTPSender, track 
 			}
 			return
 		}
+		rtcpPacketsProcessed.Add(uint64(len(packets)))
 		for _, packet := range packets {
-			switch packet.(type) {
+			switch pkt := packet.(type) {
 			case *rtcp.PictureLossIndication, *rtcp.FullIntraRequest:
 				track.RequestKeyframeNow()
+			case *rtcp.ReceiverReport:
+				// One m-line per sender here, so every report in this RR
+				// describes the same SSRC — no need to match it explicitly.
+				if len(pkt.Reports) > 0 {
+					down.lastFractionLost.Store(uint32(pkt.Reports[0].FractionLost))
+					down.hasLossReport.Store(true)
+				}
 			}
 			// NACK is Pion's own interceptor's job, worked against its send
 			// buffer. It can retransmit the exact packet, which beats

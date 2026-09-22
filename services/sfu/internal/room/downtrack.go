@@ -134,6 +134,14 @@ type DownTrack struct {
 	bytesSent   atomic.Uint64
 	packetsDrop atomic.Uint64
 
+	// lastFractionLost is the most recent RTCP Receiver Report's
+	// FractionLost from this subscriber, 0-255 (÷255 for a 0.0-1.0
+	// fraction). Set in forwardSubscriberFeedback. Zero until the first
+	// report arrives — see hasLossReport before treating that zero as a
+	// measurement rather than "nothing received yet" (spec §19).
+	lastFractionLost atomic.Uint32
+	hasLossReport    atomic.Bool
+
 	closed atomic.Bool
 }
 
@@ -311,21 +319,41 @@ type DownTrackStats struct {
 	PacketsDropped uint64
 	CurrentLayer   LayerID
 	RequestedLayer LayerID
+	// PacketLossFraction is this subscriber's most recent RTCP Receiver
+	// Report FractionLost, as 0.0-1.0. Only meaningful when HasLossReport
+	// is true — before the first report arrives this is the zero value,
+	// which must not be read as "measured zero loss" (spec §19).
+	PacketLossFraction float64
+	HasLossReport      bool
 }
 
 func (d *DownTrack) Stats() DownTrackStats {
 	return DownTrackStats{
-		SubscriberID:   d.SubscriberID,
-		PacketsSent:    d.packetsSent.Load(),
-		BytesSent:      d.bytesSent.Load(),
-		PacketsDropped: d.packetsDrop.Load(),
-		CurrentLayer:   d.CurrentLayer(),
-		RequestedLayer: d.RequestedLayer(),
+		SubscriberID:       d.SubscriberID,
+		PacketsSent:        d.packetsSent.Load(),
+		BytesSent:          d.bytesSent.Load(),
+		PacketsDropped:     d.packetsDrop.Load(),
+		CurrentLayer:       d.CurrentLayer(),
+		RequestedLayer:     d.RequestedLayer(),
+		PacketLossFraction: float64(d.lastFractionLost.Load()) / 255,
+		HasLossReport:      d.hasLossReport.Load(),
 	}
 }
 
+// Close stops forwarding. Guarded so its traffic-total bookkeeping fires
+// exactly once even though it's reachable from three independent paths
+// (RemoveSubscriber, PublishedTrack.Close()'s bulk close, and Participant
+// teardown) that can all race to close the same instance.
 func (d *DownTrack) Close() {
-	d.closed.Store(true)
+	if !d.closed.CompareAndSwap(false, true) {
+		return
+	}
+	// See traffic_totals.go: this downtrack's sent bytes/packets are about
+	// to drop out of the live sum the metrics collector reads, so bank the
+	// final tally before that happens.
+	closedTrackTraffic.bytesSent.Add(d.bytesSent.Load())
+	closedTrackTraffic.packetsSent.Add(d.packetsSent.Load())
+	closedTrackTraffic.packetsDropped.Add(d.packetsDrop.Load())
 }
 
 func (d *DownTrack) Sender() *webrtc.RTPSender {

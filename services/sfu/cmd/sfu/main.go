@@ -81,6 +81,13 @@ func main() {
 			case webrtc.PeerConnectionStateFailed.String():
 				nodeMetrics.ConnectionsFailed.Inc()
 			}
+			// Counted independently of peerState above: ICE can reach
+			// failed while the overall PeerConnection is still climbing
+			// toward (or briefly past) connected, and a peer connection can
+			// fail for a non-ICE reason (DTLS) that this must not conflate.
+			if iceState == webrtc.ICEConnectionStateFailed.String() {
+				nodeMetrics.ICEFailures.Inc()
+			}
 			link.SendConnectionState(p, iceState, peerState)
 		},
 		OnParticipantGone: func(p *room.Participant) {
