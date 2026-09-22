@@ -16,6 +16,15 @@ function isUniqueViolation(err: unknown): boolean {
   return (err as { code?: string })?.code === 'P2002';
 }
 
+// `findAllForProject` is public API (`GET /v1/rooms`) returning a bare
+// array, so real cursor pagination would be a breaking response-shape
+// change. This cap only guards against unbounded growth as a project
+// accumulates active rooms over time — same shape of safety bound as
+// `usage-meter.service.ts`'s reaper `take: 500` — not a substitute for
+// real pagination, which the audit flags as future work requiring an
+// additive, versioned change to the endpoint's contract.
+const MAX_ACTIVE_ROOMS_PER_LISTING = 1000;
+
 export interface RoomWithLiveState extends Room {
   /** Participants actually connected to the room's SFU node right now. `null` means the node could not be reached: distinct from a genuinely idle 0. */
   liveParticipantCount: number | null;
@@ -121,6 +130,7 @@ export class RoomsService {
     return this.prisma.room.findMany({
       where: { projectId: scope.projectId, environment: scope.environment, status: RoomStatus.ACTIVE },
       orderBy: { createdAt: 'desc' },
+      take: MAX_ACTIVE_ROOMS_PER_LISTING,
     });
   }
 
